@@ -1,0 +1,3118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HEBCS Model Schema",
+  "description": "Formal input/output contract for the HEBCS wellness score model system",
+  "version": "1.1.0",
+  "created": "2026-02-19",
+  "models": {
+    "holistic_health": {
+      "file": "holistic_health_model.joblib",
+      "type": "regressor",
+      "algorithm": "GradientBoosting",
+      "pipeline_steps": [
+        "SimpleImputer(median)",
+        "StandardScaler",
+        "GradientBoostingRegressor"
+      ],
+      "metrics": {
+        "R2": 0.808,
+        "RMSE": 2.93,
+        "MAE": 2.22
+      },
+      "n_features": 284,
+      "output": {
+        "name": "health_score",
+        "dtype": "float64",
+        "range": [
+          0,
+          100
+        ],
+        "interpretation": "0=critical, 100=optimal"
+      }
+    },
+    "risk_classifiers_v1": {
+      "description": "11 binary risk classifiers from NB04 (284-feature input)",
+      "n_features": 284,
+      "targets": {
+        "anemia": {
+          "file": "risk_anemia_model.joblib",
+          "auc": 1.0,
+          "n_features": 284
+        },
+        "gi_distress": {
+          "file": "risk_gi_distress_model.joblib",
+          "auc": 0.9981,
+          "n_features": 284
+        },
+        "hyperkalemia": {
+          "file": "risk_hyperkalemia_model.joblib",
+          "auc": 1.0,
+          "n_features": 284
+        },
+        "hyperparathyroid": {
+          "file": "risk_hyperparathyroid_model.joblib",
+          "auc": 1.0,
+          "n_features": 284
+        },
+        "hypocalcemia": {
+          "file": "risk_hypocalcemia_model.joblib",
+          "auc": 1.0,
+          "n_features": 284
+        },
+        "hypokalemia": {
+          "file": "risk_hypokalemia_model.joblib",
+          "auc": 1.0,
+          "n_features": 284
+        },
+        "intradialytic_hypotension": {
+          "file": "risk_intradialytic_hypotension_model.joblib",
+          "auc": 0.9999,
+          "n_features": 284
+        },
+        "iron_deficiency": {
+          "file": "risk_iron_deficiency_model.joblib",
+          "auc": 1.0,
+          "n_features": 284
+        },
+        "malnutrition": {
+          "file": "risk_malnutrition_model.joblib",
+          "auc": 0.9983,
+          "n_features": 284
+        },
+        "metabolic_acidosis": {
+          "file": "risk_metabolic_acidosis_model.joblib",
+          "auc": 1.0,
+          "n_features": 284
+        },
+        "poor_health": {
+          "file": "risk_poor_health_model.joblib",
+          "auc": 0.953,
+          "n_features": 284
+        }
+      },
+      "output": {
+        "dtype": "float64",
+        "range": [
+          0.0,
+          1.0
+        ],
+        "interpretation": "probability of risk condition"
+      }
+    },
+    "clinical_risk_v2": {
+      "description": "12 clinical risk models from NB06 (141-feature input)",
+      "manifest_file": "clinical_risk/manifest.json",
+      "n_features": 141,
+      "targets": {
+        "hypotension": {
+          "algorithm": "RandomForest",
+          "auc": 1.0
+        },
+        "bloody_bm_target": {
+          "algorithm": "LogisticRegression",
+          "auc": 0.9882314481856816
+        },
+        "intra_vomit_target": {
+          "algorithm": "GradientBoosting",
+          "auc": 1.0
+        },
+        "post_vomit_target": {
+          "algorithm": "RandomForest",
+          "auc": 0.8917276756810597
+        },
+        "hemolysis": {
+          "algorithm": "GradientBoosting",
+          "auc": 1.0
+        },
+        "low_hemoglobin": {
+          "algorithm": "GradientBoosting",
+          "auc": 1.0
+        },
+        "hypokalemia": {
+          "algorithm": "GradientBoosting",
+          "auc": 1.0
+        },
+        "low_calcium": {
+          "algorithm": "GradientBoosting",
+          "auc": 0.9999999999999999
+        },
+        "calcification": {
+          "algorithm": "GradientBoosting",
+          "auc": 0.9999679230152366
+        },
+        "glucose_level": {
+          "algorithm": "GBRegressor",
+          "auc": null
+        },
+        "high_pth": {
+          "algorithm": "GradientBoosting",
+          "auc": 0.9993916288124594
+        }
+      },
+      "output": {
+        "dtype": "float64",
+        "range": [
+          0.0,
+          1.0
+        ],
+        "interpretation": "probability of risk condition (regression for glucose_level)"
+      }
+    }
+  },
+  "features": {
+    "holistic_health_features": {
+      "description": "284 features used by holistic_health_model and risk_classifiers_v1",
+      "count": 284,
+      "ordered_names": [
+        "dial_had_session",
+        "dial_sessions_count",
+        "dial_pre_weight",
+        "dial_post_weight",
+        "dial_weight_loss_kg",
+        "dial_interdialytic_gain",
+        "dial_pre_bp_sys",
+        "dial_pre_bp_dia",
+        "dial_pre_map",
+        "dial_post_bp_sys",
+        "dial_post_bp_dia",
+        "dial_post_map",
+        "dial_bp_drop_sys",
+        "dial_bp_drop_dia",
+        "dial_avg_blood_flow_rate",
+        "dial_avg_dialysate_rate",
+        "dial_fluid_to_remove",
+        "dial_total_uf_kg",
+        "dial_intra_bp_sys_std",
+        "dial_intra_bp_dia_std",
+        "dial_intra_bp_sys_range",
+        "dial_intra_pulse_mean",
+        "dial_n_readings",
+        "dial_days_since_last",
+        "dial_sessions_7d",
+        "dial_sessions_30d",
+        "lab_bun",
+        "lab_bun_30d",
+        "lab_bun_90d",
+        "lab_bun_trend",
+        "lab_bun_zscore",
+        "lab_creatinine_30d",
+        "lab_creatinine_90d",
+        "lab_potassium",
+        "lab_potassium_30d",
+        "lab_potassium_90d",
+        "lab_potassium_trend",
+        "lab_potassium_zscore",
+        "lab_sodium",
+        "lab_sodium_30d",
+        "lab_sodium_90d",
+        "lab_sodium_trend",
+        "lab_sodium_zscore",
+        "lab_calcium",
+        "lab_calcium_30d",
+        "lab_calcium_90d",
+        "lab_calcium_trend",
+        "lab_calcium_zscore",
+        "lab_co2",
+        "lab_co2_30d",
+        "lab_co2_90d",
+        "lab_co2_trend",
+        "lab_co2_zscore",
+        "lab_chloride",
+        "lab_chloride_30d",
+        "lab_chloride_90d",
+        "lab_chloride_trend",
+        "lab_chloride_zscore",
+        "lab_hemoglobin",
+        "lab_hemoglobin_30d",
+        "lab_hemoglobin_90d",
+        "lab_hemoglobin_trend",
+        "lab_hemoglobin_zscore",
+        "lab_hematocrit",
+        "lab_hematocrit_30d",
+        "lab_hematocrit_90d",
+        "lab_hematocrit_trend",
+        "lab_hematocrit_zscore",
+        "lab_rbc",
+        "lab_rbc_30d",
+        "lab_rbc_90d",
+        "lab_rbc_trend",
+        "lab_rbc_zscore",
+        "lab_wbc",
+        "lab_wbc_30d",
+        "lab_wbc_90d",
+        "lab_wbc_trend",
+        "lab_wbc_zscore",
+        "lab_platelets",
+        "lab_platelets_30d",
+        "lab_platelets_90d",
+        "lab_platelets_trend",
+        "lab_platelets_zscore",
+        "lab_mcv",
+        "lab_mcv_30d",
+        "lab_mcv_90d",
+        "lab_mcv_trend",
+        "lab_mcv_zscore",
+        "lab_mch",
+        "lab_mch_30d",
+        "lab_mch_90d",
+        "lab_mch_trend",
+        "lab_mch_zscore",
+        "lab_mchc",
+        "lab_mchc_30d",
+        "lab_mchc_90d",
+        "lab_mchc_trend",
+        "lab_mchc_zscore",
+        "lab_rdw",
+        "lab_rdw_30d",
+        "lab_rdw_90d",
+        "lab_rdw_trend",
+        "lab_rdw_zscore",
+        "lab_reticulocyte",
+        "lab_reticulocyte_30d",
+        "lab_reticulocyte_90d",
+        "lab_reticulocyte_zscore",
+        "lab_ferritin",
+        "lab_ferritin_30d",
+        "lab_ferritin_90d",
+        "lab_ferritin_trend",
+        "lab_ferritin_zscore",
+        "lab_iron",
+        "lab_iron_30d",
+        "lab_iron_90d",
+        "lab_iron_trend",
+        "lab_iron_zscore",
+        "lab_tibc",
+        "lab_tibc_30d",
+        "lab_tibc_90d",
+        "lab_tibc_trend",
+        "lab_tibc_zscore",
+        "lab_isat",
+        "lab_isat_30d",
+        "lab_isat_90d",
+        "lab_isat_trend",
+        "lab_isat_zscore",
+        "lab_albumin",
+        "lab_albumin_30d",
+        "lab_albumin_90d",
+        "lab_albumin_trend",
+        "lab_albumin_zscore",
+        "lab_pth",
+        "lab_pth_30d",
+        "lab_pth_90d",
+        "lab_pth_trend",
+        "lab_pth_zscore",
+        "lab_vitamin_d",
+        "lab_vitamin_d_30d",
+        "lab_vitamin_d_90d",
+        "lab_vitamin_d_trend",
+        "lab_vitamin_d_zscore",
+        "lab_alk_phos",
+        "lab_alk_phos_30d",
+        "lab_alk_phos_90d",
+        "lab_alk_phos_trend",
+        "lab_alk_phos_zscore",
+        "lab_ca_x_po4",
+        "lab_ca_x_po4_30d",
+        "lab_ca_x_po4_90d",
+        "lab_ca_x_po4_trend",
+        "lab_ca_x_po4_zscore",
+        "lab_alt",
+        "lab_alt_30d",
+        "lab_alt_90d",
+        "lab_alt_trend",
+        "lab_alt_zscore",
+        "lab_ast",
+        "lab_ast_30d",
+        "lab_ast_90d",
+        "lab_ast_trend",
+        "lab_ast_zscore",
+        "lab_triglycerides",
+        "lab_triglycerides_30d",
+        "lab_triglycerides_90d",
+        "lab_triglycerides_trend",
+        "lab_triglycerides_zscore",
+        "lab_cholesterol",
+        "lab_cholesterol_30d",
+        "lab_cholesterol_90d",
+        "lab_cholesterol_trend",
+        "lab_cholesterol_zscore",
+        "lab_hdl",
+        "lab_hdl_30d",
+        "lab_hdl_90d",
+        "lab_hdl_trend",
+        "lab_hdl_zscore",
+        "lab_ldl",
+        "lab_ldl_30d",
+        "lab_ldl_90d",
+        "lab_ldl_trend",
+        "lab_ldl_zscore",
+        "lab_glucose",
+        "lab_glucose_30d",
+        "lab_glucose_90d",
+        "lab_glucose_trend",
+        "lab_glucose_zscore",
+        "lab_hba1c",
+        "lab_hba1c_30d",
+        "lab_hba1c_90d",
+        "lab_hba1c_trend",
+        "lab_hba1c_zscore",
+        "lab_ldh",
+        "lab_ldh_30d",
+        "lab_ldh_90d",
+        "lab_ldh_trend",
+        "lab_ldh_zscore",
+        "nutr_calories",
+        "nutr_calories_7d",
+        "nutr_protein_g",
+        "nutr_protein_g_7d",
+        "nutr_carbs_g",
+        "nutr_carbs_g_7d",
+        "nutr_fat_g",
+        "nutr_fat_g_7d",
+        "nutr_fiber_g",
+        "nutr_fiber_g_7d",
+        "nutr_sugar_g",
+        "nutr_sugar_g_7d",
+        "nutr_sodium_mg",
+        "nutr_sodium_mg_7d",
+        "nutr_potassium_mg",
+        "nutr_potassium_mg_7d",
+        "nutr_calcium_mg",
+        "nutr_calcium_mg_7d",
+        "nutr_iron_mg",
+        "nutr_iron_mg_7d",
+        "nutr_phosphorus_mg",
+        "nutr_phosphorus_mg_7d",
+        "nutr_vitamin_d",
+        "nutr_vitamin_d_7d",
+        "nutr_vitamin_b12",
+        "nutr_vitamin_b12_7d",
+        "nutr_folic_acid",
+        "nutr_folic_acid_7d",
+        "nutr_cholesterol",
+        "nutr_cholesterol_7d",
+        "nutr_meal_count",
+        "nutr_logged_today",
+        "nutr_sodium_high",
+        "nutr_potassium_high",
+        "nutr_phosphorus_high",
+        "elim_bowel_count",
+        "elim_bowel_7d_avg",
+        "elim_bowel_logged",
+        "elim_blood_present",
+        "elim_bowel_weight_loss",
+        "elim_vomit_count",
+        "elim_vomit_7d",
+        "elim_vomit_any",
+        "elim_vomit_weight_loss",
+        "elim_gi_health",
+        "med_doses_today",
+        "med_logged",
+        "med_unique_today",
+        "med_calcium_carbonate_doses",
+        "med_calcitriol_doses",
+        "med_cetirizine_hydrochloride_doses",
+        "med_sodium_carbonate_doses",
+        "med_folic_acid_doses",
+        "med_tramadol_doses",
+        "med_cyclobenzeprine_doses",
+        "med_oedesetron_doses",
+        "med_marine_bone_discovery_doses",
+        "med_rugby_stimulant_laxative__doses",
+        "med_adherence_7d",
+        "med_adherence_30d",
+        "mood_pos_words",
+        "mood_neg_words",
+        "mood_logged",
+        "symptom_count",
+        "activity_dial_sessions_7d",
+        "activity_active_days_7d",
+        "activity_rest_days_streak",
+        "temp_day_of_week",
+        "temp_is_weekend",
+        "temp_month",
+        "temp_quarter",
+        "temp_day_of_year",
+        "temp_month_sin",
+        "temp_month_cos",
+        "temp_dow_sin",
+        "temp_dow_cos",
+        "temp_age_years",
+        "temp_dial_vintage_years",
+        "risk_hyperkalemia",
+        "risk_hypokalemia",
+        "risk_metabolic_acidosis",
+        "risk_anemia",
+        "risk_iron_deficiency",
+        "risk_malnutrition",
+        "risk_hyperparathyroid",
+        "risk_hypocalcemia",
+        "risk_liver_stress"
+      ],
+      "groups": {
+        "dialysis": {
+          "count": 26,
+          "prefix": "dial_"
+        },
+        "laboratory": {
+          "count": 171,
+          "prefix": "lab_"
+        },
+        "nutrition": {
+          "count": 35,
+          "prefix": "nutr_"
+        },
+        "medication": {
+          "count": 15,
+          "prefix": "med_"
+        },
+        "elimination": {
+          "count": 10,
+          "prefix": "elim_"
+        },
+        "activity": {
+          "count": 3,
+          "prefix": "activity_"
+        },
+        "mood": {
+          "count": 3,
+          "prefix": "mood_"
+        },
+        "risk_flag": {
+          "count": 9,
+          "prefix": "risk_"
+        },
+        "symptom": {
+          "count": 1,
+          "prefix": "symptom_"
+        },
+        "temporal": {
+          "count": 11,
+          "prefix": "temp_"
+        }
+      },
+      "details": {
+        "dial_had_session": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "missing_pct": 0.0,
+          "group": "dialysis"
+        },
+        "dial_sessions_count": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "missing_pct": 0.0,
+          "group": "dialysis"
+        },
+        "dial_pre_weight": {
+          "dtype": "float64",
+          "min": 45.8,
+          "max": 72.0,
+          "median": 61.0,
+          "missing_pct": 52.2,
+          "group": "dialysis"
+        },
+        "dial_post_weight": {
+          "dtype": "float64",
+          "min": 45.4,
+          "max": 614.0,
+          "median": 60.25,
+          "missing_pct": 54.3,
+          "group": "dialysis"
+        },
+        "dial_weight_loss_kg": {
+          "dtype": "float64",
+          "min": -551.8,
+          "max": 69.5,
+          "median": 0.6,
+          "missing_pct": 53.1,
+          "group": "dialysis"
+        },
+        "dial_interdialytic_gain": {
+          "dtype": "float64",
+          "min": -552.5,
+          "max": 3.2,
+          "median": 0.5,
+          "missing_pct": 80.2,
+          "group": "dialysis"
+        },
+        "dial_pre_bp_sys": {
+          "dtype": "float64",
+          "min": 61.0,
+          "max": 202.0,
+          "median": 120.0,
+          "missing_pct": 56.3,
+          "group": "dialysis"
+        },
+        "dial_pre_bp_dia": {
+          "dtype": "float64",
+          "min": 39.0,
+          "max": 134.0,
+          "median": 79.0,
+          "missing_pct": 56.4,
+          "group": "dialysis"
+        },
+        "dial_pre_map": {
+          "dtype": "float64",
+          "min": 47.6667,
+          "max": 146.3333,
+          "median": 92.3333,
+          "missing_pct": 56.4,
+          "group": "dialysis"
+        },
+        "dial_post_bp_sys": {
+          "dtype": "float64",
+          "min": 51.0,
+          "max": 208.0,
+          "median": 100.0,
+          "missing_pct": 58.1,
+          "group": "dialysis"
+        },
+        "dial_post_bp_dia": {
+          "dtype": "float64",
+          "min": 31.0,
+          "max": 158.0,
+          "median": 63.0,
+          "missing_pct": 58.1,
+          "group": "dialysis"
+        },
+        "dial_post_map": {
+          "dtype": "float64",
+          "min": 39.0,
+          "max": 156.6667,
+          "median": 75.6667,
+          "missing_pct": 58.3,
+          "group": "dialysis"
+        },
+        "dial_bp_drop_sys": {
+          "dtype": "float64",
+          "min": -86.0,
+          "max": 80.0,
+          "median": 17.0,
+          "missing_pct": 60.0,
+          "group": "dialysis"
+        },
+        "dial_bp_drop_dia": {
+          "dtype": "float64",
+          "min": -86.0,
+          "max": 49.0,
+          "median": 13.0,
+          "missing_pct": 60.0,
+          "group": "dialysis"
+        },
+        "dial_avg_blood_flow_rate": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 2144.8175,
+          "median": 290.8029,
+          "missing_pct": 58.5,
+          "group": "dialysis"
+        },
+        "dial_avg_dialysate_rate": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 600.0,
+          "median": 11.1241,
+          "missing_pct": 58.7,
+          "group": "dialysis"
+        },
+        "dial_fluid_to_remove": {
+          "dtype": "float64",
+          "min": -52.0857,
+          "max": 57.0,
+          "median": 1.28,
+          "missing_pct": 54.2,
+          "group": "dialysis"
+        },
+        "dial_total_uf_kg": {
+          "dtype": "float64",
+          "min": 0.1,
+          "max": 5.0,
+          "median": 1.6,
+          "missing_pct": 55.1,
+          "group": "dialysis"
+        },
+        "dial_intra_bp_sys_std": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 52.5484,
+          "median": 13.3486,
+          "missing_pct": 55.9,
+          "group": "dialysis"
+        },
+        "dial_intra_bp_dia_std": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 31.3385,
+          "median": 8.7835,
+          "missing_pct": 55.9,
+          "group": "dialysis"
+        },
+        "dial_intra_bp_sys_range": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 130.0,
+          "median": 38.0,
+          "missing_pct": 55.6,
+          "group": "dialysis"
+        },
+        "dial_intra_pulse_mean": {
+          "dtype": "float64",
+          "min": 65.6667,
+          "max": 333.0,
+          "median": 99.8824,
+          "missing_pct": 55.6,
+          "group": "dialysis"
+        },
+        "dial_n_readings": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 48.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "dialysis"
+        },
+        "dial_days_since_last": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 288.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "dialysis"
+        },
+        "dial_sessions_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 7.0,
+          "median": 4.0,
+          "missing_pct": 0.0,
+          "group": "dialysis"
+        },
+        "dial_sessions_30d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 25.0,
+          "median": 17.0,
+          "missing_pct": 0.0,
+          "group": "dialysis"
+        },
+        "lab_bun": {
+          "dtype": "float64",
+          "min": 8.0,
+          "max": 124.0,
+          "median": 28.0,
+          "missing_pct": 0.9,
+          "group": "laboratory"
+        },
+        "lab_bun_30d": {
+          "dtype": "float64",
+          "min": 9.1667,
+          "max": 98.0,
+          "median": 30.5333,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_bun_90d": {
+          "dtype": "float64",
+          "min": 11.0,
+          "max": 80.6,
+          "median": 31.1111,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_bun_trend": {
+          "dtype": "float64",
+          "min": -21.5,
+          "max": 18.3,
+          "median": -0.9,
+          "missing_pct": 8.6,
+          "group": "laboratory"
+        },
+        "lab_bun_zscore": {
+          "dtype": "float64",
+          "min": -1.2398,
+          "max": 3.5251,
+          "median": -0.4183,
+          "missing_pct": 0.9,
+          "group": "laboratory"
+        },
+        "lab_creatinine_30d": {
+          "dtype": "float64",
+          "min": 0.9,
+          "max": 84.0,
+          "median": 10.49,
+          "missing_pct": 89.8,
+          "group": "laboratory"
+        },
+        "lab_creatinine_90d": {
+          "dtype": "float64",
+          "min": 0.9,
+          "max": 84.0,
+          "median": 10.4853,
+          "missing_pct": 88.1,
+          "group": "laboratory"
+        },
+        "lab_potassium": {
+          "dtype": "float64",
+          "min": 2.6,
+          "max": 7.3,
+          "median": 4.3,
+          "missing_pct": 5.3,
+          "group": "laboratory"
+        },
+        "lab_potassium_30d": {
+          "dtype": "float64",
+          "min": 2.6,
+          "max": 6.46,
+          "median": 4.3333,
+          "missing_pct": 3.8,
+          "group": "laboratory"
+        },
+        "lab_potassium_90d": {
+          "dtype": "float64",
+          "min": 2.6,
+          "max": 6.2444,
+          "median": 4.3283,
+          "missing_pct": 2.1,
+          "group": "laboratory"
+        },
+        "lab_potassium_trend": {
+          "dtype": "float64",
+          "min": -0.63,
+          "max": 0.8,
+          "median": -0.03,
+          "missing_pct": 15.8,
+          "group": "laboratory"
+        },
+        "lab_potassium_zscore": {
+          "dtype": "float64",
+          "min": -2.0076,
+          "max": 3.0739,
+          "median": -0.1696,
+          "missing_pct": 5.3,
+          "group": "laboratory"
+        },
+        "lab_sodium": {
+          "dtype": "float64",
+          "min": 130.0,
+          "max": 143.0,
+          "median": 137.0,
+          "missing_pct": 8.0,
+          "group": "laboratory"
+        },
+        "lab_sodium_30d": {
+          "dtype": "float64",
+          "min": 132.4667,
+          "max": 141.0,
+          "median": 136.6,
+          "missing_pct": 4.5,
+          "group": "laboratory"
+        },
+        "lab_sodium_90d": {
+          "dtype": "float64",
+          "min": 133.0,
+          "max": 141.0,
+          "median": 136.4444,
+          "missing_pct": 2.2,
+          "group": "laboratory"
+        },
+        "lab_sodium_trend": {
+          "dtype": "float64",
+          "min": -3.5,
+          "max": 2.4,
+          "median": -0.0,
+          "missing_pct": 25.1,
+          "group": "laboratory"
+        },
+        "lab_sodium_zscore": {
+          "dtype": "float64",
+          "min": -2.6811,
+          "max": 2.688,
+          "median": 0.2099,
+          "missing_pct": 8.0,
+          "group": "laboratory"
+        },
+        "lab_calcium": {
+          "dtype": "float64",
+          "min": 7.7,
+          "max": 11.6,
+          "median": 9.5,
+          "missing_pct": 7.9,
+          "group": "laboratory"
+        },
+        "lab_calcium_30d": {
+          "dtype": "float64",
+          "min": 7.8444,
+          "max": 11.1533,
+          "median": 9.5367,
+          "missing_pct": 6.8,
+          "group": "laboratory"
+        },
+        "lab_calcium_90d": {
+          "dtype": "float64",
+          "min": 7.8444,
+          "max": 11.1178,
+          "median": 9.54,
+          "missing_pct": 5.2,
+          "group": "laboratory"
+        },
+        "lab_calcium_trend": {
+          "dtype": "float64",
+          "min": -0.66,
+          "max": 0.47,
+          "median": 0.01,
+          "missing_pct": 17.7,
+          "group": "laboratory"
+        },
+        "lab_calcium_zscore": {
+          "dtype": "float64",
+          "min": -2.5711,
+          "max": 2.6043,
+          "median": -0.1825,
+          "missing_pct": 7.9,
+          "group": "laboratory"
+        },
+        "lab_co2": {
+          "dtype": "float64",
+          "min": 19.0,
+          "max": 40.0,
+          "median": 31.0,
+          "missing_pct": 1.3,
+          "group": "laboratory"
+        },
+        "lab_co2_30d": {
+          "dtype": "float64",
+          "min": 19.0,
+          "max": 39.0,
+          "median": 30.9333,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_co2_90d": {
+          "dtype": "float64",
+          "min": 19.0,
+          "max": 37.2,
+          "median": 31.2556,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_co2_trend": {
+          "dtype": "float64",
+          "min": -3.4,
+          "max": 3.7,
+          "median": 0.2,
+          "missing_pct": 12.9,
+          "group": "laboratory"
+        },
+        "lab_co2_zscore": {
+          "dtype": "float64",
+          "min": -2.1378,
+          "max": 1.8153,
+          "median": 0.1211,
+          "missing_pct": 1.3,
+          "group": "laboratory"
+        },
+        "lab_chloride": {
+          "dtype": "float64",
+          "min": 79.0,
+          "max": 103.0,
+          "median": 90.0,
+          "missing_pct": 5.5,
+          "group": "laboratory"
+        },
+        "lab_chloride_30d": {
+          "dtype": "float64",
+          "min": 81.1,
+          "max": 101.3667,
+          "median": 89.9333,
+          "missing_pct": 3.8,
+          "group": "laboratory"
+        },
+        "lab_chloride_90d": {
+          "dtype": "float64",
+          "min": 84.4,
+          "max": 100.8667,
+          "median": 89.7611,
+          "missing_pct": 2.1,
+          "group": "laboratory"
+        },
+        "lab_chloride_trend": {
+          "dtype": "float64",
+          "min": -2.6,
+          "max": 4.0,
+          "median": -0.2,
+          "missing_pct": 17.7,
+          "group": "laboratory"
+        },
+        "lab_chloride_zscore": {
+          "dtype": "float64",
+          "min": -2.4434,
+          "max": 2.7527,
+          "median": -0.0619,
+          "missing_pct": 5.5,
+          "group": "laboratory"
+        },
+        "lab_hemoglobin": {
+          "dtype": "float64",
+          "min": 2.54,
+          "max": 32.0,
+          "median": 9.9,
+          "missing_pct": 4.7,
+          "group": "laboratory"
+        },
+        "lab_hemoglobin_30d": {
+          "dtype": "float64",
+          "min": 2.68,
+          "max": 20.16,
+          "median": 9.9,
+          "missing_pct": 3.4,
+          "group": "laboratory"
+        },
+        "lab_hemoglobin_90d": {
+          "dtype": "float64",
+          "min": 2.68,
+          "max": 13.0478,
+          "median": 9.9,
+          "missing_pct": 1.7,
+          "group": "laboratory"
+        },
+        "lab_hemoglobin_trend": {
+          "dtype": "float64",
+          "min": -4.63,
+          "max": 5.11,
+          "median": 0.02,
+          "missing_pct": 14.3,
+          "group": "laboratory"
+        },
+        "lab_hemoglobin_zscore": {
+          "dtype": "float64",
+          "min": -2.045,
+          "max": 6.5064,
+          "median": 0.0914,
+          "missing_pct": 4.7,
+          "group": "laboratory"
+        },
+        "lab_hematocrit": {
+          "dtype": "float64",
+          "min": 16.8,
+          "max": 42.8,
+          "median": 30.5,
+          "missing_pct": 5.5,
+          "group": "laboratory"
+        },
+        "lab_hematocrit_30d": {
+          "dtype": "float64",
+          "min": 18.52,
+          "max": 42.2,
+          "median": 30.435,
+          "missing_pct": 3.9,
+          "group": "laboratory"
+        },
+        "lab_hematocrit_90d": {
+          "dtype": "float64",
+          "min": 21.6322,
+          "max": 40.9778,
+          "median": 30.6517,
+          "missing_pct": 2.1,
+          "group": "laboratory"
+        },
+        "lab_hematocrit_trend": {
+          "dtype": "float64",
+          "min": -3.24,
+          "max": 3.81,
+          "median": 0.11,
+          "missing_pct": 17.9,
+          "group": "laboratory"
+        },
+        "lab_hematocrit_zscore": {
+          "dtype": "float64",
+          "min": -2.4424,
+          "max": 2.5232,
+          "median": 0.1741,
+          "missing_pct": 5.5,
+          "group": "laboratory"
+        },
+        "lab_rbc": {
+          "dtype": "float64",
+          "min": 1.93,
+          "max": 26.3,
+          "median": 3.32,
+          "missing_pct": 1.0,
+          "group": "laboratory"
+        },
+        "lab_rbc_30d": {
+          "dtype": "float64",
+          "min": 2.0873,
+          "max": 14.4683,
+          "median": 3.32,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_rbc_90d": {
+          "dtype": "float64",
+          "min": 2.29,
+          "max": 7.6572,
+          "median": 3.3423,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_rbc_trend": {
+          "dtype": "float64",
+          "min": -4.706,
+          "max": 4.818,
+          "median": 0.011,
+          "missing_pct": 14.5,
+          "group": "laboratory"
+        },
+        "lab_rbc_zscore": {
+          "dtype": "float64",
+          "min": -0.5597,
+          "max": 6.6249,
+          "median": -0.1499,
+          "missing_pct": 1.0,
+          "group": "laboratory"
+        },
+        "lab_wbc": {
+          "dtype": "float64",
+          "min": 1.0,
+          "max": 79.0,
+          "median": 4.0,
+          "missing_pct": 0.9,
+          "group": "laboratory"
+        },
+        "lab_wbc_30d": {
+          "dtype": "float64",
+          "min": 1.5,
+          "max": 25.5867,
+          "median": 4.086,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_wbc_90d": {
+          "dtype": "float64",
+          "min": 2.2533,
+          "max": 13.1322,
+          "median": 4.0672,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_wbc_trend": {
+          "dtype": "float64",
+          "min": -14.09,
+          "max": 14.96,
+          "median": -0.03,
+          "missing_pct": 14.8,
+          "group": "laboratory"
+        },
+        "lab_wbc_zscore": {
+          "dtype": "float64",
+          "min": -0.6098,
+          "max": 12.6981,
+          "median": -0.098,
+          "missing_pct": 0.9,
+          "group": "laboratory"
+        },
+        "lab_platelets": {
+          "dtype": "float64",
+          "min": 59.0,
+          "max": 222.0,
+          "median": 127.0,
+          "missing_pct": 5.3,
+          "group": "laboratory"
+        },
+        "lab_platelets_30d": {
+          "dtype": "float64",
+          "min": 59.0,
+          "max": 188.0667,
+          "median": 129.1333,
+          "missing_pct": 3.9,
+          "group": "laboratory"
+        },
+        "lab_platelets_90d": {
+          "dtype": "float64",
+          "min": 59.0,
+          "max": 168.6,
+          "median": 130.1667,
+          "missing_pct": 2.3,
+          "group": "laboratory"
+        },
+        "lab_platelets_trend": {
+          "dtype": "float64",
+          "min": -21.7,
+          "max": 25.7,
+          "median": -0.35,
+          "missing_pct": 20.0,
+          "group": "laboratory"
+        },
+        "lab_platelets_zscore": {
+          "dtype": "float64",
+          "min": -3.0452,
+          "max": 4.0383,
+          "median": -0.0902,
+          "missing_pct": 5.3,
+          "group": "laboratory"
+        },
+        "lab_mcv": {
+          "dtype": "float64",
+          "min": 29.4,
+          "max": 98.0,
+          "median": 92.0,
+          "missing_pct": 1.7,
+          "group": "laboratory"
+        },
+        "lab_mcv_30d": {
+          "dtype": "float64",
+          "min": 33.3133,
+          "max": 98.0,
+          "median": 91.869,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_mcv_90d": {
+          "dtype": "float64",
+          "min": 71.5333,
+          "max": 96.0311,
+          "median": 91.6603,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_mcv_trend": {
+          "dtype": "float64",
+          "min": -12.52,
+          "max": 12.25,
+          "median": -0.02,
+          "missing_pct": 15.7,
+          "group": "laboratory"
+        },
+        "lab_mcv_zscore": {
+          "dtype": "float64",
+          "min": -11.3193,
+          "max": 1.1896,
+          "median": 0.0955,
+          "missing_pct": 1.7,
+          "group": "laboratory"
+        },
+        "lab_mch": {
+          "dtype": "float64",
+          "min": 25.7,
+          "max": 32.5,
+          "median": 29.2,
+          "missing_pct": 2.0,
+          "group": "laboratory"
+        },
+        "lab_mch_30d": {
+          "dtype": "float64",
+          "min": 26.4,
+          "max": 32.18,
+          "median": 29.1983,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_mch_90d": {
+          "dtype": "float64",
+          "min": 26.5889,
+          "max": 31.4111,
+          "median": 29.2149,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_mch_trend": {
+          "dtype": "float64",
+          "min": -0.97,
+          "max": 1.2,
+          "median": 0.03,
+          "missing_pct": 18.0,
+          "group": "laboratory"
+        },
+        "lab_mch_zscore": {
+          "dtype": "float64",
+          "min": -3.0293,
+          "max": 2.7263,
+          "median": -0.0669,
+          "missing_pct": 2.0,
+          "group": "laboratory"
+        },
+        "lab_mchc": {
+          "dtype": "float64",
+          "min": 28.7,
+          "max": 34.7,
+          "median": 32.0,
+          "missing_pct": 1.4,
+          "group": "laboratory"
+        },
+        "lab_mchc_30d": {
+          "dtype": "float64",
+          "min": 29.1,
+          "max": 34.5933,
+          "median": 31.9,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_mchc_90d": {
+          "dtype": "float64",
+          "min": 29.8311,
+          "max": 33.4667,
+          "median": 31.8778,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_mchc_trend": {
+          "dtype": "float64",
+          "min": -0.73,
+          "max": 1.55,
+          "median": 0.03,
+          "missing_pct": 16.2,
+          "group": "laboratory"
+        },
+        "lab_mchc_zscore": {
+          "dtype": "float64",
+          "min": -3.0643,
+          "max": 2.7492,
+          "median": 0.1332,
+          "missing_pct": 1.4,
+          "group": "laboratory"
+        },
+        "lab_rdw": {
+          "dtype": "float64",
+          "min": 12.6,
+          "max": 18.5,
+          "median": 15.8,
+          "missing_pct": 0.9,
+          "group": "laboratory"
+        },
+        "lab_rdw_30d": {
+          "dtype": "float64",
+          "min": 12.9033,
+          "max": 18.4,
+          "median": 15.78,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_rdw_90d": {
+          "dtype": "float64",
+          "min": 13.5189,
+          "max": 17.4222,
+          "median": 15.8189,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_rdw_trend": {
+          "dtype": "float64",
+          "min": -0.89,
+          "max": 1.19,
+          "median": -0.04,
+          "missing_pct": 14.8,
+          "group": "laboratory"
+        },
+        "lab_rdw_zscore": {
+          "dtype": "float64",
+          "min": -2.4852,
+          "max": 2.1666,
+          "median": 0.0378,
+          "missing_pct": 0.9,
+          "group": "laboratory"
+        },
+        "lab_reticulocyte": {
+          "dtype": "float64",
+          "min": 0.009,
+          "max": 171.9,
+          "median": 29.0,
+          "missing_pct": 82.0,
+          "group": "laboratory"
+        },
+        "lab_reticulocyte_30d": {
+          "dtype": "float64",
+          "min": 0.009,
+          "max": 158.6,
+          "median": 29.0,
+          "missing_pct": 77.5,
+          "group": "laboratory"
+        },
+        "lab_reticulocyte_90d": {
+          "dtype": "float64",
+          "min": 0.009,
+          "max": 158.6,
+          "median": 29.0,
+          "missing_pct": 70.5,
+          "group": "laboratory"
+        },
+        "lab_reticulocyte_zscore": {
+          "dtype": "float64",
+          "min": -0.568,
+          "max": 2.6299,
+          "median": -0.0286,
+          "missing_pct": 82.0,
+          "group": "laboratory"
+        },
+        "lab_ferritin": {
+          "dtype": "float64",
+          "min": 34.0,
+          "max": 1376.0,
+          "median": 516.0,
+          "missing_pct": 5.6,
+          "group": "laboratory"
+        },
+        "lab_ferritin_30d": {
+          "dtype": "float64",
+          "min": 41.6,
+          "max": 1300.0,
+          "median": 519.2667,
+          "missing_pct": 3.8,
+          "group": "laboratory"
+        },
+        "lab_ferritin_90d": {
+          "dtype": "float64",
+          "min": 49.2,
+          "max": 1183.1889,
+          "median": 542.5156,
+          "missing_pct": 2.1,
+          "group": "laboratory"
+        },
+        "lab_ferritin_trend": {
+          "dtype": "float64",
+          "min": -210.8,
+          "max": 170.7,
+          "median": -6.5,
+          "missing_pct": 24.1,
+          "group": "laboratory"
+        },
+        "lab_ferritin_zscore": {
+          "dtype": "float64",
+          "min": -1.6194,
+          "max": 2.4994,
+          "median": -0.1401,
+          "missing_pct": 5.6,
+          "group": "laboratory"
+        },
+        "lab_iron": {
+          "dtype": "float64",
+          "min": 8.0,
+          "max": 147.0,
+          "median": 31.0,
+          "missing_pct": 5.3,
+          "group": "laboratory"
+        },
+        "lab_iron_30d": {
+          "dtype": "float64",
+          "min": 12.6667,
+          "max": 110.8667,
+          "median": 36.0,
+          "missing_pct": 3.8,
+          "group": "laboratory"
+        },
+        "lab_iron_90d": {
+          "dtype": "float64",
+          "min": 15.9556,
+          "max": 102.0,
+          "median": 37.9222,
+          "missing_pct": 2.1,
+          "group": "laboratory"
+        },
+        "lab_iron_trend": {
+          "dtype": "float64",
+          "min": -30.1,
+          "max": 21.9,
+          "median": 0.2,
+          "missing_pct": 22.5,
+          "group": "laboratory"
+        },
+        "lab_iron_zscore": {
+          "dtype": "float64",
+          "min": -1.2701,
+          "max": 4.4907,
+          "median": -0.3169,
+          "missing_pct": 5.3,
+          "group": "laboratory"
+        },
+        "lab_tibc": {
+          "dtype": "float64",
+          "min": 17.0,
+          "max": 336.0,
+          "median": 252.0,
+          "missing_pct": 3.3,
+          "group": "laboratory"
+        },
+        "lab_tibc_30d": {
+          "dtype": "float64",
+          "min": 90.9,
+          "max": 308.8,
+          "median": 250.1333,
+          "missing_pct": 1.6,
+          "group": "laboratory"
+        },
+        "lab_tibc_90d": {
+          "dtype": "float64",
+          "min": 188.8333,
+          "max": 300.9222,
+          "median": 247.6833,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_tibc_trend": {
+          "dtype": "float64",
+          "min": -54.8,
+          "max": 58.3,
+          "median": 0.4,
+          "missing_pct": 21.9,
+          "group": "laboratory"
+        },
+        "lab_tibc_zscore": {
+          "dtype": "float64",
+          "min": -5.0403,
+          "max": 1.9988,
+          "median": 0.1452,
+          "missing_pct": 3.3,
+          "group": "laboratory"
+        },
+        "lab_isat": {
+          "dtype": "float64",
+          "min": 8.0,
+          "max": 59.0,
+          "median": 25.0,
+          "missing_pct": 6.3,
+          "group": "laboratory"
+        },
+        "lab_isat_30d": {
+          "dtype": "float64",
+          "min": 12.9,
+          "max": 49.0,
+          "median": 25.6667,
+          "missing_pct": 3.8,
+          "group": "laboratory"
+        },
+        "lab_isat_90d": {
+          "dtype": "float64",
+          "min": 14.5778,
+          "max": 45.5,
+          "median": 25.6444,
+          "missing_pct": 0.5,
+          "group": "laboratory"
+        },
+        "lab_isat_trend": {
+          "dtype": "float64",
+          "min": -6.7,
+          "max": 6.6,
+          "median": 0.2,
+          "missing_pct": 24.8,
+          "group": "laboratory"
+        },
+        "lab_isat_zscore": {
+          "dtype": "float64",
+          "min": -2.1904,
+          "max": 3.9521,
+          "median": -0.1429,
+          "missing_pct": 6.3,
+          "group": "laboratory"
+        },
+        "lab_albumin": {
+          "dtype": "float64",
+          "min": 3.0,
+          "max": 1223.0,
+          "median": 4.2,
+          "missing_pct": 5.3,
+          "group": "laboratory"
+        },
+        "lab_albumin_30d": {
+          "dtype": "float64",
+          "min": 3.1111,
+          "max": 1141.7867,
+          "median": 4.2,
+          "missing_pct": 3.8,
+          "group": "laboratory"
+        },
+        "lab_albumin_90d": {
+          "dtype": "float64",
+          "min": 3.1111,
+          "max": 420.5841,
+          "median": 4.2178,
+          "missing_pct": 2.1,
+          "group": "laboratory"
+        },
+        "lab_albumin_trend": {
+          "dtype": "float64",
+          "min": -243.85,
+          "max": 243.65,
+          "median": -0.01,
+          "missing_pct": 20.9,
+          "group": "laboratory"
+        },
+        "lab_albumin_zscore": {
+          "dtype": "float64",
+          "min": -0.0935,
+          "max": 12.2476,
+          "median": -0.0813,
+          "missing_pct": 5.3,
+          "group": "laboratory"
+        },
+        "lab_pth": {
+          "dtype": "float64",
+          "min": 8.0,
+          "max": 8478.0,
+          "median": 1817.0,
+          "missing_pct": 0.9,
+          "group": "laboratory"
+        },
+        "lab_pth_30d": {
+          "dtype": "float64",
+          "min": 11.3333,
+          "max": 8478.0,
+          "median": 1915.6383,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_pth_90d": {
+          "dtype": "float64",
+          "min": 15.4444,
+          "max": 7568.2,
+          "median": 2092.7389,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_pth_trend": {
+          "dtype": "float64",
+          "min": -2471.3,
+          "max": 1260.7,
+          "median": 0.6,
+          "missing_pct": 14.6,
+          "group": "laboratory"
+        },
+        "lab_pth_zscore": {
+          "dtype": "float64",
+          "min": -1.1918,
+          "max": 3.1429,
+          "median": -0.266,
+          "missing_pct": 0.9,
+          "group": "laboratory"
+        },
+        "lab_vitamin_d": {
+          "dtype": "float64",
+          "min": 6.4,
+          "max": 29.4,
+          "median": 15.9,
+          "missing_pct": 50.6,
+          "group": "laboratory"
+        },
+        "lab_vitamin_d_30d": {
+          "dtype": "float64",
+          "min": 9.8933,
+          "max": 26.0,
+          "median": 15.9,
+          "missing_pct": 48.0,
+          "group": "laboratory"
+        },
+        "lab_vitamin_d_90d": {
+          "dtype": "float64",
+          "min": 11.1,
+          "max": 26.0,
+          "median": 16.3211,
+          "missing_pct": 44.5,
+          "group": "laboratory"
+        },
+        "lab_vitamin_d_trend": {
+          "dtype": "float64",
+          "min": -3.79,
+          "max": 2.4,
+          "median": 0.12,
+          "missing_pct": 67.7,
+          "group": "laboratory"
+        },
+        "lab_vitamin_d_zscore": {
+          "dtype": "float64",
+          "min": -2.2095,
+          "max": 3.0526,
+          "median": -0.036,
+          "missing_pct": 50.6,
+          "group": "laboratory"
+        },
+        "lab_alk_phos": {
+          "dtype": "float64",
+          "min": 40.0,
+          "max": 2930.0,
+          "median": 348.0,
+          "missing_pct": 6.8,
+          "group": "laboratory"
+        },
+        "lab_alk_phos_30d": {
+          "dtype": "float64",
+          "min": 40.0,
+          "max": 2930.0,
+          "median": 336.3,
+          "missing_pct": 4.1,
+          "group": "laboratory"
+        },
+        "lab_alk_phos_90d": {
+          "dtype": "float64",
+          "min": 44.8,
+          "max": 2184.6444,
+          "median": 331.5667,
+          "missing_pct": 2.1,
+          "group": "laboratory"
+        },
+        "lab_alk_phos_trend": {
+          "dtype": "float64",
+          "min": -456.5,
+          "max": 368.3,
+          "median": 4.9,
+          "missing_pct": 28.9,
+          "group": "laboratory"
+        },
+        "lab_alk_phos_zscore": {
+          "dtype": "float64",
+          "min": -1.2115,
+          "max": 6.5461,
+          "median": -0.3848,
+          "missing_pct": 6.8,
+          "group": "laboratory"
+        },
+        "lab_ca_x_po4": {
+          "dtype": "float64",
+          "min": 14.8,
+          "max": 86.2,
+          "median": 55.2,
+          "missing_pct": 5.0,
+          "group": "laboratory"
+        },
+        "lab_ca_x_po4_30d": {
+          "dtype": "float64",
+          "min": 14.8,
+          "max": 81.9,
+          "median": 55.5667,
+          "missing_pct": 3.3,
+          "group": "laboratory"
+        },
+        "lab_ca_x_po4_90d": {
+          "dtype": "float64",
+          "min": 19.2033,
+          "max": 76.3367,
+          "median": 55.8,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_ca_x_po4_trend": {
+          "dtype": "float64",
+          "min": -15.07,
+          "max": 8.88,
+          "median": 0.0,
+          "missing_pct": 24.3,
+          "group": "laboratory"
+        },
+        "lab_ca_x_po4_zscore": {
+          "dtype": "float64",
+          "min": -3.1345,
+          "max": 2.3404,
+          "median": -0.0367,
+          "missing_pct": 5.0,
+          "group": "laboratory"
+        },
+        "lab_alt": {
+          "dtype": "float64",
+          "min": 5.0,
+          "max": 22.0,
+          "median": 10.0,
+          "missing_pct": 62.1,
+          "group": "laboratory"
+        },
+        "lab_alt_30d": {
+          "dtype": "float64",
+          "min": 5.0,
+          "max": 19.4,
+          "median": 10.1623,
+          "missing_pct": 56.6,
+          "group": "laboratory"
+        },
+        "lab_alt_90d": {
+          "dtype": "float64",
+          "min": 5.0,
+          "max": 16.0,
+          "median": 10.3333,
+          "missing_pct": 48.2,
+          "group": "laboratory"
+        },
+        "lab_alt_trend": {
+          "dtype": "float64",
+          "min": -3.2,
+          "max": 2.8,
+          "median": -0.1,
+          "missing_pct": 82.3,
+          "group": "laboratory"
+        },
+        "lab_alt_zscore": {
+          "dtype": "float64",
+          "min": -2.0258,
+          "max": 2.9733,
+          "median": -0.5555,
+          "missing_pct": 62.1,
+          "group": "laboratory"
+        },
+        "lab_ast": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 21.0,
+          "median": 13.0,
+          "missing_pct": 5.2,
+          "group": "laboratory"
+        },
+        "lab_ast_30d": {
+          "dtype": "float64",
+          "min": 0.5,
+          "max": 21.0,
+          "median": 13.0333,
+          "missing_pct": 2.8,
+          "group": "laboratory"
+        },
+        "lab_ast_90d": {
+          "dtype": "float64",
+          "min": 0.5,
+          "max": 21.0,
+          "median": 13.2556,
+          "missing_pct": 0.4,
+          "group": "laboratory"
+        },
+        "lab_ast_trend": {
+          "dtype": "float64",
+          "min": -5.5,
+          "max": 3.3,
+          "median": 0.1,
+          "missing_pct": 27.2,
+          "group": "laboratory"
+        },
+        "lab_ast_zscore": {
+          "dtype": "float64",
+          "min": -4.7609,
+          "max": 2.7281,
+          "median": -0.1248,
+          "missing_pct": 5.2,
+          "group": "laboratory"
+        },
+        "lab_triglycerides": {
+          "dtype": "float64",
+          "min": 76.0,
+          "max": 442.0,
+          "median": 202.0,
+          "missing_pct": 61.2,
+          "group": "laboratory"
+        },
+        "lab_triglycerides_30d": {
+          "dtype": "float64",
+          "min": 76.0,
+          "max": 426.8,
+          "median": 203.2174,
+          "missing_pct": 55.3,
+          "group": "laboratory"
+        },
+        "lab_triglycerides_90d": {
+          "dtype": "float64",
+          "min": 76.0,
+          "max": 424.0,
+          "median": 202.9157,
+          "missing_pct": 46.3,
+          "group": "laboratory"
+        },
+        "lab_triglycerides_trend": {
+          "dtype": "float64",
+          "min": -50.9,
+          "max": 60.5,
+          "median": -0.6,
+          "missing_pct": 86.4,
+          "group": "laboratory"
+        },
+        "lab_triglycerides_zscore": {
+          "dtype": "float64",
+          "min": -1.3313,
+          "max": 1.8838,
+          "median": -0.2245,
+          "missing_pct": 61.2,
+          "group": "laboratory"
+        },
+        "lab_cholesterol": {
+          "dtype": "float64",
+          "min": 98.0,
+          "max": 284.0,
+          "median": 243.0,
+          "missing_pct": 63.1,
+          "group": "laboratory"
+        },
+        "lab_cholesterol_30d": {
+          "dtype": "float64",
+          "min": 98.0,
+          "max": 284.0,
+          "median": 243.0,
+          "missing_pct": 56.6,
+          "group": "laboratory"
+        },
+        "lab_cholesterol_90d": {
+          "dtype": "float64",
+          "min": 98.0,
+          "max": 284.0,
+          "median": 243.0909,
+          "missing_pct": 46.8,
+          "group": "laboratory"
+        },
+        "lab_cholesterol_trend": {
+          "dtype": "float64",
+          "min": -53.5,
+          "max": 21.5,
+          "median": -5.1,
+          "missing_pct": 86.4,
+          "group": "laboratory"
+        },
+        "lab_cholesterol_zscore": {
+          "dtype": "float64",
+          "min": -2.3715,
+          "max": 1.2277,
+          "median": 0.4343,
+          "missing_pct": 63.1,
+          "group": "laboratory"
+        },
+        "lab_hdl": {
+          "dtype": "float64",
+          "min": 3.9,
+          "max": 251.0,
+          "median": 44.0,
+          "missing_pct": 52.4,
+          "group": "laboratory"
+        },
+        "lab_hdl_30d": {
+          "dtype": "float64",
+          "min": 3.9,
+          "max": 251.0,
+          "median": 44.0,
+          "missing_pct": 47.3,
+          "group": "laboratory"
+        },
+        "lab_hdl_90d": {
+          "dtype": "float64",
+          "min": 3.9,
+          "max": 251.0,
+          "median": 45.2222,
+          "missing_pct": 39.0,
+          "group": "laboratory"
+        },
+        "lab_hdl_trend": {
+          "dtype": "float64",
+          "min": -48.98,
+          "max": 46.48,
+          "median": -3.6,
+          "missing_pct": 81.3,
+          "group": "laboratory"
+        },
+        "lab_hdl_zscore": {
+          "dtype": "float64",
+          "min": -0.9659,
+          "max": 4.2978,
+          "median": -0.1117,
+          "missing_pct": 52.4,
+          "group": "laboratory"
+        },
+        "lab_ldl": {
+          "dtype": "float64",
+          "min": 83.0,
+          "max": 170.0,
+          "median": 141.0,
+          "missing_pct": 58.4,
+          "group": "laboratory"
+        },
+        "lab_ldl_30d": {
+          "dtype": "float64",
+          "min": 83.0,
+          "max": 170.0,
+          "median": 141.0,
+          "missing_pct": 51.0,
+          "group": "laboratory"
+        },
+        "lab_ldl_90d": {
+          "dtype": "float64",
+          "min": 83.0,
+          "max": 170.0,
+          "median": 140.0,
+          "missing_pct": 41.9,
+          "group": "laboratory"
+        },
+        "lab_ldl_trend": {
+          "dtype": "float64",
+          "min": -40.5,
+          "max": 12.2,
+          "median": -1.6,
+          "missing_pct": 84.6,
+          "group": "laboratory"
+        },
+        "lab_ldl_zscore": {
+          "dtype": "float64",
+          "min": -2.3501,
+          "max": 1.3272,
+          "median": 0.1014,
+          "missing_pct": 58.4,
+          "group": "laboratory"
+        },
+        "lab_glucose": {
+          "dtype": "float64",
+          "min": 67.0,
+          "max": 359.0,
+          "median": 134.0,
+          "missing_pct": 7.3,
+          "group": "laboratory"
+        },
+        "lab_glucose_30d": {
+          "dtype": "float64",
+          "min": 67.0,
+          "max": 359.0,
+          "median": 134.0,
+          "missing_pct": 3.8,
+          "group": "laboratory"
+        },
+        "lab_glucose_90d": {
+          "dtype": "float64",
+          "min": 95.0,
+          "max": 358.1,
+          "median": 134.0,
+          "missing_pct": 0.5,
+          "group": "laboratory"
+        },
+        "lab_glucose_trend": {
+          "dtype": "float64",
+          "min": -89.5,
+          "max": 56.0,
+          "median": 0.4,
+          "missing_pct": 27.2,
+          "group": "laboratory"
+        },
+        "lab_glucose_zscore": {
+          "dtype": "float64",
+          "min": -1.5412,
+          "max": 3.902,
+          "median": -0.2922,
+          "missing_pct": 7.3,
+          "group": "laboratory"
+        },
+        "lab_hba1c": {
+          "dtype": "float64",
+          "min": 4.4,
+          "max": 7.2,
+          "median": 6.0,
+          "missing_pct": 49.7,
+          "group": "laboratory"
+        },
+        "lab_hba1c_30d": {
+          "dtype": "float64",
+          "min": 4.4,
+          "max": 7.2,
+          "median": 6.0,
+          "missing_pct": 40.8,
+          "group": "laboratory"
+        },
+        "lab_hba1c_90d": {
+          "dtype": "float64",
+          "min": 4.4,
+          "max": 6.9989,
+          "median": 5.9929,
+          "missing_pct": 28.3,
+          "group": "laboratory"
+        },
+        "lab_hba1c_trend": {
+          "dtype": "float64",
+          "min": -0.2,
+          "max": 0.32,
+          "median": 0.06,
+          "missing_pct": 81.3,
+          "group": "laboratory"
+        },
+        "lab_hba1c_zscore": {
+          "dtype": "float64",
+          "min": -1.732,
+          "max": 1.6452,
+          "median": 0.1978,
+          "missing_pct": 49.7,
+          "group": "laboratory"
+        },
+        "lab_ldh": {
+          "dtype": "float64",
+          "min": 146.0,
+          "max": 503.0,
+          "median": 211.0,
+          "missing_pct": 11.2,
+          "group": "laboratory"
+        },
+        "lab_ldh_30d": {
+          "dtype": "float64",
+          "min": 146.0,
+          "max": 455.0,
+          "median": 213.6667,
+          "missing_pct": 7.6,
+          "group": "laboratory"
+        },
+        "lab_ldh_90d": {
+          "dtype": "float64",
+          "min": 162.5111,
+          "max": 455.0,
+          "median": 220.0,
+          "missing_pct": 1.8,
+          "group": "laboratory"
+        },
+        "lab_ldh_trend": {
+          "dtype": "float64",
+          "min": -79.0,
+          "max": 55.0,
+          "median": 0.2,
+          "missing_pct": 29.5,
+          "group": "laboratory"
+        },
+        "lab_ldh_zscore": {
+          "dtype": "float64",
+          "min": -1.2468,
+          "max": 4.6035,
+          "median": -0.1817,
+          "missing_pct": 11.2,
+          "group": "laboratory"
+        },
+        "nutr_calories": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 3760.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_calories_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1700.5,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_protein_g": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 229.2,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_protein_g_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 82.8429,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_carbs_g": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 458.6,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_carbs_g_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 201.0,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_fat_g": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 260.3,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_fat_g_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 84.425,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_fiber_g": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 40.6,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_fiber_g_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 17.8857,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_sugar_g": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 125.5,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_sugar_g_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 53.9143,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_sodium_mg": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 3657.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_sodium_mg_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1737.7143,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_potassium_mg": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 3723.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_potassium_mg_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 2504.5714,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_calcium_mg": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1266.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_calcium_mg_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 551.1429,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_iron_mg": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 50.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_iron_mg_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 18.3571,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_phosphorus_mg": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1723.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_phosphorus_mg_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1205.0,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_vitamin_d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 90.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_vitamin_d_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 18.0,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_vitamin_b12": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 53.3,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_vitamin_b12_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 15.9714,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_folic_acid": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 465.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_folic_acid_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 295.2857,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_cholesterol": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1255.0,
+          "median": 0.0,
+          "missing_pct": 48.5,
+          "group": "nutrition"
+        },
+        "nutr_cholesterol_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 621.7143,
+          "median": 0.0,
+          "missing_pct": 46.0,
+          "group": "nutrition"
+        },
+        "nutr_meal_count": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 8.0,
+          "median": 1.0,
+          "missing_pct": 0.0,
+          "group": "nutrition"
+        },
+        "nutr_logged_today": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "missing_pct": 0.0,
+          "group": "nutrition"
+        },
+        "nutr_sodium_high": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "nutrition"
+        },
+        "nutr_potassium_high": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "nutrition"
+        },
+        "nutr_phosphorus_high": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "nutrition"
+        },
+        "elim_bowel_count": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 6.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "elimination"
+        },
+        "elim_bowel_7d_avg": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 3.5714,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "elimination"
+        },
+        "elim_bowel_logged": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "elimination"
+        },
+        "elim_blood_present": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "elimination"
+        },
+        "elim_bowel_weight_loss": {
+          "dtype": "float64",
+          "min": -9.8,
+          "max": 490.2,
+          "median": 0.0,
+          "missing_pct": 64.2,
+          "group": "elimination"
+        },
+        "elim_vomit_count": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 4.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "elimination"
+        },
+        "elim_vomit_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 17.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "elimination"
+        },
+        "elim_vomit_any": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "elimination"
+        },
+        "elim_vomit_weight_loss": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 4.3,
+          "median": 1.1,
+          "missing_pct": 73.7,
+          "group": "elimination"
+        },
+        "elim_gi_health": {
+          "dtype": "float64",
+          "min": 0.06,
+          "max": 1.0,
+          "median": 0.3,
+          "missing_pct": 0.0,
+          "group": "elimination"
+        },
+        "med_doses_today": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 9.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_logged": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_unique_today": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 4.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_calcium_carbonate_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 4.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_calcitriol_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 4.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_cetirizine_hydrochloride_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_sodium_carbonate_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 3.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_folic_acid_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_tramadol_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_cyclobenzeprine_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_oedesetron_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_marine_bone_discovery_doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_rugby_stimulant_laxative__doses": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_adherence_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "med_adherence_30d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "medication"
+        },
+        "mood_pos_words": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "mood"
+        },
+        "mood_neg_words": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "mood"
+        },
+        "mood_logged": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "mood"
+        },
+        "symptom_count": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "symptom"
+        },
+        "activity_dial_sessions_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 7.0,
+          "median": 4.0,
+          "missing_pct": 0.0,
+          "group": "activity"
+        },
+        "activity_active_days_7d": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 7.0,
+          "median": 4.0,
+          "missing_pct": 0.0,
+          "group": "activity"
+        },
+        "activity_rest_days_streak": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 288.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "activity"
+        },
+        "temp_day_of_week": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 6.0,
+          "median": 3.0,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_is_weekend": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_month": {
+          "dtype": "float64",
+          "min": 1.0,
+          "max": 12.0,
+          "median": 7.0,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_quarter": {
+          "dtype": "float64",
+          "min": 1.0,
+          "max": 4.0,
+          "median": 3.0,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_day_of_year": {
+          "dtype": "float64",
+          "min": 1.0,
+          "max": 366.0,
+          "median": 187.0,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_month_sin": {
+          "dtype": "float64",
+          "min": -1.0,
+          "max": 1.0,
+          "median": -0.0,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_month_cos": {
+          "dtype": "float64",
+          "min": -1.0,
+          "max": 1.0,
+          "median": -0.0,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_dow_sin": {
+          "dtype": "float64",
+          "min": -0.9749,
+          "max": 0.9749,
+          "median": 0.0,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_dow_cos": {
+          "dtype": "float64",
+          "min": -0.901,
+          "max": 1.0,
+          "median": -0.2225,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_age_years": {
+          "dtype": "float64",
+          "min": 42.1218,
+          "max": 51.9316,
+          "median": 47.0267,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "temp_dial_vintage_years": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 9.8097,
+          "median": 4.9049,
+          "missing_pct": 0.0,
+          "group": "temporal"
+        },
+        "risk_hyperkalemia": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 5.3,
+          "group": "risk_flag"
+        },
+        "risk_hypokalemia": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 5.3,
+          "group": "risk_flag"
+        },
+        "risk_metabolic_acidosis": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 1.3,
+          "group": "risk_flag"
+        },
+        "risk_anemia": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "missing_pct": 4.7,
+          "group": "risk_flag"
+        },
+        "risk_iron_deficiency": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 5.6,
+          "group": "risk_flag"
+        },
+        "risk_malnutrition": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 5.3,
+          "group": "risk_flag"
+        },
+        "risk_hyperparathyroid": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "missing_pct": 0.9,
+          "group": "risk_flag"
+        },
+        "risk_hypocalcemia": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0,
+          "missing_pct": 7.9,
+          "group": "risk_flag"
+        },
+        "risk_liver_stress": {
+          "dtype": "float64",
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "missing_pct": 62.1,
+          "group": "risk_flag"
+        }
+      }
+    },
+    "clinical_risk_features": {
+      "description": "141 features used by clinical_risk_v2 models (NB06)",
+      "count": 167,
+      "ordered_names": [
+        "today_weight_kg",
+        "post_weight_kg",
+        "weight_loss_kg",
+        "pre_bp_sys",
+        "pre_bp_dia",
+        "post_bp_sys",
+        "post_bp_dia",
+        "pre_pulse",
+        "post_pulse",
+        "avg_blood_flow_rate",
+        "ktv_actual",
+        "urr",
+        "npcr",
+        "weight_gain_bt",
+        "dial_duration_min",
+        "dial_dialysate_vol_L",
+        "dial_total_dialysate_L",
+        "dial_bvp_L",
+        "dial_fluid_removed_kg",
+        "dial_avg_bfr",
+        "dial_lactate",
+        "dial_K_bath",
+        "dial_Ca_bath",
+        "dial_K_bath2",
+        "dial_Na_bath",
+        "dial_conductivity",
+        "dial_ph",
+        "dial_ktv",
+        "dial_urr",
+        "dial_npcr",
+        "dial_wt_loss_kg",
+        "dial_wt_gain_bt",
+        "dial_pre_hr",
+        "dial_post_hr",
+        "dial_pre_temp",
+        "dial_post_temp",
+        "dial_hr_delta",
+        "dial_temp_delta",
+        "dial_bp_drop",
+        "dial_uf_rate_kg_hr",
+        "bloody_bm_today",
+        "bloody_bm_prev",
+        "vomit_today",
+        "vomit_yesterday",
+        "day_of_week",
+        "month",
+        "days_since_start",
+        "pre_bp_sys_lag1",
+        "pre_bp_dia_lag1",
+        "pre_pulse_lag1",
+        "weight_loss_kg_lag1",
+        "rdg_bp_sys_min",
+        "rdg_bp_sys_max",
+        "rdg_bp_sys_mean",
+        "rdg_bp_sys_std",
+        "rdg_bp_dia_mean",
+        "rdg_bp_dia_std",
+        "rdg_pulse_mean",
+        "rdg_pulse_std",
+        "rdg_pulse_max",
+        "rdg_bfr_mean",
+        "rdg_uf_rate_mean",
+        "rdg_uf_rate_max",
+        "rdg_art_press_mean",
+        "rdg_ven_press_mean",
+        "rdg_n_readings",
+        "rdg_bp_sys_range",
+        "rdg_map_mean",
+        "lab_Hemoglobin",
+        "lab_Hematocrit",
+        "lab_Potassium",
+        "lab_Calcium",
+        "lab_Phosphorus",
+        "lab_PTH",
+        "lab_LDH",
+        "lab_Glucose",
+        "lab_BUN",
+        "lab_Creatinine",
+        "lab_Albumin",
+        "lab_Iron",
+        "lab_Ferritin",
+        "lab_ISAT",
+        "lab_CaxP",
+        "lab_KtV",
+        "lab_URR",
+        "lab_nPCR",
+        "lab_Sodium",
+        "lab_CO2",
+        "lab_WBC",
+        "lab_RBC",
+        "lab_RDW",
+        "lab_MCV",
+        "lab_Reticulocyte",
+        "min_bp",
+        "mean_bp",
+        "max_bp",
+        "n_readings",
+        "pw_Bone_Formation",
+        "pw_Digestive",
+        "pw_Endocrinology",
+        "pw_Hemolytical",
+        "pw_Immunological",
+        "pw_Metabolic",
+        "pw_Neurological",
+        "W_product",
+        "W_additive",
+        "nutr_calories_today",
+        "nutr_protein_today",
+        "nutr_carbs_today",
+        "nutr_fat_today",
+        "nutr_fiber_today",
+        "nutr_sodium_today",
+        "nutr_potassium_today",
+        "nutr_calcium_today",
+        "nutr_phosphorus_today",
+        "nutr_iron_today",
+        "nutr_sugar_today",
+        "nutr_cholesterol_today",
+        "nutr_prev_calories",
+        "nutr_prev_protein",
+        "nutr_prev_carbs",
+        "nutr_prev_fat",
+        "nutr_prev_fiber",
+        "nutr_prev_sodium",
+        "nutr_prev_potassium",
+        "nutr_prev_calcium",
+        "nutr_prev_phosphorus",
+        "nutr_prev_iron",
+        "nutr_prev_sugar",
+        "nutr_prev_cholesterol",
+        "nutr_calories_3d_avg",
+        "nutr_protein_3d_avg",
+        "nutr_carbs_3d_avg",
+        "nutr_fat_3d_avg",
+        "nutr_fiber_3d_avg",
+        "nutr_sodium_3d_avg",
+        "nutr_potassium_3d_avg",
+        "nutr_calcium_3d_avg",
+        "nutr_phosphorus_3d_avg",
+        "nutr_iron_3d_avg",
+        "nutr_sugar_3d_avg",
+        "nutr_cholesterol_3d_avg",
+        "med_Calcitriol",
+        "med_Calcium Carbonate",
+        "med_Cetirizine Hydrochloride",
+        "med_Cyclobenzeprine",
+        "med_Docusolate",
+        "med_Folic Acid",
+        "med_Marine Bone Discovery",
+        "med_Oedesetron",
+        "med_Rugby Stimulant Laxative Plus Stool Softener",
+        "med_Sodium Carbonate",
+        "med_Tramadol",
+        "med_count",
+        "med_any_binder",
+        "med_calcitriol",
+        "hypotension",
+        "hemolysis",
+        "low_hemoglobin",
+        "hypokalemia",
+        "low_calcium",
+        "calcification",
+        "glucose_level",
+        "high_pth",
+        "intra_vomit_target",
+        "post_vomit_target",
+        "bloody_bm_target"
+      ]
+    }
+  },
+  "whatif_inputs": {
+    "description": "9 user-adjustable inputs for the What-If simulator",
+    "inputs": {
+      "calories": {
+        "feature": "nutr_calories",
+        "unit": "kcal",
+        "esrd_range": [
+          1800,
+          2500
+        ],
+        "default": 2100
+      },
+      "protein": {
+        "feature": "nutr_protein_g",
+        "unit": "g",
+        "esrd_range": [
+          50,
+          70
+        ],
+        "default": 60
+      },
+      "sodium": {
+        "feature": "nutr_sodium_mg",
+        "unit": "mg",
+        "esrd_range": [
+          1000,
+          2000
+        ],
+        "default": 1500
+      },
+      "potassium": {
+        "feature": "nutr_potassium_mg",
+        "unit": "mg",
+        "esrd_range": [
+          1000,
+          2000
+        ],
+        "default": 1200
+      },
+      "phosphorus": {
+        "feature": "nutr_phosphorus_mg",
+        "unit": "mg",
+        "esrd_range": [
+          400,
+          800
+        ],
+        "default": 600
+      },
+      "blood_flow": {
+        "feature": "dial_avg_blood_flow_rate",
+        "unit": "mL/min",
+        "esrd_range": [
+          350,
+          450
+        ],
+        "default": 400
+      },
+      "n_readings": {
+        "feature": "dial_n_readings",
+        "unit": "count",
+        "esrd_range": [
+          4,
+          12
+        ],
+        "default": 8
+      },
+      "pre_bp_sys": {
+        "feature": "dial_pre_bp_sys",
+        "unit": "mmHg",
+        "esrd_range": [
+          120,
+          150
+        ],
+        "default": 120
+      },
+      "sessions_7d": {
+        "feature": "dial_sessions_7d",
+        "unit": "sessions",
+        "esrd_range": [
+          3,
+          5
+        ],
+        "default": 4
+      }
+    }
+  },
+  "hebcs_pathways": {
+    "description": "7 HEBCS scoring pathways with trapezoidal biomarker mapping",
+    "definition_file": "HEBCS_pathway_definitions.json",
+    "pathways": [
+      "Metabolic",
+      "Hematologic",
+      "Bone_Mineral",
+      "Cardiovascular",
+      "Nutritional",
+      "Dialysis_Adequacy",
+      "Inflammatory"
+    ],
+    "aggregation": "weighted_mean",
+    "output_range": [
+      0,
+      100
+    ]
+  },
+  "feature_bridge": {
+    "description": "Translates NB04 284-feature daily space to NB06 141-feature session space",
+    "file": "feature_bridge.py",
+    "coverage_pct": 78.7,
+    "mapping_strategy": {
+      "direct_semantic": {
+        "count": 104,
+        "description": "Same underlying data, different naming convention",
+        "examples": {
+          "lab_Albumin": "lab_albumin",
+          "pre_bp_sys": "dial_pre_bp_sys",
+          "nutr_calories_today": "nutr_calories (\u00d7 scale factor)"
+        }
+      },
+      "computed": {
+        "count": 7,
+        "description": "Derived from multiple NB04 features",
+        "features": [
+          "dial_bp_drop = pre_bp_sys - post_bp_sys",
+          "max_bp = max(pre_bp_sys, post_bp_sys)",
+          "min_bp = min(pre_bp_sys, post_bp_sys)",
+          "mean_bp = (pre + post) / 2",
+          "rdg_map_mean = dia + (sys - dia) / 3",
+          "rdg_bp_sys_max",
+          "rdg_bp_sys_min"
+        ]
+      },
+      "median_fallback": {
+        "count": 30,
+        "description": "No NB04 equivalent; filled with NB06 training medians",
+        "categories": [
+          "Machine pressures (arterial, venous)",
+          "Body temperatures",
+          "Dialysate volumes",
+          "HEBCS pathway scores",
+          "Session timing metadata"
+        ]
+      }
+    },
+    "nutrition_scale_factors": {
+      "description": "NB06 stores raw API daily sums; NB04 applies per-nutrient normalization (~12-31x)",
+      "verified": "2026-02-19",
+      "method": "Nonzero median ratio (NB06_nz_median / NB04_nz_median)",
+      "factors": {
+        "calories": 16.432,
+        "protein": 16.0699,
+        "sodium": 30.6386,
+        "potassium": 14.7644,
+        "phosphorus": 21.6878,
+        "calcium": 20.6704,
+        "fat": 12.0744,
+        "carbs": 17.9866,
+        "fiber": 13.598,
+        "iron": 15.8495,
+        "sugar": 11.0381,
+        "cholesterol": 14.472
+      }
+    }
+  },
+  "known_issues": {
+    "bloody_bm_target": {
+      "severity": "low",
+      "description": "Model trained on 10.6% positive rate but predicts >50% positive on training data. Features bloody_bm_today and bloody_bm_prev are temporal leakers. Predictions should be interpreted cautiously. Practical impact mitigated by representative nutrition baseline patch.",
+      "auc": 0.89,
+      "actual_positive_rate": 0.106
+    },
+    "nutrition_baseline": {
+      "severity": "resolved",
+      "description": "SimpleImputer medians were 0 for all nutrition features (97% of NB04 rows have no nutrition logged). Fixed by patching predict.py baseline with representative nonzero medians from 917+ days with logged nutrition data."
+    }
+  }
+}

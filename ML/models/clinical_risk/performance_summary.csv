@@ -1,0 +1,12 @@
+target,algorithm,auc,f1,accuracy,n_samples,n_positive,prevalence
+hypotension,RandomForest,1.0,,,1594,817.0,0.513
+bloody_bm_target,LogisticRegression,0.9846355017979731,,,1798,191.0,0.106
+intra_vomit_target,LogisticRegression,1.0,,,1798,582.0,0.324
+post_vomit_target,RandomForest,0.8421988304093567,,,1798,374.0,0.208
+hemolysis,GradientBoosting,1.0,,,1797,196.0,0.109
+low_hemoglobin,GradientBoosting,1.0,,,1797,770.0,0.428
+hypokalemia,GradientBoosting,1.0,,,1797,178.0,0.099
+low_calcium,GradientBoosting,1.0,,,1797,104.0,0.058
+calcification,GradientBoosting,1.0,,,1797,726.0,0.404
+glucose_level,GBRegressor,,,,1788,,
+high_pth,GradientBoosting,0.9995133030499675,,,1797,1337.0,0.744

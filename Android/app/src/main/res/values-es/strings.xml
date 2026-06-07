@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ALAFIA</string>
+    <string name="app_description">Tu compañero personal de salud y bienestar</string>
+    
+    <!-- Auth -->
+    <string name="login">Iniciar sesión</string>
+    <string name="register">Registrarse</string>
+    <string name="logout">Cerrar sesión</string>
+    <string name="username">Nombre de usuario</string>
+    <string name="email">Correo electrónico</string>
+    <string name="password">Contraseña</string>
+    <string name="confirm_password">Confirmar contraseña</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    
+    <!-- Navigation -->
+    <string name="dashboard">Panel</string>
+    <string name="fitness">Fitness</string>
+    <string name="mood">Estado de ánimo</string>
+    <string name="nutrition">Nutrición</string>
+    <string name="labs">Resultados de laboratorio</string>
+    <string name="medications">Medicamentos</string>
+    <string name="lifestyle">Estilo de vida</string>
+    <string name="ai_chat">Chat de IA</string>
+    
+    <!-- Common -->
+    <string name="loading">Cargando...</string>
+    <string name="error">Error</string>
+    <string name="cancel">Cancelar</string>
+    <string name="save">Guardar</string>
+    <string name="delete">Eliminar</string>
+    <string name="edit">Editar</string>
+    <string name="success">Éxito</string>
+    <string name="close">Cerrar</string>
+    <string name="confirm">Confirmar</string>
+</resources>

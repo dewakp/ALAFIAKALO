@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Bienvenue",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès"
+  },
+  "dashboard": {
+    "title": "Tableau de bord santé",
+    "welcome_message": "Bon retour ! Voici votre résumé de santé."
+  },
+  "nav": {
+    "nutrition": "Nutrition",
+    "fitness": "Fitness",
+    "medications": "Médicaments",
+    "lab_results": "Résultats de laboratoire",
+    "mood": "Humeur et santé mentale",
+    "lifestyle": "Style de vie",
+    "settings": "Paramètres",
+    "privacy": "Confidentialité"
+  },
+  "privacy": {
+    "title": "Paramètres de confidentialité",
+    "consent": {
+      "data_sharing": "Partager des données anonymisées pour améliorer les informations de santé pour tous",
+      "ai_coaching": "Activer le coaching santé alimenté par l'IA",
+      "marketing": "Recevoir des communications marketing",
+      "research": "Participer à des études de recherche"
+    },
+    "export_data": "Télécharger mes données",
+    "export_data_description": "Exportez toutes vos données de santé dans un format lisible par machine (RGPD Article 20)",
+    "delete_account": "Supprimer mon compte",
+    "delete_account_warning": "Cette action est irréversible. Toutes vos données seront définitivement supprimées.",
+    "access_logs": "Journaux d'accès aux données",
+    "access_logs_description": "Voir qui a accédé à vos données et quand"
+  },
+  "health": {
+    "breakfast": "Petit déjeuner",
+    "lunch": "Déjeuner",
+    "dinner": "Dîner",
+    "snack": "Collation",
+    "calories": "Calories",
+    "protein": "Protéines",
+    "carbs": "Glucides",
+    "fat": "Lipides",
+    "water": "Eau",
+    "steps": "Pas",
+    "exercise": "Exercice",
+    "sleep": "Sommeil",
+    "mood": "Humeur",
+    "weight": "Poids",
+    "blood_pressure": "Pression artérielle",
+    "heart_rate": "Fréquence cardiaque"
+  },
+  "ai": {
+    "thinking": "Réflexion...",
+    "recommendation": "Recommandation IA",
+    "ask_anything": "Posez-moi n'importe quelle question sur votre santé",
+    "personalized": "Personnalisé pour vous en fonction de vos données de santé"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "register": "S'inscrire",
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "remember_me": "Se souvenir de moi"
+  }
+}

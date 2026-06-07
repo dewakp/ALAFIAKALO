@@ -1,0 +1,47 @@
+# Gradle files
+.gradle/
+build/
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Local properties
+local.properties
+
+# Build outputs
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Kotlin
+*.kt.bak
+*.kexe
+
+# Output files
+.externalNativeBuild/
+.cxx/
+
+# Signing files
+*.jks
+*.keystore
+
+# User-specific files
+.idea/workspace.xml
+.idea/tasks.xml
+
+# IDE
+.vscode/
+.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride

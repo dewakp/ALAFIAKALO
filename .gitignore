@@ -1,0 +1,73 @@
+# ── Secrets & credentials (NEVER commit) ───────────────────────────
+.env
+.env.*
+!.env.example
+*service-account*.json
+*firebase-adminsdk*.json
+alafia-*-firebase-adminsdk-*.json
+*.pem
+*.p12
+*.p8
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+
+# ── OS / editor ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Python (backend, ML) ───────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ── Node / web frontend ────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+playwright-report/
+test-results/
+*.local
+
+# ── iOS ────────────────────────────────────────────────────────────
+IOS/build/
+.build/
+.swiftpm/
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.xcresult
+
+# ── Android ────────────────────────────────────────────────────────
+Android/build/
+Android/app/build/
+Android/.gradle/
+Android/local.properties
+*.apk
+*.aab
+
+# ── HEBCS research (lives in 6igmaHealthBook/WellnessScore, not this repo) ──
+HEBCS/
+HEBCSL_MATLAB/
+
+# ── Docs / audits not shipped in the app repo (root-level only) ──────
+/docs/
+/Book/
+/04142026Audit.md
+/06062026_GapAnalysis.md
+/CLOUD_PROVIDER_COMPARISON.md
+/Patient.md
+/users.md
+
+# ── Misc ───────────────────────────────────────────────────────────
+*.log

@@ -1,0 +1,16 @@
+# HEBCS Docker ignore
+.venv-health-ml/
+__pycache__/
+*.pyc
+.pytest_cache/
+notebooks/
+tests/
+*.ipynb
+*.md
+Makefile
+pytest.ini
+.git/
+.gitignore
+build/
+tmp/
+data/

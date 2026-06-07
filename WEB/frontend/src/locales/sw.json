@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Karibu",
+    "save": "Hifadhi",
+    "cancel": "Ghairi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "close": "Funga",
+    "confirm": "Thibitisha",
+    "loading": "Inapakia...",
+    "error": "Hitilafu",
+    "success": "Mafanikio"
+  },
+  "dashboard": {
+    "title": "Dashibodi ya Afya",
+    "welcome_message": "Karibu tena! Hapa kuna muhtasari wa afya yako."
+  },
+  "nav": {
+    "nutrition": "Lishe",
+    "fitness": "Afya ya Mwili",
+    "medications": "Dawa",
+    "lab_results": "Matokeo ya Maabara",
+    "mood": "Hisia & Afya ya Akili",
+    "lifestyle": "Mtindo wa Maisha",
+    "settings": "Mipangilio",
+    "privacy": "Faragha"
+  },
+  "privacy": {
+    "title": "Mipangilio ya Faragha",
+    "consent": {
+      "data_sharing": "Shiriki data isiyojulikana ili kuboresha maarifa ya afya kwa kila mtu",
+      "ai_coaching": "Wezesha mafunzo ya afya kwa AI",
+      "marketing": "Pokea mawasiliano ya masoko",
+      "research": "Shiriki katika tafiti"
+    },
+    "export_data": "Pakua data yangu",
+    "export_data_description": "Hamisha data yako yote ya afya katika muundo unaosomwa na mashine (GDPR Ibara ya 20)",
+    "delete_account": "Futa akaunti yangu",
+    "delete_account_warning": "Hatua hii haiwezi kutenduliwa. Data yako yote itafutwa kabisa.",
+    "access_logs": "Kumbukumbu za Ufikiaji wa Data",
+    "access_logs_description": "Tazama nani alifikia data yako na wakati gani"
+  },
+  "health": {
+    "breakfast": "Kifungua Kinywa",
+    "lunch": "Chakula cha Mchana",
+    "dinner": "Chakula cha Usiku",
+    "snack": "Vitafunio",
+    "calories": "Kalori",
+    "protein": "Protini",
+    "carbs": "Kabohaidreti",
+    "fat": "Mafuta",
+    "water": "Maji",
+    "steps": "Hatua",
+    "exercise": "Mazoezi",
+    "sleep": "Usingizi",
+    "mood": "Hisia",
+    "weight": "Uzito",
+    "blood_pressure": "Shinikizo la Damu",
+    "heart_rate": "Mapigo ya Moyo"
+  },
+  "ai": {
+    "thinking": "Inafikiria...",
+    "recommendation": "Mapendekezo ya AI",
+    "ask_anything": "Niulize chochote kuhusu afya yako",
+    "personalized": "Imekusanidiwa kwa ajili yako kulingana na data yako ya afya"
+  },
+  "auth": {
+    "login": "Ingia",
+    "logout": "Toka",
+    "register": "Jisajili",
+    "email": "Barua pepe",
+    "password": "Nywila",
+    "forgot_password": "Umesahau nywila?",
+    "remember_me": "Nikumbuke"
+  }
+}

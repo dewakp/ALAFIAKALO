@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Willkommen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg"
+  },
+  "dashboard": {
+    "title": "Gesundheits-Dashboard",
+    "welcome_message": "Willkommen zurück! Hier ist Ihre Gesundheitsübersicht."
+  },
+  "nav": {
+    "nutrition": "Ernährung",
+    "fitness": "Fitness",
+    "medications": "Medikamente",
+    "lab_results": "Laborergebnisse",
+    "mood": "Stimmung & psychische Gesundheit",
+    "lifestyle": "Lebensstil",
+    "settings": "Einstellungen",
+    "privacy": "Datenschutz"
+  },
+  "privacy": {
+    "title": "Datenschutzeinstellungen",
+    "consent": {
+      "data_sharing": "Anonymisierte Daten teilen, um Gesundheitseinblicke für alle zu verbessern",
+      "ai_coaching": "KI-gestütztes Gesundheitscoaching aktivieren",
+      "marketing": "Marketingkommunikation erhalten",
+      "research": "An Forschungsstudien teilnehmen"
+    },
+    "export_data": "Meine Daten herunterladen",
+    "export_data_description": "Exportieren Sie alle Ihre Gesundheitsdaten in maschinenlesbarem Format (DSGVO Artikel 20)",
+    "delete_account": "Konto löschen",
+    "delete_account_warning": "Diese Aktion ist unwiderruflich. Alle Ihre Daten werden dauerhaft gelöscht.",
+    "access_logs": "Datenzugriffsprotokolle",
+    "access_logs_description": "Sehen Sie, wer auf Ihre Daten zugegriffen hat und wann"
+  },
+  "health": {
+    "breakfast": "Frühstück",
+    "lunch": "Mittagessen",
+    "dinner": "Abendessen",
+    "snack": "Snack",
+    "calories": "Kalorien",
+    "protein": "Protein",
+    "carbs": "Kohlenhydrate",
+    "fat": "Fett",
+    "water": "Wasser",
+    "steps": "Schritte",
+    "exercise": "Bewegung",
+    "sleep": "Schlaf",
+    "mood": "Stimmung",
+    "weight": "Gewicht",
+    "blood_pressure": "Blutdruck",
+    "heart_rate": "Herzfrequenz"
+  },
+  "ai": {
+    "thinking": "Nachdenken...",
+    "recommendation": "KI-Empfehlung",
+    "ask_anything": "Fragen Sie mich alles über Ihre Gesundheit",
+    "personalized": "Für Sie personalisiert auf der Grundlage Ihrer Gesundheitsdaten"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "register": "Registrieren",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgot_password": "Passwort vergessen?",
+    "remember_me": "Angemeldet bleiben"
+  }
+}

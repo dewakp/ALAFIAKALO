@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Nnọọ",
+    "save": "Chekwaa",
+    "cancel": "Kagbuo",
+    "delete": "Hichapụ",
+    "edit": "Dezie",
+    "close": "Mechie",
+    "confirm": "Nwaa",
+    "loading": "Na-ebugo...",
+    "error": "Njehie",
+    "success": "Ọganiihu"
+  },
+  "dashboard": {
+    "title": "Nchọcha Ahụike",
+    "welcome_message": "Nnọọ laghachi! Nke a bụ nchoputa ahụike gị."
+  },
+  "nav": {
+    "nutrition": "Nri",
+    "fitness": "Ike Ahụ",
+    "medications": "Ọgwụ",
+    "lab_results": "Nsonaazụ Laboratorị",
+    "mood": "Ọchịchọ & Ahụike Uche",
+    "lifestyle": "Ụzọ Ndụ",
+    "settings": "Ntọala",
+    "privacy": "Nzuzo"
+  },
+  "privacy": {
+    "title": "Ntọala Nzuzo",
+    "consent": {
+      "data_sharing": "Kekọrịta data anaghị ekpughe aha iji melite ihe ọmụma ahụike maka onye ọ bụla",
+      "ai_coaching": "Jidee ịkụziri ahụike site na AI",
+      "marketing": "Nata ozi azụmahịa",
+      "research": "Sonye na ọmụmụ ihe nyocha"
+    },
+    "export_data": "Budata data m",
+    "export_data_description": "Budata data ahụike gị niile n'ụdị ihe ọrụ nwere ike ịgụ (GDPR Nkeji 20)",
+    "delete_account": "Hichapụ akaụntị m",
+    "delete_account_warning": "Omume a enweghị ike ịlaghachi. A ga-ehichapụ data gị niile kpamkpam.",
+    "access_logs": "Ndekọ Nnweta Data",
+    "access_logs_description": "Hụ onye nwetara data gị na mgbe ha nwetara ya"
+  },
+  "health": {
+    "breakfast": "Nri Ụtụtụ",
+    "lunch": "Nri Ehihie",
+    "dinner": "Nri Anyasị",
+    "snack": "Oriri obere",
+    "calories": "Kalori",
+    "protein": "Protein",
+    "carbs": "Kabu",
+    "fat": "Abụba",
+    "water": "Mmiri",
+    "steps": "Ọsọ",
+    "exercise": "Ụdọ Ahụ",
+    "sleep": "Ụra",
+    "mood": "Ọchịchọ",
+    "weight": "Ibu",
+    "blood_pressure": "Nrụgide Ọbara",
+    "heart_rate": "Ọnụọgụgụ Obi"
+  },
+  "ai": {
+    "thinking": "Na-echebara...",
+    "recommendation": "Ntụziaka AI",
+    "ask_anything": "Jụọ m ihe ọ bụla banyere ahụike gị",
+    "personalized": "E mere ya maka gị dabere na data ahụike gị"
+  },
+  "auth": {
+    "login": "Banye",
+    "logout": "Pụọ",
+    "register": "Debanye aha",
+    "email": "Ozi-elu",
+    "password": "Okwuntughe",
+    "forgot_password": "Chefuo okwuntughe?",
+    "remember_me": "Cheta m"
+  }
+}

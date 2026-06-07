@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: alafia
+      POSTGRES_PASSWORD: alafia
+      POSTGRES_DB: alafia
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alafia"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  chain:
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["anvil"]
+    ports:
+      - "8546:8545"
+    command: ["--accounts", "1", "--host", "0.0.0.0"]
+    healthcheck:
+      test: ["CMD-SHELL", "cast rpc eth_blockNumber --rpc-url http://localhost:8545 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8005:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://alafia:alafia@db:5432/alafia
+      DATABASE_URL_SYNC: postgresql://alafia:alafia@db:5432/alafia
+      CHAIN_NODE_URL: http://chain:8545
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: gpt-oss:20b
+      FIREBASE_SERVICE_ACCOUNT: /run/secrets/firebase_sa
+    volumes:
+      - /Users/woleakpose/Documents/Developer/LAFIAKALO/alafia-9i0hh-firebase-adminsdk-fbsvc-fb3e9a5364.json:/run/secrets/firebase_sa:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      chain:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

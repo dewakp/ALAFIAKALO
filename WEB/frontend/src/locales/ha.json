@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Barka da zuwa",
+    "save": "Adana",
+    "cancel": "Soke",
+    "delete": "Goge",
+    "edit": "Gyara",
+    "close": "Rufe",
+    "confirm": "Tabbatar",
+    "loading": "Ana lodi...",
+    "error": "Kuskure",
+    "success": "Nasara"
+  },
+  "dashboard": {
+    "title": "Allon Lafiya",
+    "welcome_message": "Barka da dawowarku! Ga taƙaitaccen bayanin lafiyarku."
+  },
+  "nav": {
+    "nutrition": "Abinci",
+    "fitness": "Motsa Jiki",
+    "medications": "Magunguna",
+    "lab_results": "Sakamakon Lab",
+    "mood": "Yanayi & Lafiyar Hankali",
+    "lifestyle": "Salon Rayuwa",
+    "settings": "Saiti",
+    "privacy": "Sirri"
+  },
+  "privacy": {
+    "title": "Saitunan Sirri",
+    "consent": {
+      "data_sharing": "Raba bayanai marasa suna don inganta fahimtar lafiya ga kowa",
+      "ai_coaching": "Kunna horar da lafiya ta hanyar AI",
+      "marketing": "Karɓi saƙonnin kasuwanci",
+      "research": "Shiga cikin bincike"
+    },
+    "export_data": "Sauke bayanan na",
+    "export_data_description": "Fitar da duk bayanan lafiyarku a cikin tsarin da na'ura zata iya karanta (GDPR Mataki na 20)",
+    "delete_account": "Goge asusuna",
+    "delete_account_warning": "Wannan aikin ba za a iya mayar da shi ba. Duk bayananku za a goge su har abada.",
+    "access_logs": "Tarihin Samun Bayanai",
+    "access_logs_description": "Duba wanda ya samu bayananku da lokacin da suka yi haka"
+  },
+  "health": {
+    "breakfast": "Karin Kumallo",
+    "lunch": "Abincin Rana",
+    "dinner": "Abincin Dare",
+    "snack": "Cin abinci kaɗan",
+    "calories": "Kalori",
+    "protein": "Furotin",
+    "carbs": "Kaborohaidret",
+    "fat": "Kitsen Jiki",
+    "water": "Ruwa",
+    "steps": "Matakai",
+    "exercise": "Motsa Jiki",
+    "sleep": "Barci",
+    "mood": "Yanayi",
+    "weight": "Nauyi",
+    "blood_pressure": "Matsin Jini",
+    "heart_rate": "Bugun Zuciya"
+  },
+  "ai": {
+    "thinking": "Yana tunani...",
+    "recommendation": "Shawarar AI",
+    "ask_anything": "Tambaye ni komai game da lafiyarku",
+    "personalized": "An keɓance muku bisa bayanan lafiyarku"
+  },
+  "auth": {
+    "login": "Shiga",
+    "logout": "Fita",
+    "register": "Yi rajista",
+    "email": "Imel",
+    "password": "Kalmar Sirri",
+    "forgot_password": "Manta kalmar sirri?",
+    "remember_me": "Tuna da ni"
+  }
+}

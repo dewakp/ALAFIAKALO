@@ -1,0 +1,369 @@
+import Foundation
+import CommonCrypto
+
+/// Centralized API client for all network requests
+actor APIClient {
+    static let shared = APIClient()
+    
+    private let session: URLSession
+    private let decoder: JSONDecoder
+    private let encoder: JSONEncoder
+    private let pinningDelegate: CertificatePinningDelegate?
+    
+    /// SHA-512 hashes of the Subject Public Key Info (SPKI) for api.alafia.com
+    /// Replace with real pin hashes extracted from your production certificates.
+    private static let pinnedHashes: [String] = [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",  // Primary — SHA-512
+        "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",  // Backup — SHA-512
+    ]
+    
+    private init() {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+
+        #if DEBUG
+        self.pinningDelegate = nil
+        self.session = URLSession(configuration: config)
+        #else
+        let delegate = CertificatePinningDelegate(pinnedHashes: Self.pinnedHashes)
+        self.pinningDelegate = delegate
+        self.session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
+        #endif
+        
+        self.decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateStr = try container.decode(String.self)
+            
+            // Try ISO8601 with fractional seconds
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = iso.date(from: dateStr) { return date }
+            
+            // Try without fractional seconds
+            iso.formatOptions = [.withInternetDateTime]
+            if let date = iso.date(from: dateStr) { return date }
+            
+            // Try date-only
+            let df = DateFormatter()
+            df.dateFormat = "yyyy-MM-dd"
+            if let date = df.date(from: dateStr) { return date }
+            
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateStr)")
+        }
+        
+        self.encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            let df = DateFormatter()
+            df.dateFormat = "yyyy-MM-dd"
+            try container.encode(df.string(from: date))
+        }
+    }
+
+    // MARK: - CSRF
+
+    private func fetchCsrfToken() async throws -> String {
+        var request = buildRequest(path: "/auth/csrf-cookie", method: "GET")
+        request.httpBody = nil
+
+        do {
+            let (_, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+
+            let headers = httpResponse.value(forHTTPHeaderField: "Set-Cookie") ?? ""
+            let parts = headers.split(separator: ";").map { String($0).trimmingCharacters(in: .whitespaces) }
+            let tokenPart = parts.first { $0.hasPrefix("csrf_token=") }
+
+            if let token = tokenPart?.split(separator: "=", maxSplits: 1).last, !token.isEmpty {
+                return String(token)
+            }
+        } catch {
+            // Fall through to generated token.
+        }
+
+        // Some backend variants do not expose a dedicated csrf-cookie route.
+        // Sending matching cookie + header still satisfies double-submit CSRF checks.
+        return UUID().uuidString
+    }
+    
+    // MARK: - Token Management
+    
+    private var cachedToken: String?
+
+    private var token: String? {
+        cachedToken ?? KeychainHelper.get(key: AppConfig.tokenKey)
+    }
+
+    func setToken(_ token: String?) {
+        cachedToken = token
+    }
+    
+    // MARK: - Request Building
+    
+    private func buildRequest(
+        path: String,
+        method: String,
+        body: Data? = nil,
+        contentType: String = "application/json"
+    ) -> URLRequest {
+        let url = URL(string: "\(AppConfig.baseURL)\(path)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        request.httpBody = body
+        return request
+    }
+    
+    // MARK: - Generic Request Methods
+    
+    func get<T: Decodable>(_ path: String) async throws -> T {
+        let request = buildRequest(path: path, method: "GET")
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        let decoded = try decoder.decode(T.self, from: data)
+        return decoded
+    }
+
+    /// GET with transparent offline cache fallback.
+    /// On success the response is cached; on network failure the last cached value is returned.
+    func getWithCache<T: Codable>(_ path: String) async throws -> T {
+        do {
+            let result: T = try await get(path)
+            OfflineCache.shared.store(result, for: path)
+            return result
+        } catch {
+            if let cached: T = OfflineCache.shared.load(for: path) {
+                return cached
+            }
+            throw error
+        }
+    }
+    
+    func post<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
+        let bodyData = try encoder.encode(body)
+        let request = buildRequest(path: path, method: "POST", body: bodyData)
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        return try decoder.decode(T.self, from: data)
+    }
+    
+    func postForm<T: Decodable>(_ path: String, formData: [String: String]) async throws -> T {
+        let body = formData.map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value)" }
+            .joined(separator: "&")
+        let request = buildRequest(
+            path: path,
+            method: "POST",
+            body: body.data(using: .utf8),
+            contentType: "application/x-www-form-urlencoded"
+        )
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        return try decoder.decode(T.self, from: data)
+    }
+
+    func postFormWithCSRF<T: Decodable>(_ path: String, formData: [String: String]) async throws -> T {
+        let csrfToken = try await fetchCsrfToken()
+        let body = formData.map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value)" }
+            .joined(separator: "&")
+
+        var request = buildRequest(
+            path: path,
+            method: "POST",
+            body: body.data(using: .utf8),
+            contentType: "application/x-www-form-urlencoded"
+        )
+        request.setValue(csrfToken, forHTTPHeaderField: "X-CSRF-Token")
+        request.setValue("csrf_token=\(csrfToken)", forHTTPHeaderField: "Cookie")
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        return try decoder.decode(T.self, from: data)
+    }
+    
+    func patch<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
+        let bodyData = try encoder.encode(body)
+        let request = buildRequest(path: path, method: "PATCH", body: bodyData)
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        return try decoder.decode(T.self, from: data)
+    }
+    
+    func put<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
+        let bodyData = try encoder.encode(body)
+        let request = buildRequest(path: path, method: "PUT", body: bodyData)
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        return try decoder.decode(T.self, from: data)
+    }
+    
+    func putNoBody<T: Decodable>(_ path: String) async throws -> T {
+        let request = buildRequest(path: path, method: "PUT")
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        return try decoder.decode(T.self, from: data)
+    }
+    
+    func delete(_ path: String) async throws {
+        let request = buildRequest(path: path, method: "DELETE")
+        let (data, response) = try await session.data(for: request)
+        let httpResponse = response as! HTTPURLResponse
+        if httpResponse.statusCode != 204 {
+            try validateResponse(response, data: data)
+        }
+    }
+
+    // MARK: - Streaming (SSE)
+
+    /// Posts `body` to `path` and returns an `AsyncThrowingStream` that yields
+    /// individual content tokens as they arrive from the Ollama SSE endpoint.
+    func streamPost<B: Encodable>(_ path: String, body: B) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let csrfToken = try await fetchCsrfToken()
+                    let bodyData = try encoder.encode(body)
+                    var request = buildRequest(path: path, method: "POST", body: bodyData)
+                    request.timeoutInterval = 120
+                    request.setValue(csrfToken, forHTTPHeaderField: "X-CSRF-Token")
+                    request.setValue("csrf_token=\(csrfToken)", forHTTPHeaderField: "Cookie")
+
+                    let (bytes, response) = try await session.bytes(for: request)
+
+                    if let httpResponse = response as? HTTPURLResponse,
+                       httpResponse.statusCode != 200 {
+                        continuation.finish(throwing: APIError.unknown(httpResponse.statusCode))
+                        return
+                    }
+
+                    for try await line in bytes.lines {
+                        if line.hasPrefix("data: ") {
+                            let payload = String(line.dropFirst(6))
+                            if payload == "[DONE]" { break }
+                            if let data = payload.data(using: .utf8),
+                               let json = try? JSONDecoder().decode([String: String].self, from: data),
+                               let content = json["content"] {
+                                continuation.yield(content)
+                            }
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Validation
+    
+    private func validateResponse(_ response: URLResponse, data: Data) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200...299:
+            return
+        case 401:
+            throw APIError.unauthorized
+        case 400...499:
+            if let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
+                throw APIError.clientError(detail.detail)
+            }
+            throw APIError.clientError("Request failed (\(httpResponse.statusCode))")
+        case 500...599:
+            throw APIError.serverError
+        default:
+            throw APIError.unknown(httpResponse.statusCode)
+        }
+    }
+}
+
+// MARK: - Error Types
+
+enum APIError: LocalizedError {
+    case invalidResponse
+    case unauthorized
+    case clientError(String)
+    case serverError
+    case unknown(Int)
+    
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse: return "Invalid server response"
+        case .unauthorized: return "Please log in again"
+        case .clientError(let msg): return msg
+        case .serverError: return "Server error — try again later"
+        case .unknown(let code): return "Unexpected error (\(code))"
+        }
+    }
+}
+
+struct ErrorDetail: Decodable {
+    let detail: String
+}
+
+// MARK: - Certificate Pinning Delegate
+
+final class CertificatePinningDelegate: NSObject, URLSessionDelegate {
+    private let pinnedHashes: [String]
+
+    init(pinnedHashes: [String]) {
+        self.pinnedHashes = pinnedHashes
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let serverTrust = challenge.protectionSpace.serverTrust else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+
+        // Evaluate the server certificate chain
+        let policy = SecPolicyCreateSSL(true, challenge.protectionSpace.host as CFString)
+        SecTrustSetPolicies(serverTrust, policy)
+
+        var error: CFError?
+        guard SecTrustEvaluateWithError(serverTrust, &error) else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+
+        // Check each certificate in the chain against our pinned hashes
+        let certCount = SecTrustGetCertificateCount(serverTrust)
+        for i in 0..<certCount {
+            guard let cert = SecTrustCopyCertificateChain(serverTrust) as? [SecCertificate],
+                  i < cert.count else { continue }
+            let certData = SecCertificateCopyData(cert[i]) as Data
+            let hash = sha512(data: certData)
+            let base64Hash = hash.base64EncodedString()
+            if pinnedHashes.contains(base64Hash) {
+                completionHandler(.useCredential, URLCredential(trust: serverTrust))
+                return
+            }
+        }
+
+        // No pin matched — reject
+        completionHandler(.cancelAuthenticationChallenge, nil)
+    }
+
+    private func sha512(data: Data) -> Data {
+        var hash = [UInt8](repeating: 0, count: Int(CC_SHA512_DIGEST_LENGTH))
+        data.withUnsafeBytes { buffer in
+            _ = CC_SHA512(buffer.baseAddress, CC_LONG(data.count), &hash)
+        }
+        return Data(hash)
+    }
+}

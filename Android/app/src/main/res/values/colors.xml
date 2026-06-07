@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors (Orange) -->
+    <color name="primary">#F97316</color>
+    <color name="primary_variant">#EA580C</color>
+    
+    <!-- Secondary Colors (Teal) -->
+    <color name="secondary">#14B8A6</color>
+    <color name="secondary_variant">#0D9488</color>
+    
+    <!-- Tertiary Colors (Amber) -->
+    <color name="tertiary">#F59E0B</color>
+    <color name="tertiary_variant">#D97706</color>
+    
+    <!-- Error Color -->
+    <color name="error">#EF4444</color>
+    
+    <!-- Neutral Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="light_gray">#F3F4F6</color>
+    <color name="dark_gray">#1F2937</color>
+</resources>

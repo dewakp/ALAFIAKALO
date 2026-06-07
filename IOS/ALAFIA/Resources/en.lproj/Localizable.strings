@@ -1,0 +1,49 @@
+/* Common */
+"common.welcome" = "Welcome";
+"common.save" = "Save";
+"common.cancel" = "Cancel";
+"common.delete" = "Delete";
+"common.edit" = "Edit";
+"common.close" = "Close";
+"common.confirm" = "Confirm";
+"common.loading" = "Loading...";
+"common.error" = "Error";
+"common.success" = "Success";
+
+/* Auth */
+"auth.login" = "Sign In";
+"auth.register" = "Register";
+"auth.logout" = "Logout";
+"auth.email" = "Email";
+"auth.password" = "Password";
+"auth.forgot_password" = "Forgot password?";
+"auth.no_account" = "Don't have an account?";
+"auth.sign_up" = "Sign Up";
+"auth.reset_password" = "Reset Password";
+
+/* Navigation */
+"nav.dashboard" = "Dashboard";
+"nav.nutrition" = "Nutrition";
+"nav.fitness" = "Fitness";
+"nav.medications" = "Medications";
+"nav.labs" = "Lab Results";
+"nav.mood" = "Mood";
+"nav.lifestyle" = "Lifestyle";
+"nav.ai_chat" = "AI Chat";
+"nav.profile" = "Profile";
+"nav.settings" = "Settings";
+
+/* Health */
+"health.calories" = "Calories";
+"health.protein" = "Protein";
+"health.carbs" = "Carbs";
+"health.fat" = "Fat";
+"health.steps" = "Steps";
+"health.heart_rate" = "Heart Rate";
+"health.blood_pressure" = "Blood Pressure";
+"health.weight" = "Weight";
+"health.sleep" = "Sleep";
+
+/* Dashboard */
+"dashboard.title" = "Health Dashboard";
+"dashboard.welcome" = "Welcome back! Here's your health summary.";

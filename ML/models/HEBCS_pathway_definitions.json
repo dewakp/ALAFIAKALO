@@ -1,0 +1,509 @@
+{
+  "Metabolic": {
+    "weight": 0.2,
+    "biomarkers": [
+      {
+        "test": "BUN",
+        "weight": 1.0,
+        "critical_low": 5,
+        "optimal_low": 10,
+        "optimal_high": 50,
+        "critical_high": 90
+      },
+      {
+        "test": "Creatinine",
+        "weight": 0.8,
+        "critical_low": 2,
+        "optimal_low": 4,
+        "optimal_high": 12,
+        "critical_high": 18
+      },
+      {
+        "test": "Potassium",
+        "weight": 1.5,
+        "critical_low": 2.5,
+        "optimal_low": 3.5,
+        "optimal_high": 5.0,
+        "critical_high": 6.5
+      },
+      {
+        "test": "Sodium",
+        "weight": 1.0,
+        "critical_low": 125,
+        "optimal_low": 135,
+        "optimal_high": 145,
+        "critical_high": 155
+      },
+      {
+        "test": "CO2",
+        "weight": 1.0,
+        "critical_low": 15,
+        "optimal_low": 22,
+        "optimal_high": 29,
+        "critical_high": 35
+      },
+      {
+        "test": "Chloride",
+        "weight": 0.5,
+        "critical_low": 90,
+        "optimal_low": 96,
+        "optimal_high": 106,
+        "critical_high": 115
+      },
+      {
+        "test": "Glucose",
+        "weight": 0.8,
+        "critical_low": 40,
+        "optimal_low": 70,
+        "optimal_high": 140,
+        "critical_high": 250
+      },
+      {
+        "test": "URR",
+        "weight": 1.2,
+        "critical_low": 40,
+        "optimal_low": 65,
+        "optimal_high": 100,
+        "critical_high": null
+      },
+      {
+        "test": "KtV",
+        "weight": 1.2,
+        "critical_low": 0.5,
+        "optimal_low": 1.2,
+        "optimal_high": 2.5,
+        "critical_high": null
+      },
+      {
+        "test": "nPCR",
+        "weight": 0.6,
+        "critical_low": 0.4,
+        "optimal_low": 0.8,
+        "optimal_high": 1.4,
+        "critical_high": 2.0
+      }
+    ]
+  },
+  "Digestive": {
+    "weight": 0.12,
+    "biomarkers": [
+      {
+        "test": "Albumin",
+        "weight": 1.5,
+        "critical_low": 1.5,
+        "optimal_low": 3.5,
+        "optimal_high": 5.0,
+        "critical_high": 6.0
+      },
+      {
+        "test": "Total_Protein",
+        "weight": 1.0,
+        "critical_low": 4.0,
+        "optimal_low": 6.0,
+        "optimal_high": 8.3,
+        "critical_high": 10.0
+      },
+      {
+        "test": "Cholesterol",
+        "weight": 0.7,
+        "critical_low": 80,
+        "optimal_low": 120,
+        "optimal_high": 200,
+        "critical_high": 300
+      },
+      {
+        "test": "HDL",
+        "weight": 0.6,
+        "critical_low": 15,
+        "optimal_low": 40,
+        "optimal_high": 80,
+        "critical_high": null
+      },
+      {
+        "test": "LDL",
+        "weight": 0.6,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 130,
+        "critical_high": 200
+      },
+      {
+        "test": "Triglycerides",
+        "weight": 0.6,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 150,
+        "critical_high": 500
+      },
+      {
+        "test": "ALT",
+        "weight": 0.4,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 40,
+        "critical_high": 100
+      },
+      {
+        "test": "AST",
+        "weight": 0.4,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 40,
+        "critical_high": 100
+      },
+      {
+        "test": "B12",
+        "weight": 0.5,
+        "critical_low": 100,
+        "optimal_low": 200,
+        "optimal_high": 900,
+        "critical_high": 2000
+      },
+      {
+        "test": "Folate",
+        "weight": 0.4,
+        "critical_low": 2,
+        "optimal_low": 4,
+        "optimal_high": 20,
+        "critical_high": 50
+      }
+    ]
+  },
+  "Neurological": {
+    "weight": 0.1,
+    "biomarkers": [
+      {
+        "test": "Sodium",
+        "weight": 1.0,
+        "critical_low": 125,
+        "optimal_low": 135,
+        "optimal_high": 145,
+        "critical_high": 155
+      },
+      {
+        "test": "Potassium",
+        "weight": 0.8,
+        "critical_low": 2.5,
+        "optimal_low": 3.5,
+        "optimal_high": 5.0,
+        "critical_high": 6.5
+      },
+      {
+        "test": "Calcium",
+        "weight": 1.0,
+        "critical_low": 6.0,
+        "optimal_low": 8.5,
+        "optimal_high": 10.5,
+        "critical_high": 13.0
+      },
+      {
+        "test": "Magnesium",
+        "weight": 0.8,
+        "critical_low": 1.0,
+        "optimal_low": 1.5,
+        "optimal_high": 2.5,
+        "critical_high": 3.5
+      },
+      {
+        "test": "Glucose",
+        "weight": 0.6,
+        "critical_low": 40,
+        "optimal_low": 70,
+        "optimal_high": 140,
+        "critical_high": 250
+      },
+      {
+        "test": "B12",
+        "weight": 0.7,
+        "critical_low": 100,
+        "optimal_low": 200,
+        "optimal_high": 900,
+        "critical_high": 2000
+      }
+    ]
+  },
+  "Hemolytical": {
+    "weight": 0.22,
+    "biomarkers": [
+      {
+        "test": "Hemoglobin",
+        "weight": 1.5,
+        "critical_low": 5,
+        "optimal_low": 10,
+        "optimal_high": 13,
+        "critical_high": 18
+      },
+      {
+        "test": "Hematocrit",
+        "weight": 1.2,
+        "critical_low": 18,
+        "optimal_low": 30,
+        "optimal_high": 42,
+        "critical_high": 55
+      },
+      {
+        "test": "RBC",
+        "weight": 1.0,
+        "critical_low": 2.0,
+        "optimal_low": 3.5,
+        "optimal_high": 5.5,
+        "critical_high": 7.0
+      },
+      {
+        "test": "RDW",
+        "weight": 0.8,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 14.5,
+        "critical_high": 20
+      },
+      {
+        "test": "MCV",
+        "weight": 0.7,
+        "critical_low": 60,
+        "optimal_low": 80,
+        "optimal_high": 100,
+        "critical_high": 120
+      },
+      {
+        "test": "MCH",
+        "weight": 0.5,
+        "critical_low": 20,
+        "optimal_low": 27,
+        "optimal_high": 33,
+        "critical_high": 40
+      },
+      {
+        "test": "MCHC",
+        "weight": 0.5,
+        "critical_low": 28,
+        "optimal_low": 32,
+        "optimal_high": 36,
+        "critical_high": 40
+      },
+      {
+        "test": "Iron",
+        "weight": 0.8,
+        "critical_low": 20,
+        "optimal_low": 60,
+        "optimal_high": 170,
+        "critical_high": 300
+      },
+      {
+        "test": "ISAT",
+        "weight": 1.0,
+        "critical_low": 10,
+        "optimal_low": 20,
+        "optimal_high": 50,
+        "critical_high": 80
+      },
+      {
+        "test": "Ferritin",
+        "weight": 1.0,
+        "critical_low": 50,
+        "optimal_low": 200,
+        "optimal_high": 500,
+        "critical_high": 1200
+      },
+      {
+        "test": "TIBC",
+        "weight": 0.6,
+        "critical_low": 150,
+        "optimal_low": 250,
+        "optimal_high": 370,
+        "critical_high": 500
+      },
+      {
+        "test": "LDH",
+        "weight": 0.8,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 250,
+        "critical_high": 500
+      },
+      {
+        "test": "Reticulocyte",
+        "weight": 0.6,
+        "critical_low": 10,
+        "optimal_low": 25,
+        "optimal_high": 100,
+        "critical_high": 200
+      }
+    ]
+  },
+  "Endocrinology": {
+    "weight": 0.15,
+    "biomarkers": [
+      {
+        "test": "PTH",
+        "weight": 1.5,
+        "critical_low": 5,
+        "optimal_low": 150,
+        "optimal_high": 600,
+        "critical_high": 1200
+      },
+      {
+        "test": "Calcium",
+        "weight": 1.2,
+        "critical_low": 6.0,
+        "optimal_low": 8.5,
+        "optimal_high": 10.5,
+        "critical_high": 13.0
+      },
+      {
+        "test": "Phosphorus",
+        "weight": 1.2,
+        "critical_low": 1.5,
+        "optimal_low": 3.5,
+        "optimal_high": 5.5,
+        "critical_high": 9.0
+      },
+      {
+        "test": "Vitamin_D",
+        "weight": 1.0,
+        "critical_low": 5,
+        "optimal_low": 30,
+        "optimal_high": 80,
+        "critical_high": 150
+      },
+      {
+        "test": "HbA1c",
+        "weight": 0.8,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 6.5,
+        "critical_high": 10
+      },
+      {
+        "test": "Glucose",
+        "weight": 0.8,
+        "critical_low": 40,
+        "optimal_low": 70,
+        "optimal_high": 140,
+        "critical_high": 250
+      }
+    ]
+  },
+  "Bone_Formation": {
+    "weight": 0.1,
+    "biomarkers": [
+      {
+        "test": "Calcium",
+        "weight": 1.5,
+        "critical_low": 6.0,
+        "optimal_low": 8.5,
+        "optimal_high": 10.5,
+        "critical_high": 13.0
+      },
+      {
+        "test": "Phosphorus",
+        "weight": 1.5,
+        "critical_low": 1.5,
+        "optimal_low": 3.5,
+        "optimal_high": 5.5,
+        "critical_high": 9.0
+      },
+      {
+        "test": "CaxP",
+        "weight": 1.2,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 55,
+        "critical_high": 80
+      },
+      {
+        "test": "PTH",
+        "weight": 1.5,
+        "critical_low": 5,
+        "optimal_low": 150,
+        "optimal_high": 600,
+        "critical_high": 1200
+      },
+      {
+        "test": "Vitamin_D",
+        "weight": 1.2,
+        "critical_low": 5,
+        "optimal_low": 30,
+        "optimal_high": 80,
+        "critical_high": 150
+      },
+      {
+        "test": "ALP",
+        "weight": 0.8,
+        "critical_low": 20,
+        "optimal_low": 44,
+        "optimal_high": 147,
+        "critical_high": 300
+      },
+      {
+        "test": "Magnesium",
+        "weight": 0.6,
+        "critical_low": 1.0,
+        "optimal_low": 1.5,
+        "optimal_high": 2.5,
+        "critical_high": 3.5
+      }
+    ]
+  },
+  "Immunological": {
+    "weight": 0.11,
+    "biomarkers": [
+      {
+        "test": "WBC",
+        "weight": 1.5,
+        "critical_low": 1.5,
+        "optimal_low": 4.5,
+        "optimal_high": 11.0,
+        "critical_high": 20.0
+      },
+      {
+        "test": "Neutrophils",
+        "weight": 1.0,
+        "critical_low": 0.5,
+        "optimal_low": 1.8,
+        "optimal_high": 7.0,
+        "critical_high": 15.0
+      },
+      {
+        "test": "Lymphocytes",
+        "weight": 1.0,
+        "critical_low": 0.3,
+        "optimal_low": 1.0,
+        "optimal_high": 4.0,
+        "critical_high": 10.0
+      },
+      {
+        "test": "Monocytes",
+        "weight": 0.5,
+        "critical_low": 0.1,
+        "optimal_low": 0.2,
+        "optimal_high": 0.8,
+        "critical_high": 2.0
+      },
+      {
+        "test": "Eosinophils",
+        "weight": 0.3,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 0.5,
+        "critical_high": 1.5
+      },
+      {
+        "test": "Basophils",
+        "weight": 0.2,
+        "critical_low": null,
+        "optimal_low": null,
+        "optimal_high": 0.1,
+        "critical_high": 0.5
+      },
+      {
+        "test": "Platelets",
+        "weight": 0.8,
+        "critical_low": 50,
+        "optimal_low": 150,
+        "optimal_high": 400,
+        "critical_high": 600
+      }
+    ]
+  }
+}

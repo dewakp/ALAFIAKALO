@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Bem-vindo",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "confirm": "Confirmar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso"
+  },
+  "dashboard": {
+    "title": "Painel de Saúde",
+    "welcome_message": "Bem-vindo de volta! Aqui está seu resumo de saúde."
+  },
+  "nav": {
+    "nutrition": "Nutrição",
+    "fitness": "Condicionamento Físico",
+    "medications": "Medicamentos",
+    "lab_results": "Resultados de Laboratório",
+    "mood": "Humor & Saúde Mental",
+    "lifestyle": "Estilo de Vida",
+    "settings": "Configurações",
+    "privacy": "Privacidade"
+  },
+  "privacy": {
+    "title": "Configurações de Privacidade",
+    "consent": {
+      "data_sharing": "Compartilhar dados anonimizados para melhorar insights de saúde para todos",
+      "ai_coaching": "Ativar coaching de saúde com IA",
+      "marketing": "Receber comunicações de marketing",
+      "research": "Participar de estudos de pesquisa"
+    },
+    "export_data": "Baixar meus dados",
+    "export_data_description": "Exporte todos os seus dados de saúde em formato legível por máquina (GDPR Artigo 20)",
+    "delete_account": "Excluir minha conta",
+    "delete_account_warning": "Esta ação é irreversível. Todos os seus dados serão excluídos permanentemente.",
+    "access_logs": "Logs de Acesso a Dados",
+    "access_logs_description": "Veja quem acessou seus dados e quando"
+  },
+  "health": {
+    "breakfast": "Café da manhã",
+    "lunch": "Almoço",
+    "dinner": "Jantar",
+    "snack": "Lanche",
+    "calories": "Calorias",
+    "protein": "Proteína",
+    "carbs": "Carboidratos",
+    "fat": "Gordura",
+    "water": "Água",
+    "steps": "Passos",
+    "exercise": "Exercício",
+    "sleep": "Sono",
+    "mood": "Humor",
+    "weight": "Peso",
+    "blood_pressure": "Pressão Arterial",
+    "heart_rate": "Frequência Cardíaca"
+  },
+  "ai": {
+    "thinking": "Pensando...",
+    "recommendation": "Recomendação de IA",
+    "ask_anything": "Pergunte-me qualquer coisa sobre sua saúde",
+    "personalized": "Personalizado para você com base nos seus dados de saúde"
+  },
+  "auth": {
+    "login": "Entrar",
+    "logout": "Sair",
+    "register": "Registrar",
+    "email": "E-mail",
+    "password": "Senha",
+    "forgot_password": "Esqueceu a senha?",
+    "remember_me": "Lembrar de mim"
+  }
+}

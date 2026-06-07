@@ -1,0 +1,45 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+
+// Mock the API module before importing the component
+vi.mock('../services/api', () => ({
+  default: {
+    post: vi.fn(),
+    get: vi.fn(),
+    defaults: { headers: { common: {} } },
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
+  },
+}));
+
+import Login from '../pages/Login';
+
+describe('Login Page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders login form with email and password fields', () => {
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
+    // Check for input fields by role or placeholder
+    const inputs = document.querySelectorAll('input');
+    expect(inputs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders a submit button', () => {
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
+    const buttons = document.querySelectorAll('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
+  });
+});

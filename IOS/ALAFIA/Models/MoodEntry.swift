@@ -1,0 +1,73 @@
+import Foundation
+
+struct MoodEntry: Codable, Identifiable {
+    let id: Int
+    let userId: Int
+    let entryDate: String
+    let moodScore: Int
+    let energyLevel: Int?
+    let stressLevel: Int?
+    let anxietyLevel: Int?
+    let sleepQuality: Int?
+    let sleepHours: Double?
+    let emotions: String?
+    let triggers: String?
+    let copingStrategies: String?
+    let gratitude: String?
+    let journalEntry: String?
+    let notes: String?
+    let createdAt: Date
+    
+    enum CodingKeys: String, CodingKey {
+        case id, emotions, triggers, gratitude, notes
+        case userId = "user_id"
+        case entryDate = "entry_date"
+        case moodScore = "mood_score"
+        case energyLevel = "energy_level"
+        case stressLevel = "stress_level"
+        case anxietyLevel = "anxiety_level"
+        case sleepQuality = "sleep_quality"
+        case sleepHours = "sleep_hours"
+        case copingStrategies = "coping_strategies"
+        case journalEntry = "journal_entry"
+        case createdAt = "created_at"
+    }
+    
+    var moodEmoji: String {
+        switch moodScore {
+        case 8...10: return "😄"
+        case 6...7: return "🙂"
+        case 4...5: return "😐"
+        case 2...3: return "😔"
+        default: return "😢"
+        }
+    }
+}
+
+struct MoodEntryCreate: Encodable {
+    let entryDate: String
+    var moodScore: Int = 5
+    var energyLevel: Int? = 5
+    var stressLevel: Int? = 5
+    var anxietyLevel: Int? = 5
+    var sleepQuality: Int? = 5
+    var sleepHours: Double?
+    var emotions: String?
+    var triggers: String?
+    var copingStrategies: String?
+    var gratitude: String?
+    var journalEntry: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case entryDate = "entry_date"
+        case moodScore = "mood_score"
+        case energyLevel = "energy_level"
+        case stressLevel = "stress_level"
+        case anxietyLevel = "anxiety_level"
+        case sleepQuality = "sleep_quality"
+        case sleepHours = "sleep_hours"
+        case emotions, triggers, gratitude
+        case copingStrategies = "coping_strategies"
+        case journalEntry = "journal_entry"
+    }
+}

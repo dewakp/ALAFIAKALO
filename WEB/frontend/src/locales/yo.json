@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Ẹ káabọ̀",
+    "save": "Fipamọ́",
+    "cancel": "Fagilee",
+    "delete": "Parẹ́",
+    "edit": "Ṣatunkọ",
+    "close": "Pa",
+    "confirm": "Jẹrìísí",
+    "loading": "Ń gbẹ̀yìn...",
+    "error": "Àṣìṣe",
+    "success": "Àṣeyọrí"
+  },
+  "dashboard": {
+    "title": "Pátákó Ìlera",
+    "welcome_message": "Ẹ káabọ̀ padà! Èyí ni àkópọ̀ ìlera rẹ."
+  },
+  "nav": {
+    "nutrition": "Oúnjẹ Àjẹsára",
+    "fitness": "Àdánwò",
+    "medications": "Egbòogi",
+    "lab_results": "Àbájáde Labọ́ratọ́rì",
+    "mood": "Ìnú & Ìlera Opolo",
+    "lifestyle": "Ọ̀nà Ìgbésí Ayé",
+    "settings": "Ètò",
+    "privacy": "Àṣírí"
+  },
+  "privacy": {
+    "title": "Ètò Àṣírí",
+    "consent": {
+      "data_sharing": "Pin data aláìlórúkọ láti mú àgbáye ìlera dára fún gbogbo ènìyàn",
+      "ai_coaching": "Fún irú àyọkà ìlera pẹ̀lú ìmọ̀ àtọwọdá",
+      "marketing": "Gbà àwọn ìfiranṣẹ́ títajà",
+      "research": "Kópa nínú àwọn ìwádìí"
+    },
+    "export_data": "Ṣe àgbéjáde data mi",
+    "export_data_description": "Gbé data ìlera rẹ jáde ní irú tí ẹ̀rọ lè ka (GDPR Abala 20)",
+    "delete_account": "Pa àkáǹtì mi rẹ́",
+    "delete_account_warning": "Ìgbésẹ̀ yìí kò ní padà. A máa pa gbogbo data rẹ rẹ́ pátápátá.",
+    "access_logs": "Àwọn Àkọsílẹ̀ Ìráàyèsí Data",
+    "access_logs_description": "Wò ẹni tó wo data rẹ àti ìgbà tó wò ó"
+  },
+  "health": {
+    "breakfast": "Oúnjẹ Àárọ̀",
+    "lunch": "Oúnjẹ Ọ̀sán",
+    "dinner": "Oúnjẹ Alẹ́",
+    "snack": "Jíjẹ díẹ̀",
+    "calories": "Kálórì",
+    "protein": "Àmínò",
+    "carbs": "Karbohayidirétì",
+    "fat": "Ọ̀rá",
+    "water": "Omi",
+    "steps": "Ìgbésẹ̀",
+    "exercise": "Ìdánwò Ara",
+    "sleep": "Orun",
+    "mood": "Ìnú",
+    "weight": "Ìwọn",
+    "blood_pressure": "Ìgbàdókò Ẹjẹ̀",
+    "heart_rate": "Ìmú Ọkàn"
+  },
+  "ai": {
+    "thinking": "Ń ronú...",
+    "recommendation": "Ìmọ̀ràn Ìmọ̀ Àtọwọdá",
+    "ask_anything": "Béèrè nìkan nípa ìlera rẹ",
+    "personalized": "A ṣe é fún ọ pàtàkì gẹ́gẹ́ bí data ìlera rẹ"
+  },
+  "auth": {
+    "login": "Wọlé",
+    "logout": "Jáde",
+    "register": "Forúkọsílẹ̀",
+    "email": "Ìméèlì",
+    "password": "Ọ̀rọ̀ aṣínà",
+    "forgot_password": "Ó gbàgbé ọ̀rọ̀ aṣínà?",
+    "remember_me": "Rántí mi"
+  }
+}

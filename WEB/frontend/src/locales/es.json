@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Bienvenido",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito"
+  },
+  "dashboard": {
+    "title": "Panel de Salud",
+    "welcome_message": "¡Bienvenido de nuevo! Aquí está tu resumen de salud."
+  },
+  "nav": {
+    "nutrition": "Nutrición",
+    "fitness": "Ejercicio",
+    "medications": "Medicamentos",
+    "lab_results": "Resultados de Laboratorio",
+    "mood": "Estado de ánimo y salud mental",
+    "lifestyle": "Estilo de vida",
+    "settings": "Configuración",
+    "privacy": "Privacidad"
+  },
+  "privacy": {
+    "title": "Configuración de privacidad",
+    "consent": {
+      "data_sharing": "Compartir datos anonimizados para mejorar los conocimientos de salud para todos",
+      "ai_coaching": "Habilitar entrenamiento de salud impulsado por IA",
+      "marketing": "Recibir comunicaciones de marketing",
+      "research": "Participar en estudios de investigación"
+    },
+    "export_data": "Descargar mis datos",
+    "export_data_description": "Exporta todos tus datos de salud en formato legible por máquina (RGPD Artículo 20)",
+    "delete_account": "Eliminar mi cuenta",
+    "delete_account_warning": "Esta acción es irreversible. Todos tus datos se eliminarán permanentemente.",
+    "access_logs": "Registros de acceso a datos",
+    "access_logs_description": "Ver quién accedió a tus datos y cuándo"
+  },
+  "health": {
+    "breakfast": "Desayuno",
+    "lunch": "Almuerzo",
+    "dinner": "Cena",
+    "snack": "Merienda",
+    "calories": "Calorías",
+    "protein": "Proteína",
+    "carbs": "Carbohidratos",
+    "fat": "Grasa",
+    "water": "Agua",
+    "steps": "Pasos",
+    "exercise": "Ejercicio",
+    "sleep": "Sueño",
+    "mood": "Estado de ánimo",
+    "weight": "Peso",
+    "blood_pressure": "Presión arterial",
+    "heart_rate": "Frecuencia cardíaca"
+  },
+  "ai": {
+    "thinking": "Pensando...",
+    "recommendation": "Recomendación de IA",
+    "ask_anything": "Pregúntame cualquier cosa sobre tu salud",
+    "personalized": "Personalizado para ti según tus datos de salud"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "register": "Registrarse",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "forgot_password": "¿Olvidaste tu contraseña?",
+    "remember_me": "Recuérdame"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "dashboard": {
+    "title": "Health Dashboard",
+    "welcome_message": "Welcome back! Here's your health summary."
+  },
+  "nav": {
+    "nutrition": "Nutrition",
+    "fitness": "Fitness",
+    "medications": "Medications",
+    "lab_results": "Lab Results",
+    "mood": "Mood & Mental Health",
+    "lifestyle": "Lifestyle",
+    "settings": "Settings",
+    "privacy": "Privacy"
+  },
+  "privacy": {
+    "title": "Privacy Settings",
+    "consent": {
+      "data_sharing": "Share anonymized data to improve health insights for everyone",
+      "ai_coaching": "Enable AI-powered health coaching",
+      "marketing": "Receive marketing communications",
+      "research": "Participate in research studies"
+    },
+    "export_data": "Download my data",
+    "export_data_description": "Export all your health data in machine-readable format (GDPR Article 20)",
+    "delete_account": "Delete my account",
+    "delete_account_warning": "This action is irreversible. All your data will be permanently deleted.",
+    "access_logs": "Data Access Logs",
+    "access_logs_description": "See who accessed your data and when"
+  },
+  "health": {
+    "breakfast": "Breakfast",
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "snack": "Snack",
+    "calories": "Calories",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "water": "Water",
+    "steps": "Steps",
+    "exercise": "Exercise",
+    "sleep": "Sleep",
+    "mood": "Mood",
+    "weight": "Weight",
+    "blood_pressure": "Blood Pressure",
+    "heart_rate": "Heart Rate"
+  },
+  "ai": {
+    "thinking": "Thinking...",
+    "recommendation": "AI Recommendation",
+    "ask_anything": "Ask me anything about your health",
+    "personalized": "Personalized for you based on your health data"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgot_password": "Forgot password?",
+    "remember_me": "Remember me"
+  }
+}

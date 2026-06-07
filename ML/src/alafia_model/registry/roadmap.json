@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0",
+  "model_id": "alafia-model",
+  "description": "ALAFIA Unified Multimodal Health AI",
+  "owner": "6igmaHealthBook / Wole Akpose",
+  "last_updated": "2026-04-23",
+  "phases": [
+    {
+      "phase": 1,
+      "capability": "NLM",
+      "task": "Food text → (food_name, qty_g) component list",
+      "status": "live",
+      "model": "rule-based (meal_parser.py + nlm_food_extractor.py)",
+      "files": [
+        "WEB/backend/app/services/meal_parser.py",
+        "WEB/backend/app/services/nlm_food_extractor.py"
+      ],
+      "completed": "2026-04-23"
+    },
+    {
+      "phase": 2,
+      "capability": "NLM",
+      "task": "Clinical text → ICD-10 codes / symptom extraction",
+      "status": "planned",
+      "model": "BioBERT / PubMedBERT fine-tuned on MIMIC-III",
+      "training_script": "ML/scripts/train_nlm_icd10.py",
+      "dataset": "MIMIC-III discharge summaries + SNOMED-CT ontology",
+      "completed": null
+    },
+    {
+      "phase": 3,
+      "capability": "LLM",
+      "task": "Health coaching chat",
+      "status": "planned",
+      "model": "BioMistral 7B fine-tuned on ALAFIA health conversations",
+      "training_script": "ML/scripts/train_llm_health_coach.py",
+      "dataset": "ALAFIA anonymized health conversations + PubMedQA",
+      "serving": "Ollama / vLLM on GPU VM",
+      "completed": null
+    },
+    {
+      "phase": 4,
+      "capability": "LLM",
+      "task": "Nutrition guidance with RAG over USDA + WAFCT",
+      "status": "planned",
+      "model": "BioMistral 7B + RAG index (USDA SR Legacy + WAFCT 2019)",
+      "rag_index": "ML/data/rag/usda_wafct_index/",
+      "completed": null
+    },
+    {
+      "phase": 5,
+      "capability": "Vision",
+      "task": "Food photo → nutrition estimate",
+      "status": "planned",
+      "model": "MobileNetV3-Small fine-tuned on Food-101 + West African foods",
+      "training_script": "ML/scripts/train_food_vision.py",
+      "export_targets": ["Core ML (iOS)", "TFLite (Android)", "ONNX (backend)"],
+      "completed": null
+    },
+    {
+      "phase": 6,
+      "capability": "Vision",
+      "task": "Lab report OCR → structured biomarkers",
+      "status": "planned",
+      "model": "Tesseract + LayoutLM / Donut",
+      "training_script": "ML/scripts/train_lab_ocr.py",
+      "completed": null
+    },
+    {
+      "phase": 7,
+      "capability": "Voice",
+      "task": "Speech → clinical NLP (multilingual)",
+      "status": "planned",
+      "model": "Whisper large-v3 + fine-tune for Nigerian English / Yoruba / Hausa",
+      "on_device": "whisper.cpp (Core ML / TFLite)",
+      "languages": ["en", "yo", "ha", "ig", "pcm", "fr", "sw"],
+      "completed": null
+    },
+    {
+      "phase": 8,
+      "capability": "Video",
+      "task": "Exercise form analysis",
+      "status": "planned",
+      "model": "MediaPipe Pose + Temporal CNN + LSTM",
+      "on_device": "MediaPipe (iOS / Android)",
+      "completed": null
+    },
+    {
+      "phase": 9,
+      "capability": "Unified",
+      "task": "ALAFIAModel.infer(modality, input) — fully native, zero external APIs",
+      "status": "planned",
+      "notes": "All phases 1-8 complete, adapter layer removed, full data sovereignty",
+      "completed": null
+    }
+  ],
+  "external_dependencies": [
+    {
+      "service": "OpenAI gpt-4o-mini",
+      "used_for": "Nutrient estimation fallback (nutrient_estimator.py)",
+      "adapter": "ML/src/alafia_model/adapters/openai_adapter.py",
+      "replace_in_phase": 4,
+      "todo_marker": "TODO(alafia-model)"
+    },
+    {
+      "service": "Ollama (local)",
+      "used_for": "LLM health coaching fallback (ai_engine.py)",
+      "adapter": "ML/src/alafia_model/adapters/ollama_adapter.py",
+      "replace_in_phase": 3,
+      "todo_marker": "TODO(alafia-model)"
+    },
+    {
+      "service": "Anthropic claude-3-5-sonnet",
+      "used_for": "AI engine primary provider (ai_engine.py)",
+      "adapter": "to be wrapped in ML/src/alafia_model/adapters/anthropic_adapter.py",
+      "replace_in_phase": 3,
+      "todo_marker": "TODO(alafia-model)"
+    }
+  ]
+}

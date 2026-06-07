@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "欢迎",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "close": "关闭",
+    "confirm": "确认",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功"
+  },
+  "dashboard": {
+    "title": "健康仪表板",
+    "welcome_message": "欢迎回来！以下是您的健康摘要。"
+  },
+  "nav": {
+    "nutrition": "营养",
+    "fitness": "健身",
+    "medications": "药物",
+    "lab_results": "化验结果",
+    "mood": "情绪与心理健康",
+    "lifestyle": "生活方式",
+    "settings": "设置",
+    "privacy": "隐私"
+  },
+  "privacy": {
+    "title": "隐私设置",
+    "consent": {
+      "data_sharing": "分享匿名数据以改善所有人的健康洞察",
+      "ai_coaching": "启用人工智能健康指导",
+      "marketing": "接收营销通讯",
+      "research": "参与研究研究"
+    },
+    "export_data": "下载我的数据",
+    "export_data_description": "以机器可读格式导出所有健康数据（GDPR第20条）",
+    "delete_account": "删除我的账户",
+    "delete_account_warning": "此操作不可逆。您的所有数据将被永久删除。",
+    "access_logs": "数据访问日志",
+    "access_logs_description": "查看谁访问了您的数据以及访问时间"
+  },
+  "health": {
+    "breakfast": "早餐",
+    "lunch": "午餐",
+    "dinner": "晚餐",
+    "snack": "零食",
+    "calories": "卡路里",
+    "protein": "蛋白质",
+    "carbs": "碳水化合物",
+    "fat": "脂肪",
+    "water": "水",
+    "steps": "步数",
+    "exercise": "运动",
+    "sleep": "睡眠",
+    "mood": "情绪",
+    "weight": "体重",
+    "blood_pressure": "血压",
+    "heart_rate": "心率"
+  },
+  "ai": {
+    "thinking": "思考中...",
+    "recommendation": "人工智能建议",
+    "ask_anything": "询问有关您健康的任何问题",
+    "personalized": "根据您的健康数据为您个性化定制"
+  },
+  "auth": {
+    "login": "登录",
+    "logout": "退出登录",
+    "register": "注册",
+    "email": "电子邮件",
+    "password": "密码",
+    "forgot_password": "忘记密码？",
+    "remember_me": "记住我"
+  }
+}

@@ -1,0 +1,678 @@
+package com.alafia.android.models
+
+import com.google.gson.annotations.SerializedName
+
+// ── Lab Charts ──────────────────────────────────────────────────────────────
+
+data class LabChartPoint(
+    val date: String,
+    val value: Double,
+    @SerializedName("reference_low") val referenceLow: Double? = null,
+    @SerializedName("reference_high") val referenceHigh: Double? = null
+)
+
+data class LabChartSeries(
+    @SerializedName("test_name") val testName: String,
+    val unit: String? = null,
+    @SerializedName("reference_low") val referenceLow: Double? = null,
+    @SerializedName("reference_high") val referenceHigh: Double? = null,
+    val data: List<LabChartPoint> = emptyList()
+)
+
+data class LabChartGroup(
+    @SerializedName("group_name") val name: String,
+    val series: List<LabChartSeries> = emptyList()
+)
+
+// ── Wellness ────────────────────────────────────────────────────────────────
+
+data class WellnessScore(
+    val id: Int,
+    @SerializedName("user_id") val userId: Int? = null,
+    @SerializedName("score_date") val scoreDate: String? = null,
+    @SerializedName("overall_score") val overallScore: Double,
+    @SerializedName("nutrition_score") val nutritionScore: Double? = null,
+    @SerializedName("fitness_score") val fitnessScore: Double? = null,
+    @SerializedName("sleep_score") val sleepScore: Double? = null,
+    @SerializedName("mood_score") val moodScore: Double? = null,
+    @SerializedName("vitals_score") val vitalsScore: Double? = null,
+    @SerializedName("medication_adherence_score") val medicationAdherenceScore: Double? = null,
+    val explanation: String? = null,
+    val recommendations: String? = null
+)
+
+data class TrendDataPoint(
+    val date: String,
+    val value: Double,
+    val label: String? = null
+)
+
+data class TrendStream(
+    val name: String,
+    val data: List<TrendDataPoint> = emptyList(),
+    val trend: String? = null
+)
+
+data class HealthTrendResponse(
+    @SerializedName("overall_summary") val overallSummary: String? = null,
+    val streams: List<TrendStream> = emptyList(),
+    val correlations: List<String>? = null,
+    val suggestions: List<String>? = null
+)
+
+data class RecommendationItem(
+    val category: String,
+    val title: String,
+    val description: String,
+    val priority: String,
+    val action: String? = null
+)
+
+data class DailyRecommendationsResponse(
+    val date: String,
+    val recommendations: List<RecommendationItem> = emptyList()
+)
+
+data class HealthImprovementsResponse(
+    val summary: String? = null,
+    @SerializedName("wellness_score") val wellnessScore: Double? = null,
+    @SerializedName("nutrition_improvements") val nutritionImprovements: List<String>? = null,
+    @SerializedName("fitness_improvements") val fitnessImprovements: List<String>? = null,
+    @SerializedName("sleep_improvements") val sleepImprovements: List<String>? = null,
+    @SerializedName("mood_improvements") val moodImprovements: List<String>? = null,
+    @SerializedName("medical_improvements") val medicalImprovements: List<String>? = null
+)
+
+// ── Planners ────────────────────────────────────────────────────────────────
+
+data class MealItem(
+    val name: String,
+    val calories: Int? = null,
+    @SerializedName("protein_g") val proteinG: Double? = null,
+    @SerializedName("carbs_g") val carbsG: Double? = null,
+    @SerializedName("fat_g") val fatG: Double? = null,
+    val description: String? = null
+)
+
+data class DayMeals(
+    val breakfast: List<MealItem>? = null,
+    val lunch: List<MealItem>? = null,
+    val dinner: List<MealItem>? = null,
+    val snacks: List<MealItem>? = null
+)
+
+data class MealPlanResponse(
+    val id: Int,
+    @SerializedName("plan_name") val planName: String,
+    @SerializedName("dietary_pattern") val dietaryPattern: String? = null,
+    @SerializedName("start_date") val startDate: String? = null,
+    @SerializedName("end_date") val endDate: String? = null,
+    @SerializedName("plan_data") val planData: Map<String, DayMeals>? = null,
+    @SerializedName("shopping_list") val shoppingList: List<String>? = null,
+    val advice: String? = null,
+    @SerializedName("total_daily_calories") val totalDailyCalories: Int? = null
+)
+
+data class MealPlanRequest(
+    @SerializedName("dietary_pattern") val dietaryPattern: String,
+    @SerializedName("daily_calorie_target") val dailyCalorieTarget: Int? = null,
+    val allergies: String? = null,
+    val preferences: String? = null
+)
+
+data class ExerciseItem(
+    val name: String,
+    @SerializedName("duration_minutes") val durationMinutes: Int? = null,
+    val description: String? = null,
+    @SerializedName("muscle_groups") val muscleGroups: List<String>? = null,
+    val sets: Int? = null,
+    val reps: Int? = null
+)
+
+data class ExercisePlanResponse(
+    val id: Int,
+    @SerializedName("plan_name") val planName: String,
+    @SerializedName("fitness_level") val fitnessLevel: String? = null,
+    @SerializedName("start_date") val startDate: String? = null,
+    @SerializedName("end_date") val endDate: String? = null,
+    @SerializedName("plan_data") val planData: Map<String, List<ExerciseItem>>? = null,
+    val advice: String? = null,
+    @SerializedName("weekly_minutes_target") val weeklyMinutesTarget: Int? = null
+)
+
+data class ExercisePlanRequest(
+    @SerializedName("fitness_level") val fitnessLevel: String,
+    @SerializedName("weekly_minutes_target") val weeklyMinutesTarget: Int? = null,
+    val limitations: String? = null
+)
+
+// ── Image AI ────────────────────────────────────────────────────────────────
+
+data class FoodItemResult(
+    val name: String,
+    val calories: Int? = null,
+    @SerializedName("protein_g") val proteinG: Double? = null,
+    @SerializedName("carbs_g") val carbsG: Double? = null,
+    @SerializedName("fat_g") val fatG: Double? = null,
+    @SerializedName("serving_size") val servingSize: String? = null
+)
+
+data class NutritionFromImageResponse(
+    @SerializedName("food_items") val foodItems: List<FoodItemResult> = emptyList(),
+    @SerializedName("total_calories") val totalCalories: Int? = null,
+    @SerializedName("total_protein_g") val totalProteinG: Double? = null,
+    @SerializedName("total_carbs_g") val totalCarbsG: Double? = null,
+    @SerializedName("total_fat_g") val totalFatG: Double? = null,
+    @SerializedName("confidence_note") val confidenceNote: String? = null
+)
+
+data class MedicationFromImageResponse(
+    @SerializedName("medication_name") val medicationName: String? = null,
+    @SerializedName("generic_name") val genericName: String? = null,
+    @SerializedName("drug_class") val drugClass: String? = null,
+    @SerializedName("common_dosages") val commonDosages: String? = null,
+    @SerializedName("side_effects") val sideEffects: List<String>? = null,
+    val interactions: List<String>? = null,
+    val warnings: List<String>? = null,
+    @SerializedName("confidence_note") val confidenceNote: String? = null
+)
+
+data class DosageVerificationRequest(
+    @SerializedName("medication_name") val medicationName: String,
+    @SerializedName("prescribed_dosage") val prescribedDosage: String,
+    @SerializedName("patient_weight_kg") val patientWeightKg: Double? = null,
+    @SerializedName("patient_age") val patientAge: Int? = null
+)
+
+data class DosageVerificationResponse(
+    @SerializedName("medication_name") val medicationName: String? = null,
+    @SerializedName("prescribed_dosage") val prescribedDosage: String? = null,
+    @SerializedName("is_within_range") val isWithinRange: Boolean? = null,
+    @SerializedName("standard_range") val standardRange: String? = null,
+    val recommendation: String? = null,
+    val warnings: List<String>? = null
+)
+
+// ── PDF Tools ───────────────────────────────────────────────────────────────
+
+data class LabReportItem(
+    @SerializedName("test_name") val testName: String? = null,
+    val value: String? = null,
+    val unit: String? = null,
+    @SerializedName("reference_range") val referenceRange: String? = null,
+    @SerializedName("is_abnormal") val isAbnormal: Boolean? = null
+)
+
+data class LabReportParseResponse(
+    @SerializedName("patient_name") val patientName: String? = null,
+    @SerializedName("report_date") val reportDate: String? = null,
+    @SerializedName("lab_name") val labName: String? = null,
+    @SerializedName("ordering_physician") val orderingPhysician: String? = null,
+    val items: List<LabReportItem>? = null,
+    @SerializedName("raw_text_preview") val rawTextPreview: String? = null
+)
+
+data class FlowsheetRequest(
+    @SerializedName("session_type") val sessionType: String,
+    val days: Int = 30
+)
+
+data class FlowsheetResponse(
+    val title: String? = null,
+    @SerializedName("generated_at") val generatedAt: String? = null,
+    val content: String? = null,
+    @SerializedName("session_count") val sessionCount: Int? = null
+)
+
+// ── Peritoneal Dialysis ─────────────────────────────────────────────────────
+
+data class PDExchange(
+    val id: Int? = null,
+    @SerializedName("exchange_number") val exchangeNumber: Int,
+    @SerializedName("start_time") val startTime: String? = null,
+    @SerializedName("drain_start_time") val drainStartTime: String? = null,
+    @SerializedName("drain_end_time") val drainEndTime: String? = null,
+    @SerializedName("fill_end_time") val fillEndTime: String? = null,
+    @SerializedName("solution_type") val solutionType: String? = null,
+    @SerializedName("inflow_volume_ml") val inflowVolumeMl: Int? = null,
+    @SerializedName("outflow_volume_ml") val outflowVolumeMl: Int? = null,
+    @SerializedName("uf_ml") val ufMl: Int? = null,
+    @SerializedName("effluent_clarity") val effluentClarity: String? = null,
+    @SerializedName("effluent_color") val effluentColor: String? = null
+)
+
+data class PDSession(
+    val id: Int,
+    @SerializedName("user_id") val userId: Int? = null,
+    @SerializedName("session_date") val sessionDate: String,
+    val modality: String,
+    @SerializedName("pre_weight_kg") val preWeightKg: Double? = null,
+    @SerializedName("post_weight_kg") val postWeightKg: Double? = null,
+    @SerializedName("pre_bp_systolic") val preBpSystolic: Int? = null,
+    @SerializedName("pre_bp_diastolic") val preBpDiastolic: Int? = null,
+    @SerializedName("post_bp_systolic") val postBpSystolic: Int? = null,
+    @SerializedName("post_bp_diastolic") val postBpDiastolic: Int? = null,
+    @SerializedName("temperature_c") val temperatureC: Double? = null,
+    @SerializedName("exit_site_status") val exitSiteStatus: String? = null,
+    @SerializedName("total_uf_ml") val totalUfMl: Int? = null,
+    val exchanges: List<PDExchange>? = null,
+    val notes: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+
+data class PDSessionCreate(
+    @SerializedName("condition_id") val conditionId: Int? = null,
+    @SerializedName("session_date") val sessionDate: String,
+    val modality: String,
+    @SerializedName("pre_weight_kg") val preWeightKg: Double? = null,
+    @SerializedName("post_weight_kg") val postWeightKg: Double? = null,
+    @SerializedName("pre_bp_systolic") val preBpSystolic: Int? = null,
+    @SerializedName("pre_bp_diastolic") val preBpDiastolic: Int? = null,
+    @SerializedName("post_bp_systolic") val postBpSystolic: Int? = null,
+    @SerializedName("post_bp_diastolic") val postBpDiastolic: Int? = null,
+    @SerializedName("temperature_c") val temperatureC: Double? = null,
+    @SerializedName("exit_site_status") val exitSiteStatus: String? = null,
+    val notes: String? = null,
+    val exchanges: List<PDExchange>? = null
+)
+
+// ── Advanced Directives ─────────────────────────────────────────────────────
+
+data class AdvancedDirective(
+    val id: Int? = null,
+    @SerializedName("primary_agent_name") val primaryAgentName: String? = null,
+    @SerializedName("primary_agent_relationship") val primaryAgentRelationship: String? = null,
+    @SerializedName("primary_agent_phone") val primaryAgentPhone: String? = null,
+    @SerializedName("primary_agent_email") val primaryAgentEmail: String? = null,
+    @SerializedName("alternate_agent_name") val alternateAgentName: String? = null,
+    @SerializedName("alternate_agent_relationship") val alternateAgentRelationship: String? = null,
+    @SerializedName("alternate_agent_phone") val alternateAgentPhone: String? = null,
+    @SerializedName("organ_donation") val organDonation: String? = null,
+    @SerializedName("life_support") val lifeSupport: String? = null,
+    val cpr: String? = null,
+    val ventilator: String? = null,
+    @SerializedName("feeding_tube") val feedingTube: String? = null,
+    @SerializedName("dialysis_directive") val dialysisDirective: String? = null,
+    @SerializedName("blood_transfusion") val bloodTransfusion: String? = null,
+    @SerializedName("document_signed") val documentSigned: Boolean? = null,
+    @SerializedName("document_date") val documentDate: String? = null,
+    @SerializedName("additional_instructions") val additionalInstructions: String? = null
+)
+
+// ── FDA Recalls ─────────────────────────────────────────────────────────────
+
+data class FDARecallItem(
+    @SerializedName("recall_number") val recallNumber: String? = null,
+    @SerializedName("product_description") val productDescription: String? = null,
+    val reason: String? = null,
+    val classification: String? = null,
+    val status: String? = null,
+    @SerializedName("recall_date") val recallDate: String? = null,
+    @SerializedName("recalling_firm") val recallingFirm: String? = null,
+    val city: String? = null,
+    val state: String? = null,
+    val country: String? = null,
+    @SerializedName("distribution_pattern") val distributionPattern: String? = null,
+    @SerializedName("voluntary_mandated") val voluntaryMandated: String? = null
+)
+
+data class FDARecallResponse(
+    val total: Int,
+    val results: List<FDARecallItem> = emptyList()
+)
+
+// ── Data Sharing ────────────────────────────────────────────────────────────
+
+data class DataGrant(
+    val id: Int,
+    @SerializedName("grantee_email") val granteeEmail: String? = null,
+    @SerializedName("grantee_display_name") val granteeDisplayName: String? = null,
+    @SerializedName("data_type") val dataType: String,
+    @SerializedName("can_read") val canRead: Boolean,
+    @SerializedName("can_write") val canWrite: Boolean,
+    @SerializedName("is_active") val isActive: Boolean,
+    @SerializedName("expires_at") val expiresAt: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+
+data class DataGrantCreate(
+    @SerializedName("grantee_email") val granteeEmail: String,
+    @SerializedName("data_type") val dataType: String,
+    @SerializedName("can_read") val canRead: Boolean = true,
+    @SerializedName("can_write") val canWrite: Boolean = false,
+    @SerializedName("expires_at") val expiresAt: String? = null
+)
+
+data class DataShareInvitation(
+    val id: Int,
+    @SerializedName("recipient_email") val recipientEmail: String? = null,
+    @SerializedName("data_types") val dataTypes: List<String>? = null,
+    val message: String? = null,
+    val status: String,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+
+data class DataShareInvitationCreate(
+    @SerializedName("recipient_email") val recipientEmail: String,
+    @SerializedName("data_types") val dataTypes: List<String>,
+    val message: String? = null
+)
+
+// ── Clinician Dashboard ─────────────────────────────────────────────────────
+
+data class PatientSummary(
+    @SerializedName("patient_id") val patientId: Int,
+    @SerializedName("display_name") val displayName: String? = null,
+    @SerializedName("shared_data_types") val sharedDataTypes: List<String>? = null
+)
+
+data class ClinicianDashboardResponse(
+    val patients: List<PatientSummary> = emptyList()
+)
+
+// ── Chart Dashboard ──────────────────────────────
+
+data class ChartDatasetInfo(
+    val key: String,
+    val label: String,
+    val unit: String
+)
+
+data class ChartDataPoint(
+    val date: String,
+    val value: Double? = null,
+    val min: Double? = null,
+    val max: Double? = null,
+    val count: Int? = null
+)
+
+data class ChartDataSeries(
+    val label: String,
+    val unit: String,
+    val domain: String,
+    val points: List<ChartDataPoint> = emptyList()
+)
+
+data class ChartSummaryResponse(
+    val key: String,
+    val label: String,
+    val unit: String,
+    val days: Int,
+    val avg: Double? = null,
+    val min: Double? = null,
+    val max: Double? = null,
+    val count: Int = 0,
+    val stddev: Double? = null,
+    val trend: String = "stable"
+)
+
+// ── Pharmacy ────────────────────────────────────────
+
+data class PharmacyPrescription(
+    val id: Int,
+    @SerializedName("patient_id") val patientId: Int,
+    @SerializedName("prescriber_id") val prescriberId: Int,
+    @SerializedName("medication_name") val medicationName: String,
+    @SerializedName("rxnorm_code") val rxnormCode: String? = null,
+    val dosage: String? = null,
+    @SerializedName("dosage_unit") val dosageUnit: String? = null,
+    val strength: String? = null,
+    val form: String? = null,
+    val route: String? = null,
+    val frequency: String? = null,
+    @SerializedName("duration_days") val durationDays: Int? = null,
+    val quantity: Int? = null,
+    @SerializedName("refills_authorized") val refillsAuthorized: Int = 0,
+    @SerializedName("refills_remaining") val refillsRemaining: Int = 0,
+    val diagnosis: String? = null,
+    val instructions: String? = null,
+    @SerializedName("pharmacy_notes") val pharmacyNotes: String? = null,
+    @SerializedName("substitution_allowed") val substitutionAllowed: Boolean = true,
+    @SerializedName("prescribed_date") val prescribedDate: String? = null,
+    @SerializedName("expiry_date") val expiryDate: String? = null,
+    val status: String = "pending",
+    @SerializedName("is_controlled_substance") val isControlledSubstance: Boolean = false,
+    @SerializedName("medication_id") val medicationId: Int? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("patient_name") val patientName: String? = null,
+    @SerializedName("prescriber_name") val prescriberName: String? = null,
+    @SerializedName("dispense_count") val dispenseCount: Int? = null
+)
+
+data class PrescriptionCreateRequest(
+    @SerializedName("patient_id") val patientId: Int,
+    @SerializedName("medication_name") val medicationName: String,
+    val dosage: String? = null,
+    @SerializedName("dosage_unit") val dosageUnit: String? = null,
+    val frequency: String? = null,
+    val quantity: Int? = null,
+    @SerializedName("refills_authorized") val refillsAuthorized: Int = 0,
+    val diagnosis: String? = null,
+    val instructions: String? = null,
+    @SerializedName("substitution_allowed") val substitutionAllowed: Boolean = true
+)
+
+data class PharmacyDispense(
+    val id: Int,
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("pharmacist_id") val pharmacistId: Int,
+    @SerializedName("quantity_dispensed") val quantityDispensed: Int? = null,
+    @SerializedName("days_supply") val daysSupply: Int? = null,
+    @SerializedName("ndc_code") val ndcCode: String? = null,
+    @SerializedName("lot_number") val lotNumber: String? = null,
+    val manufacturer: String? = null,
+    @SerializedName("is_generic") val isGeneric: Boolean = false,
+    @SerializedName("interactions_checked") val interactionsChecked: Boolean = false,
+    @SerializedName("allergy_checked") val allergyChecked: Boolean = false,
+    @SerializedName("counseling_provided") val counselingProvided: Boolean = false,
+    @SerializedName("clinical_notes") val clinicalNotes: String? = null,
+    val status: String = "pending_review",
+    @SerializedName("dispensed_at") val dispensedAt: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("pharmacist_name") val pharmacistName: String? = null,
+    @SerializedName("medication_name") val medicationName: String? = null
+)
+
+data class DispenseCreateRequest(
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("quantity_dispensed") val quantityDispensed: Int? = null,
+    @SerializedName("days_supply") val daysSupply: Int? = null,
+    @SerializedName("ndc_code") val ndcCode: String? = null,
+    @SerializedName("lot_number") val lotNumber: String? = null,
+    val manufacturer: String? = null,
+    @SerializedName("is_generic") val isGeneric: Boolean = false,
+    @SerializedName("interactions_checked") val interactionsChecked: Boolean = false,
+    @SerializedName("allergy_checked") val allergyChecked: Boolean = false,
+    @SerializedName("counseling_provided") val counselingProvided: Boolean = false,
+    @SerializedName("clinical_notes") val clinicalNotes: String? = null
+)
+
+data class PharmacyAdherenceLog(
+    val id: Int,
+    @SerializedName("patient_id") val patientId: Int,
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("scheduled_time") val scheduledTime: String,
+    @SerializedName("actual_time") val actualTime: String? = null,
+    val status: String = "taken",
+    @SerializedName("dose_taken") val doseTaken: String? = null,
+    val notes: String? = null,
+    @SerializedName("side_effects_reported") val sideEffectsReported: String? = null,
+    @SerializedName("mood_before") val moodBefore: Int? = null,
+    @SerializedName("mood_after") val moodAfter: Int? = null,
+    @SerializedName("pain_before") val painBefore: Int? = null,
+    @SerializedName("pain_after") val painAfter: Int? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("medication_name") val medicationName: String? = null
+)
+
+data class AdherenceLogCreateRequest(
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("scheduled_time") val scheduledTime: String,
+    val status: String = "taken",
+    @SerializedName("dose_taken") val doseTaken: String? = null,
+    val notes: String? = null,
+    @SerializedName("side_effects_reported") val sideEffectsReported: String? = null,
+    @SerializedName("mood_before") val moodBefore: Int? = null,
+    @SerializedName("mood_after") val moodAfter: Int? = null
+)
+
+data class PharmacyAdherenceReport(
+    @SerializedName("prescription_id") val prescriptionId: Int? = null,
+    @SerializedName("patient_id") val patientId: Int,
+    @SerializedName("medication_name") val medicationName: String? = null,
+    @SerializedName("total_scheduled") val totalScheduled: Int = 0,
+    @SerializedName("total_taken") val totalTaken: Int = 0,
+    @SerializedName("total_missed") val totalMissed: Int = 0,
+    @SerializedName("total_skipped") val totalSkipped: Int = 0,
+    @SerializedName("total_late") val totalLate: Int = 0,
+    @SerializedName("adherence_rate") val adherenceRate: Double = 0.0,
+    @SerializedName("avg_delay_minutes") val avgDelayMinutes: Double? = null,
+    @SerializedName("streak_current") val streakCurrent: Int = 0,
+    @SerializedName("streak_longest") val streakLongest: Int = 0,
+    @SerializedName("common_side_effects") val commonSideEffects: List<String> = emptyList()
+)
+
+data class PharmacySchedule(
+    val id: Int,
+    @SerializedName("patient_id") val patientId: Int,
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("time_of_day") val timeOfDay: String,
+    @SerializedName("days_of_week") val daysOfWeek: String? = null,
+    @SerializedName("dose_label") val doseLabel: String? = null,
+    @SerializedName("is_active") val isActive: Boolean = true,
+    @SerializedName("reminder_minutes_before") val reminderMinutesBefore: Int = 15,
+    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("medication_name") val medicationName: String? = null
+)
+
+data class ScheduleCreateRequest(
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("time_of_day") val timeOfDay: String,
+    @SerializedName("days_of_week") val daysOfWeek: String? = null,
+    @SerializedName("dose_label") val doseLabel: String? = null,
+    @SerializedName("reminder_minutes_before") val reminderMinutesBefore: Int = 15
+)
+
+data class PharmacyRefillRequest(
+    val id: Int,
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("patient_id") val patientId: Int,
+    @SerializedName("requested_by_id") val requestedById: Int,
+    @SerializedName("approved_by_id") val approvedById: Int? = null,
+    val status: String = "requested",
+    @SerializedName("quantity_requested") val quantityRequested: Int? = null,
+    val notes: String? = null,
+    @SerializedName("denial_reason") val denialReason: String? = null,
+    @SerializedName("requested_at") val requestedAt: String? = null,
+    @SerializedName("resolved_at") val resolvedAt: String? = null,
+    @SerializedName("medication_name") val medicationName: String? = null
+)
+
+data class RefillCreateRequest(
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("quantity_requested") val quantityRequested: Int? = null,
+    val notes: String? = null
+)
+
+data class MedicationImpactResponse(
+    @SerializedName("prescription_id") val prescriptionId: Int,
+    @SerializedName("medication_name") val medicationName: String,
+    @SerializedName("patient_id") val patientId: Int,
+    @SerializedName("analysis_period_days") val analysisPeriodDays: Int,
+    @SerializedName("adherence_rate") val adherenceRate: Double,
+    @SerializedName("doses_taken") val dosesTaken: Int,
+    @SerializedName("doses_missed") val dosesMissed: Int,
+    @SerializedName("avg_mood_before") val avgMoodBefore: Double? = null,
+    @SerializedName("avg_mood_after") val avgMoodAfter: Double? = null,
+    @SerializedName("mood_trend") val moodTrend: String? = null,
+    @SerializedName("reported_side_effects") val reportedSideEffects: List<String> = emptyList(),
+    @SerializedName("side_effect_frequency") val sideEffectFrequency: Map<String, Int>? = null,
+    @SerializedName("effectiveness_score") val effectivenessScore: Double? = null,
+    @SerializedName("tolerability_score") val tolerabilityScore: Double? = null,
+    @SerializedName("ai_summary") val aiSummary: String? = null
+)
+
+// ── Pantry ──────────────────────────────────────────
+
+data class PantryItem(
+    val id: Int,
+    @SerializedName("user_id") val userId: Int,
+    val name: String,
+    val category: String,
+    val quantity: Float,
+    val unit: String,
+    val location: String,
+    @SerializedName("expiration_date") val expirationDate: String? = null,
+    val notes: String? = null,
+    @SerializedName("auto_replenish") val autoReplenish: Boolean = false,
+    @SerializedName("low_threshold") val lowThreshold: Float? = null,
+    @SerializedName("created_at") val createdAt: String = "",
+    @SerializedName("updated_at") val updatedAt: String = ""
+)
+
+data class PantryItemCreate(
+    val name: String,
+    val category: String,
+    val quantity: Float,
+    val unit: String,
+    val location: String,
+    @SerializedName("expiration_date") val expirationDate: String? = null,
+    val notes: String? = null
+)
+
+// ── HEBCS Ω (Wellness Tensor / Clinical Biomarker Score) ────────────────────
+
+data class HEBCSBiomarkerScore(
+    val name: String,
+    val value: Double? = null,
+    val score: Double? = null,
+    val weight: Double,
+    @SerializedName("opt_range") val optRange: List<Double>? = null
+)
+
+data class HEBCSPathwayScore(
+    val score: Double? = null,
+    val weight: Double,
+    val biomarkers: List<HEBCSBiomarkerScore> = emptyList()
+)
+
+data class HEBCSScoreResponse(
+    @SerializedName("computed_at") val computedAt: String? = null,
+    @SerializedName("lab_date_used") val labDateUsed: String? = null,
+    val omega: Double,
+    @SerializedName("omega_pct") val omegaPct: Double,
+    @SerializedName("data_coverage") val dataCoverage: Double,
+    val pathways: Map<String, HEBCSPathwayScore> = emptyMap(),
+    val interpretation: String? = null
+)
+
+data class WhatIfPathwayDelta(
+    @SerializedName("baseline_score") val baselineScore: Double? = null,
+    @SerializedName("scenario_score") val scenarioScore: Double? = null,
+    val delta: Double? = null
+)
+
+data class WhatIfResponse(
+    @SerializedName("scenario_name") val scenarioName: String,
+    @SerializedName("baseline_omega") val baselineOmega: Double,
+    @SerializedName("scenario_omega") val scenarioOmega: Double,
+    @SerializedName("delta_omega") val deltaOmega: Double,
+    @SerializedName("delta_pct") val deltaPct: Double,
+    @SerializedName("pathway_deltas") val pathwayDeltas: Map<String, WhatIfPathwayDelta> = emptyMap(),
+    @SerializedName("overridden_biomarkers") val overriddenBiomarkers: List<String> = emptyList(),
+    val interpretation: String
+)
+
+data class WhatIfRequest(
+    @SerializedName("scenario_name") val scenarioName: String = "custom",
+    @SerializedName("Phosphorus") val phosphorus: Double? = null,
+    @SerializedName("Potassium") val potassium: Double? = null,
+    @SerializedName("Albumin") val albumin: Double? = null,
+    @SerializedName("Hemoglobin") val hemoglobin: Double? = null,
+    @SerializedName("Ferritin") val ferritin: Double? = null,
+    @SerializedName("KtV_Dialysis_Adequacy") val ktv: Double? = null,
+    @SerializedName("PTH_Intact") val pthIntact: Double? = null,
+    @SerializedName("Calcium") val calcium: Double? = null,
+    @SerializedName("Glucose") val glucose: Double? = null,
+    @SerializedName("Sodium") val sodium: Double? = null
+)

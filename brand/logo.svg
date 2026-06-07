@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#0D9668"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Heart -->
+  <path d="M256 385
+    C256 385 138 295 138 228
+    C138 192 164 172 190 172
+    C216 172 242 194 256 214
+    C270 194 296 172 322 172
+    C348 172 374 192 374 228
+    C374 295 256 385 256 385 Z"
+    fill="white" fill-opacity="0.97"/>
+
+  <!-- Leaf -->
+  <path d="M298 158 Q332 128 340 96 Q308 118 288 148 Z"
+    fill="white" fill-opacity="0.85"/>
+  <line x1="294" y1="153" x2="328" y2="113"
+    stroke="#059669" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Stem -->
+  <path d="M267 198 Q278 178 290 158"
+    stroke="white" stroke-width="2" fill="none" opacity="0.55"/>
+
+  <!-- ECG Pulse -->
+  <polyline
+    points="177,275 218,275 234,253 248,280 258,218 270,292 284,275 340,275"
+    fill="none" stroke="#059669" stroke-width="5.5"
+    stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

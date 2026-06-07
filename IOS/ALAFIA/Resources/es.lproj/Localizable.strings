@@ -1,0 +1,49 @@
+/* Common */
+"common.welcome" = "Bienvenido";
+"common.save" = "Guardar";
+"common.cancel" = "Cancelar";
+"common.delete" = "Eliminar";
+"common.edit" = "Editar";
+"common.close" = "Cerrar";
+"common.confirm" = "Confirmar";
+"common.loading" = "Cargando...";
+"common.error" = "Error";
+"common.success" = "Éxito";
+
+/* Auth */
+"auth.login" = "Iniciar sesión";
+"auth.register" = "Registrarse";
+"auth.logout" = "Cerrar sesión";
+"auth.email" = "Correo electrónico";
+"auth.password" = "Contraseña";
+"auth.forgot_password" = "¿Olvidaste tu contraseña?";
+"auth.no_account" = "¿No tienes cuenta?";
+"auth.sign_up" = "Registrarse";
+"auth.reset_password" = "Restablecer contraseña";
+
+/* Navigation */
+"nav.dashboard" = "Panel";
+"nav.nutrition" = "Nutrición";
+"nav.fitness" = "Fitness";
+"nav.medications" = "Medicamentos";
+"nav.labs" = "Resultados de laboratorio";
+"nav.mood" = "Estado de ánimo";
+"nav.lifestyle" = "Estilo de vida";
+"nav.ai_chat" = "Chat de IA";
+"nav.profile" = "Perfil";
+"nav.settings" = "Ajustes";
+
+/* Health */
+"health.calories" = "Calorías";
+"health.protein" = "Proteína";
+"health.carbs" = "Carbohidratos";
+"health.fat" = "Grasa";
+"health.steps" = "Pasos";
+"health.heart_rate" = "Frecuencia cardíaca";
+"health.blood_pressure" = "Presión arterial";
+"health.weight" = "Peso";
+"health.sleep" = "Sueño";
+
+/* Dashboard */
+"dashboard.title" = "Panel de salud";
+"dashboard.welcome" = "¡Bienvenido de nuevo! Aquí está tu resumen de salud.";

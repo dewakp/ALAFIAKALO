@@ -1,0 +1,696 @@
+{
+  "nutrient_map": {
+    "1008": "energy_kcal",
+    "1062": "energy_kj",
+    "1003": "protein_g",
+    "1004": "total_fat_g",
+    "1005": "carbohydrate_g",
+    "1051": "water_g",
+    "1007": "ash_g",
+    "1018": "alcohol_g",
+    "1079": "fiber_total_g",
+    "1082": "fiber_soluble_g",
+    "1084": "fiber_insoluble_g",
+    "2000": "sugars_total_g",
+    "1063": "sugars_nlea_g",
+    "1009": "starch_g",
+    "1010": "sucrose_g",
+    "1011": "glucose_g",
+    "1012": "fructose_g",
+    "1013": "lactose_g",
+    "1014": "maltose_g",
+    "1075": "galactose_g",
+    "1087": "calcium_mg",
+    "1088": "chlorine_mg",
+    "1089": "iron_mg",
+    "1090": "magnesium_mg",
+    "1091": "phosphorus_mg",
+    "1092": "potassium_mg",
+    "1093": "sodium_mg",
+    "1094": "sulfur_mg",
+    "1095": "zinc_mg",
+    "1096": "chromium_ug",
+    "1098": "copper_mg",
+    "1099": "fluoride_ug",
+    "1100": "iodine_ug",
+    "1101": "manganese_mg",
+    "1102": "molybdenum_ug",
+    "1103": "selenium_ug",
+    "1141": "iron_heme_mg",
+    "1142": "iron_nonheme_mg",
+    "1106": "vitamin_a_rae_ug",
+    "1104": "vitamin_a_iu",
+    "1105": "retinol_ug",
+    "1107": "beta_carotene_ug",
+    "1108": "alpha_carotene_ug",
+    "1109": "vitamin_e_mg",
+    "1114": "vitamin_d_ug",
+    "1110": "vitamin_d_iu",
+    "1111": "vitamin_d2_ug",
+    "1112": "vitamin_d3_ug",
+    "1185": "vitamin_k_phylloquinone_ug",
+    "1183": "vitamin_k_menaquinone4_ug",
+    "1184": "vitamin_k_dihydrophylloquinone_ug",
+    "1162": "vitamin_c_mg",
+    "1165": "thiamin_mg",
+    "1166": "riboflavin_mg",
+    "1167": "niacin_mg",
+    "1170": "pantothenic_acid_mg",
+    "1175": "vitamin_b6_mg",
+    "1176": "biotin_ug",
+    "1177": "folate_total_ug",
+    "1186": "folic_acid_ug",
+    "1187": "folate_food_ug",
+    "1190": "folate_dfe_ug",
+    "1178": "vitamin_b12_ug",
+    "1180": "choline_total_mg",
+    "1194": "choline_free_mg",
+    "1195": "choline_phosphocholine_mg",
+    "1196": "choline_phosphatidylcholine_mg",
+    "1197": "choline_glycerophosphocholine_mg",
+    "1199": "choline_sphingomyelin_mg",
+    "1198": "betaine_mg",
+    "1120": "cryptoxanthin_beta_ug",
+    "1122": "lycopene_ug",
+    "1123": "lutein_zeaxanthin_ug",
+    "1125": "tocopherol_beta_mg",
+    "1126": "tocopherol_gamma_mg",
+    "1127": "tocopherol_delta_mg",
+    "1128": "tocotrienol_alpha_mg",
+    "1129": "tocotrienol_beta_mg",
+    "1130": "tocotrienol_gamma_mg",
+    "1131": "tocotrienol_delta_mg",
+    "1253": "cholesterol_mg",
+    "1258": "fatty_acids_saturated_g",
+    "1292": "fatty_acids_monounsaturated_g",
+    "1293": "fatty_acids_polyunsaturated_g",
+    "1257": "fatty_acids_trans_g",
+    "1404": "ala_18_3n3_g",
+    "1278": "epa_20_5n3_g",
+    "1272": "dha_22_6n3_g",
+    "1280": "dpa_22_5n3_g",
+    "1269": "linoleic_18_2_g",
+    "1271": "arachidonic_20_4_g",
+    "1270": "linolenic_18_3_g",
+    "1259": "sfa_4_0_g",
+    "1260": "sfa_6_0_g",
+    "1261": "sfa_8_0_g",
+    "1262": "sfa_10_0_g",
+    "1263": "sfa_12_0_g",
+    "1264": "sfa_14_0_g",
+    "1265": "sfa_16_0_g",
+    "1266": "sfa_18_0_g",
+    "1267": "sfa_20_0_g",
+    "1273": "sfa_22_0_g",
+    "1299": "sfa_15_0_g",
+    "1300": "sfa_17_0_g",
+    "1301": "sfa_24_0_g",
+    "1268": "mufa_18_1_g",
+    "1275": "mufa_16_1_g",
+    "1277": "mufa_20_1_g",
+    "1274": "mufa_14_1_g",
+    "1279": "mufa_22_1_g",
+    "1276": "pufa_18_4_g",
+    "1321": "pufa_18_3n6_g",
+    "1329": "trans_monoenoic_g",
+    "1304": "tfa_18_1t_g",
+    "1210": "tryptophan_g",
+    "1211": "threonine_g",
+    "1212": "isoleucine_g",
+    "1213": "leucine_g",
+    "1214": "lysine_g",
+    "1215": "methionine_g",
+    "1216": "cystine_g",
+    "1217": "phenylalanine_g",
+    "1218": "tyrosine_g",
+    "1219": "valine_g",
+    "1220": "arginine_g",
+    "1221": "histidine_g",
+    "1222": "alanine_g",
+    "1223": "aspartic_acid_g",
+    "1224": "glutamic_acid_g",
+    "1225": "glycine_g",
+    "1226": "proline_g",
+    "1227": "serine_g",
+    "1228": "hydroxyproline_g",
+    "1283": "phytosterols_mg",
+    "1057": "caffeine_mg",
+    "1058": "theobromine_mg",
+    "1340": "daidzein_mg",
+    "1341": "genistein_mg",
+    "1342": "glycitein_mg",
+    "1343": "isoflavones_mg"
+  },
+  "old_col_map": {
+    "energy_kcal": "calories",
+    "protein_g": "protein",
+    "carbohydrate_g": "carbs",
+    "total_fat_g": "fat",
+    "fiber_total_g": "fiber",
+    "sugars_total_g": "sugar",
+    "sodium_mg": "sodium",
+    "potassium_mg": "potassium",
+    "calcium_mg": "calcium",
+    "iron_mg": "iron",
+    "phosphorus_mg": "phosphorus",
+    "vitamin_d_ug": "vitamin_d",
+    "vitamin_b12_ug": "vitamin_b12",
+    "folate_dfe_ug": "folic_acid",
+    "cholesterol_mg": "cholesterol"
+  },
+  "drug_profiles": {
+    "epogen": {
+      "generic": "Epoetin alfa",
+      "class": "Erythropoiesis-stimulating agent (ESA)",
+      "pathway_effects": [
+        "Lab Results",
+        "Dialysis Metrics"
+      ],
+      "nutrient_interactions": {
+        "iron_depletion": true,
+        "folate_depletion": true,
+        "vitamin_b12_depletion": true,
+        "potassium_increase": true
+      },
+      "dialysis_interaction": "Given SQ during treatment; dose depends on Hgb/Hct response",
+      "g6pd_relevance": "ESA demands functional RBCs; G6PD deficiency reduces RBC lifespan \u2192 blunted response",
+      "adverse_effects": [
+        "hypertension",
+        "thrombosis",
+        "seizure",
+        "pure_red_cell_aplasia"
+      ],
+      "lab_markers": [
+        "hemoglobin",
+        "hematocrit",
+        "reticulocyte_count",
+        "iron",
+        "ferritin",
+        "TSAT"
+      ]
+    },
+    "venofer": {
+      "generic": "Iron sucrose",
+      "class": "IV iron supplement",
+      "pathway_effects": [
+        "Lab Results",
+        "Nutrition"
+      ],
+      "nutrient_interactions": {
+        "iron_loading": true,
+        "oxidative_stress": true
+      },
+      "dialysis_interaction": "Given IV during dialysis; 50-200 mg per session",
+      "g6pd_relevance": "IV iron generates oxidative stress \u2192 hemolysis risk in G6PD-deficient RBCs",
+      "adverse_effects": [
+        "hypotension",
+        "nausea",
+        "cramping",
+        "iron_overload",
+        "anaphylaxis"
+      ],
+      "lab_markers": [
+        "iron",
+        "ferritin",
+        "TSAT",
+        "TIBC"
+      ]
+    },
+    "sodium_citrate": {
+      "generic": "Sodium citrate (anticoagulant)",
+      "class": "Regional anticoagulant",
+      "pathway_effects": [
+        "Dialysis Metrics"
+      ],
+      "nutrient_interactions": {
+        "calcium_chelation": true,
+        "magnesium_chelation": true,
+        "sodium_loading": true,
+        "metabolic_alkalosis": true
+      },
+      "dialysis_interaction": "Regional anticoagulant in circuit; replaces heparin",
+      "g6pd_relevance": "Minimal direct; but hypocalcemia can trigger arrhythmia",
+      "adverse_effects": [
+        "hypocalcemia",
+        "metabolic_alkalosis",
+        "paresthesia",
+        "muscle_cramping"
+      ],
+      "lab_markers": [
+        "calcium",
+        "ionized_calcium",
+        "magnesium",
+        "bicarbonate",
+        "sodium"
+      ]
+    },
+    "doxercalciferol": {
+      "generic": "Doxercalciferol (Hectorol)",
+      "class": "Vitamin D analog (active)",
+      "pathway_effects": [
+        "Lab Results",
+        "Nutrition"
+      ],
+      "nutrient_interactions": {
+        "calcium_absorption_increase": true,
+        "phosphorus_absorption_increase": true,
+        "pth_suppression": true
+      },
+      "dialysis_interaction": "Given IV during treatment for secondary hyperparathyroidism",
+      "g6pd_relevance": "Indirect; calcium/phosphorus balance affects bone and RBC membrane stability",
+      "adverse_effects": [
+        "hypercalcemia",
+        "hyperphosphatemia",
+        "oversuppression_of_PTH",
+        "soft_tissue_calcification"
+      ],
+      "lab_markers": [
+        "PTH",
+        "calcium",
+        "phosphorus",
+        "calcium_phosphorus_product",
+        "vitamin_d"
+      ]
+    },
+    "calcitriol": {
+      "generic": "Calcitriol (1,25-dihydroxyvitamin D3)",
+      "class": "Active vitamin D",
+      "pathway_effects": [
+        "Nutrition",
+        "Lab Results"
+      ],
+      "nutrient_interactions": {
+        "calcium_absorption_increase": true,
+        "phosphorus_absorption_increase": true,
+        "pth_suppression": true,
+        "magnesium_requirements_increase": true
+      },
+      "dialysis_interaction": "Oral; not cleared by dialysis but effects modulate electrolyte balance",
+      "g6pd_relevance": "Vitamin D status affects immune function and bone marrow",
+      "adverse_effects": [
+        "hypercalcemia",
+        "hyperphosphatemia",
+        "nausea",
+        "constipation",
+        "weakness"
+      ],
+      "lab_markers": [
+        "calcium",
+        "phosphorus",
+        "PTH",
+        "vitamin_d"
+      ]
+    },
+    "calcium_carbonate": {
+      "generic": "Calcium carbonate (TUMS)",
+      "class": "Phosphate binder / Calcium supplement",
+      "pathway_effects": [
+        "Nutrition",
+        "Lab Results"
+      ],
+      "nutrient_interactions": {
+        "phosphorus_binding": true,
+        "calcium_loading": true,
+        "iron_absorption_inhibit": true,
+        "zinc_absorption_inhibit": true,
+        "magnesium_absorption_inhibit": true,
+        "constipation": true
+      },
+      "dialysis_interaction": "Not dialyzed; taken with meals to bind phosphorus",
+      "g6pd_relevance": "Iron absorption inhibition worsens anemia in G6PD deficiency",
+      "adverse_effects": [
+        "hypercalcemia",
+        "constipation",
+        "bloating",
+        "renal_calculi",
+        "milk_alkali_syndrome"
+      ],
+      "lab_markers": [
+        "calcium",
+        "phosphorus",
+        "calcium_phosphorus_product",
+        "PTH"
+      ]
+    },
+    "folic_acid": {
+      "generic": "Folic acid (Vitamin B9)",
+      "class": "B-vitamin supplement",
+      "pathway_effects": [
+        "Nutrition",
+        "Lab Results"
+      ],
+      "nutrient_interactions": {
+        "rbc_synthesis": true,
+        "homocysteine_lowering": true,
+        "b12_masking": true
+      },
+      "dialysis_interaction": "Water-soluble \u2192 dialysis clearance; needs daily replacement",
+      "g6pd_relevance": "Critical for RBC production; deficiency compounds G6PD anemia",
+      "adverse_effects": [
+        "nausea",
+        "bloating",
+        "b12_deficiency_masking"
+      ],
+      "lab_markers": [
+        "folate",
+        "homocysteine",
+        "MCV",
+        "hemoglobin",
+        "vitamin_b12"
+      ]
+    },
+    "cetirizine": {
+      "generic": "Cetirizine HCl (Zyrtec)",
+      "class": "H1 antihistamine",
+      "pathway_effects": [
+        "Symptoms"
+      ],
+      "nutrient_interactions": {
+        "anticholinergic_gi_effects": true
+      },
+      "dialysis_interaction": "Minimally dialyzable; protein-bound",
+      "g6pd_relevance": "Generally safe in G6PD deficiency",
+      "adverse_effects": [
+        "drowsiness",
+        "dry_mouth",
+        "constipation",
+        "urinary_retention"
+      ],
+      "lab_markers": []
+    },
+    "tramadol": {
+      "generic": "Tramadol HCl",
+      "class": "Opioid analgesic (weak)",
+      "pathway_effects": [
+        "Symptoms",
+        "Mental Health"
+      ],
+      "nutrient_interactions": {
+        "gi_disruption": true,
+        "serotonin_modulation": true,
+        "sodium_hyponatremia_risk": true
+      },
+      "dialysis_interaction": "Partially cleared; active metabolite M1 accumulates in renal failure",
+      "g6pd_relevance": "Generally safe but CNS depression compounds fatigue from anemia",
+      "adverse_effects": [
+        "nausea",
+        "constipation",
+        "dizziness",
+        "seizure",
+        "serotonin_syndrome"
+      ],
+      "lab_markers": [
+        "sodium"
+      ]
+    },
+    "cyclobenzaprine": {
+      "generic": "Cyclobenzaprine (Flexeril)",
+      "class": "Muscle relaxant (tricyclic)",
+      "pathway_effects": [
+        "Symptoms"
+      ],
+      "nutrient_interactions": {
+        "anticholinergic_effects": true,
+        "cns_depression": true
+      },
+      "dialysis_interaction": "Not dialyzable; hepatically metabolized",
+      "g6pd_relevance": "No known direct interaction; sedation exacerbates anemia fatigue",
+      "adverse_effects": [
+        "drowsiness",
+        "dry_mouth",
+        "constipation",
+        "dizziness",
+        "tachycardia"
+      ],
+      "lab_markers": []
+    },
+    "ondansetron": {
+      "generic": "Ondansetron (Zofran)",
+      "class": "5-HT3 receptor antagonist (antiemetic)",
+      "pathway_effects": [
+        "Symptoms",
+        "Nutrition"
+      ],
+      "nutrient_interactions": {
+        "constipation": true,
+        "qt_prolongation": true,
+        "magnesium_sensitivity": true,
+        "potassium_sensitivity": true
+      },
+      "dialysis_interaction": "Not significantly dialyzed",
+      "g6pd_relevance": "Generally safe; enables nutrition intake by controlling nausea/vomiting",
+      "adverse_effects": [
+        "headache",
+        "constipation",
+        "qt_prolongation",
+        "dizziness"
+      ],
+      "lab_markers": [
+        "magnesium",
+        "potassium"
+      ]
+    },
+    "diclofenac_topical": {
+      "generic": "Diclofenac sodium (topical gel)",
+      "class": "NSAID (topical)",
+      "pathway_effects": [
+        "Symptoms"
+      ],
+      "nutrient_interactions": {
+        "renal_prostaglandin_inhibition": true
+      },
+      "dialysis_interaction": "Topical; negligible systemic absorption",
+      "g6pd_relevance": "Some NSAIDs are oxidative; topical reduces risk vs oral",
+      "adverse_effects": [
+        "skin_irritation",
+        "gi_bleeding_if_systemic"
+      ],
+      "lab_markers": [
+        "creatinine",
+        "BUN"
+      ]
+    },
+    "tylenol": {
+      "generic": "Acetaminophen",
+      "class": "Analgesic/Antipyretic",
+      "pathway_effects": [
+        "Symptoms"
+      ],
+      "nutrient_interactions": {
+        "glutathione_depletion": true,
+        "hepatotoxicity_risk": true
+      },
+      "dialysis_interaction": "Partially dialyzable; metabolites cleared",
+      "g6pd_relevance": "CAUTION: Depletes glutathione \u2192 oxidative stress; G6PD patients have reduced glutathione regeneration",
+      "adverse_effects": [
+        "hepatotoxicity",
+        "nephrotoxicity_at_high_doses",
+        "rash"
+      ],
+      "lab_markers": [
+        "AST",
+        "ALT",
+        "bilirubin"
+      ]
+    },
+    "percocet": {
+      "generic": "Oxycodone/Acetaminophen",
+      "class": "Opioid analgesic + Acetaminophen",
+      "pathway_effects": [
+        "Symptoms"
+      ],
+      "nutrient_interactions": {
+        "glutathione_depletion": true,
+        "gi_disruption": true,
+        "constipation_severe": true
+      },
+      "dialysis_interaction": "Oxycodone partially dialyzable; acetaminophen partially cleared",
+      "g6pd_relevance": "HIGH CONCERN: Acetaminophen depletes glutathione; oxycodone respiratory depression + anemia fatigue",
+      "adverse_effects": [
+        "respiratory_depression",
+        "constipation",
+        "nausea",
+        "hepatotoxicity",
+        "dependence"
+      ],
+      "lab_markers": [
+        "AST",
+        "ALT"
+      ]
+    },
+    "docusate": {
+      "generic": "Docusate sodium (Colace)",
+      "class": "Stool softener",
+      "pathway_effects": [
+        "Symptoms",
+        "Nutrition"
+      ],
+      "nutrient_interactions": {
+        "fat_soluble_vitamin_absorption_decrease": true,
+        "electrolyte_loss_if_diarrhea": true
+      },
+      "dialysis_interaction": "Not dialyzable; acts locally in GI tract",
+      "g6pd_relevance": "No direct interaction",
+      "adverse_effects": [
+        "diarrhea",
+        "cramping",
+        "electrolyte_imbalance"
+      ],
+      "lab_markers": []
+    },
+    "methocarbamol": {
+      "generic": "Methocarbamol (Robaxin)",
+      "class": "Muscle relaxant (central acting)",
+      "pathway_effects": [
+        "Symptoms"
+      ],
+      "nutrient_interactions": {
+        "cns_depression": true,
+        "gi_effects": true
+      },
+      "dialysis_interaction": "Partially dialyzable; dose adjustment may be needed",
+      "g6pd_relevance": "No known direct interaction",
+      "adverse_effects": [
+        "drowsiness",
+        "dizziness",
+        "nausea",
+        "blurred_vision"
+      ],
+      "lab_markers": []
+    },
+    "fentanyl": {
+      "generic": "Fentanyl",
+      "class": "Opioid analgesic (potent)",
+      "pathway_effects": [
+        "Symptoms"
+      ],
+      "nutrient_interactions": {
+        "severe_gi_disruption": true,
+        "respiratory_depression": true
+      },
+      "dialysis_interaction": "Highly protein-bound; not significantly dialyzed",
+      "g6pd_relevance": "Respiratory depression + chronic anemia fatigue = high risk",
+      "adverse_effects": [
+        "respiratory_depression",
+        "constipation",
+        "nausea",
+        "sedation",
+        "dependence"
+      ],
+      "lab_markers": []
+    },
+    "vitamin_d_supplement": {
+      "generic": "Cholecalciferol (Vitamin D3)",
+      "class": "Vitamin D supplement (inactive form)",
+      "pathway_effects": [
+        "Nutrition"
+      ],
+      "nutrient_interactions": {
+        "calcium_absorption_increase": true,
+        "phosphorus_absorption_increase": true
+      },
+      "dialysis_interaction": "Not dialyzed; fat-soluble",
+      "g6pd_relevance": "Supports immune function and bone marrow health",
+      "adverse_effects": [
+        "hypercalcemia_at_high_doses"
+      ],
+      "lab_markers": [
+        "vitamin_d_25OH",
+        "calcium",
+        "phosphorus"
+      ]
+    },
+    "multivitamin": {
+      "generic": "Vitafusion MultiVites",
+      "class": "Multivitamin supplement",
+      "pathway_effects": [
+        "Nutrition"
+      ],
+      "nutrient_interactions": {
+        "b_vitamin_replacement": true,
+        "vitamin_c": true
+      },
+      "dialysis_interaction": "Water-soluble components cleared each session \u2192 daily replacement essential",
+      "g6pd_relevance": "Vitamin C in high doses can be oxidative in G6PD deficiency; standard MVI doses are safe",
+      "adverse_effects": [
+        "nausea",
+        "gi_upset"
+      ],
+      "lab_markers": [
+        "folate",
+        "B12",
+        "vitamin_d"
+      ]
+    },
+    "sodium_carbonate": {
+      "generic": "Sodium bicarbonate",
+      "class": "Alkalinizing agent",
+      "pathway_effects": [
+        "Lab Results",
+        "Dialysis Metrics"
+      ],
+      "nutrient_interactions": {
+        "sodium_loading": true,
+        "potassium_lowering": true,
+        "calcium_binding": true,
+        "metabolic_alkalosis": true
+      },
+      "dialysis_interaction": "Corrects metabolic acidosis between treatments",
+      "g6pd_relevance": "Acidosis correction can improve RBC stability",
+      "adverse_effects": [
+        "metabolic_alkalosis",
+        "sodium_overload",
+        "edema",
+        "hypokalemia"
+      ],
+      "lab_markers": [
+        "bicarbonate",
+        "CO2",
+        "sodium",
+        "potassium"
+      ]
+    },
+    "laxative": {
+      "generic": "Senna/Docusate (stimulant + softener)",
+      "class": "Stimulant laxative",
+      "pathway_effects": [
+        "Symptoms",
+        "Nutrition"
+      ],
+      "nutrient_interactions": {
+        "electrolyte_depletion": true,
+        "dehydration_risk": true,
+        "fat_soluble_vitamin_loss": true
+      },
+      "dialysis_interaction": "Electrolyte losses compound dialysis clearance",
+      "g6pd_relevance": "Dehydration can concentrate RBCs and trigger hemolytic crisis",
+      "adverse_effects": [
+        "cramping",
+        "diarrhea",
+        "hypokalemia",
+        "dehydration"
+      ],
+      "lab_markers": [
+        "potassium",
+        "magnesium",
+        "sodium"
+      ]
+    },
+    "diltiazem_topical": {
+      "generic": "Diltiazem 2% (topical)",
+      "class": "Calcium channel blocker (topical)",
+      "pathway_effects": [
+        "Symptoms"
+      ],
+      "nutrient_interactions": {},
+      "dialysis_interaction": "Topical; negligible systemic absorption",
+      "g6pd_relevance": "No direct interaction",
+      "adverse_effects": [
+        "local_irritation"
+      ],
+      "lab_markers": []
+    }
+  },
+  "n_foods_in_lookup": 7793,
+  "n_nutrients": 120
+}

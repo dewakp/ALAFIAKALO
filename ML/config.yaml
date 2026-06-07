@@ -1,0 +1,137 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  HEBCS Configuration — Wellness Score Framework
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#  To adapt this pipeline for a new patient, update `patient` and `data.sources`
+#  below. All notebooks and scripts read paths/thresholds from this file.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── Patient Demographics ────────────────────────────────────────────────────
+patient:
+  name: "Patient-001"
+  alias: "P1"
+  sex: "Male"
+  dob: "REDACTED"
+  age: 51
+  diagnosis: "ESRD"
+  modality: "Home Hemodialysis"
+  diabetic: false
+
+# ─── Data Sources ────────────────────────────────────────────────────────────
+data:
+  root: "data/"
+  sources:
+    firestore:
+      path: "data/raw/api/"
+      description: "LAFIAKALO Firestore exports (journal, mood, vitals, etc.)"
+      record_count: 2509
+    pdf_labs:
+      path: "data/raw/pdf/"
+      description: "PDF lab results parsed via tabula/regex"
+      record_count: 853
+    excel_flowsheets:
+      path: "data/raw/excel/"
+      description: "Dialysis flowsheets and readings from Excel exports"
+      record_count: 8969
+  processed: "data/processed/"
+  features: "data/features/"
+  nutrition_backfill: "data/nutrition_backfill/"
+
+# ─── Model Artifacts ─────────────────────────────────────────────────────────
+models:
+  root: "models/"
+  holistic:
+    path: "models/holistic_health_model.joblib"
+    algorithm: "GradientBoosting"
+    r_squared: 0.808
+    n_features: 284
+  risk_classifiers:
+    path: "models/risk_*.joblib"
+    count: 11
+    algorithms: ["GradientBoosting", "RandomForest"]
+  clinical_risk_v2:
+    path: "models/clinical_risk/"
+    manifest: "models/clinical_risk/manifest.json"
+    count: 12
+  pathway_definitions: "models/HEBCS_pathway_definitions.json"
+  schema: "models/schema.json"
+
+# ─── HEBCS Pathway Weights ───────────────────────────────────────────────────
+hebcs:
+  pathways:
+    Metabolic: 0.20
+    Hematologic: 0.15
+    Bone_Mineral: 0.15
+    Cardiovascular: 0.15
+    Nutritional: 0.15
+    Dialysis_Adequacy: 0.10
+    Inflammatory: 0.10
+  scoring:
+    method: "trapezoidal"  # maps biomarkers to 0-100 via critical/optimal ranges
+    aggregation: "weighted_mean"
+    wellness_range: [0, 100]
+
+# ─── Feature Engineering ─────────────────────────────────────────────────────
+features:
+  n_total: 284
+  groups:
+    dialysis: 26
+    laboratory: 171
+    nutrition: 35
+    medication: 15
+    elimination: 10
+    activity: 3
+    mood: 3
+    risk_flag: 9
+    symptom: 1
+    temporal: 11
+  missing_threshold: 85.0        # drop features with > X% missing
+  imputation: "median"           # sklearn SimpleImputer strategy
+  scaling: "standard"            # StandardScaler
+
+# ─── Training Configuration ──────────────────────────────────────────────────
+training:
+  test_size: 0.2
+  random_state: 42
+  cv_folds: 5
+  date_range: "2016-04-28 to 2026-02-18"
+  n_samples: 3584
+
+# ─── What-If Simulator ───────────────────────────────────────────────────────
+whatif:
+  inputs:
+    calories:     { feature: "nutr_calories",              unit: "kcal",     esrd_range: [1800, 2500] }
+    protein:      { feature: "nutr_protein_g",             unit: "g",        esrd_range: [50, 70] }
+    sodium:       { feature: "nutr_sodium_mg",             unit: "mg",       esrd_range: [1000, 2000] }
+    potassium:    { feature: "nutr_potassium_mg",          unit: "mg",       esrd_range: [1000, 2000] }
+    phosphorus:   { feature: "nutr_phosphorus_mg",         unit: "mg",       esrd_range: [400, 800] }
+    blood_flow:   { feature: "dial_avg_blood_flow_rate",   unit: "mL/min",   esrd_range: [350, 450] }
+    n_readings:   { feature: "dial_n_readings",            unit: "count",    esrd_range: [4, 12] }
+    pre_bp_sys:   { feature: "dial_pre_bp_sys",            unit: "mmHg",     esrd_range: [120, 150] }
+    sessions_7d:  { feature: "dial_sessions_7d",           unit: "sessions", esrd_range: [3, 5] }
+  trajectory_days: 14
+  sensitivity_steps: 50
+
+# ─── MATLAB Configuration ────────────────────────────────────────────────────
+matlab:
+  root: "../HEBCSL_MATLAB/"
+  executable: "/Applications/MATLAB_R2025b.app/bin/matlab"
+  scripts: ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08"]
+  simulink_model: "HEBCS_WhatIf_Simulator.slx"
+  results: "../HEBCSL_MATLAB/results/"
+  figures: "../HEBCSL_MATLAB/figures/"
+
+# ─── Thesis Validation ───────────────────────────────────────────────────────
+thesis:
+  name: "HEBCS"
+  hypotheses:
+    H1: "Individual pathway scores are clinically meaningful (trapezoidal scoring)"
+    H2: "Composite score captures multi-pathway interactions (R² > 0.8)"
+    H3: "Pathways contribute independently (low inter-pathway correlation)"
+    H4: "Composite significantly outperforms single pathways (paired t-test)"
+    H5: "Model generalizes across temporal splits (no degradation)"
+  validation_targets:
+    r_squared_threshold: 0.80
+    independence_r_threshold: 0.70
+    significance_alpha: 0.05
+  cross_platform_r: 1.0000  # Python vs MATLAB cross-validation

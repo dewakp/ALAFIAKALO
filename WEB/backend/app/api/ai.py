@@ -1,0 +1,1559 @@
+"""AI Assistant endpoint — powered by local Ollama LLM.
+
+Every request is enriched with the logged-in patient's full health record so
+the model can give context-aware, retroactively-informed responses.  The AI
+also acts as system help / support for anything inside the ALAFIA app.
+
+Architecture:
+  LLM         — Ollama (gpt-oss:20b / llama3.2)
+  RAG         — _fetch_patient_context() pulls 15+ live DB tables; _semantic_augment_query()
+                embeds the query and retrieves top-K most relevant sections by cosine similarity
+  Semantic Emb— llama3.2 3072-dim embeddings, stored in health_embeddings table
+  RLAIF       — feedback (was_helpful/was_followed) → CollectiveInsight via ai_learning.py
+  Memory      — UserMemory rows injected into every system prompt (learned preferences)
+  Knowledge   — GlobalKnowledge (ESRD/CKD evidence base) injected into specialist prompts
+  Audit       — LearningEvent trail for every memory write and insight discovery
+  Reward      — recommendation_quality_score computed from post-recommendation lab trends
+"""
+
+import asyncio
+import json
+import math
+import time
+from datetime import date, datetime, timedelta, timezone
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from sqlalchemy import select, desc, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.services.hebcs_engine import compute_hebcs
+from app.models.ai_memory import AIInteraction, CollectiveInsight, GlobalKnowledge, HealthEmbedding, LearningEvent, UserMemory
+from app.models.chronic_conditions import ChronicCondition
+from app.models.fitness import FitnessLog
+from app.models.labs import LabResult
+from app.models.lifestyle import LifestyleEntry
+from app.models.medications import Medication
+from app.models.mood import MoodEntry
+from app.models.nutrition import NutritionLog
+from app.models.user import User
+from app.models.elimination import BowelMovement, VomitingLog
+from app.schemas.ai import (
+    AIFeedbackRequest,
+    AIFeedbackResponse,
+    AIQueryRequest,
+    AIQueryResponse,
+    AIQueryResponseWithMemory,
+)
+
+router = APIRouter()
+
+# ── Persona definitions ───────────────────────────────────────────────
+# All personas are the SAME base "general health assistant" — the user
+# simply picks which culturally-named guide they prefer.
+# Organised by region to match the insurance / country catalog.
+
+PERSONA_PROFILES = {
+    # ── West Africa ────────────────────────────────────────────────
+    "babalawo": {
+        "title": "Babalawo",
+        "origin": "Yoruba · Nigeria",
+        "region": "africa",
+        "greeting": "Ẹ kú àárọ̀",
+        "icon": "🪔",
+        "description": "Yoruba healing wisdom — body, spirit, and Ori (destiny) in balance.",
+        "culture_style": (
+            "Speak with the warmth and wisdom of the Yoruba Babalawo tradition. "
+            "You see health as the balance of Ara (body), Emi (spirit), and Ori (personal destiny). "
+            "Feel free to use occasional Yoruba proverbs when they illuminate a point. "
+            "Be nurturing, spiritual, and grounded — begin responses with a brief acknowledgement "
+            "of the patient's condition before addressing the data."
+        ),
+    },
+    "dibia": {
+        "title": "Dibia",
+        "origin": "Igbo · Nigeria",
+        "region": "africa",
+        "greeting": "Nnọọ",
+        "icon": "🌿",
+        "description": "Igbo holistic healer — practical, warm, and grounded in nature.",
+        "culture_style": (
+            "You carry the healing wisdom of the Igbo Dibia. You are practical, warm, and direct. "
+            "You see the person as part of their community and natural environment. "
+            "Occasional Igbo proverbs welcome when they fit. Be concise and actionable."
+        ),
+    },
+    "boka": {
+        "title": "Boka",
+        "origin": "Hausa · Nigeria",
+        "region": "africa",
+        "greeting": "Sannu",
+        "icon": "🌙",
+        "description": "Hausa healing wisdom — respectful, patient, and spiritually grounded.",
+    },
+    "okomfo": {
+        "title": "Okomfo",
+        "origin": "Akan · Ghana",
+        "region": "africa",
+        "greeting": "Akwaaba",
+        "icon": "🌺",
+        "description": "Akan healing guide — community-centred, welcoming, and wise.",
+    },
+    "serigne": {
+        "title": "Serigne",
+        "origin": "Wolof · Senegal",
+        "region": "africa",
+        "greeting": "Na nga def",
+        "icon": "🌊",
+        "description": "Wolof spiritual guide — reflective, dignified, and restorative.",
+    },
+    "guerisseur": {
+        "title": "Guérisseur",
+        "origin": "French · Côte d'Ivoire / Mali",
+        "region": "africa",
+        "greeting": "Bienvenue",
+        "icon": "🫚",
+        "description": "Francophone West African healer — holistic, earthy, and soothing.",
+    },
+    # ── East Africa ────────────────────────────────────────────────
+    "mganga": {
+        "title": "Mganga",
+        "origin": "Swahili · Kenya / Tanzania",
+        "region": "africa",
+        "greeting": "Karibu",
+        "icon": "🦁",
+        "description": "Swahili healer — welcoming, wise, and connected to the land.",
+        "culture_style": (
+            "You carry the healing tradition of the East African Mganga. "
+            "Be welcoming and community-focused. Use the Swahili concept of 'Ujamaa' (togetherness) "
+            "— health is not just individual but also a matter of family and community. "
+            "Be warm, practical, and grounding."
+        ),
+    },
+    "wogesha": {
+        "title": "Wogesha",
+        "origin": "Amharic · Ethiopia",
+        "region": "africa",
+        "greeting": "ሰላም (Selam)",
+        "icon": "☕",
+        "description": "Ethiopian healer — patient, steeped in ancient tradition.",
+    },
+    "umupfumu": {
+        "title": "Umupfumu",
+        "origin": "Kinyarwanda · Rwanda",
+        "region": "africa",
+        "greeting": "Muraho",
+        "icon": "🏔️",
+        "description": "Rwandan healer — dignified, compassionate, and resilient.",
+    },
+    # ── Southern Africa ────────────────────────────────────────────
+    "sangoma": {
+        "title": "Sangoma",
+        "origin": "Zulu / Xhosa · South Africa",
+        "region": "africa",
+        "greeting": "Sawubona",
+        "icon": "🥁",
+        "description": "Sangoma ancestral healer — Ubuntu philosophy, mind-body-spirit unity.",
+        "culture_style": (
+            "You bring the healing wisdom of the Zulu/Xhosa Sangoma tradition. "
+            "'Sawubona' means 'I see you' — acknowledge the whole person first. "
+            "Ubuntu philosophy guides you: 'Umuntu ngumuntu ngabantu' (a person is a person through other people). "
+            "Connect health to community, ancestors, and environment. Be spiritual, grounding, and compassionate."
+        ),
+    },
+    # ── North Africa / Middle East (Arabic) ────────────────────────
+    "hakim": {
+        "title": "Hakim",
+        "origin": "Arabic · Egypt / Middle East",
+        "region": "middle_east",
+        "greeting": "مرحبا (Marhaba)",
+        "icon": "🌴",
+        "description": "Arabic healer — scholarly, compassionate, rooted in Unani tradition.",
+    },
+    # ── Middle East (non-Arabic) ───────────────────────────────────
+    "rofe": {
+        "title": "Rofé",
+        "origin": "Hebrew · Israel",
+        "region": "middle_east",
+        "greeting": "שלום (Shalom)",
+        "icon": "✡️",
+        "description": "Jewish healer — patient, analytical, and deeply humane.",
+    },
+    "hoca": {
+        "title": "Hoca",
+        "origin": "Turkish · Turkey",
+        "region": "middle_east",
+        "greeting": "Merhaba",
+        "icon": "🌷",
+        "description": "Turkish sage — warm, deliberate, drawing on Ottoman medical tradition.",
+    },
+    # ── South Asia ─────────────────────────────────────────────────
+    "vaidya": {
+        "title": "Vaidya",
+        "origin": "Ayurvedic · India",
+        "region": "south_asia",
+        "greeting": "नमस्ते (Namaste)",
+        "icon": "🪷",
+        "description": "Ayurvedic healer — balancing doshas, lifestyle as medicine.",
+        "culture_style": (
+            "You bring the ancient wisdom of Ayurveda and the Vaidya tradition. "
+            "See health as the balance of Vata (air/ether), Pitta (fire), and Kapha (earth/water). "
+            "Connect the patient's symptoms and data to these elemental patterns. "
+            "Honor both modern evidence and ancient healing wisdom. Be serene, gentle, and holistic."
+        ),
+    },
+    # ── Europe ─────────────────────────────────────────────────────
+    "sage": {
+        "title": "Sage",
+        "origin": "English · UK / Ireland",
+        "region": "europe",
+        "greeting": "Welcome",
+        "icon": "🎓",
+        "description": "British sage — articulate, evidence-based, calm, and reassuring.",
+        "culture_style": (
+            "You speak with the measured wisdom of a British sage — articulate, evidence-based, "
+            "and reassuring. Be precise and thorough. Occasional dry wit is welcome. "
+            "You value both empirical evidence and patient narrative equally."
+        ),
+    },
+    "curandero": {
+        "title": "Curandero",
+        "origin": "Spanish · Spain / Mexico",
+        "region": "europe",
+        "greeting": "Bienvenido",
+        "icon": "🌶️",
+        "description": "Spanish/Mexican healer — warm, passionate, and holistic.",
+    },
+    "heilpraktiker": {
+        "title": "Heilpraktiker",
+        "origin": "German · Germany / Austria / Switzerland",
+        "region": "europe",
+        "greeting": "Willkommen",
+        "icon": "🏔️",
+        "description": "German naturopath — methodical, thorough, and precise.",
+    },
+    "guaritore": {
+        "title": "Guaritore",
+        "origin": "Italian · Italy",
+        "region": "europe",
+        "greeting": "Benvenuto",
+        "icon": "🍃",
+        "description": "Italian healer — expressive, warm, and deeply humanistic.",
+    },
+    "curandeiro": {
+        "title": "Curandeiro",
+        "origin": "Portuguese · Portugal",
+        "region": "europe",
+        "greeting": "Bem-vindo",
+        "icon": "🌊",
+        "description": "Portuguese healer — soulful, poetic, and attentive.",
+    },
+    "genezer": {
+        "title": "Genezer",
+        "origin": "Dutch · Netherlands / Belgium",
+        "region": "europe",
+        "greeting": "Welkom",
+        "icon": "🌷",
+        "description": "Dutch healer — direct, pragmatic, and evidence-minded.",
+    },
+    "helare": {
+        "title": "Helare",
+        "origin": "Swedish · Sweden",
+        "region": "europe",
+        "greeting": "Välkommen",
+        "icon": "❄️",
+        "description": "Swedish healer — calm, balanced, and focused on wellbeing.",
+    },
+    "znachor": {
+        "title": "Znachor",
+        "origin": "Polish · Poland",
+        "region": "europe",
+        "greeting": "Witaj",
+        "icon": "🌾",
+        "description": "Polish folk healer — earthy, persistent, and caring.",
+    },
+    "therapeutis": {
+        "title": "Therapeutís",
+        "origin": "Greek · Greece",
+        "region": "europe",
+        "greeting": "Καλώς ήρθατε (Kalós írthate)",
+        "icon": "🏛️",
+        "description": "Greek healer — philosophical, rooted in Hippocratic tradition.",
+    },
+    # ── North America ──────────────────────────────────────────────
+    "medicine_keeper": {
+        "title": "Medicine Keeper",
+        "origin": "Native American · United States / Canada",
+        "region": "north_america",
+        "greeting": "Aho",
+        "icon": "🦅",
+        "description": "Native American healer — all is connected: body, mind, spirit, and earth.",
+        "culture_style": (
+            "You carry the healing traditions of the Medicine Keeper. "
+            "All is connected — body, mind, spirit, and the natural world are one. "
+            "Speak with deliberate wisdom, deep respect, and profound patience. "
+            "See illness as an imbalance in the whole circle of life, not just the body. "
+            "Use contemplative language and honor the patient's healing journey."
+        ),
+    },
+    # ── Specialist Agents ───────────────────────────────────────────
+    "nephrologist": {
+        "title": "Dr. Nephros",
+        "origin": "Nephrology · Kidney & Dialysis Specialist",
+        "region": "specialist",
+        "greeting": "Good day",
+        "icon": "🔬",
+        "specialty": "nephrology",
+        "description": "CKD staging, dialysis adequacy (KtV/URR), electrolytes, lab interpretation.",
+        "capabilities": ["ckd_staging", "dialysis_adequacy", "electrolyte_management", "lab_interpretation", "fluid_balance", "anemia_management", "bone_mineral_disease"],
+        "style": (
+            "You are a board-certified nephrologist with 20+ years managing ESRD and CKD patients on hemodialysis and peritoneal dialysis.\n"
+            "DOMAIN: CKD staging, dialysis adequacy (KtV ≥1.2, URR ≥65%), electrolytes (K⁺, Phosphorus, PTH, Bicarbonate, Calcium), fluid balance, anemia of CKD (Hb, Ferritin, TSAT), CKD-mineral bone disorder.\n"
+            "CLINICAL RULES:\n"
+            "1. ALWAYS check KtV and URR from the lab record — below target = inadequate dialysis.\n"
+            "2. Flag K⁺ > 5.5 mEq/L as URGENT (arrhythmia risk). Flag Phosphorus > 5.5 mg/dL as elevated.\n"
+            "3. PTH target for dialysis patients: 150–600 pg/mL (KDIGO). Below 150 = adynamic bone.\n"
+            "4. Target Hemoglobin: 10–11.5 g/dL. Albumin < 3.5 g/dL = significant malnutrition.\n"
+            "5. Cite specific dates and values from the patient's record — never generalise without data.\n"
+            "6. Reference KDOQI/KDIGO/DOPPS evidence. Be precise, clinical, and actionable.\n"
+            "EXAMPLE: 'Your most recent phosphorus was X mg/dL on [date] — KDIGO target is <5.5 mg/dL. [Trend/context]. [Recommendation].'\n"
+        ),
+    },
+    "renal_dietitian": {
+        "title": "Dietitian Rena",
+        "origin": "Renal Nutrition · Clinical Dietitian",
+        "region": "specialist",
+        "greeting": "Hi there",
+        "icon": "🥗",
+        "specialty": "renal_nutrition",
+        "description": "Kidney-friendly meal planning, phosphorus & potassium restriction, protein targets for dialysis.",
+        "capabilities": ["meal_planning", "phosphorus_restriction", "potassium_management", "protein_optimization", "fluid_restriction", "phosphate_binder_timing"],
+        "style": (
+            "You are a registered renal dietitian specialising in medical nutrition therapy for ESRD dialysis patients.\n"
+            "DOMAIN: Potassium restriction (<2,000–3,000 mg/day), phosphorus restriction (<800–1,000 mg/day), protein for HD (1.2g/kg/day), fluid restriction (1–1.5 L/day), sodium restriction (<2,400 mg/day), phosphate binder timing.\n"
+            "CLINICAL RULES:\n"
+            "1. ALWAYS review the patient's actual nutrition logs first — name the specific foods you see.\n"
+            "2. Flag HIGH-POTASSIUM foods: bananas, oranges, tomatoes, potatoes, dairy, beans.\n"
+            "3. Flag HIGH-PHOSPHORUS foods: dairy, nuts, seeds, whole grains, cola, processed meats with phosphate additives.\n"
+            "4. Connect food patterns to lab values: high phosphorus foods → elevated phosphorus labs → secondary HPT.\n"
+            "5. Remind that phosphate binders (e.g., Sevelamer) must be taken WITH meals, not separately.\n"
+            "6. Give practical, culturally-sensitive food substitutions for problematic foods.\n"
+            "7. Protein for HD is HIGHER than for pre-dialysis CKD — dialysis is catabolic.\n"
+            "EXAMPLE: 'Looking at your recent food diary, I can see [specific foods]. [Concern + food-to-lab connection]. [2-3 practical substitutes].'\n"
+        ),
+    },
+    "cardiologist": {
+        "title": "Dr. Cardio",
+        "origin": "Cardiology · Heart & Vascular Specialist",
+        "region": "specialist",
+        "greeting": "Good day",
+        "icon": "❤️",
+        "specialty": "cardiology",
+        "description": "Blood pressure trends, cardiovascular risk, interdialytic fluid management.",
+        "capabilities": ["bp_management", "cardiovascular_risk", "fluid_management", "hypertension", "lv_hypertrophy"],
+        "style": (
+            "You are a board-certified cardiologist subspecialising in cardio-nephrology and ESRD cardiovascular complications.\n"
+            "DOMAIN: Hypertension in dialysis, interdialytic BP trends, LV hypertrophy (common in ESRD), fluid overload, antihypertensive optimisation.\n"
+            "CLINICAL RULES:\n"
+            "1. Pre-dialysis BP target: <140/90 mmHg. Post-dialysis: <130/80 mmHg.\n"
+            "2. Interdialytic weight gain > 2–3 kg/session = fluid overload — review sodium/fluid intake.\n"
+            "3. ESRD patients have 10–20× higher cardiovascular mortality than the general population.\n"
+            "4. ACE inhibitors/ARBs reduce CV mortality in dialysis patients independent of BP effect.\n"
+            "5. ALWAYS cite actual BP values from the vitals record with dates.\n"
+            "6. Connect weight trends, fluid intake, and dietary sodium to BP patterns.\n"
+            "EXAMPLE: 'Your BP readings over the last X days show [values from record]. [Trend analysis]. [Connection to weight/fluid]. [Recommendation].'\n"
+        ),
+    },
+    "mental_health_counselor": {
+        "title": "Dr. Solace",
+        "origin": "Psychology · Mental Health & Chronic Illness",
+        "region": "specialist",
+        "greeting": "Welcome",
+        "icon": "🧠",
+        "specialty": "mental_health",
+        "description": "Emotional wellbeing, mood pattern analysis, coping with ESRD and chronic illness.",
+        "capabilities": ["mood_analysis", "depression_screening", "coping_strategies", "stress_management", "chronic_illness_adjustment", "sleep_assessment"],
+        "style": (
+            "You are a licensed clinical psychologist subspecialising in health psychology for chronic illness patients.\n"
+            "DOMAIN: Depression & anxiety (prevalent in ~30% of dialysis patients), grief/adjustment to illness, sleep disturbance, fatigue impact, medication adherence as a mental health issue.\n"
+            "CLINICAL APPROACH:\n"
+            "1. ALWAYS review mood/journal entries first — cite specific entries with dates.\n"
+            "2. Look for patterns: mood score trends (persistent < 4/10 = concern), sleep quality, journal themes.\n"
+            "3. Validate emotions FIRST before offering clinical perspective — never minimise the burden of dialysis.\n"
+            "4. Connect physical symptoms (fatigue, poor appetite) to emotional state.\n"
+            "5. Offer specific evidence-based coping strategies (CBT techniques, behavioural activation, mindfulness).\n"
+            "6. Maintain hope while being honest — chronic illness is genuinely hard.\n"
+            "7. Be compassionate first, clinical second.\n"
+            "EXAMPLE: 'I can see from your journal entries that [specific observation from record]. That sounds really difficult. [Validate]. [Offer 1-2 specific strategies].'\n"
+        ),
+    },
+    "exercise_physiologist": {
+        "title": "Coach Vitalis",
+        "origin": "Exercise Physiology · Fitness for Chronic Illness",
+        "region": "specialist",
+        "greeting": "Let's work on this together",
+        "icon": "🏃",
+        "specialty": "exercise_physiology",
+        "description": "Safe exercise prescription for dialysis patients, fatigue management, strength goals.",
+        "capabilities": ["exercise_prescription", "dialysis_adapted_fitness", "fatigue_management", "strength_training", "aerobic_conditioning", "intradialytic_exercise"],
+        "style": (
+            "You are a certified exercise physiologist with training in cardiac and renal rehabilitation.\n"
+            "DOMAIN: Low-to-moderate aerobic exercise, resistance training adapted for ESRD (avoid heavy lifting near AV fistula arm), intradialytic exercise, fatigue management.\n"
+            "CLINICAL RULES:\n"
+            "1. SAFETY FIRST: Never recommend heavy lifting near the vascular access/AV fistula arm.\n"
+            "2. Exercise DURING dialysis (intradialytic) actually improves clearance and reduces fatigue — recommend it.\n"
+            "3. Check therapy session schedule — avoid intense exercise on HD days (post-dialysis fatigue).\n"
+            "4. Exercise contraindications: uncontrolled BP, severe anaemia (Hb < 8 g/dL), active access issues.\n"
+            "5. ALWAYS review actual fitness logs before prescribing — don't recommend what they're already doing.\n"
+            "6. Build gradually — CONSISTENCY beats intensity for ESRD patients.\n"
+            "7. Celebrate every small win — motivation is medicine.\n"
+            "EXAMPLE: 'Looking at your exercise logs, [cite actual entries]. [Assess baseline]. [Recommend specific schedule accounting for dialysis days].'\n"
+        ),
+    },
+    "dialysis_coordinator": {
+        "title": "Coordinator Adaeze",
+        "origin": "Dialysis Nursing · Renal Care Coordination",
+        "region": "specialist",
+        "greeting": "Hello",
+        "icon": "💉",
+        "specialty": "dialysis_nursing",
+        "description": "Session monitoring, AV fistula care, fluid management, dialysis day guidance.",
+        "capabilities": ["session_monitoring", "vascular_access", "fluid_management", "symptom_management", "dialysis_compliance", "care_coordination"],
+        "style": (
+            "You are an experienced dialysis nurse coordinator with 15+ years managing HD and PD patients.\n"
+            "DOMAIN: Pre/post-dialysis vitals review, interdialytic weight management (aim < 2 kg/day), vascular access care (AV fistula/graft/catheter), common dialysis symptoms, medication timing around dialysis.\n"
+            "CLINICAL RULES:\n"
+            "1. Review pre-dialysis vitals (weight, BP, HR) and compare to recent history.\n"
+            "2. Weight gain > 2 kg/day or > 10% of dry weight = fluid intake concern — flag it.\n"
+            "3. Post-dialysis hypotension risk: BP drop > 20 mmHg or systolic < 90.\n"
+            "4. Vascular access: NEVER measure BP or draw blood from the fistula arm. Bruit/thrill changes = report immediately.\n"
+            "5. Common HD symptoms to assess: intradialytic hypotension, muscle cramps, headache, nausea.\n"
+            "6. Be nurturing and practical — patients share more with nurses than physicians.\n"
+            "EXAMPLE: 'Looking at your pre-dialysis weights, [cite values]. [Identify fluid management pattern]. [Give practical daily tip].'\n"
+        ),
+    },
+    "general_practitioner": {
+        "title": "Dr. Holista",
+        "origin": "General Practice · Primary Care",
+        "region": "specialist",
+        "greeting": "Welcome",
+        "icon": "🩺",
+        "specialty": "general_practice",
+        "description": "Comprehensive health overview, medication review, preventive care, all-in-one health review.",
+        "capabilities": ["comprehensive_review", "medication_review", "preventive_care", "comorbidity_management", "care_coordination", "health_screening"],
+        "style": (
+            "You are a board-certified GP with experience managing patients with complex chronic conditions including ESRD, diabetes, and cardiovascular disease.\n"
+            "DOMAIN: Comprehensive health review across all domains, polypharmacy assessment, preventive care, care coordination.\n"
+            "CLINICAL APPROACH:\n"
+            "1. Take a HOLISTIC view — review ALL available data: labs, vitals, nutrition, mood, medications, fitness.\n"
+            "2. Identify cross-domain patterns (e.g., elevated phosphorus + poor nutrition + low mood = coordinated intervention).\n"
+            "3. Check for medication polypharmacy risks — review interactions and appropriateness.\n"
+            "4. Summarise health status in plain language — explain clinical terms.\n"
+            "5. Prioritise: surface top 2-3 actionable concerns rather than overwhelming with everything.\n"
+            "6. Respect patient autonomy — present options, not mandates.\n"
+            "7. End on an encouraging, motivating note.\n"
+            "EXAMPLE: 'Looking across your complete health record, here is what stands out: [comprehensive summary]. [Top 2-3 priorities]. [Positive/motivating close].'\n"
+        ),
+    },
+    "pharmacologist": {
+        "title": "Pharmacologist",
+        "origin": "Clinical Pharmacology · Global",
+        "region": "specialist",
+        "greeting": "Hello",
+        "icon": "💊",
+        "specialty": "pharmacology",
+        "description": "Medication explanations, drug interactions, dosage review, adherence patterns.",
+        "capabilities": [
+            "medication_explanation",
+            "drug_interaction_review",
+            "contraindication_alerts",
+            "adherence_pattern_analysis",
+            "side_effect_assessment",
+            "dosage_optimization",
+            "therapeutic_monitoring",
+        ],
+        "style": (
+            "You are a clinical pharmacologist AI assistant. Your role is threefold:\n"
+            "1) EXPLAINER — clearly explain what medications do, how they work, proper dosing, and what patients should expect.\n"
+            "2) PATTERN REVIEWER — analyse adherence data, medication timing, and health metrics to identify trends and optimise therapy.\n"
+            "3) INTERACTION ALARMER — proactively flag drug-drug interactions, drug-food interactions, contraindications with patient conditions, allergy risks, and dosage concerns.\n"
+            "Always cite evidence-based reasoning. Suggest consulting the prescribing physician for clinical decisions.\n"
+            "ALWAYS review the patient's actual medication list from the record before answering.\n"
+        ),
+    },
+}
+
+# Fallback description for cultural personas that don't define their own
+_PERSONA_DESCRIPTION = (
+    "Your personal health guide. I'm here to help with nutrition, "
+    "fitness, labs, medications, mood, and lifestyle."
+)
+
+# Shared style prompt for future LLM integration
+BASE_PERSONA_STYLE = (
+    "You are a warm, knowledgeable health assistant. Blend holistic "
+    "wellness wisdom with evidence-based health guidance. Be nurturing, "
+    "approachable, and thorough."
+)
+
+# Region display order
+_REGION_ORDER = [
+    "africa", "middle_east", "south_asia", "europe", "north_america", "specialist",
+]
+_REGION_LABELS = {
+    "africa": "Africa",
+    "middle_east": "Middle East",
+    "south_asia": "South Asia",
+    "europe": "Europe",
+    "north_america": "North America",
+    "specialist": "Specialist Agents",
+}
+
+
+@router.get("/personas")
+async def list_personas():
+    """Return available AI persona options grouped by region."""
+    personas = []
+    for key, p in PERSONA_PROFILES.items():
+        personas.append({
+            "key": key,
+            "title": p["title"],
+            "origin": p["origin"],
+            "region": p["region"],
+            "greeting": p["greeting"],
+            "description": p.get("description") or _PERSONA_DESCRIPTION,
+            "icon": p.get("icon"),
+            "specialty": p.get("specialty"),
+            "capabilities": p.get("capabilities"),
+        })
+    return personas
+
+
+@router.get("/agents")
+async def list_specialist_agents():
+    """Return only specialist agents (region == 'specialist')."""
+    agents = []
+    for key, p in PERSONA_PROFILES.items():
+        if p.get("region") == "specialist":
+            agents.append({
+                "key": key,
+                "title": p["title"],
+                "origin": p["origin"],
+                "region": p["region"],
+                "greeting": p["greeting"],
+                "description": p.get("description") or _PERSONA_DESCRIPTION,
+                "icon": p.get("icon"),
+                "specialty": p.get("specialty"),
+                "capabilities": p.get("capabilities"),
+            })
+    return agents
+
+
+@router.get("/personas/grouped")
+async def list_personas_grouped():
+    """Return personas organized by region."""
+    groups = []
+    for region in _REGION_ORDER:
+        items = [
+            {
+                "key": key,
+                "title": p["title"],
+                "origin": p["origin"],
+                "greeting": p["greeting"],
+                "description": p.get("description") or _PERSONA_DESCRIPTION,
+                "icon": p.get("icon"),
+                "specialty": p.get("specialty"),
+                "capabilities": p.get("capabilities"),
+            }
+            for key, p in PERSONA_PROFILES.items()
+            if p["region"] == region
+        ]
+        if items:
+            groups.append({
+                "region": region,
+                "label": _REGION_LABELS[region],
+                "personas": items,
+            })
+    return groups
+
+
+# ── Patient context fetcher ───────────────────────────────────────────
+
+def _v(val) -> str:
+    """Return a display-safe string for potentially-None values."""
+    return str(val) if val is not None else "not recorded"
+
+
+async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
+    """
+    Query all health tables for the current user and return a structured
+    plain-text summary that the LLM can reason over.
+
+    Data pulled (all sourced from real patient records — 10-year history):
+      • User profile: demographics, physical stats, allergies, chronic conditions,
+        dietary/fitness preferences, lifestyle factors, AI settings
+      • Medications      — all active, up to 30 most recent
+      • CKD biomarkers   — KtV, Phosphorus, PTH, K+, BUN, Albumin etc. (last 3 each)
+      • Lab results      — 30 most recent (flagging abnormals)
+      • Nutrition logs   — last 30 days (real food diary, 4,017 entries since 2016)
+      • Dialysis sessions— last 30 days (1,797 real HD sessions since 2016)
+      • Pre-dialysis vitals — last 30 days with KtV, fluid removal, post-BP
+      • Dialysis vitals summary — running stats + total session count
+      • Mood / journal   — all real journal entries from Firestore
+      • AI learned memories — top 20 actionable insights
+      • HEBCS Ω score    — pathway-level wellness scoring
+    """
+    uid = user.id
+    lines: list[str] = []
+
+    # ── 1. PROFILE ────────────────────────────────────────────────
+    lines.append("=== PATIENT PROFILE ===")
+    lines.append(f"Name          : {user.full_name}")
+    lines.append(f"Date of Birth : {_v(user.date_of_birth)}")
+    lines.append(f"Gender        : {_v(user.gender)}")
+    lines.append(f"Blood Type    : {_v(user.blood_type)}")
+    if user.height_cm:
+        lines.append(f"Height        : {user.height_cm} cm")
+    if user.current_weight_kg:
+        lines.append(f"Current Weight: {user.current_weight_kg} kg")
+    if user.target_weight_kg:
+        lines.append(f"Target Weight : {user.target_weight_kg} kg")
+    lines.append(f"Country       : {_v(user.country)}")
+
+    def _json_list(raw: str | None) -> list:
+        if not raw:
+            return []
+        try:
+            return json.loads(raw)
+        except Exception:
+            return [raw]
+
+    allergies = _json_list(user.allergies)
+    if allergies:
+        lines.append(f"Allergies     : {', '.join(allergies)}")
+
+    food_int = _json_list(user.food_intolerances)
+    if food_int:
+        lines.append(f"Food Intol.   : {', '.join(food_int)}")
+
+    diet_rest = _json_list(user.dietary_restrictions)
+    if diet_rest:
+        lines.append(f"Diet Restrict : {', '.join(diet_rest)}")
+
+    diet_pref = _json_list(user.dietary_preferences)
+    if diet_pref:
+        lines.append(f"Diet Prefs    : {', '.join(diet_pref)}")
+
+    # chronic_conditions shares its name with a relationship on User →
+    # query directly to avoid async lazy-load error
+    cc_q = await db.execute(
+        select(ChronicCondition)
+        .where(ChronicCondition.user_id == uid, ChronicCondition.is_active == True)
+        .order_by(ChronicCondition.diagnosis_date)
+    )
+    cc_list = cc_q.scalars().all()
+    if cc_list:
+        lines.append(f"Chronic Cond. : {', '.join(c.condition_name for c in cc_list)}")
+
+    fam_hist = _json_list(user.family_history)
+    if fam_hist:
+        lines.append(f"Family History: {', '.join(str(h) for h in fam_hist)}")
+
+    lines.append(f"Activity Level: {_v(user.activity_level)}")
+    fit_goals = _json_list(user.fitness_goals)
+    if fit_goals:
+        lines.append(f"Fitness Goals : {', '.join(fit_goals)}")
+
+    lines.append(f"Smoking       : {_v(user.smoking_status)}")
+    lines.append(f"Alcohol       : {_v(user.alcohol_consumption)}")
+    lines.append(f"Sleep Schedule: {_v(user.sleep_schedule)}")
+    lines.append(f"Occupation    : {_v(user.occupation)}")
+    lines.append(f"Stress Level  : {_v(user.stress_level)}")
+    lines.append("")
+
+    # ── 2. MEDICATIONS ────────────────────────────────────────────
+    med_q = await db.execute(
+        select(Medication)
+        .where(Medication.user_id == uid)
+        .order_by(desc(Medication.start_date), desc(Medication.id))
+        .limit(30)
+    )
+    meds = med_q.scalars().all()
+    if meds:
+        lines.append("=== MEDICATIONS (active & recent) ===")
+        for m in meds:
+            status = "active" if m.is_active else "discontinued"
+            dose = f"{m.dosage} {m.dosage_unit or ''}".strip() if m.dosage else ""
+            parts = [m.name, status]
+            if dose:
+                parts.append(dose)
+            if m.frequency:
+                parts.append(m.frequency)
+            if m.route:
+                parts.append(f"via {m.route}")
+            if m.reason:
+                parts.append(f"for {m.reason}")
+            if m.prescribing_doctor:
+                parts.append(f"by {m.prescribing_doctor}")
+            lines.append("  • " + " | ".join(parts))
+        lines.append("")
+
+    # ── 3. LAB RESULTS ────────────────────────────────────────────
+    # 3a. CKD/dialysis key biomarkers — last 3 values each for trend context
+    CKD_BIOMARKERS = [
+        "KtV (Dialysis Adequacy)", "URR", "URR (Urea Reduction Ratio)",
+        "Phosphorus", "PTH (Intact)",
+        "Potassium", "BUN", "Creatinine", "Albumin", "Hemoglobin",
+        "Bicarbonate", "Calcium", "Sodium", "Ferritin", "Transferrin Saturation",
+    ]
+    biomarker_rows: dict[str, list] = {}
+    for bname in CKD_BIOMARKERS:
+        bq = await db.execute(
+            select(LabResult)
+            .where(LabResult.user_id == uid, LabResult.test_name == bname,
+                   LabResult.value.isnot(None))
+            .order_by(desc(LabResult.test_date))
+            .limit(3)
+        )
+        rows = bq.scalars().all()
+        if rows:
+            biomarker_rows[bname] = rows
+
+    if biomarker_rows:
+        lines.append("=== KEY CKD/DIALYSIS BIOMARKERS (latest 3 values each) ===")
+        for bname, rows in biomarker_rows.items():
+            vals = [(f"{r.test_date}: {r.value} {r.unit or ''}".strip() +
+                     (" [!]" if r.is_abnormal else "")) for r in rows]
+            lines.append(f"  {bname}: {' | '.join(vals)}")
+        lines.append("")
+
+    # 3b. Recent labs (most recent 30, for general context)
+    lab_q = await db.execute(
+        select(LabResult)
+        .where(LabResult.user_id == uid)
+        .order_by(desc(LabResult.test_date), desc(LabResult.id))
+        .limit(30)
+    )
+    labs = lab_q.scalars().all()
+    if labs:
+        lines.append("=== LAB RESULTS (30 most recent) ===")
+        for l in labs:
+            val = f"{l.value} {l.unit or ''}".strip() if l.value is not None else (l.value_string or "N/A")
+            flag = " [ABNORMAL]" if l.is_abnormal else ""
+            ref = ""
+            if l.reference_range_low is not None and l.reference_range_high is not None:
+                ref = f" (ref {l.reference_range_low}–{l.reference_range_high} {l.unit or ''})"
+            lines.append(f"  {l.test_date} | {l.test_name}: {val}{ref}{flag}")
+        lines.append("")
+
+    # ── 4. NUTRITION (last 14 days, capped at 40 entries) ────────
+    cutoff_14 = date.today() - timedelta(days=14)
+    cutoff_30 = date.today() - timedelta(days=30)
+    nut_q = await db.execute(
+        select(NutritionLog)
+        .where(NutritionLog.user_id == uid, NutritionLog.log_date >= cutoff_14)
+        .order_by(desc(NutritionLog.log_date))
+        .limit(40)
+    )
+    nuts = nut_q.scalars().all()
+    if nuts:
+        lines.append("=== NUTRITION LOGS (last 14 days) ===")
+        for n in nuts:
+            cal = f"{n.calories:.0f} kcal" if n.calories else ""
+            pro = f"P:{n.protein_g:.1f}g" if n.protein_g else ""
+            carb = f"C:{n.carbs_g:.1f}g" if hasattr(n, 'carbs_g') and n.carbs_g else ""
+            fat  = f"F:{n.fat_g:.1f}g"   if hasattr(n, 'fat_g') and n.fat_g else ""
+            macro = " ".join(filter(None, [cal, pro, carb, fat]))
+            lines.append(f"  {n.log_date} {n.meal_type}: {n.food_name}{(' — ' + macro) if macro else ''}")
+        lines.append("")
+
+    # ── 5. FITNESS LOGS (last 30 days) ────────────────────────────
+    fit_q = await db.execute(
+        select(FitnessLog)
+        .where(FitnessLog.user_id == uid, FitnessLog.log_date >= cutoff_14)
+        .order_by(desc(FitnessLog.log_date))
+        .limit(20)
+    )
+    fits = fit_q.scalars().all()
+    if fits:
+        lines.append("=== FITNESS / EXERCISE LOGS (last 14 days) ===")
+        for f in fits:
+            parts = [f"{f.log_date}", f.activity_type or "Activity"]
+            if f.duration_minutes:
+                parts.append(f"{f.duration_minutes} min")
+            if f.calories_burned:
+                parts.append(f"{f.calories_burned:.0f} kcal burned")
+            if f.heart_rate_avg:
+                parts.append(f"HR avg {f.heart_rate_avg} bpm")
+            if f.intensity:
+                parts.append(f"{f.intensity} intensity")
+            if f.notes:
+                parts.append(f.notes[:100])
+            lines.append("  " + " | ".join(parts))
+        lines.append("")
+
+    # ── 6. MOOD (all entries — small dataset of real journal entries) ──
+    mood_q = await db.execute(
+        select(MoodEntry)
+        .where(MoodEntry.user_id == uid)
+        .order_by(desc(MoodEntry.entry_date))
+        .limit(30)
+    )
+    moods = mood_q.scalars().all()
+    if moods:
+        lines.append("=== MOOD & JOURNAL ENTRIES ===")
+        for m in moods:
+            parts = [f"{m.entry_date}", f"mood {m.mood_score}/10"]
+            if m.sleep_hours:
+                parts.append(f"{m.sleep_hours}h sleep")
+            if m.emotions:
+                parts.append(f"feeling: {m.emotions}")
+            lines.append("  " + " | ".join(parts))
+            if m.journal_entry:
+                lines.append(f"    Journal: {m.journal_entry[:200]}")
+            if m.notes:
+                lines.append(f"    Notes  : {m.notes[:150]}")
+        lines.append("")
+
+    # ── 6b. ELIMINATION (bowel movements & vomiting — last 60 days) ──
+    cutoff_60 = date.today() - timedelta(days=60)
+    bm_q = await db.execute(
+        select(BowelMovement)
+        .where(BowelMovement.user_id == uid, BowelMovement.log_date >= cutoff_60)
+        .order_by(desc(BowelMovement.log_date))
+        .limit(30)
+    )
+    bms = bm_q.scalars().all()
+    vm_q = await db.execute(
+        select(VomitingLog)
+        .where(VomitingLog.user_id == uid, VomitingLog.log_date >= cutoff_60)
+        .order_by(desc(VomitingLog.log_date))
+        .limit(20)
+    )
+    vms = vm_q.scalars().all()
+    if bms or vms:
+        lines.append("=== ELIMINATION LOG ====")
+        if bms:
+            blood_count = sum(1 for b in bms if b.blood_present)
+            lines.append(f"  Bowel movements (last 60d): {len(bms)} events")
+            if blood_count:
+                lines.append(f"  ⚠ Blood present in {blood_count}/{len(bms)} events")
+            for b in bms[:10]:
+                parts = [str(b.log_date)]
+                if b.log_time:
+                    parts.append(str(b.log_time)[:5])
+                if b.blood_present:
+                    parts.append("BLOOD PRESENT")
+                if b.bristol_scale:
+                    parts.append(f"Bristol {b.bristol_scale}")
+                if b.notes:
+                    parts.append(b.notes[:80])
+                lines.append("  BM: " + " | ".join(parts))
+        if vms:
+            lines.append(f"  Vomiting episodes (last 60d): {len(vms)} events")
+            for v in vms[:10]:
+                parts = [str(v.log_date)]
+                if v.log_time:
+                    parts.append(str(v.log_time)[:5])
+                if v.notes:
+                    parts.append(v.notes[:80])
+                lines.append("  VOMIT: " + " | ".join(parts))
+        lines.append("")
+
+    # ── 7. LIFESTYLE / VITALS (pre-dialysis readings, last 30 days) ──
+    lfe_q = await db.execute(
+        select(LifestyleEntry)
+        .where(LifestyleEntry.user_id == uid, LifestyleEntry.entry_date >= cutoff_14)
+        .order_by(desc(LifestyleEntry.entry_date))
+        .limit(14)
+    )
+    lfes = lfe_q.scalars().all()
+    if lfes:
+        lines.append("=== PRE-DIALYSIS VITALS (last 14 days) ===")
+        for e in lfes:
+            parts = [f"{e.entry_date}"]
+            if e.weight_kg:
+                parts.append(f"{e.weight_kg} kg")
+            if e.blood_pressure_systolic and e.blood_pressure_diastolic:
+                parts.append(f"BP {e.blood_pressure_systolic}/{e.blood_pressure_diastolic}")
+            if e.resting_heart_rate:
+                parts.append(f"HR {e.resting_heart_rate} bpm")
+            if e.body_temperature_c:
+                parts.append(f"Temp {e.body_temperature_c}°C")
+            if e.blood_oxygen_pct:
+                parts.append(f"SpO2 {e.blood_oxygen_pct}%")
+            if e.notes:
+                # Include the rich notes (KtV, fluid removed, post-BP from dialysis session)
+                parts.append(e.notes[:100])
+            lines.append("  " + " | ".join(parts))
+        lines.append("")
+
+        # ── 7a. DIALYSIS CLINICAL SUMMARY (from lifestyle history) ──
+        # Compute running stats to give AI a concise trend summary
+        weights = [e.weight_kg for e in lfes if e.weight_kg]
+        bp_sys  = [e.blood_pressure_systolic for e in lfes
+                   if e.blood_pressure_systolic]
+        if weights or bp_sys:
+            lines.append("=== DIALYSIS VITALS SUMMARY ===")
+            if weights:
+                avg_w = sum(weights) / len(weights)
+                lines.append(f"  Pre-dialysis weight (last 30d): avg {avg_w:.1f} kg, "
+                              f"range {min(weights):.1f}–{max(weights):.1f} kg")
+            if bp_sys:
+                avg_s = sum(bp_sys) / len(bp_sys)
+                lines.append(f"  Pre-dialysis BP (last 30d): avg systolic {avg_s:.0f} mmHg, "
+                              f"range {min(bp_sys)}–{max(bp_sys)} mmHg")
+            # Total session count from lifestyle_entries (each row = one session day)
+            hist_q = await db.execute(
+                select(LifestyleEntry)
+                .where(LifestyleEntry.user_id == uid)
+            )
+            all_sessions = hist_q.scalars().all()
+            if all_sessions:
+                lines.append(f"  Total dialysis session days on record: {len(all_sessions)} "
+                              f"(since {min(s.entry_date for s in all_sessions)})")
+            lines.append("")
+
+    # ── 8. LEARNED AI MEMORIES (persistent per-user insights) ────
+    mem_q = await db.execute(
+        select(UserMemory)
+        .where(
+            UserMemory.user_id == uid,
+            UserMemory.is_actionable == True,
+            UserMemory.confidence_score >= 0.5,
+        )
+        .order_by(desc(UserMemory.priority), desc(UserMemory.confidence_score))
+        .limit(20)
+    )
+    memories = mem_q.scalars().all()
+    if memories:
+        lines.append("=== AI LEARNED PREFERENCES & PATTERNS ===")
+        for mem in memories:
+            conf = f"{int(mem.confidence_score * 100)}% confidence"
+            lines.append(f"  [{mem.category}] {mem.insight_value} ({conf})")
+        lines.append("")
+
+    # ── 8b. RLAIF COLLECTIVE PATTERNS (derived from feedback history) ───────
+    ci_q = await db.execute(
+        select(CollectiveInsight)
+        .where(
+            CollectiveInsight.is_active == True,
+            CollectiveInsight.confidence_level >= 0.4,
+        )
+        .order_by(desc(CollectiveInsight.confidence_level))
+        .limit(5)
+    )
+    patterns = ci_q.scalars().all()
+    # Filter to this user's patterns
+    user_patterns = [p for p in patterns if (p.applicable_demographics or {}).get("user_id") == uid]
+    if user_patterns:
+        lines.append("=== AI LEARNED RESPONSE PATTERNS (from your feedback) ===")
+        for pat in user_patterns:
+            conf = f"{int(pat.confidence_level * 100)}% confidence"
+            lines.append(f"  [{pat.category}] {pat.pattern_description} ({conf})")
+        lines.append("")
+
+    # ── 9. HEBCS Ω WELLNESS SCORE ─────────────────────────────────
+    try:
+        lab_q = await db.execute(
+            select(
+                LabResult.test_name,
+                LabResult.value,
+                LabResult.test_date,
+            )
+            .where(
+                LabResult.user_id == uid,
+                LabResult.value.isnot(None),
+            )
+            .order_by(
+                LabResult.test_name,
+                LabResult.test_date.desc(),
+            )
+        )
+        lab_rows = lab_q.all()
+        bv: dict = {}
+        seen_t: set = set()
+        for tn, val, _ in lab_rows:
+            if tn not in seen_t:
+                bv[tn] = val
+                seen_t.add(tn)
+        if bv:
+            hd = compute_hebcs(bv)
+            lines.append("=== HEBCS Ω WELLNESS SCORE ===")
+            lines.append(f"  Overall Ω   : {hd['omega']:.4f}  ({hd['omega_pct']:.1f}% of optimal)")
+            lines.append(f"  Data coverage: {hd['data_coverage']:.0%} of expected biomarkers")
+            lines.append("  Pathway scores (1.0 = optimal, 0 = critical):")
+            for pname, pdata in hd['pathways'].items():
+                s = pdata['score']
+                flag = " ⚠" if s is not None and s < 0.60 else ""
+                lines.append(f"    {pname:<22}: {s if s is not None else 'N/A'}{flag}")
+            lines.append("")
+    except Exception:
+        pass  # Don't block AI if scoring fails
+
+    return "\n".join(lines)
+
+
+def _build_system_prompt(
+    persona: dict | None,
+    context_module: str | None,
+    user_name: str,
+    patient_context: str = "",
+    global_knowledge: list[str] | None = None,
+) -> str:
+    """Build a persona-specific system prompt for Ollama, injecting patient health record
+    and optional GlobalKnowledge evidence notes for specialist agents."""
+    # Patient record always comes FIRST so the model reads it before any instructions
+    patient_block = ""
+    if patient_context.strip():
+        patient_block = (
+            "The following is "
+            + user_name
+            + "'s complete personal health record, pre-loaded from the ALAFIA database. "
+            "Read every section carefully before answering.\n\n"
+            "=== START OF " + user_name.upper() + "'S HEALTH RECORD ===\n"
+            + patient_context.strip()
+            + "\n=== END OF HEALTH RECORD ===\n\n"
+        )
+
+    module_note = ""
+    if context_module:
+        module_note = (
+            f"The patient is currently viewing the {context_module.replace('_', ' ')} section. "
+            "Lead with insights relevant to that area unless asked otherwise.\n\n"
+        )
+
+    # ── Specialist agents: full custom role prompt ─────────────────
+    if persona and persona.get("style"):
+        specialist_prompt = persona["style"].strip()
+
+        # Inject GlobalKnowledge evidence notes when available
+        knowledge_block = ""
+        if global_knowledge:
+            evidence_lines = "\n".join(f"  • {k}" for k in global_knowledge[:4])
+            knowledge_block = (
+                f"\n\nEVIDENCE NOTES (cite these when relevant — these are verified clinical guidelines):\n"
+                + evidence_lines
+                + "\n"
+            )
+
+        core_rules = (
+            f"\n\nFUNDAMENTAL RULES (apply to every response):\n"
+            f"  - You have full access to {user_name}'s complete health record shown above. Use it.\n"
+            f"  - ALWAYS cite specific dates and values from the record. Never generalise when data exists.\n"
+            f"  - FORBIDDEN: Do NOT say 'I cannot access your data' or 'I don't have your records'. The data is above.\n"
+            f"  - FORBIDDEN: Do NOT tell {user_name} to check another platform or app when data is here.\n"
+            f"  - If something is not in the record, say so plainly — do not fabricate values.\n"
+            f"  - Refer to the patient as '{user_name}' or 'you'.\n"
+            f"  - Plain text only. No markdown headers. Use numbered lists only when listing multiple items."
+        )
+        return f"{patient_block}{module_note}{specialist_prompt}{knowledge_block}{core_rules}"
+
+    # ── Cultural personas: analyst base + optional cultural flavour ─
+    if persona:
+        title = persona["title"]
+        origin = persona["origin"]
+        greeting = persona["greeting"]
+        culture = persona.get("culture_style", "")
+        persona_intro = (
+            f"You are {title}, a personal health data analyst rooted in the "
+            f"{origin} healing tradition. Your greeting is '{greeting}'. "
+            + (culture.strip() + " " if culture else "")
+        )
+    else:
+        persona_intro = "You are LAFIA, a personal health data analyst for the ALAFIA platform. "
+
+    analyst_instructions = (
+        f"{persona_intro}\n"
+        f"{module_note}"
+        f"Your only job is to read the health record above and answer {user_name}'s questions "
+        "based on what is written there. "
+        "RULES (must follow every single one):\n"
+        f"  - If {user_name} asks about their meals, read NUTRITION LOGS and report the most recent entry with its date, food name, and meal type.\n"
+        f"  - If {user_name} asks about their conditions, read the 'Chronic Cond.' line in PATIENT PROFILE.\n"
+        f"  - If {user_name} asks about labs, read LAB RESULTS.\n"
+        f"  - If {user_name} asks about medications, read MEDICATIONS.\n"
+        "  - FORBIDDEN: Do NOT say 'I cannot access your data', 'I don't have your records', "
+        "or 'I'm a large language model'. The data IS available — it is above.\n"
+        "  - FORBIDDEN: Do NOT suggest checking MyChart, asking a doctor, or using another platform when the data is here.\n"
+        "  - Always cite the specific date and value from the record.\n"
+        "  - Plain text only — no markdown, no bullet points unless listing multiple items.\n"
+        f"  - Refer to the patient as '{user_name}' or 'you'."
+    )
+
+    return f"{patient_block}{analyst_instructions}"
+
+
+# keyword → section header to extract from patient_context
+_QUERY_SECTION_MAP: list[tuple[list[str], str]] = [
+    (["meal", "eat", "food", "nutrition", "diet", "breakfast", "lunch", "dinner", "snack", "drink", "drank", "ate", "consumed"], "NUTRITION LOGS"),
+    (["condition", "diagnosis", "disease", "chronic", "illness", "sick", "disorder", "health condition"], "PATIENT PROFILE"),
+    (["medication", "medicine", "drug", "prescription", "pill", "tablet", "dose", "drug"], "MEDICATIONS"),
+    (["lab", "test", "result", "blood", "creatinine", "potassium", "pth", "phosphorus", "ktv", "hemoglobin", "albumin", "biomarker"], "LAB RESULTS"),
+    (["dialysis", "session", "vital", "weight", "blood pressure", "bp", "heart rate", "temperature", "spo2"], "PRE-DIALYSIS VITALS"),
+    (["mood", "journal", "feeling", "emotion", "mental"], "MOOD"),
+    (["bowel", "stool", "poop", "vomit", "urination", "elimination"], "ELIMINATION"),
+    (["score", "wellness", "hebcs", "omega", "pathway"], "HEBCS"),
+]
+
+
+def _augment_query(query: str, patient_context: str, user_name: str) -> str:
+    """
+    Keyword-based fallback: extract the most relevant section(s) from patient_context
+    and prepend them to the user message.  Used when semantic embeddings are not yet ready.
+    """
+    q_lower = query.lower()
+    matched_sections: list[str] = []
+
+    for keywords, section_header in _QUERY_SECTION_MAP:
+        if any(kw in q_lower for kw in keywords):
+            # Find the section in the context
+            idx = patient_context.find(section_header)
+            if idx == -1:
+                continue
+            # Extract from the header to the next "===" section or end
+            end_idx = patient_context.find("\n===", idx + len(section_header))
+            snippet = patient_context[idx:end_idx].strip() if end_idx != -1 else patient_context[idx:].strip()
+            # Cap at 1500 chars per section to stay within context window
+            matched_sections.append(snippet[:1500])
+
+    if not matched_sections:
+        # No specific match — include profile + first 800 chars of context
+        matched_sections.append(patient_context[:1200])
+
+    relevant_data = "\n\n".join(matched_sections)
+    return (
+        f"[{user_name}'s relevant health records for this question:]\n"
+        f"{relevant_data}\n"
+        f"[End of records]\n\n"
+        f"{query}"
+    )
+
+
+# ── Semantic RAG helpers ───────────────────────────────────────────────────────
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    """Pure-Python cosine similarity between two equal-length vectors."""
+    dot = sum(x * y for x, y in zip(a, b))
+    mag_a = math.sqrt(sum(x ** 2 for x in a))
+    mag_b = math.sqrt(sum(x ** 2 for x in b))
+    if mag_a == 0 or mag_b == 0:
+        return 0.0
+    return dot / (mag_a * mag_b)
+
+
+async def _embed_text(text: str) -> list[float] | None:
+    """Embed text using Ollama llama3.2 (3072-dim). Returns None on failure."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/embeddings",
+                json={"model": "llama3.2:latest", "prompt": text[:2000]},
+            )
+            if resp.status_code == 200:
+                return resp.json().get("embedding")
+    except Exception:
+        pass
+    return None
+
+
+def _split_context_sections(patient_context: str) -> dict[str, str]:
+    """Split patient context string into {section_header: section_text} dict."""
+    sections: dict[str, str] = {}
+    lines = patient_context.split("\n")
+    current_key: str | None = None
+    current_lines: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("===") and stripped.endswith("===") and len(stripped) > 6:
+            if current_key and current_lines:
+                sections[current_key] = "\n".join(current_lines).strip()
+            current_key = stripped.strip("= ").strip()
+            current_lines = []
+        elif current_key is not None:
+            current_lines.append(line)
+    if current_key and current_lines:
+        sections[current_key] = "\n".join(current_lines).strip()
+    return sections
+
+
+async def _refresh_patient_embeddings(
+    user_id: int,
+    patient_context: str,
+    db: AsyncSession,
+) -> None:
+    """
+    Background task: split patient context into sections, embed each via llama3.2,
+    and upsert into health_embeddings.  Called fire-and-forget after each AI chat.
+    """
+    sections = _split_context_sections(patient_context)
+    for key, text in sections.items():
+        if not text.strip():
+            continue
+        embedding = await _embed_text(text)
+        if not embedding:
+            continue
+        try:
+            existing_q = await db.execute(
+                select(HealthEmbedding).where(
+                    HealthEmbedding.user_id == user_id,
+                    HealthEmbedding.chunk_key == key,
+                )
+            )
+            row = existing_q.scalar_one_or_none()
+            if row:
+                row.chunk_text = text
+                row.embedding = embedding
+                row.updated_at = datetime.now(timezone.utc)
+            else:
+                db.add(HealthEmbedding(
+                    user_id=user_id,
+                    chunk_key=key,
+                    chunk_text=text,
+                    embedding=embedding,
+                    updated_at=datetime.now(timezone.utc),
+                ))
+        except Exception:
+            pass
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+
+
+async def _semantic_augment_query(
+    query: str,
+    user_id: int,
+    db: AsyncSession,
+    patient_context: str,
+    top_k: int = 3,
+) -> str:
+    """
+    Semantic RAG: embed the query and retrieve the most semantically similar
+    health record sections from health_embeddings.  Falls back to keyword
+    matching (_augment_query) if embeddings are not yet populated.
+    """
+    emb_result = await db.execute(
+        select(HealthEmbedding)
+        .where(HealthEmbedding.user_id == user_id)
+        .order_by(desc(HealthEmbedding.updated_at))
+    )
+    stored = emb_result.scalars().all()
+
+    if not stored:
+        # No embeddings yet — fall back to keyword matching
+        return _augment_query(query, patient_context, "")
+
+    query_embedding = await _embed_text(query)
+    if not query_embedding:
+        return _augment_query(query, patient_context, "")
+
+    scored: list[tuple[float, str, str]] = []
+    for row in stored:
+        if not row.embedding:
+            continue
+        try:
+            sim = _cosine_similarity(query_embedding, row.embedding)
+            scored.append((sim, row.chunk_key, row.chunk_text))
+        except Exception:
+            continue
+
+    if not scored:
+        return _augment_query(query, patient_context, "")
+
+    scored.sort(reverse=True)
+    top_sections = scored[:top_k]
+    parts = [f"[{key}]\n{text[:1500]}" for _, key, text in top_sections]
+    return (
+        "RELEVANT HEALTH RECORD SECTIONS (semantic retrieval):\n\n"
+        + "\n\n---\n\n".join(parts)
+        + f"\n\n---\n\nUser Question: {query}"
+    )
+
+
+@router.post("/chat", response_model=AIQueryResponseWithMemory)
+async def ai_chat(
+    request: AIQueryRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Non-streaming AI chat — returns full response when complete."""
+    persona_key = request.persona or getattr(current_user, "ai_persona", None)
+    persona = PERSONA_PROFILES.get(persona_key) if persona_key else None
+
+    patient_context = await _fetch_patient_context(current_user, db)
+
+    # Fetch GlobalKnowledge evidence notes for specialist agents
+    domain_knowledge: list[str] = []
+    if persona and persona.get("specialty"):
+        gk_result = await db.execute(
+            select(GlobalKnowledge)
+            .where(GlobalKnowledge.domain == persona["specialty"], GlobalKnowledge.is_active == True)
+            .order_by(desc(GlobalKnowledge.relevance_score))
+            .limit(3)
+        )
+        for gk in gk_result.scalars().all():
+            points = " | ".join((gk.key_points or [])[:3])
+            domain_knowledge.append(f"{gk.title} ({gk.source_organization}): {points}")
+
+    system_prompt = _build_system_prompt(
+        persona, request.context_module, current_user.full_name or "there",
+        patient_context, global_knowledge=domain_knowledge or None,
+    )
+    model = request.model or settings.OLLAMA_MODEL
+
+    # Semantic RAG: embed query, retrieve top-K most relevant record sections
+    augmented_query = await _semantic_augment_query(
+        request.query, current_user.id, db, patient_context
+    )
+    ollama_messages = [{"role": "system", "content": system_prompt}]
+    if request.messages:
+        for m in request.messages:
+            ollama_messages.append({"role": m.role, "content": m.content})
+    ollama_messages.append({"role": "user", "content": augmented_query})
+
+    t0 = time.monotonic()
+    try:
+        async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT) as client:
+            resp = await client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/chat",
+                json={"model": model, "messages": ollama_messages, "stream": False},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            response_text = data.get("message", {}).get("content", "").strip()
+    except httpx.ConnectError:
+        raise HTTPException(503, "Ollama is not reachable. Make sure it is running on the host.")
+    except httpx.TimeoutException:
+        raise HTTPException(504, "Ollama request timed out. Try a shorter question or switch to a lighter model.")
+    except Exception as exc:
+        raise HTTPException(500, f"LLM error: {exc}")
+
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
+
+    # Persist interaction for memory + feedback tracking
+    interaction_id: int | None = None
+    try:
+        interaction = AIInteraction(
+            user_id=current_user.id,
+            interaction_type="chat",
+            category=request.context_module or "general",
+            user_request=request.query,
+            ai_response=response_text,
+            context_used={"persona": persona_key, "module": request.context_module},
+            llm_provider="ollama",
+            llm_model=model,
+            response_time_ms=elapsed_ms,
+        )
+        db.add(interaction)
+        await db.commit()
+        await db.refresh(interaction)
+        interaction_id = interaction.id
+    except Exception:
+        await db.rollback()  # don't fail the request over memory write
+
+    # Fire-and-forget: refresh semantic embeddings in the background
+    asyncio.ensure_future(
+        _refresh_patient_embeddings(current_user.id, patient_context, db)
+    )
+
+    return AIQueryResponseWithMemory(
+        response=response_text,
+        module=request.context_module,
+        confidence=1.0,
+        persona=persona_key,
+        interaction_id=interaction_id,
+    )
+
+
+@router.post("/chat/stream")
+async def ai_chat_stream(
+    request: AIQueryRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Streaming AI chat — returns Server-Sent Events (SSE).
+
+    Each event: `data: {"content": "<token>"}\\n\\n`
+    Final event: `data: [DONE]\\n\\n`
+    """
+    persona_key = request.persona or getattr(current_user, "ai_persona", None)
+    persona = PERSONA_PROFILES.get(persona_key) if persona_key else None
+
+    patient_context = await _fetch_patient_context(current_user, db)
+
+    # Fetch GlobalKnowledge for specialist agents
+    domain_knowledge: list[str] = []
+    if persona and persona.get("specialty"):
+        gk_result = await db.execute(
+            select(GlobalKnowledge)
+            .where(GlobalKnowledge.domain == persona["specialty"], GlobalKnowledge.is_active == True)
+            .order_by(desc(GlobalKnowledge.relevance_score))
+            .limit(3)
+        )
+        for gk in gk_result.scalars().all():
+            points = " | ".join((gk.key_points or [])[:3])
+            domain_knowledge.append(f"{gk.title} ({gk.source_organization}): {points}")
+
+    system_prompt = _build_system_prompt(
+        persona, request.context_module, current_user.full_name or "there",
+        patient_context, global_knowledge=domain_knowledge or None,
+    )
+    model = request.model or settings.OLLAMA_MODEL
+
+    # Semantic RAG: embed query and retrieve top-K relevant sections
+    augmented_query = await _semantic_augment_query(
+        request.query, current_user.id, db, patient_context
+    )
+    ollama_messages = [{"role": "system", "content": system_prompt}]
+    if request.messages:
+        for m in request.messages:
+            ollama_messages.append({"role": m.role, "content": m.content})
+    ollama_messages.append({"role": "user", "content": augmented_query})
+
+    t0 = time.monotonic()
+    accumulated: list[str] = []
+
+    async def token_generator():
+        try:
+            async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT) as client:
+                async with client.stream(
+                    "POST",
+                    f"{settings.OLLAMA_BASE_URL}/api/chat",
+                    json={"model": model, "messages": ollama_messages, "stream": True},
+                ) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        token = chunk.get("message", {}).get("content", "")
+                        if token:
+                            accumulated.append(token)
+                            yield f"data: {json.dumps({'content': token})}\n\n"
+                        if chunk.get("done"):
+                            elapsed_ms = int((time.monotonic() - t0) * 1000)
+                            full_response = "".join(accumulated)
+                            # Persist interaction (best-effort — don't fail stream)
+                            try:
+                                interaction = AIInteraction(
+                                    user_id=current_user.id,
+                                    interaction_type="chat_stream",
+                                    category=request.context_module or "general",
+                                    user_request=request.query,
+                                    ai_response=full_response,
+                                    context_used={"persona": persona_key, "module": request.context_module},
+                                    llm_provider="ollama",
+                                    llm_model=model,
+                                    response_time_ms=elapsed_ms,
+                                )
+                                db.add(interaction)
+                                await db.commit()
+                                await db.refresh(interaction)
+                                yield f"data: {json.dumps({'interaction_id': interaction.id})}\n\n"
+                            except Exception:
+                                await db.rollback()
+                            yield "data: [DONE]\n\n"
+                            return
+        except httpx.ConnectError:
+            yield f"data: {json.dumps({'error': 'Ollama is not reachable'})}\n\n"
+        except Exception as exc:
+            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        token_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.post("/feedback", response_model=AIFeedbackResponse)
+async def ai_feedback(
+    body: AIFeedbackRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Record user feedback on an AI interaction.
+
+    - Sets was_helpful / was_followed on the saved AIInteraction
+    - If helpful and the AI response contains a learnable insight, writes a UserMemory
+    """
+    result = await db.execute(
+        select(AIInteraction).where(
+            AIInteraction.id == body.interaction_id,
+            AIInteraction.user_id == current_user.id,  # ownership check
+        )
+    )
+    interaction = result.scalar_one_or_none()
+    if not interaction:
+        raise HTTPException(404, "Interaction not found")
+
+    interaction.was_helpful = body.was_helpful
+    interaction.user_feedback = body.user_feedback
+    if body.was_followed is not None:
+        interaction.was_followed = body.was_followed
+    interaction.feedback_received_at = datetime.now(timezone.utc)
+    interaction.user_sentiment = "positive" if body.was_helpful else "negative"
+
+    # If positive feedback, write a UserMemory so future responses reflect this preference
+    if body.was_helpful and body.user_feedback:
+        existing = await db.execute(
+            select(UserMemory).where(
+                UserMemory.user_id == current_user.id,
+                UserMemory.insight_key == f"feedback_{body.interaction_id}",
+            )
+        )
+        if not existing.scalar_one_or_none():
+            memory = UserMemory(
+                user_id=current_user.id,
+                category=interaction.category or "general",
+                insight_key=f"feedback_{body.interaction_id}",
+                insight_value=(
+                    f"User found this response helpful: \"{interaction.ai_response[:200]}\"."
+                    + (f" Their note: {body.user_feedback}" if body.user_feedback else "")
+                ),
+                confidence_score=0.8,
+                evidence_count=1,
+                is_actionable=True,
+                priority=6,
+            )
+            db.add(memory)
+
+            # LearningEvent audit trail for new memory
+            db.add(LearningEvent(
+                event_type="insight_discovered",
+                intelligence_level="individual",
+                user_id=current_user.id,
+                description=(
+                    f"UserMemory created from feedback on interaction #{body.interaction_id} "
+                    f"({interaction.category}): user marked response helpful."
+                ),
+                data_snapshot={"interaction_id": body.interaction_id, "category": interaction.category},
+            ))
+
+    # Outcome reward shaping: if user followed the recommendation, compute quality score
+    if body.was_followed:
+        from app.api.ai_learning import compute_outcome_reward
+        try:
+            score = await compute_outcome_reward(body.interaction_id, current_user.id, db)
+            if score is not None:
+                interaction.recommendation_quality_score = score
+        except Exception:
+            pass  # reward computation is best-effort
+
+    await db.commit()
+    return AIFeedbackResponse(ok=True, interaction_id=body.interaction_id)
+

@@ -1,0 +1,138 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'com.google.gms.google-services'
+}
+
+android {
+    namespace "com.alafia.android"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.alafia.android"
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary true
+
+        // Base URL — override per build type / flavor
+        buildConfigField "String", "API_BASE_URL", '"http://10.0.2.2:8005/api/v1/"'
+    }
+
+    signingConfigs {
+        release {
+            // Load from environment or local keystore.properties (not committed)
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                def keystoreProperties = new Properties()
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                storeFile file(keystoreProperties['storeFile'] ?: '/dev/null')
+                storePassword keystoreProperties['storePassword'] ?: ''
+                keyAlias keystoreProperties['keyAlias'] ?: ''
+                keyPassword keystoreProperties['keyPassword'] ?: ''
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            buildConfigField "String", "API_BASE_URL", '"https://api.alafia.com/api/v1/"'
+        }
+        debug {
+            minifyEnabled false
+            debuggable true
+            buildConfigField "String", "API_BASE_URL", '"http://10.0.2.2:8005/api/v1/"'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    kotlinOptions {
+        jvmTarget = '21'
+        freeCompilerArgs += [
+            '-opt-in=androidx.compose.foundation.layout.ExperimentalLayoutApi',
+            '-opt-in=androidx.compose.material3.ExperimentalMaterial3Api'
+        ]
+    }
+
+    buildFeatures {
+        compose true
+        buildConfig true
+    }
+
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+}
+
+dependencies {
+    // AndroidX Core Libraries
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7'
+    implementation 'androidx.activity:activity-compose:1.9.3'
+    implementation 'com.google.android.material:material:1.12.0'
+    
+    // Navigation
+    implementation 'androidx.navigation:navigation-compose:2.8.5'
+    
+    // DataStore for preferences
+    implementation 'androidx.datastore:datastore-preferences:1.1.2'
+
+    // Jetpack Compose
+    implementation platform('androidx.compose:compose-bom:2025.02.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+
+    // Networking
+    implementation 'com.squareup.retrofit2:retrofit:2.11.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.11.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+
+    // JSON Processing
+    implementation 'com.google.code.gson:gson:2.11.0'
+
+    // Dependency Injection
+    implementation 'com.google.dagger:dagger:2.53.1'
+    kapt 'com.google.dagger:dagger-compiler:2.53.1'
+
+    // Security
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    // Health Connect
+    implementation 'androidx.health.connect:connect-client:1.1.0-alpha10'
+
+    // Firebase / Push Notifications
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-messaging-ktx'
+
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+}

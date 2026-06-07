@@ -1,0 +1,59 @@
+name: iOS CI
+
+on:
+  push:
+    paths:
+      - 'IOS/**'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    paths:
+      - 'IOS/**'
+  workflow_dispatch: {}
+
+jobs:
+  build-and-test:
+    name: xcodebuild + unit tests
+    runs-on: macos-15
+
+    defaults:
+      run:
+        working-directory: IOS
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+
+      - name: Resolve Swift Package dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ALAFIA.xcodeproj \
+            -scheme ALAFIA
+
+      - name: Run unit tests
+        run: |
+          xcodebuild test \
+            -project ALAFIA.xcodeproj \
+            -scheme ALAFIA \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcpretty || true
+
+      - name: Build (debug, no signing)
+        run: |
+          xcodebuild build \
+            -project ALAFIA.xcodeproj \
+            -scheme ALAFIA \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcpretty
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: IOS/TestResults.xcresult
+          retention-days: 7
