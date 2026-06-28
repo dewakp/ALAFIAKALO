@@ -11,12 +11,13 @@ from datetime import datetime, timezone
 from collections import defaultdict
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from jose import JWTError, jwt
-from sqlalchemy import select
+import jwt  # PyJWT
+from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import async_session
+from app.models.user import User
 from app.models.telehealth import TelehealthSession, SessionParticipant, SessionTranscript
 
 router = APIRouter()
@@ -119,13 +120,31 @@ chat_manager = ConnectionManager(channel_prefix="alafia:telehealth:chat")
 
 # ── Auth helper ──────────────────────────────────────────────────────
 
-def _authenticate_ws(token: str) -> int | None:
-    """Verify JWT and return user_id, or None if invalid."""
+async def _resolve_identity_user_id(claims: dict) -> int | None:
+    """Map a verified identity (PQC) token to the local ALAFIA user id."""
+    conds = [User.identity_uid == claims.get("sub")]
+    sid = (claims.get("sid") or "").strip()
+    email = (claims.get("email") or "").strip().lower()
+    if sid:
+        conds.append(User.system_id == sid)
+    if email:
+        conds.append(func.lower(User.email) == email)
+    async with async_session() as db:
+        row = (await db.execute(select(User.id).where(or_(*conds)))).first()
+    return int(row[0]) if row else None
+
+
+async def _authenticate_ws(token: str) -> int | None:
+    """Return user_id from a hybrid PQC identity token or legacy HS512 token."""
+    from app.services.identity_client import verify_identity_token
+    claims = await verify_identity_token(token)
+    if claims is not None:
+        return await _resolve_identity_user_id(claims)
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
         return int(user_id) if user_id else None
-    except (JWTError, ValueError, TypeError):
+    except (jwt.PyJWTError, ValueError, TypeError):
         return None
 
 
@@ -174,7 +193,7 @@ async def ws_signaling(
       {"type": "peer_left",    "user_id": int}
       {"type": "peers",        "user_ids": [...]}  — sent on connect
     """
-    user_id = _authenticate_ws(token)
+    user_id = await _authenticate_ws(token)
     if not user_id:
         await ws.close(code=4001, reason="Invalid token")
         return
@@ -238,7 +257,7 @@ async def ws_chat(
       {"type": "chat",       "from": user_id, "content": "...", "timestamp": "..."}
       {"type": "transcript", "from": user_id, "content": "...", ...}
     """
-    user_id = _authenticate_ws(token)
+    user_id = await _authenticate_ws(token)
     if not user_id:
         await ws.close(code=4001, reason="Invalid token")
         return

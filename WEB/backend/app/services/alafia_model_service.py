@@ -97,3 +97,65 @@ async def alafia_infer(
         "latency_ms": result.latency_ms,
         "error": result.error,
     }
+
+
+class ALAFIAModelError(RuntimeError):
+    """Raised when an ALAFIAModel LLM call fails (so callers can catch/handle)."""
+
+
+async def alafia_chat(
+    messages: list[dict[str, str]],
+    *,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    json_mode: bool = False,
+    task: str = "chat",
+    model: str | None = None,
+    context: dict[str, Any] | None = None,
+) -> str:
+    """Route a chat completion through ALAFIAModel's LLM capability and return text.
+
+    This is the single entry point backend services should use instead of calling
+    Ollama / OpenAI directly. The router handles Ollama → OpenAI fallback.
+
+    Args:
+        model: optional per-call model override for the primary (Ollama) adapter.
+
+    Raises:
+        ALAFIAModelError: if the model is unavailable or the call fails.
+    """
+    result = await alafia_infer(
+        "llm",
+        {
+            "messages": messages,
+            "task": task,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "json_mode": json_mode,
+            "model": model or "",
+            "context": context or {},
+        },
+    )
+    if not result.get("success"):
+        raise ALAFIAModelError(result.get("error") or "ALAFIAModel LLM call failed")
+    return (result.get("data") or {}).get("text", "")
+
+
+async def alafia_complete(
+    prompt: str,
+    *,
+    temperature: float = 0.3,
+    max_tokens: int = 1024,
+) -> str:
+    """Route a single-prompt (JSON) completion through ALAFIAModel. Returns text.
+
+    Raises:
+        ALAFIAModelError: if the model is unavailable or the call fails.
+    """
+    result = await alafia_infer(
+        "llm",
+        {"text": prompt, "task": "complete", "temperature": temperature, "max_tokens": max_tokens},
+    )
+    if not result.get("success"):
+        raise ALAFIAModelError(result.get("error") or "ALAFIAModel LLM completion failed")
+    return (result.get("data") or {}).get("text", "")

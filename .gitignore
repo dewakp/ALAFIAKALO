@@ -71,3 +71,6 @@ HEBCSL_MATLAB/
 
 # ── Misc ───────────────────────────────────────────────────────────
 *.log
+WEB/identity_service/keys/
+WEB/.env
+**/identity_keys.json

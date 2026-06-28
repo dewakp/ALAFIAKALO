@@ -71,11 +71,14 @@ class InferencePayload:
     image_bytes: bytes | None = None
     audio_bytes: bytes | None = None
     video_bytes: bytes | None = None
+    content_type: str = ""  # MIME type hint for media payloads (e.g. "image/jpeg")
 
     # Options
     language: str = "en"
     temperature: float = 0.5
     max_tokens: int = 2048
+    json_mode: bool = False  # request a strict JSON response from the model
+    model: str = ""          # optional per-call model override (primary adapter)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -86,9 +89,12 @@ class InferencePayload:
             "image_bytes": self.image_bytes,
             "audio_bytes": self.audio_bytes,
             "video_bytes": self.video_bytes,
+            "content_type": self.content_type,
             "language": self.language,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
+            "json_mode": self.json_mode,
+            "model": self.model,
         }
 
 

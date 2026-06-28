@@ -83,6 +83,8 @@
 		EE0000000000000000000107 /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000007; };
 		EE0000000000000000000108 /* EliminationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000008; };
 		EE0000000000000000000109 /* EliminationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000009; };
+		EE000000000000000000010A /* PromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000A; };
+		EE000000000000000000010B /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000B; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -164,6 +166,8 @@
 		EE0000000000000000000007 /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
 		EE0000000000000000000008 /* EliminationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EliminationView.swift; sourceTree = "<group>"; };
 		EE0000000000000000000009 /* EliminationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EliminationModels.swift; sourceTree = "<group>"; };
+		EE000000000000000000000A /* PromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptView.swift; sourceTree = "<group>"; };
+		EE000000000000000000000B /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -223,6 +227,7 @@
 				4A00000000000000000000D4 /* Auth */,
 				4A00000000000000000000E5 /* Sync */,
 				EE00000000000000000000D5 /* Notifications */,
+				EE000000000000000000000B /* SpeechRecognizer.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -323,8 +328,17 @@
 				CC0000000000000000000605 /* Pharmacy */,
 				DD0000000000000000000705 /* Pantry */,
 				EE00000000000000000000D8 /* Elimination */,
+				EE00000000000000000000D9 /* Prompt */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		EE00000000000000000000D9 /* Prompt */ = {
+			isa = PBXGroup;
+			children = (
+				EE000000000000000000000A /* PromptView.swift */,
+			);
+			path = Prompt;
 			sourceTree = "<group>";
 		};
 		EE00000000000000000000D8 /* Elimination */ = {
@@ -783,6 +797,8 @@
 				EE0000000000000000000107 /* BiometricLockView.swift in Sources */,
 				EE0000000000000000000108 /* EliminationView.swift in Sources */,
 				EE0000000000000000000109 /* EliminationModels.swift in Sources */,
+				EE000000000000000000010A /* PromptView.swift in Sources */,
+				EE000000000000000000010B /* SpeechRecognizer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

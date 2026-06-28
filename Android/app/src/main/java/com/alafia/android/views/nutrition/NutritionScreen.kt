@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import kotlin.math.roundToInt
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,6 +48,7 @@ fun NutritionScreen() {
     var summaryDate by remember { mutableStateOf(LocalDate.now().toString()) }
     var summary by remember { mutableStateOf<DailySummary?>(null) }
     var loadingSummary by remember { mutableStateOf(false) }
+    var goals by remember { mutableStateOf<GoalProgressResponse?>(null) }
 
     val scope = rememberCoroutineScope()
     val api = ApiClient.getApiService()
@@ -60,6 +62,7 @@ fun NutritionScreen() {
     suspend fun loadSummary(d: String) {
         loadingSummary = true
         try { summary = api.getNutritionDailySummary(d) } catch (_: Exception) { summary = null }
+        try { goals = api.getNutritionGoalProgress(d) } catch (_: Exception) { goals = null }
         loadingSummary = false
     }
 
@@ -134,6 +137,12 @@ fun NutritionScreen() {
                     }
 
                     Spacer(Modifier.height(16.dp))
+
+                    // Personalized daily nutrient targets / limits
+                    goals?.let { g ->
+                        DailyTargetsCard(g)
+                        Spacer(Modifier.height(16.dp))
+                    }
 
                     if (loadingSummary) {
                         Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -641,4 +650,74 @@ private fun InfoChip(text: String) {
         color = Color(0xFF3B82F6),
         modifier = Modifier.background(Color(0xFF3B82F6).copy(alpha = 0.1f), RoundedCornerShape(50))
             .padding(horizontal = 8.dp, vertical = 3.dp))
+}
+
+@Composable
+private fun DailyTargetsCard(data: GoalProgressResponse) {
+    val condLabels = mapOf(
+        "ckd" to "CKD", "dialysis" to "Dialysis", "diabetes" to "Diabetes",
+        "hypertension" to "Hypertension", "cardiovascular" to "Cardiac", "heart_failure" to "Heart failure"
+    )
+    fun statusColor(s: String) = when (s) {
+        "ok" -> Color(0xFF22C55E)
+        "over" -> Color(0xFFEF4444)
+        else -> Color(0xFFF59E0B)   // low / warning
+    }
+    fun fmt(v: Float) = if (v < 10f) String.format("%.1f", v) else v.roundToInt().toString()
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Daily Targets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+            if (data.conditions.isNotEmpty()) {
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    data.conditions.forEach { c ->
+                        Text(condLabels[c] ?: c, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFEF4444),
+                            modifier = Modifier.background(Color(0xFFEF4444).copy(alpha = 0.12f), RoundedCornerShape(50))
+                                .padding(horizontal = 8.dp, vertical = 3.dp))
+                    }
+                }
+            }
+            if (!data.profileComplete) {
+                Spacer(Modifier.height(6.dp))
+                Text("Add your age, height & weight in Profile for goals tailored to you.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
+
+            Spacer(Modifier.height(10.dp))
+            data.goals.forEach { g ->
+                val color = statusColor(g.status)
+                Column(Modifier.padding(vertical = 4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            if (g.kind == "limit") Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+                            contentDescription = if (g.kind == "limit") "stay under" else "aim for",
+                            tint = color, modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(g.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.weight(1f))
+                        Text("${fmt(g.current)}/${fmt(g.goal)} ${g.unit}",
+                            style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Spacer(Modifier.height(3.dp))
+                    LinearProgressIndicator(
+                        progress = { (g.pct / 100f).coerceIn(0f, 1f) },
+                        color = color,
+                        trackColor = color.copy(alpha = 0.2f),
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50))
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Text("↑ aim for · ↓ stay under. Based on your biology & conditions — not medical advice.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
+        }
+    }
 }

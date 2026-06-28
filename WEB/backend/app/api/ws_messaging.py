@@ -21,11 +21,12 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
-from jose import JWTError, jwt
-from sqlalchemy import select
+import jwt  # PyJWT
+from sqlalchemy import select, or_, func
 
 from app.core.config import settings
 from app.core.database import async_session
+from app.models.user import User
 from app.models.messaging import (
     Conversation,
     ConversationMember,
@@ -168,12 +169,32 @@ manager = MessagingConnectionManager()
 # Auth helpers
 # ─────────────────────────────────────────────
 
-def _authenticate_ws(token: str) -> int | None:
+async def _resolve_identity_user_id(claims: dict) -> int | None:
+    """Map a verified identity (PQC) token to the local ALAFIA user id."""
+    conds = [User.identity_uid == claims.get("sub")]
+    sid = (claims.get("sid") or "").strip()
+    email = (claims.get("email") or "").strip().lower()
+    if sid:
+        conds.append(User.system_id == sid)
+    if email:
+        conds.append(func.lower(User.email) == email)
+    async with async_session() as db:
+        row = (await db.execute(select(User.id).where(or_(*conds)))).first()
+    return int(row[0]) if row else None
+
+
+async def _authenticate_ws(token: str) -> int | None:
+    # 1) Shared identity hybrid PQC token (cross-app SSO).
+    from app.services.identity_client import verify_identity_token
+    claims = await verify_identity_token(token)
+    if claims is not None:
+        return await _resolve_identity_user_id(claims)
+    # 2) Legacy ALAFIA HS512 token (migration window).
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
         return int(user_id) if user_id else None
-    except (JWTError, ValueError, TypeError):
+    except (jwt.PyJWTError, ValueError, TypeError):
         return None
 
 
@@ -199,7 +220,7 @@ async def ws_conversation(
     conversation_id: int,
     token: str = Query(...),
 ):
-    user_id = _authenticate_ws(token)
+    user_id = await _authenticate_ws(token)
     if not user_id:
         await websocket.close(code=4001, reason="Invalid token")
         return
@@ -312,7 +333,7 @@ async def ws_feed(
     websocket: WebSocket,
     token: str = Query(...),
 ):
-    user_id = _authenticate_ws(token)
+    user_id = await _authenticate_ws(token)
     if not user_id:
         await websocket.close(code=4001, reason="Invalid token")
         return

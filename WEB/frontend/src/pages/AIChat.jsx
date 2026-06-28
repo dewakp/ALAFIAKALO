@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import api, { ensureCsrfToken, refreshAccessToken } from '../services/api';
+import { apiErrorMessage } from '../utils/apiError';
 import { Send, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
@@ -61,6 +63,8 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [showCultural, setShowCultural] = useState(false);
   const messagesEndRef = useRef(null);
+  const { state } = useLocation();
+  const autoAskHandled = useRef(false);
 
   useEffect(() => {
     api.get('/ai/personas')
@@ -78,6 +82,21 @@ export default function AIChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Prompt Hub hand-off: a general health question arrives here as autoAsk. Skip
+  // the persona picker, default to the general practitioner, and answer it.
+  useEffect(() => {
+    if (autoAskHandled.current || !state?.autoAsk || !allPersonas.length) return;
+    autoAskHandled.current = true;
+    const gp =
+      allPersonas.find((p) => p.key === 'general_practitioner') ||
+      FALLBACK_SPECIALISTS.find((p) => p.key === 'general_practitioner');
+    if (!gp) return;
+    setSelectedPersona(gp);
+    setMessages([]);
+    sendMessage(state.autoAsk, gp, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, allPersonas]);
+
   function pickPersona(persona) {
     setSelectedPersona(persona);
     const isSpecialist = persona.region === 'specialist';
@@ -87,14 +106,18 @@ export default function AIChat() {
     setMessages([{ role: 'assistant', content: intro }]);
   }
 
-  async function handleSend(e) {
+  function handleSend(e) {
     e.preventDefault();
     if (!input.trim() || loading || !selectedPersona) return;
-
     const userMessage = input.trim();
     setInput('');
+    sendMessage(userMessage, selectedPersona, messages);
+  }
 
-    const updatedMessages = [...messages, { role: 'user', content: userMessage }];
+  async function sendMessage(userMessage, persona, baseMessages) {
+    if (!userMessage.trim() || !persona) return;
+
+    const updatedMessages = [...baseMessages, { role: 'user', content: userMessage }];
     setMessages(updatedMessages);
     setLoading(true);
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
@@ -103,7 +126,7 @@ export default function AIChat() {
     const requestBody = JSON.stringify({
       query: userMessage,
       messages: history,
-      persona: selectedPersona.key,
+      persona: persona.key,
     });
 
     async function sendStreamRequest(accessToken) {
@@ -123,7 +146,7 @@ export default function AIChat() {
     async function getResponseError(response) {
       try {
         const data = await response.json();
-        if (data?.detail) return data.detail;
+        if (data?.detail) return apiErrorMessage({ response: { data } }, `HTTP ${response.status}`);
       } catch {
         // Non-JSON errors fall through to the status text.
       }

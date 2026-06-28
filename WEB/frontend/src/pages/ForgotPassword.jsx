@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,7 +25,7 @@ export default function ForgotPassword() {
       if (data.reset_token) setToken(data.reset_token);
       setStep('confirm');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to request reset');
+      setError(apiErrorMessage(err, 'Failed to request reset'));
     }
   }
 
@@ -41,7 +42,7 @@ export default function ForgotPassword() {
       await confirmPasswordReset(token, newPassword);
       setStep('done');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to reset password');
+      setError(apiErrorMessage(err, 'Failed to reset password'));
     }
   }
 

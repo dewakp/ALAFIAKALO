@@ -1,142 +1,131 @@
 import { useState, useEffect } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import {
   UtensilsCrossed,
-  Plus,
-  ChevronDown,
-  ChevronUp,
+  Sparkles,
   ShoppingCart,
-  Lightbulb,
   Loader2,
-  Trash2,
-  Calendar,
   Flame,
   Beef,
   Wheat,
   Droplets,
   Check,
-  RefreshCw,
+  Lightbulb,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
-const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
-const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
-const DIETARY_OPTIONS = [
-  { value: 'balanced', label: 'Balanced' },
-  { value: 'renal', label: 'Renal' },
-  { value: 'low_sodium', label: 'Low Sodium' },
-  { value: 'diabetic', label: 'Diabetic' },
-  { value: 'heart_healthy', label: 'Heart Healthy' },
-];
+const MEAL_EMOJI = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', meal: '🍽️' };
 
-const dietaryColor = (pattern) => {
-  const map = {
-    balanced: '--color-primary',
-    renal: '--color-info',
-    low_sodium: '--color-warning',
-    diabetic: '--color-danger',
-    heart_healthy: '--color-primary',
+function Chip({ children, tone = 'neutral' }) {
+  const tones = {
+    neutral: { bg: 'var(--color-bg-secondary, rgba(127,127,127,.12))', fg: 'var(--color-text-secondary, #6b7280)' },
+    pantry: { bg: 'rgba(34,197,94,.15)', fg: '#16a34a' },
+    buy: { bg: 'rgba(245,158,11,.15)', fg: '#d97706' },
   };
-  return `var(${map[pattern] || '--color-primary'})`;
-};
-
-function MealCard({ meal }) {
+  const t = tones[tone] || tones.neutral;
   return (
-    <div className="card" style={{ padding: '0.75rem', marginBottom: '0.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-        <div style={{ flex: 1 }}>
-          <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>{meal.name}</h5>
-          {meal.description && (
-            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#6b7280' }}>{meal.description}</p>
-          )}
-        </div>
-        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary)', whiteSpace: 'nowrap' }}>
-          <Flame size={13} style={{ verticalAlign: '-2px', marginRight: 2 }} />
-          {meal.calories} cal
-        </span>
-      </div>
-      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
-        <span title="Protein"><Beef size={12} style={{ verticalAlign: '-2px', marginRight: 2 }} />{meal.protein_g}g P</span>
-        <span title="Carbs"><Wheat size={12} style={{ verticalAlign: '-2px', marginRight: 2 }} />{meal.carbs_g}g C</span>
-        <span title="Fat"><Droplets size={12} style={{ verticalAlign: '-2px', marginRight: 2 }} />{meal.fat_g}g F</span>
-      </div>
-    </div>
+    <span style={{
+      fontSize: '.72rem', padding: '.18rem .5rem', borderRadius: 999,
+      background: t.bg, color: t.fg, whiteSpace: 'nowrap',
+    }}>{children}</span>
   );
 }
 
-function DayPlan({ dayData }) {
-  if (!dayData) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: '2rem 0' }}>No meals planned for this day.</p>;
-
+function SuggestionCard({ s }) {
+  const macro = (icon, val, label) =>
+    val == null ? null : (
+      <span title={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+        {icon}{Math.round(val)}{label === 'Calories' ? '' : 'g'} {label[0]}
+      </span>
+    );
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
-      {MEAL_TYPES.map((type) => {
-        const meals = dayData[type];
-        if (!meals || meals.length === 0) return null;
-        return (
-          <div key={type}>
-            <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', textTransform: 'capitalize', color: '#374151', letterSpacing: '0.03em' }}>
-              {type}
-            </h4>
-            {meals.map((meal, i) => (
-              <MealCard key={i} meal={meal} />
-            ))}
+    <div className="card" style={{ padding: '1.1rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '.75rem', flexWrap: 'wrap' }}>
+        <h4 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+          <span>{MEAL_EMOJI[s.meal_type] || '🍽️'}</span>
+          {s.name}
+          <span style={{ fontSize: '.68rem', textTransform: 'capitalize', color: 'var(--color-text-tertiary,#9ca3af)', fontWeight: 400 }}>
+            {s.meal_type}
+          </span>
+        </h4>
+        <div style={{ display: 'flex', gap: '.75rem', fontSize: '.78rem', color: 'var(--color-text-secondary,#6b7280)' }}>
+          {macro(<Flame size={13} />, s.calories, 'Calories')}
+          {s.calories != null && <span style={{ fontSize: '.72rem' }}>cal</span>}
+          {macro(<Beef size={12} />, s.protein_g, 'Protein')}
+          {macro(<Wheat size={12} />, s.carbs_g, 'Carbs')}
+          {macro(<Droplets size={12} />, s.fat_g, 'Fat')}
+        </div>
+      </div>
+
+      {s.description && (
+        <p style={{ margin: '.5rem 0 .25rem', fontSize: '.85rem', color: 'var(--color-text-secondary,#6b7280)', lineHeight: 1.5 }}>
+          {s.description}
+        </p>
+      )}
+
+      {s.ingredients?.length > 0 && (
+        <div style={{ marginTop: '.5rem' }}>
+          <div style={{ fontSize: '.72rem', fontWeight: 600, color: 'var(--color-text-tertiary,#9ca3af)', marginBottom: '.3rem' }}>INGREDIENTS</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.3rem' }}>
+            {s.ingredients.map((ing, i) => <Chip key={i}>{ing}</Chip>)}
           </div>
-        );
-      })}
+        </div>
+      )}
+
+      {s.pantry_used?.length > 0 && (
+        <div style={{ marginTop: '.5rem', display: 'flex', flexWrap: 'wrap', gap: '.3rem', alignItems: 'center' }}>
+          <span style={{ fontSize: '.72rem', fontWeight: 600, color: '#16a34a' }}>✓ FROM YOUR PANTRY</span>
+          {s.pantry_used.map((p, i) => <Chip key={i} tone="pantry">{p}</Chip>)}
+        </div>
+      )}
+
+      {s.missing_items?.length > 0 && (
+        <div style={{ marginTop: '.5rem', display: 'flex', flexWrap: 'wrap', gap: '.3rem', alignItems: 'center' }}>
+          <span style={{ fontSize: '.72rem', fontWeight: 600, color: '#d97706' }}>🛒 TO BUY</span>
+          {s.missing_items.map((m, i) => <Chip key={i} tone="buy">{m}</Chip>)}
+        </div>
+      )}
+
+      {s.rationale && (
+        <div style={{ marginTop: '.6rem', padding: '.55rem .7rem', borderRadius: 8, background: 'rgba(59,130,246,.08)', borderLeft: '3px solid var(--color-info,#3b82f6)' }}>
+          <p style={{ margin: 0, fontSize: '.8rem', color: 'var(--color-text-secondary,#374151)', lineHeight: 1.5, display: 'flex', gap: '.4rem' }}>
+            <Lightbulb size={14} color="var(--color-warning,#f59e0b)" style={{ flexShrink: 0, marginTop: 2 }} />
+            {s.rationale}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
 function ShoppingList({ items }) {
   const [checked, setChecked] = useState({});
-  if (!items || items.length === 0) return null;
-
-  const toggle = (idx) => setChecked((prev) => ({ ...prev, [idx]: !prev[idx] }));
-  const checkedCount = Object.values(checked).filter(Boolean).length;
-
+  if (!items?.length) return null;
+  const toggle = (i) => setChecked((p) => ({ ...p, [i]: !p[i] }));
+  const done = Object.values(checked).filter(Boolean).length;
   return (
-    <div className="card" style={{ padding: '1.25rem', marginTop: '1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-        <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShoppingCart size={18} /> Shopping List
+    <div className="card" style={{ padding: '1.25rem', marginTop: '.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem' }}>
+        <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+          <ShoppingCart size={18} /> Shopping List <span style={{ fontSize: '.75rem', fontWeight: 400, color: 'var(--color-text-tertiary,#9ca3af)' }}>(missing items)</span>
         </h4>
-        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{checkedCount}/{items.length} items</span>
+        <span style={{ fontSize: '.8rem', color: 'var(--color-text-tertiary,#6b7280)' }}>{done}/{items.length}</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '.25rem' }}>
         {items.map((item, i) => (
-          <label
-            key={i}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.35rem 0.5rem',
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              textDecoration: checked[i] ? 'line-through' : 'none',
-              color: checked[i] ? '#9ca3af' : '#374151',
-              background: checked[i] ? '#f9fafb' : 'transparent',
-              transition: 'all 0.15s',
-            }}
-          >
-            <span
-              onClick={() => toggle(i)}
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 4,
-                border: checked[i] ? 'none' : '2px solid #d1d5db',
-                background: checked[i] ? 'var(--color-primary)' : 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {checked[i] && <Check size={13} color="#fff" />}
-            </span>
+          <label key={i} onClick={() => toggle(i)} style={{
+            display: 'flex', alignItems: 'center', gap: '.5rem', padding: '.35rem .5rem',
+            borderRadius: 6, cursor: 'pointer', fontSize: '.85rem',
+            textDecoration: checked[i] ? 'line-through' : 'none',
+            color: checked[i] ? 'var(--color-text-tertiary,#9ca3af)' : 'var(--color-text-primary,#374151)',
+          }}>
+            <span style={{
+              width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+              border: checked[i] ? 'none' : '2px solid var(--color-border,#d1d5db)',
+              background: checked[i] ? 'var(--color-primary)' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{checked[i] && <Check size={13} color="#fff" />}</span>
             {item}
           </label>
         ))}
@@ -145,366 +134,154 @@ function ShoppingList({ items }) {
   );
 }
 
-function PlanViewer({ plan }) {
-  const [activeDay, setActiveDay] = useState('monday');
-  if (!plan) return null;
-
-  const planData = plan.plan_data || {};
-
-  const dayCalories = (day) => {
-    const d = planData[day];
-    if (!d) return 0;
-    return MEAL_TYPES.reduce((sum, type) => {
-      return sum + (d[type] || []).reduce((s, m) => s + (m.calories || 0), 0);
-    }, 0);
-  };
-
-  return (
-    <div>
-      {/* Day tabs */}
-      <div style={{ display: 'flex', gap: '0.25rem', overflowX: 'auto', marginBottom: '1rem', borderBottom: '2px solid #e5e7eb', paddingBottom: 0 }}>
-        {DAYS.map((day) => (
-          <button
-            key={day}
-            onClick={() => setActiveDay(day)}
-            style={{
-              padding: '0.5rem 1rem',
-              border: 'none',
-              borderBottom: activeDay === day ? '2px solid var(--color-primary)' : '2px solid transparent',
-              background: 'none',
-              cursor: 'pointer',
-              fontWeight: activeDay === day ? 600 : 400,
-              color: activeDay === day ? 'var(--color-primary)' : '#6b7280',
-              fontSize: '0.85rem',
-              marginBottom: '-2px',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s',
-            }}
-          >
-            {DAY_LABELS[day]}
-            <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 400 }}>{dayCalories(day)} cal</span>
-          </button>
-        ))}
-      </div>
-
-      <DayPlan dayData={planData[activeDay]} />
-
-      <ShoppingList items={plan.shopping_list} />
-
-      {plan.advice && (
-        <div className="card" style={{ padding: '1rem', marginTop: '1rem', borderLeft: '3px solid var(--color-info)' }}>
-          <h4 style={{ margin: '0 0 0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-            <Lightbulb size={16} color="var(--color-warning)" /> Nutritional Advice
-          </h4>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151', lineHeight: 1.6 }}>{plan.advice}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SavedPlanCard({ plan, onDelete }) {
-  const [expanded, setExpanded] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async (e) => {
-    e.stopPropagation();
-    if (!window.confirm('Delete this meal plan?')) return;
-    setDeleting(true);
-    try {
-      await api.delete(`/planners/meal-plans/${plan.id}`);
-      onDelete(plan.id);
-    } catch {
-      /* ignore */
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-      <div
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          padding: '1rem 1.25rem',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '0.75rem',
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{plan.plan_name || 'Meal Plan'}</h4>
-            <span
-              style={{
-                padding: '0.15rem 0.5rem',
-                borderRadius: '999px',
-                fontSize: '0.7rem',
-                fontWeight: 500,
-                background: dietaryColor(plan.dietary_pattern),
-                color: '#fff',
-                textTransform: 'capitalize',
-              }}
-            >
-              {(plan.dietary_pattern || '').replace('_', ' ')}
-            </span>
-          </div>
-          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Calendar size={13} />
-            {plan.start_date} — {plan.end_date}
-            {plan.total_daily_calories && (
-              <span style={{ marginLeft: '0.5rem' }}>
-                <Flame size={13} style={{ verticalAlign: '-2px' }} /> {plan.total_daily_calories} cal/day
-              </span>
-            )}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button className="btn btn-sm" onClick={handleDelete} disabled={deleting} title="Delete plan" style={{ color: 'var(--color-danger)', padding: '0.3rem' }}>
-            {deleting ? <Loader2 size={15} className="spin" /> : <Trash2 size={15} />}
-          </button>
-          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </div>
-      </div>
-      {expanded && (
-        <div style={{ padding: '0 1.25rem 1.25rem', borderTop: '1px solid #e5e7eb' }}>
-          <div style={{ paddingTop: '1rem' }}>
-            <PlanViewer plan={plan} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function MealPlanner() {
-  const [form, setForm] = useState({
-    dietary_pattern: 'balanced',
-    daily_calorie_target: 2000,
-    allergies: '',
-    preferences: '',
-  });
+  const [form, setForm] = useState({ health_goals: '', preferences: '', pantry_items: '', count: 3 });
   const [generating, setGenerating] = useState(false);
-  const [generatedPlan, setGeneratedPlan] = useState(null);
-  const [savedPlans, setSavedPlans] = useState([]);
-  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
+  // Pre-fill the pantry box with the items already saved in the user's profile.
   useEffect(() => {
-    fetchSavedPlans();
+    api.get('/pantry/')
+      .then(({ data }) => {
+        const names = (Array.isArray(data) ? data : []).map((it) => it.name).filter(Boolean);
+        if (names.length) {
+          setForm((p) => (p.pantry_items ? p : { ...p, pantry_items: names.join(', ') }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  const fetchSavedPlans = async () => {
-    setLoadingPlans(true);
-    try {
-      const { data } = await api.get('/planners/meal-plans');
-      setSavedPlans(Array.isArray(data) ? data : []);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoadingPlans(false);
-    }
-  };
-
-  const handleChange = (e) => {
+  const change = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: name === 'daily_calorie_target' ? Number(value) : value }));
+    setForm((p) => ({ ...p, [name]: name === 'count' ? Number(value) : value }));
   };
 
-  const handleGenerate = async (e) => {
+  const generate = async (e) => {
     e.preventDefault();
+    if (!form.health_goals.trim()) {
+      setError('Please enter your main health goals first.');
+      return;
+    }
     setGenerating(true);
     setError('');
-    setGeneratedPlan(null);
+    setResult(null);
     try {
-      const { data } = await api.post('/planners/meal-plan', {
-        dietary_pattern: form.dietary_pattern,
-        daily_calorie_target: form.daily_calorie_target,
-        allergies: form.allergies || undefined,
+      const { data } = await api.post('/planners/meal-suggestions', {
+        health_goals: form.health_goals,
         preferences: form.preferences || undefined,
-      });
-      setGeneratedPlan(data);
-      fetchSavedPlans();
+        pantry_items: form.pantry_items || undefined,
+        count: form.count,
+      }, { timeout: 300000 }); // AI generation runs on CPU — allow up to 5 min
+      setResult(data);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to generate meal plan. Please try again.');
+      setError(apiErrorMessage(err, 'Failed to generate meal plan. Please try again.'));
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleDeletePlan = (id) => {
-    setSavedPlans((prev) => prev.filter((p) => p.id !== id));
-  };
+  const label = { display: 'block', fontWeight: 600, fontSize: '.9rem', marginBottom: '.4rem' };
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '1.5rem 1rem' }}>
-      {/* Header */}
+    <div style={{ maxWidth: 920, margin: '0 auto', padding: '1.5rem 1rem' }}>
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <UtensilsCrossed size={28} color="var(--color-primary)" />
-            AI Meal Planner
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+            <UtensilsCrossed size={28} color="var(--color-primary)" /> AI Meal Planner
           </h1>
         </div>
-        <p style={{ margin: '0.25rem 0 0', color: '#6b7280', fontSize: '0.9rem' }}>
-          Generate personalized weekly meal plans tailored to your dietary needs.
+        <p style={{ margin: '.25rem 0 0', color: 'var(--color-text-secondary,#6b7280)', fontSize: '.95rem' }}>
+          Get personalized meal recommendations based on your unique health profile and goals.
         </p>
       </div>
 
-      {/* Generate form */}
-      <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-        <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
-          <Plus size={18} /> Generate New Plan
+      {/* Generator form */}
+      <div className="card" style={{ padding: '1.75rem', marginBottom: '2rem' }}>
+        <h3 style={{ margin: '0 0 .35rem', display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '1.15rem' }}>
+          <Sparkles size={20} color="var(--color-primary)" /> Generate Your Meal Plan
         </h3>
-        <form onSubmit={handleGenerate}>
-          <div className="card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="dietary_pattern">Dietary Pattern</label>
-              <select
-                id="dietary_pattern"
-                name="dietary_pattern"
-                className="form-select"
-                value={form.dietary_pattern}
-                onChange={handleChange}
-              >
-                {DIETARY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="daily_calorie_target">Daily Calorie Target</label>
-              <input
-                id="daily_calorie_target"
-                name="daily_calorie_target"
-                type="number"
-                className="form-input"
-                value={form.daily_calorie_target}
-                onChange={handleChange}
-                min={800}
-                max={5000}
-                step={50}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="allergies">Allergies</label>
-              <input
-                id="allergies"
-                name="allergies"
-                type="text"
-                className="form-input"
-                placeholder="e.g. peanuts, gluten"
-                value={form.allergies}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="preferences">Preferences</label>
-              <input
-                id="preferences"
-                name="preferences"
-                type="text"
-                className="form-input"
-                placeholder="e.g. high protein, West African"
-                value={form.preferences}
-                onChange={handleChange}
-              />
-            </div>
+        <p style={{ margin: '0 0 1.25rem', color: 'var(--color-text-secondary,#6b7280)', fontSize: '.88rem' }}>
+          Tell Alafia your goals and preferences. It will analyze your profile, logs, and lab results to create tailored recommendations.
+        </p>
+
+        <form onSubmit={generate}>
+          <div style={{ marginBottom: '1.1rem' }}>
+            <label style={label} htmlFor="health_goals">What are your main health goals right now?</label>
+            <input
+              id="health_goals" name="health_goals" className="form-input"
+              placeholder="e.g. improve hemoglobin, increase vitamin D & calcium, reduce phosphorus…"
+              value={form.health_goals} onChange={change} required
+            />
+          </div>
+
+          <div style={{ marginBottom: '1.1rem' }}>
+            <label style={label} htmlFor="preferences">Any specific meal preferences, likes, or dislikes?</label>
+            <textarea
+              id="preferences" name="preferences" className="form-input" rows={3}
+              placeholder="e.g. I enjoy a variety of foods, no fava beans, lentils or peanuts…"
+              value={form.preferences} onChange={change} style={{ resize: 'vertical' }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '.4rem' }}>
+            <label style={label} htmlFor="pantry_items">Pantry/Fridge Items (Optional)</label>
+            <textarea
+              id="pantry_items" name="pantry_items" className="form-input" rows={3}
+              placeholder="e.g. brown eggs, brown rice, cashew butter, sardines, canola oil, vine tomatoes…"
+              value={form.pantry_items} onChange={change} style={{ resize: 'vertical' }}
+            />
+            <p style={{ margin: '.35rem 0 0', fontSize: '.78rem', color: 'var(--color-text-tertiary,#9ca3af)' }}>
+              List ingredients you have on hand to get recipes that use them. This list will be saved to your profile.
+            </p>
+          </div>
+
+          <div style={{ margin: '1.25rem 0' }}>
+            <label style={label} htmlFor="count">How many meal suggestions would you like?</label>
+            <select id="count" name="count" className="form-select" value={form.count} onChange={change} style={{ maxWidth: 220 }}>
+              {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
           </div>
 
           {error && (
-            <div style={{ marginTop: '0.75rem', padding: '0.65rem 1rem', borderRadius: '0.375rem', background: '#fef2f2', color: 'var(--color-danger)', fontSize: '0.85rem' }}>
+            <div style={{ marginBottom: '1rem', padding: '.65rem 1rem', borderRadius: 8, background: 'rgba(239,68,68,.1)', color: 'var(--color-danger,#dc2626)', fontSize: '.85rem' }}>
               {error}
             </div>
           )}
 
-          <div style={{ marginTop: '1.25rem' }}>
-            <button type="submit" className="btn btn-primary" disabled={generating} style={{ minWidth: 180 }}>
-              {generating ? (
-                <>
-                  <Loader2 size={16} className="spin" style={{ marginRight: 6 }} />
-                  Generating…
-                </>
-              ) : (
-                <>
-                  <UtensilsCrossed size={16} style={{ marginRight: 6 }} />
-                  Generate Meal Plan
-                </>
-              )}
-            </button>
-          </div>
+          <button type="submit" className="btn btn-primary" disabled={generating} style={{ minWidth: 210, opacity: generating ? 0.7 : 1 }}>
+            {generating
+              ? <><Loader2 size={16} className="spin" style={{ marginRight: 6 }} /> Generating…</>
+              : <><Sparkles size={16} style={{ marginRight: 6 }} /> Generate My Meal Plan</>}
+          </button>
         </form>
       </div>
 
-      {/* Generated plan display */}
-      {generatedPlan && (
-        <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1rem' }}>{generatedPlan.plan_name || 'Your Meal Plan'}</h3>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span
-                  style={{
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '999px',
-                    fontSize: '0.7rem',
-                    fontWeight: 500,
-                    background: dietaryColor(generatedPlan.dietary_pattern),
-                    color: '#fff',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {(generatedPlan.dietary_pattern || '').replace('_', ' ')}
-                </span>
-                <span><Calendar size={13} style={{ verticalAlign: '-2px' }} /> {generatedPlan.start_date} — {generatedPlan.end_date}</span>
-                {generatedPlan.total_daily_calories && (
-                  <span><Flame size={13} style={{ verticalAlign: '-2px' }} /> {generatedPlan.total_daily_calories} cal/day</span>
-                )}
-              </div>
-            </div>
+      {/* Results */}
+      {result && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.5rem' }}>
+            <UtensilsCrossed size={20} color="var(--color-primary)" />
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Your Meal Suggestions</h3>
           </div>
-          <PlanViewer plan={generatedPlan} />
+          {result.advice && (
+            <p style={{ margin: '0 0 1rem', fontSize: '.85rem', color: 'var(--color-text-secondary,#6b7280)' }}>{result.advice}</p>
+          )}
+
+          {result.suggestions?.map((s, i) => <SuggestionCard key={i} s={s} />)}
+
+          <ShoppingList items={result.shopping_list} />
+
+          {result.pantry_saved > 0 && (
+            <p style={{ margin: '.75rem 0 0', fontSize: '.78rem', color: 'var(--color-text-tertiary,#9ca3af)' }}>
+              {result.pantry_saved} new pantry item{result.pantry_saved === 1 ? '' : 's'} saved to your profile.
+            </p>
+          )}
         </div>
       )}
 
-      {/* Saved plans */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
-            <Calendar size={18} /> Saved Plans
-          </h3>
-          <button className="btn btn-secondary btn-sm" onClick={fetchSavedPlans} disabled={loadingPlans}>
-            <RefreshCw size={14} style={{ marginRight: 4 }} /> Refresh
-          </button>
-        </div>
-
-        {loadingPlans ? (
-          <div style={{ textAlign: 'center', padding: '2rem 0', color: '#9ca3af' }}>
-            <Loader2 size={24} className="spin" />
-            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>Loading saved plans…</p>
-          </div>
-        ) : savedPlans.length === 0 ? (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
-            <UtensilsCrossed size={36} style={{ marginBottom: '0.5rem', opacity: 0.4 }} />
-            <p style={{ margin: 0, fontSize: '0.9rem' }}>No saved meal plans yet. Generate your first plan above!</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {savedPlans.map((plan) => (
-              <SavedPlanCard key={plan.id} plan={plan} onDelete={handleDeletePlan} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Spinner animation */}
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }`}</style>
     </div>
   );
 }

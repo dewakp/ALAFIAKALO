@@ -70,7 +70,7 @@ async def create_medication(
     return med
 
 
-@router.get("/{med_id}", response_model=MedicationResponse)
+@router.get("/{med_id:int}", response_model=MedicationResponse)
 async def get_medication(
     med_id: int,
     current_user: User = Depends(get_current_user),
@@ -85,7 +85,7 @@ async def get_medication(
     return med
 
 
-@router.patch("/{med_id}", response_model=MedicationResponse)
+@router.patch("/{med_id:int}", response_model=MedicationResponse)
 async def update_medication(
     med_id: int,
     updates: MedicationUpdate,
@@ -105,7 +105,7 @@ async def update_medication(
     return med
 
 
-@router.delete("/{med_id}", status_code=204)
+@router.delete("/{med_id:int}", status_code=204)
 async def delete_medication(
     med_id: int,
     current_user: User = Depends(get_current_user),
@@ -204,8 +204,17 @@ async def log_medication_dose(
         med_profile_id=profile_id,
         medication_name=dose_in.medication_name,
         log_date=dose_in.log_date,
+        log_time=dose_in.log_time,
         dose_amount=dose_in.dose_amount,
         dose_unit=dose_in.dose_unit,
+        pre_systolic_bp=dose_in.pre_systolic_bp,
+        pre_diastolic_bp=dose_in.pre_diastolic_bp,
+        pre_heart_rate=dose_in.pre_heart_rate,
+        post_systolic_bp=dose_in.post_systolic_bp,
+        post_diastolic_bp=dose_in.post_diastolic_bp,
+        post_heart_rate=dose_in.post_heart_rate,
+        pre_temperature_c=dose_in.pre_temperature_c,
+        post_temperature_c=dose_in.post_temperature_c,
         nutrients_contributed=nutrients if nutrients else None,
         nutrients_resolved=bool(nutrients),
         notes=dose_in.notes,

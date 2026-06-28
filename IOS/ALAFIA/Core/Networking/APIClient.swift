@@ -100,7 +100,55 @@ actor APIClient {
     func setToken(_ token: String?) {
         cachedToken = token
     }
-    
+
+    // MARK: - Auto-refresh on 401 (parity with Android's TokenAuthenticator)
+
+    private static let refreshTokenKey = "alafia_refresh_token"
+    private var isRefreshing = false
+
+    /// Sends a request and, on a 401, transparently refreshes the access token once
+    /// and retries — so short-lived hybrid EdDSA+ML-DSA access tokens never surface
+    /// as spurious mid-session auth failures.
+    private func send(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        let (data, response) = try await send(request)
+        guard (response as? HTTPURLResponse)?.statusCode == 401,
+              !(request.url?.path.hasSuffix("/auth/refresh") ?? false),
+              await attemptRefresh() else {
+            return (data, response)
+        }
+        var retry = request
+        if let newToken = token {
+            retry.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+        }
+        return try await session.data(for: retry)
+    }
+
+    /// Refreshes the access token from the stored refresh token (body-based ⇒ no CSRF
+    /// needed for non-cookie clients). Returns true on success.
+    private func attemptRefresh() async -> Bool {
+        guard !isRefreshing else { return false }
+        guard let refresh = KeychainHelper.get(key: Self.refreshTokenKey) else { return false }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        guard let url = URL(string: "\(AppConfig.baseURL)/auth/refresh") else { return false }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["refresh_token": refresh])
+        guard let (data, response) = try? await session.data(for: req),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let access = json["access_token"] as? String else {
+            return false
+        }
+        KeychainHelper.save(key: AppConfig.tokenKey, value: access)
+        cachedToken = access
+        if let newRefresh = json["refresh_token"] as? String {
+            KeychainHelper.save(key: Self.refreshTokenKey, value: newRefresh)
+        }
+        return true
+    }
+
     // MARK: - Request Building
     
     private func buildRequest(
@@ -126,7 +174,7 @@ actor APIClient {
     
     func get<T: Decodable>(_ path: String) async throws -> T {
         let request = buildRequest(path: path, method: "GET")
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         let decoded = try decoder.decode(T.self, from: data)
         return decoded
@@ -150,7 +198,7 @@ actor APIClient {
     func post<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
         let bodyData = try encoder.encode(body)
         let request = buildRequest(path: path, method: "POST", body: bodyData)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         return try decoder.decode(T.self, from: data)
     }
@@ -164,7 +212,7 @@ actor APIClient {
             body: body.data(using: .utf8),
             contentType: "application/x-www-form-urlencoded"
         )
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         return try decoder.decode(T.self, from: data)
     }
@@ -183,7 +231,7 @@ actor APIClient {
         request.setValue(csrfToken, forHTTPHeaderField: "X-CSRF-Token")
         request.setValue("csrf_token=\(csrfToken)", forHTTPHeaderField: "Cookie")
 
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         return try decoder.decode(T.self, from: data)
     }
@@ -191,7 +239,7 @@ actor APIClient {
     func patch<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
         let bodyData = try encoder.encode(body)
         let request = buildRequest(path: path, method: "PATCH", body: bodyData)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         return try decoder.decode(T.self, from: data)
     }
@@ -199,21 +247,21 @@ actor APIClient {
     func put<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
         let bodyData = try encoder.encode(body)
         let request = buildRequest(path: path, method: "PUT", body: bodyData)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         return try decoder.decode(T.self, from: data)
     }
     
     func putNoBody<T: Decodable>(_ path: String) async throws -> T {
         let request = buildRequest(path: path, method: "PUT")
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         return try decoder.decode(T.self, from: data)
     }
     
     func delete(_ path: String) async throws {
         let request = buildRequest(path: path, method: "DELETE")
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
         let httpResponse = response as! HTTPURLResponse
         if httpResponse.statusCode != 204 {
             try validateResponse(response, data: data)

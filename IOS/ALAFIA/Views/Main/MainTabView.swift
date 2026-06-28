@@ -5,11 +5,16 @@ struct MainTabView: View {
     
     var body: some View {
         TabView {
+            PromptView()
+                .tabItem {
+                    Label("Ask", systemImage: "sparkles")
+                }
+
             DashboardView()
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
-            
+
             NutritionView()
                 .tabItem {
                     Label("Nutrition", systemImage: "leaf.fill")

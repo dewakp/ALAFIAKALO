@@ -22,13 +22,23 @@ The tools are plain ``async`` functions importable directly by the backend:
     )
 
 They are *also* registered with a FastMCP instance so the server can be run
-as a standalone MCP endpoint (stdio or SSE transport) for AI agent use:
+as a standalone MCP endpoint (stdio, SSE, or streamable-HTTP transport):
 
     # stdio — for Claude Desktop / MCP client direct connection
     python -m app.services.mcp_nutrition_server
 
-    # SSE — listens on 0.0.0.0:8003 inside Docker
-    MCP_TRANSPORT=sse python -m app.services.mcp_nutrition_server
+    # SSE / HTTP — network endpoint (default port 8003)
+    MCP_TRANSPORT=sse  python -m app.services.mcp_nutrition_server
+    MCP_TRANSPORT=http python -m app.services.mcp_nutrition_server
+
+Deployment
+----------
+fastmcp pulls a newer Starlette than FastAPI 0.115.6 permits, so this server is
+NOT mounted on the FastAPI app. Instead it runs as its own container — see the
+``mcp`` service in ``WEB/docker-compose.yml`` (built from ``Dockerfile.mcp`` with
+``requirements-mcp.txt``), exposing the MCP endpoint on port 8003:
+
+    docker compose up mcp        # → http://localhost:8003
 
 TODO(alafia-model): replace external API calls with ALAFIAModel.infer("nlm", ...) Phase 4
 """
@@ -439,9 +449,9 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    if transport == "sse":
+    if transport in ("sse", "http", "streamable-http"):
         port = int(os.environ.get("MCP_PORT", "8003"))
-        logger.info("Starting ALAFIA Nutrition MCP Server (SSE) on port %s", port)
-        _mcp.run(transport="sse", host="0.0.0.0", port=port)
+        logger.info("Starting ALAFIA Nutrition MCP Server (%s) on 0.0.0.0:%s", transport, port)
+        _mcp.run(transport=transport, host="0.0.0.0", port=port)
     else:
         _mcp.run()  # stdio — for Claude Desktop / MCP client direct connection

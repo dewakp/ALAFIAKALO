@@ -5,6 +5,7 @@ Main FastAPI application entry point.
 
 import secrets
 import time
+from datetime import datetime, timezone
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -93,6 +94,23 @@ async def security_headers_middleware(request: Request, call_next):
 _CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
+def _csrf_exempt(request: Request) -> bool:
+    """CSRF protects against *ambient* browser credentials (cookies). Requests that
+    authenticate with an explicit, non-ambient credential are not CSRF-vulnerable:
+
+    - **Bearer-token requests** (mobile/native clients, and the web SPA which sends
+      its token from localStorage) — the token is an explicit header a cross-site
+      attacker can neither read nor force.
+    - **Body-based token refresh** — mobile sends the refresh token in the body, with
+      no ambient cookie. Only the *cookie*-based refresh (web) needs CSRF.
+    """
+    if request.headers.get("Authorization", "").startswith("Bearer "):
+        return True
+    if request.url.path == "/api/v1/auth/refresh" and not request.cookies.get("refresh_token"):
+        return True
+    return False
+
+
 @app.middleware("http")
 async def csrf_middleware(request: Request, call_next):
     # Issue a CSRF token cookie on every response if not present
@@ -100,7 +118,9 @@ async def csrf_middleware(request: Request, call_next):
     if not csrf_cookie:
         csrf_cookie = secrets.token_urlsafe(32)
 
-    if request.method not in _CSRF_SAFE_METHODS and request.url.path.startswith("/api/v1/"):
+    if (request.method not in _CSRF_SAFE_METHODS
+            and request.url.path.startswith("/api/v1/")
+            and not _csrf_exempt(request)):
         # Validate: header must match cookie (double-submit pattern)
         header_token = request.headers.get("X-CSRF-Token", "")
         if header_token != csrf_cookie:
@@ -223,19 +243,29 @@ async def startup_event():
     except Exception as exc:
         logger.warning("WebSocket manager startup skipped: %s", exc)
 
-    # Schedule Firebase sync every 12 hours, starting immediately
-    _scheduler.add_job(
-        _firebase_sync_job,
-        trigger="interval",
-        hours=12,
-        id="firebase_sync",
-        replace_existing=True,
-        misfire_grace_time=300,
-    )
-    _scheduler.start()
-    logger.info("[scheduler] Firebase sync scheduled every 12 h")
-    # Run an immediate sync on startup
-    await _firebase_sync_job()
+    # Schedule the one-directional, incremental Firebase→PostgreSQL sync.
+    # Cadence + on/off come from settings (FIREBASE_SYNC_INTERVAL_SECONDS,
+    # FIREBASE_SYNC_ENABLED) instead of being hardcoded. The job only fetches
+    # records newer than each user's MAX(source_timestamp) watermark, so every
+    # run is a delta. The first run is scheduled immediately (non-blocking) so
+    # app startup never waits on Firestore.
+    if settings.FIREBASE_SYNC_ENABLED:
+        interval = max(30, settings.FIREBASE_SYNC_INTERVAL_SECONDS)
+        _scheduler.add_job(
+            _firebase_sync_job,
+            trigger="interval",
+            seconds=interval,
+            id="firebase_sync",
+            replace_existing=True,
+            max_instances=1,   # never overlap a still-running sync
+            coalesce=True,     # collapse any missed runs into a single catch-up
+            misfire_grace_time=300,
+            next_run_time=datetime.now(timezone.utc),  # run once right away
+        )
+        _scheduler.start()
+        logger.info("[scheduler] Firebase sync enabled — every %ds (incremental)", interval)
+    else:
+        logger.info("[scheduler] Firebase sync disabled (set FIREBASE_SYNC_ENABLED=true)")
 
 
 @app.on_event("shutdown")

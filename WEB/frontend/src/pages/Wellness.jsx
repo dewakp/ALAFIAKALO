@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import {
   Heart,
@@ -216,7 +217,7 @@ function ScoreTab() {
       );
     } catch (err) {
       console.error('Failed to load wellness score:', err);
-      setError(err.response?.data?.detail || 'Failed to load wellness score.');
+      setError(apiErrorMessage(err, 'Failed to load wellness score.'));
     } finally {
       setLoading(false);
     }
@@ -389,7 +390,7 @@ function HEBCSTab() {
       });
       setWiValues(prev => ({ ...seeds, ...prev }));
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load HEBCS Ω score.');
+      setError(apiErrorMessage(err, 'Failed to load HEBCS Ω score.'));
     } finally { setLoading(false); }
   }
 
@@ -405,7 +406,7 @@ function HEBCSTab() {
       const res = await api.post('/wellness/whatif', payload);
       setWiResult(res.data);
     } catch (err) {
-      setWiError(err.response?.data?.detail || 'What-If failed.');
+      setWiError(apiErrorMessage(err, 'What-If failed.'));
     } finally { setWiRunning(false); }
   }
 
@@ -598,7 +599,7 @@ function TrendsTab() {
       setData(res.data);
     } catch (err) {
       console.error('Failed to load wellness trends:', err);
-      setError(err.response?.data?.detail || 'Failed to load trends.');
+      setError(apiErrorMessage(err, 'Failed to load trends.'));
     } finally {
       setLoading(false);
     }
@@ -733,7 +734,7 @@ function RecommendationsTab() {
       setData(res.data);
     } catch (err) {
       console.error('Failed to load recommendations:', err);
-      setError(err.response?.data?.detail || 'Failed to load recommendations.');
+      setError(apiErrorMessage(err, 'Failed to load recommendations.'));
     } finally {
       setLoading(false);
     }
@@ -906,7 +907,7 @@ function ImprovementsTab() {
       setExpanded(expMap);
     } catch (err) {
       console.error('Failed to load improvements:', err);
-      setError(err.response?.data?.detail || 'Failed to load improvements.');
+      setError(apiErrorMessage(err, 'Failed to load improvements.'));
     } finally {
       setLoading(false);
     }

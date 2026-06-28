@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import { useTempUnit } from '../hooks/useTempUnit';
 
 /* ───────── constants ───────── */
 const ACCESS_TYPES = ['AV Fistula', 'AV Graft', 'Central Catheter', 'Buttonhole'];
@@ -117,6 +119,17 @@ export default function Hemodialysis() {
   const [expandedId, setExpandedId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState({ days: 90, page: 0, perPage: 20 });
+  const temp = useTempUnit();
+
+  // Temperature inputs hold the value in the chosen unit; storage is Celsius.
+  function handleTempToggle() {
+    setFormData((f) => ({
+      ...f,
+      pre_temperature: f.pre_temperature ? temp.convertInPlace(f.pre_temperature) : f.pre_temperature,
+      post_temperature: f.post_temperature ? temp.convertInPlace(f.post_temperature) : f.post_temperature,
+    }));
+    temp.toggle();
+  }
   const [summary, setSummary] = useState(null);
 
   useEffect(() => { loadSessions(); loadSummary(); }, [filter.days]);
@@ -206,6 +219,10 @@ export default function Hemodialysis() {
        'oxygen_saturation'].forEach(k => {
         if (payload[k] != null) payload[k] = parseInt(payload[k]);
       });
+      // Temperature is entered in the chosen unit; persist canonical Celsius.
+      ['pre_temperature', 'post_temperature'].forEach(k => {
+        if (payload[k] != null) payload[k] = temp.toCelsius(payload[k]);
+      });
 
       let sessionId;
       if (editing) {
@@ -241,7 +258,7 @@ export default function Hemodialysis() {
       loadSummary();
     } catch (err) {
       console.error(err);
-      alert('Failed to save session: ' + (err.response?.data?.detail || err.message));
+      alert('Failed to save session: ' + apiErrorMessage(err));
     }
     setSaving(false);
   };
@@ -252,6 +269,9 @@ export default function Hemodialysis() {
       if (session[k] != null) f[k] = session[k];
     });
     if (session.scheduled_date) f.scheduled_date = session.scheduled_date.split('T')[0];
+    // Stored temperatures are Celsius; show them in the chosen unit while editing.
+    if (session.pre_temperature != null) f.pre_temperature = temp.fromCelsius(session.pre_temperature);
+    if (session.post_temperature != null) f.post_temperature = temp.fromCelsius(session.post_temperature);
     setFormData(f);
     setReadings((session.intradialytic_readings || []).map(r => ({
       ...r,
@@ -333,12 +353,17 @@ export default function Hemodialysis() {
       </div>
 
       {/* ──── PRE-TREATMENT VITALS ──── */}
-      <div style={sectionHead}>Pre-Treatment Vitals</div>
+      <div style={{ ...sectionHead, display: 'flex', alignItems: 'center', gap: 10 }}>
+        Pre-Treatment Vitals
+        <button type="button" onClick={handleTempToggle}
+          style={{ fontSize: '.7rem', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}
+          title="Toggle temperature unit (stored in °C)">temp: {temp.label}</button>
+      </div>
       <div style={grid4}>
         <Input lbl="Sitting BP Sys" value={formData.pre_systolic_bp} onChange={set('pre_systolic_bp')} type="number" placeholder="mmHg" />
         <Input lbl="Sitting BP Dia" value={formData.pre_diastolic_bp} onChange={set('pre_diastolic_bp')} type="number" placeholder="mmHg" />
         <Input lbl="Heart Rate" value={formData.pre_heart_rate} onChange={set('pre_heart_rate')} type="number" placeholder="bpm" />
-        <Input lbl="Temperature (°F)" value={formData.pre_temperature} onChange={set('pre_temperature')} type="number" step="0.1" />
+        <Input lbl={`Temperature (${temp.label})`} value={formData.pre_temperature} onChange={set('pre_temperature')} type="number" step="0.1" />
       </div>
       <div style={{ ...grid3, marginTop: 12 }}>
         <Input lbl="Standing BP Sys" value={formData.pre_standing_systolic_bp} onChange={set('pre_standing_systolic_bp')} type="number" />
@@ -424,7 +449,7 @@ export default function Hemodialysis() {
         <Input lbl="Sitting BP Sys" value={formData.post_systolic_bp} onChange={set('post_systolic_bp')} type="number" placeholder="mmHg" />
         <Input lbl="Sitting BP Dia" value={formData.post_diastolic_bp} onChange={set('post_diastolic_bp')} type="number" placeholder="mmHg" />
         <Input lbl="Heart Rate" value={formData.post_heart_rate} onChange={set('post_heart_rate')} type="number" />
-        <Input lbl="Temperature (°F)" value={formData.post_temperature} onChange={set('post_temperature')} type="number" step="0.1" />
+        <Input lbl={`Temperature (${temp.label})`} value={formData.post_temperature} onChange={set('post_temperature')} type="number" step="0.1" />
       </div>
       <div style={{ ...grid3, marginTop: 12 }}>
         <Input lbl="Standing BP Sys" value={formData.post_standing_systolic_bp} onChange={set('post_standing_systolic_bp')} type="number" />

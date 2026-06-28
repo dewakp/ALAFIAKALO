@@ -96,7 +96,7 @@ struct MedicationsView: View {
             AddMedicationSheet(vm: vm)
         }
         .sheet(item: $doseTarget) { med in
-            LogDoseSheet(medication: med, vm: vm)
+            MedicationDoseSheet(medication: med, vm: vm)
         }
         .task { await vm.fetchMedications() }
     }
@@ -224,7 +224,7 @@ struct AddMedicationSheet: View {
     }
 }
 
-struct LogDoseSheet: View {
+struct MedicationDoseSheet: View {
     let medication: Medication
     @Bindable var vm: MedicationsViewModel
     @Environment(\.dismiss) var dismiss

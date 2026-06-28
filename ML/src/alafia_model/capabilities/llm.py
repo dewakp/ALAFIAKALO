@@ -64,22 +64,62 @@ class LLMCapability(BaseCapability):
     def __init__(self) -> None:
         super().__init__()
         self._adapter: Any = None
+        self._fallback: Any = None
 
-    def _get_adapter(self) -> Any:
+    def _get_adapter(self, model: str | None = None) -> Any:
+        from alafia_model.adapters.ollama_adapter import OllamaAdapter
+        # A per-call model override gets its own (uncached) adapter so it doesn't
+        # disturb the shared default instance.
+        if model:
+            if self._adapter is not None and getattr(self._adapter, "model_name", None) == model:
+                return self._adapter
+            return OllamaAdapter(model=model)
         if self._adapter is None:
-            from alafia_model.adapters.ollama_adapter import OllamaAdapter
             self._adapter = OllamaAdapter()
         return self._adapter
+
+    def _get_fallback_adapter(self) -> Any:
+        """OpenAI cloud fallback. Returns None when no API key is configured."""
+        if self._fallback is None:
+            try:
+                from alafia_model.adapters.openai_adapter import OpenAIAdapter
+                self._fallback = OpenAIAdapter()
+            except Exception:  # pragma: no cover
+                self._fallback = None
+        return self._fallback
 
     async def infer(self, payload: dict[str, Any]) -> CapabilityResult:
         task = payload.get("task", "health_chat")
         messages = payload.get("messages", [])
         context = payload.get("context", {})
+        temperature = payload.get("temperature", 0.7)
+        max_tokens = payload.get("max_tokens", 2048)
+        json_mode = bool(payload.get("json_mode", False))
+        model = payload.get("model") or None
 
+        # Tasks that prepend an ALAFIA system prompt
         if task == "health_chat":
-            return await self._health_chat(messages, context)
+            system = _HEALTH_SYSTEM_PROMPT
+            if context.get("user_profile"):
+                system += f"\n\nUser profile context:\n{context['user_profile']}"
+            return await self._chat(system, messages, temperature, max_tokens, json_mode, model)
+
         if task == "nutrition_guidance":
-            return await self._nutrition_guidance(messages, context)
+            system = _NUTRITION_SYSTEM_PROMPT
+            if context.get("nutrition_summary"):
+                system += f"\n\nRecent nutrition summary:\n{context['nutrition_summary']}"
+            return await self._chat(system, messages, temperature, max_tokens, json_mode, model)
+
+        # Generic passthrough — the caller supplies its own system message (if any).
+        # This is the entry point backend services use so every LLM call is routed
+        # through ALAFIAModel rather than hitting Ollama/OpenAI directly.
+        if task in ("chat", "raw_chat", "health_coaching"):
+            return await self._chat(None, messages, temperature, max_tokens, json_mode, model)
+
+        # Single-prompt completion (maps to /api/generate style structured output).
+        if task == "complete":
+            return await self._complete(payload.get("text", ""), temperature, max_tokens, model)
+
         if task in ("symptom_triage", "cbt_support"):
             return CapabilityResult(
                 success=False,
@@ -90,48 +130,63 @@ class LLMCapability(BaseCapability):
             error=f"Unknown LLM task: {task}",
         )
 
-    async def _health_chat(
-        self, messages: list[dict], context: dict
+    # ── Internal dispatch with Ollama → OpenAI fallback ────────────────────────
+
+    async def _chat(
+        self,
+        system: str | None,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        json_mode: bool,
+        model: str | None = None,
     ) -> CapabilityResult:
-        # TODO(alafia-model): replace with ALAFIAModel.LLM fine-tuned BioMistral 7B
-        system = _HEALTH_SYSTEM_PROMPT
-        if context.get("user_profile"):
-            system += f"\n\nUser profile context:\n{context['user_profile']}"
+        # TODO(alafia-model): replace adapters with native fine-tuned BioMistral 7B
+        full_messages = ([{"role": "system", "content": system}] if system else []) + list(messages)
+        return await self._dispatch("chat", full_messages, temperature, max_tokens, json_mode, model)
 
-        full_messages = [{"role": "system", "content": system}] + messages
+    async def _complete(
+        self, prompt: str, temperature: float, max_tokens: int, model: str | None = None
+    ) -> CapabilityResult:
+        return await self._dispatch("complete", prompt, temperature, max_tokens, True, model)
 
-        adapter = self._get_adapter()
+    async def _dispatch(
+        self, kind: str, arg: Any, temperature: float, max_tokens: int, json_mode: bool,
+        model: str | None = None,
+    ) -> CapabilityResult:
+        """Run `kind` ("chat"|"complete") on the primary adapter, falling back to OpenAI."""
+        primary = self._get_adapter(model)
         try:
-            response = await adapter.chat(full_messages, temperature=0.7)
+            response = await self._call(primary, kind, arg, temperature, max_tokens, json_mode)
             return CapabilityResult(
                 success=True,
                 data={"text": response["content"]},
                 confidence=0.75,
-                source=f"adapter:{adapter.model_name}",
+                source=f"adapter:{response.get('model', primary.model_name)}",
             )
         except Exception as exc:
-            logger.error("LLM health_chat failed: %s", exc, exc_info=True)
-            return CapabilityResult(success=False, error=str(exc))
+            logger.warning("Ollama LLM %s failed (%s); trying OpenAI fallback", kind, exc)
 
-    async def _nutrition_guidance(
-        self, messages: list[dict], context: dict
-    ) -> CapabilityResult:
-        # TODO(alafia-model): replace with ALAFIAModel.LLM + RAG over USDA/WAFCT
-        system = _NUTRITION_SYSTEM_PROMPT
-        if context.get("nutrition_summary"):
-            system += f"\n\nRecent nutrition summary:\n{context['nutrition_summary']}"
-
-        full_messages = [{"role": "system", "content": system}] + messages
-
-        adapter = self._get_adapter()
+        fallback = self._get_fallback_adapter()
+        if fallback is None or not getattr(fallback, "is_available", False):
+            return CapabilityResult(
+                success=False,
+                error="LLM unavailable: Ollama call failed and no OpenAI fallback configured",
+            )
         try:
-            response = await adapter.chat(full_messages, temperature=0.5)
+            response = await self._call(fallback, kind, arg, temperature, max_tokens, json_mode)
             return CapabilityResult(
                 success=True,
                 data={"text": response["content"]},
-                confidence=0.75,
-                source=f"adapter:{adapter.model_name}",
+                confidence=0.6,
+                source=f"adapter:openai:{response.get('model', '')}",
             )
         except Exception as exc:
-            logger.error("LLM nutrition_guidance failed: %s", exc, exc_info=True)
+            logger.error("OpenAI fallback LLM %s failed: %s", kind, exc, exc_info=True)
             return CapabilityResult(success=False, error=str(exc))
+
+    @staticmethod
+    async def _call(adapter, kind, arg, temperature, max_tokens, json_mode):
+        if kind == "chat":
+            return await adapter.chat(arg, temperature=temperature, max_tokens=max_tokens, json_mode=json_mode)
+        return await adapter.complete(arg, temperature=temperature, max_tokens=max_tokens)

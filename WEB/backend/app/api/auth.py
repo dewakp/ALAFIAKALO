@@ -5,7 +5,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError, jwt
+import jwt  # PyJWT (maintained); legacy HS512 refresh tokens during migration
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -70,10 +70,41 @@ def _clear_refresh_cookie(response: Response) -> None:
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 async def register(request: Request, user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    """Register a new user."""
+    """Register a new user.
+
+    Provisions the user in the shared 6IGMA Identity service (the canonical IdP)
+    and links the local ALAFIA reference row to it (same UUID + same canonical
+    SID → zero duplication). Falls back to a local-only SID if identity is
+    unavailable or the identity username collides.
+    """
+    from app.services.identity_client import identity_register
+
     result = await db.execute(select(User).where(User.email == user_in.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    names = user_in.full_name.split()
+    first_name = names[0] if names else "XXX"
+    last_name = names[-1] if len(names) > 1 else "XXX"
+
+    # 1) Create the canonical identity user (single source of truth).
+    istatus, ireg = await identity_register({
+        "email": user_in.email,
+        "username": user_in.email.split("@")[0],
+        "password": user_in.password,
+        "first_name": first_name,
+        "last_name": last_name,
+        "date_of_birth": user_in.date_of_birth,
+        "gender": user_in.gender,
+        "biological_sex": user_in.gender_at_birth,
+        "account_role": "patient",
+    })
+    identity_uid = sid = None
+    if istatus == 201 and ireg:
+        identity_uid = ireg["user"]["id"]
+        sid = (ireg["user"].get("system_id") or "").strip() or None
+    elif istatus == 409:
+        raise HTTPException(status_code=400, detail="Email or username already registered")
 
     user = User(
         email=user_in.email,
@@ -90,25 +121,20 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
         timezone=user_in.timezone,
         country=user_in.country,
         preferred_language=user_in.preferred_language,
-        # Default the measurement system from the signup locale/country
-        # (metric everywhere except US/Liberia/Myanmar); an explicit choice wins.
         preferred_units=user_in.preferred_units
         or units_for_locale(user_in.locale, user_in.country),
+        identity_uid=identity_uid,
     )
     db.add(user)
     await db.flush()
 
-    # Generate 255-char System Identifier
-    names = user_in.full_name.split()
-    first_name = names[0] if names else "XXX"
-    last_name = names[-1] if len(names) > 1 else "XXX"
-    sid = generate_sid(first_name, last_name, user_in.date_of_birth, user_in.gender_at_birth)
+    # Use the identity-minted canonical SID; fall back to a local canonical SID.
+    if not sid:
+        sid = generate_sid(first_name, last_name, user_in.date_of_birth, user_in.gender_at_birth)
     user.system_id = sid
 
-    # Persist SID audit log
     segments = get_segments_for_log(first_name, last_name, user_in.date_of_birth, user_in.gender_at_birth)
-    sid_log = SystemIdLog(user_id=user.id, system_id=sid, **segments)
-    db.add(sid_log)
+    db.add(SystemIdLog(user_id=user.id, system_id=sid, **segments))
 
     await db.flush()
     await db.refresh(user)
@@ -123,7 +149,20 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
-    """Login and receive a JWT token."""
+    """Login and receive a JWT token.
+
+    Delegates to the shared 6IGMA Identity service first (PostgreSQL-native IdP →
+    one credential set + SSO across ALAFIA and FlowSheet). Falls back to the
+    legacy local/Firebase path during the migration window.
+    """
+    from app.services.identity_client import (
+        identity_login, migrate_password_into_identity,
+    )
+    ident = await identity_login(form_data.username, form_data.password)
+    if ident and ident.get("access_token"):
+        _set_refresh_cookie(response, ident.get("refresh_token", ""))
+        return Token(access_token=ident["access_token"], refresh_token=ident.get("refresh_token", ""))
+
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
 
@@ -144,6 +183,19 @@ async def login(
             await db.commit()
             logger.info("Updated local password hash for Firebase user %s", user.email)
             local_ok = True
+            # Firebase→IdP bridge: the legacy password is now verified, so set it
+            # as the credential in the shared PostgreSQL IdP. After this the account
+            # is identity-native: subsequent logins authenticate via the IdP and
+            # receive an RS256 SSO token — Firebase is no longer consulted.
+            if await migrate_password_into_identity(user.email, form_data.password):
+                ident = await identity_login(user.email, form_data.password)
+                if ident and ident.get("access_token"):
+                    _set_refresh_cookie(response, ident.get("refresh_token", ""))
+                    logger.info("Migrated Firebase user %s into the identity IdP", user.email)
+                    return Token(
+                        access_token=ident["access_token"],
+                        refresh_token=ident.get("refresh_token", ""),
+                    )
 
     if not local_ok:
         # For OAuth-only users, give a more helpful error
@@ -206,6 +258,14 @@ async def refresh_token(
     if not raw_token:
         raise HTTPException(status_code=401, detail="Refresh token required")
 
+    # Identity-issued (HS512) refresh tokens → delegate to the shared IdP, which
+    # returns a fresh hybrid PQC access token + refresh token.
+    from app.services.identity_client import identity_refresh
+    ident = await identity_refresh(raw_token)
+    if ident and ident.get("access_token"):
+        _set_refresh_cookie(response, ident.get("refresh_token", ""))
+        return Token(access_token=ident["access_token"], refresh_token=ident.get("refresh_token", ""))
+
     try:
         payload = jwt.decode(raw_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         if payload.get("type") != "refresh":
@@ -213,7 +273,7 @@ async def refresh_token(
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
-    except JWTError:
+    except jwt.PyJWTError:
         _clear_refresh_cookie(response)
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 

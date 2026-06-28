@@ -3,7 +3,7 @@
 import json
 import httpx
 from datetime import date, timedelta
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
@@ -15,9 +15,12 @@ from app.models.wellness import MealPlan as MealPlanModel, ExercisePlan as Exerc
 from app.models.chronic_conditions import ChronicCondition, TherapySession
 from app.models.medications import Medication
 from app.models.nutrition import NutritionLog
+from app.models.labs import LabResult
+from app.models.pantry import PantryItem
 from app.schemas.wellness import (
     MealPlanRequest, MealPlanResponse, MealItem, DayMeals,
     ExercisePlanRequest, ExercisePlanResponse, ExerciseItem, DayWorkout,
+    MealSuggestionRequest, MealSuggestion, MealSuggestionsResponse,
 )
 
 router = APIRouter()
@@ -223,8 +226,26 @@ async def _gather_planner_context(user_id: int, db: AsyncSession) -> dict:
     therapy_rows = (await db.execute(
         select(TherapySession)
         .where(TherapySession.user_id == user_id)
-        .order_by(desc(TherapySession.session_date))
+        .order_by(desc(TherapySession.scheduled_date))
         .limit(12)
+    )).scalars().all()
+
+    # Most recent lab results (one per test) — drives goals like raising
+    # hemoglobin / vitamin D / calcium and lowering phosphorus / potassium.
+    lab_rows = (await db.execute(
+        select(LabResult)
+        .where(LabResult.user_id == user_id)
+        .order_by(desc(LabResult.test_date))
+        .limit(40)
+    )).scalars().all()
+    latest_labs: dict[str, LabResult] = {}
+    for lab in lab_rows:
+        key = (lab.test_name or "").lower()
+        if key and key not in latest_labs:
+            latest_labs[key] = lab
+
+    pantry_rows = (await db.execute(
+        select(PantryItem).where(PantryItem.user_id == user_id).limit(100)
     )).scalars().all()
 
     return {
@@ -232,6 +253,8 @@ async def _gather_planner_context(user_id: int, db: AsyncSession) -> dict:
         "medications": med_rows,
         "nutrition_logs": nutrition_rows,
         "therapy_sessions": therapy_rows,
+        "labs": list(latest_labs.values()),
+        "pantry": pantry_rows,
     }
 
 
@@ -290,15 +313,14 @@ async def _ollama_generate_meal_plan(
         f"Output only the JSON array:"
     )
 
+    # Routed through ALAFIAModel (Ollama → OpenAI fallback). Freeform output —
+    # the model returns a JSON array, which is extracted below.
+    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
     try:
-        async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT) as client:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={"model": settings.OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            )
-            resp.raise_for_status()
-            raw = (resp.json().get("response") or "").strip()
-    except Exception:
+        raw = (await alafia_chat(
+            [{"role": "user", "content": prompt}], temperature=0.4, max_tokens=2048,
+        )).strip()
+    except ALAFIAModelError:
         return None
 
     try:
@@ -378,15 +400,14 @@ async def _ollama_generate_exercise_plan(
         f"Output only the JSON array:"
     )
 
+    # Routed through ALAFIAModel (Ollama → OpenAI fallback). Freeform output —
+    # the model returns a JSON array, which is extracted below.
+    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
     try:
-        async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT) as client:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={"model": settings.OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            )
-            resp.raise_for_status()
-            raw = (resp.json().get("response") or "").strip()
-    except Exception:
+        raw = (await alafia_chat(
+            [{"role": "user", "content": prompt}], temperature=0.4, max_tokens=2048,
+        )).strip()
+    except ALAFIAModelError:
         return None
 
     try:
@@ -428,6 +449,201 @@ async def _ollama_generate_exercise_plan(
         return weekly
     except Exception:
         return None
+
+
+# ── AI Meal Suggestions (goals + pantry aware) ────────────────────────────────
+
+
+def _parse_pantry_text(text_val: str | None) -> list[str]:
+    """Split free-text pantry input into clean, de-duplicated item names."""
+    if not text_val:
+        return []
+    import re as _re
+    seen: dict[str, str] = {}
+    for part in _re.split(r"[,\n;]+", text_val):
+        name = part.strip()
+        if name and name.lower() not in seen:
+            seen[name.lower()] = name[:255]
+    return list(seen.values())
+
+
+async def _save_pantry_items(db: AsyncSession, user_id: int, names: list[str]) -> int:
+    """Upsert pantry item names to the user's profile pantry. Best-effort."""
+    if not names:
+        return 0
+    existing = (await db.execute(
+        select(PantryItem.name).where(PantryItem.user_id == user_id)
+    )).scalars().all()
+    have = {(n or "").lower() for n in existing}
+    added = 0
+    for name in names:
+        if name.lower() in have:
+            continue
+        db.add(PantryItem(user_id=user_id, name=name, category="other"))
+        have.add(name.lower())
+        added += 1
+    if added:
+        await db.flush()
+    return added
+
+
+def _labs_summary(labs: list) -> str:
+    out = []
+    for lab in labs[:15]:
+        val = lab.value if lab.value is not None else lab.value_string
+        if val is None:
+            continue
+        unit = f" {lab.unit}" if lab.unit else ""
+        out.append(f"{lab.test_name}: {val}{unit}")
+    return "; ".join(out) or "None on file"
+
+
+async def _generate_meal_suggestions(
+    user: "User", ctx: dict, req: MealSuggestionRequest, pantry_names: list[str],
+) -> list[MealSuggestion]:
+    """Ask the LLM for N pantry- and condition-aware meal suggestions."""
+    conditions_str = "; ".join(c.condition_name for c in ctx["conditions"]) or "None reported"
+    meds_str = "; ".join(
+        f"{m.name} {m.dosage or ''} {m.dosage_unit or ''}".strip() for m in ctx["medications"]
+    ) or "None"
+    recent_foods = "; ".join(
+        n.food_name for n in ctx["nutrition_logs"][:10] if n.food_name
+    ) or "Not recorded"
+    restrictions = "; ".join(v for v in (
+        getattr(user, "dietary_restrictions", None),
+        getattr(user, "allergies", None),
+        getattr(user, "food_intolerances", None),
+    ) if v) or "None"
+    labs_str = _labs_summary(ctx.get("labs", []))
+    pantry_str = ", ".join(pantry_names) or "None provided"
+    count = max(1, min(req.count or 3, 6))
+
+    item_schema = (
+        '{"name":"Meal name","meal_type":"breakfast|lunch|dinner|snack",'
+        '"description":"1-2 sentences","ingredients":["item with rough qty"],'
+        '"pantry_used":["pantry items used"],"missing_items":["ingredients to buy"],'
+        '"calories":450,"protein_g":25,"carbs_g":40,"fat_g":15,'
+        '"rationale":"why this fits the patient goals/labs/conditions"}'
+    )
+    prompt = (
+        "You are ALAFIA's clinical dietitian. Suggest meals personalised to this patient.\n\n"
+        f"PATIENT: {user.full_name or 'Patient'}\n"
+        f"CHRONIC CONDITIONS: {conditions_str}\n"
+        f"ACTIVE MEDICATIONS: {meds_str}\n"
+        f"RECENT LAB RESULTS: {labs_str}\n"
+        f"ALLERGIES / RESTRICTIONS: {restrictions}\n"
+        f"RECENTLY EATEN: {recent_foods}\n"
+        f"STATED HEALTH GOALS: {req.health_goals or 'general wellness'}\n"
+        f"PREFERENCES / LIKES / DISLIKES: {req.preferences or 'none stated'}\n"
+        f"PANTRY / FRIDGE ON HAND: {pantry_str}\n\n"
+        "RULES:\n"
+        f"1. Output ONLY a valid JSON array of EXACTLY {count} objects, each matching: {item_schema}\n"
+        "2. PREFER recipes that use the pantry items on hand; list those exact items in 'pantry_used'.\n"
+        "3. Put every ingredient NOT already in the pantry into 'missing_items' (a shopping recommendation).\n"
+        "4. Respect ALL allergies/restrictions absolutely; honour the stated preferences.\n"
+        "5. Tailor to the conditions & labs (e.g. renal/CKD -> limit potassium, phosphorus, sodium; "
+        "low hemoglobin -> iron-rich foods + vitamin C; low vitamin D / calcium -> fortified or dairy options).\n"
+        "6. All calorie/macro fields are numbers; keep ingredient names simple.\n\n"
+        "Output only the JSON array:"
+    )
+
+    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
+    try:
+        raw = (await alafia_chat(
+            [{"role": "user", "content": prompt}], temperature=0.5, max_tokens=2600,
+        )).strip()
+    except ALAFIAModelError:
+        return []
+
+    try:
+        items = json.loads(raw[raw.index("["):raw.rindex("]") + 1])
+    except (ValueError, json.JSONDecodeError):
+        return []
+    if not isinstance(items, list):
+        return []
+
+    def _strlist(v) -> list[str]:
+        if isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()]
+        if isinstance(v, str) and v.strip():
+            return [v.strip()]
+        return []
+
+    def _num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    out: list[MealSuggestion] = []
+    for it in items[:count]:
+        if not isinstance(it, dict):
+            continue
+        out.append(MealSuggestion(
+            name=str(it.get("name", "Meal")),
+            meal_type=str(it.get("meal_type", "meal")),
+            description=str(it.get("description", "")),
+            ingredients=_strlist(it.get("ingredients")),
+            pantry_used=_strlist(it.get("pantry_used")),
+            missing_items=_strlist(it.get("missing_items")),
+            calories=_num(it.get("calories")),
+            protein_g=_num(it.get("protein_g")),
+            carbs_g=_num(it.get("carbs_g")),
+            fat_g=_num(it.get("fat_g")),
+            rationale=str(it.get("rationale", "")),
+        ))
+    return out
+
+
+@router.post("/meal-suggestions", response_model=MealSuggestionsResponse)
+async def generate_meal_suggestions(
+    request: MealSuggestionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Personalised meal suggestions from the patient's medical history, current
+    state (labs/conditions/meds), preferences and on-hand pantry — with shopping
+    recommendations for any missing ingredients. The pantry list is saved to the
+    user's profile for reuse."""
+    ctx = await _gather_planner_context(current_user.id, db)
+
+    # Persist the submitted pantry to the profile, then assemble the on-hand list
+    submitted = _parse_pantry_text(request.pantry_items)
+    try:
+        pantry_saved = await _save_pantry_items(db, current_user.id, submitted)
+    except Exception:
+        pantry_saved = 0
+    pantry_names = submitted or [p.name for p in ctx.get("pantry", [])]
+
+    suggestions = await _generate_meal_suggestions(current_user, ctx, request, pantry_names)
+    if not suggestions:
+        raise HTTPException(
+            status_code=503,
+            detail="The AI meal engine is unavailable right now. Please try again shortly.",
+        )
+
+    # Aggregate unique missing items into one shopping list
+    shopping: list[str] = []
+    seen: set[str] = set()
+    for s in suggestions:
+        for item in s.missing_items:
+            if item.lower() not in seen:
+                seen.add(item.lower())
+                shopping.append(item)
+
+    advice = (
+        f"{len(suggestions)} suggestions tuned to your goals"
+        + (" and active conditions" if ctx["conditions"] else "")
+        + ". Items you already have are used first; the shopping list covers what's missing."
+    )
+    return MealSuggestionsResponse(
+        goals=request.health_goals,
+        suggestions=suggestions,
+        shopping_list=shopping,
+        advice=advice,
+        used_ai=True,
+        pantry_saved=pantry_saved,
+    )
 
 
 # ── Route handlers ────────────────────────────────────────────────────────────

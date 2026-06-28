@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import {
   Plus, Search, Apple, ChevronDown, ChevronRight,
   BarChart3, Utensils, X, Loader2, Info, Calendar, Zap, Camera, Image, Sparkles, Link,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
 /* ─── tiny helpers ─── */
 const today = () => new Date().toISOString().split('T')[0];
@@ -36,6 +38,9 @@ export default function Nutrition() {
 
   // Form
   const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);       // null = adding; id = editing that entry
+  const [editOriginalFood, setEditOriginalFood] = useState('');
   const [form, setForm] = useState({
     log_date: today(), meal_type: 'breakfast', food_name: '',
     serving_size: '', fdc_id: null, notes: '',
@@ -43,11 +48,28 @@ export default function Nutrition() {
     recipe_url: '',
   });
 
+  // Prompt Hub hand-off: open the add-food form pre-filled from the prompt.
+  usePromptPrefill((prefill) => {
+    const items = Array.isArray(prefill.items) ? prefill.items : null;
+    const foodName = items
+      ? items.map((i) => (typeof i === 'string' ? i : i.name || i.food_name)).filter(Boolean).join(', ')
+      : (prefill.food || prefill.text || '');
+    setForm((f) => ({
+      ...f,
+      food_name: foodName || f.food_name,
+      notes: prefill.notes || f.notes,
+    }));
+    setTab('log');
+    setShowForm(true);
+  });
+
   // Image analysis
   const [imageFiles, setImageFiles] = useState([]);
   const [imageAnalysisResult, setImageAnalysisResult] = useState('');
   const [isAnalyzingImages, setIsAnalyzingImages] = useState(false);
   const imageInputRef = useRef(null);
+  const formRef = useRef(null);   // edit/add form card — for scroll-into-view on Edit
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // USDA search
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,26 +187,96 @@ export default function Nutrition() {
   };
 
   /* ── CRUD ── */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const payload = { ...form };
-    if (!payload.serving_size) delete payload.serving_size;
-    if (!payload.notes) delete payload.notes;
-    if (!payload.recipe_url) delete payload.recipe_url;
-    if (!payload.start_time) delete payload.start_time;
-    if (!payload.end_time) delete payload.end_time;
-    if (!payload.pre_meal_weight_kg) delete payload.pre_meal_weight_kg;
-    if (!payload.post_meal_weight_kg) delete payload.post_meal_weight_kg;
-    await api.post('/nutrition/', payload);
+  const resetForm = () => {
     setShowForm(false);
+    setEditingId(null);
+    setEditOriginalFood('');
     setForm({ log_date: today(), meal_type: 'breakfast', food_name: '', serving_size: '', fdc_id: null, notes: '',
       start_time: '', end_time: '', pre_meal_weight_kg: '', post_meal_weight_kg: '', recipe_url: '' });
     setEstimatePreview(null);
     setImageFiles([]);
     setImageAnalysisResult('');
     setEstimateError('');
-    loadLogs(filterStart, filterEnd);
-    if (tab === 'summary') loadSummary(summaryDate);
+  };
+
+  // Open the form pre-filled to edit an existing entry.
+  const startEdit = (log) => {
+    setForm({
+      log_date: log.log_date,
+      meal_type: log.meal_type || 'breakfast',
+      food_name: log.food_name || '',
+      serving_size: log.serving_size || '',
+      fdc_id: log.fdc_id || null,
+      notes: log.notes || '',
+      start_time: log.start_time ? log.start_time.slice(0, 5) : '',
+      end_time: log.end_time ? log.end_time.slice(0, 5) : '',
+      pre_meal_weight_kg: log.pre_meal_weight_kg ?? '',
+      post_meal_weight_kg: log.post_meal_weight_kg ?? '',
+      recipe_url: log.recipe_url || '',
+    });
+    setEditOriginalFood(log.food_name || '');
+    setEditingId(log.id);
+    setEstimatePreview(null);
+    setEstimateError('');
+    setTab('log');
+    setShowForm(true);
+    // Scroll the form into view. scrollIntoView (not window.scrollTo) works even
+    // when an inner <main> is the scroll container, not the window. Delayed so the
+    // form has rendered after setShowForm.
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
+
+  // Deep-link from Meals Diary: /nutrition?edit=<id> opens that entry in the edit form.
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (!editId) return;
+    (async () => {
+      try {
+        const { data } = await api.get(`/nutrition/${editId}`);
+        startEdit(data);
+      } catch { /* entry not found — ignore */ }
+      setSearchParams({}, { replace: true });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const payload = { ...form };
+      for (const k of ['serving_size', 'notes', 'recipe_url', 'start_time', 'end_time',
+                       'pre_meal_weight_kg', 'post_meal_weight_kg']) {
+        if (!payload[k]) delete payload[k];
+      }
+
+      if (editingId) {
+        // If the description changed, re-estimate so calories/macros stay accurate.
+        // Time-boxed so a slow AI fallback can't hang the save — we still patch the
+        // user's field edits if re-estimation is slow/unavailable.
+        if (form.food_name && form.food_name.trim() !== editOriginalFood.trim()) {
+          try {
+            const { data } = await api.post('/nutrition/estimate-meal',
+              { description: form.food_name }, { timeout: 25000 });
+            Object.assign(payload, data.aggregate_nutrients || {});
+            if (data.total_weight_g) payload.serving_size = `composite meal (${Math.round(data.total_weight_g)} g total)`;
+          } catch { /* keep existing values if estimation is slow/fails */ }
+        }
+        delete payload.fdc_id;       // not part of the update schema
+        await api.patch(`/nutrition/${editingId}`, payload);  // log_date now editable
+      } else {
+        await api.post('/nutrition/', payload);
+      }
+
+      resetForm();
+      loadLogs(filterStart, filterEnd);
+      if (tab === 'summary') loadSummary(summaryDate);
+    } catch (err) {
+      alert(`Could not save: ${err?.response?.data?.detail || err.message || 'unknown error'}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const toggleCat = (cat) => {
@@ -268,11 +360,11 @@ export default function Nutrition() {
         </div>
       </div>
 
-      {/* ═══════════ ADD FORM ═══════════ */}
+      {/* ═══════════ ADD / EDIT FORM ═══════════ */}
       {showForm && tab === 'log' && (
-        <div className="card" style={{ marginBottom: '1.5rem', position: 'relative' }}>
+        <div ref={formRef} className="card" style={{ marginBottom: '1.5rem', position: 'relative' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem' }}>⊕ Log New Meal</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem' }}>{editingId ? '✏️ Edit Meal Entry' : '⊕ Log New Meal'}</h3>
             <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
               {/* NLM always-active indicator */}
               <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.72rem',
@@ -499,8 +591,10 @@ export default function Nutrition() {
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}/>
             </div>
             <div style={{ display: 'flex', gap: '.5rem' }}>
-              <button className="btn btn-primary" type="submit">Save</button>
-              <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
+              <button className="btn btn-primary" type="submit" disabled={submitting}>
+                {submitting ? 'Saving…' : (editingId ? 'Update Entry' : 'Save')}
+              </button>
+              <button className="btn btn-secondary" type="button" onClick={resetForm} disabled={submitting}>{editingId ? 'Cancel Edit' : 'Cancel'}</button>
             </div>
             <div style={{ marginTop: '.5rem', color: 'var(--color-text-secondary)', fontSize: '.78rem' }}>
               Nutrient values shown here are suggestions. Final nutrient data is persisted server-side when you save.
@@ -589,7 +683,9 @@ export default function Nutrition() {
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.fat_g != null ? `${log.fat_g.toFixed(1)}g` : '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '.8rem' }}>{log.pre_meal_weight_kg != null ? `${log.pre_meal_weight_kg}` : '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '.8rem' }}>{log.post_meal_weight_kg != null ? `${log.post_meal_weight_kg}` : '—'}</td>
-                    <td></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => startEdit(log)}>Edit</button>
+                    </td>
                   </tr>
                 ))}
                 {logs.length === 0 && (

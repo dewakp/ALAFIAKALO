@@ -252,58 +252,51 @@ class FirebaseSyncPipeline:
 
         for subcol_name in self.SUBCOLLECTIONS:
             try:
-                # --- 1. Determine watermark for this user / subcollection --------
-                wm_row = await db.execute(
-                    text("""
-                        SELECT MAX(source_timestamp)
-                        FROM synced_records
-                        WHERE user_id = :uid
-                          AND platform  = 'firebase'
-                          AND data_type = :dtype
-                    """),
-                    {"uid": pg_id, "dtype": subcol_name},
-                )
-                watermark: Optional[datetime] = wm_row.scalar()
-                if watermark and watermark.tzinfo is None:
-                    watermark = watermark.replace(tzinfo=timezone.utc)
-
-                # --- 2. Build Firestore query (progressive when watermark exists) -
                 col_ref = (
                     fs.collection('users')
                       .document(firebase_uid)
                       .collection(subcol_name)
                 )
-                if watermark:
-                    ts_field = self._SUBCOL_TS_FIELD.get(subcol_name, 'timestamp')
-                    query = col_ref.where(
-                        filter=FieldFilter(ts_field, '>', watermark)
-                    )
-                else:
-                    query = col_ref  # first run — full collection fetch
 
-                docs = list(query.stream())
+                # --- 1. Ids we have already synced for this user/subcollection ----
+                # We diff by document id rather than a "newer-than-timestamp" query:
+                # Firestore docs carry an arbitrary, often BACK-DATED string `date`
+                # field (and inconsistent/absent createdAt), so no server-side time
+                # filter reliably finds newly-added docs. Id-diffing always does.
+                synced_rows = await db.execute(
+                    text("""
+                        SELECT external_id FROM synced_records
+                        WHERE user_id = :uid AND platform = 'firebase'
+                          AND data_type = :dtype
+                    """),
+                    {"uid": pg_id, "dtype": subcol_name},
+                )
+                synced_ids = {r[0] for r in synced_rows}
+
+                # --- 2. Cheap aggregation gate to avoid full reads when unchanged -
+                # A COUNT() aggregation is ~1 read; only stream the whole collection
+                # when it actually holds more docs than we've synced.
+                try:
+                    agg = col_ref.count().get()
+                    fs_count = int(agg[0][0].value)
+                except Exception:
+                    fs_count = None  # aggregation unsupported → always do full read
+                if fs_count is not None and fs_count <= len(synced_ids):
+                    continue
+
+                # --- 3. Full fetch, keep only ids we don't already have -----------
+                docs = [
+                    d for d in col_ref.stream()
+                    if f"{subcol_name}/{d.id}" not in synced_ids
+                ]
                 if not docs:
                     continue
 
-                # --- 3. Upsert each new doc with savepoint isolation --------------
+                # --- 4. Upsert each new doc with savepoint isolation --------------
                 for doc in docs:
                     data = doc.to_dict()
                     doc_id = doc.id
                     ext_id = f"{subcol_name}/{doc_id}"
-
-                    # Belt-and-suspenders dedup (handles edge cases where the
-                    # Firestore field differs from our _SUBCOL_TS_FIELD mapping)
-                    chk = await db.execute(
-                        text("""
-                            SELECT 1 FROM synced_records
-                            WHERE user_id = :uid AND platform = 'firebase'
-                              AND external_id = :ext_id
-                        """),
-                        {"uid": pg_id, "ext_id": ext_id},
-                    )
-                    if chk.first():
-                        continue
-
                     src_ts = self._extract_ts(data)
 
                     try:
@@ -382,7 +375,7 @@ class FirebaseSyncPipeline:
             'medicationLog':           'medication_dose_logs',
             'eliminationLog':          'bowel_movements',
             'symptomLog':              'symptom_logs',
-            'journalEntries':          'lifestyle_entries',
+            'journalEntries':          'mood_entries',
             'hemodialysisFlowsheets':  'therapy_sessions',
             'labReports':              'lab_results',
             'scheduledEvents':         'calendar_events',
@@ -531,24 +524,17 @@ class FirebaseSyncPipeline:
         # We upsert ONE medications catalog row per (user, drug name) and append
         # each event to medication_dose_logs, linked to that catalog row.
         if subcol_name == 'medicationLog':
-            # Compose notes with pre/post vitals recorded at medication time
-            med_notes_parts = []
-            if data.get('time'): med_notes_parts.append(f"time={data['time']}")
-            pre_sys = data.get('preMedicationBloodPressureSystolic')
-            pre_dia = data.get('preMedicationBloodPressureDiastolic')
-            pre_hr  = data.get('preMedicationHeartRate')
-            post_sys = data.get('postMedicationBloodPressureSystolic')
-            post_dia = data.get('postMedicationBloodPressureDiastolic')
-            post_hr  = data.get('postMedicationHeartRate')
-            if pre_sys or pre_dia:  med_notes_parts.append(f"pre_BP={pre_sys}/{pre_dia}")
-            if pre_hr:              med_notes_parts.append(f"pre_HR={pre_hr}")
-            if post_sys or post_dia: med_notes_parts.append(f"post_BP={post_sys}/{post_dia}")
-            if post_hr:             med_notes_parts.append(f"post_HR={post_hr}")
-            ai_analysis = data.get('aiNutritionalAnalysis')
-            if ai_analysis and isinstance(ai_analysis, dict):
-                med_notes_parts.append(f"ai_analysis={json.dumps(ai_analysis)}")
-            if data.get('notes'): med_notes_parts.append(data['notes'])
-            notes_str = ' | '.join(med_notes_parts) or None
+            # Time + pre/post vitals are first-class columns now. The mobile app's
+            # aiNutritionalAnalysis blob (often a Gemini error) is intentionally
+            # NOT stored — notes hold only the user's own free text.
+            med_log_time = _parse_time_str(data.get('time')) or (src_ts.time() if src_ts else None)
+            pre_sys = _int(data, 'preMedicationBloodPressureSystolic')
+            pre_dia = _int(data, 'preMedicationBloodPressureDiastolic')
+            pre_hr  = _int(data, 'preMedicationHeartRate')
+            post_sys = _int(data, 'postMedicationBloodPressureSystolic')
+            post_dia = _int(data, 'postMedicationBloodPressureDiastolic')
+            post_hr  = _int(data, 'postMedicationHeartRate')
+            notes_str = (data.get('notes') or '').strip() or None
 
             # parse dosage: '2000 mg' → amount=2000.0, unit='mg'
             raw_dosage = data.get('dosage') or data.get('dose') or ''
@@ -583,10 +569,16 @@ class FirebaseSyncPipeline:
             med_id = cat.scalar_one_or_none()  # may be None — that's fine
             dl = await db.execute(text("""
                 INSERT INTO medication_dose_logs
-                    (user_id, medication_id, medication_name, log_date,
-                     dose_amount, dose_unit, notes, nutrients_resolved, created_at)
-                VALUES (:uid, :med_id, :name, :log_date,
-                     :amt, :unit, :notes, false, NOW())
+                    (user_id, medication_id, medication_name, log_date, log_time,
+                     dose_amount, dose_unit,
+                     pre_systolic_bp, pre_diastolic_bp, pre_heart_rate,
+                     post_systolic_bp, post_diastolic_bp, post_heart_rate,
+                     notes, nutrients_resolved, created_at)
+                VALUES (:uid, :med_id, :name, :log_date, :log_time,
+                     :amt, :unit,
+                     :pre_sys, :pre_dia, :pre_hr,
+                     :post_sys, :post_dia, :post_hr,
+                     :notes, false, NOW())
                 ON CONFLICT (user_id, log_date, medication_name, dose_amount, dose_unit)
                 DO NOTHING
                 RETURNING id
@@ -595,8 +587,11 @@ class FirebaseSyncPipeline:
                 "med_id":   med_id,
                 "name":     med_name,
                 "log_date": log_date,
+                "log_time": med_log_time,
                 "amt":      dose_amount,
                 "unit":     dose_unit,
+                "pre_sys":  pre_sys, "pre_dia": pre_dia, "pre_hr": pre_hr,
+                "post_sys": post_sys, "post_dia": post_dia, "post_hr": post_hr,
                 "notes":    notes_str,
             })
             dose_id = dl.scalar_one_or_none()
@@ -616,11 +611,45 @@ class FirebaseSyncPipeline:
                 dose_id = ex.scalar_one_or_none()
             return dose_id
 
-        # ── eliminationLog → bowel_movements ──────────────────
+        # ── eliminationLog → bowel_movements | urination_logs | vomiting_logs ──
+        # Elimination covers poop, urine AND vomit — route each event to its own
+        # table by eventType so the matching Elimination tab surfaces it.
         if subcol_name == 'eliminationLog':
             log_time = _parse_time_str(data.get('time')) or (src_ts.time() if src_ts else None)
-            # description goes to notes; pre/post weights and imageUri get dedicated columns (added in v001 migration)
             elim_notes = data.get('description') or data.get('notes') or None
+            etype = (data.get('eventType') or data.get('event_type') or '').strip().lower()
+            pre_w  = _float(data, 'preEventWeightKg', 'pre_event_weight_kg')
+            post_w = _float(data, 'postEventWeightKg', 'post_event_weight_kg')
+            # Weights/image aren't first-class columns on urine/vomit tables —
+            # preserve them in notes so nothing is lost.
+            extra = []
+            if pre_w is not None:  extra.append(f"pre-weight {pre_w}kg")
+            if post_w is not None: extra.append(f"post-weight {post_w}kg")
+            notes_plus = " | ".join(filter(None, [elim_notes, "; ".join(extra) or None])) or None
+
+            image_uri = data.get('imageUri') or data.get('image_uri')
+
+            if etype in ("vomit", "vomiting", "throw up", "throwup", "emesis"):
+                r = await db.execute(text("""
+                    INSERT INTO vomiting_logs (user_id, log_date, log_time,
+                        pre_event_weight_kg, post_event_weight_kg, image_uri, notes, created_at)
+                    VALUES (:uid, :log_date, :log_time, :pre, :post, :img, :notes, NOW())
+                    RETURNING id
+                """), {"uid": user_id, "log_date": log_date, "log_time": log_time,
+                       "pre": pre_w, "post": post_w, "img": image_uri, "notes": elim_notes})
+                return r.scalar_one_or_none()
+
+            if etype in ("urine", "urination", "pee", "void", "voiding"):
+                r = await db.execute(text("""
+                    INSERT INTO urination_logs (user_id, log_date, log_time,
+                        pre_event_weight_kg, post_event_weight_kg, image_uri, notes, created_at)
+                    VALUES (:uid, :log_date, :log_time, :pre, :post, :img, :notes, NOW())
+                    RETURNING id
+                """), {"uid": user_id, "log_date": log_date, "log_time": log_time,
+                       "pre": pre_w, "post": post_w, "img": image_uri, "notes": elim_notes})
+                return r.scalar_one_or_none()
+
+            # Default (poop / bowel / unspecified) → bowel_movements
             r = await db.execute(text("""
                 INSERT INTO bowel_movements (user_id, log_date, log_time,
                     bristol_scale, color, consistency, event_type,
@@ -642,8 +671,8 @@ class FirebaseSyncPipeline:
                 "event_type":  data.get('eventType') or data.get('event_type'),
                 "blood":       data.get('bloodPresent') or data.get('blood'),
                 "pain":        _int(data, 'painLevel', 'pain'),
-                "pre_weight":  _float(data, 'preEventWeightKg', 'pre_event_weight_kg'),
-                "post_weight": _float(data, 'postEventWeightKg', 'post_event_weight_kg'),
+                "pre_weight":  pre_w,
+                "post_weight": post_w,
                 "image_uri":   data.get('imageUri') or data.get('image_uri'),
                 "notes":       elim_notes,
             })
@@ -676,25 +705,45 @@ class FirebaseSyncPipeline:
             })
             return r.scalar_one_or_none()
 
-        # ── journalEntries → lifestyle_entries ────────────────
+        # ── journalEntries → mood_entries ─────────────────────
+        # The Journal page reads mood_entries, so journal docs must land there
+        # (not lifestyle_entries, which the Daily Vitals page reads).
         if subcol_name == 'journalEntries':
-            # Compose a structured notes string preserving all journal fields
+            # Map a free-text/emoji mood to the 1-10 score mood_entries expects.
+            mood_raw = data.get('mood')
+            mood_score = _int(data, 'moodScore', 'mood_score')
+            if mood_score is None and mood_raw is not None:
+                try:
+                    mood_score = max(1, min(10, int(float(mood_raw))))
+                except (TypeError, ValueError):
+                    mood_score = {
+                        'terrible': 2, 'bad': 3, 'low': 4, 'sad': 4, 'okay': 5, 'ok': 5,
+                        'neutral': 5, 'fine': 6, 'good': 7, 'happy': 8, 'great': 9, 'excellent': 10,
+                    }.get(str(mood_raw).strip().lower())
+            if mood_score is None:
+                mood_score = 5  # mood_score is NOT NULL; default to neutral
+
             j_parts = []
-            if data.get('mood'):       j_parts.append(f"mood={data['mood']}")
-            if data.get('hoursSlept') is not None: j_parts.append(f"sleep={data['hoursSlept']}h")
-            if data.get('activities'): j_parts.append(f"activities: {data['activities']}")
-            if data.get('nutrition'):  j_parts.append(f"nutrition: {data['nutrition']}")
-            if data.get('feelings'):   j_parts.append(f"feelings: {data['feelings']}")
+            if mood_raw:                j_parts.append(f"mood={mood_raw}")
+            if data.get('activities'):  j_parts.append(f"activities: {data['activities']}")
+            if data.get('nutrition'):   j_parts.append(f"nutrition: {data['nutrition']}")
             if data.get('content') or data.get('text') or data.get('body'):
                 j_parts.append(data.get('content') or data.get('text') or data.get('body') or '')
             notes_str = ' | '.join(j_parts)[:2000] or None
+
             r = await db.execute(text("""
-                INSERT INTO lifestyle_entries (user_id, entry_date, notes, created_at)
-                VALUES (:uid, :entry_date, :notes, NOW())
+                INSERT INTO mood_entries (user_id, entry_date, mood_score,
+                    sleep_hours, emotions, journal_entry, notes, created_at)
+                VALUES (:uid, :entry_date, :mood_score,
+                    :sleep_hours, :emotions, :journal_entry, :notes, NOW())
                 RETURNING id
             """), {
                 "uid": user_id, "entry_date": log_date,
-                "notes": notes_str,
+                "mood_score":   mood_score,
+                "sleep_hours":  _float(data, 'hoursSlept', 'sleep_hours', 'sleepHours'),
+                "emotions":     data.get('feelings') or data.get('emotions'),
+                "journal_entry": data.get('content') or data.get('text') or data.get('body'),
+                "notes":        notes_str,
             })
             return r.scalar_one_or_none()
 

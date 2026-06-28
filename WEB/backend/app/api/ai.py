@@ -19,11 +19,12 @@ Architecture:
 import asyncio
 import json
 import math
+import os
 import time
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select, desc, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,15 +43,207 @@ from app.models.mood import MoodEntry
 from app.models.nutrition import NutritionLog
 from app.models.user import User
 from app.models.elimination import BowelMovement, VomitingLog
+from app.models.ground_truth import GeneticMarker, EnvSocialLog
 from app.schemas.ai import (
     AIFeedbackRequest,
     AIFeedbackResponse,
     AIQueryRequest,
     AIQueryResponse,
     AIQueryResponseWithMemory,
+    AIRouteRequest,
+    AIRouteResponse,
 )
 
 router = APIRouter()
+
+
+# ── Prompt Hub intent router (Basis: "prompt determines what UI is surfaced") ──
+#
+# Single source of truth mapping a classified intent to an EXISTING app screen.
+# The client navigates to `route` and pre-fills its create/log form from `prefill`.
+INTENT_ROUTE_MAP: dict[str, dict[str, str]] = {
+    "log_meal":        {"route": "/nutrition",     "action": "create"},
+    "log_medication":  {"route": "/medications",   "action": "log_dose"},
+    "log_elimination": {"route": "/elimination",   "action": "create"},
+    "log_symptom":     {"route": "/symptoms",      "action": "create"},
+    "log_activity":    {"route": "/fitness",       "action": "create"},
+    "log_sleep":       {"route": "/sleep",         "action": "create"},
+    "journal":         {"route": "/journal",       "action": "create"},
+    "view_labs":       {"route": "/labs",          "action": "view"},
+    "view_trends":     {"route": "/insights",      "action": "view"},
+    "vision_capture":  {"route": "/capture",       "action": "create"},
+    "ask_question":    {"route": "/ai",            "action": "chat"},
+}
+
+_INTENT_MESSAGES: dict[str, str] = {
+    "log_meal":        "Got it — let's log what you ate.",
+    "log_medication":  "Okay — let's record that medication.",
+    "log_elimination": "Noted — let's log that.",
+    "log_symptom":     "I'm sorry you're not feeling well — let's note your symptom.",
+    "log_activity":    "Nice — let's log your activity.",
+    "log_sleep":       "Let's record your sleep.",
+    "journal":         "Let's capture that in your journal.",
+    "view_labs":       "Opening your lab results.",
+    "view_trends":     "Opening your health trends.",
+    "vision_capture":  "Let's take a closer look at that.",
+    "ask_question":    "Let me help with that.",
+}
+
+
+@router.post("/route", response_model=AIRouteResponse)
+async def route_prompt(
+    body: AIRouteRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Classify a prompt-hub input and tell the client which screen to surface.
+
+    This is the brain behind ALAFIA's "prompt is the entry point" model: the
+    user's text (typed, or a voice transcript) is classified into an intent that
+    maps to an existing screen, with any structured fields extracted for prefill.
+    All AI goes through the ALAFIAModel router (never OpenAI/Ollama directly).
+    """
+    text = (body.text or "").strip()
+
+    # A bare image attachment with no text → go straight to the vision/capture flow.
+    if not text and body.has_attachment and body.modality in ("image", "video"):
+        target = INTENT_ROUTE_MAP["vision_capture"]
+        return AIRouteResponse(
+            intent="vision_capture",
+            confidence=0.5,
+            route=target["route"],
+            action=target["action"],
+            prefill={},
+            assistant_message=_INTENT_MESSAGES["vision_capture"],
+        )
+
+    if not text:
+        target = INTENT_ROUTE_MAP["ask_question"]
+        return AIRouteResponse(
+            intent="ask_question", confidence=0.0,
+            route=target["route"], action=target["action"],
+            prefill={}, assistant_message="What would you like to do?",
+        )
+
+    from app.services.alafia_model_service import alafia_infer
+    result = await alafia_infer("nlm", {"text": text, "task": "classify_intent"})
+
+    data = result.get("data") or {}
+    intent = data.get("intent")
+    confidence = float(data.get("confidence") or 0.0)
+    entities = data.get("entities") if isinstance(data.get("entities"), dict) else {}
+
+    # Unknown / unavailable / low-confidence → safe fallback to the chat surface.
+    if intent not in INTENT_ROUTE_MAP or (not result.get("success")):
+        intent, confidence = "ask_question", min(confidence, 0.4)
+    elif confidence < 0.5:
+        intent = "ask_question"
+
+    # Deterministic guard: an explicit question is never a "log" action. Small
+    # local models (e.g. llama3.2:3b) often mislabel "what foods lower potassium?"
+    # as log_meal — a trailing "?" is a high-precision signal it's a question.
+    if intent.startswith("log_") and text.rstrip().endswith("?"):
+        intent = "ask_question"
+
+    target = INTENT_ROUTE_MAP[intent]
+    prefill: dict = {"text": text, **entities}
+    return AIRouteResponse(
+        intent=intent,
+        confidence=confidence,
+        route=target["route"],
+        action=target["action"],
+        prefill=prefill,
+        assistant_message=_INTENT_MESSAGES.get(intent, "Let me help with that."),
+    )
+
+
+# ── Voice → Clinical NLP (ALAFIAModel Voice Phase 7) ──────────────────
+
+@router.post("/voice")
+async def voice_to_clinical(
+    file: UploadFile = File(...),
+    language: str | None = Form(None),
+    task: str = Form("transcribe_and_nlm"),
+    current_user: User = Depends(get_current_user),
+):
+    """Transcribe a spoken health note and extract structured clinical data.
+
+    Multilingual via Whisper (English, Yoruba, Hausa, Igbo, Pidgin, French,
+    Swahili, Portuguese). Routes through the ALAFIAModel VOICE capability:
+    audio → Whisper transcript → LLM clinical extraction.
+
+    Form fields:
+      file:     the audio recording (wav/m4a/mp3/ogg ...)
+      language: ISO-639-1 hint, or omit/"auto" to auto-detect
+      task:     "transcribe" | "transcribe_and_nlm" | "voice_log_meal"
+    """
+    audio = await file.read()
+    if not audio:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+
+    valid_tasks = ("transcribe", "transcribe_and_nlm", "voice_log_meal")
+    if task not in valid_tasks:
+        task = "transcribe_and_nlm"
+
+    # Surface the backend's Whisper config to the ALAFIAModel adapter (reads env).
+    if settings.WHISPER_BASE_URL:
+        os.environ.setdefault("WHISPER_BASE_URL", settings.WHISPER_BASE_URL)
+    os.environ.setdefault("WHISPER_MODEL", settings.WHISPER_MODEL)
+    if settings.OPENAI_API_KEY:
+        os.environ.setdefault("OPENAI_API_KEY", settings.OPENAI_API_KEY)
+
+    from app.services.alafia_model_service import alafia_infer
+    result = await alafia_infer("voice", {
+        "audio_bytes": audio,
+        "language": language or "auto",
+        "task": task,
+    })
+    if not result.get("success"):
+        raise HTTPException(status_code=503, detail=result.get("error") or "Voice processing unavailable")
+
+    return {"task": task, "source": result.get("source"), **(result.get("data") or {})}
+
+
+# ── Vision → Food / Lab understanding (ALAFIAModel Vision Phase 5) ─────
+@router.post("/vision")
+async def vision_understand(
+    file: UploadFile = File(...),
+    task: str = Form("food_photo_nutrition"),
+    current_user: User = Depends(get_current_user),
+):
+    """Analyze a photo and return structured data (food nutrition estimate, etc).
+
+    Routes through the ALAFIAModel VISION capability. Until the on-device food
+    classifier ships (Phase 5), this uses a vision-capable LLM when configured.
+    Returns 503 when no vision backend is available so the client can fall back
+    to the manual Capture flow.
+
+    Form fields:
+      file: the image (jpeg/png/webp ...)
+      task: "food_photo_nutrition" | "lab_report_ocr"
+    """
+    image = await file.read()
+    if not image:
+        raise HTTPException(status_code=400, detail="Empty image file")
+
+    valid_tasks = ("food_photo_nutrition", "lab_report_ocr")
+    if task not in valid_tasks:
+        task = "food_photo_nutrition"
+
+    # Surface the backend's OpenAI config to the ALAFIAModel vision adapter.
+    if settings.OPENAI_API_KEY:
+        os.environ.setdefault("OPENAI_API_KEY", settings.OPENAI_API_KEY)
+
+    from app.services.alafia_model_service import alafia_infer
+    result = await alafia_infer("vision", {
+        "image_bytes": image,
+        "content_type": file.content_type or "image/jpeg",
+        "task": task,
+    })
+    if not result.get("success"):
+        raise HTTPException(status_code=503, detail=result.get("error") or "Vision processing unavailable")
+
+    return {"task": task, "source": result.get("source"), **(result.get("data") or {})}
+
 
 # ── Persona definitions ───────────────────────────────────────────────
 # All personas are the SAME base "general health assistant" — the user
@@ -918,6 +1111,52 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
                               f"(since {min(s.entry_date for s in all_sessions)})")
             lines.append("")
 
+    # ── 7b. GROUND TRUTHS: GENETICS + ENVIRONMENT/SOCIAL ──────────
+    gm_q = await db.execute(
+        select(GeneticMarker).where(GeneticMarker.user_id == uid)
+    )
+    markers = gm_q.scalars().all()
+    if markers:
+        lines.append("=== GENETIC GROUND TRUTHS ===")
+        for m in markers:
+            bits = [m.gene]
+            if m.genotype:
+                bits.append(f"({m.genotype})")
+            if m.associated_condition:
+                bits.append(f"— {m.associated_condition}")
+            if m.risk_level:
+                bits.append(f"[{m.risk_level} risk]")
+            lines.append("  " + " ".join(bits))
+        lines.append("")
+
+    es_q = await db.execute(
+        select(EnvSocialLog)
+        .where(EnvSocialLog.user_id == uid)
+        .order_by(desc(EnvSocialLog.log_date))
+        .limit(1)
+    )
+    es = es_q.scalar_one_or_none()
+    if es:
+        parts = []
+        if es.location:
+            parts.append(f"location {es.location}")
+        if es.air_quality_index is not None:
+            parts.append(f"AQI {es.air_quality_index}")
+        if es.occupation:
+            parts.append(f"occupation {es.occupation}")
+        if es.work_stress_level is not None:
+            parts.append(f"work stress {es.work_stress_level}/10")
+        if es.financial_stress_level is not None:
+            parts.append(f"financial stress {es.financial_stress_level}/10")
+        if es.social_support_level is not None:
+            parts.append(f"social support {es.social_support_level}/10")
+        if es.major_life_event:
+            parts.append(f"recent event: {es.major_life_event[:80]}")
+        if parts:
+            lines.append("=== ENVIRONMENTAL & SOCIAL FACTORS (latest) ===")
+            lines.append("  " + "; ".join(parts))
+            lines.append("")
+
     # ── 8. LEARNED AI MEMORIES (persistent per-user insights) ────
     mem_q = await db.execute(
         select(UserMemory)
@@ -1317,21 +1556,12 @@ async def ai_chat(
     ollama_messages.append({"role": "user", "content": augmented_query})
 
     t0 = time.monotonic()
+    # Routed through the ALAFIAModel facade (Ollama primary → OpenAI fallback).
+    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
     try:
-        async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT) as client:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/chat",
-                json={"model": model, "messages": ollama_messages, "stream": False},
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            response_text = data.get("message", {}).get("content", "").strip()
-    except httpx.ConnectError:
-        raise HTTPException(503, "Ollama is not reachable. Make sure it is running on the host.")
-    except httpx.TimeoutException:
-        raise HTTPException(504, "Ollama request timed out. Try a shorter question or switch to a lighter model.")
-    except Exception as exc:
-        raise HTTPException(500, f"LLM error: {exc}")
+        response_text = (await alafia_chat(ollama_messages, model=model, temperature=0.7)).strip()
+    except ALAFIAModelError as exc:
+        raise HTTPException(503, f"AI model unavailable: {exc}")
 
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
@@ -1419,6 +1649,9 @@ async def ai_chat_stream(
     t0 = time.monotonic()
     accumulated: list[str] = []
 
+    # NOTE(alafia-model): token streaming is the one LLM path still calling Ollama
+    # directly — the ALAFIAModel router has no streaming capability yet. Migrate this
+    # once a streaming interface is added to the router (tracked as Phase 3 work).
     async def token_generator():
         try:
             async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT) as client:

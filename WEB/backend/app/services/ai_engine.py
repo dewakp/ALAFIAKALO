@@ -45,45 +45,13 @@ class AIPersonalizationEngine:
             self.model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
     
     async def _call_llm(self, messages: List[Dict[str, str]], temperature: float = 0.7, max_tokens: int = 2000) -> str:
-        """Call LLM API with standardized interface."""
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            if self.provider == "openai":
-                headers = {
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json"
-                }
-                payload = {
-                    "model": self.model,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens
-                }
-                response = await client.post(self.api_url, headers=headers, json=payload)
-                response.raise_for_status()
-                return response.json()["choices"][0]["message"]["content"]
-            
-            else:  # anthropic
-                headers = {
-                    "x-api-key": self.api_key,
-                    "anthropic-version": "2023-06-01",
-                    "Content-Type": "application/json"
-                }
-                # Convert messages format for Anthropic
-                system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
-                user_messages = [m for m in messages if m["role"] != "system"]
-                
-                payload = {
-                    "model": self.model,
-                    "messages": user_messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens
-                }
-                if system_msg:
-                    payload["system"] = system_msg
-                
-                response = await client.post(self.api_url, headers=headers, json=payload)
-                response.raise_for_status()
-                return response.json()["content"][0]["text"]
+        """Call the LLM through the ALAFIAModel router (Ollama → OpenAI fallback).
+
+        Routing every call through ALAFIAModel keeps the backend vendor-agnostic:
+        the underlying model can change without touching this call site.
+        """
+        from app.services.alafia_model_service import alafia_chat
+        return await alafia_chat(messages, temperature=temperature, max_tokens=max_tokens)
     
     def _build_user_context(self, user: User, db: Session, days: int = 30) -> Dict[str, Any]:
         """Build comprehensive user context from all available data."""

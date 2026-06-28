@@ -1,0 +1,24 @@
+# ALAFIA Nutrition MCP server — standalone image.
+#
+# Runs app/services/mcp_nutrition_server.py over MCP (SSE/HTTP transport) in its
+# own process so fastmcp's newer Starlette requirement does not clash with the
+# FastAPI backend's pinned version. The MCP import chain is FastAPI-free, so this
+# image installs only the slim requirements-mcp.txt (no fastapi, no rust crypto).
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements-mcp.txt .
+RUN pip install --no-cache-dir -r requirements-mcp.txt
+
+# Only the application package is needed; the MCP tools import a FastAPI-free
+# subset (app.core.config / database / nutrition_data, app.services.med_nutrient_service).
+COPY app/ ./app/
+
+ENV MCP_TRANSPORT=sse \
+    MCP_PORT=8003
+
+EXPOSE 8003
+
+CMD ["python", "-m", "app.services.mcp_nutrition_server"]

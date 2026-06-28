@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
@@ -217,7 +218,7 @@ function SessionForm({ onBack }) {
       await api.post('/telehealth/sessions', payload);
       onBack();
     } catch (err) {
-      alert(err?.response?.data?.detail || 'Error creating session');
+      alert(apiErrorMessage(err, 'Error creating session'));
     }
     setSubmitting(false);
   }
@@ -362,7 +363,7 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
       await api.patch(`/telehealth/sessions/${session.id}`, { status: 'cancelled' });
       reload();
     } catch (err) {
-      alert(err?.response?.data?.detail || 'Error');
+      alert(apiErrorMessage(err, 'Error'));
     }
   }
 
@@ -374,7 +375,7 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
       setNoteText('');
       reload();
     } catch (err) {
-      alert(err?.response?.data?.detail || 'Error');
+      alert(apiErrorMessage(err, 'Error'));
     }
   }
 

@@ -40,5 +40,11 @@
 	<string>ALAFIA reads your health data to provide personalized health insights, track fitness progress, and sync wellness information across your devices.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>ALAFIA does not write data to Apple Health.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>ALAFIA transcribes your speech on device to understand spoken health logs and questions.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ALAFIA lets you attach a photo of a meal so it can estimate nutrition.</string>
 </dict>
 </plist>

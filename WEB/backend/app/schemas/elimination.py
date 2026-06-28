@@ -200,3 +200,34 @@ class VomitingLogResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Unified Elimination Entry (poop / urine / vomit) ──────────────────────────
+# Backs the unified Elimination Log UI: one form + one timeline across all three
+# event types. Each entry carries its `event_type` for collection AND display.
+
+from typing import Literal
+
+EVENT_TYPES = ("poop", "urine", "vomit")
+
+
+class EliminationEntryCreate(BaseModel):
+    event_type: Literal["poop", "urine", "vomit"]
+    log_date: date
+    log_time: time | None = None
+    pre_event_weight_kg: float | None = None
+    post_event_weight_kg: float | None = None
+    description: str | None = None
+    image_uri: str | None = None
+
+
+class EliminationEntry(BaseModel):
+    id: int
+    event_type: str
+    log_date: date
+    log_time: time | None = None
+    pre_event_weight_kg: float | None = None
+    post_event_weight_kg: float | None = None
+    description: str | None = None
+    image_uri: str | None = None
+    created_at: datetime

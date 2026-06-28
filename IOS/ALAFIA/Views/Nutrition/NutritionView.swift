@@ -18,6 +18,9 @@ final class NutritionViewModel {
     var summary: DailySummary?
     var isLoadingSummary = false
 
+    // Personalized daily nutrient goals
+    var goals: GoalProgressResponse?
+
     func fetchLogs() async {
         isLoading = true
         errorMessage = nil
@@ -80,6 +83,14 @@ final class NutritionViewModel {
             summary = nil
         }
         isLoadingSummary = false
+    }
+
+    func fetchGoals(date: String) async {
+        do {
+            goals = try await APIClient.shared.get("/nutrition/goal-progress?date=\(date)")
+        } catch {
+            goals = nil
+        }
     }
 }
 
@@ -161,8 +172,16 @@ struct NutritionView: View {
                     .datePickerStyle(.compact)
                     .padding(.horizontal)
                     .onChange(of: summaryDate) { _, newVal in
-                        Task { await vm.fetchSummary(date: isoDate(newVal)) }
+                        Task {
+                            await vm.fetchSummary(date: isoDate(newVal))
+                            await vm.fetchGoals(date: isoDate(newVal))
+                        }
                     }
+
+                // Personalized daily nutrient goals / limits
+                if let g = vm.goals {
+                    DailyTargetsCard(data: g).padding(.horizontal)
+                }
 
                 if vm.isLoadingSummary {
                     ProgressView().padding(.top, 40)
@@ -194,7 +213,10 @@ struct NutritionView: View {
             }
             .padding(.vertical)
         }
-        .task { await vm.fetchSummary(date: isoDate(summaryDate)) }
+        .task {
+            await vm.fetchSummary(date: isoDate(summaryDate))
+            await vm.fetchGoals(date: isoDate(summaryDate))
+        }
     }
 
     private func isoDate(_ d: Date) -> String {
@@ -208,6 +230,80 @@ struct NutritionView: View {
 
 extension Int: @retroactive Identifiable {
     public var id: Int { self }
+}
+
+// MARK: - Daily Nutrient Targets
+
+struct DailyTargetsCard: View {
+    let data: GoalProgressResponse
+
+    private let condLabels: [String: String] = [
+        "ckd": "CKD", "dialysis": "Dialysis", "diabetes": "Diabetes",
+        "hypertension": "Hypertension", "cardiovascular": "Cardiac", "heart_failure": "Heart failure",
+    ]
+
+    private func color(_ status: String) -> Color {
+        switch status {
+        case "ok": return .green
+        case "over": return .red
+        default: return .orange   // low / warning
+        }
+    }
+
+    private func fmt(_ v: Double) -> String {
+        v < 10 ? String(format: "%.1f", v) : String(Int(v.rounded()))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Daily Targets").font(.headline)
+
+            if !data.conditions.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(data.conditions, id: \.self) { c in
+                        Text(condLabels[c] ?? c)
+                            .font(.caption2).fontWeight(.semibold)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(Color.red.opacity(0.15))
+                            .foregroundStyle(.red)
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+
+            if !data.profileComplete {
+                Text("Add your age, height & weight in Profile for goals tailored to you.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            ForEach(data.goals) { g in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: g.kind == "limit" ? "arrow.down" : "arrow.up")
+                            .font(.caption2).foregroundStyle(color(g.status))
+                        Text(g.name).font(.subheadline).fontWeight(.medium)
+                        Spacer()
+                        Text("\(fmt(g.current))/\(fmt(g.goal)) \(g.unit)")
+                            .font(.caption).monospaced().foregroundStyle(.secondary)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.gray.opacity(0.2)).frame(height: 6)
+                            Capsule().fill(color(g.status))
+                                .frame(width: geo.size.width * min(g.pct, 100) / 100, height: 6)
+                        }
+                    }
+                    .frame(height: 6)
+                }
+            }
+
+            Text("↑ aim for · ↓ stay under. Guidance from your biology & conditions — not medical advice.")
+                .font(.caption2).foregroundStyle(.tertiary)
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
 }
 
 // MARK: - Nutrition Row

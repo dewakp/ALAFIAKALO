@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
 
@@ -76,7 +77,7 @@ export default function Roles() {
       await loadAll();
       setTab('overview');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to add role');
+      alert(apiErrorMessage(err, 'Failed to add role'));
     }
     setAdding(false);
   }
@@ -88,7 +89,7 @@ export default function Roles() {
       await api.delete(`/users/roles/${roleId}`);
       await loadAll();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to remove role');
+      alert(apiErrorMessage(err, 'Failed to remove role'));
     }
   }
 
@@ -98,7 +99,7 @@ export default function Roles() {
       await api.put(`/users/roles/${roleId}/primary`);
       await loadAll();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed');
+      alert(apiErrorMessage(err, 'Failed'));
     }
   }
 
@@ -157,7 +158,7 @@ export default function Roles() {
       setProfileMsg('Professional profile saved successfully.');
       await loadAll();
     } catch (err) {
-      setProfileMsg(err.response?.data?.detail || 'Failed to save profile.');
+      setProfileMsg(apiErrorMessage(err, 'Failed to save profile.'));
     }
     setSavingProfile(false);
   }

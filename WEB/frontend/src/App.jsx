@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { UnitsProvider } from './context/UnitsContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
 
 // Lazy-loaded pages — each becomes a separate chunk
@@ -8,12 +10,12 @@ const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const PromptHub = lazy(() => import('./pages/PromptHub'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Nutrition = lazy(() => import('./pages/Nutrition'));
 const Fitness = lazy(() => import('./pages/Fitness'));
 const Labs = lazy(() => import('./pages/Labs'));
 const Medications = lazy(() => import('./pages/Medications'));
-const Lifestyle = lazy(() => import('./pages/Lifestyle'));
 const AIChat = lazy(() => import('./pages/AIChat'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Capture = lazy(() => import('./pages/Capture'));
@@ -48,6 +50,10 @@ const HealthTrends = lazy(() => import('./pages/HealthTrends'));
 const MealsDiary = lazy(() => import('./pages/MealsDiary'));
 const NutrientTracking = lazy(() => import('./pages/NutrientTracking'));
 const Journal = lazy(() => import('./pages/Journal'));
+const Symptoms = lazy(() => import('./pages/Symptoms'));
+const Sleep = lazy(() => import('./pages/Sleep'));
+const Vitals = lazy(() => import('./pages/Vitals'));
+const HealthInsights = lazy(() => import('./pages/HealthInsights'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -58,6 +64,8 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <UnitsProvider>
+      <ErrorBoundary>
       <Suspense fallback={<div className="loading">Loading...</div>}>
         <Routes>
           <Route path="/landing" element={<Landing />} />
@@ -72,12 +80,12 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
+          <Route index element={<PromptHub />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="nutrition" element={<Nutrition />} />
           <Route path="fitness" element={<Fitness />} />
           <Route path="labs" element={<Labs />} />
           <Route path="medications" element={<Medications />} />
-          <Route path="lifestyle" element={<Lifestyle />} />
           <Route path="mental-health" element={<MentalHealth />} />
           <Route path="community" element={<CommunityHealth />} />
           <Route path="capture" element={<Capture />} />
@@ -112,9 +120,15 @@ export default function App() {
           <Route path="meals-diary" element={<MealsDiary />} />
           <Route path="nutrient-tracking" element={<NutrientTracking />} />
           <Route path="journal" element={<Journal />} />
+          <Route path="symptoms" element={<Symptoms />} />
+          <Route path="sleep" element={<Sleep />} />
+          <Route path="vitals" element={<Vitals />} />
+          <Route path="insights" element={<HealthInsights />} />
         </Route>
       </Routes>
       </Suspense>
+      </ErrorBoundary>
+      </UnitsProvider>
     </AuthProvider>
   );
 }

@@ -1,7 +1,7 @@
 """AI Memory and Learning Service."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, timezone
 from typing import List, Dict, Any, Optional
 from collections import Counter
 
@@ -10,13 +10,43 @@ from sqlalchemy import func, desc, and_
 
 from app.models.user import User
 from app.models.ai_memory import (
-    UserMemory, CollectiveInsight, GlobalKnowledge, 
+    UserMemory, CollectiveInsight, GlobalKnowledge,
     AIInteraction, LearningEvent
 )
 from app.models.nutrition import NutritionLog
 from app.models.fitness import FitnessLog
 from app.models.mood import MoodEntry
 from app.models.sleep import SleepLog
+from app.models.privacy import PrivacySettings
+
+
+# Nutrients / fitness metrics aggregated into anonymized demographic baselines.
+_BASELINE_NUTRIENTS = [
+    "calories", "protein_g", "carbs_g", "fat_g", "fiber_g", "sugar_g",
+    "saturated_fat_g", "sodium_mg", "potassium_mg", "phosphorus_mg",
+]
+_BASELINE_FITNESS = ["duration_minutes", "calories_burned", "steps"]
+
+
+def _age_range(dob_str: Optional[str]) -> Optional[str]:
+    """Bucket an exact DOB into a coarse age range (removes a quasi-identifier)."""
+    if not dob_str:
+        return None
+    try:
+        dob = datetime.strptime(dob_str[:10], "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return None
+    age = (datetime.now() - dob).days // 365
+    for hi, label in ((18, "under_18"), (25, "18-24"), (35, "25-34"),
+                      (45, "35-44"), (55, "45-54"), (65, "55-64")):
+        if age < hi:
+            return label
+    return "65_plus"
+
+
+def _baseline_confidence(n: int) -> float:
+    """Confidence grows with cohort size (0.45 at n=1 → ~0.9 at n=50)."""
+    return round(min(0.95, 0.4 + 0.6 * n / (n + 10)), 2)
 
 
 class AIMemoryService:
@@ -350,16 +380,148 @@ class AIMemoryService:
         self.db.commit()
         return insights
     
+    # ── Demographic baselines (the privacy-preserving learning loop) ──────────
+
+    def _demographic_bucket(self, user: User) -> Dict[str, Any]:
+        """Coarse, non-identifying demographic key for cohort aggregation."""
+        return {
+            "age_range": _age_range(getattr(user, "date_of_birth", None)),
+            "gender_at_birth": getattr(user, "gender_at_birth", None),
+            "activity_level": getattr(user, "activity_level", None),
+        }
+
+    def _has_collective_consent(self, user_id: int) -> bool:
+        """True if the user permits anonymized cross-user learning."""
+        ps = self.db.query(PrivacySettings).filter(PrivacySettings.user_id == user_id).first()
+        if ps is None:
+            return False  # privacy-safe default: no consent record → don't aggregate
+        return bool(ps.allow_collective_insights or ps.allow_anonymized_analytics)
+
+    def _user_daily_means(self, model, fields: List[str], user_id: int, days: int = 90) -> Dict[str, float]:
+        """Average per-active-day value for `fields` from the user's logs."""
+        cutoff = date.today() - timedelta(days=days)
+        rows = self.db.query(model).filter(
+            model.user_id == user_id, model.log_date >= cutoff
+        ).all()
+        if not rows:
+            return {}
+        days_logged = len({r.log_date for r in rows}) or 1
+        totals: Dict[str, float] = {}
+        for r in rows:
+            for k in fields:
+                v = getattr(r, k, None)
+                if isinstance(v, (int, float)):
+                    totals[k] = totals.get(k, 0) + v
+        return {k: round(v / days_logged, 1) for k, v in totals.items()}
+
+    def _find_baseline(self, category: str, bucket: Dict[str, Any]) -> Optional[CollectiveInsight]:
+        rows = self.db.query(CollectiveInsight).filter(
+            CollectiveInsight.category == category,
+            CollectiveInsight.pattern_type == "demographic_baseline",
+        ).all()
+        for ci in rows:
+            if (ci.applicable_demographics or {}) == bucket:
+                return ci
+        return None
+
+    def _new_baseline(self, category: str, bucket: Dict[str, Any], means: Dict[str, float], n: int) -> CollectiveInsight:
+        label = "/".join(str(bucket.get(k) or "all") for k in ("age_range", "gender_at_birth", "activity_level"))
+        ci = CollectiveInsight(
+            category=category,
+            pattern_type="demographic_baseline",
+            pattern_name=f"{category.title()} baseline · {label}",
+            pattern_description=(
+                f"Anonymized average daily {category} intake aggregated across "
+                f"consenting users in this demographic cohort."
+            ),
+            pattern_data={"means": means},
+            sample_size=n,
+            confidence_level=_baseline_confidence(n),
+            effect_size=None,
+            applicable_demographics=bucket,
+            is_active=True,
+        )
+        self.db.add(ci)
+        return ci
+
+    def merge_demographic_baseline(self, user: User, category: str = "nutrition") -> Optional[CollectiveInsight]:
+        """Fold ONE user's de-identified daily means into the cohort baseline.
+
+        This is the contribution side of the learning loop: when a user leaves
+        (account deletion) or opts in, their statistical footprint is merged into
+        the matching demographic CollectiveInsight via a running mean — preserving
+        population value while discarding all PII. Consent-gated; returns the
+        updated/created insight or None.
+        """
+        if not self._has_collective_consent(user.id):
+            return None
+        model, fields = (NutritionLog, _BASELINE_NUTRIENTS) if category == "nutrition" else (FitnessLog, _BASELINE_FITNESS)
+        means = self._user_daily_means(model, fields, user.id)
+        if not means:
+            return None
+
+        bucket = self._demographic_bucket(user)
+        ci = self._find_baseline(category, bucket)
+        if ci is None:
+            return self._new_baseline(category, bucket, means, n=1)
+
+        old = (ci.pattern_data or {}).get("means", {})
+        n = ci.sample_size or 1
+        merged: Dict[str, float] = {}
+        for k in set(old) | set(means):
+            ov, nv = old.get(k), means.get(k)
+            if ov is None:
+                merged[k] = nv
+            elif nv is None:
+                merged[k] = ov
+            else:
+                merged[k] = round((ov * n + nv) / (n + 1), 1)
+        ci.pattern_data = {"means": merged}          # reassign → SQLAlchemy tracks change
+        ci.sample_size = n + 1
+        ci.confidence_level = _baseline_confidence(ci.sample_size)
+        ci.last_validated_at = datetime.now(timezone.utc)
+        return ci
+
+    def _discover_baselines(self, category: str, model, fields: List[str], min_users: int) -> List[CollectiveInsight]:
+        """Recompute authoritative demographic baselines from all consenting users."""
+        users = self.db.query(User).filter(User.is_active == True).all()  # noqa: E712
+        cohorts: Dict[tuple, Dict[str, Any]] = {}
+        for u in users:
+            if not self._has_collective_consent(u.id):
+                continue
+            means = self._user_daily_means(model, fields, u.id)
+            if not means:
+                continue
+            bucket = self._demographic_bucket(u)
+            key = (bucket["age_range"], bucket["gender_at_birth"], bucket["activity_level"])
+            acc = cohorts.setdefault(key, {"sum": {}, "n": 0, "bucket": bucket})
+            for k, v in means.items():
+                acc["sum"][k] = acc["sum"].get(k, 0) + v
+            acc["n"] += 1
+
+        insights: List[CollectiveInsight] = []
+        for acc in cohorts.values():
+            if acc["n"] < min_users:
+                continue
+            cohort_means = {k: round(v / acc["n"], 1) for k, v in acc["sum"].items()}
+            ci = self._find_baseline(category, acc["bucket"])
+            if ci is None:
+                ci = self._new_baseline(category, acc["bucket"], cohort_means, acc["n"])
+            else:
+                ci.pattern_data = {"means": cohort_means}
+                ci.sample_size = acc["n"]
+                ci.confidence_level = _baseline_confidence(acc["n"])
+                ci.last_validated_at = datetime.now(timezone.utc)
+            insights.append(ci)
+        return insights
+
     def _discover_nutrition_patterns(self, min_users: int) -> List[CollectiveInsight]:
-        """Discover nutrition patterns across users."""
-        # Example: Breakfast timing and energy correlation
-        # In real implementation, use statistical methods
-        
-        return []  # Placeholder for complex analysis
-    
+        """Aggregate anonymized daily-nutrition baselines per demographic cohort."""
+        return self._discover_baselines("nutrition", NutritionLog, _BASELINE_NUTRIENTS, min_users)
+
     def _discover_fitness_patterns(self, min_users: int) -> List[CollectiveInsight]:
-        """Discover fitness patterns across users."""
-        return []  # Placeholder
+        """Aggregate anonymized daily-activity baselines per demographic cohort."""
+        return self._discover_baselines("fitness", FitnessLog, _BASELINE_FITNESS, min_users)
     
     def get_applicable_insights(
         self, 

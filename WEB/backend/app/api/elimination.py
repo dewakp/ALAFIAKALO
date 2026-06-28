@@ -1,6 +1,6 @@
 """Elimination tracking CRUD endpoints (bowel movements, urination, vomiting)."""
 
-from datetime import date
+from datetime import date, time
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -13,9 +13,99 @@ from app.schemas.elimination import (
     BowelMovementCreate, BowelMovementUpdate, BowelMovementResponse,
     UrinationLogCreate, UrinationLogUpdate, UrinationLogResponse,
     VomitingLogCreate, VomitingLogUpdate, VomitingLogResponse,
+    EliminationEntry, EliminationEntryCreate,
 )
 
 router = APIRouter()
+
+
+# ── Unified Elimination Log (poop / urine / vomit in one timeline) ────────────
+# Reference UI: a single "Add Entry" form with an Event Type selector and one
+# date-grouped timeline. Each event type still persists to its own table; this
+# layer normalizes them so the type is carried in both collection and display.
+
+_EVENT_MODEL = {"poop": BowelMovement, "urine": UrinationLog, "vomit": VomitingLog}
+
+
+def _to_entry(row, event_type: str) -> EliminationEntry:
+    return EliminationEntry(
+        id=row.id,
+        event_type=event_type,
+        log_date=row.log_date,
+        log_time=row.log_time,
+        pre_event_weight_kg=getattr(row, "pre_event_weight_kg", None),
+        post_event_weight_kg=getattr(row, "post_event_weight_kg", None),
+        description=row.notes,
+        image_uri=getattr(row, "image_uri", None),
+        created_at=row.created_at,
+    )
+
+
+@router.get("/all", response_model=list[EliminationEntry])
+async def list_all_elimination(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """All elimination events (poop/urine/vomit) merged into one timeline."""
+    entries: list[EliminationEntry] = []
+    for etype, model in _EVENT_MODEL.items():
+        q = select(model).where(model.user_id == current_user.id)
+        if start_date:
+            q = q.where(model.log_date >= start_date)
+        if end_date:
+            q = q.where(model.log_date <= end_date)
+        rows = (await db.execute(q)).scalars().all()
+        entries.extend(_to_entry(r, etype) for r in rows)
+    # Newest first, by date then time
+    entries.sort(key=lambda e: (e.log_date, e.log_time or time()), reverse=True)
+    return entries
+
+
+@router.post("/all", response_model=EliminationEntry, status_code=201)
+async def create_elimination(
+    entry_in: EliminationEntryCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create an elimination event, routed to the table for its event type."""
+    model = _EVENT_MODEL[entry_in.event_type]
+    row = model(
+        user_id=current_user.id,
+        log_date=entry_in.log_date,
+        log_time=entry_in.log_time,
+        pre_event_weight_kg=entry_in.pre_event_weight_kg,
+        post_event_weight_kg=entry_in.post_event_weight_kg,
+        image_uri=entry_in.image_uri,
+        notes=entry_in.description,
+    )
+    # bowel rows record the literal type too (keeps existing event_type column meaningful)
+    if entry_in.event_type == "poop":
+        row.event_type = "poop"
+    db.add(row)
+    await db.flush()
+    await db.refresh(row)
+    return _to_entry(row, entry_in.event_type)
+
+
+@router.delete("/all/{event_type}/{entry_id}", status_code=204)
+async def delete_elimination(
+    event_type: str,
+    entry_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    model = _EVENT_MODEL.get(event_type)
+    if model is None:
+        raise HTTPException(status_code=400, detail="Invalid event type")
+    row = (await db.execute(
+        select(model).where(model.id == entry_id, model.user_id == current_user.id)
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    await db.delete(row)
+    await db.flush()
 
 
 # ── Bowel Movements ───────────────────────────────────────────────────────────

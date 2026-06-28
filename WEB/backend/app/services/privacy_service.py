@@ -572,11 +572,29 @@ class PrivacyService:
                 "activity_level": user.activity_level,
             },
             "records_anonymized": 0,
+            "contributed_insights": [],
         }
-        
-        # In production, update collective insights with anonymized data
-        # This is a placeholder - actual implementation would update CollectiveInsight records
-        
+
+        # Fold this user's de-identified footprint into the demographic
+        # CollectiveInsight baselines before their PII is deleted. Consent-gated
+        # inside the service; failures here must never block account deletion.
+        try:
+            from app.services.ai_memory_service import AIMemoryService
+            memory = AIMemoryService(self.db)
+            for category in ("nutrition", "fitness"):
+                ci = memory.merge_demographic_baseline(user, category=category)
+                if ci is not None:
+                    self.db.flush()  # assign an id without committing the pending delete
+                    anonymization_log["records_anonymized"] += 1
+                    anonymization_log["contributed_insights"].append({
+                        "insight_id": ci.id,
+                        "category": ci.category,
+                        "pattern_type": ci.pattern_type,
+                        "sample_size": ci.sample_size,
+                    })
+        except Exception as exc:  # pragma: no cover - best effort
+            anonymization_log["contribution_error"] = str(exc)
+
         return anonymization_log
     
     def _get_age_range(self, dob_str: Optional[str]) -> Optional[str]:

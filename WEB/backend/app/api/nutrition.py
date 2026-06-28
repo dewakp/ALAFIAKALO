@@ -18,6 +18,8 @@ from app.core.nutrition_data import (
 from app.models.user import User
 from app.models.nutrition import NutritionLog
 from app.models.med_nutrient import MedicationDoseLog
+from app.models.chronic_conditions import ChronicCondition
+from app.models.conditions import HealthCondition
 from app.schemas.nutrition import (
     NutritionLogCreate,
     NutritionLogUpdate,
@@ -31,10 +33,128 @@ from app.schemas.nutrition import (
     MealEstimateRequest,
     MealEstimateResponse,
     MealComponentResult,
+    GoalProgressResponse,
+    NutrientGoalProgress,
 )
 from app.services.nutrient_estimator import estimate_nutrients, estimate_meal_nutrients
+from app.services.nutrient_goals_service import compute_goals
+from app.services.learned_nutrient_service import (
+    record_correction, per_100g_from_total, get_learned,
+)
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+# ── Nutrition learning model — user corrections ───────────────────────────────
+
+class LearnFoodRequest(BaseModel):
+    """Teach the estimator a food's correct nutrients.
+
+    Provide either a per-100 g profile, or an absolute total + the grams it covers
+    (the per-100 g profile is derived). At minimum include 'calories'.
+    """
+    food_name: str
+    nutrients_per_100g: dict[str, float] | None = None
+    nutrients_total: dict[str, float] | None = None
+    total_grams: float | None = None
+    serving_weight_g: float | None = None
+
+
+@router.post("/learn")
+async def learn_food(
+    body: LearnFoodRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record a user correction so future estimates for this food are accurate.
+
+    Corrections for the same food are merged into a running average (the learning
+    model converges as more feedback arrives) and consulted FIRST by the estimator.
+    """
+    per100 = body.nutrients_per_100g
+    if not per100 and body.nutrients_total and body.total_grams:
+        per100 = per_100g_from_total(body.nutrients_total, body.total_grams)
+    if not per100:
+        raise HTTPException(
+            422, "Provide nutrients_per_100g, or nutrients_total + total_grams.")
+    if per100.get("calories") is None:
+        raise HTTPException(422, "Correction must include 'calories'.")
+
+    row = await record_correction(
+        db, body.food_name, per100,
+        serving_weight_g=body.serving_weight_g, user_id=current_user.id,
+    )
+    await db.commit()
+    return {
+        "ok": True,
+        "food_name": row.food_name_original,
+        "sample_count": row.sample_count,
+        "confidence": row.confidence,
+        "nutrients": row.nutrients,
+    }
+
+
+@router.get("/learn/{food_name}")
+async def get_learned_food(
+    food_name: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the learned profile for a food (404 if none learned yet)."""
+    learned = await get_learned(db, food_name)
+    if not learned:
+        raise HTTPException(404, "No learned value for this food yet.")
+    return learned
+
+
+async def _aggregate_daily_nutrients(
+    db: AsyncSession, user_id: int, target_date: date
+) -> tuple[dict[str, float], int, list[dict]]:
+    """Sum all food logs + resolved medication-dose nutrients for a date.
+
+    Returns (aggregated nutrient totals, food-log count, med contributions).
+    Shared by the daily-summary and goal-progress endpoints.
+    """
+    result = await db.execute(
+        select(NutritionLog).where(
+            NutritionLog.user_id == user_id,
+            NutritionLog.log_date == target_date,
+        )
+    )
+    logs = result.scalars().all()
+
+    aggregated: dict[str, float] = {}
+    for log in logs:
+        for key in DB_COLUMN_KEYS:
+            val = getattr(log, key, None)
+            if val is not None:
+                aggregated[key] = aggregated.get(key, 0) + val
+        if log.extended_nutrients:
+            for key, val in log.extended_nutrients.items():
+                if isinstance(val, (int, float)):
+                    aggregated[key] = aggregated.get(key, 0) + val
+
+    med_result = await db.execute(
+        select(MedicationDoseLog).where(
+            MedicationDoseLog.user_id == user_id,
+            MedicationDoseLog.log_date == target_date,
+            MedicationDoseLog.nutrients_resolved.is_(True),
+        )
+    )
+    med_contributions: list[dict] = []
+    for dose in med_result.scalars().all():
+        if dose.nutrients_contributed:
+            for key, val in dose.nutrients_contributed.items():
+                if isinstance(val, (int, float)):
+                    aggregated[key] = aggregated.get(key, 0) + val
+            med_contributions.append({
+                "medication_name": dose.medication_name,
+                "dose": f"{dose.dose_amount} {dose.dose_unit}",
+                "nutrients": dose.nutrients_contributed,
+            })
+
+    return aggregated, len(logs), med_contributions
 
 
 # ── Nutrient estimation (Cache → USDA → AI) ──
@@ -203,46 +323,9 @@ async def get_daily_summary(
     /medications/dose-logs endpoint (e.g. Calcitriol → vitamin D,
     Tums → calcium, Fish Oil → omega-3).
     """
-    # ── Food logs ──
-    query = select(NutritionLog).where(
-        NutritionLog.user_id == current_user.id,
-        NutritionLog.log_date == target_date,
+    aggregated, log_count, med_nutrient_contributions = await _aggregate_daily_nutrients(
+        db, current_user.id, target_date
     )
-    result = await db.execute(query)
-    logs = result.scalars().all()
-
-    aggregated: dict[str, float] = {}
-    for log in logs:
-        for key in DB_COLUMN_KEYS:
-            val = getattr(log, key, None)
-            if val is not None:
-                aggregated[key] = aggregated.get(key, 0) + val
-        if log.extended_nutrients:
-            for key, val in log.extended_nutrients.items():
-                if isinstance(val, (int, float)):
-                    aggregated[key] = aggregated.get(key, 0) + val
-
-    # ── Medication dose nutrients ──
-    med_result = await db.execute(
-        select(MedicationDoseLog).where(
-            MedicationDoseLog.user_id == current_user.id,
-            MedicationDoseLog.log_date == target_date,
-            MedicationDoseLog.nutrients_resolved.is_(True),
-        )
-    )
-    dose_logs = med_result.scalars().all()
-    med_nutrient_contributions: list[dict] = []
-    for dose in dose_logs:
-        if dose.nutrients_contributed:
-            for key, val in dose.nutrients_contributed.items():
-                if isinstance(val, (int, float)):
-                    aggregated[key] = aggregated.get(key, 0) + val
-            med_nutrient_contributions.append({
-                "medication_name": dose.medication_name,
-                "dose": f"{dose.dose_amount} {dose.dose_unit}",
-                "nutrients": dose.nutrients_contributed,
-            })
-
     breakdown = compute_rda_percentages(aggregated)
 
     return DailySummary(
@@ -251,9 +334,75 @@ async def get_daily_summary(
         total_protein_g=aggregated.get("protein_g", 0),
         total_carbs_g=aggregated.get("carbs_g", 0),
         total_fat_g=aggregated.get("fat_g", 0),
-        meal_count=len(logs),
+        meal_count=log_count,
         nutrients=breakdown,
         medication_nutrient_contributions=med_nutrient_contributions,
+    )
+
+
+@router.get("/goal-progress", response_model=GoalProgressResponse)
+async def get_goal_progress(
+    target_date: date = Query(..., alias="date"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Running daily nutrient totals vs. personalized goals/limits.
+
+    Goals are derived from the patient's biology (age, height, weight, target
+    weight, sex, activity) and active chronic conditions, grounded in NIH/USDA
+    DRIs and clinical guidance (e.g. CKD patients get protein / potassium /
+    phosphorus / sodium limits rather than generic targets).
+    """
+    # Day's running totals (food + medication-derived nutrients)
+    aggregated, _, _ = await _aggregate_daily_nutrients(db, current_user.id, target_date)
+
+    # Active conditions from both the chronic-conditions and health-conditions tables
+    cc = (await db.execute(
+        select(ChronicCondition).where(
+            ChronicCondition.user_id == current_user.id,
+            ChronicCondition.is_active == True,  # noqa: E712
+        )
+    )).scalars().all()
+    hc = (await db.execute(
+        select(HealthCondition).where(
+            HealthCondition.user_id == current_user.id,
+            HealthCondition.status != "resolved",
+        )
+    )).scalars().all()
+    conditions = list(cc) + list(hc)
+
+    computed = compute_goals(
+        date_of_birth=current_user.date_of_birth,
+        sex=current_user.gender_at_birth or current_user.gender,
+        height_cm=current_user.height_cm,
+        current_weight_kg=current_user.current_weight_kg,
+        target_weight_kg=current_user.target_weight_kg,
+        activity_level=current_user.activity_level,
+        conditions=conditions,
+    )
+
+    progress: list[NutrientGoalProgress] = []
+    for g in computed["goals"]:
+        current = round(float(aggregated.get(g["key"], 0) or 0), 1)
+        goal = g["goal"] or 0
+        pct = round((current / goal * 100), 0) if goal else 0
+        if g["kind"] == "limit":
+            status = "over" if pct > 100 else ("warning" if pct >= 80 else "ok")
+        else:  # target
+            status = "over" if pct > 110 else ("ok" if pct >= 80 else "low")
+        progress.append(NutrientGoalProgress(
+            key=g["key"], name=g["name"], unit=g["unit"],
+            current=current, goal=goal, kind=g["kind"], pct=pct,
+            status=status, priority=g["priority"], rationale=g["rationale"],
+        ))
+
+    active_flags = [k for k, v in computed["flags"].items() if v]
+    return GoalProgressResponse(
+        date=target_date,
+        profile_complete=computed["profile_complete"],
+        energy_kcal=computed["energy_kcal"],
+        conditions=active_flags,
+        goals=progress,
     )
 
 

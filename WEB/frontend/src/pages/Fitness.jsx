@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
 export default function Fitness() {
   const [logs, setLogs] = useState([]);
@@ -14,6 +15,17 @@ export default function Fitness() {
     steps: '',
     intensity: 'moderate',
     notes: '',
+  });
+
+  // Prompt Hub hand-off: open the add-activity form pre-filled.
+  usePromptPrefill((prefill) => {
+    setForm((f) => ({
+      ...f,
+      activity_type: prefill.activity || prefill.activity_type || f.activity_type,
+      duration_minutes: prefill.duration_minutes || prefill.duration || f.duration_minutes,
+      notes: prefill.notes || prefill.text || f.notes,
+    }));
+    setShowForm(true);
   });
 
   useEffect(() => { loadLogs(); }, []);

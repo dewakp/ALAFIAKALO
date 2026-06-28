@@ -124,7 +124,7 @@ _TSP_DENSITY_G: dict[str, float] = {
     "cornstarch": 2.7,
 }
 
-# Standard piece/unit weights (grams per single item).
+# Standard piece/unit weights (grams per single item, no unit stated).
 _PIECE_WEIGHTS_G: dict[str, float] = {
     "chicken thigh": 116.0,    # bone-in, skin-on — USDA reference
     "chicken breast": 174.0,
@@ -135,12 +135,53 @@ _PIECE_WEIGHTS_G: dict[str, float] = {
     "banana": 118.0,
     "apple": 182.0,
     "orange": 131.0,
-    "bread slice": 30.0,
-    "slice of bread": 30.0,
+    "pear": 178.0,
+    "peach": 150.0,
+    "kiwi": 69.0,
+    "grapefruit": 123.0,
+    "lemon": 58.0,
+    "lime": 67.0,
+    "shrimp": 6.0, "prawn": 15.0, "scallop": 15.0, "oyster": 25.0,
+    "carrot": 61.0,
+    "potato": 173.0,
+    "sweet potato": 130.0,
+    "cucumber": 120.0,
+    "bell pepper": 119.0,
+    "tomato": 123.0,
+    "toast": 28.0,            # 1 slice
+    "bread": 28.0,            # 1 slice
+    "bread slice": 28.0,
+    "slice of bread": 28.0,
     "tortilla": 45.0,
+    "pancake": 40.0,
+    "waffle": 75.0,
+    "cookie": 16.0,
+    "muffin": 113.0,
+    "sausage": 50.0,
+    "hot dog": 50.0,
+    "meatball": 30.0,
     "yam": 100.0,             # 1 medium chunk
     "plantain": 115.0,        # 1 medium
     "avocado": 150.0,
+    # Nuts / small items — "N pieces of cashews" must not become N×100 g.
+    "cashew": 1.5, "almond": 1.2, "peanut": 0.9, "walnut": 5.0, "pecan": 5.0,
+    "pistachio": 0.7, "hazelnut": 1.0, "macadamia": 2.5, "brazil nut": 5.0,
+    "raisin": 0.5, "grape": 5.0, "blueberry": 1.0, "raspberry": 2.0,
+    "blackberry": 2.0, "strawberry": 12.0, "cherry": 8.0, "olive": 4.0,
+    "date": 24.0, "fig": 50.0, "apricot": 35.0, "plum": 66.0, "prune": 9.5,
+}
+
+# Grams per SLICE, food-aware (a "slice" varies wildly: bread ~28 g, pizza ~107 g).
+_SLICE_WEIGHTS_G: dict[str, float] = {
+    "bread": 28.0, "toast": 28.0, "white bread": 25.0, "whole wheat": 28.0,
+    "rye": 32.0, "sourdough": 36.0, "baguette": 20.0,
+    "cheese": 22.0, "american cheese": 19.0, "cheddar": 28.0,
+    "pizza": 107.0, "cake": 80.0, "cheesecake": 80.0, "pie": 125.0,
+    "ham": 28.0, "turkey": 28.0, "chicken": 28.0, "salami": 12.0,
+    "bacon": 10.0, "prosciutto": 15.0,
+    "tomato": 20.0, "onion": 14.0, "cucumber": 7.0, "lemon": 7.0, "lime": 7.0,
+    "bell pepper": 15.0, "pepper": 15.0, "avocado": 50.0, "mango": 30.0,
+    "watermelon": 286.0, "pineapple": 84.0, "orange": 30.0, "apple": 25.0,
 }
 
 # Default gram weights for items where no quantity is stated.
@@ -256,6 +297,27 @@ _PREP_SUFFIXES_SET = frozenset({
 })
 
 
+# Brand / store / marketing tokens to drop so a logged item resolves to its
+# generic food (e.g. "Whole Foods Market 365 Organic orange juice" → "orange juice").
+_BRAND_PHRASES = (
+    "whole foods market", "whole foods", "trader joe's", "trader joes",
+    "great value", "market 365",
+)
+_BRAND_WORDS = frozenset({
+    "organic", "natural", "premium", "gourmet", "brand", "store", "365",
+    "applegate", "kirkland", "kroger", "signature", "market",
+})
+
+
+def _strip_brands(s: str) -> str:
+    out = s
+    for ph in _BRAND_PHRASES:
+        out = out.replace(ph, " ")
+    toks = [t for t in out.split() if t not in _BRAND_WORDS and not t.isdigit()]
+    cleaned = " ".join(toks).strip()
+    return cleaned or s  # never blank out the whole name
+
+
 def _clean_food_name(raw: str) -> str:
     """Strip preparation prefixes/suffixes to get the core food item name."""
     s = raw.lower().strip()
@@ -271,7 +333,7 @@ def _clean_food_name(raw: str) -> str:
     for suffix in _PREP_SUFFIXES_SET:
         if s.endswith(" " + suffix):
             s = s[:-(len(suffix) + 1)].strip()
-    return s
+    return _strip_brands(s)
 
 
 # ── Regex patterns ────────────────────────────────────────────────────────────
@@ -293,10 +355,11 @@ _SEG_UNIT_RE = re.compile(
     r"cups?|tablespoons?|tbsps?|teaspoons?|tsps?|"
     r"fl\.?\s*oz(?:s)?|fluid\s+ounces?|"         # fluid ounces — must precede bare oz
     r"ounces?|oz|"
-    r"(?:kilo)?grams?|kg|"
+    r"(?:kilo)?grams?|kgs?|g|"          # incl. bare "g" ("150g", "50 g")
     r"ml|milliliters?|liters?|litres?|"
     r"pounds?|lbs?|"
-    r"pieces?|slices?|pinch(?:es)?|handfuls?|cloves?"
+    r"pieces?|slices?|pinch(?:es)?|handfuls?|cloves?|strips?|"
+    r"sticks?|cans?|bottles?|scoops?|wedges?|bunch(?:es)?|cuts?|chips?"
     r")\b\s*",
     re.IGNORECASE,
 )
@@ -333,7 +396,7 @@ def _to_grams(value: float, unit: str, food_name: str) -> float:
     fn = food_name.lower()
 
     # ── Dry/solid mass units ──
-    if u in ("gram", "grams"):
+    if u in ("g", "gram", "grams"):
         return round(value, 1)
     if u in ("kg", "kilogram", "kilograms"):
         return round(value * 1000.0, 1)
@@ -388,18 +451,105 @@ def _to_grams(value: float, unit: str, food_name: str) -> float:
     if u in ("handful", "handfuls"):
         return round(value * 30.0, 1)
 
-    # ── Count/piece units ──
-    if u in ("piece", "pieces", "slice", "slices", "clove", "cloves"):
-        for key, weight in _PIECE_WEIGHTS_G.items():
+    # ── Slices (food-aware: bread ~28 g vs pizza ~107 g) ──
+    if u in ("slice", "slices"):
+        for key, weight in _SLICE_WEIGHTS_G.items():
             if key in fn or fn in key:
                 return round(value * weight, 1)
-        return round(value * 100.0, 1)  # generic 100 g fallback
+        return round(value * 30.0, 1)  # generic slice ≈ 30 g (bread-like)
+
+    # ── Cloves (garlic) ──
+    if u in ("clove", "cloves"):
+        return round(value * 3.0, 1)  # 1 garlic clove ≈ 3 g
+
+    # ── Strips (bacon etc.) ──
+    if u in ("strip", "strips"):
+        return round(value * (10.0 if "bacon" in fn else 15.0), 1)
+
+    # ── Sticks (butter, celery, cinnamon, string cheese) ──
+    if u in ("stick", "sticks"):
+        if "butter" in fn or "margarine" in fn:
+            return round(value * 113.0, 1)   # 1 US stick = 1/2 cup
+        if "celery" in fn:
+            return round(value * 4.0, 1)
+        if "cinnamon" in fn:
+            return round(value * 2.0, 1)
+        if "cheese" in fn:
+            return round(value * 28.0, 1)
+        return round(value * 30.0, 1)
+
+    # ── Cans ──
+    if u in ("can", "cans"):
+        if any(k in fn for k in ("soda", "cola", "coke", "pepsi", "sprite", "soft drink", "pop", "beer")):
+            return round(value * 355.0, 1)
+        if "tuna" in fn:
+            return round(value * 145.0, 1)
+        if "bean" in fn:
+            return round(value * 425.0, 1)
+        if any(k in fn for k in ("tomato", "corn", "soup", "coconut milk")):
+            return round(value * 400.0, 1)
+        return round(value * 355.0, 1)
+
+    # ── Bottles ──
+    if u in ("bottle", "bottles"):
+        if "wine" in fn:
+            return round(value * 750.0, 1)
+        if "beer" in fn:
+            return round(value * 355.0, 1)
+        return round(value * 500.0, 1)
+
+    # ── Scoops (protein powder, ice cream) ──
+    if u in ("scoop", "scoops"):
+        return round(value * (66.0 if "ice cream" in fn else 30.0), 1)
+
+    # ── Wedges ──
+    if u in ("wedge", "wedges"):
+        if any(k in fn for k in ("lemon", "lime")):
+            return round(value * 7.0, 1)
+        if "watermelon" in fn:
+            return round(value * 280.0, 1)
+        return round(value * 30.0, 1)
+
+    # ── Cuts / chips (small pieces of a larger food) ──
+    if u in ("cut", "cuts", "chip", "chips"):
+        return round(value * 10.0, 1)  # ~10 g per fried plantain cut / chip
+
+    # ── Bunch (leafy/herb) ──
+    if u in ("bunch", "bunches"):
+        if any(k in fn for k in ("herb", "parsley", "cilantro", "coriander", "basil",
+                                 "mint", "dill", "scallion", "green onion", "chive")):
+            return round(value * 50.0, 1)
+        if any(k in fn for k in ("spinach", "kale", "chard", "lettuce", "greens",
+                                 "bitter leaf", "ugu", "spinach")):
+            return round(value * 150.0, 1)
+        return round(value * 150.0, 1)  # leek/celery/other bunch default
+
+    # ── Other count/piece units ──
+    if u in ("piece", "pieces"):
+        # Small "cuts/chips/bites" of a larger food (e.g. fried plantain cuts).
+        if any(w in fn for w in ("chip", "cut", "crisp", "nugget", "bite", "cube", "crouton")):
+            return _count_to_grams(value, 10.0)
+        for key, weight in _PIECE_WEIGHTS_G.items():
+            if key in fn or fn in key:
+                return _count_to_grams(value, weight)
+        return _count_to_grams(value, 100.0)  # generic 100 g fallback
 
     # ── No unit stated — try piece weight then default ──
     for key, weight in _PIECE_WEIGHTS_G.items():
         if key in fn or fn in key:
-            return round(value * weight, 1)
+            return _count_to_grams(value, weight)
     return _default_g(fn)
+
+
+def _count_to_grams(value: float, weight_per_item: float) -> float:
+    """Grams from a COUNT × per-item weight, with a sanity cap. A count implying
+    >1500 g of a single item (e.g. "100 of chicken thigh" → 100×116 g) is almost
+    certainly grams the user wrote without the unit — fall back to treating the
+    number as grams."""
+    grams = value * weight_per_item
+    if grams > 1500 and value > 12:
+        return round(value, 1)
+    return round(grams, 1)
 
 
 def _default_g(food_name: str) -> float:
@@ -421,8 +571,13 @@ def _default_g(food_name: str) -> float:
 
 # ── Segment splitting ─────────────────────────────────────────────────────────
 
+# Split on a top-level " and "/" & "/" plus ", but NOT when it's part of a numeric
+# quantity ("1 and a half", "1 and 1/2") — guarded by the negative lookahead.
+_AND_SPLIT_RE = re.compile(r"\s+(?:and|&|plus)\s+(?!(?:a\s+)?half\b|\d)", re.IGNORECASE)
+
+
 def _split_top_level(text: str) -> list[str]:
-    """Split on commas/semicolons that are NOT inside parentheses."""
+    """Split on commas/semicolons (and top-level conjunctions) outside parentheses."""
     parts: list[str] = []
     depth = 0
     buf: list[str] = []
@@ -433,7 +588,7 @@ def _split_top_level(text: str) -> list[str]:
         elif ch == ")":
             depth = max(depth - 1, 0)
             buf.append(ch)
-        elif ch in ",;" and depth == 0:
+        elif ch in ",;\n\r" and depth == 0:
             seg = "".join(buf).strip()
             if seg:
                 parts.append(seg)
@@ -443,7 +598,17 @@ def _split_top_level(text: str) -> list[str]:
     seg = "".join(buf).strip()
     if seg:
         parts.append(seg)
-    return parts
+
+    # Secondary pass: split each paren-free segment on a top-level conjunction so
+    # "2 tbsp apple cider vinegar and cold water" → two foods. Segments containing
+    # parentheses are left intact (their sub-ingredients are expanded separately).
+    expanded: list[str] = []
+    for p in parts:
+        if "(" in p:
+            expanded.append(p)
+        else:
+            expanded.extend(s.strip() for s in _AND_SPLIT_RE.split(p) if s.strip())
+    return expanded
 
 
 # ── Segment parser ────────────────────────────────────────────────────────────
@@ -472,6 +637,8 @@ def _parse_segment(segment: str) -> tuple[str, float, str, str | None]:
         qty_str = m_qty.group("qty").strip()
         qty_val = _qty_str_to_float(qty_str)
         rest = seg[m_qty.end():].strip()
+        # Skip a size adjective between the number and the unit ("1 large cup of …").
+        rest = re.sub(r"^(?:large|small|medium|big|whole)\s+", "", rest, flags=re.IGNORECASE).strip()
 
         # Try to match a unit token immediately after
         m_unit = _SEG_UNIT_RE.match(rest)
@@ -492,10 +659,39 @@ def _parse_segment(segment: str) -> tuple[str, float, str, str | None]:
         qty_g = _to_grams(qty_val, unit_str, food_name)
         return food_name, qty_g, qty_text, parens
 
-    # No quantity — assign default weight
+    # No leading quantity. If the parentheses hold a QUANTITY (e.g.
+    # "Organic Leek(0.1 bunch)", "mushrooms (0.8 Ounce)") use it as the item's
+    # amount instead of expanding it as sub-ingredients.
     food_name = _clean_food_name(seg)
+    if parens:
+        pq = _parse_quantity_phrase(parens, food_name)
+        if pq is not None:
+            qty_g, qty_text = pq
+            return food_name, qty_g, qty_text, None  # parens consumed as quantity
     qty_g = _default_g(food_name)
     return food_name, qty_g, "default", parens
+
+
+def _parse_quantity_phrase(text: str, food_name: str) -> tuple[float, str] | None:
+    """Parse a standalone 'N unit' phrase (no trailing food words) → (grams, label).
+    Returns None if `text` isn't a pure quantity (e.g. a sub-ingredient list)."""
+    s = text.strip()
+    if "," in s:  # ingredient list, not a quantity
+        return None
+    m_qty = _SEG_QTY_RE.match(s)
+    if not m_qty:
+        return None
+    qty_val = _qty_str_to_float(m_qty.group("qty").strip())
+    rest = s[m_qty.end():].strip()
+    m_unit = _SEG_UNIT_RE.match(rest)
+    if m_unit:
+        if rest[m_unit.end():].strip():  # extra words after unit → not pure quantity
+            return None
+        unit = m_unit.group("unit").strip()
+        return _to_grams(qty_val, unit, food_name), f"{m_qty.group('qty').strip()} {unit}"
+    if not rest:  # bare count
+        return _to_grams(qty_val, "", food_name), m_qty.group("qty").strip()
+    return None
 
 
 # ── Public API ────────────────────────────────────────────────────────────────

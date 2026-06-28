@@ -80,6 +80,11 @@ async def update_profile(
             current_user.locale, current_user.country
         )
 
+    # Mirror Profile insurance edits into the user's Insurance Plans (primary plan).
+    if any(k in changed for k in ("insurance_id", "insurance_provider", "insurance_country")):
+        from app.services.insurance_sync import sync_profile_to_plan
+        await sync_profile_to_plan(db, current_user)
+
     await db.flush()
     await db.refresh(current_user)
     result = await db.execute(

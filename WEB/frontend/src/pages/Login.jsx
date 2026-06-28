@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,7 +21,7 @@ export default function Login() {
       await login(email, password);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed');
+      setError(apiErrorMessage(err, 'Login failed'));
     }
   }
 

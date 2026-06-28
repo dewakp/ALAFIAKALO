@@ -111,6 +111,9 @@ interface ApiService {
     @GET("nutrition/daily-summary")
     suspend fun getNutritionDailySummary(@Query("date") date: String): DailySummary
 
+    @GET("nutrition/goal-progress")
+    suspend fun getNutritionGoalProgress(@Query("date") date: String): GoalProgressResponse
+
     // Labs Endpoints
     @GET("labs")
     suspend fun getLabResults(
@@ -188,6 +191,13 @@ interface ApiService {
 
     @GET("ai/personas")
     suspend fun getAIPersonas(): List<AIPersona>
+
+    @POST("ai/route")
+    suspend fun routePrompt(@Body request: AIRouteRequest): AIRouteResponse
+
+    @Multipart
+    @POST("ai/vision")
+    suspend fun routeVision(@Part file: MultipartBody.Part): AIVisionResponse
 
     // Privacy Endpoints
     @GET("privacy/settings")

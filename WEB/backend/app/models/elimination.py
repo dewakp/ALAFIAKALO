@@ -83,7 +83,12 @@ class UrinationLog(Base):
     # Context
     location: Mapped[str | None] = mapped_column(String(50))
     nighttime: Mapped[bool | None] = mapped_column(Boolean)  # nocturia tracking
-    
+
+    # Shared elimination fields (parity with bowel_movements / reference UI)
+    pre_event_weight_kg: Mapped[float | None] = mapped_column(Float)
+    post_event_weight_kg: Mapped[float | None] = mapped_column(Float)
+    image_uri: Mapped[str | None] = mapped_column(Text)
+
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -126,7 +131,12 @@ class VomitingLog(Base):
     diarrhea: Mapped[bool | None] = mapped_column(Boolean)
     headache: Mapped[bool | None] = mapped_column(Boolean)
     dizziness: Mapped[bool | None] = mapped_column(Boolean)
-    
+
+    # Shared elimination fields (parity with bowel_movements / reference UI)
+    pre_event_weight_kg: Mapped[float | None] = mapped_column(Float)
+    post_event_weight_kg: Mapped[float | None] = mapped_column(Float)
+    image_uri: Mapped[str | None] = mapped_column(Text)
+
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

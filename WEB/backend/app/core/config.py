@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # Shared 6IGMA Identity service (SSO via RS256 JWT verified through JWKS).
+    IDENTITY_ENABLED: bool = True
+    IDENTITY_BASE_URL: str = "http://identity:8000"
+    IDENTITY_ISSUER: str = "6igma-identity"
+    IDENTITY_AUDIENCE: str = "alafia"
+    # Shared secret for the Firebase→IdP password-migration bridge (must match the
+    # identity service's IDENTITY_MIGRATION_SECRET).
+    IDENTITY_MIGRATION_SECRET: str = "dev-migration-secret-change-me"
+
     # CORS
     CORS_ORIGINS: list[str] = [
         "http://localhost:5173",  # Vite dev server
@@ -72,6 +81,13 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
     OLLAMA_MODEL: str = "gpt-oss:20b"  # 20B model; use llama3.2:latest for faster but weaker responses
     OLLAMA_TIMEOUT: int = 120  # seconds
+
+    # Whisper speech-to-text (Voice Phase 7). Leave WHISPER_BASE_URL empty to use
+    # the OpenAI hosted Whisper fallback (requires OPENAI_API_KEY); set it to a
+    # self-hosted OpenAI-compatible server (faster-whisper / whisper.cpp) to keep
+    # audio on ALAFIA infrastructure.
+    WHISPER_BASE_URL: str = ""
+    WHISPER_MODEL: str = "whisper-1"
 
     # OpenAI (cloud fallback for AI nutrient estimation)
     OPENAI_API_KEY: str = ""

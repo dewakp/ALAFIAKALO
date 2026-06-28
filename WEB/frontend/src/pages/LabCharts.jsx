@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import {
   Activity,
@@ -225,7 +226,7 @@ export default function LabCharts() {
       setGroups(Array.isArray(res.data) ? res.data : res.data.groups || []);
     } catch (err) {
       console.error('Failed to load lab chart groups:', err);
-      setError(err.response?.data?.detail || 'Failed to load lab chart data.');
+      setError(apiErrorMessage(err, 'Failed to load lab chart data.'));
     } finally {
       setLoading(false);
     }

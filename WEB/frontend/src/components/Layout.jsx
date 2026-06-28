@@ -45,6 +45,8 @@ import {
   BookOpen,
   AlertTriangle,
   History,
+  Moon,
+  Network,
 } from 'lucide-react';
 
 // Roles that can see the Clinician Dashboard
@@ -68,10 +70,13 @@ function isClinician(user) {
 }
 
 const navGroups = [
+  // Prompt Hub — the modality-aware entry point (Basis.md)
+  { to: '/', icon: Bot, label: 'Ask ALAFIA' },
   // ── Firebase-matching primary nav ──
   {
     label: 'Overview & Analysis', icon: LayoutDashboard, children: [
-      { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/insights', icon: Network, label: 'Health Insights' },
       { to: '/chart-dashboard', icon: TrendingUp, label: 'Health Trends' },
       { to: '/wellness', icon: Gauge, label: 'Wellness Score' },
       { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
@@ -83,14 +88,17 @@ const navGroups = [
       { to: '/nutrition', icon: Apple, label: 'Log Food Intake' },
       { to: '/meals-diary', icon: BookOpen, label: 'Meals Diary' },
       { to: '/nutrient-tracking', icon: BarChart3, label: 'Nutrient Tracking' },
+      { to: '/pantry', icon: Package, label: 'Pantry' },
     ],
   },
   { to: '/medications', icon: Pill, label: 'Medications' },
   {
     label: 'Activities & Logs', icon: Activity, children: [
       { to: '/journal', icon: BookOpen, label: 'Journal' },
-      { to: '/lifestyle', icon: HeartPulse, label: 'Daily Vitals' },
+      { to: '/vitals', icon: HeartPulse, label: 'Vitals' },
       { to: '/elimination', icon: FlaskRound, label: 'Elimination Log' },
+      { to: '/symptoms', icon: Activity, label: 'Symptoms' },
+      { to: '/sleep', icon: Moon, label: 'Sleep' },
     ],
   },
   {
@@ -120,7 +128,6 @@ const navGroups = [
       { to: '/telehealth', icon: Video, label: 'Telehealth' },
       { to: '/messaging', icon: MessageSquare, label: 'Messaging' },
       { to: '/pharmacy', icon: Pill, label: 'Pharmacy' },
-      { to: '/pantry', icon: Package, label: 'Pantry' },
       { to: '/image-ai', icon: ScanLine, label: 'Image AI' },
       { to: '/pdf-tools', icon: FileText, label: 'PDF Tools' },
       { to: '/capture', icon: Camera, label: 'Capture' },

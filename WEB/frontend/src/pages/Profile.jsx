@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import UnitToggle from '../components/UnitToggle';
+import { useUnits } from '../context/UnitsContext';
+import { apiErrorMessage } from '../utils/apiError';
 
 const emptyForm = {
   full_name: '',
@@ -42,6 +45,7 @@ const emptyForm = {
 };
 
 export default function Profile() {
+  const { system, isImperial, toDisplay, toMetric, unitLabel } = useUnits();
   const [form, setForm] = useState(emptyForm);
   const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
@@ -49,10 +53,32 @@ export default function Profile() {
   const [messageType, setMessageType] = useState('info');
   // Track which set-once fields already have values (locked)
   const [locked, setLocked] = useState({ date_of_birth: false, gender_at_birth: false, blood_type: false });
+  // Physical fields are stored canonical-metric in `form`, but edited in the
+  // active unit system. `phys` holds the display-system strings the user types;
+  // it is re-derived from metric whenever the metric value or the system changes.
+  const [phys, setPhys] = useState({ height_cm: '', current_weight_kg: '', target_weight_kg: '' });
 
   useEffect(() => {
     loadProfile();
   }, []);
+
+  // Re-derive the display values when the user flips the Metric/Imperial toggle.
+  // (Deliberately depends only on `system` — not on `form` — so it never clobbers
+  // what the user is actively typing into a physical field.)
+  useEffect(() => {
+    setPhys({
+      height_cm: toDisplayStr(form.height_cm, 'length'),
+      current_weight_kg: toDisplayStr(form.current_weight_kg, 'mass'),
+      target_weight_kg: toDisplayStr(form.target_weight_kg, 'mass'),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [system]);
+
+  function toDisplayStr(metricVal, measurement) {
+    if (metricVal === '' || metricVal === null || metricVal === undefined) return '';
+    const v = toDisplay(metricVal, measurement);
+    return v === '' || v === null || v === undefined ? '' : String(v);
+  }
 
   async function loadProfile() {
     const { data } = await api.get('/users/me');
@@ -62,11 +88,24 @@ export default function Profile() {
       loaded[key] = data[key] ?? emptyForm[key];
     }
     setForm(loaded);
+    setPhys({
+      height_cm: toDisplayStr(loaded.height_cm, 'length'),
+      current_weight_kg: toDisplayStr(loaded.current_weight_kg, 'mass'),
+      target_weight_kg: toDisplayStr(loaded.target_weight_kg, 'mass'),
+    });
     setLocked({
       date_of_birth: !!data.date_of_birth,
       gender_at_birth: !!data.gender_at_birth,
       blood_type: !!data.blood_type,
     });
+  }
+
+  // User typed into a physical field (value is in the active display system) —
+  // keep the raw string in `phys` and the canonical metric in `form`.
+  function updatePhysField(field, measurement, value) {
+    setPhys((prev) => ({ ...prev, [field]: value }));
+    const metricVal = value === '' ? '' : toMetric(value, measurement);
+    setForm((prev) => ({ ...prev, [field]: metricVal }));
   }
 
   function updateField(field, value) {
@@ -78,13 +117,19 @@ export default function Profile() {
     setSaving(true);
     setMessage('');
     try {
-      // Build payload: only send fields that changed
-      const payload = { ...form };
-      // Convert numeric fields
-      if (payload.height_cm) payload.height_cm = parseFloat(payload.height_cm) || null;
-      if (payload.current_weight_kg) payload.current_weight_kg = parseFloat(payload.current_weight_kg) || null;
-      if (payload.target_weight_kg) payload.target_weight_kg = parseFloat(payload.target_weight_kg) || null;
-      if (payload.exercise_frequency_per_week) payload.exercise_frequency_per_week = parseInt(payload.exercise_frequency_per_week) || null;
+      // Build payload. Physical fields in `form` are already canonical metric
+      // (updatePhysField converts on entry). The unit preference comes from the
+      // shared UnitsContext rather than a form field.
+      const payload = { ...form, preferred_units: system };
+      // Numeric fields: an empty string is NOT a valid float/int — Pydantic
+      // rejects "" with a 422. Coerce empty → null. (String fields accept "",
+      // and set-once fields like date_of_birth must keep "" so the backend
+      // treats them as unchanged rather than a null "change".)
+      const toNum = (v, parse) => (v === '' || v == null ? null : (parse(v) || null));
+      payload.height_cm = toNum(payload.height_cm, parseFloat);
+      payload.current_weight_kg = toNum(payload.current_weight_kg, parseFloat);
+      payload.target_weight_kg = toNum(payload.target_weight_kg, parseFloat);
+      payload.exercise_frequency_per_week = toNum(payload.exercise_frequency_per_week, parseInt);
       await api.patch('/users/me', payload);
       setMessage('Profile updated successfully.');
       setMessageType('info');
@@ -95,7 +140,7 @@ export default function Profile() {
         blood_type: !!form.blood_type,
       });
     } catch (err) {
-      setMessage(err.response?.data?.detail || 'Failed to update profile.');
+      setMessage(apiErrorMessage(err, 'Failed to update profile.'));
       setMessageType('error');
     } finally {
       setSaving(false);
@@ -202,18 +247,23 @@ export default function Profile() {
             {sectionTitle('Physical Characteristics')}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Height (cm)</label>
-                <input className="form-input" type="number" step="0.1" value={form.height_cm} onChange={(e) => updateField('height_cm', e.target.value)} />
+                <label className="form-label">{`Height (${unitLabel('length')})`}</label>
+                <input className="form-input" type="number" step="0.1" value={phys.height_cm} onChange={(e) => updatePhysField('height_cm', 'length', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Current Weight (kg)</label>
-                <input className="form-input" type="number" step="0.1" value={form.current_weight_kg} onChange={(e) => updateField('current_weight_kg', e.target.value)} />
+                <label className="form-label">{`Current Weight (${unitLabel('mass')})`}</label>
+                <input className="form-input" type="number" step="0.1" value={phys.current_weight_kg} onChange={(e) => updatePhysField('current_weight_kg', 'mass', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Target Weight (kg)</label>
-                <input className="form-input" type="number" step="0.1" value={form.target_weight_kg} onChange={(e) => updateField('target_weight_kg', e.target.value)} />
+                <label className="form-label">{`Target Weight (${unitLabel('mass')})`}</label>
+                <input className="form-input" type="number" step="0.1" value={phys.target_weight_kg} onChange={(e) => updatePhysField('target_weight_kg', 'mass', e.target.value)} />
               </div>
             </div>
+            {isImperial && (
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary, #777)', margin: '0.25rem 0 0' }}>
+                Values are stored in metric and shown here in imperial.
+              </p>
+            )}
           </div>
 
           {/* ── Location & Culture ── */}
@@ -244,11 +294,12 @@ export default function Profile() {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Units</label>
-                <select className="form-input" value={form.preferred_units} onChange={(e) => updateField('preferred_units', e.target.value)}>
-                  <option value="">—</option>
-                  <option value="metric">Metric</option>
-                  <option value="imperial">Imperial</option>
-                </select>
+                <div>
+                  <UnitToggle />
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary, #777)', margin: '0.35rem 0 0' }}>
+                  Applies across the app and is saved to your profile.
+                </p>
               </div>
             </div>
           </div>

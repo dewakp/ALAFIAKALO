@@ -1,6 +1,6 @@
 """Medication schemas."""
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Any
 from pydantic import BaseModel
 
@@ -64,9 +64,18 @@ class MedicationResponse(BaseModel):
 class MedicationDoseLogCreate(BaseModel):
     medication_name: str
     log_date: date
+    log_time: time | None = None
     dose_amount: float
     dose_unit: str
     medication_id: int | None = None     # FK to medications table (optional)
+    pre_systolic_bp: int | None = None
+    pre_diastolic_bp: int | None = None
+    pre_heart_rate: int | None = None
+    post_systolic_bp: int | None = None
+    post_diastolic_bp: int | None = None
+    post_heart_rate: int | None = None
+    pre_temperature_c: float | None = None
+    post_temperature_c: float | None = None
     notes: str | None = None
 
 
@@ -77,8 +86,17 @@ class MedicationDoseLogResponse(BaseModel):
     med_profile_id: int | None = None
     medication_name: str
     log_date: date
+    log_time: time | None = None
     dose_amount: float
     dose_unit: str
+    pre_systolic_bp: int | None = None
+    pre_diastolic_bp: int | None = None
+    pre_heart_rate: int | None = None
+    post_systolic_bp: int | None = None
+    post_diastolic_bp: int | None = None
+    post_heart_rate: int | None = None
+    pre_temperature_c: float | None = None
+    post_temperature_c: float | None = None
     nutrients_contributed: dict[str, Any] | None = None
     nutrients_resolved: bool
     notes: str | None = None

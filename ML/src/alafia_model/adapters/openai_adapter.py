@@ -53,10 +53,19 @@ class OpenAIAdapter(BaseAdapter):
         messages: list[dict[str, str]],
         temperature: float = 0.5,
         max_tokens: int = 2048,
+        json_mode: bool = False,
     ) -> dict[str, Any]:
         if not self._api_key:
             raise RuntimeError("OpenAI API key not configured")
         # TODO(alafia-model): remove this adapter once ALAFIAModel Phase 3 is live
+        body: dict[str, Any] = {
+            "model": self.model_name,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if json_mode:
+            body["response_format"] = {"type": "json_object"}
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(
                 _OPENAI_CHAT_URL,
@@ -64,13 +73,7 @@ class OpenAIAdapter(BaseAdapter):
                     "Authorization": f"Bearer {self._api_key}",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "model": self.model_name,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                    "response_format": {"type": "json_object"},
-                },
+                json=body,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -85,9 +88,11 @@ class OpenAIAdapter(BaseAdapter):
         temperature: float = 0.3,
         max_tokens: int = 1024,
     ) -> dict[str, Any]:
-        # OpenAI completion via chat endpoint (legacy /completions is deprecated)
+        # OpenAI completion via chat endpoint (legacy /completions is deprecated).
+        # complete() is used for structured generation, so request JSON output.
         return await self.chat(
             messages=[{"role": "user", "content": prompt}],
             temperature=temperature,
             max_tokens=max_tokens,
+            json_mode=True,
         )

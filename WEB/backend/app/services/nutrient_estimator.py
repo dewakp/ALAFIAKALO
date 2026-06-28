@@ -108,21 +108,58 @@ def _tokenize_food_text(text: str) -> set[str]:
     }
 
 
+def _stem(token: str) -> str:
+    """Crude singular/plural stem so 'eggs'~'egg', 'crackers'~'cracker'."""
+    return token[:-1] if len(token) > 3 and token.endswith("s") else token
+
+
+# When a query is a bare food name, prefer the base/raw USDA entry and avoid
+# processed variants (which are far more calorie-dense), e.g. "Banana, raw" (~89)
+# over "Banana, baked" / "Bananas, dehydrated" (~160–346).
+_RAW_TOKENS = {"raw", "fresh"}
+_PROCESSED_TOKENS = {
+    "baked", "candied", "dehydrated", "dried", "fried", "roasted", "toasted",
+    "powder", "powdered", "juice", "canned", "sweetened", "syrup", "chip", "chips",
+    "bread", "bean", "sauce", "cake", "pie", "jam", "jelly", "glazed", "battered",
+    "breaded", "smoked", "cured", "fritter", "flour", "concentrate", "crisp",
+}
+
+
+def _rank_score(query: str, description: str | None, base_ratio: float) -> float:
+    """Ranking score (higher = better): token overlap, + bonus for raw/base form,
+    − penalty per processed descriptor not present in the query."""
+    d = {_stem(t) for t in re.findall(r"[a-z0-9]+", (description or "").lower()) if len(t) >= 3}
+    q = {_stem(t) for t in re.findall(r"[a-z0-9]+", query.lower()) if len(t) >= 3}
+    bonus = 0.5 if d & _RAW_TOKENS else 0.0
+    penalty = 0.15 * len((d & _PROCESSED_TOKENS) - q)
+    return base_ratio + bonus - penalty
+
+
+def _match_score(query: str, description: str | None) -> float | None:
+    """Lexical relevance score for a USDA description, or None if it's not a match.
+
+    A match REQUIRES the query's head noun (last meaningful token, ≈ the actual
+    food) to be present, plus ≥50% token overlap. This stops e.g. 'cold water'
+    from matching 'Oil, flaxseed, cold pressed' (they share only 'cold', not the
+    head noun 'water'), which previously yielded 884 kcal/100 g for water.
+    """
+    if not description:
+        return None
+    q = [_stem(t) for t in re.findall(r"[a-z0-9]+", query.lower()) if len(t) >= 3]
+    d = {_stem(t) for t in re.findall(r"[a-z0-9]+", description.lower()) if len(t) >= 3}
+    if not q or not d:
+        return None
+    q_set = set(q)
+    ratio = len(q_set & d) / len(q_set)
+    head = q[-1]  # head noun ≈ the food itself (e.g. 'vinegar', 'water', 'thigh')
+    if head not in d or ratio < 0.5:
+        return None
+    return ratio
+
+
 def _is_relevant_usda_match(query: str, description: str | None) -> bool:
     """Return True when USDA description is a reasonably close lexical match."""
-    if not description:
-        return False
-
-    query_tokens = _tokenize_food_text(query)
-    desc_tokens = _tokenize_food_text(description)
-    if not query_tokens or not desc_tokens:
-        return False
-
-    overlap = query_tokens.intersection(desc_tokens)
-    overlap_ratio = len(overlap) / len(query_tokens)
-
-    # Require at least half of the query tokens to be present in the USDA result.
-    return overlap_ratio >= 0.5
+    return _match_score(query, description) is not None
 
 
 # ── Cache layer ───────────────────────────────────────────────────────────────
@@ -214,21 +251,27 @@ async def _try_usda_single(food_name: str) -> dict | None:
     if not results:
         return None
 
-    # Pick the first Foundation or SR Legacy match, else first result.
-    best = results[0]
-    for r in results:
-        if r.get("data_type") in ("Foundation", "SR Legacy"):
-            best = r
-            break
+    # Rank ALL candidates by lexical relevance (head-noun match + token overlap),
+    # then prefer Foundation/SR Legacy, then USDA's own order. Picking the *best*
+    # match — not merely the first SR Legacy row — prevents an incidental token
+    # collision (e.g. 'cold') from selecting a wrong, calorie-dense food.
+    scored = []
+    for idx, r in enumerate(results):
+        desc = r.get("description")
+        ratio = _match_score(food_name, desc)
+        if ratio is None:
+            continue
+        rank = _rank_score(food_name, desc, ratio)  # raw-bonus / processed-penalty
+        dt_pref = 0 if r.get("data_type") in ("Foundation", "SR Legacy") else 1
+        scored.append((-rank, dt_pref, idx, r))
 
-    # Reject weak lexical matches so unknown foods can fall back to AI.
-    if not _is_relevant_usda_match(food_name, best.get("description")):
-        logger.info(
-            "USDA result rejected as weak match for '%s' -> '%s'",
-            food_name,
-            best.get("description"),
-        )
+    if not scored:
+        logger.info("No relevant USDA match for '%s' (candidates: %s)",
+                    food_name, [r.get("description") for r in results[:5]])
         return None
+
+    scored.sort(key=lambda x: (x[0], x[1], x[2]))
+    best = scored[0][-1]
 
     # If the best result has very few nutrients, try getting full detail.
     nutrients = best.get("nutrients", {})
@@ -407,87 +450,26 @@ async def _try_usda(food_name: str) -> dict | None:
 # ── AI estimation ─────────────────────────────────────────────────────────────
 
 
+# TODO(alafia-model): replace with ALAFIAModel.NLM nutrient lookup — Phase 4
 async def _try_ai(food_name: str, serving_size: str | None = None) -> dict | None:
-    """Estimate nutrients via AI. Tries Ollama first, then OpenAI."""
+    """Estimate nutrients via the ALAFIAModel router (Ollama local → OpenAI fallback)."""
     user_msg = f"Food: {food_name}"
     if serving_size:
         user_msg += f"\nServing: {serving_size}"
 
-    # Try Ollama (local)
-    result = await _call_ollama(user_msg)
-    if result:
-        result["ai_model"] = settings.OLLAMA_MODEL
-        return result
+    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
 
-    # Try OpenAI (cloud)
-    result = await _call_openai(user_msg)
-    if result:
-        return result
-
-    return None
-
-
-# TODO(alafia-model): replace with ALAFIAModel.NLM nutrient lookup — Phase 4
-async def _call_ollama(user_msg: str) -> dict | None:
-    """Call local Ollama for nutrient estimation."""
-    url = f"{settings.OLLAMA_BASE_URL}/api/chat"
-    payload = {
-        "model": settings.OLLAMA_MODEL,
-        "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": user_msg},
-        ],
-        "stream": False,
-        "format": "json",
-        "options": {"temperature": 0.3},
-    }
+    messages = [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "user", "content": user_msg},
+    ]
     try:
-        async with httpx.AsyncClient(timeout=float(settings.OLLAMA_TIMEOUT)) as client:
-            resp = await client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-    except Exception:
-        logger.debug("Ollama unavailable, will try OpenAI", exc_info=True)
+        raw = await alafia_chat(messages, temperature=0.3, max_tokens=1500, json_mode=True)
+    except ALAFIAModelError:
+        logger.debug("ALAFIAModel LLM unavailable for nutrient estimation", exc_info=True)
         return None
 
-    return _parse_ai_response(data.get("message", {}).get("content", ""), settings.OLLAMA_MODEL)
-
-
-# TODO(alafia-model): remove once ALAFIAModel Phase 4 (NLM + USDA/WAFCT RAG) is live
-async def _call_openai(user_msg: str) -> dict | None:
-    """Call OpenAI API for nutrient estimation."""
-    api_key = settings.OPENAI_API_KEY if hasattr(settings, "OPENAI_API_KEY") else None
-    if not api_key:
-        return None
-
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": _SYSTEM_PROMPT},
-                        {"role": "user", "content": user_msg},
-                    ],
-                    "temperature": 0.3,
-                    "max_tokens": 1500,
-                    "response_format": {"type": "json_object"},
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-    except Exception:
-        logger.warning("OpenAI call failed", exc_info=True)
-        return None
-
-    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-    model = data.get("model", "gpt-4o-mini")
-    return _parse_ai_response(content, model)
+    return _parse_ai_response(raw, "alafia-model")
 
 
 def _parse_ai_response(raw: str, model: str) -> dict | None:
@@ -538,6 +520,65 @@ def _parse_ai_response(raw: str, model: str) -> dict | None:
     }
 
 
+# ── Curated overrides ───────────────────────────────────────────────────────
+# Common, easily-mismatched items (esp. zero-calorie drinks) that the USDA/branded
+# APIs and small LLMs get badly wrong — e.g. plain water matching "Cold Water
+# Lobster" or flaxseed oil. These are authoritative and checked FIRST.
+
+# Words that may decorate "water" without changing that it's 0-kcal water.
+_WATER_MODIFIERS = {
+    "a", "some", "glass", "glasses", "cup", "cups", "of", "cold", "warm", "hot",
+    "iced", "ice", "tap", "room", "temperature", "sparkling", "mineral", "filtered",
+    "distilled", "plain", "fresh", "chilled", "bottle", "bottled", "bottles", "with",
+}
+
+
+_PLACEHOLDER_RE = re.compile(
+    r"^\s*(meal\s*\d*|snack|breakfast|lunch|dinner|food|n/?a|none|nil|test|"
+    r"same as (the )?previous.*|see (above|previous).*|leftover|unspecified|tbd|--?)\s*$",
+    re.IGNORECASE,
+)
+
+
+def _is_placeholder(text: str) -> bool:
+    """True for non-food / shell entries that must not yield fabricated calories."""
+    return not text or not text.strip() or bool(_PLACEHOLDER_RE.match(text.strip()))
+
+
+def _curated_lookup(food_name: str) -> tuple[str, dict] | None:
+    """Return (canonical_label, per-100g nutrients) for a curated food, else None."""
+    toks = re.findall(r"[a-z]+", food_name.lower())
+    if not toks:
+        return None
+    # Any mix of modifiers + "water" (cold/tap/sparkling/glass of water, …) → 0 kcal.
+    # Guarded so "coconut water", "tonic water", "water spinach", "watermelon" are
+    # NOT treated as plain water (they carry calories / are different foods).
+    if "water" in toks and all(t == "water" or t in _WATER_MODIFIERS for t in toks):
+        return ("Water", {"calories": 0.0, "protein_g": 0.0, "carbs_g": 0.0,
+                          "fat_g": 0.0, "sugar_g": 0.0, "fiber_g": 0.0, "water_ml": 100.0})
+    joined = " ".join(toks)
+    if joined in {"coffee", "black coffee", "espresso", "americano", "brewed coffee"}:
+        return ("Coffee, brewed, unsweetened",
+                {"calories": 1.0, "protein_g": 0.1, "carbs_g": 0.0, "fat_g": 0.0,
+                 "sugar_g": 0.0, "water_ml": 99.0, "potassium_mg": 49.0})
+    if joined in {"tea", "green tea", "black tea", "herbal tea", "plain tea",
+                  "brewed tea", "unsweetened tea"}:
+        return ("Tea, brewed, unsweetened",
+                {"calories": 1.0, "protein_g": 0.0, "carbs_g": 0.3, "fat_g": 0.0,
+                 "sugar_g": 0.0, "water_ml": 99.0})
+    # Bare "egg" is ambiguous in USDA (often resolves to low-cal egg WHITE ~55);
+    # people logging "egg(s)" mean a whole egg (~143). Prepared forms like
+    # "scrambled/fried eggs" still fall through to USDA's specific entries.
+    _WHOLE_EGG = {"calories": 143.0, "protein_g": 12.6, "carbs_g": 0.7, "fat_g": 9.5,
+                  "sugar_g": 0.4, "cholesterol_mg": 372.0, "water_ml": 76.0}
+    if joined in {"egg", "eggs", "whole egg", "whole eggs", "chicken egg", "chicken eggs"}:
+        return ("Egg, whole, raw", dict(_WHOLE_EGG))
+    if joined in {"boiled egg", "boiled eggs", "hard boiled egg", "hard boiled eggs",
+                  "hard-boiled egg", "soft boiled egg"}:
+        return ("Egg, whole, hard-boiled", {**_WHOLE_EGG, "calories": 155.0, "fat_g": 10.6})
+    return None
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
@@ -555,6 +596,24 @@ async def estimate_nutrients(
         source, fdc_id, ai_model, food_name, serving_size,
         serving_weight_g, confidence, nutrients, cached
     """
+    # -1. Learned values (user-verified corrections) — highest authority.
+    from app.services.learned_nutrient_service import get_learned
+    learned = await get_learned(db, food_name)
+    if learned:
+        logger.info("Learned nutrient match for '%s'", food_name)
+        return learned
+
+    # 0. Curated overrides (authoritative for common, often-mismatched items).
+    curated = _curated_lookup(food_name)
+    if curated:
+        label, nutrients = curated
+        logger.info("Curated nutrient match for '%s' -> '%s'", food_name, label)
+        return {
+            "source": "curated", "fdc_id": None, "ai_model": None,
+            "food_name": label, "serving_size": "100 g", "serving_weight_g": 100.0,
+            "confidence": 1.0, "nutrients": nutrients, "cached": False,
+        }
+
     # 1. Check cache
     cached = await _get_cached(db, food_name)
     if cached:
@@ -651,21 +710,31 @@ async def estimate_meal_nutrients(
     """
     from app.services.meal_parser import parse_meal_text
 
+    empty = {"description": description, "components": [],
+             "aggregate_nutrients": {}, "total_weight_g": 0.0}
+
+    # Non-food / placeholder entries (Firebase shells, "same as previous", bare
+    # "snack", "meal3", "n/a") must not be turned into fabricated calories.
+    if _is_placeholder(description):
+        return empty
+
     components = parse_meal_text(description)
     if not components:
-        return {
-            "description": description,
-            "components": [],
-            "aggregate_nutrients": {},
-            "total_weight_g": 0.0,
-        }
+        return empty
 
     component_results: list[dict] = []
     aggregate: dict[str, float] = {}
 
     for comp in components:
         est = await estimate_nutrients(db, comp.food_name)
-        per_100g = est.get("nutrients") or {}
+        per_100g = dict(est.get("nutrients") or {})
+
+        # Guard against bad source data: no real food exceeds ~884 kcal/100 g
+        # (pure fat). A higher value means a mis-scaled branded record (e.g. a
+        # Boost product returning 2960 kcal/100 g) — clamp it.
+        cal = per_100g.get("calories")
+        if isinstance(cal, (int, float)) and cal > 900:
+            per_100g["calories"] = 900.0
 
         # Scale each nutrient by the actual quantity proportion
         scale = comp.qty_g / 100.0

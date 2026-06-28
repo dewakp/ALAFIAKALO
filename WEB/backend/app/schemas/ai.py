@@ -57,3 +57,20 @@ class AIFeedbackRequest(BaseModel):
 class AIFeedbackResponse(BaseModel):
     ok: bool
     interaction_id: int
+
+
+class AIRouteRequest(BaseModel):
+    """A prompt-hub request — what the user typed/spoke + how they entered it."""
+    text: str | None = None
+    modality: str = "text"        # text | voice | image | video
+    has_attachment: bool = False
+
+
+class AIRouteResponse(BaseModel):
+    """Tells the client which existing screen to surface and how to pre-fill it."""
+    intent: str
+    confidence: float
+    route: str
+    action: str
+    prefill: dict = {}
+    assistant_message: str

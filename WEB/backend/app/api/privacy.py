@@ -8,8 +8,9 @@ from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from app.core.database import get_db
+from app.core.database import get_sync_db
 from app.core.security import get_current_user
+from app.models.user import User
 from app.services.privacy_service import PrivacyService
 from app.services.i18n_service import I18nService
 from app.models.privacy import (
@@ -138,11 +139,11 @@ class TranslationResponse(BaseModel):
 # ==================== CONSENT MANAGEMENT ====================
 
 @router.post("/consent", response_model=ConsentResponse)
-async def record_consent(
+def record_consent(
     consent_request: ConsentRequest,
     request: Request,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Record user consent (GDPR Article 7)
@@ -158,7 +159,7 @@ async def record_consent(
     user_agent = request.headers.get("user-agent")
     
     consent = privacy_service.record_consent(
-        user_id=current_user,
+        user_id=current_user.id,
         consent_type=consent_request.consent_type,
         consent_granted=consent_request.consent_granted,
         consent_version=consent_request.consent_version,
@@ -171,52 +172,52 @@ async def record_consent(
 
 
 @router.get("/consent", response_model=List[ConsentResponse])
-async def get_consents(
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+def get_consents(
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get all active consents for current user
     Shows what user has consented to
     """
     privacy_service = PrivacyService(db)
-    consents = privacy_service.get_active_consents(current_user)
+    consents = privacy_service.get_active_consents(current_user.id)
     return consents
 
 
 @router.get("/consent/{consent_type}/status")
-async def check_consent(
+def check_consent(
     consent_type: ConsentType,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Check if user has active consent for specific type
     Returns: {"has_consent": true/false}
     """
     privacy_service = PrivacyService(db)
-    has_consent = privacy_service.check_consent(current_user, consent_type)
+    has_consent = privacy_service.check_consent(current_user.id, consent_type)
     return {"has_consent": has_consent, "consent_type": consent_type.value}
 
 
 # ==================== PRIVACY SETTINGS ====================
 
 @router.get("/settings", response_model=PrivacySettingsResponse)
-async def get_privacy_settings(
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+def get_privacy_settings(
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get user's privacy settings"""
     privacy_service = PrivacyService(db)
-    settings = privacy_service.get_or_create_privacy_settings(current_user)
+    settings = privacy_service.get_or_create_privacy_settings(current_user.id)
     return settings
 
 
 @router.put("/settings", response_model=PrivacySettingsResponse)
-async def update_privacy_settings(
+def update_privacy_settings(
     settings_update: PrivacySettingsUpdate,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Update privacy settings
@@ -227,20 +228,20 @@ async def update_privacy_settings(
     # Convert to dict, excluding None values
     update_dict = {k: v for k, v in settings_update.dict().items() if v is not None}
     
-    settings = privacy_service.update_privacy_settings(current_user, update_dict)
+    settings = privacy_service.update_privacy_settings(current_user.id, update_dict)
     return settings
 
 
 # ==================== DATA ACCESS LOGS (GDPR Article 15) ====================
 
 @router.get("/access-logs", response_model=List[DataAccessLogResponse])
-async def get_access_logs(
+def get_access_logs(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     purpose: Optional[DataAccessPurpose] = None,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get data access logs (GDPR Article 15)
@@ -255,7 +256,7 @@ async def get_access_logs(
     """
     privacy_service = PrivacyService(db)
     logs = privacy_service.get_access_logs(
-        user_id=current_user,
+        user_id=current_user.id,
         start_date=start_date,
         end_date=end_date,
         purpose=purpose,
@@ -267,12 +268,12 @@ async def get_access_logs(
 # ==================== DATA EXPORT (GDPR Article 20) ====================
 
 @router.post("/export", response_model=ExportRequestResponse)
-async def request_data_export(
+def request_data_export(
     export_format: str = "json",
     include_attachments: bool = True,
     request: Request = None,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Request data export (GDPR Article 20 - Right to data portability)
@@ -288,7 +289,7 @@ async def request_data_export(
     ip_address = request.client.host if request and request.client else None
     
     export_request = privacy_service.request_data_export(
-        user_id=current_user,
+        user_id=current_user.id,
         export_format=export_format,
         include_attachments=include_attachments,
         ip_address=ip_address,
@@ -310,10 +311,10 @@ async def request_data_export(
 
 
 @router.get("/export/{request_id}", response_model=ExportRequestResponse)
-async def get_export_status(
+def get_export_status(
     request_id: int,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get status of data export request
@@ -321,7 +322,7 @@ async def get_export_status(
     """
     export_request = db.query(DataExportRequest).filter(
         DataExportRequest.id == request_id,
-        DataExportRequest.user_id == current_user,
+        DataExportRequest.user_id == current_user.id,
     ).first()
     
     if not export_request:
@@ -334,10 +335,10 @@ async def get_export_status(
 
 
 @router.get("/export/{request_id}/download")
-async def download_export(
+def download_export(
     request_id: int,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Download exported data
@@ -347,7 +348,7 @@ async def download_export(
     
     export_request = db.query(DataExportRequest).filter(
         DataExportRequest.id == request_id,
-        DataExportRequest.user_id == current_user,
+        DataExportRequest.user_id == current_user.id,
     ).first()
     
     if not export_request:
@@ -379,7 +380,7 @@ async def download_export(
     # Return file
     return FileResponse(
         path=export_request.file_path,
-        filename=f"alafia_data_export_{current_user}.{export_request.export_format}",
+        filename=f"alafia_data_export_{current_user.id}.{export_request.export_format}",
         media_type="application/json",
     )
 
@@ -387,11 +388,11 @@ async def download_export(
 # ==================== RIGHT TO BE FORGOTTEN (GDPR Article 17) ====================
 
 @router.post("/delete-account", response_model=DeletionRequestResponse)
-async def request_account_deletion(
+def request_account_deletion(
     reason: Optional[str] = None,
     request: Request = None,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Request account and data deletion (GDPR Article 17 - Right to be forgotten)
@@ -406,7 +407,7 @@ async def request_account_deletion(
     ip_address = request.client.host if request and request.client else None
     
     deletion_request = privacy_service.request_data_deletion(
-        user_id=current_user,
+        user_id=current_user.id,
         reason=reason,
         ip_address=ip_address,
     )
@@ -415,15 +416,15 @@ async def request_account_deletion(
 
 
 @router.get("/delete-account/status", response_model=DeletionRequestResponse)
-async def get_deletion_status(
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user),
+def get_deletion_status(
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Check status of account deletion request
     """
     deletion_request = db.query(DataDeletionRequest).filter(
-        DataDeletionRequest.user_id == current_user
+        DataDeletionRequest.user_id == current_user.id
     ).order_by(DataDeletionRequest.requested_at.desc()).first()
     
     if not deletion_request:
@@ -438,11 +439,11 @@ async def get_deletion_status(
 # ==================== TRANSLATIONS (i18n) ====================
 
 @router.get("/translations/{language_code}")
-async def get_translations(
+def get_translations(
     language_code: str,
     category: Optional[str] = None,
     platform: Optional[str] = None,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_sync_db),
 ):
     """
     Get all translations for a language
@@ -468,9 +469,9 @@ async def get_translations(
 
 
 @router.get("/languages")
-async def get_supported_languages(
+def get_supported_languages(
     accept_language: Optional[str] = Header(None),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_sync_db),
 ):
     """
     Get list of supported languages

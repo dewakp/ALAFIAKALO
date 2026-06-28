@@ -16,12 +16,41 @@ TODO(alafia-model): Phase 6 — build LayoutLM pipeline for lab report parsing
 
 from __future__ import annotations
 
+import base64
+import json
 import logging
+import os
+import re
 from typing import Any
 
 from alafia_model.capabilities.base import BaseCapability, CapabilityResult
 
 logger = logging.getLogger(__name__)
+
+# Vision-capable models used until the on-device MobileNetV3 classifier (Ph5) ships.
+# Dev default routes through local Ollama (a llava-family model); OpenAI is fallback.
+_DEFAULT_OLLAMA_VISION_MODEL = "llava"
+_DEFAULT_OPENAI_VISION_MODEL = "gpt-4o-mini"
+
+_FOOD_VISION_PROMPT = """\
+You are ALAFIA's food vision analyzer. Identify the foods in the photo and give a
+rough portion + nutrition estimate. You know West African, African diaspora, and
+global cuisines. Return ONLY a JSON object with exactly these keys:
+{
+  "items": [
+    {"name": "food name", "estimated_portion": "e.g. 1 cup / 150 g", "confidence": 0.0}
+  ],
+  "estimated_nutrition": {
+    "calories": null, "protein_g": null, "carbs_g": null, "fat_g": null
+  },
+  "notes": "one short line; mention if the photo is unclear"
+}
+
+Rules:
+- Estimates only — never claim precision. Use null when you cannot tell.
+- If the image has no food, return an empty items array and say so in notes.
+- Do NOT invent foods that are not visible.
+"""
 
 
 class VisionCapability(BaseCapability):
@@ -35,8 +64,17 @@ class VisionCapability(BaseCapability):
     """
 
     capability_id = "vision"
-    version = "0.1.0-scaffold"
-    is_implemented = False  # No model loaded yet
+    version = "0.2.0-vision-llm"
+    is_implemented = False  # No native model yet; relies on a vision LLM backend
+
+    def is_available(self) -> bool:
+        """Available when a vision-capable LLM backend is reachable.
+
+        Dev: local Ollama (OLLAMA_BASE_URL, a llava-family model). Prod/fallback:
+        OpenAI vision (OPENAI_API_KEY). Returns False only when neither is set,
+        so callers degrade to the manual capture flow.
+        """
+        return bool(os.environ.get("OLLAMA_BASE_URL") or os.environ.get("OPENAI_API_KEY"))
 
     async def infer(self, payload: dict[str, Any]) -> CapabilityResult:
         task = payload.get("task", "food_photo_nutrition")
@@ -54,23 +92,140 @@ class VisionCapability(BaseCapability):
         )
 
     async def _food_photo_nutrition(self, payload: dict) -> CapabilityResult:
-        # TODO(alafia-model): Phase 5 — load fine-tuned MobileNetV3 food classifier
-        # For now, fall back to LLM vision API if available
+        # TODO(alafia-model): Phase 5 — load fine-tuned MobileNetV3 food classifier.
+        # Until then, use a vision-capable LLM (OpenAI gpt-4o family) when configured.
         image_bytes: bytes | None = payload.get("image_bytes")
         if image_bytes is None:
             return CapabilityResult(success=False, error="image_bytes required")
 
-        logger.info(
-            "Vision food_photo_nutrition: Phase 5 model not yet trained. "
-            "Returning scaffold stub."
+        if not self.is_available():
+            return CapabilityResult(
+                success=False,
+                error=(
+                    "Vision backend not configured (no OPENAI_API_KEY). "
+                    "Save the photo via Capture or describe the meal in text."
+                ),
+            )
+
+        content_type = payload.get("content_type") or "image/jpeg"
+        result = await self._vision_chat(image_bytes, content_type, _FOOD_VISION_PROMPT)
+        if not result.success:
+            return result
+
+        parsed = self._parse_json(result.data.get("text", ""))
+        if parsed is None:
+            return CapabilityResult(
+                success=False, source=result.source,
+                error="Vision model returned unparseable output",
+            )
+        items = parsed.get("items") if isinstance(parsed.get("items"), list) else []
+        return CapabilityResult(
+            success=True,
+            data={
+                "items": items,
+                "estimated_nutrition": parsed.get("estimated_nutrition") or {},
+                "notes": parsed.get("notes") or "",
+            },
+            confidence=0.5,  # LLM estimate — deliberately modest until Ph5 model
+            source=result.source,
         )
+
+    async def _vision_chat(
+        self, image_bytes: bytes, content_type: str, system_prompt: str
+    ) -> CapabilityResult:
+        """Send an image + instruction to a vision LLM.
+
+        Dev default is local Ollama (a llava-family model); OpenAI vision is the
+        fallback. Returns the first successful response.
+        """
+        b64 = base64.b64encode(image_bytes).decode("ascii")
+        errors: list[str] = []
+
+        if os.environ.get("OLLAMA_BASE_URL"):
+            result = await self._ollama_vision(b64, system_prompt)
+            if result.success:
+                return result
+            errors.append(result.error or "ollama failed")
+
+        if os.environ.get("OPENAI_API_KEY"):
+            result = await self._openai_vision(b64, content_type, system_prompt)
+            if result.success:
+                return result
+            errors.append(result.error or "openai failed")
+
         return CapabilityResult(
             success=False,
-            error=(
-                "food_photo_nutrition is planned for ALAFIAModel Phase 5. "
-                "Use POST /nutrition/estimate-meal with a text description for now."
-            ),
+            error="; ".join(errors) or "No vision backend configured",
         )
+
+    async def _ollama_vision(self, image_b64: str, system_prompt: str) -> CapabilityResult:
+        """Run image understanding through a local Ollama vision model (llava)."""
+        from alafia_model.adapters.ollama_adapter import OllamaAdapter
+
+        model = os.environ.get("OLLAMA_VISION_MODEL", _DEFAULT_OLLAMA_VISION_MODEL)
+        adapter = OllamaAdapter(model=model, timeout=300.0)
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": "Analyze this image."},
+        ]
+        try:
+            response = await adapter.chat(
+                messages, temperature=0.2, max_tokens=700, json_mode=True, images=[image_b64]
+            )
+        except Exception as exc:
+            logger.warning("Ollama vision failed (%s); will try fallback if configured", exc)
+            return CapabilityResult(success=False, error=f"Ollama vision: {exc}")
+        return CapabilityResult(
+            success=True,
+            data={"text": response.get("content", "")},
+            source=f"vision-ollama:{response.get('model', model)}",
+        )
+
+    async def _openai_vision(
+        self, image_b64: str, content_type: str, system_prompt: str
+    ) -> CapabilityResult:
+        """Run image understanding through the OpenAI vision API (fallback)."""
+        from alafia_model.adapters.openai_adapter import OpenAIAdapter
+
+        adapter = OpenAIAdapter(
+            model=os.environ.get("OPENAI_VISION_MODEL", _DEFAULT_OPENAI_VISION_MODEL)
+        )
+        if not getattr(adapter, "is_available", False):
+            return CapabilityResult(success=False, error="OpenAI vision adapter unavailable")
+
+        data_uri = f"data:{content_type};base64,{image_b64}"
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Analyze this image."},
+                    {"type": "image_url", "image_url": {"url": data_uri}},
+                ],
+            },
+        ]
+        try:
+            response = await adapter.chat(messages, temperature=0.2, max_tokens=700, json_mode=True)
+        except Exception as exc:
+            logger.error("OpenAI vision call failed: %s", exc, exc_info=True)
+            return CapabilityResult(success=False, error=f"OpenAI vision: {exc}")
+        return CapabilityResult(
+            success=True,
+            data={"text": response.get("content", "")},
+            source=f"vision-openai:{response.get('model', adapter.model_name)}",
+        )
+
+    @staticmethod
+    def _parse_json(raw: str) -> dict | None:
+        if not raw:
+            return None
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if not match:
+            return None
+        try:
+            return json.loads(match.group(0))
+        except (json.JSONDecodeError, ValueError):
+            return None
 
     async def _lab_report_ocr(self, payload: dict) -> CapabilityResult:
         # TODO(alafia-model): Phase 6 — integrate Tesseract + LayoutLM

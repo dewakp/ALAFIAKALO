@@ -228,6 +228,38 @@ class MealPlanResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ── AI Meal Suggestions (goals + pantry aware) ───────────────
+class MealSuggestionRequest(BaseModel):
+    """Conversational meal-planner input (matches the AI Meal Planner UI)."""
+    health_goals: str = ""
+    preferences: str | None = None     # likes / dislikes, free text
+    pantry_items: str | None = None    # comma/newline list of on-hand ingredients
+    count: int = 3                     # how many meal suggestions to return
+
+
+class MealSuggestion(BaseModel):
+    name: str
+    meal_type: str = "meal"            # breakfast | lunch | dinner | snack | meal
+    description: str = ""
+    ingredients: list[str] = []
+    pantry_used: list[str] = []        # which of the user's pantry items it uses
+    missing_items: list[str] = []      # ingredients to buy (not in the pantry)
+    calories: float | None = None
+    protein_g: float | None = None
+    carbs_g: float | None = None
+    fat_g: float | None = None
+    rationale: str = ""                # why it fits the patient's goals / labs / conditions
+
+
+class MealSuggestionsResponse(BaseModel):
+    goals: str = ""
+    suggestions: list[MealSuggestion] = []
+    shopping_list: list[str] = []      # aggregated unique missing items across suggestions
+    advice: str = ""
+    used_ai: bool = True
+    pantry_saved: int = 0              # # of pantry items persisted to the profile
+
+
 # ── Exercise Planner ─────────────────────────────────────────
 class ExerciseItem(BaseModel):
     name: str
@@ -321,6 +353,9 @@ class FlowsheetPDFRequest(BaseModel):
 
 # ── FDA Recalls ──────────────────────────────────────────────
 class FDARecallItem(BaseModel):
+    product_type: str = "food"   # "food" | "drug"
+    source: str = "openFDA (US)"  # issuing authority
+    url: str | None = None        # link to the official notice
     recall_number: str | None = None
     reason: str | None = None
     status: str | None = None
@@ -328,8 +363,16 @@ class FDARecallItem(BaseModel):
     product_description: str | None = None
     recalling_firm: str | None = None
     recall_initiation_date: str | None = None
+    report_date: str | None = None
     classification: str | None = None
     voluntary_mandated: str | None = None
+    # Geographic coverage (for the map overlay)
+    city: str | None = None
+    state: str | None = None
+    country: str | None = None
+    states: list[str] = []      # US state codes parsed from the distribution pattern
+    countries: list[str] = []   # all ISO-2 countries the recall reached (incl. source)
+    nationwide: bool = False
 
 
 class FDARecallResponse(BaseModel):

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,7 +21,7 @@ export default function Register() {
     try {
       await register(email, password, fullName);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed');
+      setError(apiErrorMessage(err, 'Registration failed'));
     }
   }
 

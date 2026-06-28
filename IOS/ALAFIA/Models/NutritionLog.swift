@@ -261,4 +261,34 @@ struct DailySummary: Codable {
     }
 }
 
+// MARK: - Personalized daily nutrient goals (/nutrition/goal-progress)
+
+struct NutrientGoalProgress: Codable, Identifiable {
+    var id: String { key }
+    let key: String
+    let name: String
+    let unit: String
+    let current: Double
+    let goal: Double
+    let kind: String      // "target" (reach) | "limit" (stay under)
+    let pct: Double
+    let status: String    // low | ok | warning | over
+    let priority: Int
+    let rationale: String
+}
+
+struct GoalProgressResponse: Codable {
+    let date: String
+    let profileComplete: Bool
+    let energyKcal: Double
+    let conditions: [String]
+    let goals: [NutrientGoalProgress]
+
+    enum CodingKeys: String, CodingKey {
+        case date, conditions, goals
+        case profileComplete = "profile_complete"
+        case energyKcal = "energy_kcal"
+    }
+}
+
 

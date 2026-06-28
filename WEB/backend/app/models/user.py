@@ -85,6 +85,10 @@ class User(Base):
         String(255), unique=True, nullable=True, index=True,
         comment="255-char immutable System Identifier (SID)",
     )
+    identity_uid: Mapped[str | None] = mapped_column(
+        String(36), unique=True, nullable=True, index=True,
+        comment="UUID of the shared 6IGMA Identity user (reference key; zero duplication)",
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -112,7 +116,9 @@ class User(Base):
     symptom_logs = relationship("SymptomLog", back_populates="user", cascade="all, delete-orphan")
     illness_logs = relationship("IllnessLog", back_populates="user", cascade="all, delete-orphan")
     vitals_logs = relationship("VitalsLog", back_populates="user", cascade="all, delete-orphan")
-    
+    genetic_markers = relationship("GeneticMarker", back_populates="user", cascade="all, delete-orphan")
+    env_social_logs = relationship("EnvSocialLog", back_populates="user", cascade="all, delete-orphan")
+
     # AI Intelligence & Memory
     ai_memories = relationship("UserMemory", back_populates="user", cascade="all, delete-orphan")
     ai_interactions = relationship("AIInteraction", back_populates="user", cascade="all, delete-orphan")

@@ -9,9 +9,10 @@ asyncpg==0.30.0
 alembic==1.14.1
 psycopg2-binary==2.9.10
 
-# Auth
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+# Auth — PyJWT (maintained) + hybrid PQC (dilithium-py); Argon2id passwords (passlib[argon2])
+PyJWT[crypto]==2.10.1
+dilithium-py==1.4.0
+passlib[bcrypt,argon2]==1.7.4
 bcrypt==4.2.1
 
 # Validation & Settings
@@ -58,7 +59,8 @@ boto3==1.38.12
 redis[hiredis]==5.2.1
 
 # MCP (Model Context Protocol) — nutrition server + in-process tool calls
-# fastmcp>=2.0.0 conflicts with fastapi 0.115.6 (starlette version clash).
-# Tool functions in mcp_nutrition_server.py work without fastmcp (in-process calls).
-# Uncomment and pin a compatible version when upgrading FastAPI to 0.120+:
-# fastmcp>=2.0.0
+# fastmcp>=2.0.0 conflicts with fastapi 0.115.6 (starlette version clash), so it is
+# NOT installed here. The nutrition tools remain callable in-process without it, and
+# the MCP protocol endpoint runs in its own container (requirements-mcp.txt +
+# Dockerfile.mcp + the `mcp` service in WEB/docker-compose.yml). Install fastmcp into
+# this image only after bumping FastAPI to a Starlette-compatible version.

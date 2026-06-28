@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Save, BookOpen, Smile } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 const fmtDate = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -44,6 +46,12 @@ export default function Journal() {
     setShowForm(true);
   }
 
+  // Prompt Hub hand-off: open a new journal entry pre-filled with the prompt text.
+  usePromptPrefill((prefill) => {
+    setForm({ ...EMPTY, entry_date: selDate, notes: prefill.text || prefill.notes || '' });
+    setShowForm(true);
+  });
+
   async function handleSave(e) {
     e.preventDefault();
     setSaving(true);
@@ -55,7 +63,7 @@ export default function Journal() {
       setShowForm(false);
       load(selDate);
     } catch (err) {
-      alert(err?.response?.data?.detail || 'Error saving entry');
+      alert(apiErrorMessage(err, 'Error saving entry'));
     } finally { setSaving(false); }
   }
 

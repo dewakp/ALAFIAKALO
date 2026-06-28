@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import {
   Search, Plus, MapPin, Star, Heart, Trash2, Edit3, X,
@@ -190,7 +191,7 @@ export default function Physicians() {
     try {
       await api.delete(`/physicians/${id}`);
       setPhysicians(prev => prev.filter(p => p.id !== id));
-    } catch (err) { alert(err.response?.data?.detail || 'Cannot delete'); }
+    } catch (err) { alert(apiErrorMessage(err, 'Cannot delete')); }
   }
 
   // ── Map ──

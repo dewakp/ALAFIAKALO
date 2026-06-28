@@ -143,6 +143,28 @@ data class DailySummary(
     val nutrients: List<USDAFoodNutrient>
 )
 
+// Personalized daily nutrient goals (/nutrition/goal-progress)
+data class NutrientGoalProgress(
+    val key: String,
+    val name: String,
+    val unit: String,
+    val current: Float,
+    val goal: Float,
+    val kind: String,      // "target" (reach) | "limit" (stay under)
+    val pct: Float,
+    val status: String,    // low | ok | warning | over
+    val priority: Int,
+    val rationale: String
+)
+
+data class GoalProgressResponse(
+    val date: String,
+    @SerializedName("profile_complete") val profileComplete: Boolean,
+    @SerializedName("energy_kcal") val energyKcal: Float,
+    val conditions: List<String>,
+    val goals: List<NutrientGoalProgress>
+)
+
 // Lab Result
 data class LabResult(
     val id: Int,

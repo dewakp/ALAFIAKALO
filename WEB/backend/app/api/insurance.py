@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -44,6 +44,10 @@ async def list_insurances(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Materialise a plan from the Profile insurance fields if the user has none yet.
+    from app.services.insurance_sync import ensure_plan_from_profile
+    await ensure_plan_from_profile(db, current_user)
+
     query = select(Insurance).where(Insurance.user_id == current_user.id)
     if active_only:
         query = query.where(Insurance.is_active == True)
@@ -72,6 +76,14 @@ async def create_insurance(
     ins = Insurance(**ins_in.model_dump(), user_id=current_user.id)
     db.add(ins)
     await db.flush()
+
+    # Mirror the primary plan (or the user's first/only plan) back to the Profile.
+    plan_count = await db.scalar(
+        select(func.count(Insurance.id)).where(Insurance.user_id == current_user.id))
+    if ins.is_primary or plan_count == 1:
+        from app.services.insurance_sync import sync_plan_to_profile
+        await sync_plan_to_profile(db, current_user, ins)
+
     await db.refresh(ins)
     return ins
 
@@ -123,6 +135,12 @@ async def update_insurance(
         setattr(ins, field, value)
 
     await db.flush()
+
+    # Keep the Profile in sync with the primary plan.
+    if ins.is_primary:
+        from app.services.insurance_sync import sync_plan_to_profile
+        await sync_plan_to_profile(db, current_user, ins)
+
     await db.refresh(ins)
     return ins
 

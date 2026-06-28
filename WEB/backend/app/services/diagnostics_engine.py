@@ -735,44 +735,16 @@ class DiagnosticsEngine:
     # ══════════════════════════════════════════════════════════════
 
     async def _call_llm(self, messages: List[Dict[str, str]], temperature: float = 0.3, max_tokens: int = 4000) -> str:
-        """Call LLM API."""
-        if not self.api_key:
-            return ""
+        """Call the LLM through the ALAFIAModel router, requesting JSON output.
 
+        Returns "" on failure so the rule-based path can proceed gracefully.
+        """
+        from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
         try:
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                if self.provider == "openai":
-                    headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
-                    payload = {
-                        "model": self.model,
-                        "messages": messages,
-                        "temperature": temperature,
-                        "max_tokens": max_tokens,
-                        "response_format": {"type": "json_object"},
-                    }
-                    response = await client.post(self.api_url, headers=headers, json=payload)
-                    response.raise_for_status()
-                    return response.json()["choices"][0]["message"]["content"]
-                else:
-                    headers = {
-                        "x-api-key": self.api_key,
-                        "anthropic-version": "2023-06-01",
-                        "Content-Type": "application/json",
-                    }
-                    system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
-                    user_messages = [m for m in messages if m["role"] != "system"]
-                    payload = {
-                        "model": self.model,
-                        "messages": user_messages,
-                        "temperature": temperature,
-                        "max_tokens": max_tokens,
-                    }
-                    if system_msg:
-                        payload["system"] = system_msg
-                    response = await client.post(self.api_url, headers=headers, json=payload)
-                    response.raise_for_status()
-                    return response.json()["content"][0]["text"]
-        except Exception:
+            return await alafia_chat(
+                messages, temperature=temperature, max_tokens=max_tokens, json_mode=True
+            )
+        except ALAFIAModelError:
             return ""
 
     async def _llm_diagnostic_reasoning(

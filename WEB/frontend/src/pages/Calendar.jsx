@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import { Plus, ChevronLeft, ChevronRight, Check, Trash2, X, Clock, MapPin, Calendar as CalIcon, Repeat } from 'lucide-react';
 import BackButton from '../components/BackButton';
@@ -131,7 +132,7 @@ export default function Calendar() {
       setShowForm(false);
       loadMonth();
     } catch (err) {
-      alert(err?.response?.data?.detail || 'Error saving event');
+      alert(apiErrorMessage(err, 'Error saving event'));
     }
   }
 

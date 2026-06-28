@@ -61,6 +61,16 @@ export default function MealsDiary() {
   const [logsByDate, setLogsByDate] = useState({});   // { 'YYYY-MM-DD': [log, …] }
   const [loading, setLoading] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(null); // log id being re-analyzed
+  const [goalData, setGoalData] = useState(null);        // personalized goal progress for selectedDate
+
+  /* Load personalized daily nutrient goals + running totals for the selected date */
+  useEffect(() => {
+    let active = true;
+    api.get(`/nutrition/goal-progress?date=${selectedDate}`)
+      .then(({ data }) => { if (active) setGoalData(data); })
+      .catch(() => { if (active) setGoalData(null); });
+    return () => { active = false; };
+  }, [selectedDate]);
 
   /* Load the entire visible month + next few days so dots are accurate */
   const loadMonth = useCallback(async (year, month) => {
@@ -128,7 +138,8 @@ export default function MealsDiary() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1rem', alignItems: 'start' }}>
-        {/* ── LEFT: Calendar ── */}
+        {/* ── LEFT: Calendar + Daily Nutrient Goals ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'sticky', top: '1rem' }}>
         <div className="card" style={{ padding: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.75rem' }}>
             <button className="btn btn-secondary btn-sm" onClick={prevMonth}><ChevronLeft size={14}/></button>
@@ -167,6 +178,10 @@ export default function MealsDiary() {
           <div style={{ marginTop: '.75rem', fontSize: '.72rem', color: 'var(--color-text-tertiary)', textAlign: 'center' }}>
             Dates with a <span style={{ color: 'var(--color-primary)', fontSize: '1em' }}>●</span> have logged meals.
           </div>
+        </div>
+
+        {/* Daily nutrient goals, personalized to biology + conditions */}
+        <NutrientGoalsCard data={goalData} />
         </div>
 
         {/* ── RIGHT: Meals for selected date ── */}
@@ -209,7 +224,7 @@ export default function MealsDiary() {
                         Re-analyze
                       </button>
                       <button className="btn btn-secondary btn-sm"
-                        onClick={() => navigate('/nutrition')}
+                        onClick={() => navigate(`/nutrition?edit=${log.id}`)}
                         style={{ fontSize: '.72rem', padding: '.25rem .5rem', display: 'flex', alignItems: 'center', gap: '.25rem' }}>
                         <Edit2 size={11}/> Edit
                       </button>
@@ -267,6 +282,86 @@ export default function MealsDiary() {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Daily Nutrient Goals card ─── */
+const COND_LABELS = {
+  ckd: 'CKD', dialysis: 'Dialysis', diabetes: 'Diabetes',
+  hypertension: 'Hypertension', cardiovascular: 'Cardiac', heart_failure: 'Heart failure',
+};
+function goalColor(status) {
+  if (status === 'ok') return '#22c55e';      // green
+  if (status === 'over') return '#ef4444';    // red
+  return '#f59e0b';                            // amber (low / warning)
+}
+function fmtNum(v) {
+  if (v == null) return '0';
+  return v < 10 ? Math.round(v * 10) / 10 : Math.round(v);
+}
+
+function NutrientGoalsCard({ data }) {
+  if (!data) {
+    return (
+      <div className="card" style={{ padding: '1rem', fontSize: '.8rem', color: 'var(--color-text-tertiary)' }}>
+        Daily nutrient goals will appear here.
+      </div>
+    );
+  }
+  const goals = data.goals || [];
+  return (
+    <div className="card" style={{ padding: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.5rem' }}>
+        <span style={{ fontWeight: 700, fontSize: '.9rem' }}>Daily Nutrient Goals</span>
+      </div>
+
+      {/* Condition chips — what the goals are tuned for */}
+      {data.conditions?.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.3rem', marginBottom: '.6rem' }}>
+          {data.conditions.map(c => (
+            <span key={c} style={{ fontSize: '.66rem', fontWeight: 600, padding: '.1rem .4rem', borderRadius: 999,
+              background: 'rgba(239,68,68,.15)', color: '#ef4444' }}>
+              {COND_LABELS[c] || c}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {!data.profile_complete && (
+        <div style={{ fontSize: '.7rem', color: 'var(--color-text-tertiary)', marginBottom: '.6rem', lineHeight: 1.35 }}>
+          Add your age, height &amp; weight in Profile for goals tailored to you. Showing general guidance for now.
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '.55rem' }}>
+        {goals.map(g => {
+          const color = goalColor(g.status);
+          const fill = Math.min(g.pct ?? 0, 100);
+          const arrow = g.kind === 'limit' ? '↓' : '↑';
+          return (
+            <div key={g.key} title={g.rationale}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '.74rem', marginBottom: '.15rem' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                  <span style={{ color, marginRight: '.2rem' }} title={g.kind === 'limit' ? 'Stay under' : 'Aim for'}>{arrow}</span>
+                  {g.name}
+                </span>
+                <span style={{ fontFamily: 'monospace', color: 'var(--color-text-secondary)' }}>
+                  {fmtNum(g.current)}<span style={{ color: 'var(--color-text-tertiary)' }}>/{fmtNum(g.goal)} {g.unit}</span>
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 999, background: 'var(--color-border)', overflow: 'hidden' }}>
+                <div style={{ width: `${fill}%`, height: '100%', background: color, borderRadius: 999, transition: 'width .3s' }}/>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: '.7rem', fontSize: '.66rem', color: 'var(--color-text-tertiary)', lineHeight: 1.4 }}>
+        <span style={{ color: '#22c55e' }}>↑</span> aim for · <span style={{ color: '#ef4444' }}>↓</span> stay under.
+        Based on your biology &amp; conditions (NIH/USDA guidance) — not medical advice.
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
 
@@ -179,7 +180,7 @@ export default function Chemotherapy() {
       setTab('list');
       loadSessions();
     } catch (err) {
-      alert('Failed to save: ' + (err.response?.data?.detail || err.message));
+      alert('Failed to save: ' + apiErrorMessage(err));
     }
     setSaving(false);
   };
@@ -190,7 +191,7 @@ export default function Chemotherapy() {
       await api.delete(`/chronic/therapy-sessions/${id}`);
       loadSessions();
     } catch (err) {
-      alert('Delete failed: ' + (err.response?.data?.detail || err.message));
+      alert('Delete failed: ' + apiErrorMessage(err));
     }
   };
 

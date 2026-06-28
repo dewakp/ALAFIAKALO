@@ -42,6 +42,11 @@ from app.api.chart_dashboard import router as chart_dashboard_router
 from app.api.pharmacy import router as pharmacy_router
 from app.api.pantry import router as pantry_router
 from app.api.elimination import router as elimination_router
+from app.api.symptoms import router as symptoms_router
+from app.api.sleep import router as sleep_router
+from app.api.vitals import router as vitals_router
+from app.api.insights import router as insights_router
+from app.api.ground_truth import router as ground_truth_router
 from app.api.ai_learning import router as ai_learning_router
 from app.api.firebase_sync import router as firebase_sync_router
 
@@ -87,5 +92,10 @@ router.include_router(chart_dashboard_router, prefix="/chart-dashboard", tags=["
 router.include_router(pharmacy_router, prefix="/pharmacy", tags=["Pharmacy"])
 router.include_router(pantry_router, prefix="/pantry", tags=["Pantry"])
 router.include_router(elimination_router, prefix="/elimination", tags=["Elimination"])
+router.include_router(symptoms_router, prefix="/symptoms", tags=["Symptoms"])
+router.include_router(sleep_router, prefix="/sleep", tags=["Sleep"])
+router.include_router(vitals_router, prefix="/vitals", tags=["Vitals"])
+router.include_router(insights_router, prefix="/insights", tags=["Insights — Patterns & Forecasts"])
+router.include_router(ground_truth_router, prefix="/ground-truth", tags=["Ground Truths — Genetics & Environment"])
 router.include_router(ai_learning_router, prefix="/ai", tags=["AI Learning & Intelligence"])
 router.include_router(firebase_sync_router, prefix="/firebase", tags=["Firebase Sync"])

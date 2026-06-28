@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import {
   BarChart3,
@@ -128,7 +129,7 @@ export default function ChartDashboard() {
       } else {
         setCorrelateData(null);
       }
-    }).catch(e => setErr(e.response?.data?.detail || 'Failed to load chart data'))
+    }).catch(e => setErr(apiErrorMessage(e, 'Failed to load chart data')))
       .finally(() => setLoading(false));
   }, [selected, days, agg, chartType]);
 

@@ -60,6 +60,7 @@ import com.alafia.android.views.chartdashboard.ChartDashboardScreen
 import com.alafia.android.views.pharmacy.PharmacyScreen
 import com.alafia.android.views.elimination.EliminationScreen
 import com.alafia.android.views.pantry.PantryScreen
+import com.alafia.android.views.prompt.PromptScreen
 
 @Composable
 fun MainTabView(
@@ -73,13 +74,13 @@ fun MainTabView(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
-                    label = { Text("Dashboard") },
+                    icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Ask ALAFIA") },
+                    label = { Text("Ask") },
                     selected = selectedTab == 0,
                     onClick = {
                         selectedTab = 0
-                        innerNavController.navigate("dashboard") {
-                            popUpTo("dashboard") { inclusive = true }
+                        innerNavController.navigate("prompt") {
+                            popUpTo("prompt") { inclusive = true }
                         }
                     }
                 )
@@ -136,9 +137,13 @@ fun MainTabView(
     ) { paddingValues ->
         NavHost(
             navController = innerNavController,
-            startDestination = "dashboard",
+            startDestination = "prompt",
             modifier = Modifier.padding(paddingValues)
         ) {
+            composable("prompt") {
+                PromptScreen(navController = innerNavController)
+            }
+
             composable("dashboard") {
                 DashboardScreen(navController = innerNavController)
             }
@@ -333,6 +338,7 @@ fun MoreScreen(
 
     val sections = listOf(
         MoreGridSection("Health Tracking", listOf(
+            MoreGridItem("Dashboard", Icons.Default.Home, "dashboard"),
             MoreGridItem("Lab Results", Icons.Default.Science, "labs"),
             MoreGridItem("Lab Charts", Icons.Default.BarChart, "lab-charts"),
             MoreGridItem("Medications", Icons.Default.Medication, "medications"),

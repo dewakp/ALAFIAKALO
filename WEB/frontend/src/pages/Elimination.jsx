@@ -1,667 +1,253 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
-import { Plus, Trash2, Droplets, AlertCircle } from 'lucide-react';
+import { apiErrorMessage } from '../utils/apiError';
+import { Plus, Trash2, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
-const today = () => new Date().toISOString().split('T')[0];
+// Unified Elimination Log (Basis + ALAFIA.app reference): one form with an
+// Event Type selector, a calendar with entry-dots, and a per-date timeline.
+// The event type (poop / urine / vomit) is captured AND shown on every entry.
+
+const EVENT_OPTIONS = [
+  { value: 'poop', label: 'Poop' },
+  { value: 'urine', label: 'Urination' },
+  { value: 'vomit', label: 'Vomiting' },
+];
+const EVENT_LABEL = { poop: 'Poop', urine: 'Urination', vomit: 'Vomiting' };
+
+const todayStr = () => new Date().toISOString().split('T')[0];
 const nowTime = () => new Date().toTimeString().slice(0, 5);
+const fmtLong = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+const num = (v) => (v !== '' && v != null ? Number(v) : null);
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-/* ─── Bristol Scale descriptions ─── */
-const BRISTOL = [
-  { value: 1, label: 'Type 1 — Separate hard lumps' },
-  { value: 2, label: 'Type 2 — Sausage-shaped, lumpy' },
-  { value: 3, label: 'Type 3 — Sausage with cracks' },
-  { value: 4, label: 'Type 4 — Smooth, soft sausage' },
-  { value: 5, label: 'Type 5 — Soft blobs with clear edges' },
-  { value: 6, label: 'Type 6 — Fluffy pieces, mushy' },
-  { value: 7, label: 'Type 7 — Entirely liquid' },
-];
-
-const BOWEL_COLORS = ['Brown', 'Dark brown', 'Light brown', 'Yellow', 'Green', 'Black', 'Red', 'White/Gray'];
-const URINE_COLORS = ['Pale yellow', 'Yellow', 'Dark yellow', 'Amber/Orange', 'Pink/Red', 'Brown', 'Clear', 'Blue/Green'];
-const URINE_CLARITY = ['Clear', 'Slightly cloudy', 'Cloudy', 'Very cloudy'];
-
-/* ─── Default form states ─── */
-const defaultBowel = () => ({
-  log_date: today(), log_time: nowTime(), bristol_scale: '', color: '',
-  consistency: '', size: '', blood_present: false, mucus_present: false,
-  undigested_food: false, pain_level: '', straining: false, urgency: false,
-  duration_minutes: '', associated_symptoms: '', notes: '',
-});
-
-const defaultUrination = () => ({
-  log_date: today(), log_time: nowTime(), color: '', clarity: '',
-  volume_ml: '', stream_strength: '', pain_level: '', burning_sensation: false,
-  urgency: false, frequency_increased: false, blood_present: false,
-  nighttime: false, notes: '',
-});
-
-const defaultVomiting = () => ({
-  log_date: today(), log_time: nowTime(), volume: '', color: '',
-  consistency: '', contains_food: false, contains_bile: false, contains_blood: false,
-  nausea_before: false, nausea_after: false, projectile: false, trigger: '',
-  time_since_last_meal_hours: '', relief_after: false, fever: false,
-  diarrhea: false, headache: false, dizziness: false, notes: '',
-});
-
-/* ─── Reusable checkbox field ─── */
-function CheckField({ label, value, onChange }) {
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-      <input type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} />
-      {label}
-    </label>
-  );
-}
-
-/* ─── Number / text field ─── */
-function Field({ label, type = 'text', value, onChange, placeholder, min, max }) {
-  return (
-    <div className="form-group">
-      <label className="form-label">{label}</label>
-      <input
-        className="form-input"
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        min={min}
-        max={max}
-        onChange={e => onChange(e.target.value)}
-      />
-    </div>
-  );
-}
-
-/* ─── Select field ─── */
-function SelectField({ label, value, onChange, options, placeholder }) {
-  return (
-    <div className="form-group">
-      <label className="form-label">{label}</label>
-      <select className="form-input" value={value} onChange={e => onChange(e.target.value)}>
-        <option value="">{placeholder || 'Select…'}</option>
-        {options.map(o => (
-          <option key={typeof o === 'object' ? o.value : o} value={typeof o === 'object' ? o.value : o}>
-            {typeof o === 'object' ? o.label : o}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════ */
-/*  BOWEL TAB                                                                  */
-/* ═══════════════════════════════════════════════════════════════════════════ */
-function BowelTab() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(defaultBowel());
-  const [saving, setSaving] = useState(false);
-  const [filterStart, setFilterStart] = useState('');
-  const [filterEnd, setFilterEnd] = useState('');
-
-  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (filterStart) params.start_date = filterStart;
-      if (filterEnd) params.end_date = filterEnd;
-      const { data } = await api.get('/elimination/bowel', { params });
-      setLogs(data);
-    } catch { /* ignore */ } finally { setLoading(false); }
-  }, [filterStart, filterEnd]);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = {
-        ...form,
-        log_time: form.log_time || null,
-        bristol_scale: form.bristol_scale ? parseInt(form.bristol_scale) : null,
-        pain_level: form.pain_level !== '' ? parseInt(form.pain_level) : null,
-        duration_minutes: form.duration_minutes !== '' ? parseInt(form.duration_minutes) : null,
-        color: form.color || null,
-        consistency: form.consistency || null,
-        size: form.size || null,
-        associated_symptoms: form.associated_symptoms || null,
-        notes: form.notes || null,
-      };
-      await api.post('/elimination/bowel', payload);
-      setForm(defaultBowel());
-      setShowForm(false);
-      await load();
-    } catch { /* ignore */ } finally { setSaving(false); }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm('Delete this entry?')) return;
-    await api.delete(`/elimination/bowel/${id}`);
-    await load();
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0 }}>Bowel Movements</h2>
-        <button className="btn btn-primary" onClick={() => setShowForm(s => !s)}>
-          <Plus size={16} /> Log Entry
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
-          From&nbsp;
-          <input className="form-input" type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} style={{ width: 150 }} />
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
-          To&nbsp;
-          <input className="form-input" type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} style={{ width: 150 }} />
-        </label>
-        {(filterStart || filterEnd) && (
-          <button className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '4px 10px' }}
-            onClick={() => { setFilterStart(''); setFilterEnd(''); }}>
-            Clear
-          </button>
-        )}
-      </div>
-
-      {showForm && (
-        <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <Field label="Date" type="date" value={form.log_date} onChange={f('log_date')} />
-              <Field label="Time" type="time" value={form.log_time} onChange={f('log_time')} />
-              <SelectField
-                label="Bristol Scale (stool type)"
-                value={form.bristol_scale}
-                onChange={f('bristol_scale')}
-                options={BRISTOL}
-              />
-            </div>
-            <div className="form-row">
-              <SelectField label="Color" value={form.color} onChange={f('color')} options={BOWEL_COLORS} />
-              <Field label="Consistency" value={form.consistency} onChange={f('consistency')} placeholder="e.g., hard, soft, liquid" />
-              <Field label="Size" value={form.size} onChange={f('size')} placeholder="e.g., small, medium, large" />
-            </div>
-            <div className="form-row">
-              <Field label="Pain Level (0–10)" type="number" value={form.pain_level} onChange={f('pain_level')} min="0" max="10" />
-              <Field label="Duration (minutes)" type="number" value={form.duration_minutes} onChange={f('duration_minutes')} min="0" />
-              <Field label="Associated Symptoms" value={form.associated_symptoms} onChange={f('associated_symptoms')} placeholder="e.g., cramps, bloating" />
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', margin: '0.75rem 0' }}>
-              <CheckField label="Blood present" value={form.blood_present} onChange={f('blood_present')} />
-              <CheckField label="Mucus present" value={form.mucus_present} onChange={f('mucus_present')} />
-              <CheckField label="Undigested food" value={form.undigested_food} onChange={f('undigested_food')} />
-              <CheckField label="Straining" value={form.straining} onChange={f('straining')} />
-              <CheckField label="Urgency" value={form.urgency} onChange={f('urgency')} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Notes</label>
-              <textarea className="form-input" rows={2} value={form.notes} onChange={e => f('notes')(e.target.value)} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary" type="submit" disabled={saving}>
-                {saving ? 'Saving…' : 'Save Entry'}
-              </button>
-              <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {loading ? (
-        <p style={{ color: 'var(--color-text-secondary)' }}>Loading…</p>
-      ) : logs.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>
-          No bowel movement entries yet.
-        </div>
-      ) : (
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Bristol Type</th>
-                <th>Color</th>
-                <th>Pain</th>
-                <th>Flags</th>
-                <th>Notes</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map(l => (
-                <tr key={l.id}>
-                  <td>{l.log_date}</td>
-                  <td>{l.log_time ?? '—'}</td>
-                  <td>{l.bristol_scale ? `Type ${l.bristol_scale}` : '—'}</td>
-                  <td>{l.color ?? '—'}</td>
-                  <td>{l.pain_level != null ? l.pain_level : '—'}</td>
-                  <td style={{ fontSize: '0.8rem' }}>
-                    {l.blood_present ? '🔴 Blood ' : ''}
-                    {l.mucus_present ? '🟡 Mucus ' : ''}
-                    {l.urgency ? '⚡ Urgent ' : ''}
-                    {!l.blood_present && !l.mucus_present && !l.urgency ? '—' : ''}
-                  </td>
-                  <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {l.notes ?? '—'}
-                  </td>
-                  <td>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(l.id)}>
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════ */
-/*  URINATION TAB                                                              */
-/* ═══════════════════════════════════════════════════════════════════════════ */
-function UrinationTab() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(defaultUrination());
-  const [saving, setSaving] = useState(false);
-  const [filterStart, setFilterStart] = useState('');
-  const [filterEnd, setFilterEnd] = useState('');
-
-  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (filterStart) params.start_date = filterStart;
-      if (filterEnd) params.end_date = filterEnd;
-      const { data } = await api.get('/elimination/urination', { params });
-      setLogs(data);
-    } catch { /* ignore */ } finally { setLoading(false); }
-  }, [filterStart, filterEnd]);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = {
-        ...form,
-        log_time: form.log_time || null,
-        pain_level: form.pain_level !== '' ? parseInt(form.pain_level) : null,
-        volume_ml: form.volume_ml !== '' ? parseInt(form.volume_ml) : null,
-        color: form.color || null,
-        clarity: form.clarity || null,
-        stream_strength: form.stream_strength || null,
-        notes: form.notes || null,
-      };
-      await api.post('/elimination/urination', payload);
-      setForm(defaultUrination());
-      setShowForm(false);
-      await load();
-    } catch { /* ignore */ } finally { setSaving(false); }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm('Delete this entry?')) return;
-    await api.delete(`/elimination/urination/${id}`);
-    await load();
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Droplets size={20} /> Urination
-        </h2>
-        <button className="btn btn-primary" onClick={() => setShowForm(s => !s)}>
-          <Plus size={16} /> Log Entry
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
-          From&nbsp;
-          <input className="form-input" type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} style={{ width: 150 }} />
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
-          To&nbsp;
-          <input className="form-input" type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} style={{ width: 150 }} />
-        </label>
-        {(filterStart || filterEnd) && (
-          <button className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '4px 10px' }}
-            onClick={() => { setFilterStart(''); setFilterEnd(''); }}>
-            Clear
-          </button>
-        )}
-      </div>
-
-      {showForm && (
-        <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <Field label="Date" type="date" value={form.log_date} onChange={f('log_date')} />
-              <Field label="Time" type="time" value={form.log_time} onChange={f('log_time')} />
-              <Field label="Volume (ml)" type="number" value={form.volume_ml} onChange={f('volume_ml')} min="0" />
-            </div>
-            <div className="form-row">
-              <SelectField label="Color" value={form.color} onChange={f('color')} options={URINE_COLORS} />
-              <SelectField label="Clarity" value={form.clarity} onChange={f('clarity')} options={URINE_CLARITY} />
-              <Field label="Stream Strength" value={form.stream_strength} onChange={f('stream_strength')} placeholder="e.g., weak, normal, strong" />
-            </div>
-            <div className="form-row">
-              <Field label="Pain Level (0–10)" type="number" value={form.pain_level} onChange={f('pain_level')} min="0" max="10" />
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', margin: '0.75rem 0' }}>
-              <CheckField label="Burning sensation" value={form.burning_sensation} onChange={f('burning_sensation')} />
-              <CheckField label="Urgency" value={form.urgency} onChange={f('urgency')} />
-              <CheckField label="Frequency increased" value={form.frequency_increased} onChange={f('frequency_increased')} />
-              <CheckField label="Blood present" value={form.blood_present} onChange={f('blood_present')} />
-              <CheckField label="Nighttime urination" value={form.nighttime} onChange={f('nighttime')} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Notes</label>
-              <textarea className="form-input" rows={2} value={form.notes} onChange={e => f('notes')(e.target.value)} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary" type="submit" disabled={saving}>
-                {saving ? 'Saving…' : 'Save Entry'}
-              </button>
-              <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {loading ? (
-        <p style={{ color: 'var(--color-text-secondary)' }}>Loading…</p>
-      ) : logs.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>
-          No urination entries yet.
-        </div>
-      ) : (
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Color</th>
-                <th>Clarity</th>
-                <th>Volume (ml)</th>
-                <th>Pain</th>
-                <th>Flags</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map(l => (
-                <tr key={l.id}>
-                  <td>{l.log_date}</td>
-                  <td>{l.log_time ?? '—'}</td>
-                  <td>{l.color ?? '—'}</td>
-                  <td>{l.clarity ?? '—'}</td>
-                  <td>{l.volume_ml ?? '—'}</td>
-                  <td>{l.pain_level != null ? l.pain_level : '—'}</td>
-                  <td style={{ fontSize: '0.8rem' }}>
-                    {l.blood_present ? '🔴 Blood ' : ''}
-                    {l.burning_sensation ? '🔥 Burning ' : ''}
-                    {l.urgency ? '⚡ Urgent ' : ''}
-                    {!l.blood_present && !l.burning_sensation && !l.urgency ? '—' : ''}
-                  </td>
-                  <td>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(l.id)}>
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════ */
-/*  VOMITING TAB                                                               */
-/* ═══════════════════════════════════════════════════════════════════════════ */
-function VomitingTab() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(defaultVomiting());
-  const [saving, setSaving] = useState(false);
-  const [filterStart, setFilterStart] = useState('');
-  const [filterEnd, setFilterEnd] = useState('');
-
-  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (filterStart) params.start_date = filterStart;
-      if (filterEnd) params.end_date = filterEnd;
-      const { data } = await api.get('/elimination/vomiting', { params });
-      setLogs(data);
-    } catch { /* ignore */ } finally { setLoading(false); }
-  }, [filterStart, filterEnd]);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = {
-        ...form,
-        log_time: form.log_time || null,
-        time_since_last_meal_hours: form.time_since_last_meal_hours !== '' ? parseFloat(form.time_since_last_meal_hours) : null,
-        volume: form.volume || null,
-        color: form.color || null,
-        consistency: form.consistency || null,
-        trigger: form.trigger || null,
-        notes: form.notes || null,
-      };
-      await api.post('/elimination/vomiting', payload);
-      setForm(defaultVomiting());
-      setShowForm(false);
-      await load();
-    } catch { /* ignore */ } finally { setSaving(false); }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm('Delete this entry?')) return;
-    await api.delete(`/elimination/vomiting/${id}`);
-    await load();
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <AlertCircle size={20} /> Vomiting
-        </h2>
-        <button className="btn btn-primary" onClick={() => setShowForm(s => !s)}>
-          <Plus size={16} /> Log Entry
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
-          From&nbsp;
-          <input className="form-input" type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} style={{ width: 150 }} />
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
-          To&nbsp;
-          <input className="form-input" type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} style={{ width: 150 }} />
-        </label>
-        {(filterStart || filterEnd) && (
-          <button className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '4px 10px' }}
-            onClick={() => { setFilterStart(''); setFilterEnd(''); }}>
-            Clear
-          </button>
-        )}
-      </div>
-
-      {showForm && (
-        <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <Field label="Date" type="date" value={form.log_date} onChange={f('log_date')} />
-              <Field label="Time" type="time" value={form.log_time} onChange={f('log_time')} />
-              <Field label="Volume" value={form.volume} onChange={f('volume')} placeholder="e.g., small, large, 200ml" />
-            </div>
-            <div className="form-row">
-              <Field label="Color" value={form.color} onChange={f('color')} placeholder="e.g., yellow, green, brown" />
-              <Field label="Consistency" value={form.consistency} onChange={f('consistency')} placeholder="e.g., liquid, chunky" />
-              <Field label="Trigger" value={form.trigger} onChange={f('trigger')} placeholder="e.g., food, smell, motion" />
-            </div>
-            <div className="form-row">
-              <Field label="Hours since last meal" type="number" value={form.time_since_last_meal_hours} onChange={f('time_since_last_meal_hours')} min="0" />
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', margin: '0.75rem 0' }}>
-              <CheckField label="Contains food" value={form.contains_food} onChange={f('contains_food')} />
-              <CheckField label="Contains bile" value={form.contains_bile} onChange={f('contains_bile')} />
-              <CheckField label="Contains blood" value={form.contains_blood} onChange={f('contains_blood')} />
-              <CheckField label="Nausea before" value={form.nausea_before} onChange={f('nausea_before')} />
-              <CheckField label="Nausea after" value={form.nausea_after} onChange={f('nausea_after')} />
-              <CheckField label="Projectile" value={form.projectile} onChange={f('projectile')} />
-              <CheckField label="Relief after" value={form.relief_after} onChange={f('relief_after')} />
-              <CheckField label="Fever" value={form.fever} onChange={f('fever')} />
-              <CheckField label="Diarrhea" value={form.diarrhea} onChange={f('diarrhea')} />
-              <CheckField label="Headache" value={form.headache} onChange={f('headache')} />
-              <CheckField label="Dizziness" value={form.dizziness} onChange={f('dizziness')} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Notes</label>
-              <textarea className="form-input" rows={2} value={form.notes} onChange={e => f('notes')(e.target.value)} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary" type="submit" disabled={saving}>
-                {saving ? 'Saving…' : 'Save Entry'}
-              </button>
-              <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {loading ? (
-        <p style={{ color: 'var(--color-text-secondary)' }}>Loading…</p>
-      ) : logs.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>
-          No vomiting entries yet.
-        </div>
-      ) : (
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Volume</th>
-                <th>Color</th>
-                <th>Trigger</th>
-                <th>Flags</th>
-                <th>Notes</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map(l => (
-                <tr key={l.id}>
-                  <td>{l.log_date}</td>
-                  <td>{l.log_time ?? '—'}</td>
-                  <td>{l.volume ?? '—'}</td>
-                  <td>{l.color ?? '—'}</td>
-                  <td>{l.trigger ?? '—'}</td>
-                  <td style={{ fontSize: '0.8rem' }}>
-                    {l.contains_blood ? '🔴 Blood ' : ''}
-                    {l.contains_bile ? '🟡 Bile ' : ''}
-                    {l.fever ? '🌡️ Fever ' : ''}
-                    {!l.contains_blood && !l.contains_bile && !l.fever ? '—' : ''}
-                  </td>
-                  <td style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {l.notes ?? '—'}
-                  </td>
-                  <td>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(l.id)}>
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════ */
-/*  MAIN PAGE                                                                  */
-/* ═══════════════════════════════════════════════════════════════════════════ */
-const TABS = [
-  { key: 'bowel', label: 'Bowel' },
-  { key: 'urination', label: 'Urination' },
-  { key: 'vomiting', label: 'Vomiting' },
-];
+const EMPTY = {
+  event_type: 'poop', log_date: todayStr(), log_time: nowTime(),
+  pre_event_weight_kg: '', post_event_weight_kg: '', description: '', image_uri: '',
+};
 
 export default function Elimination() {
-  const [activeTab, setActiveTab] = useState('bowel');
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ ...EMPTY });
+  const [saving, setSaving] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
+
+  usePromptPrefill((prefill) => {
+    setForm((f) => ({ ...f, description: prefill.text || prefill.description || f.description }));
+  });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/elimination/all');
+      setEntries(data);
+    } catch { setEntries([]); } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  function update(field, value) { setForm((f) => ({ ...f, [field]: value })); }
+
+  function handleImage(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => update('image_uri', reader.result?.toString() || '');
+    reader.readAsDataURL(file);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.post('/elimination/all', {
+        event_type: form.event_type,
+        log_date: form.log_date,
+        log_time: form.log_time || null,
+        pre_event_weight_kg: num(form.pre_event_weight_kg),
+        post_event_weight_kg: num(form.post_event_weight_kg),
+        description: form.description || null,
+        image_uri: form.image_uri || null,
+      });
+      setForm({ ...EMPTY, event_type: form.event_type, log_date: form.log_date });
+      setSelectedDate(form.log_date);
+      load();
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Could not save entry'));
+    } finally { setSaving(false); }
+  }
+
+  async function handleDelete(entry) {
+    if (!confirm('Delete this entry?')) return;
+    try { await api.delete(`/elimination/all/${entry.event_type}/${entry.id}`); load(); }
+    catch (err) { alert(apiErrorMessage(err, 'Could not delete')); }
+  }
+
+  // Dates (YYYY-MM-DD) that have at least one entry → calendar dots.
+  const datesWithEntries = useMemo(
+    () => new Set(entries.map((e) => e.log_date)), [entries]);
+
+  const dayEntries = useMemo(
+    () => entries
+      .filter((e) => e.log_date === selectedDate)
+      .sort((a, b) => (a.log_time || '') < (b.log_time || '') ? -1 : 1),
+    [entries, selectedDate]);
+
+  // Build the month grid.
+  const cells = useMemo(() => {
+    const y = viewMonth.getFullYear(), m = viewMonth.getMonth();
+    const first = new Date(y, m, 1).getDay();
+    const days = new Date(y, m + 1, 0).getDate();
+    const out = [];
+    for (let i = 0; i < first; i++) out.push(null);
+    for (let d = 1; d <= days; d++) {
+      const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      out.push({ d, ds });
+    }
+    return out;
+  }, [viewMonth]);
+
+  function shiftMonth(n) { setViewMonth((v) => new Date(v.getFullYear(), v.getMonth() + n, 1)); }
+  const monthLabel = viewMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <div>
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Elimination</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Layers size={22} /> Elimination Log
+          </h1>
         </div>
       </div>
+      <p style={{ color: 'var(--text-secondary)', marginTop: -8, marginBottom: 16 }}>
+        Track poop, urination, and vomiting events, with optional weights and images.
+      </p>
 
-      {/* Tab bar */}
-      <div style={{
-        display: 'flex', borderBottom: '2px solid var(--color-border)',
-        marginBottom: '1.5rem', gap: 4,
-      }}>
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            style={{
-              padding: '8px 20px', border: 'none', background: 'none', cursor: 'pointer',
-              fontWeight: activeTab === t.key ? 700 : 400,
-              borderBottom: activeTab === t.key ? '2px solid var(--color-primary)' : '2px solid transparent',
-              color: activeTab === t.key ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-              marginBottom: -2,
-            }}
-          >
-            {t.label}
+      {/* ── Add New Log Entry ── */}
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+          <Plus size={18} /> Add New Log Entry
+        </h3>
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Date</label>
+              <input className="form-input" type="date" value={form.log_date} onChange={(e) => update('log_date', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Time</label>
+              <input className="form-input" type="time" value={form.log_time} onChange={(e) => update('log_time', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Event Type</label>
+              <select className="form-input" value={form.event_type} onChange={(e) => update('event_type', e.target.value)}>
+                {EVENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Pre-Event Weight (kg, optional)</label>
+              <input className="form-input" type="number" step="0.1" placeholder="e.g., 68.5"
+                value={form.pre_event_weight_kg} onChange={(e) => update('pre_event_weight_kg', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Post-Event Weight (kg, optional)</label>
+              <input className="form-input" type="number" step="0.1" placeholder="e.g., 68.0"
+                value={form.post_event_weight_kg} onChange={(e) => update('post_event_weight_kg', e.target.value)} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Description (optional)</label>
+            <textarea className="form-input" rows={2}
+              placeholder="e.g., Bristol type 4, normal color for poop; Clear, light yellow for urine…"
+              value={form.description} onChange={(e) => update('description', e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Attach Image (optional)</label>
+            <input className="form-input" type="file" accept="image/*" capture="environment" onChange={handleImage} />
+          </div>
+          <button className="btn btn-primary" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Add Entry'}
           </button>
-        ))}
+        </form>
       </div>
 
-      {activeTab === 'bowel' && <BowelTab />}
-      {activeTab === 'urination' && <UrinationTab />}
-      {activeTab === 'vomiting' && <VomitingTab />}
+      {/* ── Calendar + per-date entries ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 360px) 1fr', gap: 16, alignItems: 'start' }}>
+        {/* Calendar */}
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>📅 Select Date</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => shiftMonth(-1)}><ChevronLeft size={16} /></button>
+            <strong>{monthLabel}</strong>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => shiftMonth(1)}><ChevronRight size={16} /></button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, textAlign: 'center' }}>
+            {WEEKDAYS.map((w) => (
+              <div key={w} style={{ fontSize: '.72rem', color: 'var(--text-secondary)', padding: 4 }}>{w}</div>
+            ))}
+            {cells.map((c, i) => c === null ? <div key={`b${i}`} /> : (
+              <button
+                key={c.ds}
+                type="button"
+                onClick={() => setSelectedDate(c.ds)}
+                style={{
+                  position: 'relative', padding: '8px 0', border: 'none', borderRadius: 8, cursor: 'pointer',
+                  background: c.ds === selectedDate ? 'var(--primary)' : 'transparent',
+                  color: c.ds === selectedDate ? '#fff' : 'inherit', fontSize: '.85rem',
+                }}
+              >
+                {c.d}
+                {datesWithEntries.has(c.ds) && (
+                  <span style={{
+                    position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)',
+                    width: 5, height: 5, borderRadius: '50%',
+                    background: c.ds === selectedDate ? '#fff' : 'var(--primary)',
+                  }} />
+                )}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: '.72rem', color: 'var(--text-secondary)', marginTop: 8, marginBottom: 0 }}>
+            Dates with a <span style={{ color: 'var(--primary)' }}>●</span> have logged entries.
+          </p>
+        </div>
+
+        {/* Entries for selected date */}
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Log Entries for {fmtLong(selectedDate)}</h3>
+          {loading ? <p>Loading…</p> : dayEntries.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)' }}>No entries for this date.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {dayEntries.map((e) => (
+                <div key={`${e.event_type}-${e.id}`} className="card" style={{ margin: 0, border: '1px solid var(--border, #e5e7eb)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Layers size={15} style={{ color: 'var(--primary)' }} />
+                      {EVENT_LABEL[e.event_type] || e.event_type} At {e.log_time ? String(e.log_time).slice(0, 5) : '—'}
+                    </strong>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(e)} title="Delete"><Trash2 size={14} /></button>
+                  </div>
+                  <div style={{ fontSize: '.85rem', marginTop: 6, lineHeight: 1.6 }}>
+                    {e.pre_event_weight_kg != null && <div><strong>Pre-Weight:</strong> {e.pre_event_weight_kg} kg</div>}
+                    {e.post_event_weight_kg != null && <div><strong>Post-Weight:</strong> {e.post_event_weight_kg} kg</div>}
+                    {e.description && <div><strong>Description:</strong> {e.description}</div>}
+                  </div>
+                  {e.image_uri && (
+                    <img src={e.image_uri} alt="attachment" style={{ maxWidth: 160, borderRadius: 8, marginTop: 8 }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

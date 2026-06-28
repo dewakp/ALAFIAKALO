@@ -7,10 +7,10 @@ Two tables:
                              the pre-computed nutrients contributed that day)
 """
 
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, time
 
 from sqlalchemy import (
-    String, Float, Integer, DateTime, Date, ForeignKey, Text, Boolean, JSON, UniqueConstraint
+    String, Float, Integer, DateTime, Date, Time, ForeignKey, Text, Boolean, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -111,8 +111,19 @@ class MedicationDoseLog(Base):
 
     medication_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     log_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    log_time: Mapped[time | None] = mapped_column(Time)
     dose_amount: Mapped[float] = mapped_column(Float, nullable=False)
     dose_unit: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    # Pre / post medication vitals (optional, matches the intake form)
+    pre_systolic_bp: Mapped[int | None] = mapped_column(Integer)
+    pre_diastolic_bp: Mapped[int | None] = mapped_column(Integer)
+    pre_heart_rate: Mapped[int | None] = mapped_column(Integer)
+    post_systolic_bp: Mapped[int | None] = mapped_column(Integer)
+    post_diastolic_bp: Mapped[int | None] = mapped_column(Integer)
+    post_heart_rate: Mapped[int | None] = mapped_column(Integer)
+    pre_temperature_c: Mapped[float | None] = mapped_column(Float)
+    post_temperature_c: Mapped[float | None] = mapped_column(Float)
 
     # Pre-computed nutrients contributed by this single dose event
     # {nutrient_key: absolute_amount} — already scaled, ready to sum

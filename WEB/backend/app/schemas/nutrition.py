@@ -121,6 +121,7 @@ class NutritionLogCreate(BaseModel):
 
 
 class NutritionLogUpdate(BaseModel):
+    log_date: date | None = None
     meal_type: str | None = None
     food_name: str | None = None
     serving_size: str | None = None
@@ -291,6 +292,30 @@ class DailySummary(BaseModel):
     nutrients: list[USDAFoodNutrient]  # aggregated with %DV
     # Each entry: {medication_name, dose, nutrients: {key: value}}
     medication_nutrient_contributions: list[dict[str, Any]] = []
+
+
+# ── Personalized daily nutrient goals ──
+
+
+class NutrientGoalProgress(BaseModel):
+    key: str
+    name: str
+    unit: str
+    current: float          # running total for the day
+    goal: float             # personalized target or limit
+    kind: str               # "target" (reach) | "limit" (stay under)
+    pct: float              # current / goal * 100
+    status: str             # target: low|ok|over ; limit: ok|warning|over
+    priority: int           # lower = show first (condition-driven)
+    rationale: str
+
+
+class GoalProgressResponse(BaseModel):
+    date: date
+    profile_complete: bool  # False when biology is incomplete (generic goals)
+    energy_kcal: float
+    conditions: list[str]   # condition flags considered, e.g. ["ckd", "dialysis"]
+    goals: list[NutrientGoalProgress]
 
 
 # ── Nutrient estimation schemas ──

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import {
   Dumbbell,
@@ -344,7 +345,7 @@ export default function ExercisePlanner() {
       setGeneratedPlan(data);
       fetchSavedPlans();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to generate exercise plan. Please try again.');
+      setError(apiErrorMessage(err, 'Failed to generate exercise plan. Please try again.'));
     } finally {
       setGenerating(false);
     }

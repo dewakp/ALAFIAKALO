@@ -729,21 +729,14 @@ async def _extract_pattern_via_llm(category: str, examples: list[str]) -> str:
         "Focus on: specificity vs. generality, clinical detail level, emotional tone, actionability. "
         "Be concise and generalizable (not patient-specific)."
     )
+    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
     try:
-        async with httpx.AsyncClient(timeout=25) as client:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/chat",
-                json={
-                    "model": "gpt-oss:20b",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "stream": False,
-                },
-            )
-            if resp.status_code == 200:
-                content = resp.json().get("message", {}).get("content", "").strip()
-                if content:
-                    return content
-    except Exception:
+        content = (await alafia_chat(
+            [{"role": "user", "content": prompt}], temperature=0.5, max_tokens=512,
+        )).strip()
+        if content:
+            return content
+    except ALAFIAModelError:
         pass
     return f"User found {len(examples)} {category}-category responses helpful — specific, data-driven answers are preferred."
 

@@ -69,14 +69,26 @@ class OllamaAdapter(BaseAdapter):
         messages: list[dict[str, str]],
         temperature: float = 0.5,
         max_tokens: int = 2048,
+        json_mode: bool = False,
+        images: list[str] | None = None,
     ) -> dict[str, Any]:
         # TODO(alafia-model): Phase 3 — swap model_name for fine-tuned BioMistral 7B
+        # Ollama multimodal: base64 images attach to a message via its "images" key.
+        if images:
+            messages = [dict(m) for m in messages]
+            last_user = next((m for m in reversed(messages) if m.get("role") == "user"), None)
+            if last_user is not None:
+                last_user["images"] = images
+            else:
+                messages.append({"role": "user", "content": "", "images": images})
         payload = {
             "model": self.model_name,
             "messages": messages,
             "stream": False,
             "options": {"temperature": temperature, "num_predict": max_tokens},
         }
+        if json_mode:
+            payload["format"] = "json"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(f"{self.base_url}/api/chat", json=payload)
             resp.raise_for_status()

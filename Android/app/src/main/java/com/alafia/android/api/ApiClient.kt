@@ -51,6 +51,7 @@ object ApiClient {
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(120, TimeUnit.SECONDS)  // extended for SSE streaming
                 .addInterceptor(AuthInterceptor(context))
+                .authenticator(TokenAuthenticator(context))  // silent refresh-and-retry on 401 (iOS parity)
                 .addInterceptor(RetryInterceptor(maxRetries = 3))
                 .addNetworkInterceptor(CacheControlInterceptor())
                 .addInterceptor(HttpLoggingInterceptor().apply {

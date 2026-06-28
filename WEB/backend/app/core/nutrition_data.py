@@ -189,15 +189,21 @@ DB_COLUMN_KEYS = {n["key"] for n in NUTRIENT_CATALOG}
 
 
 async def search_usda_foods(query: str, page_size: int = 25) -> list[dict]:
-    """Search USDA FoodData Central for foods matching a query string."""
+    """Search USDA FoodData Central for foods matching a query string.
+
+    Uses POST with a JSON body (USDA's recommended method). The GET form returns a
+    spurious nginx 400 for some multi-word queries (e.g. "white rice", "chicken
+    breast"), which previously forced those foods onto the less-accurate branded
+    fallback.
+    """
     async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(
+        resp = await client.post(
             f"{USDA_BASE}/foods/search",
-            params={
-                "api_key": USDA_API_KEY,
+            params={"api_key": USDA_API_KEY},
+            json={
                 "query": query,
                 "pageSize": page_size,
-                "dataType": "Foundation,SR Legacy,Survey (FNDDS)",
+                "dataType": ["Foundation", "SR Legacy", "Survey (FNDDS)"],
             },
         )
         resp.raise_for_status()

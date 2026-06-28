@@ -275,6 +275,30 @@ data class AIPersona(
     val description: String
 )
 
+// Prompt Hub intent routing (Basis: prompt determines which UI is surfaced)
+data class AIRouteRequest(
+    val text: String,
+    val modality: String = "text",
+    @SerializedName("has_attachment") val hasAttachment: Boolean = false
+)
+
+data class AIRouteResponse(
+    val intent: String,
+    val confidence: Double,
+    val route: String,
+    val action: String,
+    @SerializedName("assistant_message") val assistantMessage: String
+)
+
+data class VisionItem(val name: String? = null)
+
+data class AIVisionResponse(
+    val task: String? = null,
+    val source: String? = null,
+    val items: List<VisionItem>? = null,
+    val notes: String? = null
+)
+
 // Mental Health Schemas
 data class AssessmentRequest(
     @SerializedName("assessment_date") val assessmentDate: String,
