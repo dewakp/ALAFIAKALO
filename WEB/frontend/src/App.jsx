@@ -45,6 +45,7 @@ const Pharmacy = lazy(() => import('./pages/Pharmacy'));
 const Pantry = lazy(() => import('./pages/Pantry'));
 const Elimination = lazy(() => import('./pages/Elimination'));
 const FDARecalls = lazy(() => import('./pages/FDARecalls'));
+const DiseaseSurveillance = lazy(() => import('./pages/DiseaseSurveillance'));
 const TherapySessions = lazy(() => import('./pages/TherapySessions'));
 const HealthTrends = lazy(() => import('./pages/HealthTrends'));
 const MealsDiary = lazy(() => import('./pages/MealsDiary'));
@@ -115,6 +116,7 @@ export default function App() {
           <Route path="elimination" element={<Elimination />} />
           <Route path="ai" element={<AIChat />} />
           <Route path="fda-recalls" element={<FDARecalls />} />
+          <Route path="surveillance" element={<DiseaseSurveillance />} />
           <Route path="therapy-history" element={<TherapySessions />} />
           <Route path="health-trends" element={<HealthTrends />} />
           <Route path="meals-diary" element={<MealsDiary />} />

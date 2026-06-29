@@ -335,11 +335,20 @@ async def save_physician(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Bookmark a physician to my list."""
+    """Bookmark a physician to my list (care team)."""
     # Verify physician exists
     result = await db.execute(select(Physician).where(Physician.id == body.physician_id))
-    if not result.scalar_one_or_none():
+    physician = result.scalar_one_or_none()
+    if not physician:
         raise HTTPException(status_code=404, detail="Physician not found")
+
+    # SAFETY GATE: never associate an unverified / unlicensed clinician with a patient.
+    if not physician.credential_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="This clinician's license is not verified yet, so they cannot be "
+                   "added to your care team. Verified clinicians only.",
+        )
 
     # Check duplicate
     existing = await db.execute(

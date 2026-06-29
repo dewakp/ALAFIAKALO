@@ -5,9 +5,11 @@ import {
   Search, Plus, MapPin, Star, Heart, Trash2, Edit3, X,
   Phone, Globe, Clock, ChevronDown, ChevronRight, Navigation,
   Stethoscope, Filter, BookmarkPlus, BookmarkCheck, MessageSquare,
-  Building, Shield, Video, Users,
+  Building, Shield, Video, Users, Globe2, ShieldCheck,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import ChoroplethMap from '../components/ChoroplethMap';
+import { flagEmoji } from '../data/isoCountries';
 
 // ── Leaflet (loaded via CDN to keep Docker builds fast) ──────────
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
@@ -53,6 +55,8 @@ export default function Physicians() {
   const [userLon, setUserLon] = useState(null);
   const [nearbyResults, setNearbyResults] = useState([]);
   const [osmResults, setOsmResults] = useState([]);
+  const [directoryPoints, setDirectoryPoints] = useState([]);
+  const [mapRole, setMapRole] = useState('');
   const [radiusKm, setRadiusKm] = useState(50);
   const [placeType, setPlaceType] = useState('all');
   const [geocodeQuery, setGeocodeQuery] = useState('');
@@ -200,18 +204,22 @@ export default function Physicians() {
     const L = window.L;
 
     if (!mapInstanceRef.current) {
-      mapInstanceRef.current = L.map(mapRef.current).setView([userLat || 29.76, userLon || -95.37], 10);
+      mapInstanceRef.current = L.map(mapRef.current).setView([userLat || 39.5, userLon || -98.35], userLat ? 11 : 4);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>',
         maxZoom: 18,
       }).addTo(mapInstanceRef.current);
     }
 
+    const map = mapInstanceRef.current;
+    // Container is sized only once the tab is visible — without this Leaflet
+    // renders grey/blank ("no view"). Recompute now that we're on the map tab.
+    map.invalidateSize();
+
     // Clear old markers
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    const map = mapInstanceRef.current;
     if (userLat && userLon) {
       map.setView([userLat, userLon], 11);
       const userMarker = L.circleMarker([userLat, userLon], { radius: 8, color: '#22c55e', fillOpacity: 0.9 })
@@ -219,26 +227,48 @@ export default function Physicians() {
       markersRef.current.push(userMarker);
     }
 
-    // Physicians from directory
-    physicians.filter(p => p.latitude && p.longitude).forEach(p => {
-      const m = L.marker([p.latitude, p.longitude])
-        .bindPopup(`<b>${p.full_name}</b><br>${p.specialty}<br>${p.facility_name || ''}<br>${p.city || ''}`)
-        .addTo(map);
+    // Verified directory clinicians (approximate = hollow, exact = filled).
+    const pts = [];
+    directoryPoints.forEach(p => {
+      const approx = p.location_precision === 'approximate';
+      const m = L.circleMarker([p.latitude, p.longitude], {
+        radius: 5, color: '#2563eb', weight: approx ? 1 : 2,
+        fillColor: '#3b82f6', fillOpacity: approx ? 0.25 : 0.85,
+      }).bindPopup(
+        `<b>${p.full_name}</b><br>${p.specialty || p.clinician_role}` +
+        `<br>${[p.city, p.state_province].filter(Boolean).join(', ')}` +
+        `<br>✓ Verified${approx ? ' · approx. location' : ''}`
+      ).addTo(map);
+      pts.push([p.latitude, p.longitude]);
       markersRef.current.push(m);
     });
 
-    // OSM results
+    // OSM results (purple), if any from a discover search
     osmResults.forEach(r => {
       const m = L.circleMarker([r.latitude, r.longitude], { radius: 6, color: '#8b5cf6', fillOpacity: 0.7 })
         .bindPopup(`<b>${r.name}</b><br>${r.amenity_type}<br>${r.distance_km} km`)
         .addTo(map);
       markersRef.current.push(m);
     });
-  }, [leafletReady, userLat, userLon, physicians, osmResults]);
+
+    // Fit to the clinician points when we have them and no user location lock.
+    if (pts.length && !(userLat && userLon)) {
+      try { map.fitBounds(pts, { padding: [30, 30], maxZoom: 11 }); } catch { /* single point */ }
+    }
+  }, [leafletReady, userLat, userLon, directoryPoints, osmResults]);
+
+  const loadDirectoryPoints = useCallback(async () => {
+    try {
+      const { data } = await api.get('/physicians/directory/points', {
+        params: { limit: 2000, ...(mapRole ? { role: mapRole } : {}) },
+      });
+      setDirectoryPoints(data);
+    } catch { setDirectoryPoints([]); }
+  }, [mapRole]);
 
   useEffect(() => {
-    if (tab === 'map') setTimeout(updateMap, 100);
-  }, [tab, updateMap]);
+    if (tab === 'map') { loadDirectoryPoints(); setTimeout(updateMap, 120); }
+  }, [tab, loadDirectoryPoints, updateMap]);
 
   // ── Render ──
   if (loading && physicians.length === 0) {
@@ -264,6 +294,7 @@ export default function Physicians() {
           { key: 'saved', label: `Saved (${savedPhysicians.length})`, icon: <Heart size={16} /> },
           { key: 'discover', label: 'Discover (OSM)', icon: <Navigation size={16} /> },
           { key: 'map', label: 'Map View', icon: <MapPin size={16} /> },
+          { key: 'globalmap', label: 'Global Map', icon: <Globe2 size={16} /> },
         ].map(t => (
           <button key={t.key} className={`btn ${tab === t.key ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setTab(t.key)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -451,15 +482,22 @@ export default function Physicians() {
               <button className="btn btn-primary" onClick={() => { handleGeocode(); setTimeout(() => { searchNearby(); discoverOSM(); }, 1000); }}>
                 <Search size={16} /> Search Area
               </button>
+              <select className="form-input" value={mapRole} onChange={e => setMapRole(e.target.value)} style={{ maxWidth: 180 }}>
+                {DIRECTORY_ROLES.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+              </select>
             </div>
           </div>
           <div ref={mapRef} style={{ height: '500px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }} />
           <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#999' }}>
-            🟢 Your location &nbsp; 📍 Directory physicians &nbsp; 🟣 OSM discoveries &nbsp;
+            <strong>{directoryPoints.length}</strong> verified clinician{directoryPoints.length !== 1 ? 's' : ''} plotted &nbsp;·&nbsp;
+            🟢 You &nbsp; 🔵 Verified (filled = exact, hollow = approx.) &nbsp; 🟣 OSM &nbsp;·&nbsp;
             Map data © <a href="https://osm.org" target="_blank" rel="noreferrer">OpenStreetMap</a>
           </div>
         </div>
       )}
+
+      {/* ── GLOBAL MAP TAB ── */}
+      {tab === 'globalmap' && <GlobalDirectoryMap />}
 
       {/* ── Detail Panel ── */}
       {selectedPhysician && (
@@ -491,7 +529,7 @@ function PhysicianCard({ physician: p, isSaved, onSave, onUnsave, onReview, onDe
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0 }}>{p.full_name}</h3>
             {p.credentials && <span style={{ color: '#666', fontSize: '0.85rem' }}>{p.credentials}</span>}
-            {p.is_verified && <span style={{ background: '#22c55e', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem' }}>✓ Verified</span>}
+            <VerificationBadge physician={p} />
             {p.telehealth_available && <span style={{ background: '#14b8a6', color: '#fff', padding: '2px 6px', borderRadius: '12px', fontSize: '0.7rem' }} title="Telehealth available"><Video size={10} /></span>}
           </div>
           <p style={{ margin: '0.25rem 0', color: '#f97316', fontWeight: 500 }}>{p.specialty} {p.specialty_category ? `• ${p.specialty_category}` : ''}</p>
@@ -513,7 +551,11 @@ function PhysicianCard({ physician: p, isSaved, onSave, onUnsave, onReview, onDe
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }} onClick={e => e.stopPropagation()}>
           <button className={`btn btn-sm ${isSaved ? 'btn-success' : 'btn-secondary'}`}
-            onClick={isSaved ? onUnsave : onSave} title={isSaved ? 'Unsave' : 'Save'}>
+            onClick={isSaved ? onUnsave : onSave}
+            disabled={!isSaved && !p.credential_verified}
+            title={isSaved ? 'Remove from care team'
+              : p.credential_verified ? 'Add to care team'
+              : 'License not verified — cannot add to your care team'}>
             {isSaved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
           </button>
           <button className="btn btn-sm btn-secondary" onClick={onReview} title="Review">
@@ -522,6 +564,117 @@ function PhysicianCard({ physician: p, isSaved, onSave, onUnsave, onReview, onDe
           <button className="btn btn-sm btn-danger" onClick={onDelete} title="Delete">
             <Trash2 size={14} />
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Verification badge — reflects the patient-association license gate ──
+function VerificationBadge({ physician: p }) {
+  const pill = (bg, label, title) => (
+    <span title={title} style={{ background: bg, color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>{label}</span>
+  );
+  if (p.credential_verified) return pill('#22c55e', '✓ Verified', 'Licensed & verified — can be added to a care team');
+  if (p.verification_status === 'license_on_record') return pill('#f59e0b', 'License on record', 'License present — awaiting admin verification; cannot be added yet');
+  if (p.verification_status === 'rejected') return pill('#ef4444', 'Rejected', 'Verification rejected');
+  return pill('#9ca3af', 'Unverified', 'Not verified — cannot be added to a care team');
+}
+
+const DIRECTORY_ROLES = [
+  ['', 'All'], ['physician', 'Physicians'], ['nurse', 'Nurses'],
+  ['nurse_practitioner', 'NPs'], ['dietitian', 'Dietitians'],
+  ['pharmacist', 'Pharmacists'], ['therapist', 'Therapists'], ['mental_health', 'Mental health'],
+];
+
+// ── Global directory overlay — verified clinicians on a drill-down choropleth ──
+function GlobalDirectoryMap() {
+  const [data, setData] = useState(null);
+  const [role, setRole] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [list, setList] = useState(null);
+  const [listLoading, setListLoading] = useState(false);
+
+  useEffect(() => {
+    setData(null);
+    api.get('/physicians/directory/map', { params: role ? { role } : {} })
+      .then(({ data }) => setData(data))
+      .catch(() => setData({ countries: [], total_verified: 0, by_role: {} }));
+  }, [role]);
+
+  async function pick(iso2) {
+    setSelected(iso2); setList(null); setListLoading(true);
+    try {
+      const { data } = await api.get(`/physicians/directory/country/${iso2}`, { params: role ? { role } : {} });
+      setList(data);
+    } catch { setList([]); } finally { setListLoading(false); }
+  }
+
+  const mapData = {};
+  (data?.countries || []).forEach((c) => {
+    mapData[c.iso2] = { level: c.level, name: c.name, label: `${c.count} verified clinician${c.count !== 1 ? 's' : ''}` };
+  });
+
+  return (
+    <div>
+      <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <ShieldCheck size={16} color="#22c55e" />
+          <span style={{ fontWeight: 600 }}>Verified clinicians only.</span>
+          <span style={{ color: '#666', fontSize: '0.85rem' }}>Unverified / unlicensed records are held and never shown here or linked to patients.</span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+          {DIRECTORY_ROLES.map(([val, label]) => (
+            <button key={val} className={`btn btn-sm ${role === val ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => { setRole(val); setSelected(null); setList(null); }}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(260px, 1fr)', gap: '1rem', alignItems: 'start' }}>
+        <div className="card" style={{ padding: '1.25rem' }}>
+          {data == null
+            ? <div style={{ padding: '3rem', textAlign: 'center', color: '#999' }}>Loading directory map…</div>
+            : <ChoroplethMap data={mapData} selected={selected} onSelect={pick} />}
+          <div style={{ fontSize: '0.78rem', color: '#999', marginTop: '0.6rem' }}>
+            {data ? <><strong>{data.total_verified}</strong> verified clinicians across <strong>{data.countries.length}</strong> countries. Click a country to drill down.</> : null}
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '1.25rem', minHeight: 200 }}>
+          {!selected && (
+            <div style={{ color: '#666' }}>
+              <h4 style={{ marginTop: 0 }}><Globe2 size={16} style={{ verticalAlign: -3 }} /> By country</h4>
+              {(data?.countries || []).slice(0, 12).map((c) => (
+                <button key={c.iso2} onClick={() => pick(c.iso2)}
+                  style={{ display: 'flex', width: '100%', justifyContent: 'space-between', padding: '0.4rem 0.5rem', border: 'none', background: 'none', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+                  <span>{flagEmoji(c.iso2)} {c.name}</span><strong>{c.count}</strong>
+                </button>
+              ))}
+              {data && !data.countries.length && <p>No verified clinicians yet. Seed from CMS in the admin tools.</p>}
+            </div>
+          )}
+          {selected && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0 }}>{flagEmoji(selected)} {data?.countries.find((c) => c.iso2 === selected)?.name || selected}</h3>
+                <button className="btn btn-sm btn-secondary" onClick={() => { setSelected(null); setList(null); }}><X size={14} /></button>
+              </div>
+              {listLoading && <p style={{ color: '#999' }}>Loading…</p>}
+              {list && list.length === 0 && !listLoading && <p style={{ color: '#999' }}>No verified clinicians listed.</p>}
+              {list && list.map((c) => (
+                <div key={c.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid #eee' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <strong>{c.full_name}</strong>
+                    <span style={{ fontSize: '0.72rem', background: '#eef2ff', color: '#4338ca', padding: '1px 7px', borderRadius: 10, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{c.clinician_role.replace('_', ' ')}</span>
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#666' }}>
+                    {c.specialty}{c.city ? ` · ${c.city}${c.state_province ? `, ${c.state_province}` : ''}` : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

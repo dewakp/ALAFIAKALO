@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    String, Boolean, DateTime, Text, Float, Integer,
+    String, Boolean, DateTime, Text, Float, Integer, JSON,
     ForeignKey, Index, UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -35,6 +35,42 @@ class PhysicianStatus(str, PyEnum):
     active = "active"
     inactive = "inactive"
     unverified = "unverified"
+
+
+class ClinicianRole(str, PyEnum):
+    """The kind of clinician — the directory holds all of them, not just physicians."""
+    physician = "physician"
+    nurse = "nurse"
+    nurse_practitioner = "nurse_practitioner"
+    physician_assistant = "physician_assistant"
+    dietitian = "dietitian"
+    pharmacist = "pharmacist"
+    therapist = "therapist"            # PT / OT / SLP / RT
+    mental_health = "mental_health"    # psychologist / counselor / social worker
+    dentist = "dentist"
+    optometrist = "optometrist"
+    podiatrist = "podiatrist"
+    chiropractor = "chiropractor"
+    midwife = "midwife"
+    other = "other"
+
+
+class VerificationStatus(str, PyEnum):
+    """License-verification state machine — gates patient association.
+
+    quarantined       — no license on record; held, never shown to patients.
+    license_on_record — license present from a non-trusted source; awaits admin.
+    verified          — patient-associable (auto for CMS+license, else admin).
+    rejected          — admin rejected; never associable.
+    """
+    quarantined = "quarantined"
+    license_on_record = "license_on_record"
+    verified = "verified"
+    rejected = "rejected"
+
+
+# Sources we trust enough to auto-verify a clinician that carries a license number.
+TRUSTED_LICENSE_SOURCES = {"cms_nppes"}
 
 
 # ── Specialty Taxonomy ─────────────────────────────────────────────
@@ -117,6 +153,7 @@ class Physician(Base):
     country: Mapped[str | None] = mapped_column(String(100), index=True)
     latitude: Mapped[float | None] = mapped_column(Float)
     longitude: Mapped[float | None] = mapped_column(Float)
+    location_precision: Mapped[str | None] = mapped_column(String(20))  # exact | approximate
 
     # Practice Details
     facility_name: Mapped[str | None] = mapped_column(String(255))
@@ -142,6 +179,25 @@ class Physician(Base):
     status: Mapped[str] = mapped_column(
         String(20), default=PhysicianStatus.unverified.value
     )
+
+    # Clinician type + license verification workflow ------------------------
+    clinician_role: Mapped[str] = mapped_column(
+        String(40), default=ClinicianRole.physician.value, index=True
+    )
+    license_state: Mapped[str | None] = mapped_column(String(50))
+    primary_source: Mapped[str | None] = mapped_column(String(40), index=True)
+
+    # The gate: only `credential_verified` clinicians may be linked to a patient.
+    verification_status: Mapped[str] = mapped_column(
+        String(30), default=VerificationStatus.quarantined.value, index=True
+    )
+    credential_verified: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    verified_by_user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL")
+    )
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verification_notes: Mapped[str | None] = mapped_column(Text)
+    held_reason: Mapped[str | None] = mapped_column(String(80))
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
@@ -225,4 +281,100 @@ class PhysicianReview(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "physician_id", name="uq_user_physician_review"),
         Index("ix_physician_reviews_physician", "physician_id"),
+    )
+
+
+# ── ClinicianSourceRecord (provenance — one row per source that knows them) ──
+
+class ClinicianSourceRecord(Base):
+    """Where a directory record's data came from. Enables dedup + multi-source merge."""
+    __tablename__ = "clinician_source_records"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    physician_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("physicians.id", ondelete="CASCADE"), index=True
+    )
+    source: Mapped[str] = mapped_column(String(40), nullable=False)        # cms_nppes, osm, …
+    source_uid: Mapped[str] = mapped_column(String(64), nullable=False)    # NPI / external id
+    content_hash: Mapped[str | None] = mapped_column(String(64))           # change detection
+    raw_payload: Mapped[dict | None] = mapped_column(JSON)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (
+        UniqueConstraint("source", "source_uid", name="uq_clinician_source_uid"),
+        Index("ix_clinician_source_records_uid", "source", "source_uid"),
+    )
+
+
+# ── ClinicianIngestCandidate (quarantine + dedup queue) ─────────────────────
+
+class ClinicianIngestCandidate(Base):
+    """A normalized record discovered by the worker, before it joins the directory.
+
+    Records without a license are parked here as `held_no_license` and never
+    promoted to `physicians` until a license is confirmed.
+    """
+    __tablename__ = "clinician_ingest_candidates"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    source: Mapped[str] = mapped_column(String(40), nullable=False)
+    source_uid: Mapped[str] = mapped_column(String(64), nullable=False)
+    content_hash: Mapped[str | None] = mapped_column(String(64))
+
+    # Normalized fields
+    npi_number: Mapped[str | None] = mapped_column(String(20), index=True)
+    full_name: Mapped[str | None] = mapped_column(String(255))
+    clinician_role: Mapped[str | None] = mapped_column(String(40))
+    specialty: Mapped[str | None] = mapped_column(String(150))
+    credentials: Mapped[str | None] = mapped_column(String(100))
+    license_number: Mapped[str | None] = mapped_column(String(50))
+    license_state: Mapped[str | None] = mapped_column(String(50))
+    city: Mapped[str | None] = mapped_column(String(100))
+    state_province: Mapped[str | None] = mapped_column(String(100))
+    postal_code: Mapped[str | None] = mapped_column(String(20))
+    country: Mapped[str | None] = mapped_column(String(100))
+    phone: Mapped[str | None] = mapped_column(String(30))
+
+    # Outcome
+    status: Mapped[str] = mapped_column(String(30), default="pending", index=True)
+    # pending | held_no_license | inserted | merged_duplicate | rejected
+    reason: Mapped[str | None] = mapped_column(String(255))
+    matched_physician_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    raw_payload: Mapped[dict | None] = mapped_column(JSON)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_clinician_candidates_source_uid", "source", "source_uid"),
+        Index("ix_clinician_candidates_status", "status"),
+    )
+
+
+# ── ClinicianVerificationLog (audit trail of the state machine) ─────────────
+
+class ClinicianVerificationLog(Base):
+    """Append-only audit of every verification-status transition."""
+    __tablename__ = "clinician_verification_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    physician_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("physicians.id", ondelete="SET NULL"), index=True
+    )
+    action: Mapped[str] = mapped_column(String(40), nullable=False)
+    # ingested | auto_verified | held | admin_verified | admin_rejected | merged
+    from_status: Mapped[str | None] = mapped_column(String(30))
+    to_status: Mapped[str | None] = mapped_column(String(30))
+    actor_user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL")
+    )
+    source: Mapped[str | None] = mapped_column(String(40))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

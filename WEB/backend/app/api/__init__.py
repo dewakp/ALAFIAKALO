@@ -49,6 +49,8 @@ from app.api.insights import router as insights_router
 from app.api.ground_truth import router as ground_truth_router
 from app.api.ai_learning import router as ai_learning_router
 from app.api.firebase_sync import router as firebase_sync_router
+from app.api.surveillance import router as surveillance_router
+from app.api.clinician_directory import router as clinician_directory_router
 
 router = APIRouter()
 
@@ -77,6 +79,7 @@ router.include_router(insurance_router, prefix="/insurance", tags=["Insurance"])
 router.include_router(diagnostics_router, prefix="/diagnostics", tags=["Diagnostics Engine"])
 router.include_router(blockchain_router, prefix="/blockchain", tags=["Blockchain Ledger"])
 router.include_router(physicians_router, prefix="/physicians", tags=["Physician Directory"])
+router.include_router(clinician_directory_router, prefix="/physicians", tags=["Clinician Directory"])
 router.include_router(lab_charts_router, prefix="/lab-charts", tags=["Lab Comparison Charts"])
 router.include_router(wellness_router, prefix="/wellness", tags=["Wellness & Health"])
 router.include_router(planners_router, prefix="/planners", tags=["Meal & Exercise Planners"])
@@ -99,3 +102,4 @@ router.include_router(insights_router, prefix="/insights", tags=["Insights — P
 router.include_router(ground_truth_router, prefix="/ground-truth", tags=["Ground Truths — Genetics & Environment"])
 router.include_router(ai_learning_router, prefix="/ai", tags=["AI Learning & Intelligence"])
 router.include_router(firebase_sync_router, prefix="/firebase", tags=["Firebase Sync"])
+router.include_router(surveillance_router, prefix="/surveillance", tags=["Disease Surveillance"])

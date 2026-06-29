@@ -98,6 +98,14 @@ class PhysicianResponse(BaseModel):
     source: str = "user_contributed"
     is_verified: bool = False
     status: str = "unverified"
+
+    # Clinician type + license verification (gates patient association)
+    clinician_role: str = "physician"
+    license_state: str | None = None
+    primary_source: str | None = None
+    verification_status: str = "quarantined"
+    credential_verified: bool = False
+
     created_at: datetime
 
     model_config = {"from_attributes": True}
