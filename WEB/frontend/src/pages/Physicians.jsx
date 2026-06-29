@@ -247,7 +247,7 @@ export default function Physicians() {
       animate: false, animateAddingMarkers: false,
     });
     directoryPoints.forEach(p => {
-      const approx = p.location_precision === 'approximate';
+      const approx = p.location_precision !== 'exact';
       clinicianCluster.addLayer(
         L.circleMarker([p.latitude, p.longitude], {
           radius: 6, color: '#1d4ed8', weight: 1, fillColor: '#3b82f6',

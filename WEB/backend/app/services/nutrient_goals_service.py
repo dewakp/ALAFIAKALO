@@ -197,13 +197,23 @@ def compute_goals(
         2 if (flags["hypertension"] or flags["ckd"] or flags["heart_failure"]) else 80,
         sodium_reason)
 
-    # ── Potassium (target normally, LIMIT for renal) ────────────────────────
-    if flags["ckd"]:
-        add("potassium_mg", "Potassium", "mg", 2500, "limit", 2,
-            "CKD: limit potassium (~2,000–3,000 mg/day) to protect heart rhythm.")
+    # ── Potassium (NIH AI normally; individualized restriction for renal) ────
+    # KDOQI 2020 individualizes potassium to keep serum K in range rather than a
+    # fixed cap; renal dietetics commonly uses ~40 mg/kg/day, i.e. ~2,000–3,000
+    # mg/day. NIH Adequate Intake (general) is 3,400 mg (men) / 2,600 mg (women).
+    if flags["dialysis"]:
+        pot = max(2000.0, min(3000.0, 40.0 * ref_wt))
+        add("potassium_mg", "Potassium", "mg", pot, "limit", 2,
+            f"Dialysis: individualized ~40 mg/kg/day (≈{pot:.0f} mg for your weight; KDOQI), "
+            "typically 2,000–3,000 mg/day, adjusted to keep serum potassium 3.5–5.5 mmol/L.")
+    elif flags["ckd"]:
+        pot = max(2000.0, min(3000.0, 40.0 * ref_wt))
+        add("potassium_mg", "Potassium", "mg", pot, "limit", 3,
+            "CKD: KDOQI individualizes potassium to serum levels — restrict toward "
+            "~2,000–3,000 mg/day only if prone to high potassium.")
     else:
         add("potassium_mg", "Potassium", "mg", 3400 if male else 2600, "target", 90,
-            "Adequate Intake supports healthy blood pressure.")
+            "NIH Adequate Intake (3,400 mg men / 2,600 mg women) supports healthy blood pressure.")
 
     # ── Phosphorus (target normally, LIMIT for renal) ───────────────────────
     if flags["ckd"]:

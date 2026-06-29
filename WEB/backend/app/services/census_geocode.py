@@ -30,7 +30,9 @@ async def bulk_geocode_practices(db: AsyncSession, *, limit: int = 5000) -> dict
     facs = (await db.execute(
         select(Facility).where(
             Facility.source == PRACTICE_SOURCE,
-            (Facility.location_precision != "exact") | (Facility.location_precision.is_(None)),
+            # Only un-geocoded rows: skip 'exact' (done) and 'zip_fallback'
+            # (already tried, Census couldn't match — don't waste calls re-trying).
+            (Facility.location_precision.is_(None)) | (Facility.location_precision == "approximate"),
             Facility.address_line1.isnot(None),
             Facility.country.in_(["United States", "US", "USA", None]),
         ).limit(min(limit, 10000))
@@ -61,6 +63,7 @@ async def bulk_geocode_practices(db: AsyncSession, *, limit: int = 5000) -> dict
                 "matched": 0, "no_match": 0}
 
     matched = 0
+    matched_ids: set[str] = set()
     for row in csv.reader(io.StringIO(body)):
         # row: id, input, status, [matchtype, matched_addr, "lon,lat", tigerid, side]
         if len(row) < 6 or row[2] != "Match":
@@ -76,6 +79,12 @@ async def bulk_geocode_practices(db: AsyncSession, *, limit: int = 5000) -> dict
         fac.latitude, fac.longitude, fac.location_precision = lat, lon, "exact"
         fac.updated_at = _now()
         matched += 1
+        matched_ids.add(row[0])
+
+    # Mark the rest as tried-but-unmatchable so they aren't re-scanned every run.
+    for fid, fac in by_id.items():
+        if fid not in matched_ids:
+            fac.location_precision = "zip_fallback"
     await db.flush()
 
     # Move linked clinicians to their (now exact) practice facility — one bulk UPDATE.
@@ -93,7 +102,7 @@ async def bulk_geocode_practices(db: AsyncSession, *, limit: int = 5000) -> dict
     remaining = (await db.execute(
         select(func.count()).select_from(Facility).where(
             Facility.source == PRACTICE_SOURCE,
-            (Facility.location_precision != "exact") | (Facility.location_precision.is_(None)),
+            (Facility.location_precision.is_(None)) | (Facility.location_precision == "approximate"),
             Facility.address_line1.isnot(None),
         ))).scalar() or 0
     return {"scanned": len(facs), "matched": matched,

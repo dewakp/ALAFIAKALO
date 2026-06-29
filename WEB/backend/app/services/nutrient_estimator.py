@@ -611,6 +611,31 @@ async def estimate_nutrients(
     food_name: str,
     serving_size: str | None = None,
 ) -> dict[str, Any]:
+    """Estimate nutrients for a food, then run the believability guardrail.
+
+    Wraps the lookup pipeline (learned → curated → cache → USDA → branded → AI)
+    with a plausibility review so impossible values never reach the user.
+    """
+    from app.services import plausibility
+    result = await _estimate_nutrients_impl(db, food_name, serving_size)
+    if isinstance(result, dict) and isinstance(result.get("nutrients"), dict):
+        corrected, warnings, believable = plausibility.review(food_name, result["nutrients"])
+        result["nutrients"] = corrected
+        if warnings:
+            result["plausibility_warnings"] = warnings
+            result["believable"] = believable
+            if not believable:
+                result["confidence"] = min(float(result.get("confidence", 1.0)), 0.4)
+            logger.warning("Plausibility review for '%s': believable=%s issues=%s",
+                           food_name, believable, warnings)
+    return result
+
+
+async def _estimate_nutrients_impl(
+    db: AsyncSession,
+    food_name: str,
+    serving_size: str | None = None,
+) -> dict[str, Any]:
     """
     Estimate nutrients for a food.
 
@@ -780,13 +805,25 @@ async def estimate_meal_nutrients(
             "fdc_id": est.get("fdc_id"),
             "confidence": est.get("confidence", 0.0),
             "nutrients_scaled": scaled,
+            "warnings": est.get("plausibility_warnings") or [],
+            "believable": est.get("believable", True),
         })
 
     total_weight_g = round(sum(c.qty_g for c in components), 1)
+
+    # Believability guardrail at the meal level + roll up component warnings.
+    from app.services import plausibility
+    warnings = plausibility.review_meal(total_weight_g, aggregate)
+    for c in component_results:
+        for w in c["warnings"]:
+            warnings.append(f"{c['food_name']}: {w}")
 
     return {
         "description": description,
         "components": component_results,
         "aggregate_nutrients": aggregate,
         "total_weight_g": total_weight_g,
+        "warnings": warnings,
+        "believable": all(c.get("believable", True) for c in component_results) and not
+                      plausibility.review_meal(total_weight_g, aggregate),
     }
