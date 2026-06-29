@@ -48,6 +48,7 @@ import {
   Moon,
   Network,
   Radar,
+  Building,
 } from 'lucide-react';
 
 // Roles that can see the Clinician Dashboard
@@ -120,6 +121,7 @@ const navGroups = [
     label: 'Community Health', icon: Globe, children: [
       { to: '/community', icon: Globe, label: 'Overview' },
       { to: '/physicians', icon: Stethoscope, label: 'Physician Directory' },
+      { to: '/facilities', icon: Building, label: 'Facility Directory' },
       { to: '/fda-recalls', icon: AlertTriangle, label: 'Food & Drug Recalls' },
       { to: '/surveillance', icon: Radar, label: 'Disease Surveillance' },
     ],

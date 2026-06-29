@@ -14,7 +14,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.models.facilities import Facility, PhysicianFacility
 from app.models.physicians import Physician
-from app.services import facility_ingest, practice_linking
+from app.services import facility_ingest, practice_linking, census_geocode
 
 router = APIRouter()
 
@@ -161,13 +161,14 @@ async def admin_link_practices(
 
 @router.post("/admin/geocode-practices")
 async def admin_geocode_practices(
-    limit: int = Query(25, ge=1, le=200),
+    limit: int = Query(5000, ge=1, le=10000),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Upgrade practice-facility coords from ZIP centroid to exact street (admin)."""
+    """Upgrade practice-facility coords ZIP centroid → exact street, in bulk via the
+    free US Census batch geocoder (admin). Returns matched / remaining counts."""
     _require_admin(current_user)
-    return await practice_linking.geocode_practice_facilities(db, limit=limit)
+    return await census_geocode.bulk_geocode_practices(db, limit=limit)
 
 
 @router.get("/{facility_id}", response_model=FacilityOut)

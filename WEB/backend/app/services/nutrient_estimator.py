@@ -557,6 +557,30 @@ def _curated_lookup(food_name: str) -> tuple[str, dict] | None:
         return ("Water", {"calories": 0.0, "protein_g": 0.0, "carbs_g": 0.0,
                           "fat_g": 0.0, "sugar_g": 0.0, "fiber_g": 0.0, "water_ml": 100.0})
     joined = " ".join(toks)
+    tokset = set(toks)
+
+    # ── Composite / regional dishes USDA matches poorly (e.g. "mixed rice" → a
+    #    fortified seasoned product; "suya" → a peanut/seed product). Per 100 g cooked.
+    if "suya" in tokset:                       # spiced grilled beef skewers (yaji-coated)
+        return ("Suya (grilled spiced beef)",
+                {"calories": 270.0, "protein_g": 28.0, "carbs_g": 4.0, "fat_g": 16.0,
+                 "fiber_g": 1.0, "sugar_g": 1.0, "sodium_mg": 480.0, "iron_mg": 2.6,
+                 "cholesterol_mg": 80.0, "potassium_mg": 330.0})
+    if "jollof" in tokset:
+        return ("Jollof rice, cooked",
+                {"calories": 160.0, "protein_g": 3.5, "carbs_g": 27.0, "fat_g": 4.5,
+                 "fiber_g": 1.2, "sugar_g": 2.0, "sodium_mg": 300.0, "potassium_mg": 120.0})
+    if "rice" in tokset and ("beans" in tokset or "bean" in tokset):
+        return ("Rice and beans, cooked",
+                {"calories": 155.0, "protein_g": 5.5, "carbs_g": 29.0, "fat_g": 2.2,
+                 "fiber_g": 3.5, "sugar_g": 0.6, "sodium_mg": 250.0, "iron_mg": 1.3,
+                 "potassium_mg": 200.0})
+    if "stew" in tokset and ("tomato" in tokset or "buka" in tokset or "obe" in tokset):
+        return ("Tomato stew (Nigerian)",
+                {"calories": 120.0, "protein_g": 3.0, "carbs_g": 6.0, "fat_g": 9.5,
+                 "fiber_g": 1.5, "sugar_g": 3.5, "sodium_mg": 400.0, "vitamin_c_mg": 12.0,
+                 "lycopene_mcg": 4500.0, "potassium_mg": 250.0})
+
     if joined in {"coffee", "black coffee", "espresso", "americano", "brewed coffee"}:
         return ("Coffee, brewed, unsweetened",
                 {"calories": 1.0, "protein_g": 0.1, "carbs_g": 0.0, "fat_g": 0.0,

@@ -575,6 +575,19 @@ def _default_g(food_name: str) -> float:
 # quantity ("1 and a half", "1 and 1/2") — guarded by the negative lookahead.
 _AND_SPLIT_RE = re.compile(r"\s+(?:and|&|plus)\s+(?!(?:a\s+)?half\b|\d)", re.IGNORECASE)
 
+# Compound dish names that read as "X and Y" but are ONE dish — never split these.
+_COMPOUND_DISHES = (
+    "rice and beans", "beans and rice", "rice and peas", "peas and rice",
+    "rice and stew", "mac and cheese", "macaroni and cheese", "fish and chips",
+    "biscuits and gravy", "peas and carrots", "chicken and rice", "chicken and waffles",
+    "surf and turf", "bangers and mash", "bread and butter", "beans and plantain",
+)
+
+
+def _has_compound_dish(segment: str) -> bool:
+    low = segment.lower()
+    return any(d in low for d in _COMPOUND_DISHES)
+
 
 def _split_top_level(text: str) -> list[str]:
     """Split on commas/semicolons (and top-level conjunctions) outside parentheses."""
@@ -604,8 +617,8 @@ def _split_top_level(text: str) -> list[str]:
     # parentheses are left intact (their sub-ingredients are expanded separately).
     expanded: list[str] = []
     for p in parts:
-        if "(" in p:
-            expanded.append(p)
+        if "(" in p or _has_compound_dish(p):
+            expanded.append(p)   # keep parenthetical recipes + compound dishes intact
         else:
             expanded.extend(s.strip() for s in _AND_SPLIT_RE.split(p) if s.strip())
     return expanded
