@@ -17,6 +17,8 @@ flagged as warnings. Returns (corrected_nutrients, warnings, believable).
 """
 from __future__ import annotations
 
+from app.services import nutrition_reference
+
 MAX_KCAL_100G = 902.0   # pure fat ≈ 900 kcal/100 g — nothing edible exceeds this
 SALT_NA_100G = 38758.0  # sodium in 100 g of table salt — hard ceiling
 
@@ -92,7 +94,34 @@ def review(food_name: str, nutrients: dict) -> tuple[dict, list[str], bool]:
         warnings.append("sodium exceeds pure-salt density → clamped")
         believable = False
 
+    # Category-band check (generalized): does the per-100 g calorie value fit the
+    # food's *type*? Catches bad source matches (rice→360 dry, Boost→522/serving,
+    # suya→peanut 589) without per-food code. Flag, don't fabricate.
+    cal_final = _num(n.get("calories"))
+    if cal_final and cal_final > 0:
+        lo, hi = nutrition_reference.expected_kcal_band(food_name)
+        if cal_final > hi * 1.3 or cal_final < lo * 0.5:
+            cat = nutrition_reference.classify(food_name)
+            warnings.append(
+                f"{cal_final:.0f} kcal/100g is outside the expected {lo:.0f}–{hi:.0f} "
+                f"for '{cat}' foods — likely a wrong match")
+            believable = False
+
     return n, warnings, believable
+
+
+def validate_parse(food_name: str, qty_g: float) -> tuple[float, list[str]]:
+    """Input-side believability: catch an implausibly large parsed portion (usually a
+    count misread as grams, e.g. '100 of chicken thigh'). Caps to a category ceiling."""
+    warnings: list[str] = []
+    q = _num(qty_g) or 0.0
+    typ = nutrition_reference.typical_serving_g(food_name)
+    ceiling = max(2000.0, typ * 15)
+    if q > ceiling:
+        warnings.append(
+            f"portion {q:.0f} g is implausibly large for '{food_name}' → capped to {ceiling:.0f} g")
+        q = ceiling
+    return q, warnings
 
 
 def review_meal(total_weight_g: float | None, aggregate: dict) -> list[str]:

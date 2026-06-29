@@ -371,6 +371,17 @@ async def get_goal_progress(
     )).scalars().all()
     conditions = list(cc) + list(hc)
 
+    def _json_list(val):
+        """Profile fields are stored as JSON arrays (or CSV) of strings."""
+        if not val:
+            return []
+        try:
+            import json
+            parsed = json.loads(val)
+            return parsed if isinstance(parsed, list) else [str(parsed)]
+        except (ValueError, TypeError):
+            return [s.strip() for s in str(val).split(",") if s.strip()]
+
     computed = compute_goals(
         date_of_birth=current_user.date_of_birth,
         sex=current_user.gender_at_birth or current_user.gender,
@@ -379,6 +390,10 @@ async def get_goal_progress(
         target_weight_kg=current_user.target_weight_kg,
         activity_level=current_user.activity_level,
         conditions=conditions,
+        fitness_goals=_json_list(current_user.fitness_goals),
+        dietary_preferences=_json_list(current_user.dietary_preferences),
+        dietary_restrictions=_json_list(current_user.dietary_restrictions),
+        allergies=_json_list(current_user.allergies),
     )
 
     progress: list[NutrientGoalProgress] = []

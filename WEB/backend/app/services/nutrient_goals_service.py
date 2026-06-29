@@ -127,13 +127,17 @@ def compute_goals(
     target_weight_kg: float | None = None,
     activity_level: str | None = None,
     conditions: Iterable[Any] | None = None,
+    fitness_goals: Iterable[str] | None = None,
+    dietary_preferences: Iterable[str] | None = None,
+    dietary_restrictions: Iterable[str] | None = None,
+    allergies: Iterable[str] | None = None,
     today: date | None = None,
 ) -> dict[str, Any]:
-    """Return personalized daily nutrient goals.
+    """Return personalized daily nutrient goals from the user's full profile.
 
-    Returns a dict: {goals: [...], energy_kcal: float, flags: {...},
-    profile_complete: bool}. Each goal: key, name, unit, goal, kind, priority,
-    rationale.
+    Returns {goals, energy_kcal, flags, notes, profile_complete}. Each goal:
+    key, name, unit, goal, kind, priority, rationale. Conditions take precedence
+    over fitness/diet preferences (clinical safety first).
     """
     flags = detect_condition_flags(conditions or [])
     age = _calc_age(date_of_birth, today)
@@ -142,10 +146,23 @@ def compute_goals(
     # Protein/needs use actual body weight; fall back to a 70 kg reference adult.
     ref_wt = wt or 70.0
 
+    def _norm(items):
+        return {str(s).strip().lower().replace(" ", "_") for s in (items or []) if s}
+    fg, dp, dr, alg = _norm(fitness_goals), _norm(dietary_preferences), _norm(dietary_restrictions), _norm(allergies)
+    notes: list[str] = []
+
     energy = _energy_target(
         age=age, male=male, height_cm=height_cm, weight_kg=wt,
         target_weight_kg=target_weight_kg, activity=activity_level,
     )
+    # Fitness-goal energy nudge when an explicit target weight didn't already steer it.
+    floor = 1500 if male else 1200
+    if not target_weight_kg:
+        if fg & {"weight_loss", "lose_weight", "fat_loss"}:
+            energy = round(max(energy - 500, floor)); notes.append("Weight-loss goal: ~500 kcal/day deficit.")
+        elif fg & {"muscle_gain", "bulk", "gain_weight", "weight_gain"}:
+            energy = round(energy + 300); notes.append("Muscle-gain goal: ~300 kcal/day surplus.")
+
     profile_complete = bool(age and height_cm and wt)
 
     goals: list[dict[str, Any]] = []
@@ -162,22 +179,41 @@ def compute_goals(
         "Estimated daily energy need (Mifflin-St Jeor × activity"
         + (", adjusted toward your target weight)" if target_weight_kg else ")"))
 
-    # ── Protein ─────────────────────────────────────────────────────────────
+    # ── Protein (clinical first, then fitness/diet goals) ───────────────────
     if flags["dialysis"]:
         add("protein_g", "Protein", "g", 1.1 * ref_wt, "target", 1,
             "Dialysis raises protein needs (KDOQI ~1.0–1.2 g/kg/day).")
     elif flags["ckd"]:
         add("protein_g", "Protein", "g", 0.8 * ref_wt, "limit", 1,
             "Non-dialysis CKD: limit protein (~0.6–0.8 g/kg/day) to ease kidney load.")
+    elif fg & {"muscle_gain", "bulk"} or dp & {"high-protein", "high_protein"}:
+        add("protein_g", "Protein", "g", 1.6 * ref_wt, "target", 15,
+            "Muscle gain / high-protein goal: ~1.6 g/kg/day (ISSN).")
+    elif fg & {"endurance"}:
+        add("protein_g", "Protein", "g", 1.4 * ref_wt, "target", 15,
+            "Endurance training: ~1.2–1.4 g/kg/day.")
     else:
         add("protein_g", "Protein", "g", max(0.8 * ref_wt, 50), "target", 20,
             "RDA ~0.8 g/kg/day for general health.")
 
-    # ── Carbohydrate / Fat (energy distribution) ────────────────────────────
-    add("carbs_g", "Carbohydrate", "g", energy * 0.50 / 4, "target", 60,
-        "≈50% of calories. " + ("Spread evenly and monitor for diabetes." if flags["diabetes"] else "Primary energy source."))
-    add("fat_g", "Total Fat", "g", energy * 0.30 / 9, "target", 70,
-        "≈30% of calories (DGA).")
+    # ── Carbohydrate / Fat split (diet preference, unless renal already drove it) ──
+    carb_pct, fat_pct, split_note = 0.50, 0.30, "≈50% carbs / 30% fat of calories (DGA)."
+    if dp & {"keto", "ketogenic"}:
+        carb_pct, fat_pct, split_note = 0.05, 0.70, "Ketogenic: ~5% carbs / ~70% fat of calories."
+    elif dp & {"low-carb", "low_carb"}:
+        carb_pct, fat_pct, split_note = 0.25, 0.45, "Low-carb: ~25% carbs / ~45% fat of calories."
+    elif dp & {"mediterranean"}:
+        carb_pct, fat_pct, split_note = 0.45, 0.35, "Mediterranean: ~45% carbs / ~35% fat (more unsaturated)."
+    if flags["diabetes"]:
+        split_note += " Spread carbs evenly and favor low-GI for glucose control."
+    add("carbs_g", "Carbohydrate", "g", energy * carb_pct / 4, "target", 60, split_note)
+    add("fat_g", "Total Fat", "g", energy * fat_pct / 9, "target", 70, split_note)
+
+    # ── Dietary-restriction / allergy annotations (no fabricated limits) ────
+    if dr & {"vegan", "vegetarian"}:
+        notes.append("Plant-based: watch vitamin B12, iron, and omega-3 intake.")
+    if alg:
+        notes.append("Allergies on file: " + ", ".join(sorted(alg)).replace("_", " ") + " — avoid these foods.")
 
     # ── Fiber ───────────────────────────────────────────────────────────────
     add("fiber_g", "Fiber", "g", max(round(14 * energy / 1000), 25), "target",
@@ -251,5 +287,6 @@ def compute_goals(
         "goals": goals,
         "energy_kcal": energy,
         "flags": flags,
+        "notes": notes,
         "profile_complete": profile_complete,
     }

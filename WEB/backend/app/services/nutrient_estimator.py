@@ -617,9 +617,13 @@ async def estimate_nutrients(
     with a plausibility review so impossible values never reach the user.
     """
     from app.services import plausibility
-    result = await _estimate_nutrients_impl(db, food_name, serving_size)
+    from app.services.food_aliases import canonicalize
+    # Locale normalization: map non-English / regional names to an English head-noun
+    # for lookup (e.g. "arroz"→rice, "jollof"→jollof rice). Display keeps the original.
+    lookup_name = canonicalize(food_name)
+    result = await _estimate_nutrients_impl(db, lookup_name, serving_size)
     if isinstance(result, dict) and isinstance(result.get("nutrients"), dict):
-        corrected, warnings, believable = plausibility.review(food_name, result["nutrients"])
+        corrected, warnings, believable = plausibility.review(lookup_name, result["nutrients"])
         result["nutrients"] = corrected
         if warnings:
             result["plausibility_warnings"] = warnings
@@ -669,58 +673,62 @@ async def _estimate_nutrients_impl(
         logger.info("Cache HIT for '%s' (source=%s)", food_name, cached["source"])
         return cached
 
-    # 2. Try USDA Foundation / SR Legacy / FNDDS
+    # Self-correcting source selection: prefer the first candidate whose calorie
+    # density fits the food's category band; keep out-of-band ones only as a last
+    # resort. This generalizes the per-food fixes — a wrong USDA/branded match
+    # (rice→dry, Boost→522/serving, suya→peanut) is rejected for a better source.
+    from app.services import nutrition_reference
+
+    def _in_band(res: dict) -> bool:
+        try:
+            cal = float((res.get("nutrients") or {}).get("calories"))
+        except (TypeError, ValueError):
+            return True  # no calories to judge → don't block
+        return nutrition_reference.kcal_in_band(food_name, cal)
+
+    fallbacks: list[dict] = []
+
+    # 2. USDA Foundation / SR Legacy / FNDDS
     usda_result = await _try_usda(food_name)
     if usda_result:
-        logger.info("USDA match for '%s': fdc_id=%s", food_name, usda_result["fdc_id"])
-        await _save_to_cache(
-            db,
-            food_name,
-            source="usda",
-            nutrients=usda_result["nutrients"],
-            fdc_id=usda_result["fdc_id"],
-            serving_size=usda_result["serving_size"],
-            serving_weight_g=usda_result["serving_weight_g"],
-            confidence=1.0,
-        )
-        return usda_result
+        if _in_band(usda_result):
+            await _save_to_cache(db, food_name, source="usda", nutrients=usda_result["nutrients"],
+                                 fdc_id=usda_result["fdc_id"], serving_size=usda_result["serving_size"],
+                                 serving_weight_g=usda_result["serving_weight_g"], confidence=1.0)
+            return usda_result
+        logger.info("USDA match for '%s' out of category band → trying other sources", food_name)
+        fallbacks.append(usda_result)
 
-    # 3. Try MCP Branded Foods (USDA Branded → Open Food Facts)
-    #    Handles OTC supplements, packaged beverages, branded products
-    #    (e.g. "Boost Glucose Control", "Ensure", "Gatorade")
+    # 3. Branded (Boost/Ensure/Gatorade/OTC) via MCP (USDA Branded → Open Food Facts)
     mcp_result = await _try_mcp_branded(food_name)
     if mcp_result:
-        await _save_to_cache(
-            db,
-            food_name,
-            source=mcp_result["source"],
-            nutrients=mcp_result["nutrients"],
-            fdc_id=mcp_result.get("fdc_id"),
-            serving_size=mcp_result.get("serving_size"),
-            serving_weight_g=mcp_result.get("serving_weight_g"),
-            confidence=mcp_result["confidence"],
-        )
-        return mcp_result
+        if _in_band(mcp_result):
+            await _save_to_cache(db, food_name, source=mcp_result["source"], nutrients=mcp_result["nutrients"],
+                                 fdc_id=mcp_result.get("fdc_id"), serving_size=mcp_result.get("serving_size"),
+                                 serving_weight_g=mcp_result.get("serving_weight_g"), confidence=mcp_result["confidence"])
+            return mcp_result
+        fallbacks.append(mcp_result)
 
-    # 5. Fall back to AI (TODO(alafia-model): replace with ALAFIAModel Phase 4)
+    # 4. AI fallback (escalated when USDA/branded were missing or out-of-band).
     ai_result = await _try_ai(food_name, serving_size)
     if ai_result:
         if not ai_result.get("food_name"):
             ai_result["food_name"] = food_name
-        logger.info("AI estimated nutrients for '%s' (model=%s, confidence=%.2f)",
-                     food_name, ai_result["ai_model"], ai_result["confidence"])
-        # Cache AI result for reuse across the app
-        await _save_to_cache(
-            db,
-            food_name,
-            source="ai",
-            nutrients=ai_result["nutrients"],
-            ai_model=ai_result["ai_model"],
-            serving_size=ai_result.get("serving_size"),
-            serving_weight_g=ai_result.get("serving_weight_g"),
-            confidence=ai_result["confidence"],
-        )
-        return ai_result
+        if _in_band(ai_result) or not fallbacks:
+            await _save_to_cache(db, food_name, source="ai", nutrients=ai_result["nutrients"],
+                                 ai_model=ai_result["ai_model"], serving_size=ai_result.get("serving_size"),
+                                 serving_weight_g=ai_result.get("serving_weight_g"), confidence=ai_result["confidence"])
+            return ai_result
+        fallbacks.append(ai_result)
+
+    # 5. No source fit the band → return the best candidate, flagged low-confidence
+    #    (NOT cached as authoritative, so learning/corrections can override it).
+    if fallbacks:
+        best = max(fallbacks, key=lambda r: float(r.get("confidence", 0) or 0))
+        best["confidence"] = min(float(best.get("confidence", 1.0) or 1.0), 0.4)
+        best["out_of_band"] = True
+        logger.warning("All sources out of band for '%s' — returning best flagged candidate", food_name)
+        return best
 
     # 6. Nothing worked
     logger.warning("No nutrient data found for '%s'", food_name)
@@ -757,7 +765,8 @@ async def estimate_meal_nutrients(
         aggregate_nutrients — summed nutrients for the whole meal
         total_weight_g     — sum of all component gram weights
     """
-    from app.services.meal_parser import parse_meal_text
+    from app.services.meal_parser import parse_meal_text, extract_nutrition_facts
+    from app.services import plausibility
 
     empty = {"description": description, "components": [],
              "aggregate_nutrients": {}, "total_weight_g": 0.0}
@@ -767,6 +776,34 @@ async def estimate_meal_nutrients(
     if _is_placeholder(description):
         return empty
 
+    # ── Authoritative input: if the text carries an explicit label, TRUST it
+    #    (no re-estimation) and learn it permanently. Fixes "I gave the right
+    #    numbers and it still computed something else" (the Boost case).
+    facts = extract_nutrition_facts(description)
+    if facts:
+        serving_g = facts["serving_g"] or 100.0
+        per100 = {k: round(v * 100.0 / serving_g, 4) for k, v in facts["nutrients"].items()}
+        per100, warnings, believable = plausibility.review(facts["name"], per100)
+        try:
+            from app.services.learned_nutrient_service import record_correction
+            await record_correction(db, facts["name"], per100, serving_weight_g=serving_g, source="label")
+        except Exception:  # learning is best-effort; never block the estimate
+            logger.exception("Failed to persist label values for '%s'", facts["name"])
+        scaled = {k: round(v * serving_g / 100.0, 4) for k, v in per100.items()}
+        return {
+            "description": description,
+            "components": [{
+                "food_name": facts["name"], "qty_g": serving_g,
+                "qty_text": "from label", "source": "user_provided",
+                "fdc_id": None, "confidence": 1.0, "nutrients_scaled": scaled,
+                "warnings": warnings, "believable": believable,
+            }],
+            "aggregate_nutrients": scaled,
+            "total_weight_g": round(serving_g, 1),
+            "warnings": warnings,
+            "believable": believable,
+        }
+
     components = parse_meal_text(description)
     if not components:
         return empty
@@ -774,19 +811,23 @@ async def estimate_meal_nutrients(
     component_results: list[dict] = []
     aggregate: dict[str, float] = {}
 
+    from app.services import plausibility
+
     for comp in components:
         est = await estimate_nutrients(db, comp.food_name)
         per_100g = dict(est.get("nutrients") or {})
 
-        # Guard against bad source data: no real food exceeds ~884 kcal/100 g
-        # (pure fat). A higher value means a mis-scaled branded record (e.g. a
-        # Boost product returning 2960 kcal/100 g) — clamp it.
+        # Input-side believability: cap an implausibly large parsed portion
+        # (usually a count misread as grams, e.g. "100 of chicken thigh").
+        qty_g, parse_warnings = plausibility.validate_parse(comp.food_name, comp.qty_g)
+
+        # Per-100 g hard ceiling backstop (the review step already clamps to 902).
         cal = per_100g.get("calories")
-        if isinstance(cal, (int, float)) and cal > 900:
-            per_100g["calories"] = 900.0
+        if isinstance(cal, (int, float)) and cal > 902:
+            per_100g["calories"] = 902.0
 
         # Scale each nutrient by the actual quantity proportion
-        scale = comp.qty_g / 100.0
+        scale = qty_g / 100.0
         scaled: dict[str, float] = {
             key: round(float(val) * scale, 4)
             for key, val in per_100g.items()
@@ -799,14 +840,14 @@ async def estimate_meal_nutrients(
 
         component_results.append({
             "food_name": comp.food_name,
-            "qty_g": comp.qty_g,
+            "qty_g": qty_g,
             "qty_text": comp.qty_text,
             "source": est.get("source"),
             "fdc_id": est.get("fdc_id"),
             "confidence": est.get("confidence", 0.0),
             "nutrients_scaled": scaled,
-            "warnings": est.get("plausibility_warnings") or [],
-            "believable": est.get("believable", True),
+            "warnings": (est.get("plausibility_warnings") or []) + parse_warnings,
+            "believable": est.get("believable", True) and est.get("out_of_band") is not True,
         })
 
     total_weight_g = round(sum(c.qty_g for c in components), 1)

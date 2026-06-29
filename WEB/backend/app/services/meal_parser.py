@@ -254,6 +254,92 @@ _SPREAD_KW = frozenset({"butter", "margarine", "paste", "tahini", "hummus"})
 _OIL_KW = frozenset({"oil", "fat"})
 
 
+# ── Authoritative input: extract an explicit Nutrition-Facts label from text ──
+# When a user pastes the real label (e.g. "8 fl oz Boost Glucose Control, 190
+# Calories, 7g protein, 16g carbs, 7g fat, 210mg sodium"), trust it over estimation.
+
+_SERVING_TO_G = {
+    "fl oz": 29.57, "fluid ounce": 29.57, "fluid ounces": 29.57,
+    "oz": 28.35, "ounce": 28.35, "ounces": 28.35,
+    "ml": 1.0, "milliliter": 1.0, "milliliters": 1.0, "cc": 1.0,
+    "l": 1000.0, "liter": 1000.0, "litre": 1000.0,
+    "g": 1.0, "gram": 1.0, "grams": 1.0,
+    "cup": 240.0, "cups": 240.0, "tbsp": 15.0, "tablespoon": 15.0,
+    "tsp": 5.0, "teaspoon": 5.0,
+}
+
+
+def _find_num(pattern: str, text: str) -> float | None:
+    m = re.search(pattern, text, re.IGNORECASE)
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+def extract_nutrition_facts(text: str) -> dict | None:
+    """Parse an explicit nutrition-facts label out of free text.
+
+    Returns {name, serving_g, nutrients(per serving)} when the text clearly contains
+    label values (calories + ≥2 macros), else None. The caller treats these as
+    authoritative (no re-estimation).
+    """
+    if not text:
+        return None
+    low = text.lower()
+
+    calories = _find_num(r"(\d+(?:\.\d+)?)\s*(?:k?cal(?:orie)?s?)\b", low)
+    if calories is None:
+        return None
+
+    n: dict[str, float] = {"calories": calories}
+    # Remove "saturated fat"/"trans fat" before matching total fat so they don't collide.
+    fat_text = re.sub(r"\d+(?:\.\d+)?\s*g\s*(?:of\s+)?(?:satur\w*|trans)\s*fat", " ", low)
+    pairs = {
+        "protein_g":       (n, r"(\d+(?:\.\d+)?)\s*g(?:rams)?\s*(?:of\s+)?protein", low),
+        "carbs_g":         (n, r"(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?carb", low),
+        "fiber_g":         (n, r"(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?(?:dietary\s+)?fib(?:er|re)", low),
+        "sugar_g":         (n, r"(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?(?:added\s+)?sugar", low),
+        "saturated_fat_g": (n, r"(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?satur\w*\s*fat", low),
+        "trans_fat_g":     (n, r"(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?trans\s*fat", low),
+        "fat_g":           (n, r"(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?(?:total\s+)?fat", fat_text),
+        "sodium_mg":       (n, r"(\d+(?:\.\d+)?)\s*mg\s*(?:of\s+)?sodium", low),
+        "cholesterol_mg":  (n, r"(\d+(?:\.\d+)?)\s*mg\s*(?:of\s+)?cholesterol", low),
+        "potassium_mg":    (n, r"(\d+(?:\.\d+)?)\s*mg\s*(?:of\s+)?potassium", low),
+    }
+    for key, (target, pat, src) in pairs.items():
+        v = _find_num(pat, src)
+        if v is not None:
+            target[key] = v
+
+    macros_present = sum(1 for k in ("protein_g", "carbs_g", "fat_g") if k in n)
+    if macros_present < 2:
+        return None  # not enough to be a real label — treat as a normal meal
+
+    # Serving size, e.g. "8 fl oz".
+    serving_g = None
+    sm = re.search(r"(\d+(?:\.\d+)?)\s*(fl\s*oz|fluid ounces?|ounces?|oz|milliliters?|ml|cc|liters?|litres?|l|grams?|g|cups?|tbsp|tablespoons?|tsp|teaspoons?)\b", low)
+    if sm:
+        unit = re.sub(r"\s+", " ", sm.group(2)).strip()
+        serving_g = float(sm.group(1)) * _SERVING_TO_G.get(unit, _SERVING_TO_G.get(unit.rstrip("s"), 1.0))
+
+    # Name = text before the first nutrient figure, minus the serving phrase + brands.
+    first_idx = len(text)
+    for pat in (r"\d+(?:\.\d+)?\s*k?cal", r"\d+(?:\.\d+)?\s*g\s*(?:of\s+)?(?:protein|carb|fat)"):
+        m = re.search(pat, low)
+        if m:
+            first_idx = min(first_idx, m.start())
+    name = text[:first_idx]
+    if sm and sm.start() < first_idx:
+        name = name[:sm.start()] + name[sm.end():]
+    name = re.sub(r"[,;:.\-–]+", " ", name)
+    name = re.sub(r"\s+", " ", name).strip(" ,.-") or (text[:60].strip())
+
+    return {"name": name, "serving_g": serving_g, "nutrients": n}
+
+
 def _classify_ingredient(name: str) -> str:
     """Return a coarse type label used to pick a default condiment quantity."""
     n = name.lower()
