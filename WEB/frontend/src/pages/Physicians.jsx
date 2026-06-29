@@ -10,31 +10,15 @@ import {
 import BackButton from '../components/BackButton';
 import ChoroplethMap from '../components/ChoroplethMap';
 import { flagEmoji } from '../data/isoCountries';
+// Leaflet bundled (not CDN) so the Map View renders reliably offline / without unpkg.
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-// ── Leaflet (loaded via CDN to keep Docker builds fast) ──────────
-const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 const PAGE_SIZE = 10;
-
-function useLeaflet() {
-  const [ready, setReady] = useState(!!window.L);
-  useEffect(() => {
-    if (window.L) { setReady(true); return; }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = LEAFLET_CSS;
-    document.head.appendChild(link);
-    const script = document.createElement('script');
-    script.src = LEAFLET_JS;
-    script.onload = () => setReady(true);
-    document.head.appendChild(script);
-  }, []);
-  return ready;
-}
 
 const RELATIONSHIP_TYPES = ['PCP', 'Specialist', 'Dentist', 'Therapist', 'Surgeon', 'Pharmacist', 'Other'];
 
 export default function Physicians() {
-  const leafletReady = useLeaflet();
 
   // ── State ──
   const [physicians, setPhysicians] = useState([]);
@@ -57,6 +41,7 @@ export default function Physicians() {
   const [nearbyResults, setNearbyResults] = useState([]);
   const [osmResults, setOsmResults] = useState([]);
   const [directoryPoints, setDirectoryPoints] = useState([]);
+  const [facilityPoints, setFacilityPoints] = useState([]);
   const [mapRole, setMapRole] = useState('');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -228,8 +213,7 @@ export default function Physicians() {
 
   // ── Map ──
   const updateMap = useCallback(() => {
-    if (!leafletReady || !mapRef.current || !window.L) return;
-    const L = window.L;
+    if (!mapRef.current) return;
 
     if (!mapInstanceRef.current) {
       mapInstanceRef.current = L.map(mapRef.current).setView([userLat || 39.5, userLon || -98.35], userLat ? 11 : 4);
@@ -271,19 +255,30 @@ export default function Physicians() {
       markersRef.current.push(m);
     });
 
-    // OSM results (purple), if any from a discover search
+    // Facilities (purple) from the directory DB.
+    facilityPoints.forEach(f => {
+      const m = L.circleMarker([f.latitude, f.longitude], {
+        radius: 6, color: '#8b5cf6', fillColor: '#a78bfa', fillOpacity: 0.7, weight: 1,
+      }).bindPopup(
+        `<b>${f.name}</b><br>${f.facility_type}<br>${[f.city, f.state_province].filter(Boolean).join(', ')}`
+      ).addTo(map);
+      pts.push([f.latitude, f.longitude]);
+      markersRef.current.push(m);
+    });
+
+    // Live OSM discoveries (purple outline), if any from the Discover tab.
     osmResults.forEach(r => {
-      const m = L.circleMarker([r.latitude, r.longitude], { radius: 6, color: '#8b5cf6', fillOpacity: 0.7 })
+      const m = L.circleMarker([r.latitude, r.longitude], { radius: 6, color: '#8b5cf6', fillOpacity: 0.4 })
         .bindPopup(`<b>${r.name}</b><br>${r.amenity_type}<br>${r.distance_km} km`)
         .addTo(map);
       markersRef.current.push(m);
     });
 
-    // Fit to the clinician points when we have them and no user location lock.
+    // Fit to the plotted points when we have them and no user location lock.
     if (pts.length && !(userLat && userLon)) {
       try { map.fitBounds(pts, { padding: [30, 30], maxZoom: 11 }); } catch { /* single point */ }
     }
-  }, [leafletReady, userLat, userLon, directoryPoints, osmResults]);
+  }, [userLat, userLon, directoryPoints, facilityPoints, osmResults]);
 
   // Clinician map points (verified). Optional bbox limits to a searched area.
   const loadDirectoryPoints = useCallback(async (bbox) => {
@@ -295,6 +290,16 @@ export default function Physicians() {
     } catch { setDirectoryPoints([]); }
   }, [mapRole]);
 
+  // Facility map points from the directory DB (fast/reliable; no live Overpass).
+  const loadFacilityPoints = useCallback(async (bbox) => {
+    try {
+      const params = { limit: 2000 };
+      if (bbox) params.bbox = bbox;
+      const { data } = await api.get('/facilities/points', { params });
+      setFacilityPoints(data);
+    } catch { setFacilityPoints([]); }
+  }, []);
+
   // Bounding box (minLat,minLon,maxLat,maxLon) around a center for the current radius.
   function bboxAround(c) {
     const dLat = radiusKm / 111;
@@ -303,8 +308,12 @@ export default function Physicians() {
   }
 
   useEffect(() => {
-    if (tab === 'map') { loadDirectoryPoints(); setTimeout(updateMap, 120); }
-  }, [tab, loadDirectoryPoints, updateMap]);
+    if (tab === 'map') {
+      loadDirectoryPoints();
+      loadFacilityPoints();
+      setTimeout(updateMap, 120);
+    }
+  }, [tab, loadDirectoryPoints, loadFacilityPoints, updateMap]);
 
   // ── Render ──
   if (loading && physicians.length === 0) {
@@ -536,8 +545,9 @@ export default function Physicians() {
               <button className="btn btn-primary" onClick={async () => {
                 const c = await handleGeocode();
                 if (!c) return;
-                loadDirectoryPoints(bboxAround(c)); // clinicians in this area
-                discoverOSM(c);                      // facilities in this area
+                const bb = bboxAround(c);
+                loadDirectoryPoints(bb);  // clinicians in this area (DB)
+                loadFacilityPoints(bb);   // facilities in this area (DB)
               }}>
                 <Search size={16} /> Search Area
               </button>
@@ -549,7 +559,7 @@ export default function Physicians() {
           <div ref={mapRef} style={{ height: '500px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }} />
           <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#999' }}>
             <strong>{directoryPoints.length}</strong> verified clinician{directoryPoints.length !== 1 ? 's' : ''}
-            {osmResults.length ? <> · <strong>{osmResults.length}</strong> facilities</> : null} &nbsp;·&nbsp;
+            {facilityPoints.length ? <> · <strong>{facilityPoints.length}</strong> facilities</> : null} &nbsp;·&nbsp;
             🟢 You &nbsp; 🔵 Clinicians (filled = exact, hollow = approx.) &nbsp; 🟣 Facilities (OSM) &nbsp;·&nbsp;
             Map data © <a href="https://osm.org" target="_blank" rel="noreferrer">OpenStreetMap</a>
           </div>

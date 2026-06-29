@@ -22,6 +22,13 @@ import httpx
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org"
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Public Overpass is frequently overloaded (504); try mirrors in turn.
+OVERPASS_MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://z.overpass-api.de/api/interpreter",
+]
 USER_AGENT = "ALAFIA-HealthApp/1.0 (contact@alafia.app)"
 
 # Rate limiter: Nominatim requires max 1 req/s
@@ -157,10 +164,23 @@ async def search_nearby_healthcare(
     out body 100;
     """
 
-    async with httpx.AsyncClient(timeout=20) as client:
-        resp = await client.post(OVERPASS_URL, data={"data": query}, headers={"User-Agent": USER_AGENT})
-        resp.raise_for_status()
-        data = resp.json()
+    # Try each mirror; public Overpass often 504s / times out under load.
+    data, last_exc = None, None
+    async with httpx.AsyncClient(timeout=30) as client:
+        for mirror in OVERPASS_MIRRORS:
+            try:
+                resp = await client.post(mirror, data={"data": query},
+                                         headers={"User-Agent": USER_AGENT})
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except (httpx.HTTPError, ValueError) as exc:
+                last_exc = exc
+                continue
+    if data is None:
+        raise RuntimeError(
+            "All OpenStreetMap (Overpass) mirrors are busy — please try again shortly."
+        ) from last_exc
 
     results = []
     for el in data.get("elements", []):
