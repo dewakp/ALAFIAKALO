@@ -148,9 +148,12 @@ async def search_nearby_healthcare(
         tag = type_filters.get(place_type, '["healthcare"]')
         filters = f'node{tag}(around:{radius_m},{lat},{lon});'
 
+    # Note: the union group MUST be terminated with ");" — Overpass 400s otherwise.
     query = f"""
-    [out:json][timeout:15];
-    ({filters})
+    [out:json][timeout:25];
+    (
+      {filters}
+    );
     out body 100;
     """
 
