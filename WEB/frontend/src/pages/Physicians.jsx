@@ -13,6 +13,9 @@ import { flagEmoji } from '../data/isoCountries';
 // Leaflet bundled (not CDN) so the Map View renders reliably offline / without unpkg.
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 const PAGE_SIZE = 10;
 
@@ -59,7 +62,8 @@ export default function Physicians() {
   // Map
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const markersRef = useRef([]);
+  const overlayRef = useRef([]);   // layers to clear/replace on each redraw
+  const fitDoneRef = useRef(false); // fit bounds only once (no re-animation)
 
   // ── Load ──
   useEffect(() => {
@@ -218,67 +222,69 @@ export default function Physicians() {
     if (!mapRef.current) return;
 
     if (!mapInstanceRef.current) {
-      mapInstanceRef.current = L.map(mapRef.current).setView([userLat || 39.5, userLon || -98.35], userLat ? 11 : 4);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      mapInstanceRef.current = L.map(mapRef.current, { preferCanvas: true })
+        .setView([userLat || 39.5, userLon || -98.35], userLat ? 11 : 4);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>',
-        maxZoom: 18,
+        maxZoom: 19, crossOrigin: true,
       }).addTo(mapInstanceRef.current);
     }
 
     const map = mapInstanceRef.current;
-    // Container is sized only once the tab is visible — without this Leaflet
-    // renders grey/blank ("no view"). Recompute now that we're on the map tab.
+    // Container is sized only once the tab is visible — recompute so tiles render.
     map.invalidateSize();
 
-    // Clear old markers
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
+    // Clear previous overlay layers.
+    overlayRef.current.forEach(layer => map.removeLayer(layer));
+    overlayRef.current = [];
 
-    if (userLat && userLon) {
-      map.setView([userLat, userLon], 11);
-      const userMarker = L.circleMarker([userLat, userLon], { radius: 8, color: '#22c55e', fillOpacity: 0.9 })
-        .bindPopup('📍 You are here').addTo(map);
-      markersRef.current.push(userMarker);
-    }
+    const fitPts = [];
 
-    // Verified directory clinicians (approximate = hollow, exact = filled).
-    const pts = [];
+    // Clinicians → CLUSTERED (handles thousands of approximate points; clusters and
+    // individual markers are both clickable).
+    const clinicianCluster = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 55 });
     directoryPoints.forEach(p => {
       const approx = p.location_precision === 'approximate';
-      const m = L.circleMarker([p.latitude, p.longitude], {
-        radius: 5, color: '#2563eb', weight: approx ? 1 : 2,
-        fillColor: '#3b82f6', fillOpacity: approx ? 0.25 : 0.85,
-      }).bindPopup(
-        `<b>${p.full_name}</b><br>${p.specialty || p.clinician_role}` +
-        `<br>${[p.city, p.state_province].filter(Boolean).join(', ')}` +
-        `<br>✓ Verified${approx ? ' · approx. location' : ''}`
-      ).addTo(map);
-      pts.push([p.latitude, p.longitude]);
-      markersRef.current.push(m);
+      clinicianCluster.addLayer(
+        L.circleMarker([p.latitude, p.longitude], {
+          radius: 6, color: '#1d4ed8', weight: 1, fillColor: '#3b82f6',
+          fillOpacity: approx ? 0.55 : 0.9,
+        }).bindPopup(
+          `<b>${p.full_name}</b><br>${p.specialty || p.clinician_role || ''}` +
+          `<br>${[p.city, p.state_province].filter(Boolean).join(', ')}` +
+          `<br>✓ Verified clinician${approx ? ' · approx. location' : ''}`)
+      );
+      fitPts.push([p.latitude, p.longitude]);
     });
+    map.addLayer(clinicianCluster);
+    overlayRef.current.push(clinicianCluster);
 
-    // Facilities (purple) from the directory DB.
+    // Facilities (exact) + live OSM + you → individual clickable markers.
+    const overlay = L.layerGroup();
     facilityPoints.forEach(f => {
-      const m = L.circleMarker([f.latitude, f.longitude], {
-        radius: 6, color: '#8b5cf6', fillColor: '#a78bfa', fillOpacity: 0.7, weight: 1,
+      L.circleMarker([f.latitude, f.longitude], {
+        radius: 6, color: '#6d28d9', weight: 1, fillColor: '#a78bfa', fillOpacity: 0.85,
       }).bindPopup(
         `<b>${f.name}</b><br>${f.facility_type}<br>${[f.city, f.state_province].filter(Boolean).join(', ')}`
-      ).addTo(map);
-      pts.push([f.latitude, f.longitude]);
-      markersRef.current.push(m);
+      ).addTo(overlay);
+      fitPts.push([f.latitude, f.longitude]);
     });
-
-    // Live OSM discoveries (purple outline), if any from the Discover tab.
     osmResults.forEach(r => {
-      const m = L.circleMarker([r.latitude, r.longitude], { radius: 6, color: '#8b5cf6', fillOpacity: 0.4 })
-        .bindPopup(`<b>${r.name}</b><br>${r.amenity_type}<br>${r.distance_km} km`)
-        .addTo(map);
-      markersRef.current.push(m);
+      L.circleMarker([r.latitude, r.longitude], { radius: 6, color: '#6d28d9', weight: 1, fillColor: '#c4b5fd', fillOpacity: 0.6 })
+        .bindPopup(`<b>${r.name}</b><br>${r.amenity_type}${r.distance_km != null ? `<br>${r.distance_km} km` : ''}`)
+        .addTo(overlay);
     });
+    if (userLat && userLon) {
+      L.circleMarker([userLat, userLon], { radius: 8, color: '#15803d', fillColor: '#22c55e', fillOpacity: 0.95 })
+        .bindPopup('📍 You are here').addTo(overlay);
+    }
+    map.addLayer(overlay);
+    overlayRef.current.push(overlay);
 
-    // Fit to the plotted points when we have them and no user location lock.
-    if (pts.length && !(userLat && userLon)) {
-      try { map.fitBounds(pts, { padding: [30, 30], maxZoom: 11 }); } catch { /* single point */ }
+    // Fit to the data once (no animation, so it doesn't "swim" on every reload).
+    if (fitPts.length && !fitDoneRef.current && !(userLat && userLon)) {
+      try { map.fitBounds(fitPts, { padding: [30, 30], maxZoom: 11, animate: false }); } catch { /* single point */ }
+      fitDoneRef.current = true;
     }
   }, [userLat, userLon, directoryPoints, facilityPoints, osmResults]);
 
@@ -575,6 +581,7 @@ export default function Physicians() {
               <button className="btn btn-primary" onClick={async () => {
                 const c = await handleGeocode();
                 if (!c) return;
+                if (mapInstanceRef.current) mapInstanceRef.current.setView([c.lat, c.lon], 12);
                 const bb = bboxAround(c);
                 loadDirectoryPoints(bb);  // clinicians in this area (DB)
                 loadFacilityPoints(bb);   // facilities in this area (DB)
