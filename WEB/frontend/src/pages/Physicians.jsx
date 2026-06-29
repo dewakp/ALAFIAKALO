@@ -14,6 +14,7 @@ import { flagEmoji } from '../data/isoCountries';
 // ── Leaflet (loaded via CDN to keep Docker builds fast) ──────────
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+const PAGE_SIZE = 10;
 
 function useLeaflet() {
   const [ready, setReady] = useState(!!window.L);
@@ -57,6 +58,8 @@ export default function Physicians() {
   const [osmResults, setOsmResults] = useState([]);
   const [directoryPoints, setDirectoryPoints] = useState([]);
   const [mapRole, setMapRole] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [radiusKm, setRadiusKm] = useState(50);
   const [placeType, setPlaceType] = useState('all');
   const [geocodeQuery, setGeocodeQuery] = useState('');
@@ -79,19 +82,36 @@ export default function Physicians() {
     getUserLocation();
   }, []);
 
+  // Directory list — server-side paginated at PAGE_SIZE (10) records/page.
+  const loadDirectory = useCallback(async (pg = 0) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQ) params.set('q', searchQ);
+      if (filterSpecialty) params.set('specialty', filterSpecialty);
+      if (filterCategory) params.set('specialty_category', filterCategory);
+      if (filterCity) params.set('city', filterCity);
+      params.set('limit', PAGE_SIZE);
+      params.set('offset', pg * PAGE_SIZE);
+      const { data } = await api.get(`/physicians/?${params}`);
+      setPhysicians(data);
+      setHasMore(data.length === PAGE_SIZE);
+      setPage(pg);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  }, [searchQ, filterSpecialty, filterCategory, filterCity]);
+
   async function loadAll() {
     setLoading(true);
     try {
-      const [physRes, savedRes, specRes] = await Promise.all([
-        api.get('/physicians/'),
+      const [savedRes, specRes] = await Promise.all([
         api.get('/physicians/saved/'),
         api.get('/physicians/specialties'),
       ]);
-      setPhysicians(physRes.data);
       setSavedPhysicians(savedRes.data);
       setSpecialties(specRes.data.categories || {});
     } catch (err) { console.error(err); }
-    setLoading(false);
+    await loadDirectory(0);
   }
 
   function getUserLocation() {
@@ -103,17 +123,9 @@ export default function Physicians() {
     }
   }
 
-  // ── Search ──
+  // ── Search ── (resets to first page)
   async function handleSearch() {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (searchQ) params.set('q', searchQ);
-    if (filterSpecialty) params.set('specialty', filterSpecialty);
-    if (filterCategory) params.set('specialty_category', filterCategory);
-    if (filterCity) params.set('city', filterCity);
-    const { data } = await api.get(`/physicians/?${params}`);
-    setPhysicians(data);
-    setLoading(false);
+    await loadDirectory(0);
   }
 
   // ── Nearby ──
@@ -356,6 +368,21 @@ export default function Physicians() {
                   onDelete={() => deletePhysician(p.id)}
                   onSelect={() => setSelectedPhysician(p)} />
               ))}
+            </div>
+          )}
+
+          {/* Pagination — 10 records per page (server-side) */}
+          {(page > 0 || hasMore) && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1.25rem' }}>
+              <button className="btn btn-secondary btn-sm" disabled={page === 0 || loading}
+                onClick={() => loadDirectory(page - 1)}>
+                <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> Prev
+              </button>
+              <span style={{ fontSize: '0.85rem', color: '#666' }}>Page {page + 1}</span>
+              <button className="btn btn-secondary btn-sm" disabled={!hasMore || loading}
+                onClick={() => loadDirectory(page + 1)}>
+                Next <ChevronRight size={14} />
+              </button>
             </div>
           )}
         </div>

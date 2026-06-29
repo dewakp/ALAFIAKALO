@@ -116,16 +116,20 @@ const navGroups = [
       { to: '/therapy-history', icon: History, label: 'Therapy History' },
     ],
   },
-  { to: '/physicians', icon: Stethoscope, label: 'Physician Directory' },
-  { to: '/fda-recalls', icon: AlertTriangle, label: 'Food & Drug Recalls' },
-  { to: '/surveillance', icon: Radar, label: 'Disease Surveillance' },
+  {
+    label: 'Community Health', icon: Globe, children: [
+      { to: '/community', icon: Globe, label: 'Overview' },
+      { to: '/physicians', icon: Stethoscope, label: 'Physician Directory' },
+      { to: '/fda-recalls', icon: AlertTriangle, label: 'Food & Drug Recalls' },
+      { to: '/surveillance', icon: Radar, label: 'Disease Surveillance' },
+    ],
+  },
   // ── Additional web features ──
   {
     label: 'More', icon: Wrench, children: [
       { to: '/fitness', icon: Dumbbell, label: 'Fitness' },
       { to: '/mental-health', icon: HeartPulse, label: 'Mental Health' },
       { to: '/exercise-planner', icon: PersonStanding, label: 'Exercise Planner' },
-      { to: '/community', icon: Globe, label: 'Community Health' },
       { to: '/ai', icon: Bot, label: 'AI Assistant' },
       { to: '/telehealth', icon: Video, label: 'Telehealth' },
       { to: '/messaging', icon: MessageSquare, label: 'Messaging' },
