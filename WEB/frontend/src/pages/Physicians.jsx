@@ -128,39 +128,55 @@ export default function Physicians() {
     await loadDirectory(0);
   }
 
-  // ── Nearby ──
-  async function searchNearby() {
-    if (!userLat || !userLon) return;
+  // Resolve a search center: explicit coords → my location → geocode the typed address.
+  async function resolveCenter(center) {
+    if (center && center.lat != null) return center;
+    if (userLat && userLon) return { lat: userLat, lon: userLon };
+    if (geocodeQuery) return await handleGeocode();
+    return null;
+  }
+
+  // ── Nearby (our directory) ──
+  async function searchNearby(center) {
+    const c = await resolveCenter(center);
+    if (!c) { alert('Enter an address to locate, or allow location access.'); return; }
     setLoading(true);
     try {
-      const { data } = await api.get(`/physicians/nearby?lat=${userLat}&lon=${userLon}&radius_km=${radiusKm}`);
+      const { data } = await api.get(`/physicians/nearby?lat=${c.lat}&lon=${c.lon}&radius_km=${radiusKm}`);
       setNearbyResults(data.results || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { alert(apiErrorMessage(err, 'Nearby search failed')); }
     setLoading(false);
   }
 
   // ── OSM Discover ──
-  async function discoverOSM() {
-    if (!userLat || !userLon) return;
+  async function discoverOSM(center) {
+    const c = await resolveCenter(center);
+    if (!c) { alert('Enter an address to locate, or allow location access.'); return; }
     setLoading(true);
     try {
-      const { data } = await api.get(`/physicians/osm-discover?lat=${userLat}&lon=${userLon}&radius_km=${radiusKm}&place_type=${placeType}`);
-      setOsmResults(data.results || []);
-    } catch (err) { console.error(err); }
+      const { data } = await api.get(`/physicians/osm-discover?lat=${c.lat}&lon=${c.lon}&radius_km=${radiusKm}&place_type=${placeType}`);
+      const results = data.results || [];
+      setOsmResults(results);
+      if (!results.length) alert('No OpenStreetMap healthcare places found in this area — try a larger radius.');
+    } catch (err) { alert(apiErrorMessage(err, 'OSM discovery failed')); }
     setLoading(false);
   }
 
-  // ── Geocode ──
+  // ── Geocode ── (returns {lat, lon} | null and sets the map center)
   async function handleGeocode() {
-    if (!geocodeQuery) return;
+    if (!geocodeQuery) { alert('Type a place or address first.'); return null; }
     try {
       const { data } = await api.get(`/physicians/geocode?address=${encodeURIComponent(geocodeQuery)}`);
       setGeocodeResults(data);
       if (data.length > 0) {
-        setUserLat(data[0].latitude);
-        setUserLon(data[0].longitude);
+        const c = { lat: data[0].latitude, lon: data[0].longitude };
+        setUserLat(c.lat);
+        setUserLon(c.lon);
+        return c;
       }
-    } catch (err) { console.error(err); }
+      alert('Location not found — try a more specific address.');
+      return null;
+    } catch (err) { alert(apiErrorMessage(err, 'Geocoding failed')); return null; }
   }
 
   // ── Save / Unsave ──
@@ -458,10 +474,10 @@ export default function Physicians() {
                 <option value={50}>50 km</option>
                 <option value={100}>100 km</option>
               </select>
-              <button className="btn btn-primary" onClick={discoverOSM} disabled={!userLat}>
+              <button className="btn btn-primary" onClick={() => discoverOSM()} disabled={loading}>
                 <Search size={16} /> Discover
               </button>
-              {!userLat && <span style={{ fontSize: '0.85rem', color: '#999' }}>Enter an address above or allow location access</span>}
+              {!userLat && <span style={{ fontSize: '0.85rem', color: '#999' }}>Uses the address above (click Locate) or your location</span>}
             </div>
           </div>
 
@@ -506,7 +522,7 @@ export default function Physicians() {
                 placeholder="Search location..." value={geocodeQuery}
                 onChange={e => setGeocodeQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleGeocode()} />
-              <button className="btn btn-primary" onClick={() => { handleGeocode(); setTimeout(() => { searchNearby(); discoverOSM(); }, 1000); }}>
+              <button className="btn btn-primary" onClick={async () => { const c = await handleGeocode(); if (c) { searchNearby(c); discoverOSM(c); } }}>
                 <Search size={16} /> Search Area
               </button>
               <select className="form-input" value={mapRole} onChange={e => setMapRole(e.target.value)} style={{ maxWidth: 180 }}>

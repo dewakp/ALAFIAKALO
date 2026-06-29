@@ -139,7 +139,8 @@ async def search_nearby_healthcare(
     }
 
     if place_type == "all":
-        filters = "|".join(
+        # Overpass union: statements are concatenated inside ( … ); — NOT pipe-separated.
+        filters = "\n      ".join(
             f'node["amenity"="{t}"](around:{radius_m},{lat},{lon});'
             for t in type_filters
         )
