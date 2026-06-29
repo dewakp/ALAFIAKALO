@@ -242,7 +242,10 @@ export default function Physicians() {
 
     // Clinicians → CLUSTERED (handles thousands of approximate points; clusters and
     // individual markers are both clickable).
-    const clinicianCluster = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 55 });
+    const clinicianCluster = L.markerClusterGroup({
+      chunkedLoading: true, maxClusterRadius: 55,
+      animate: false, animateAddingMarkers: false,
+    });
     directoryPoints.forEach(p => {
       const approx = p.location_precision === 'approximate';
       clinicianCluster.addLayer(
@@ -262,10 +265,13 @@ export default function Physicians() {
     // Facilities (exact) + live OSM + you → individual clickable markers.
     const overlay = L.layerGroup();
     facilityPoints.forEach(f => {
+      const n = f.clinician_count || 0;
       L.circleMarker([f.latitude, f.longitude], {
-        radius: 6, color: '#6d28d9', weight: 1, fillColor: '#a78bfa', fillOpacity: 0.85,
+        radius: n > 0 ? Math.min(6 + Math.sqrt(n) * 1.5, 16) : 6,
+        color: '#6d28d9', weight: 1, fillColor: '#a78bfa', fillOpacity: 0.85,
       }).bindPopup(
-        `<b>${f.name}</b><br>${f.facility_type}<br>${[f.city, f.state_province].filter(Boolean).join(', ')}`
+        `<b>${f.name}</b><br>${f.facility_type}<br>${[f.city, f.state_province].filter(Boolean).join(', ')}` +
+        (n > 0 ? `<br>👥 ${n} clinician${n !== 1 ? 's' : ''} practice here` : '')
       ).addTo(overlay);
       fitPts.push([f.latitude, f.longitude]);
     });
@@ -343,13 +349,18 @@ export default function Physicians() {
     return `${c.lat - dLat},${c.lon - dLon},${c.lat + dLat},${c.lon + dLon}`;
   }
 
+  // Load data when entering the Map tab (or role changes) — NOT on every redraw,
+  // so updating the data doesn't retrigger loading (that loop made it "animate").
   useEffect(() => {
-    if (tab === 'map') {
-      loadDirectoryPoints();
-      loadFacilityPoints();
-      setTimeout(updateMap, 120);
-    }
-  }, [tab, loadDirectoryPoints, loadFacilityPoints, updateMap]);
+    if (tab === 'map') { loadDirectoryPoints(); loadFacilityPoints(); }
+  }, [tab, loadDirectoryPoints, loadFacilityPoints]);
+
+  // Redraw only when the data actually changes.
+  useEffect(() => {
+    if (tab !== 'map') return;
+    const t = setTimeout(updateMap, 120);
+    return () => clearTimeout(t);
+  }, [tab, updateMap]);
 
   // ── Render ──
   if (loading && physicians.length === 0) {

@@ -12,8 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
-from app.models.facilities import Facility
-from app.services import facility_ingest
+from app.models.facilities import Facility, PhysicianFacility
+from app.models.physicians import Physician
+from app.services import facility_ingest, practice_linking
 
 router = APIRouter()
 
@@ -51,6 +52,17 @@ class FacilityPoint(BaseModel):
     latitude: float
     longitude: float
     location_precision: str | None = None
+    clinician_count: int = 0
+
+
+async def _clinician_counts(db: AsyncSession, facility_ids: list[int]) -> dict[int, int]:
+    if not facility_ids:
+        return {}
+    rows = (await db.execute(
+        select(PhysicianFacility.facility_id, func.count())
+        .where(PhysicianFacility.facility_id.in_(facility_ids))
+        .group_by(PhysicianFacility.facility_id))).all()
+    return {fid: n for fid, n in rows}
 
 
 @router.get("/", response_model=list[FacilityOut])
@@ -100,10 +112,11 @@ async def facility_points(
         except ValueError:
             raise HTTPException(422, "bbox must be 'minLat,minLon,maxLat,maxLon'")
     rows = (await db.execute(q.limit(limit))).scalars().all()
+    counts = await _clinician_counts(db, [r.id for r in rows])
     return [FacilityPoint(
         id=r.id, name=r.name, facility_type=r.facility_type, city=r.city,
         state_province=r.state_province, latitude=r.latitude, longitude=r.longitude,
-        location_precision=r.location_precision) for r in rows]
+        location_precision=r.location_precision, clinician_count=counts.get(r.id, 0)) for r in rows]
 
 
 @router.get("/stats")
@@ -115,6 +128,46 @@ async def facility_stats(
     by_type = {str(k): v for k, v in (await db.execute(
         select(Facility.facility_type, func.count()).group_by(Facility.facility_type))).all()}
     return {"total": total, "by_type": by_type}
+
+
+@router.get("/{facility_id}/clinicians")
+async def facility_clinicians(
+    facility_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """The roster of clinicians who practice at a facility."""
+    rows = (await db.execute(
+        select(Physician).join(PhysicianFacility, PhysicianFacility.physician_id == Physician.id)
+        .where(PhysicianFacility.facility_id == facility_id)
+        .order_by(Physician.full_name).limit(500))).scalars().all()
+    return [{
+        "id": p.id, "full_name": p.full_name, "clinician_role": p.clinician_role,
+        "specialty": p.specialty, "credentials": p.credentials,
+        "credential_verified": p.credential_verified,
+    } for p in rows]
+
+
+@router.post("/admin/link-practices")
+async def admin_link_practices(
+    batch: int = Query(4000, ge=100, le=20000),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Group clinicians by practice address into facilities + links (admin)."""
+    _require_admin(current_user)
+    return await practice_linking.link_practice_locations(db, batch=batch)
+
+
+@router.post("/admin/geocode-practices")
+async def admin_geocode_practices(
+    limit: int = Query(25, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upgrade practice-facility coords from ZIP centroid to exact street (admin)."""
+    _require_admin(current_user)
+    return await practice_linking.geocode_practice_facilities(db, limit=limit)
 
 
 @router.get("/{facility_id}", response_model=FacilityOut)
