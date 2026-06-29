@@ -55,13 +55,13 @@ async def bulk_geocode_practices(db: AsyncSession, *, limit: int = 5000) -> dict
                 data={"benchmark": "Public_AR_Current"},
             )
             resp.raise_for_status()
-            text = resp.text
+            body = resp.text
     except httpx.HTTPError as exc:
         return {"error": f"Census geocoder unavailable: {exc}", "scanned": len(facs),
                 "matched": 0, "no_match": 0}
 
     matched = 0
-    for row in csv.reader(io.StringIO(text)):
+    for row in csv.reader(io.StringIO(body)):
         # row: id, input, status, [matchtype, matched_addr, "lon,lat", tigerid, side]
         if len(row) < 6 or row[2] != "Match":
             continue
