@@ -53,16 +53,17 @@ dietitians, pharmacists, therapists, …) and, separately, **facilities**, with
 license-gated patient association, multi-source ingestion, a dedup worker, and a
 global drill-down map.
 
-### 2.1 Entity model — clinicians vs facilities
-A directory record (`physicians` table) has an **`entity_type`**:
+### 2.1 Clinicians vs facilities — separate tables
+**Physicians are humans; facilities are places they practice from.** They live in
+separate tables:
 
-- **`clinician`** — a licensed *individual* (CMS NPPES NPI-1). Subject to the license gate.
-- **`facility`** — a *place* (hospital, pharmacy, clinic; e.g. from OpenStreetMap).
-  Never license-verified as an individual, **never a patient's clinician**, never
-  counted as a clinician on maps/lists.
+- **`physicians`** — licensed *individuals* (CMS NPPES NPI-1). Subject to the license gate.
+- **`facilities`** — *places* (hospital, pharmacy, clinic; e.g. from OpenStreetMap).
+  A facility is never a licensed individual and **never a patient's clinician**.
+- **`physician_facilities`** — the many-to-many "practices at" link between them.
 
-Clinician-facing queries (directory search, map, points, country drill-down) filter
-`entity_type = 'clinician'`. Facilities are a separate map layer.
+See §2.8 for the facility directory (`/api/v1/facilities`). (`physicians` keeps an
+`entity_type` column as a defensive guard, but it is always `clinician`.)
 
 ### 2.2 License-verification gate (safety-critical)
 **Never associate an unverified/unlicensed clinician with a patient.** Mirrors
@@ -87,7 +88,7 @@ sources + license → `license_on_record` (await admin); no license → `quarant
 | Source | Yields | License? | Result |
 |---|---|---|---|
 | **CMS NPPES** `npiregistry.cms.hhs.gov/api` | Individuals (NPI-1): physicians, nurses, dietitians, … | Yes (per taxonomy) | Auto-`verified` clinicians |
-| **OpenStreetMap (Overpass)** | Healthcare **facilities** | No | `entity_type=facility`, `listed` |
+| **OpenStreetMap (Overpass)** | Healthcare **facilities** (places) | n/a | → separate `facilities` table (§2.8), never clinicians |
 
 The pipeline is **source-agnostic**: an adapter just emits normalized candidate
 dicts carrying a `source` (+ `entity_type`) field. Adding a source = one small
@@ -140,6 +141,19 @@ Admin (`is_superuser`):
 - **Map View** tab (Leaflet) — verified **clinicians** as pins (filled = exact, hollow = approximate) **plus** OSM **facilities** as a separate purple layer. "Search Area" geocodes a place and loads clinicians (bbox) **and** facilities for that area.
 - Verification badges in cards; "Save/Add" disabled unless `credential_verified`.
 
+### 2.8 Facility directory (`/api/v1/facilities`)
+Facilities are a **separate directory** from clinicians:
+- `GET /facilities/` — search/list (name, `facility_type`, city, country), paginated.
+- `GET /facilities/points?facility_type=&bbox=` — facility map points.
+- `GET /facilities/{id}`, `GET /facilities/stats`.
+- `POST /facilities/admin/ingest-osm?lat=&lon=&radius_km=&place_type=` (admin) —
+  discover + upsert OSM facilities (dedup on `(source, source_uid)`, idempotent;
+  OSM provides real coordinates → `location_precision=exact`).
+
+Code: `app/models/facilities.py` (`Facility`, `PhysicianFacility`),
+`app/services/facility_ingest.py`, `app/api/facilities.py`,
+`app/services/osm_source.py` (Overpass adapter).
+
 ---
 
 ## 3. Food & Drug Recalls (`/fda-recalls`)
@@ -151,20 +165,24 @@ coverage maps. (`app/api/fda_recalls.py`, `components/WorldCoverageMap.jsx`,
 ---
 
 ## 4. Data model (PostgreSQL)
-Extended **`physicians`** (directory; clinicians + facilities) with: `entity_type`,
-`clinician_role`, `license_number`, `license_state`, `npi_number`, `primary_source`,
-`verification_status`, `credential_verified`, `verified_by_user_id`, `verified_at`,
-`verification_notes`, `held_reason`, `latitude`/`longitude`/`location_precision`.
+**`physicians`** (clinicians — humans) with: `clinician_role`, `license_number`,
+`license_state`, `npi_number`, `primary_source`, `verification_status`,
+`credential_verified`, `verified_by_user_id`, `verified_at`, `verification_notes`,
+`held_reason`, `latitude`/`longitude`/`location_precision` (+ defensive `entity_type`).
 
-Satellite tables:
+Clinician satellite tables:
 - **`clinician_source_records`** — provenance per source (`unique(source, source_uid)`).
 - **`clinician_ingest_candidates`** — quarantine / dedup queue (no-license rows park here).
 - **`clinician_verification_log`** — append-only audit of status transitions.
 
+**`facilities`** (places — separate directory) + **`physician_facilities`** (the
+"practices at" link between a clinician and a facility).
+
 Surveillance reuses existing `community_health_alerts`, `community_health_reports`,
 `symptom_logs`, `users.country` (no schema change).
 
-Migrations: `ee001_clinician_directory`, `ff001_loc_precision`, `gg001_entity_type`.
+Migrations: `ee001_clinician_directory`, `ff001_loc_precision`, `gg001_entity_type`,
+`hh001_facilities`.
 > ⚠️ `alembic_version.version_num` is `VARCHAR(32)` — **revision ids must be ≤ 32 chars**.
 
 ---

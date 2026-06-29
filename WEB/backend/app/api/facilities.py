@@ -1,0 +1,142 @@
+"""Facility directory API — places (hospitals, clinics, pharmacies, …).
+
+Separate from clinicians (`/physicians`): a facility is a place, never a licensed
+individual and never a patient's clinician. `physician_facilities` links the two
+("a clinician practices at a facility").
+"""
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models.user import User
+from app.models.facilities import Facility
+from app.services import facility_ingest
+
+router = APIRouter()
+
+
+def _require_admin(user: User):
+    if not getattr(user, "is_superuser", False):
+        raise HTTPException(403, "Administrator privileges required")
+
+
+class FacilityOut(BaseModel):
+    id: int
+    name: str
+    facility_type: str
+    phone: str | None = None
+    website: str | None = None
+    address_line1: str | None = None
+    city: str | None = None
+    state_province: str | None = None
+    postal_code: str | None = None
+    country: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    location_precision: str | None = None
+    source: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class FacilityPoint(BaseModel):
+    id: int
+    name: str
+    facility_type: str
+    city: str | None = None
+    state_province: str | None = None
+    latitude: float
+    longitude: float
+    location_precision: str | None = None
+
+
+@router.get("/", response_model=list[FacilityOut])
+async def list_facilities(
+    q: str | None = Query(None, description="Name search"),
+    facility_type: str | None = Query(None),
+    city: str | None = Query(None),
+    country: str | None = Query(None),
+    limit: int = Query(10, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Search / list facilities (paginated)."""
+    stmt = select(Facility).where(Facility.is_active == True)  # noqa: E712
+    if q:
+        stmt = stmt.where(Facility.name.ilike(f"%{q}%"))
+    if facility_type:
+        stmt = stmt.where(Facility.facility_type == facility_type)
+    if city:
+        stmt = stmt.where(Facility.city.ilike(f"%{city}%"))
+    if country:
+        stmt = stmt.where(Facility.country.ilike(f"%{country}%"))
+    stmt = stmt.order_by(Facility.name).offset(offset).limit(limit)
+    return (await db.execute(stmt)).scalars().all()
+
+
+@router.get("/points", response_model=list[FacilityPoint])
+async def facility_points(
+    facility_type: str | None = Query(None),
+    bbox: str | None = Query(None, description="minLat,minLon,maxLat,maxLon"),
+    limit: int = Query(1000, ge=1, le=5000),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Facility map points."""
+    q = select(Facility).where(
+        Facility.is_active == True,  # noqa: E712
+        Facility.latitude.isnot(None), Facility.longitude.isnot(None))
+    if facility_type:
+        q = q.where(Facility.facility_type == facility_type)
+    if bbox:
+        try:
+            mnla, mnlo, mxla, mxlo = (float(x) for x in bbox.split(","))
+            q = q.where(Facility.latitude >= mnla, Facility.latitude <= mxla,
+                        Facility.longitude >= mnlo, Facility.longitude <= mxlo)
+        except ValueError:
+            raise HTTPException(422, "bbox must be 'minLat,minLon,maxLat,maxLon'")
+    rows = (await db.execute(q.limit(limit))).scalars().all()
+    return [FacilityPoint(
+        id=r.id, name=r.name, facility_type=r.facility_type, city=r.city,
+        state_province=r.state_province, latitude=r.latitude, longitude=r.longitude,
+        location_precision=r.location_precision) for r in rows]
+
+
+@router.get("/stats")
+async def facility_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    total = (await db.execute(select(func.count()).select_from(Facility))).scalar() or 0
+    by_type = {str(k): v for k, v in (await db.execute(
+        select(Facility.facility_type, func.count()).group_by(Facility.facility_type))).all()}
+    return {"total": total, "by_type": by_type}
+
+
+@router.get("/{facility_id}", response_model=FacilityOut)
+async def get_facility(
+    facility_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    f = (await db.execute(select(Facility).where(Facility.id == facility_id))).scalars().first()
+    if not f:
+        raise HTTPException(404, "Facility not found")
+    return f
+
+
+@router.post("/admin/ingest-osm")
+async def admin_ingest_osm(
+    lat: float = Query(...), lon: float = Query(...),
+    radius_km: float = Query(50, ge=1, le=200),
+    place_type: str = Query("all"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Discover + ingest OpenStreetMap healthcare facilities near a point (admin)."""
+    _require_admin(current_user)
+    return await facility_ingest.ingest_osm(db, lat, lon, radius_km=radius_km, place_type=place_type)

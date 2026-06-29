@@ -21,7 +21,7 @@ from app.models.physicians import (
 )
 
 _CLINICIAN = EntityType.clinician.value
-from app.services import clinician_ingest, cms_nppes, osm_source
+from app.services import clinician_ingest, cms_nppes
 from app.services.iso_countries import resolve_country, ISO2_TO_NAME
 
 router = APIRouter()
@@ -261,24 +261,6 @@ async def admin_seed_stop(current_user: User = Depends(get_current_user)):
     _require_admin(current_user)
     clinician_ingest.stop_seed()
     return {"stopping": True}
-
-
-@router.post("/admin/ingest/osm")
-async def admin_ingest_osm(
-    lat: float = Query(...), lon: float = Query(...),
-    radius_km: float = Query(50, ge=1, le=200),
-    place_type: str = Query("all"),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Discover + ingest healthcare places from OpenStreetMap near a point (admin).
-
-    A non-CMS source: lacking licenses, these land in quarantine until confirmed.
-    """
-    _require_admin(current_user)
-    cands = await osm_source.discover_normalized(lat, lon, radius_km=radius_km, place_type=place_type)
-    counts = await clinician_ingest.ingest_many(db, cands, actor_user_id=current_user.id)
-    return {"source": "osm", "fetched": len(cands), **counts}
 
 
 @router.post("/admin/backfill-coords")

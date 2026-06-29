@@ -25,7 +25,7 @@ from app.core.database import async_session
 
 from app.models.physicians import (
     Physician, ClinicianSourceRecord, ClinicianIngestCandidate,
-    ClinicianVerificationLog, VerificationStatus, PhysicianStatus, EntityType,
+    ClinicianVerificationLog, VerificationStatus, PhysicianStatus,
     TRUSTED_LICENSE_SOURCES, SPECIALTY_CATEGORIES,
 )
 from app.services import cms_nppes, geo_approx
@@ -124,69 +124,15 @@ def _record_provenance(db: AsyncSession, cand: dict, physician_id: int | None):
     ))
 
 
-async def _facility_match(db: AsyncSession, cand: dict) -> Physician | None:
-    """Dedup a facility by its source id (handles re-ingest of the same OSM place)."""
-    sr = (await db.execute(
-        select(ClinicianSourceRecord).where(
-            ClinicianSourceRecord.source == cand["source"],
-            ClinicianSourceRecord.source_uid == cand["source_uid"],
-            ClinicianSourceRecord.physician_id.isnot(None),
-        )
-    )).scalars().first()
-    if sr:
-        return (await db.execute(
-            select(Physician).where(Physician.id == sr.physician_id))).scalars().first()
-    return None
-
-
-async def _ingest_facility(db: AsyncSession, cand: dict, row: ClinicianIngestCandidate) -> str:
-    """Facilities/places (e.g. OSM) — listed, never license-gated, never a clinician."""
-    match = await _facility_match(db, cand)
-    if match:
-        _record_provenance(db, cand, match.id)
-        row.status, row.matched_physician_id = "merged_duplicate", match.id
-        row.reason, row.processed_at = "Matched existing facility", _now()
-        return "merged_duplicate"
-
-    lat, lon, precision = geo_approx.resolve(
-        latitude=cand.get("latitude"), longitude=cand.get("longitude"),
-        postal_code=cand.get("postal_code"), state=cand.get("state_province"),
-        country=cand.get("country"))
-    facility = Physician(
-        full_name=cand.get("full_name") or "Unknown facility",
-        specialty=cand.get("specialty") or "Facility",
-        entity_type=EntityType.facility.value,
-        clinician_role=None,
-        phone=cand.get("phone"),
-        address_line1=cand.get("address_line1"),
-        city=cand.get("city"), state_province=cand.get("state_province"),
-        postal_code=cand.get("postal_code"), country=cand.get("country"),
-        latitude=lat, longitude=lon,
-        location_precision=precision if lat is not None else None,
-        source="imported", primary_source=cand["source"], source_id=cand.get("source_uid"),
-        status=PhysicianStatus.active.value,
-        verification_status="listed",          # facilities aren't license-verified clinicians
-        credential_verified=False, is_verified=False,
-    )
-    db.add(facility)
-    await db.flush()
-    _record_provenance(db, cand, facility.id)
-    row.status, row.matched_physician_id = "inserted", facility.id
-    row.reason, row.processed_at = None, _now()
-    _log(db, physician_id=facility.id, action="facility_listed", to_status="listed",
-         source=cand["source"], notes="Facility (not a clinician)")
-    return "inserted"
-
-
 async def ingest_candidate(db: AsyncSession, cand: dict, *, actor_user_id: int | None = None) -> str:
-    """Process one normalized candidate. Returns the outcome status."""
+    """Process one normalized clinician candidate. Returns the outcome status.
+
+    Facilities (places) are NOT clinicians — they live in the separate `facilities`
+    table (see app/services/facility_ingest.py) and never reach this function.
+    """
     row, changed = await _upsert_candidate(db, cand)
     if not changed and row.status in ("inserted", "merged_duplicate", "rejected"):
         return "unchanged"
-
-    # Facilities (places) follow a separate path — they are never clinicians.
-    if cand.get("entity_type") == EntityType.facility.value:
-        return await _ingest_facility(db, cand, row)
 
     has_license = bool((cand.get("license_number") or "").strip())
     source = cand["source"]
