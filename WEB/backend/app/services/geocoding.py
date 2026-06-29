@@ -157,26 +157,27 @@ async def search_nearby_healthcare(
 
     # Note: the union group MUST be terminated with ");" — Overpass 400s otherwise.
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:15];
     (
       {filters}
     );
-    out body 100;
+    out body 80;
     """
 
-    # Try each mirror; public Overpass often 504s / times out under load.
+    # Try each mirror with a short per-attempt timeout; public Overpass often
+    # 504s / hangs under load, so fail fast and move on (kept under client limits).
     data, last_exc = None, None
-    async with httpx.AsyncClient(timeout=30) as client:
-        for mirror in OVERPASS_MIRRORS:
-            try:
+    for mirror in OVERPASS_MIRRORS:
+        try:
+            async with httpx.AsyncClient(timeout=12) as client:
                 resp = await client.post(mirror, data={"data": query},
                                          headers={"User-Agent": USER_AGENT})
                 resp.raise_for_status()
                 data = resp.json()
-                break
-            except (httpx.HTTPError, ValueError) as exc:
-                last_exc = exc
-                continue
+            break
+        except (httpx.HTTPError, ValueError) as exc:
+            last_exc = exc
+            continue
     if data is None:
         raise RuntimeError(
             "All OpenStreetMap (Overpass) mirrors are busy — please try again shortly."

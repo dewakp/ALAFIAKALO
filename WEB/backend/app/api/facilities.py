@@ -129,6 +129,20 @@ async def get_facility(
     return f
 
 
+@router.post("/discover-here")
+async def discover_here(
+    lat: float = Query(...), lon: float = Query(...),
+    radius_km: float = Query(10, ge=1, le=50),
+    place_type: str = Query("all"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """On-demand: discover OSM healthcare facilities for the current map area and
+    add them to the shared facility directory. Any signed-in user (OSM is public,
+    deduped, idempotent)."""
+    return await facility_ingest.ingest_osm(db, lat, lon, radius_km=radius_km, place_type=place_type)
+
+
 @router.post("/admin/ingest-osm")
 async def admin_ingest_osm(
     lat: float = Query(...), lon: float = Query(...),

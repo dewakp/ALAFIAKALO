@@ -139,7 +139,9 @@ export default function Physicians() {
     if (!c) { alert('Enter an address to locate, or allow location access.'); return; }
     setLoading(true);
     try {
-      const { data } = await api.get(`/physicians/osm-discover?lat=${c.lat}&lon=${c.lon}&radius_km=${radiusKm}&place_type=${placeType}`);
+      const { data } = await api.get(
+        `/physicians/osm-discover?lat=${c.lat}&lon=${c.lon}&radius_km=${radiusKm}&place_type=${placeType}`,
+        { timeout: 90000 });
       const results = data.results || [];
       setOsmResults(results);
       if (!results.length) alert('No OpenStreetMap healthcare places found in this area — try a larger radius.');
@@ -299,6 +301,34 @@ export default function Physicians() {
       setFacilityPoints(data);
     } catch { setFacilityPoints([]); }
   }, []);
+
+  // On-demand: ingest OSM facilities for wherever the map is centered into the
+  // facilities DB, then re-plot. Uses the live map center if available.
+  const [discovering, setDiscovering] = useState(false);
+  async function discoverFacilitiesHere() {
+    let c = null;
+    if (mapInstanceRef.current) {
+      const ctr = mapInstanceRef.current.getCenter();
+      c = { lat: ctr.lat, lon: ctr.lng };
+    } else if (userLat && userLon) {
+      c = { lat: userLat, lon: userLon };
+    } else {
+      c = await resolveCenter();
+    }
+    if (!c) { alert('Pan the map or search a place first.'); return; }
+    setDiscovering(true);
+    try {
+      const { data } = await api.post('/facilities/discover-here', null, {
+        params: { lat: c.lat, lon: c.lon, radius_km: Math.min(radiusKm, 25), place_type: placeType },
+        timeout: 120000,
+      });
+      await loadFacilityPoints(bboxAround(c));
+      const added = (data.inserted || 0);
+      alert(`Discovered ${data.fetched || 0} facilities here (${added} new, ${data.updated || 0} updated).`);
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Facility discovery failed — OpenStreetMap may be busy; try again.'));
+    } finally { setDiscovering(false); }
+  }
 
   // Bounding box (minLat,minLon,maxLat,maxLon) around a center for the current radius.
   function bboxAround(c) {
@@ -554,6 +584,10 @@ export default function Physicians() {
               <select className="form-input" value={mapRole} onChange={e => setMapRole(e.target.value)} style={{ maxWidth: 180 }}>
                 {DIRECTORY_ROLES.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
               </select>
+              <button className="btn btn-secondary" onClick={discoverFacilitiesHere} disabled={discovering}
+                title="Find healthcare facilities (OpenStreetMap) for the current map area and add them to the directory">
+                <Navigation size={16} /> {discovering ? 'Discovering…' : 'Discover facilities here'}
+              </button>
             </div>
           </div>
           <div ref={mapRef} style={{ height: '500px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }} />
