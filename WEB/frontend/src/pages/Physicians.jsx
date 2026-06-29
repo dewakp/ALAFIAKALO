@@ -285,14 +285,22 @@ export default function Physicians() {
     }
   }, [leafletReady, userLat, userLon, directoryPoints, osmResults]);
 
-  const loadDirectoryPoints = useCallback(async () => {
+  // Clinician map points (verified). Optional bbox limits to a searched area.
+  const loadDirectoryPoints = useCallback(async (bbox) => {
     try {
-      const { data } = await api.get('/physicians/directory/points', {
-        params: { limit: 2000, ...(mapRole ? { role: mapRole } : {}) },
-      });
+      const params = { limit: 2000, ...(mapRole ? { role: mapRole } : {}) };
+      if (bbox) params.bbox = bbox;
+      const { data } = await api.get('/physicians/directory/points', { params });
       setDirectoryPoints(data);
     } catch { setDirectoryPoints([]); }
   }, [mapRole]);
+
+  // Bounding box (minLat,minLon,maxLat,maxLon) around a center for the current radius.
+  function bboxAround(c) {
+    const dLat = radiusKm / 111;
+    const dLon = radiusKm / (111 * Math.cos((c.lat * Math.PI) / 180) || 1);
+    return `${c.lat - dLat},${c.lon - dLon},${c.lat + dLat},${c.lon + dLon}`;
+  }
 
   useEffect(() => {
     if (tab === 'map') { loadDirectoryPoints(); setTimeout(updateMap, 120); }
@@ -444,7 +452,10 @@ export default function Physicians() {
       {tab === 'discover' && (
         <div>
           <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
-            <h3 style={{ margin: '0 0 0.75rem' }}><Navigation size={18} /> Discover Healthcare Nearby (OpenStreetMap)</h3>
+            <h3 style={{ margin: '0 0 0.25rem' }}><Navigation size={18} /> Discover Healthcare Facilities Nearby (OpenStreetMap)</h3>
+            <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: '#888' }}>
+              Facilities (hospitals, clinics, pharmacies) — places, not individual clinicians.
+            </p>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               <input className="form-input" style={{ flex: 1, minWidth: '200px' }}
                 placeholder="Enter address to search near..." value={geocodeQuery}
@@ -483,7 +494,7 @@ export default function Physicians() {
 
           {osmResults.length > 0 && (
             <div>
-              <h4 style={{ marginBottom: '0.5rem' }}>Found {osmResults.length} places</h4>
+              <h4 style={{ marginBottom: '0.5rem' }}>Found {osmResults.length} facilities</h4>
               <div style={{ display: 'grid', gap: '0.75rem' }}>
                 {osmResults.map((r, i) => (
                   <div key={i} className="card" style={{ padding: '1rem' }}>
@@ -522,7 +533,12 @@ export default function Physicians() {
                 placeholder="Search location..." value={geocodeQuery}
                 onChange={e => setGeocodeQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleGeocode()} />
-              <button className="btn btn-primary" onClick={async () => { const c = await handleGeocode(); if (c) { searchNearby(c); discoverOSM(c); } }}>
+              <button className="btn btn-primary" onClick={async () => {
+                const c = await handleGeocode();
+                if (!c) return;
+                loadDirectoryPoints(bboxAround(c)); // clinicians in this area
+                discoverOSM(c);                      // facilities in this area
+              }}>
                 <Search size={16} /> Search Area
               </button>
               <select className="form-input" value={mapRole} onChange={e => setMapRole(e.target.value)} style={{ maxWidth: 180 }}>
@@ -532,8 +548,9 @@ export default function Physicians() {
           </div>
           <div ref={mapRef} style={{ height: '500px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }} />
           <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#999' }}>
-            <strong>{directoryPoints.length}</strong> verified clinician{directoryPoints.length !== 1 ? 's' : ''} plotted &nbsp;·&nbsp;
-            🟢 You &nbsp; 🔵 Verified (filled = exact, hollow = approx.) &nbsp; 🟣 OSM &nbsp;·&nbsp;
+            <strong>{directoryPoints.length}</strong> verified clinician{directoryPoints.length !== 1 ? 's' : ''}
+            {osmResults.length ? <> · <strong>{osmResults.length}</strong> facilities</> : null} &nbsp;·&nbsp;
+            🟢 You &nbsp; 🔵 Clinicians (filled = exact, hollow = approx.) &nbsp; 🟣 Facilities (OSM) &nbsp;·&nbsp;
             Map data © <a href="https://osm.org" target="_blank" rel="noreferrer">OpenStreetMap</a>
           </div>
         </div>

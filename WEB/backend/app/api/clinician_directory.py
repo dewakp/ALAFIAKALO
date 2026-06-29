@@ -17,8 +17,10 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.models.physicians import (
     Physician, ClinicianIngestCandidate, ClinicianVerificationLog,
-    VerificationStatus, PhysicianStatus,
+    VerificationStatus, PhysicianStatus, EntityType,
 )
+
+_CLINICIAN = EntityType.clinician.value
 from app.services import clinician_ingest, cms_nppes, osm_source
 from app.services.iso_countries import resolve_country, ISO2_TO_NAME
 
@@ -53,7 +55,8 @@ class DirectoryMap(BaseModel):
 class MapPoint(BaseModel):
     id: int
     full_name: str
-    clinician_role: str
+    entity_type: str = "clinician"
+    clinician_role: str | None = None
     specialty: str | None = None
     city: str | None = None
     state_province: str | None = None
@@ -105,6 +108,7 @@ async def directory_map(
 ):
     """Verified clinicians aggregated by country, for the drill-down choropleth."""
     q = select(Physician.country, Physician.clinician_role).where(
+        Physician.entity_type == _CLINICIAN,
         Physician.credential_verified == True,  # noqa: E712
         Physician.status == PhysicianStatus.active.value,
     )
@@ -134,15 +138,18 @@ async def directory_map(
 @router.get("/directory/points", response_model=list[MapPoint])
 async def directory_points(
     role: str | None = Query(None),
+    entity_type: str = Query("clinician", description="clinician | facility"),
     bbox: str | None = Query(None, description="minLat,minLon,maxLat,maxLon"),
     verified_only: bool = Query(True),
     limit: int = Query(1000, ge=1, le=5000),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Directory clinicians with coordinates, for the point map (approx or exact)."""
+    """Map points (clinicians by default; facilities are a separate layer)."""
     q = select(Physician).where(Physician.latitude.isnot(None), Physician.longitude.isnot(None))
-    if verified_only:
+    if entity_type:
+        q = q.where(Physician.entity_type == entity_type)
+    if verified_only and entity_type == _CLINICIAN:
         q = q.where(Physician.credential_verified == True)  # noqa: E712
     if role:
         q = q.where(Physician.clinician_role == role)
@@ -155,7 +162,8 @@ async def directory_points(
             raise HTTPException(422, "bbox must be 'minLat,minLon,maxLat,maxLon'")
     rows = (await db.execute(q.limit(limit))).scalars().all()
     return [MapPoint(
-        id=r.id, full_name=r.full_name, clinician_role=r.clinician_role,
+        id=r.id, full_name=r.full_name, entity_type=r.entity_type,
+        clinician_role=r.clinician_role,
         specialty=r.specialty, city=r.city, state_province=r.state_province,
         latitude=r.latitude, longitude=r.longitude,
         location_precision=r.location_precision, credential_verified=r.credential_verified,
@@ -173,6 +181,7 @@ async def directory_country(
     """Verified clinicians in one country (drill-down list)."""
     iso2 = iso2.upper()
     q = select(Physician).where(
+        Physician.entity_type == _CLINICIAN,
         Physician.credential_verified == True,  # noqa: E712
         Physician.status == PhysicianStatus.active.value,
     )
@@ -329,6 +338,7 @@ async def admin_stats(
         return {str(k): v for k, v in rows}
 
     return {
+        "by_entity_type": await grouped(Physician.entity_type),
         "by_verification_status": await grouped(Physician.verification_status),
         "by_role": await grouped(Physician.clinician_role),
         "candidates_by_status": await grouped(ClinicianIngestCandidate.status),

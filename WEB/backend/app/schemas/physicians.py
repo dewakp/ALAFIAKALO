@@ -99,8 +99,9 @@ class PhysicianResponse(BaseModel):
     is_verified: bool = False
     status: str = "unverified"
 
-    # Clinician type + license verification (gates patient association)
-    clinician_role: str = "physician"
+    # Entity kind + clinician type + license verification (gates patient association)
+    entity_type: str = "clinician"
+    clinician_role: str | None = "physician"
     license_state: str | None = None
     primary_source: str | None = None
     verification_status: str = "quarantined"

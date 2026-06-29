@@ -15,10 +15,10 @@ from app.services import cms_nppes  # reuse content_hash
 
 SOURCE = "osm"
 
-# OSM amenity → our coarse clinician_role (these are facilities; role is best-effort).
-_AMENITY_ROLE = {
-    "pharmacy": "pharmacist", "dentist": "dentist", "doctors": "physician",
-    "clinic": "physician", "hospital": "physician",
+# Human-readable facility type from the OSM amenity tag.
+_AMENITY_LABEL = {
+    "pharmacy": "Pharmacy", "dentist": "Dental practice", "doctors": "Doctor's office",
+    "clinic": "Clinic", "hospital": "Hospital",
 }
 
 
@@ -30,12 +30,16 @@ def normalize(el: dict) -> dict | None:
     cand = {
         "source": SOURCE,
         "source_uid": str(osm_id),
+        # OSM yields PLACES, not licensed individuals — these are facilities, never clinicians.
+        "entity_type": "facility",
         "npi_number": None,
         "full_name": name,
-        "clinician_role": _AMENITY_ROLE.get(el.get("amenity_type"), "other"),
-        "specialty": el.get("healthcare_specialty") or (el.get("amenity_type") or "").title() or None,
+        "clinician_role": None,
+        "specialty": _AMENITY_LABEL.get(el.get("amenity_type"),
+                                        (el.get("amenity_type") or "Facility").title()),
+        "facility_type": el.get("amenity_type"),
         "credentials": None,
-        "license_number": None,        # OSM has none → record is held until licensed
+        "license_number": None,
         "license_state": None,
         "address_line1": el.get("address") or None,
         "city": None,

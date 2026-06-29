@@ -126,13 +126,17 @@ async def search_physicians(
     telehealth_available: bool | None = Query(None),
     min_rating: float | None = Query(None, ge=0, le=5),
     verified_only: bool = Query(False),
+    entity_type: str = Query("clinician", description="clinician | facility | all"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Search / list physicians with optional filters."""
+    """Search / list clinicians (default) with optional filters. Facilities are separate."""
     stmt = select(Physician).where(Physician.status != PhysicianStatus.inactive.value)
+
+    if entity_type and entity_type != "all":
+        stmt = stmt.where(Physician.entity_type == entity_type)
 
     if q:
         stmt = stmt.where(Physician.full_name.ilike(f"%{q}%"))
@@ -341,6 +345,13 @@ async def save_physician(
     physician = result.scalar_one_or_none()
     if not physician:
         raise HTTPException(status_code=404, detail="Physician not found")
+
+    # A facility/place is not a clinician and can never be a patient's clinician.
+    if physician.entity_type != "clinician":
+        raise HTTPException(
+            status_code=400,
+            detail="This is a facility, not a clinician — it can't be added to a care team.",
+        )
 
     # SAFETY GATE: never associate an unverified / unlicensed clinician with a patient.
     if not physician.credential_verified:

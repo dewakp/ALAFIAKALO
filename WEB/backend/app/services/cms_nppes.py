@@ -88,6 +88,7 @@ def normalize(result: dict) -> dict | None:
     cand = {
         "source": SOURCE,
         "source_uid": npi,
+        "entity_type": "clinician",        # NPI-1 = an individual licensed clinician
         "npi_number": npi,
         "full_name": full_name,
         "clinician_role": classify_role(tax.get("desc")),

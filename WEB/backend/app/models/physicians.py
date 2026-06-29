@@ -37,6 +37,16 @@ class PhysicianStatus(str, PyEnum):
     unverified = "unverified"
 
 
+class EntityType(str, PyEnum):
+    """A directory record is either a licensed clinician (an individual) or a facility/place.
+
+    Facilities (hospitals, pharmacies, clinics — e.g. from OSM) are NOT clinicians:
+    they are never license-verified as individuals and never a patient's clinician.
+    """
+    clinician = "clinician"
+    facility = "facility"
+
+
 class ClinicianRole(str, PyEnum):
     """The kind of clinician — the directory holds all of them, not just physicians."""
     physician = "physician"
@@ -180,8 +190,13 @@ class Physician(Base):
         String(20), default=PhysicianStatus.unverified.value
     )
 
+    # Entity kind: a licensed clinician (individual) vs a facility/place.
+    entity_type: Mapped[str] = mapped_column(
+        String(20), default=EntityType.clinician.value, index=True
+    )
+
     # Clinician type + license verification workflow ------------------------
-    clinician_role: Mapped[str] = mapped_column(
+    clinician_role: Mapped[str | None] = mapped_column(
         String(40), default=ClinicianRole.physician.value, index=True
     )
     license_state: Mapped[str | None] = mapped_column(String(50))
