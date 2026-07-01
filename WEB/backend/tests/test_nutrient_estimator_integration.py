@@ -92,15 +92,21 @@ async def test_estimate_nutrients_ai_fallback_path(client: AsyncClient, monkeypa
             "serving_weight_g": 250.0,
             "confidence": 0.8,
             "nutrients": {
+                # Physically valid per-100 g (macros sum < 100 g, Atwater-consistent),
+                # so the believability layer keeps the source confidence.
                 "calories": 550.0,
                 "protein_g": 15.0,
-                "carbs_g": 80.0,
-                "fat_g": 20.0,
+                "carbs_g": 35.0,
+                "fat_g": 40.0,
             },
             "cached": False,
         }
 
+    async def fake_try_branded(food_name: str):
+        return None  # no branded match → exercise the AI fallback deterministically
+
     monkeypatch.setattr(estimator_module, "_try_usda", fake_try_usda)
+    monkeypatch.setattr(estimator_module, "_try_mcp_branded", fake_try_branded)
     monkeypatch.setattr(estimator_module, "_try_ai", fake_try_ai)
 
     headers = await _auth_headers(client)

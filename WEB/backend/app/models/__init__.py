@@ -130,6 +130,7 @@ from app.models.device_tokens import DeviceToken
 from app.models.ground_truth import GeneticMarker, EnvSocialLog
 from app.models.food_nutrient_cache import FoodNutrientCache
 from app.models.learned_nutrient import LearnedFoodNutrient
+from app.models.flagged_estimate import FlaggedEstimate
 
 __all__ = [
     "User",
@@ -264,4 +265,5 @@ __all__ = [
     "EnvSocialLog",
     "FoodNutrientCache",
     "LearnedFoodNutrient",
+    "FlaggedEstimate",
 ]

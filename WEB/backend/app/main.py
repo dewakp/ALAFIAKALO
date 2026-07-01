@@ -5,7 +5,7 @@ Main FastAPI application entry point.
 
 import secrets
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -216,6 +216,41 @@ async def _firebase_sync_job() -> None:
         logger.error("[scheduler] Firebase sync error: %s", exc)
 
 
+async def _geocode_practices_job() -> None:
+    """Scheduled practice-facility geocoding (default: every 24h).
+
+    Upgrades practice-facility coordinates from ZIP-fallback → exact street
+    coordinates via the free US Census batch geocoder, and moves each facility's
+    primary-practice clinicians to the resolved coordinates. Idempotent: it only
+    scans rows that still lack precise coordinates (rows already marked 'exact' or
+    'zip_fallback' are skipped), so re-runs are cheap and safe. Bounded to
+    PRACTICE_GEOCODE_MAX_BATCHES passes per run to cap Census load.
+    """
+    logger.info("[scheduler] Practice geocode started")
+    from app.services.census_geocode import bulk_geocode_practices  # lazy import
+    total_matched = 0
+    try:
+        async with async_session() as db:
+            for _ in range(max(1, settings.PRACTICE_GEOCODE_MAX_BATCHES)):
+                result = await bulk_geocode_practices(
+                    db, limit=settings.PRACTICE_GEOCODE_BATCH_LIMIT
+                )
+                await db.commit()
+                if result.get("error"):
+                    logger.warning("[scheduler] Practice geocode paused: %s", result["error"])
+                    break
+                total_matched += result.get("matched", 0)
+                # Stop early when nothing left to scan or a pass matched nothing new.
+                if result.get("scanned", 0) == 0 or result.get("matched", 0) == 0:
+                    break
+        logger.info(
+            "[scheduler] Practice geocode complete — %d facilities matched this run",
+            total_matched,
+        )
+    except Exception as exc:
+        logger.error("[scheduler] Practice geocode error: %s", exc)
+
+
 @app.on_event("startup")
 async def startup_event():
     """Validate config & seed data on first boot."""
@@ -262,10 +297,34 @@ async def startup_event():
             misfire_grace_time=300,
             next_run_time=datetime.now(timezone.utc),  # run once right away
         )
-        _scheduler.start()
         logger.info("[scheduler] Firebase sync enabled — every %ds (incremental)", interval)
     else:
         logger.info("[scheduler] Firebase sync disabled (set FIREBASE_SYNC_ENABLED=true)")
+
+    # Server-side practice-facility geocoder — runs on a fixed cadence (default
+    # every 24h) inside the backend process. The first run is delayed a few
+    # minutes so a burst of restarts never hammers the Census API on boot; the
+    # job is idempotent so overlapping runs are collapsed (coalesce/max_instances).
+    if settings.PRACTICE_GEOCODE_ENABLED:
+        hours = max(1, settings.PRACTICE_GEOCODE_INTERVAL_HOURS)
+        _scheduler.add_job(
+            _geocode_practices_job,
+            trigger="interval",
+            hours=hours,
+            id="practice_geocode",
+            replace_existing=True,
+            max_instances=1,   # never overlap a still-running geocode pass
+            coalesce=True,     # collapse missed runs into one catch-up
+            misfire_grace_time=3600,
+            next_run_time=datetime.now(timezone.utc) + timedelta(minutes=5),
+        )
+        logger.info("[scheduler] Practice geocode enabled — every %dh", hours)
+    else:
+        logger.info("[scheduler] Practice geocode disabled (set PRACTICE_GEOCODE_ENABLED=true)")
+
+    # Start the shared scheduler if any job was registered (and not already running).
+    if _scheduler.get_jobs() and not _scheduler.running:
+        _scheduler.start()
 
 
 @app.on_event("shutdown")

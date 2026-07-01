@@ -101,6 +101,16 @@ class Settings(BaseSettings):
     FIREBASE_SYNC_ENABLED: bool = False  # Enable real-time Firestore→PG sync
     FIREBASE_SYNC_INTERVAL_SECONDS: int = 300  # Polling interval for sync
 
+    # ── Scheduled practice-facility geocoding (server-side worker) ──────────
+    # A background job (APScheduler, in-process with the backend) that upgrades
+    # practice-facility coordinates ZIP-fallback → exact via the free US Census
+    # batch geocoder. Runs on a fixed cadence; idempotent (only touches rows
+    # still lacking precise coords). Disable in test/CI or when running >1 replica.
+    PRACTICE_GEOCODE_ENABLED: bool = True
+    PRACTICE_GEOCODE_INTERVAL_HOURS: int = 24  # daily
+    PRACTICE_GEOCODE_BATCH_LIMIT: int = 5000   # addresses per Census batch call
+    PRACTICE_GEOCODE_MAX_BATCHES: int = 6      # cap passes per run (~30k/run)
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

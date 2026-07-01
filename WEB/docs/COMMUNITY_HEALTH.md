@@ -117,6 +117,15 @@ from GeoNames): **use real coords/address when available, else ZIP centroid, els
 state centroid** (`location_precision` = `exact` | `approximate`). NPPES has no
 coordinates, so CMS clinicians are placed by ZIP centroid (approximate).
 
+**Exact street coordinates (US Census batch geocoder).** `app/services/census_geocode.py`
+`bulk_geocode_practices()` uploads practice-facility addresses (up to 10k/call) to the
+free US Census batch geocoder and upgrades matched rows to `location_precision='exact'`
+(`lon,lat` parsed from the response), then moves each facility's primary-practice
+clinicians to the resolved coordinates in one bulk `UPDATE`. It's **idempotent**: it only
+scans rows still lacking precise coords and marks unmatched rows `zip_fallback` so they
+are never re-scanned. This runs on a **scheduled worker** (see §5) — the last full pass
+resolved ~44.6k of 51.4k practice facilities to exact coordinates (~87%).
+
 ### 2.6 Endpoints (`/api/v1/physicians`)
 Public-ish (auth required):
 - `GET /` — search/list **clinicians** (default `entity_type=clinician`), paginated `limit`/`offset` (UI: **10/page**).
@@ -182,7 +191,7 @@ Surveillance reuses existing `community_health_alerts`, `community_health_report
 `symptom_logs`, `users.country` (no schema change).
 
 Migrations: `ee001_clinician_directory`, `ff001_loc_precision`, `gg001_entity_type`,
-`hh001_facilities`.
+`hh001_facilities`, `ii001_flagged_estimates`.
 > ⚠️ `alembic_version.version_num` is `VARCHAR(32)` — **revision ids must be ≤ 32 chars**.
 
 ---
@@ -195,6 +204,23 @@ Migrations: `ee001_clinician_directory`, `ff001_loc_precision`, `gg001_entity_ty
   (data persists; re-run to resume). For unattended completion, move it to a
   dedicated worker/cron.
 - Backfill map coordinates after a bulk import: `POST /physicians/admin/backfill-coords`.
+
+### 5.1 Scheduled practice-facility geocoding (server-side worker)
+The Census geocoder runs on a **server-side scheduled worker**, not a Claude cron —
+an APScheduler job (`AsyncIOScheduler`, in-process with the backend) registered in
+`app/main.py` at startup alongside the Firebase-sync job. Job: `_geocode_practices_job`
+runs `census_geocode.bulk_geocode_practices` in up to `PRACTICE_GEOCODE_MAX_BATCHES`
+idempotent passes per run, committing each pass.
+- Cadence/toggles (in `app/core/config.py`, env-overridable):
+  `PRACTICE_GEOCODE_ENABLED` (default **true**), `PRACTICE_GEOCODE_INTERVAL_HOURS`
+  (default **24**), `PRACTICE_GEOCODE_BATCH_LIMIT` (5000), `PRACTICE_GEOCODE_MAX_BATCHES` (6).
+- First run is delayed 5 min after boot (so restarts don't hammer Census); `coalesce`
+  + `max_instances=1` prevent overlap/missed-run pileups. Logs `[scheduler] Practice
+  geocode …` lines.
+- The scheduler starts if **any** job is registered (independent of the Firebase toggle).
+  Lifespan events don't fire under the test client, so the worker never runs in CI;
+  set `PRACTICE_GEOCODE_ENABLED=false` when running **more than one** backend replica
+  (or move it to a dedicated worker) to avoid duplicate Census calls.
 
 ## 6. Safety & privacy
 - Unlicensed / unverified clinicians are **held** and never shown to patients or

@@ -32,7 +32,24 @@ Output (FoodComponent list):
 from __future__ import annotations
 
 import re
+from contextvars import ContextVar
 from dataclasses import dataclass, field
+
+# Locale volume factors (cup/tbsp/tsp) for the current parse, set by
+# `parse_meal_text(..., vol_factors=...)`. A ContextVar keeps this async-safe
+# without threading the factor through every helper. None → US/label baseline.
+_VOL_FACTORS: ContextVar[dict | None] = ContextVar("meal_parser_vol_factors", default=None)
+
+
+def _vol_factor(kind: str) -> float:
+    """Return the current locale scale factor for a volume measure (default 1.0)."""
+    vf = _VOL_FACTORS.get()
+    if not vf:
+        return 1.0
+    try:
+        return float(vf.get(kind, 1.0))
+    except (TypeError, ValueError):
+        return 1.0
 
 
 # ── Data model ────────────────────────────────────────────────────────────────
@@ -511,26 +528,31 @@ def _to_grams(value: float, unit: str, food_name: str) -> float:
         return round(value * density_g_per_floz, 1)
 
     # ── Volume units requiring food-density adjustment ──
+    # Locale scale factors (cup/tbsp/tsp) localize the measure size (US label cup
+    # 240 ml vs metric 250 ml vs AU tbsp 20 ml); default 1.0 = US/label baseline.
     if u in ("cup", "cups"):
+        f = _vol_factor("cup")
         for key, density in _CUP_DENSITY_G.items():
             if key in fn or fn in key:
-                return round(value * density, 1)
-        return round(value * 240.0, 1)  # default water density
+                return round(value * density * f, 1)
+        return round(value * 240.0 * f, 1)  # default water density
 
     if u in ("tablespoon", "tablespoons", "tbsp", "tbsps"):
+        f = _vol_factor("tbsp")
         for key, density in _CUP_DENSITY_G.items():
             if key in fn or fn in key:
-                return round(value * density / 16.0, 1)  # 1 cup = 16 tbsp
-        return round(value * 15.0, 1)  # default liquid ~15 g/tbsp
+                return round(value * density / 16.0 * f, 1)  # 1 cup = 16 tbsp
+        return round(value * 15.0 * f, 1)  # default liquid ~15 g/tbsp
 
     if u in ("teaspoon", "teaspoons", "tsp", "tsps"):
+        f = _vol_factor("tsp")
         for key, tsp_g in _TSP_DENSITY_G.items():
             if key in fn or fn in key:
-                return round(value * tsp_g, 1)
+                return round(value * tsp_g * f, 1)
         for key, density in _CUP_DENSITY_G.items():
             if key in fn or fn in key:
-                return round(value * density / 48.0, 1)  # 1 cup = 48 tsp
-        return round(value * 2.5, 1)  # default spice/powder ~2.5 g/tsp
+                return round(value * density / 48.0 * f, 1)  # 1 cup = 48 tsp
+        return round(value * 2.5 * f, 1)  # default spice/powder ~2.5 g/tsp
 
     if u in ("pinch", "pinches"):
         return round(value * 0.3, 1)
@@ -795,7 +817,7 @@ def _parse_quantity_phrase(text: str, food_name: str) -> tuple[float, str] | Non
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def parse_meal_text(description: str) -> list[FoodComponent]:
+def parse_meal_text(description: str, vol_factors: dict | None = None) -> list[FoodComponent]:
     """Extract food components with estimated gram weights from a meal description.
 
     Handles:
@@ -808,11 +830,22 @@ def parse_meal_text(description: str) -> list[FoodComponent]:
             beef + peanut_butter(1 tbsp) + pepper(1 tsp) + salt(½ tsp)
     - West African / ethnic food names via the NLM alias map in nlm_food_extractor
 
+    `vol_factors` (from `locale_units.volume_factors`) localizes cup/tbsp/tsp
+    sizes for the user's locale; None → US/label baseline.
+
     Returns a list of FoodComponent(food_name, qty_g, qty_text, source_text).
     """
     if not description or not description.strip():
         return []
 
+    token = _VOL_FACTORS.set(vol_factors)
+    try:
+        return _parse_meal_text_impl(description)
+    finally:
+        _VOL_FACTORS.reset(token)
+
+
+def _parse_meal_text_impl(description: str) -> list[FoodComponent]:
     segments = _split_top_level(description)
     components: list[FoodComponent] = []
     seen: set[str] = set()

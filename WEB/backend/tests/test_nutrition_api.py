@@ -78,7 +78,8 @@ async def test_update_nutrition_log(client: AsyncClient):
         headers=_auth(token),
     )
     log_id = create.json()["id"]
-    r = await client.put(
+    # Updates are partial (PATCH), not PUT.
+    r = await client.patch(
         f"/api/v1/nutrition/{log_id}",
         json={"calories": 400.0},
         headers=_auth(token),
@@ -88,7 +89,8 @@ async def test_update_nutrition_log(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_delete_nutrition_log(client: AsyncClient):
+async def test_delete_nutrition_log_is_forbidden(client: AsyncClient):
+    """Nutrition entries are immutable-by-policy: deletion is forbidden (modify instead)."""
     token = await _register_and_token(client, "nutr4@example.com")
     create = await client.post(
         "/api/v1/nutrition/",
@@ -97,10 +99,11 @@ async def test_delete_nutrition_log(client: AsyncClient):
     )
     log_id = create.json()["id"]
     r = await client.delete(f"/api/v1/nutrition/{log_id}", headers=_auth(token))
-    assert r.status_code in (200, 204)
-    # Verify it's gone
+    assert r.status_code == 403
+    assert "cannot be deleted" in r.json()["detail"].lower()
+    # Deletion is forbidden by policy, so the entry must still be present.
     r2 = await client.get("/api/v1/nutrition/", headers=_auth(token))
-    assert all(e["id"] != log_id for e in r2.json())
+    assert any(e["id"] == log_id for e in r2.json())
 
 
 @pytest.mark.asyncio

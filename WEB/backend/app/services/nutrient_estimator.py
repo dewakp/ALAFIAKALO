@@ -556,51 +556,12 @@ def _curated_lookup(food_name: str) -> tuple[str, dict] | None:
     if "water" in toks and all(t == "water" or t in _WATER_MODIFIERS for t in toks):
         return ("Water", {"calories": 0.0, "protein_g": 0.0, "carbs_g": 0.0,
                           "fat_g": 0.0, "sugar_g": 0.0, "fiber_g": 0.0, "water_ml": 100.0})
-    joined = " ".join(toks)
-    tokset = set(toks)
 
-    # ── Composite / regional dishes USDA matches poorly (e.g. "mixed rice" → a
-    #    fortified seasoned product; "suya" → a peanut/seed product). Per 100 g cooked.
-    if "suya" in tokset:                       # spiced grilled beef skewers (yaji-coated)
-        return ("Suya (grilled spiced beef)",
-                {"calories": 270.0, "protein_g": 28.0, "carbs_g": 4.0, "fat_g": 16.0,
-                 "fiber_g": 1.0, "sugar_g": 1.0, "sodium_mg": 480.0, "iron_mg": 2.6,
-                 "cholesterol_mg": 80.0, "potassium_mg": 330.0})
-    if "jollof" in tokset:
-        return ("Jollof rice, cooked",
-                {"calories": 160.0, "protein_g": 3.5, "carbs_g": 27.0, "fat_g": 4.5,
-                 "fiber_g": 1.2, "sugar_g": 2.0, "sodium_mg": 300.0, "potassium_mg": 120.0})
-    if "rice" in tokset and ("beans" in tokset or "bean" in tokset):
-        return ("Rice and beans, cooked",
-                {"calories": 155.0, "protein_g": 5.5, "carbs_g": 29.0, "fat_g": 2.2,
-                 "fiber_g": 3.5, "sugar_g": 0.6, "sodium_mg": 250.0, "iron_mg": 1.3,
-                 "potassium_mg": 200.0})
-    if "stew" in tokset and ("tomato" in tokset or "buka" in tokset or "obe" in tokset):
-        return ("Tomato stew (Nigerian)",
-                {"calories": 120.0, "protein_g": 3.0, "carbs_g": 6.0, "fat_g": 9.5,
-                 "fiber_g": 1.5, "sugar_g": 3.5, "sodium_mg": 400.0, "vitamin_c_mg": 12.0,
-                 "lycopene_mcg": 4500.0, "potassium_mg": 250.0})
-
-    if joined in {"coffee", "black coffee", "espresso", "americano", "brewed coffee"}:
-        return ("Coffee, brewed, unsweetened",
-                {"calories": 1.0, "protein_g": 0.1, "carbs_g": 0.0, "fat_g": 0.0,
-                 "sugar_g": 0.0, "water_ml": 99.0, "potassium_mg": 49.0})
-    if joined in {"tea", "green tea", "black tea", "herbal tea", "plain tea",
-                  "brewed tea", "unsweetened tea"}:
-        return ("Tea, brewed, unsweetened",
-                {"calories": 1.0, "protein_g": 0.0, "carbs_g": 0.3, "fat_g": 0.0,
-                 "sugar_g": 0.0, "water_ml": 99.0})
-    # Bare "egg" is ambiguous in USDA (often resolves to low-cal egg WHITE ~55);
-    # people logging "egg(s)" mean a whole egg (~143). Prepared forms like
-    # "scrambled/fried eggs" still fall through to USDA's specific entries.
-    _WHOLE_EGG = {"calories": 143.0, "protein_g": 12.6, "carbs_g": 0.7, "fat_g": 9.5,
-                  "sugar_g": 0.4, "cholesterol_mg": 372.0, "water_ml": 76.0}
-    if joined in {"egg", "eggs", "whole egg", "whole eggs", "chicken egg", "chicken eggs"}:
-        return ("Egg, whole, raw", dict(_WHOLE_EGG))
-    if joined in {"boiled egg", "boiled eggs", "hard boiled egg", "hard boiled eggs",
-                  "hard-boiled egg", "soft boiled egg"}:
-        return ("Egg, whole, hard-boiled", {**_WHOLE_EGG, "calories": 155.0, "fat_g": 10.6})
-    return None
+    # Composite / regional dishes + generic beverages/eggs USDA matches poorly are
+    # curated as DATA in app/data/regional_dishes.json (add new dishes there, not here).
+    # Prepared forms ("scrambled eggs") that aren't listed fall through to USDA.
+    from app.services import curated_foods
+    return curated_foods.lookup(food_name)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -728,6 +689,12 @@ async def _estimate_nutrients_impl(
         best["confidence"] = min(float(best.get("confidence", 1.0) or 1.0), 0.4)
         best["out_of_band"] = True
         logger.warning("All sources out of band for '%s' — returning best flagged candidate", food_name)
+        # Log the miss for review/learning (never let flagging break estimation).
+        try:
+            from app.services.flagged_estimate_service import record_flagged
+            await record_flagged(db, food_name, best, reason="out_of_band")
+        except Exception:  # pragma: no cover — defensive
+            logger.debug("flagged-estimate logging skipped for '%s'", food_name, exc_info=True)
         return best
 
     # 6. Nothing worked
@@ -748,6 +715,10 @@ async def _estimate_nutrients_impl(
 async def estimate_meal_nutrients(
     db: AsyncSession,
     description: str,
+    *,
+    country: str | None = None,
+    preferred_units: str | None = None,
+    locale: str | None = None,
 ) -> dict[str, Any]:
     """Estimate aggregate nutrients for a complete free-text meal description.
 
@@ -804,7 +775,10 @@ async def estimate_meal_nutrients(
             "believable": believable,
         }
 
-    components = parse_meal_text(description)
+    # Localize cup/tbsp/tsp sizes to the user's locale (US label baseline by default).
+    from app.services import locale_units
+    vol_factors = locale_units.volume_factors(country, preferred_units, locale)
+    components = parse_meal_text(description, vol_factors=vol_factors)
     if not components:
         return empty
 

@@ -100,7 +100,8 @@ async def test_lab_isolation_between_users(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_delete_lab_result(client: AsyncClient):
+async def test_delete_lab_result_is_forbidden(client: AsyncClient):
+    """Lab entries are immutable-by-policy: deletion is forbidden (modify instead)."""
     token = await _register_and_token(client, "lab4@example.com")
     create = await client.post(
         "/api/v1/labs/",
@@ -109,7 +110,8 @@ async def test_delete_lab_result(client: AsyncClient):
     )
     lab_id = create.json()["id"]
     r = await client.delete(f"/api/v1/labs/{lab_id}", headers=_auth(token))
-    assert r.status_code in (200, 204)
+    assert r.status_code == 403
+    assert "cannot be deleted" in r.json()["detail"].lower()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -187,7 +189,7 @@ async def test_update_medication(client: AsyncClient):
         headers=_auth(token),
     )
     med_id = create.json()["id"]
-    r = await client.put(
+    r = await client.patch(  # updates are partial (PATCH), not PUT
         f"/api/v1/medications/{med_id}",
         json={"is_active": False},
         headers=_auth(token),

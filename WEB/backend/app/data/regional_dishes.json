@@ -1,0 +1,67 @@
+{
+  "_comment": "Curated food/dish reference (per-100 g, cooked/as-served). Data, not code: add new dishes here without touching the estimator. Consulted after learned corrections + curated water, before USDA. Match spec per entry: 'all_of' = every item must match (a string = token must be present; a nested array = at least one of those tokens must be present); 'any_of' = at least one token present; 'exact' = the full normalized name (lowercased, single-spaced) equals one of these phrases. Entries are evaluated in file order; put specific composite dishes before generic ones. 'locale' is an ISO country/region hint for provenance (informational).",
+
+  "suya": {
+    "label": "Suya (grilled spiced beef)",
+    "locale": "NG",
+    "match": {"all_of": ["suya"]},
+    "nutrients": {"calories": 270.0, "protein_g": 28.0, "carbs_g": 4.0, "fat_g": 16.0,
+                  "fiber_g": 1.0, "sugar_g": 1.0, "sodium_mg": 480.0, "iron_mg": 2.6,
+                  "cholesterol_mg": 80.0, "potassium_mg": 330.0}
+  },
+  "jollof_rice": {
+    "label": "Jollof rice, cooked",
+    "locale": "NG",
+    "match": {"all_of": ["jollof"]},
+    "nutrients": {"calories": 160.0, "protein_g": 3.5, "carbs_g": 27.0, "fat_g": 4.5,
+                  "fiber_g": 1.2, "sugar_g": 2.0, "sodium_mg": 300.0, "potassium_mg": 120.0}
+  },
+  "rice_and_beans": {
+    "label": "Rice and beans, cooked",
+    "locale": "GLOBAL",
+    "match": {"all_of": ["rice", ["beans", "bean"]]},
+    "nutrients": {"calories": 155.0, "protein_g": 5.5, "carbs_g": 29.0, "fat_g": 2.2,
+                  "fiber_g": 3.5, "sugar_g": 0.6, "sodium_mg": 250.0, "iron_mg": 1.3,
+                  "potassium_mg": 200.0}
+  },
+  "tomato_stew": {
+    "label": "Tomato stew (Nigerian)",
+    "locale": "NG",
+    "match": {"all_of": ["stew", ["tomato", "buka", "obe"]]},
+    "nutrients": {"calories": 120.0, "protein_g": 3.0, "carbs_g": 6.0, "fat_g": 9.5,
+                  "fiber_g": 1.5, "sugar_g": 3.5, "sodium_mg": 400.0, "vitamin_c_mg": 12.0,
+                  "lycopene_mcg": 4500.0, "potassium_mg": 250.0}
+  },
+
+  "coffee": {
+    "label": "Coffee, brewed, unsweetened",
+    "locale": "GLOBAL",
+    "match": {"exact": ["coffee", "black coffee", "espresso", "americano", "brewed coffee"]},
+    "nutrients": {"calories": 1.0, "protein_g": 0.1, "carbs_g": 0.0, "fat_g": 0.0,
+                  "sugar_g": 0.0, "water_ml": 99.0, "potassium_mg": 49.0}
+  },
+  "tea": {
+    "label": "Tea, brewed, unsweetened",
+    "locale": "GLOBAL",
+    "match": {"exact": ["tea", "green tea", "black tea", "herbal tea", "plain tea",
+                        "brewed tea", "unsweetened tea"]},
+    "nutrients": {"calories": 1.0, "protein_g": 0.0, "carbs_g": 0.3, "fat_g": 0.0,
+                  "sugar_g": 0.0, "water_ml": 99.0}
+  },
+  "whole_egg": {
+    "label": "Egg, whole, raw",
+    "locale": "GLOBAL",
+    "match": {"exact": ["egg", "eggs", "whole egg", "whole eggs",
+                        "chicken egg", "chicken eggs"]},
+    "nutrients": {"calories": 143.0, "protein_g": 12.6, "carbs_g": 0.7, "fat_g": 9.5,
+                  "sugar_g": 0.4, "cholesterol_mg": 372.0, "water_ml": 76.0}
+  },
+  "boiled_egg": {
+    "label": "Egg, whole, hard-boiled",
+    "locale": "GLOBAL",
+    "match": {"exact": ["boiled egg", "boiled eggs", "hard boiled egg", "hard boiled eggs",
+                        "hard-boiled egg", "soft boiled egg"]},
+    "nutrients": {"calories": 155.0, "protein_g": 12.6, "carbs_g": 0.7, "fat_g": 10.6,
+                  "sugar_g": 0.4, "cholesterol_mg": 372.0, "water_ml": 76.0}
+  }
+}

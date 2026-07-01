@@ -196,7 +196,12 @@ async def estimate_meal(
     If ``log_date`` and ``meal_type`` are provided the aggregated result is
     saved as a ``NutritionLog`` and ``log_id`` is returned in the response.
     """
-    result = await estimate_meal_nutrients(db, body.description)
+    result = await estimate_meal_nutrients(
+        db, body.description,
+        country=current_user.country,
+        preferred_units=current_user.preferred_units,
+        locale=current_user.locale,
+    )
 
     log_id: int | None = None
 
@@ -612,3 +617,79 @@ async def delete_nutrition_log(
         status_code=403,
         detail="Nutrition entries cannot be deleted. You can modify this entry instead.",
     )
+
+
+# ── Believability review queue (admin) ────────────────────────────────────────
+# Estimates that failed the category-band check are logged to `flagged_estimates`
+# by the self-correcting estimator. These endpoints let an admin/dietitian review
+# them and promote a corrected value into the learning model.
+
+@router.get("/admin/flagged-estimates")
+async def list_flagged_estimates(
+    include_reviewed: bool = Query(False),
+    limit: int = Query(100, le=500),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List nutrient estimates flagged as out-of-band (admin)."""
+    if not getattr(current_user, "is_superuser", False):
+        raise HTTPException(403, "Administrator privileges required")
+    from app.models.flagged_estimate import FlaggedEstimate
+    stmt = select(FlaggedEstimate)
+    if not include_reviewed:
+        stmt = stmt.where(FlaggedEstimate.reviewed.is_(False))
+    stmt = stmt.order_by(FlaggedEstimate.occurrences.desc(),
+                         FlaggedEstimate.created_at.desc()).limit(limit)
+    rows = (await db.execute(stmt)).scalars().all()
+    return [{
+        "id": r.id,
+        "food_name": r.food_name,
+        "category": r.category,
+        "kcal_per_100g": r.kcal_per_100g,
+        "expected_kcal_low": r.expected_kcal_low,
+        "expected_kcal_high": r.expected_kcal_high,
+        "reason": r.reason,
+        "source": r.source,
+        "confidence": r.confidence,
+        "occurrences": r.occurrences,
+        "reviewed": r.reviewed,
+        "nutrients": r.nutrients,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    } for r in rows]
+
+
+@router.post("/admin/flagged-estimates/{flag_id}/resolve")
+async def resolve_flagged_estimate(
+    flag_id: int,
+    payload: dict | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark a flagged estimate reviewed; optionally promote a corrected per-100 g
+    profile into the learning model so future lookups are authoritative (admin).
+
+    Body (optional): {"nutrients": {per-100 g profile}, "serving_weight_g": 100}
+    """
+    if not getattr(current_user, "is_superuser", False):
+        raise HTTPException(403, "Administrator privileges required")
+    from app.models.flagged_estimate import FlaggedEstimate
+    row = (await db.execute(
+        select(FlaggedEstimate).where(FlaggedEstimate.id == flag_id)
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(404, "Flagged estimate not found")
+
+    promoted = False
+    corrected = (payload or {}).get("nutrients")
+    if corrected:
+        from app.services.learned_nutrient_service import record_correction
+        await record_correction(
+            db, row.food_name, corrected,
+            serving_weight_g=(payload or {}).get("serving_weight_g"),
+            user_id=current_user.id, source="user_correction",
+        )
+        promoted = True
+
+    row.reviewed = True
+    await db.flush()
+    return {"id": row.id, "reviewed": True, "promoted_to_learning": promoted}

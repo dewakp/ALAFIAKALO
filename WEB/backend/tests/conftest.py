@@ -29,8 +29,24 @@ sys.modules["limits.storage"].MemoryStorage = MagicMock()
 sys.modules["limits.storage"].storage_from_string = MagicMock()
 sys.modules["limits.strategies"].STRATEGIES = {}
 sys.modules["limits.strategies"].RateLimiter = MagicMock()
-sys.modules["slowapi"].Limiter = MagicMock()
-sys.modules["slowapi"]._rate_limit_exceeded_handler = MagicMock()
+# A bare MagicMock makes `@limiter.limit(...)` replace the real route handlers
+# with mocks (auth endpoints stop returning tokens → the whole suite goes red).
+# Use a no-op Limiter whose .limit() is an identity decorator so endpoints stay real.
+class _NoopLimiter:
+    def __init__(self, *a, **k):
+        pass
+
+    def limit(self, *a, **k):
+        def _decorator(func):
+            return func
+        return _decorator
+
+    def __getattr__(self, name):
+        return MagicMock()
+
+
+sys.modules["slowapi"].Limiter = _NoopLimiter
+sys.modules["slowapi"]._rate_limit_exceeded_handler = lambda *a, **k: None
 sys.modules["slowapi.errors"].RateLimitExceeded = Exception
 
 import pytest
@@ -40,6 +56,29 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 
 from app.core.database import Base, get_db
 import app.models  # noqa: F401 — registers all ORM models with Base.metadata
+
+# Force LOCAL auth in tests: the shared 6IGMA Identity service is stateful (emails
+# persist across runs → fixed-email register returns 409/400) and external. Stub the
+# client so register/login/token-verify use the local fallback — hermetic + deterministic.
+import app.services.identity_client as _identity_client  # noqa: E402
+
+
+async def _identity_unavailable(*_a, **_k):
+    return None
+
+
+async def _identity_register_unavailable(*_a, **_k):
+    return (503, None)  # (status, data) → register uses the local-only path
+
+
+async def _identity_false(*_a, **_k):
+    return False
+
+
+_identity_client.identity_login = _identity_unavailable
+_identity_client.verify_identity_token = _identity_unavailable
+_identity_client.identity_register = _identity_register_unavailable
+_identity_client.migrate_password_into_identity = _identity_false
 
 # Use an in-memory SQLite database for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"

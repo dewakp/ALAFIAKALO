@@ -1,7 +1,7 @@
 """Tests for security utilities (JWT, password hashing, config validation)."""
 
 import pytest
-from jose import jwt
+import jwt  # PyJWT (python-jose was retired); decode() API is compatible
 
 from app.core.security import (
     hash_password,
