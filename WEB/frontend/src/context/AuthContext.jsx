@@ -44,6 +44,14 @@ export function AuthProvider({ children }) {
     await loadUser();
   }
 
+  async function loginWithFirebase(idToken) {
+    // Exchange a Firebase Auth ID token (phone / Google / Apple) for app JWTs.
+    const { data } = await api.post('/auth/firebase', { id_token: idToken });
+    localStorage.setItem('token', data.access_token);
+    api.defaults.headers.common.Authorization = `Bearer ${data.access_token}`;
+    await loadUser();
+  }
+
   async function register(email, password, fullName) {
     await api.post('/auth/register', {
       email,
@@ -87,6 +95,7 @@ export function AuthProvider({ children }) {
         user,
         loading,
         login,
+        loginWithFirebase,
         register,
         logout,
         refreshToken,

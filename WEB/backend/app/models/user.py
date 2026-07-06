@@ -79,7 +79,11 @@ class User(Base):
     )
     auth_provider: Mapped[str | None] = mapped_column(
         String(50), default="local",
-        comment="Auth provider: local, firebase, google, apple",
+        comment="Auth provider: local, firebase, google, apple, phone",
+    )
+    phone_number: Mapped[str | None] = mapped_column(
+        String(30), unique=True, nullable=True, index=True,
+        comment="E.164 phone number for phone (OTP) sign-in",
     )
     system_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, nullable=True, index=True,
