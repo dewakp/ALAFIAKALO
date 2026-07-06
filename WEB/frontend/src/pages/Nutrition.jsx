@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   Plus, Search, Apple, ChevronDown, ChevronRight,
   BarChart3, Utensils, X, Loader2, Info, Calendar, Zap, Camera, Image, Sparkles, Link,
@@ -84,6 +85,10 @@ export default function Nutrition() {
   const [estimatePreview, setEstimatePreview] = useState(null);
   const [estimateError, setEstimateError] = useState('');
 
+  // Recipe-URL analysis (third meal input: URL / description / photo)
+  const [analyzingRecipe, setAnalyzingRecipe] = useState(false);
+  const [recipeInfo, setRecipeInfo] = useState('');
+
   // Nutrient detail panel (for a single food)
   const [selectedFood, setSelectedFood] = useState(null);
   const [foodDetail, setFoodDetail] = useState(null);
@@ -152,6 +157,34 @@ export default function Nutrition() {
       const { data } = await api.get(`/nutrition/food/${fdcId}`);
       setFoodDetail(data);
     } catch { setFoodDetail(null); } finally { setLoadingDetail(false); }
+  };
+
+  /* Analyze a recipe link: parse the page's structured recipe, price the
+     ingredients, prefill the entry with per-serving nutrition. Published
+     nutrition is learned server-side under the dish name. */
+  const analyzeRecipeUrl = async () => {
+    const url = form.recipe_url.trim();
+    if (!url) return;
+    setAnalyzingRecipe(true); setRecipeInfo('');
+    try {
+      const { data } = await api.post('/nutrition/recipe-analyze', { url }, { timeout: 120000 });
+      setForm((prev) => ({
+        ...prev,
+        food_name: prev.food_name.trim() || data.name,
+        serving_size: prev.serving_size?.trim() || `1 serving (of ${data.servings})`,
+      }));
+      setEstimatePreview({
+        source: data.source === 'published' ? 'recipe (published)' : 'recipe (estimated)',
+        nutrients: data.per_serving,
+        serving_size: `1 serving (of ${data.servings})`,
+      });
+      setRecipeInfo(
+        `${data.name} — ${data.ingredients.length} ingredients, ${data.servings} servings` +
+        (data.learned ? '. Published nutrition learned for this dish.' : '')
+      );
+    } catch (err) {
+      setRecipeInfo(apiErrorMessage(err, 'Could not analyze that recipe link'));
+    } finally { setAnalyzingRecipe(false); }
   };
 
   const estimateBeforeSave = async ({ silent = false } = {}) => {
@@ -581,9 +614,18 @@ export default function Nutrition() {
             </div>
             <div className="form-group">
               <label className="form-label"><Link size={12} style={{ verticalAlign: 'middle', marginRight: 4 }}/>Recipe URL (Optional)</label>
-              <input className="form-input" type="url" placeholder="https://example.com/recipe"
-                value={form.recipe_url}
-                onChange={(e) => setForm({ ...form, recipe_url: e.target.value })}/>
+              <div style={{ display: 'flex', gap: '.5rem' }}>
+                <input className="form-input" type="url" placeholder="https://example.com/recipe" style={{ flex: 1 }}
+                  value={form.recipe_url}
+                  onChange={(e) => setForm({ ...form, recipe_url: e.target.value })}/>
+                <button type="button" className="btn btn-secondary" disabled={!form.recipe_url.trim() || analyzingRecipe}
+                  onClick={analyzeRecipeUrl}>
+                  {analyzingRecipe ? 'Analyzing…' : 'Analyze'}
+                </button>
+              </div>
+              {recipeInfo && (
+                <p style={{ marginTop: 6, fontSize: '.78rem', color: 'var(--color-text-secondary)' }}>{recipeInfo}</p>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">Notes</label>

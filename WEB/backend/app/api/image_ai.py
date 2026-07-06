@@ -1,8 +1,25 @@
-"""Image AI & Dosage Verification endpoints — deterministic fallback with AI dosage analysis."""
+"""Image AI & Dosage Verification endpoints.
 
+Food and medication photos run through the real vision pipeline
+(ALAFIAModel → local Ollama vision model in dev, OpenAI when configured);
+recognized foods are then priced through the believability-guarded nutrient
+estimator — the same stack the Nutrition pages use. No fabricated numbers:
+when no vision backend can see the image we say so (503) instead of guessing.
+
+Uploads are accepted as EITHER multipart (`file`) or JSON `{"image_base64"}` —
+the JSON path exists because some browsers' multipart encoding (Safari) has
+proven flaky through proxies.
+"""
+
+import base64
+import binascii
+import json
+import logging
+import os
 import re
+
 import httpx
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -16,26 +33,36 @@ from app.schemas.wellness import (
     DosageVerificationRequest, DosageVerificationResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
-# ── Deterministic Food Library ───────────────────────────────
-FOOD_LIBRARY = {
-    "chicken": {"name": "Grilled Chicken Breast", "calories": 165, "protein_g": 31, "carbs_g": 0, "fat_g": 3.6},
-    "rice": {"name": "White Rice (1 cup)", "calories": 206, "protein_g": 4.3, "carbs_g": 45, "fat_g": 0.4},
-    "salmon": {"name": "Salmon Fillet", "calories": 208, "protein_g": 20, "carbs_g": 0, "fat_g": 13},
-    "salad": {"name": "Mixed Green Salad", "calories": 20, "protein_g": 1.5, "carbs_g": 3.5, "fat_g": 0.2},
-    "pasta": {"name": "Pasta (1 cup cooked)", "calories": 220, "protein_g": 8, "carbs_g": 43, "fat_g": 1.3},
-    "egg": {"name": "Scrambled Eggs (2)", "calories": 182, "protein_g": 12, "carbs_g": 2, "fat_g": 14},
-    "bread": {"name": "Whole Wheat Bread (2 slices)", "calories": 160, "protein_g": 8, "carbs_g": 28, "fat_g": 2},
-    "banana": {"name": "Banana", "calories": 105, "protein_g": 1.3, "carbs_g": 27, "fat_g": 0.4},
-    "apple": {"name": "Apple", "calories": 95, "protein_g": 0.5, "carbs_g": 25, "fat_g": 0.3},
-    "yogurt": {"name": "Greek Yogurt (1 cup)", "calories": 130, "protein_g": 17, "carbs_g": 7, "fat_g": 4},
-    "burger": {"name": "Hamburger", "calories": 354, "protein_g": 20, "carbs_g": 29, "fat_g": 17},
-    "pizza": {"name": "Pizza Slice (cheese)", "calories": 285, "protein_g": 12, "carbs_g": 36, "fat_g": 10},
-    "steak": {"name": "Beef Steak (6oz)", "calories": 340, "protein_g": 42, "carbs_g": 0, "fat_g": 18},
-    "soup": {"name": "Vegetable Soup (1 bowl)", "calories": 120, "protein_g": 4, "carbs_g": 18, "fat_g": 3},
-    "sandwich": {"name": "Turkey Sandwich", "calories": 350, "protein_g": 24, "carbs_g": 34, "fat_g": 12},
-}
+
+async def _read_image(request: Request, file: UploadFile | None) -> tuple[bytes, str]:
+    """Image bytes + content type from multipart `file` or JSON `image_base64`."""
+    if file is not None:
+        content = await file.read()
+        if content:
+            return content, file.content_type or "image/jpeg"
+    try:
+        body = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = None
+    if isinstance(body, dict) and body.get("image_base64"):
+        b64 = body["image_base64"]
+        # Tolerate data URLs ("data:image/jpeg;base64,…")
+        content_type = "image/jpeg"
+        if b64.startswith("data:"):
+            header, _, b64 = b64.partition(",")
+            content_type = header.split(";")[0][5:] or content_type
+        try:
+            return base64.b64decode(b64), content_type
+        except (binascii.Error, ValueError):
+            raise HTTPException(status_code=400, detail="image_base64 is not valid base64")
+    raise HTTPException(
+        status_code=400,
+        detail="No image received — send a multipart 'file' or JSON {\"image_base64\": …}.",
+    )
 
 # ── Deterministic Medication Library ────────────────────────
 MEDICATION_LIBRARY = {
@@ -57,71 +84,391 @@ MEDICATION_LIBRARY = {
 }
 
 
+async def _vision_ask(image: bytes, prompt: str) -> str:
+    """Ask the local vision model a plain question about the photo."""
+    model = os.environ.get("OLLAMA_VISION_MODEL", "moondream")
+    b64 = base64.b64encode(image).decode("ascii")
+    try:
+        async with httpx.AsyncClient(timeout=float(os.environ.get("OLLAMA_TIMEOUT", "300"))) as client:
+            resp = await client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/generate",
+                json={"model": model, "prompt": prompt, "images": [b64], "stream": False},
+            )
+            resp.raise_for_status()
+            return (resp.json().get("response") or "").strip()
+    except Exception as e:
+        logger.warning("Vision question failed: %s", e)
+        return ""
+
+
+_FOOD_CAPTION_PROMPT = "What foods are on this plate?"
+
+# Caption lead-ins that aren't food ("The plate contains rice…" → "rice…").
+_CAPTION_PREFIXES = re.compile(
+    r"^(the (image|photo|picture) (shows|contains|depicts)|the plate (contains|has|holds)|"
+    r"this (is|appears to be)|there (is|are))\s*",
+    re.IGNORECASE,
+)
+# Uncertainty qualifiers double-count the same item ("meat, possibly chicken"
+# priced as meat AND chicken; "chicken or fish" as chicken AND "or fish") —
+# keep the first alternative, drop the qualifier clause.
+_CAPTION_QUALIFIERS = re.compile(
+    r",?\s*\b(possibly|probably|perhaps|maybe|likely|or)\s+[^,;.]+",
+    re.IGNORECASE,
+)
+# Portion filler that confuses food-name lookups.
+_CAPTION_FILLER = re.compile(r"\b(a piece of|a serving of|a plate of|a bowl of|some)\s+", re.IGNORECASE)
+# Sentences about the scene, not the food ("A fork is placed next to the plate.").
+_CAPTION_SCENE = re.compile(
+    r"[^.;]*\b(fork|knife|spoon|napkin|cutlery|glass|cup|table|plate is|plate appears)\b[^.;]*[.;]?",
+    re.IGNORECASE,
+)
+
+# Parser tokens that are never foods — conjunctions the NLM meal parser can
+# leak as components; the AI fallback would happily invent numbers for them.
+_NON_FOOD_TOKENS = {
+    "and", "or", "with", "the", "a", "an", "of", "on", "in", "it", "its",
+    "food", "meal", "dish", "plate", "bowl", "fork", "knife", "spoon",
+    "cup", "glass", "napkin", "table", "garnish", "side",
+}
+
+
+def _clean_caption(caption: str) -> str:
+    """Reduce a vision caption to a parseable food list."""
+    caption = _CAPTION_SCENE.sub("", caption)
+    caption = _CAPTION_PREFIXES.sub("", caption)
+    caption = _CAPTION_QUALIFIERS.sub("", caption)
+    caption = _CAPTION_FILLER.sub("", caption)
+    # Conjunction lists parse cleaner as commas ("rice and chicken" → "rice, chicken")
+    caption = re.sub(r"\s+\band\b\s+", ", ", caption, flags=re.IGNORECASE)
+    caption = re.sub(r",\s*,+", ", ", caption)
+    caption = re.sub(r"\s{2,}", " ", caption)
+    return caption.strip().rstrip(".").strip(", ")
+
+
+def _plausible_food_name(name: str) -> bool:
+    """True when a parsed component name looks like a single food item, not a
+    sentence fragment ("vegetables. there is chicken", "…nutritious meal option…")."""
+    core = name.lower().strip(" .,")
+    if not core or len(core) < 3 or core in _NON_FOOD_TOKENS:
+        return False
+    if core.startswith(("or ", "and ", "with ")):
+        return False
+    if len(core) > 40 or len(core.split()) > 4:
+        return False
+    # Sentence punctuation / verb chatter never appears in a food name.
+    if any(t in core for t in ("(", ")", ". ", " is ", " are ", " which", " can ",
+                               " used ", " creates", " these ", " combination")):
+        return False
+    return True
+
+
+async def _extract_food_list(caption: str) -> list[str]:
+    """Distill a verbose vision caption into distinct food names via the local
+    text model. Small vision models ramble; the text model is good at lists."""
+    prompt = (
+        "From this description of a meal photo, extract ONLY the distinct food "
+        "items that are actually IN the meal. Exclude foods mentioned only as "
+        "comparisons or alternatives (e.g. 'can be used instead of rice' → no rice). "
+        "Respond with JSON exactly like {\"foods\": [\"rice\", \"grilled chicken\"]}. "
+        "No commentary, no cookware, no cutlery, each item 1-4 words.\n\n"
+        f"Description: {caption}"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/generate",
+                json={"model": settings.OLLAMA_MODEL, "prompt": prompt,
+                      "stream": False, "format": "json",
+                      "options": {"temperature": 0}},
+            )
+            resp.raise_for_status()
+            parsed = json.loads((resp.json().get("response") or "").strip())
+    except Exception as e:
+        logger.warning("Food-list extraction failed: %s", e)
+        return []
+    foods = parsed.get("foods") if isinstance(parsed, dict) else None
+    if not isinstance(foods, list):
+        return []
+    out, seen = [], set()
+    for f in foods:
+        name = str(f).strip().strip(".,")
+        if _plausible_food_name(name) and name.lower() not in seen:
+            seen.add(name.lower())
+            out.append(name)
+    return out[:8]
+
+
+async def _vision_food_caption(image: bytes) -> str:
+    """Identify foods in the photo: vision caption → text-model list extraction,
+    with regex cleanup as the fallback."""
+    caption = await _vision_ask(image, _FOOD_CAPTION_PROMPT)
+    if not caption:
+        return ""
+    foods = await _extract_food_list(caption)
+    if foods:
+        return "; ".join(foods)
+    return _clean_caption(caption)
+
+
+async def _price_description(db: AsyncSession, user: User, description: str) -> tuple[list, dict]:
+    """Run a food description through the believability-guarded estimator,
+    keeping only plausible food components."""
+    from app.services.nutrient_estimator import estimate_meal_nutrients
+
+    food_items, total = [], {"calories": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0}
+    try:
+        meal = await estimate_meal_nutrients(
+            db, description,
+            country=user.country,
+            preferred_units=user.preferred_units,
+            locale=user.locale,
+        )
+        for comp in meal.get("components", []):
+            name = str(comp.get("food_name") or comp.get("name") or "").strip()
+            # Parser leakage guard: sentence fragments, conjunctions and scene
+            # words are not foods — drop them rather than price them.
+            if not _plausible_food_name(name):
+                continue
+            n = comp.get("nutrients_scaled") or comp.get("nutrients") or {}
+            entry = {
+                "name": name,
+                "calories": round(float(n.get("calories") or 0), 1),
+                "protein_g": round(float(n.get("protein_g") or 0), 1),
+                "carbs_g": round(float(n.get("carbs_g") or 0), 1),
+                "fat_g": round(float(n.get("fat_g") or 0), 1),
+            }
+            food_items.append(entry)
+            for k in total:
+                total[k] += entry[k]
+        # Totals from kept components only — the aggregate would re-include
+        # anything the leakage guard dropped.
+        total = {k: round(v, 1) for k, v in total.items()}
+    except Exception as e:
+        logger.warning("Nutrient estimation failed for '%s': %s", description[:80], e)
+    return food_items, total
+
+
 @router.post("/nutrition-from-image", response_model=NutritionFromImageResponse)
 async def nutrition_from_image(
-    file: UploadFile = File(...),
+    request: Request,
+    file: UploadFile | None = File(None),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Identify food items from an image (deterministic fallback: filename-based matching)."""
-    filename = (file.filename or "").lower()
-    content = await file.read()
+    """Identify the food in a photo and estimate its nutrition.
 
-    # Deterministic: match filename keywords against food library
-    found_items = []
-    for keyword, food in FOOD_LIBRARY.items():
-        if keyword in filename:
-            found_items.append(food)
+    Order: the user's own labeled photos (visual memory) → vision model →
+    believability-guarded nutrient estimator (learned → curated → USDA → AI).
+    """
+    from app.services import image_learning
 
-    # If no filename match, return a generic meal estimate
-    if not found_items:
-        found_items = [
-            {"name": "Detected Meal (estimated)", "calories": 450, "protein_g": 20, "carbs_g": 50, "fat_g": 15}
-        ]
+    image, content_type = await _read_image(request, file)
 
-    total_cal = sum(f.get("calories", 0) for f in found_items)
-    total_prot = sum(f.get("protein_g", 0) for f in found_items)
-    total_carbs = sum(f.get("carbs_g", 0) for f in found_items)
-    total_fat = sum(f.get("fat_g", 0) for f in found_items)
+    # 1) Visual memory: has the user labeled this (or a very similar) photo?
+    learned = await image_learning.find_learned_match(db, current_user.id, image)
+    if learned is not None:
+        food_items, total = await _price_description(db, current_user, learned.labels)
+        if food_items:
+            return NutritionFromImageResponse(
+                food_items=food_items,
+                total_calories=total["calories"],
+                total_protein_g=total["protein_g"],
+                total_carbs_g=total["carbs_g"],
+                total_fat_g=total["fat_g"],
+                notes=f"Matched a meal you labeled before: {learned.labels}. "
+                      "Estimates only — verify portions for accuracy.",
+            )
+
+    if settings.OPENAI_API_KEY:
+        os.environ.setdefault("OPENAI_API_KEY", settings.OPENAI_API_KEY)
+
+    from app.services.alafia_model_service import alafia_infer
+
+    # 2) Structured vision (items + portions when the model can do JSON) …
+    vision = await alafia_infer("vision", {
+        "image_bytes": image,
+        "content_type": content_type,
+        "task": "food_photo_nutrition",
+    })
+    data = (vision.get("data") or {}) if vision.get("success") else {}
+    items = [i for i in (data.get("items") or []) if isinstance(i, dict) and i.get("name")]
+
+    if items:
+        parts = []
+        for it in items[:8]:
+            name = str(it["name"]).strip()
+            portion = str(it.get("portion") or it.get("quantity") or "").strip()
+            parts.append(f"{name} ({portion})" if portion else name)
+        description = "; ".join(parts)
+    else:
+        # … caption fallback: small local vision models (moondream) answer a
+        # plain question far more reliably than they emit JSON. The caption
+        # feeds the NLM meal parser, which extracts the foods.
+        description = await _vision_food_caption(image)
+        if not description:
+            raise HTTPException(
+                status_code=503,
+                detail=vision.get("error")
+                or "The food-recognition model is unavailable right now — try again shortly "
+                   "or log the meal by text in Log Food Intake.",
+            )
+
+    food_items, total = await _price_description(db, current_user, description)
+
+    # Estimator found nothing → fall back to the vision model's own estimate.
+    if not food_items:
+        est = data.get("estimated_nutrition") or {}
+        food_items = [{
+            "name": ", ".join(str(i["name"]) for i in items[:5]) or description[:80],
+            "calories": round(float(est.get("calories") or 0), 1),
+            "protein_g": round(float(est.get("protein_g") or 0), 1),
+            "carbs_g": round(float(est.get("carbs_g") or 0), 1),
+            "fat_g": round(float(est.get("fat_g") or 0), 1),
+        }]
+        total = {k: food_items[0][k] for k in total}
+
+    notes = f"Identified: {description}."
+    if data.get("notes"):
+        notes += f" {data['notes']}"
+    notes += " Estimates only — verify portions for accuracy. Not right? Teach ALAFIA the correct foods."
 
     return NutritionFromImageResponse(
-        food_items=found_items,
-        total_calories=total_cal,
-        total_protein_g=total_prot,
-        total_carbs_g=total_carbs,
-        total_fat_g=total_fat,
-        notes="Analysis based on image recognition. Verify portions for accuracy. AI vision integration pending.",
+        food_items=food_items,
+        total_calories=total["calories"],
+        total_protein_g=total["protein_g"],
+        total_carbs_g=total["carbs_g"],
+        total_fat_g=total["fat_g"],
+        notes=notes,
     )
+
+
+@router.post("/label", response_model=NutritionFromImageResponse)
+async def label_food_image(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Teach ALAFIA: store the user's ground-truth foods for a photo.
+
+    JSON body: {"image_base64": …, "foods": "…"} OR {"image_base64": …,
+    "recipe_url": "https://…"} — with a recipe link, the dish is parsed from
+    the page's structured recipe data and the photo is tied to it. The label is
+    stored as a perceptual hash (no image bytes retained) and the corrected
+    meal is priced and returned. Future photos of the same meal are identified
+    from this label before any vision model runs.
+    """
+    from app.services import image_learning
+
+    try:
+        body = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = None
+    if not isinstance(body, dict) or not (body.get("foods") or body.get("recipe_url")):
+        raise HTTPException(status_code=400, detail="Provide {image_base64, foods} or {image_base64, recipe_url}.")
+
+    image, _ = await _read_image(request, None)
+
+    if body.get("foods"):
+        foods = str(body["foods"]).strip()[:500]
+    else:
+        # Third input: the photo's ground truth comes from a recipe page.
+        # Label with the DISH NAME (prices at serving scale via the curated/
+        # learned stores) — the full ingredient list would price the whole pot.
+        from app.services.recipe_ingest import RecipeError, fetch_recipe
+        try:
+            recipe = await fetch_recipe(str(body["recipe_url"]).strip())
+        except RecipeError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        foods = recipe["name"].strip()[:200]
+        named_items, _named_total = await _price_description(db, current_user, foods)
+        if not named_items:
+            foods = "; ".join(recipe["ingredients"])[:500]
+
+    await image_learning.save_label(db, current_user.id, image, foods)
+    food_items, total = await _price_description(db, current_user, foods)
+    if not food_items:
+        raise HTTPException(
+            status_code=422,
+            detail="Could not price those foods — check the names and try again.",
+        )
+    return NutritionFromImageResponse(
+        food_items=food_items,
+        total_calories=total["calories"],
+        total_protein_g=total["protein_g"],
+        total_carbs_g=total["carbs_g"],
+        total_fat_g=total["fat_g"],
+        notes=f"Learned: {foods}. ALAFIA will recognize this meal from photos going forward.",
+    )
+
+
+_MED_LABEL_PROMPT = (
+    "You are reading a medication bottle/package label. Extract exactly what is "
+    "printed. Respond ONLY with JSON: "
+    '{"medication_name": str, "strength": str, "instructions": str, "prescriber": str, "other": str}. '
+    "Use empty strings for anything not visible. Do not guess."
+)
+
+
+async def _vision_read_med_label(image: bytes) -> dict | None:
+    """Read a medication label with the local Ollama vision model."""
+    model = os.environ.get("OLLAMA_VISION_MODEL", "moondream")
+    b64 = base64.b64encode(image).decode("ascii")
+    try:
+        async with httpx.AsyncClient(timeout=float(os.environ.get("OLLAMA_TIMEOUT", "300"))) as client:
+            resp = await client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/generate",
+                json={"model": model, "prompt": _MED_LABEL_PROMPT, "images": [b64],
+                      "stream": False, "format": "json"},
+            )
+            resp.raise_for_status()
+            raw = (resp.json().get("response") or "").strip()
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else None
+    except Exception as e:
+        logger.warning("Medication label vision failed: %s", e)
+        return None
 
 
 @router.post("/medication-from-image", response_model=MedicationFromImageResponse)
 async def medication_from_image(
-    file: UploadFile = File(...),
+    request: Request,
+    file: UploadFile | None = File(None),
     current_user: User = Depends(get_current_user),
 ):
-    """Extract medication info from bottle photo (deterministic fallback: filename-based matching)."""
-    filename = (file.filename or "").lower()
-    content = await file.read()
+    """Extract medication info from a bottle/label photo via the vision model,
+    enriched from the local reference library when the drug is recognized."""
+    image, _ = await _read_image(request, file)
 
-    # Deterministic: match filename keywords against medication library
-    for keyword, med in MEDICATION_LIBRARY.items():
-        if keyword in filename:
-            return MedicationFromImageResponse(
-                medication_name=med["name"],
-                dosage=med["typical_dosage"],
-                instructions=f"Typical dosage range: {med['typical_dosage']}",
-                fields=[
-                    {"label": "Drug Class", "value": med["class"]},
-                    {"label": "Max Daily", "value": f"{med['max']}"},
-                    {"label": "Min Daily", "value": f"{med['min']}"},
-                ],
-                notes="Extracted via image recognition. Verify with your pharmacist. AI vision integration pending.",
-            )
+    label = await _vision_read_med_label(image)
+    name = (label or {}).get("medication_name", "").strip()
+
+    if not name:
+        return MedicationFromImageResponse(
+            medication_name="Unknown Medication",
+            dosage="See label",
+            instructions="Could not read the medication label from this image. "
+                         "Try a clearer, well-lit photo of the label, or enter details manually.",
+            notes="Verify with your pharmacist.",
+        )
+
+    fields = []
+    for key, med in MEDICATION_LIBRARY.items():
+        if key in name.lower():
+            fields = [
+                {"label": "Drug Class", "value": med["class"]},
+                {"label": "Typical Range", "value": med["typical_dosage"]},
+            ]
+            break
+    if label.get("prescriber"):
+        fields.append({"label": "Prescriber", "value": label["prescriber"]})
 
     return MedicationFromImageResponse(
-        medication_name="Unknown Medication",
-        dosage="See label",
-        instructions="Could not identify medication from image. Please enter details manually.",
-        notes="AI vision integration pending. Try uploading a clearer image of the medication label.",
+        medication_name=name[:120],
+        dosage=(label.get("strength") or "See label")[:120],
+        instructions=(label.get("instructions") or "Follow the label directions.")[:500],
+        fields=fields,
+        notes="Read from the label by AI vision — verify with your pharmacist before acting on it.",
     )
 
 
@@ -231,3 +578,175 @@ async def verify_dosage(
         typical_range=typical_range,
         precautions=base_precautions,
     )
+
+
+# ── Elimination photo analysis ───────────────────────────────
+
+_ELIM_PROMPTS = {
+    "bowel": (
+        "This is a photo of a stool sample for medical tracking. Describe its "
+        "consistency (hard lumps, formed, soft, mushy, or liquid), its color, "
+        "and whether any blood or mucus is visible."
+    ),
+    "urination": (
+        "This is a photo of a urine sample for medical tracking. Describe its "
+        "color (pale yellow, yellow, dark yellow, amber, brown, pink, or red) "
+        "and clarity (clear, cloudy, or foamy)."
+    ),
+    "vomiting": (
+        "This is a photo of vomit for medical tracking. Describe its color and "
+        "contents, and whether any blood is visible."
+    ),
+}
+
+# keyword → (bristol_scale, consistency) for stool descriptions
+_BRISTOL_KEYWORDS = [
+    (("hard lump", "pellet", "hard lumps"), 1, "hard"),
+    (("lumpy", "hard",), 2, "hard"),
+    (("cracked", "sausage", "formed"), 4, "normal"),
+    (("soft blob", "soft",), 5, "soft"),
+    (("mushy", "fluffy"), 6, "soft"),
+    (("liquid", "watery", "runny"), 7, "watery"),
+]
+
+_COLOR_WORDS = ("brown", "black", "red", "green", "yellow", "pale", "amber",
+                "pink", "orange", "clear", "dark", "tan", "grey", "gray", "white")
+
+
+def _extract_elimination(event_type: str, text: str) -> tuple[dict, list[str]]:
+    """Keyword-extract structured elimination fields + attention flags from a caption."""
+    low = text.lower()
+    suggested: dict = {}
+    flags: list[str] = []
+
+    color = next((c for c in _COLOR_WORDS if c in low), None)
+    if color:
+        suggested["color"] = color
+
+    if event_type == "bowel":
+        for words, scale, consistency in _BRISTOL_KEYWORDS:
+            if any(w in low for w in words):
+                suggested["bristol_scale"] = scale
+                suggested["consistency"] = consistency
+                break
+        if "blood" in low and "no blood" not in low and "no visible blood" not in low:
+            suggested["blood_present"] = True
+            flags.append("Possible blood visible — worth mentioning to your care team.")
+        if "mucus" in low and "no mucus" not in low:
+            suggested["mucus_present"] = True
+        if color in ("black", "red"):
+            flags.append(f"{color.capitalize()} stool can indicate bleeding — "
+                         "contact your care team if unexpected.")
+    elif event_type == "urination":
+        if color in ("red", "pink", "brown"):
+            flags.append(f"{color.capitalize()} urine can indicate blood — "
+                         "contact your care team if unexpected.")
+        if "cloudy" in low:
+            flags.append("Cloudy urine can accompany infection — monitor for fever or pain.")
+    elif event_type == "vomiting":
+        if "blood" in low and "no blood" not in low:
+            flags.append("Possible blood in vomit — seek medical attention.")
+        if "coffee ground" in low or ("dark" in low and "brown" in low):
+            flags.append("Dark, coffee-ground appearance can indicate bleeding — seek medical attention.")
+
+    return suggested, flags
+
+
+@router.post("/elimination-from-image")
+async def elimination_from_image(
+    request: Request,
+    file: UploadFile | None = File(None),
+    current_user: User = Depends(get_current_user),
+):
+    """Analyze an elimination photo (stool / urine / vomit) and suggest log fields.
+
+    `event_type` rides in the JSON body next to `image_base64` (or as a query
+    param for multipart). Returns a description, suggested form fields
+    (Bristol scale, color, consistency, blood/mucus) and attention flags.
+    NOT a diagnosis.
+    """
+    event_type = (request.query_params.get("event_type") or "").strip().lower()
+    if file is None:
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                event_type = (body.get("event_type") or event_type or "").strip().lower()
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            pass
+    if event_type not in _ELIM_PROMPTS:
+        event_type = "bowel"
+
+    image, _ = await _read_image(request, file)
+    description = await _vision_ask(image, _ELIM_PROMPTS[event_type])
+    if not description:
+        raise HTTPException(
+            status_code=503,
+            detail="The image-analysis model is unavailable right now — try again shortly.",
+        )
+
+    suggested, flags = _extract_elimination(event_type, description)
+    return {
+        "event_type": event_type,
+        "description": description,
+        "suggested": suggested,
+        "flags": flags,
+        "disclaimer": "AI visual estimate — not a medical diagnosis. "
+                      "Contact your care team about anything concerning.",
+    }
+
+
+# ── Symptom photo analysis ───────────────────────────────────
+
+_SYMPTOM_PROMPT = (
+    "This is a photo of a visible medical symptom for health tracking. Describe "
+    "what the symptom looks like (for example a rash, swelling, bruise, wound, "
+    "redness, hives, blister, or bite) and where on the body it appears."
+)
+
+_SYMPTOM_NAMES = (
+    "rash", "swelling", "bruise", "bruising", "wound", "redness", "hives",
+    "lesion", "blister", "cut", "burn", "bite", "bump", "lump", "discoloration",
+    "peeling", "dryness", "acne", "ulcer", "inflammation",
+)
+_BODY_PARTS = (
+    "face", "forehead", "cheek", "eye", "ear", "nose", "lip", "mouth", "neck",
+    "shoulder", "chest", "back", "abdomen", "stomach", "arm", "forearm", "elbow",
+    "wrist", "hand", "finger", "hip", "thigh", "leg", "knee", "shin", "calf",
+    "ankle", "foot", "toe", "scalp", "skin",
+)
+
+
+@router.post("/symptom-from-image")
+async def symptom_from_image(
+    request: Request,
+    file: UploadFile | None = File(None),
+    current_user: User = Depends(get_current_user),
+):
+    """Describe a visible symptom photo and suggest symptom-log fields.
+
+    Returns a description plus suggested symptom_name / body_part to prefill
+    the Symptoms form. NOT a diagnosis.
+    """
+    image, _ = await _read_image(request, file)
+    description = await _vision_ask(image, _SYMPTOM_PROMPT)
+    if not description:
+        raise HTTPException(
+            status_code=503,
+            detail="The image-analysis model is unavailable right now — try again shortly.",
+        )
+
+    low = description.lower()
+    name = next((s for s in _SYMPTOM_NAMES if s in low), None)
+    body_part = next((b for b in _BODY_PARTS if b in low), None)
+
+    return {
+        "description": description,
+        "suggested": {
+            "symptom_name": (name or "skin change").capitalize(),
+            "body_part": body_part,
+            "symptom_type": "skin" if name in ("rash", "hives", "blister", "peeling",
+                                               "dryness", "acne", "discoloration") else None,
+        },
+        "disclaimer": "AI visual description — not a medical diagnosis. "
+                      "See a clinician for anything concerning or worsening.",
+    }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
-import { Plus, Trash2, Pill, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Pill, ChevronLeft, ChevronRight, Camera, Loader2 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
 import { useTempUnit } from '../hooks/useTempUnit';
@@ -55,7 +55,44 @@ export default function Medications() {
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
   const [showRx, setShowRx] = useState(false);
   const [rx, setRx] = useState({ ...EMPTY_RX });
+  const [scanning, setScanning] = useState(false);
   const temp = useTempUnit();
+
+  /* Scan a bottle/label photo → AI reads the label → prefill the intake log
+     and the prescription form. */
+  async function scanLabel(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setScanning(true);
+    try {
+      const image_base64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(new Error('Could not read the photo'));
+        r.readAsDataURL(file);
+      });
+      const { data } = await api.post('/image-ai/medication-from-image',
+        { image_base64 }, { timeout: 180000 });
+      if (!data.medication_name || data.medication_name === 'Unknown Medication') {
+        alert(data.instructions || 'Could not read the label — try a clearer photo.');
+        return;
+      }
+      setLog((f) => ({
+        ...f,
+        medication_name: data.medication_name,
+        dosage: data.dosage && data.dosage !== 'See label' ? data.dosage : f.dosage,
+        notes: data.instructions ? `Label: ${data.instructions}` : f.notes,
+      }));
+      setRx((f) => ({
+        ...f,
+        name: data.medication_name,
+        dosage: data.dosage && data.dosage !== 'See label' ? data.dosage : f.dosage,
+      }));
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Could not scan the label'));
+    } finally { setScanning(false); }
+  }
 
   function handleTempToggle() {
     setLog((f) => ({
@@ -157,6 +194,14 @@ export default function Medications() {
             <Pill size={22} /> Medications
           </h1>
         </div>
+        <label className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', margin: 0 }}>
+          {scanning
+            ? <Loader2 size={16} style={{ animation: 'spin-anim 1s linear infinite' }} />
+            : <Camera size={16} />}
+          {scanning ? 'Reading label…' : 'Scan Label'}
+          <input type="file" accept="image/*" capture="environment" onChange={scanLabel}
+            style={{ display: 'none' }} disabled={scanning} />
+        </label>
       </div>
 
       {/* ── Log intake (left) + calendar & history (right) ── */}

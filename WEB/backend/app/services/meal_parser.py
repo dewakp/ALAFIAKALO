@@ -662,16 +662,22 @@ def _count_to_grams(value: float, weight_per_item: float) -> float:
 
 def _default_g(food_name: str) -> float:
     """Return a sensible default gram weight when no quantity is stated."""
+    from app.services.nutrition_reference import head_phrase
+
     fn = food_name.lower()
-    # Direct match
+    # Direct match on the full phrase
     if fn in _NO_QTY_DEFAULTS_G:
         return _NO_QTY_DEFAULTS_G[fn]
-    # Substring match
+    # Substring/type matching keys off the HEAD phrase only — "beans cooked in
+    # palm oil with ground peppers" is a beans portion, never a pepper pinch.
+    head = head_phrase(fn)
+    if head in _NO_QTY_DEFAULTS_G:
+        return _NO_QTY_DEFAULTS_G[head]
     for key, weight in _NO_QTY_DEFAULTS_G.items():
-        if key in fn:
+        if key in head:
             return weight
     # Classify by type
-    t = _classify_ingredient(fn)
+    t = _classify_ingredient(head)
     if t != "other":
         return _TYPE_DEFAULTS[t][0]
     return 100.0  # generic 100 g serving

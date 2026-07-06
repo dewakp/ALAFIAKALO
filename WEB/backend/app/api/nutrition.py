@@ -693,3 +693,104 @@ async def resolve_flagged_estimate(
     row.reviewed = True
     await db.flush()
     return {"id": row.id, "reviewed": True, "promoted_to_learning": promoted}
+
+
+# ── Recipe URL analysis (third meal input: URL / description / photo) ────────
+
+
+class RecipeAnalyzeRequest(BaseModel):
+    url: str
+    servings: int | None = None      # override the page's stated yield
+
+
+class RecipeAnalyzeResponse(BaseModel):
+    name: str
+    url: str
+    servings: int
+    ingredients: list[str]
+    per_serving: dict                # calories / protein_g / carbs_g / fat_g …
+    total: dict                      # whole recipe
+    total_weight_g: float
+    source: str                      # "published" (page nutrition) | "estimated"
+    learned: bool                    # dish recorded into learned_food_nutrients
+    components: list[dict]           # per-ingredient estimates
+
+
+@router.post("/recipe-analyze", response_model=RecipeAnalyzeResponse)
+async def analyze_recipe_url(
+    body: RecipeAnalyzeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Analyze a recipe URL: parse its schema.org Recipe data, price the
+    ingredient list through the believability pipeline, and return per-serving
+    nutrition.
+
+    Learning: when the page publishes its own nutrition, that authoritative
+    per-serving profile is converted to per-100 g and recorded under the dish
+    name (`learned_food_nutrients`, source="recipe") — future descriptions and
+    photo labels naming this dish resolve from it.
+    """
+    from app.services import plausibility
+    from app.services.recipe_ingest import RecipeError, fetch_recipe
+
+    try:
+        recipe = await fetch_recipe(body.url.strip())
+    except RecipeError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    servings = body.servings or recipe["servings"]
+    servings = max(1, min(int(servings), 64))
+
+    # Price the ingredient list (same estimator as text descriptions).
+    description = "; ".join(recipe["ingredients"])
+    meal = await estimate_meal_nutrients(
+        db, description,
+        country=current_user.country,
+        preferred_units=current_user.preferred_units,
+        locale=current_user.locale,
+    )
+    total = {k: round(float(v), 2) for k, v in (meal.get("aggregate_nutrients") or {}).items()
+             if isinstance(v, (int, float))}
+    total_weight = float(meal.get("total_weight_g") or 0)
+    components = [
+        {"name": c.get("food_name"), "qty_g": c.get("qty_g"),
+         "calories": round(float((c.get("nutrients_scaled") or {}).get("calories") or 0), 1)}
+        for c in meal.get("components", [])
+    ]
+
+    estimated_per_serving = {k: round(v / servings, 2) for k, v in total.items()}
+
+    published = recipe.get("nutrition")
+    learned = False
+    if published:
+        # Published nutrition wins for display; learn it under the dish name.
+        per_serving = {**estimated_per_serving, **{k: round(float(v), 2) for k, v in published.items()}}
+        serving_g = total_weight / servings if total_weight > 0 and servings else 0
+        if serving_g >= 30:      # need a credible serving weight to normalize
+            per100 = per_100g_from_total(published, serving_g)
+            corrected, _warnings, believable = plausibility.review(recipe["name"], per100)
+            if believable:
+                await record_correction(
+                    db, recipe["name"], corrected,
+                    serving_weight_g=round(serving_g, 1),
+                    user_id=current_user.id, source="recipe",
+                )
+                learned = True
+        source = "published"
+    else:
+        per_serving = estimated_per_serving
+        source = "estimated"
+
+    return RecipeAnalyzeResponse(
+        name=recipe["name"],
+        url=body.url.strip(),
+        servings=servings,
+        ingredients=recipe["ingredients"],
+        per_serving=per_serving,
+        total=total,
+        total_weight_g=round(total_weight, 1),
+        source=source,
+        learned=learned,
+        components=components,
+    )

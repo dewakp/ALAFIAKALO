@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
-import { Plus, Trash2, Activity } from 'lucide-react';
+import { Plus, Trash2, Activity, Camera, Loader2 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
@@ -24,6 +24,39 @@ export default function Symptoms() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [aiNote, setAiNote] = useState('');
+
+  /* Photo → AI: describe a visible symptom (rash, swelling, wound…) and
+     prefill the form. The photo itself is not stored. */
+  async function analyzePhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setAnalyzing(true); setAiNote('');
+    try {
+      const image_base64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(new Error('Could not read the photo'));
+        r.readAsDataURL(file);
+      });
+      const { data } = await api.post('/image-ai/symptom-from-image',
+        { image_base64 }, { timeout: 180000 });
+      const s = data.suggested || {};
+      setForm((f) => ({
+        ...f,
+        symptom_name: s.symptom_name || f.symptom_name,
+        body_part: s.body_part || f.body_part,
+        symptom_type: s.symptom_type || f.symptom_type,
+        notes: data.description ? `AI photo description: ${data.description}` : f.notes,
+      }));
+      setAiNote(data.disclaimer || '');
+      setShowForm(true);
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Could not analyze the photo'));
+    } finally { setAnalyzing(false); }
+  }
 
   // Prompt Hub hand-off: open the add form pre-filled from the prompt.
   usePromptPrefill((prefill) => {
@@ -92,10 +125,27 @@ export default function Symptoms() {
           <BackButton />
           <h1 className="page-title">Symptoms</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
-          <Plus size={18} /> Log Symptom
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <label className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', margin: 0 }}>
+            {analyzing
+              ? <Loader2 size={16} style={{ animation: 'spin-anim 1s linear infinite' }} />
+              : <Camera size={16} />}
+            {analyzing ? 'Analyzing…' : 'From Photo'}
+            <input type="file" accept="image/*" capture="environment" onChange={analyzePhoto}
+              style={{ display: 'none' }} disabled={analyzing} />
+          </label>
+          <button className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
+            <Plus size={18} /> Log Symptom
+          </button>
+        </div>
       </div>
+
+      {aiNote && (
+        <div style={{ marginBottom: '1rem', padding: '8px 12px', borderRadius: 8,
+          background: 'rgba(245,158,11,.12)', fontSize: '.85rem' }}>
+          {aiNote}
+        </div>
+      )}
 
       {showForm && (
         <div className="card" style={{ marginBottom: '1.5rem' }}>

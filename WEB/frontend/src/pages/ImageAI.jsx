@@ -1,7 +1,23 @@
 import { useState } from 'react';
 import api from '../services/api';
+import { apiErrorMessage } from '../utils/apiError';
 import { Camera, Pill, ShieldCheck, Upload, AlertTriangle, CheckCircle } from 'lucide-react';
 import BackButton from '../components/BackButton';
+
+/* Read a File as a data-URL. Uploads go as JSON {image_base64} rather than
+   multipart — Safari's multipart encoding has proven flaky through the proxy,
+   and base64 JSON behaves identically in every browser. */
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Could not read the selected file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/* Local vision models on CPU can take a while — give analysis a long leash. */
+const ANALYZE_TIMEOUT_MS = 180000;
 
 const tabs = [
   { key: 'nutrition', label: 'Nutrition from Image', icon: Camera },
@@ -43,6 +59,8 @@ function NutritionFromImage() {
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [correction, setCorrection] = useState('');
+  const [teaching, setTeaching] = useState(false);
 
   function handleFile(e) {
     const f = e.target.files[0];
@@ -50,6 +68,7 @@ function NutritionFromImage() {
       setFile(f);
       setPreview(URL.createObjectURL(f));
       setResult(null);
+      setCorrection('');
     }
   }
 
@@ -58,14 +77,33 @@ function NutritionFromImage() {
     if (!file) return;
     setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const { data } = await api.post('/image-ai/nutrition-from-image', fd);
+      const image_base64 = await fileToDataURL(file);
+      const { data } = await api.post('/image-ai/nutrition-from-image', { image_base64 },
+        { timeout: ANALYZE_TIMEOUT_MS });
       setResult(data);
+      setCorrection((data.food_items || []).map((i) => i.name).join('; '));
     } catch (err) {
-      alert('Error analyzing image');
+      alert(apiErrorMessage(err, 'Error analyzing image'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  /* Teach ALAFIA: store the ground-truth foods for this photo (visual memory)
+     — the same photo (or a re-shot of the same meal) is recognized instantly
+     next time, before any AI model runs. */
+  async function handleTeach() {
+    if (!file || !correction.trim()) return;
+    setTeaching(true);
+    try {
+      const image_base64 = await fileToDataURL(file);
+      const { data } = await api.post('/image-ai/label',
+        { image_base64, foods: correction.trim() }, { timeout: ANALYZE_TIMEOUT_MS });
+      setResult(data);
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Could not save the correction'));
+    } finally {
+      setTeaching(false);
     }
   }
 
@@ -124,6 +162,28 @@ function NutritionFromImage() {
               {result.confidence_note}
             </p>
           )}
+          {result.notes && (
+            <p style={{ marginTop: '0.75rem', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+              {result.notes}
+            </p>
+          )}
+
+          {/* Teach ALAFIA: correct the food list → learned for future photos */}
+          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
+            <label className="form-label">Not right? Teach ALAFIA what this actually is</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="form-input" style={{ flex: 1 }} value={correction}
+                onChange={(e) => setCorrection(e.target.value)}
+                placeholder="e.g. beans in palm oil; grilled chicken; fried plantain" />
+              <button type="button" className="btn btn-secondary" onClick={handleTeach}
+                disabled={teaching || !correction.trim()}>
+                {teaching ? 'Saving…' : 'Teach'}
+              </button>
+            </div>
+            <p style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
+              Separate foods with semicolons. ALAFIA will recognize this meal in future photos.
+            </p>
+          </div>
         </div>
       )}
     </div>
@@ -146,12 +206,12 @@ function MedicationFromImage() {
     if (!file) return;
     setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const { data } = await api.post('/image-ai/medication-from-image', fd);
+      const image_base64 = await fileToDataURL(file);
+      const { data } = await api.post('/image-ai/medication-from-image', { image_base64 },
+        { timeout: ANALYZE_TIMEOUT_MS });
       setResult(data);
     } catch (err) {
-      alert('Error analyzing image');
+      alert(apiErrorMessage(err, 'Error analyzing image'));
     } finally {
       setLoading(false);
     }
@@ -229,7 +289,7 @@ function DosageVerification() {
       const { data } = await api.post('/image-ai/verify-dosage', payload);
       setResult(data);
     } catch (err) {
-      alert('Error verifying dosage');
+      alert(apiErrorMessage(err, 'Error verifying dosage'));
     } finally {
       setLoading(false);
     }

@@ -75,12 +75,42 @@ _RULES: list[tuple[tuple[str, ...], str]] = [
 ]
 
 
-def classify(food_name: str) -> str:
-    n = " " + (food_name or "").lower().strip() + " "
+# Preparation clauses name the cooking medium, not the food — "beans cooked in
+# palm oil" must classify as beans (legume), never as palm oil (oil_fat).
+_PREP_CLAUSE = re.compile(
+    r"\b(cooked in|fried in|sauteed in|sautéed in|made with|prepared with|topped with|"
+    r"served with|with|in)\b",
+    re.IGNORECASE,
+)
+
+
+def _classify_full(name: str) -> str:
+    n = " " + name + " "
     for keywords, category in _RULES:
         if any(k in n for k in keywords):
             return category
     return "unknown"
+
+
+def head_phrase(food_name: str) -> str:
+    """The food itself, before any preparation clause ("beans cooked in palm
+    oil with ground peppers" → "beans"). The cooking medium and seasonings must
+    never decide a food's category or default portion."""
+    name = (food_name or "").lower().strip()
+    head = _PREP_CLAUSE.split(name, maxsplit=1)[0].strip()
+    return head or name
+
+
+def classify(food_name: str) -> str:
+    name = (food_name or "").lower().strip()
+    # Head-noun first: the food before any preparation clause decides the
+    # category ("beans cooked in palm oil" → beans → legume_cooked).
+    head = head_phrase(name)
+    if head != name:
+        cat = _classify_full(head)
+        if cat != "unknown":
+            return cat
+    return _classify_full(name)
 
 
 def band(category: str) -> dict:

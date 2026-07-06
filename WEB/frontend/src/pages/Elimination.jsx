@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
-import { Plus, Trash2, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Layers, ChevronLeft, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
@@ -34,6 +34,8 @@ export default function Elimination() {
   const [saving, setSaving] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
+  const [analyzing, setAnalyzing] = useState(false);
+  const [aiFlags, setAiFlags] = useState([]);
 
   usePromptPrefill((prefill) => {
     setForm((f) => ({ ...f, description: prefill.text || prefill.description || f.description }));
@@ -55,8 +57,35 @@ export default function Elimination() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => update('image_uri', reader.result?.toString() || '');
+    reader.onload = () => { update('image_uri', reader.result?.toString() || ''); setAiFlags([]); };
     reader.readAsDataURL(file);
+  }
+
+  // Frontend event types → backend analyzer types
+  const AI_EVENT_TYPE = { poop: 'bowel', urine: 'urination', vomit: 'vomiting' };
+
+  async function analyzeImage() {
+    if (!form.image_uri) return;
+    setAnalyzing(true); setAiFlags([]);
+    try {
+      const { data } = await api.post('/image-ai/elimination-from-image', {
+        event_type: AI_EVENT_TYPE[form.event_type] || 'bowel',
+        image_base64: form.image_uri,
+      }, { timeout: 180000 });
+      // Compose a description from the suggested fields + the model's words.
+      const s = data.suggested || {};
+      const bits = [];
+      if (s.bristol_scale) bits.push(`Bristol type ${s.bristol_scale}`);
+      if (s.consistency) bits.push(s.consistency);
+      if (s.color) bits.push(`${s.color} color`);
+      if (s.blood_present) bits.push('possible blood');
+      if (s.mucus_present) bits.push('possible mucus');
+      const summary = bits.length ? `${bits.join(', ')} — ${data.description}` : data.description;
+      update('description', summary);
+      setAiFlags([...(data.flags || []), data.disclaimer].filter(Boolean));
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Could not analyze the image'));
+    } finally { setAnalyzing(false); }
   }
 
   async function handleSubmit(e) {
@@ -169,7 +198,24 @@ export default function Elimination() {
           </div>
           <div className="form-group">
             <label className="form-label">Attach Image (optional)</label>
-            <input className="form-input" type="file" accept="image/*" capture="environment" onChange={handleImage} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input className="form-input" type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ flex: 1 }} />
+              {form.image_uri && (
+                <button type="button" className="btn btn-secondary" onClick={analyzeImage} disabled={analyzing}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                  {analyzing
+                    ? <Loader2 size={15} style={{ animation: 'spin-anim 1s linear infinite' }} />
+                    : <Sparkles size={15} />}
+                  {analyzing ? 'Analyzing…' : 'Analyze photo'}
+                </button>
+              )}
+            </div>
+            {aiFlags.length > 0 && (
+              <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8,
+                background: 'rgba(245,158,11,.12)', fontSize: '.83rem' }}>
+                {aiFlags.map((f, i) => <div key={i}>• {f}</div>)}
+              </div>
+            )}
           </div>
           <button className="btn btn-primary" type="submit" disabled={saving}>
             {saving ? 'Saving…' : 'Add Entry'}
