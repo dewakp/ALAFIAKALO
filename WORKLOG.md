@@ -1333,3 +1333,196 @@ esbuild clean; stack healthy (:8080 200).
 
 **Extensible:** sources are independent adapters with graceful failure — EU RASFF/EMA, WHO, AU/NZ/etc. can
 be added when an accessible API/key exists, without touching the rest.
+
+## Session 2026-07-02 — Dashboard overview, chart wiring, weight series, phone/social login
+
+**Web/backend (uncommitted on feat/identity-pqc-nutrition-recalls-2026-06):**
+- **Dashboard health overview** (additive above the daily review): wellness score, latest labs,
+  historical vitals trend (recharts dual-axis), AI recommendations + health insights forms
+  (`/personalization/*`), daily food idea (session-cached `/planners/meal-suggestions`), resources
+  quick-link grid, footer. New `Dashboard.test.jsx`; `ResizeObserver` stub in test setup.
+- **Chart Dashboard fixed** ("trends charts empty"): `/chart-dashboard/datasets` returns per-user
+  non-null `count` per dataset; UI auto-selects up to 3 populated datasets, dims "no data" ones,
+  explicit empty-state; fixed backend `if row.value` coercing 0→null.
+- **Composite weight series**: `/chart-dashboard/weight-series` unions vitals, lifestyle, fitness,
+  meals pre/post, elimination pre/post (bowel/urination/vomiting), HD therapy + PD sessions, labs
+  (kg/lb→kg) with 20–500 kg sanity filter. Daily mean/min/max/count + **7-day rolling average** +
+  summary (avg/σ/min/max/per-source/trend) + refs (dry weight, profile current/target). Virtual
+  datasets `weight_all` + `weight_all_7d` across /datasets,/data,/summary,/correlate. 9 unit tests
+  (175 total green). Chart draws target-weight goal line (ReferenceLine + extended y-domain);
+  weight-only charts lift baseline to min(40, dataMin−5).
+- **Phone + social login**: `POST /auth/firebase` (verify Admin-SDK ID token → link/create user by
+  firebase_uid→email→phone → app JWTs); `users.phone_number` (jj001). Login page rebuilt to match
+  production: Email/Phone tabs, Firebase phone OTP (invisible reCAPTCHA), Google/Apple popups
+  (`services/firebase.js`, project alafia-9i0hh), `AuthContext.loginWithFirebase`. E2E-verified
+  with a real minted Firebase token (test user deleted after). Reverted an accidental
+  target-date feature (kept target-weight goal line only).
+
+## Session 2026-07-02 (cont.) — Parity documentation + mobile parity round
+
+- **docs/WEB_MOBILE_PARITY.md** — full record of work since the 2026-06-27 parity run + parity
+  matrix + round scope. Mobile gaps: stale recall models (no kind/coverage), no surveillance, no
+  facilities, no weight-series, no /auth/firebase plumbing.
+- Parity round (both apps): recalls schema refresh + kind filter; facilities API+screen;
+  surveillance API+screen (list-first); weight-series API + trend UI; /auth/firebase client method.
+  Native social/phone SDK flows and mobile choropleths deferred (documented).
+
+## Session 2026-07-02 (cont.) — iOS run on 26.5 sim + critical APIClient recursion fix
+
+- Installed the iOS 26.5 simulator platform (`xcodebuild -downloadPlatform iOS`), created an
+  iPhone 17 (26.5) device, full Xcode build **SUCCEEDED**, app installed + launched
+  (com.alafia.app), backend reachable from the sim (localhost:8005).
+- **Critical bug found via "login failed without message":** `APIClient.send()` (added in the
+  2026-06-27 silent-refresh parity work) awaited **itself** instead of `session.data(for:)` —
+  infinite async recursion, so every API call through `send()` (login, and everything after)
+  never hit the network, never threw. Only `fetchCsrfToken`/`streamPost` (direct session calls)
+  worked, which is why the backend saw the CSRF GET but no login POST. One-line fix; rebuilt,
+  reinstalled, relaunched on the sim.
+
+## Session 2026-07-05 — MyChart (Epic) portal connections: SMART on FHIR end-to-end
+
+**Connect any MyChart portal (Kaiser Permanente, Trinity Health, + ~450 Epic orgs) and pull
+records into ALAFIA.** Patient-facing SMART App Launch (standalone, OAuth2 code + PKCE S256,
+public client — user signs in on the portal's own page).
+
+- **Service `app/services/smart_fhir.py`**: Epic R4 endpoint-directory ingest
+  (open.epic.com/Endpoints/R4, dedup by base URL — the feed lists dupes), SMART discovery
+  (.well-known/smart-configuration → metadata oauth-uris fallback), PKCE, token exchange +
+  refresh, Fernet token crypto (SECRET_KEY-derived), paginated FHIR search, pure mapping fns:
+  lab Observations → lab_results (LOINC, ranges, abnormal flag), vital-signs (incl. BP panels
+  85354-9; lb→kg, °F→°C, in→cm) → vitals_logs, MedicationRequest → medications (RxNorm),
+  Condition → chronic_conditions (name/ICD-10-driven category; tz-naive diagnosis_date).
+- **API (`/ehr/*`)**: organizations search (24h-cached directory), connect (authorize URL +
+  server-held PKCE state), exchange (code→tokens, link/reuse connection), connections/{id}/sync
+  (auto token-refresh; FHIR:{id} note markers for idempotent dedup). Migration kk001
+  (ehr_endpoints, ehr_oauth_states, token cols). Config: EPIC_CLIENT_ID, EHR_REDIRECT_URI,
+  EHR_ENABLE_SANDBOX (registration-free SMART Health IT test portal).
+- **Frontend**: `EHRPortals` section atop Data Sharing (org search → Connect redirect →
+  connection cards w/ Sync + per-type counts), `/ehr/callback` page (StrictMode-safe single
+  exchange).
+- **Verified**: 13 new unit tests (188 total green); live directory = 450 orgs (9 Kaiser regions,
+  3 Trinity). Full browser E2E vs SMART sandbox: Connect → patient login → consent (our exact
+  scopes) → callback exchange → **synced 34 labs, 10 vitals, 2 meds, 3 conditions**; re-sync = 0s
+  (dedup); rows verified in PG (lipid panel, weights lb→kg feeding the composite weight series).
+- **To go live against Kaiser/Trinity**: register the app at fhir.epic.com (patient-facing,
+  redirect URI = EHR_REDIRECT_URI), set EPIC_CLIENT_ID — no code changes needed.
+
+## Session 2026-07-06 — Image AI fixed: real vision + believable nutrition, Safari-safe uploads
+
+**Report:** "Error analyzing image" on Nutrition-from-Image (Safari). **Diagnosis:** the POST
+422'd (multipart 'file' field missing — Safari-specific through nginx; Chromium fine), AND the
+endpoint was a fake: it keyword-matched the FILENAME against a 15-food table ("AI vision
+integration pending") — never looked at the image.
+
+- **Backend (`image_ai.py`)**: nutrition-from-image now runs REAL vision: structured
+  ALAFIAModel food task first; fallback = moondream caption ("What foods are on this plate?" —
+  small models answer questions far better than they emit JSON) with lead-in/qualifier/filler
+  cleanup ("The plate contains rice and a piece of meat, possibly chicken." → "rice and meat" —
+  qualifiers would double-count). Foods are then priced through `estimate_meal_nutrients`
+  (learned→curated→USDA→AI + plausibility guardrail). No fabricated numbers: 503 with a clear
+  message when no vision backend can see the image. medication-from-image reads the label via
+  the vision model (JSON extraction + reference-library enrichment). Both endpoints accept
+  multipart `file` OR JSON `{image_base64}` (data-URL tolerated); dead FOOD_LIBRARY removed.
+- **Frontend (`ImageAI.jsx`)**: uploads switched to base64 JSON (sidesteps the Safari multipart
+  issue), 180 s analysis timeout (CPU vision > default 30 s axios timeout), real backend error
+  detail surfaced instead of the blank "Error analyzing image".
+- **Verified:** real jollof-rice photo → "rice (112 kcal) + meat (184 kcal), total 296 kcal"
+  via BOTH JSON and multipart paths (~13 s, moondream local); browser E2E screenshot of the
+  results table; 4 new tests; full suite 192 passed; frontend builds.
+
+## Session 2026-07-06 (cont.) — Vision wired into Medications, Elimination, Symptoms
+
+- **Backend (`image_ai.py`)**: shared `_vision_ask()` helper; two new endpoints (multipart OR
+  base64, auth-gated):
+  - `POST /image-ai/elimination-from-image` {event_type: bowel|urination|vomiting} — per-type
+    prompts; keyword extraction → suggested fields (Bristol scale 1-7, color, consistency,
+    blood/mucus, urine clarity) + attention flags (black/red stool, red/cloudy urine,
+    blood/coffee-ground vomit) with negation handling ("no blood" doesn't flag) + disclaimer.
+  - `POST /image-ai/symptom-from-image` — visible-symptom description → suggested
+    symptom_name (20-term lexicon), body_part (31 parts), symptom_type.
+- **Frontend wiring**:
+  - `Elimination.jsx`: "Analyze photo" beside the existing image attach (poop/urine/vomit →
+    bowel/urination/vomiting) → prefills Description ("Bristol type N, consistency, color —
+    model text") + amber flags box.
+  - `Symptoms.jsx`: "From Photo" header button → analyzes → opens the form prefilled
+    (symptom, body part, type, AI description in notes) + disclaimer banner.
+  - `Medications.jsx`: "Scan Label" header button → medication-from-image → prefills intake
+    log + prescription form (name, dosage, label instructions); clear alert when unreadable.
+- **Verified**: 6 new tests (198 total green); live endpoint runs; browser E2E on all three
+  pages (Elimination prefill + flags, Symptoms prefill + banner, Medications refuses non-label
+  photos); frontend builds.
+
+## Session 2026-07-06 (cont.) — Fix "or fish" / "and" priced as foods
+
+User's real meal photo produced junk rows: caption "rice, chicken or fish, and …" leaked
+"or fish" (83 kcal) and "and" (47 kcal) as priced components. Two-layer fix in `image_ai.py`:
+- **Caption cleanup** (now a testable `_clean_caption`): drop bare "or X" alternatives (keep
+  the first), strip scene sentences (fork/knife/plate/glass…), normalize "and"-lists to commas,
+  collapse whitespace.
+- **Component leakage guard**: skip parser components whose name is a conjunction/scene token
+  (`_NON_FOOD_TOKENS`) or "or/and/with …" remnant; totals now sum only kept components (the
+  meal aggregate would re-include dropped junk).
+Verified: 13 image-AI tests, full suite 198 passed; real photo → clean "rice + meat, 296 kcal".
+
+## Session 2026-07-06 (cont.) — Sentence-fragment rows + head-noun believability fix
+
+Second real photo (beans in palm oil + grilled chicken + fried plantain) leaked whole caption
+SENTENCES as priced rows ("vegetables. there is chicken", "…nutritious meal option…").
+- **Two-stage food identification**: verbose moondream caption → llama3.2 (local text model,
+  format=json, temp 0) extracts `{"foods": […]}` — prompt excludes comparison mentions
+  ("alternative to rice" no longer yields rice). Regex cleanup stays as fallback.
+- **`_plausible_food_name` guard** (shared by extractor + component pricing): rejects >4 words /
+  >40 chars, sentence punctuation, verb chatter, conjunction starts — fragments can never be
+  priced again.
+- **Ground truth from user exposed estimator bug**: "beans cooked in palm oil with ground
+  peppers" classified as `oil_fat` (name contains "palm oil") and portioned 2.5 g (parser's
+  spice table matched "pepper") → 6 kcal. Fix: **head-phrase principle** in
+  `nutrition_reference.classify` (+ exported `head_phrase()`) and `meal_parser._default_g` —
+  category and default portion key off the food before any "cooked in/with/…" clause.
+  Now: legume_cooked, 100 g, ~68 kcal — believable.
+- Verified: 17 image tests; nutrition regression suites green; full suite **203 passed**.
+
+## Session 2026-07-06 (cont.) — Learn from labeled food images (visual memory) + mobile parity
+
+**"Can we learn from labelled images?"** — yes, without model training: a per-user **visual
+memory**. Labeled photos are stored as 64-bit dHash perceptual hashes (no image bytes retained)
+with the user's ground-truth food list; new photos are matched by Hamming distance (≤10/64
+tolerates re-shots) BEFORE any vision model runs — repeat meals resolve from the user's own
+labels in ~25 ms instead of ~13 s of vision.
+
+- **Backend**: `labeled_food_images` (ll001), `services/image_learning.py` (dhash/hamming/
+  find_learned_match/save_label — upsert re-centers the hash on the latest shot),
+  `POST /image-ai/label` {image_base64, foods} → stores label + returns the priced truth;
+  nutrition-from-image checks visual memory first. Pricing refactored into shared
+  `_price_description`. Labeled set doubles as the Phase-5 food-classifier training corpus.
+- **Web**: "Not right? Teach ALAFIA" input under results (prefilled with detected names).
+- **Mobile parity**: Android `labelFoodImage` + `FoodLabelRequest` + Teach card in
+  ImageAIScreen; iOS `teachNutrition()` + Teach field in ImageAIView. Both build
+  (gradle BUILD SUCCESSFUL; xcodebuild BUILD SUCCEEDED on iOS 26.5 sim).
+- **Verified**: teach→re-analyze E2E (learned match, 24 ms); 17 image tests; full suite
+  **205 passed**; frontend builds.
+
+## Session 2026-07-06 (cont.) — Recipe URL: third meal input, full learning-pipeline tie-in
+
+Meals now have three interchangeable content inputs — **recipe URL / description / photo** —
+all feeding the learning stores.
+
+- **`services/recipe_ingest.py`**: schema.org/Recipe JSON-LD extraction (regex script tags,
+  @graph walk, yield/nutrition parsing "310 calories" → 310), SSRF guard (public http(s) only,
+  private/loopback/link-local IPs rejected), browser UA (recipe sites block bot agents).
+- **`POST /nutrition/recipe-analyze`** {url, servings?}: ingredients priced through the
+  believability estimator → whole-recipe + per-serving; when the page PUBLISHES nutrition it
+  wins for display AND is learned: per-serving → per-100 g (serving_g = est. total weight /
+  servings, ≥30 g credibility floor) → plausibility review → `learned_food_nutrients`
+  (source="recipe") under the dish name.
+- **`/image-ai/label` accepts `recipe_url`**: photo tied to a recipe — labeled with the DISH
+  NAME (serving-scale pricing via curated/learned; ingredient-list fallback only if the name
+  can't price — first cut priced the whole 8-serving pot at 1.9k kcal).
+- **Web**: Analyze button on the Nutrition form's existing recipe_url field → prefills
+  food name/serving + pre-save nutrient preview (source "recipe (published|estimated)").
+- **Mobile parity (API level)**: Android `analyzeRecipeUrl` + models, FoodLabelRequest gains
+  recipe_url; iOS RecipeAnalyze structs. Both build.
+- **Verified live**: cheflolaskitchen.com jollof → 21 ingredients, 8 servings, published
+  568.5 kcal/serving, learned 188 kcal/100 g (row in learned_food_nutrients); description
+  "Nigerian Jollof Rice" prices believably; photo labeled via URL → visual-memory match at
+  serving scale (160 kcal). 5 new tests; full suite **210 passed**; web/Android/iOS build.
