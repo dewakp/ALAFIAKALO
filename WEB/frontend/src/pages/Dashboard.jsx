@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, BookOpen, Apple, Zap, Pill, CalendarDays, ExternalLink } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, BookOpen, Apple, Zap, Pill,
+  CalendarDays, ExternalLink, Sparkles, Heart, FlaskConical, FileText, Activity, Bot,
+  MessageSquareText, UtensilsCrossed, User, HeartPulse, Droplets, Share2, AlertTriangle,
+  Globe, Loader2,
+} from 'lucide-react';
+import {
+  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+} from 'recharts';
 
 /* ─── helpers ─── */
 const todayStr = () => new Date().toISOString().split('T')[0];
@@ -111,6 +119,442 @@ function Section({ icon: Icon, title, badge, children, link, linkLabel, onLink, 
   );
 }
 
+/* ─── overview: card chrome shared by the new sections ─── */
+function OverviewCard({ icon: Icon, title, subtitle, children, style }) {
+  return (
+    <div className="card" style={{ marginBottom: '1rem', ...style }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: subtitle ? '.25rem' : '.75rem' }}>
+        {Icon && <Icon size={20} style={{ color: 'var(--color-primary)', flexShrink: 0 }}/>}
+        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>{title}</h2>
+      </div>
+      {subtitle && (
+        <p style={{ margin: '0 0 1rem 0', color: 'var(--color-text-secondary)', fontSize: '.9rem' }}>{subtitle}</p>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/* ─── overview: current wellness score ─── */
+function WellnessScoreCard() {
+  const [score, setScore] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    api.get('/wellness/score')
+      .then(({ data }) => setScore(data))
+      .catch(() => setFailed(true));
+  }, []);
+
+  const value = score ? Math.round(score.overall_score) : null;
+  return (
+    <div className="card" style={{ marginBottom: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.75rem' }}>
+        <Heart size={18} style={{ color: 'var(--color-primary)' }}/>
+        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>Current Wellness Score</h3>
+      </div>
+      {failed ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
+          Score unavailable right now. <Link to="/wellness" style={{ color: 'var(--color-primary)' }}>Open Wellness Score</Link>
+        </p>
+      ) : value == null ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>Calculating…</p>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '.25rem' }}>
+            <span style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1.1 }}>{value}</span>
+            <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>/100</span>
+          </div>
+          <div style={{ height: 8, borderRadius: 4, background: 'var(--color-border)', margin: '.75rem 0' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, value))}%`, borderRadius: 4, background: 'var(--color-primary)' }}/>
+          </div>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '.82rem', margin: 0 }}>
+            {score.explanation || 'Calculated from your recent nutrition, vitals, sleep, mood and medication data.'}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── overview: latest lab results ─── */
+function LatestLabsCard() {
+  const navigate = useNavigate();
+  const [labs, setLabs] = useState(null);
+
+  useEffect(() => {
+    api.get('/labs/')
+      .then(({ data }) => setLabs(data))
+      .catch(() => setLabs([]));
+  }, []);
+
+  /* labs come back ordered by test_date desc — the latest draw is the first date group */
+  const latest = useMemo(() => {
+    if (!labs?.length) return null;
+    const d = labs[0].test_date;
+    return { date: d, items: labs.filter(l => l.test_date === d) };
+  }, [labs]);
+
+  const fmtVal = (l) => l.value_string || (l.value != null ? `${l.value} ${l.unit || ''}`.trim() : '—');
+
+  return (
+    <div className="card" style={{ marginBottom: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+          <FlaskConical size={18} style={{ color: 'var(--color-primary)' }}/>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>Latest Lab Results</h3>
+        </div>
+        <button onClick={() => navigate('/labs')}
+          style={{ display: 'flex', alignItems: 'center', gap: '.3rem', background: 'none', border: 'none',
+            color: 'var(--color-primary)', cursor: 'pointer', fontSize: '.85rem', padding: 0 }}>
+          <FileText size={14}/> View All
+        </button>
+      </div>
+      {labs == null ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>Loading…</p>
+      ) : !latest ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
+          No lab results yet. <Link to="/labs" style={{ color: 'var(--color-primary)' }}>Add your first result</Link>
+        </p>
+      ) : (
+        <>
+          <div style={{ fontWeight: 700, fontSize: '.95rem' }}>Lab Draw Report</div>
+          <div style={{ color: 'var(--color-text-secondary)', fontSize: '.8rem', marginBottom: '.6rem' }}>
+            Date: {fmtDateLabel(latest.date)}
+          </div>
+          {latest.items.slice(0, 3).map(l => (
+            <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.88rem', padding: '.2rem 0' }}>
+              <span>{l.test_name}:</span>
+              <span style={{ fontWeight: 600 }}>{fmtVal(l)}</span>
+            </div>
+          ))}
+          {latest.items.length > 3 && (
+            <div style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)', fontSize: '.8rem', marginTop: '.35rem' }}>
+              …and {latest.items.length - 3} more.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── overview: historical vitals trend (BP + HR, last 7 entries) ─── */
+function VitalsTrendCard() {
+  const [vitals, setVitals] = useState(null);
+
+  useEffect(() => {
+    api.get('/vitals/')
+      .then(({ data }) => setVitals(data))
+      .catch(() => setVitals([]));
+  }, []);
+
+  const chartData = useMemo(() => {
+    if (!vitals?.length) return [];
+    return vitals
+      .filter(v => v.blood_pressure_systolic != null || v.heart_rate_bpm != null)
+      .sort((a, b) => (a.log_date > b.log_date ? 1 : -1))
+      .slice(-7)
+      .map(v => ({
+        date: new Date(v.log_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        systolic: v.blood_pressure_systolic,
+        diastolic: v.blood_pressure_diastolic,
+        heartRate: v.heart_rate_bpm,
+      }));
+  }, [vitals]);
+
+  return (
+    <OverviewCard icon={Activity} title="Historical Vitals Trend"
+      subtitle={
+        <>A quick look at your blood pressure and heart rate over the last 7 entries.{' '}
+          <Link to="/chart-dashboard" style={{ color: 'var(--color-primary)' }}>View full trends page.</Link></>
+      }>
+      {vitals == null ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>Loading…</p>
+      ) : chartData.length === 0 ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
+          No blood pressure or heart rate entries yet.{' '}
+          <Link to="/vitals" style={{ color: 'var(--color-primary)' }}>Log your vitals</Link> to see the trend.
+        </p>
+      ) : (
+        <div style={{ width: '100%', height: 320 }}>
+          <ResponsiveContainer>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)"/>
+              <XAxis dataKey="date" stroke="var(--color-text-secondary)" fontSize={12}/>
+              <YAxis yAxisId="bp" stroke="#2dd4bf" fontSize={12}
+                domain={['dataMin - 5', 'dataMax + 5']}
+                label={{ value: 'BP (mmHg)', angle: -90, position: 'insideLeft', fontSize: 11 }}/>
+              <YAxis yAxisId="hr" orientation="right" stroke="var(--color-primary)" fontSize={12}
+                domain={['dataMin - 10', 'dataMax + 10']}
+                label={{ value: 'HR (bpm)', angle: 90, position: 'insideRight', fontSize: 11 }}/>
+              <Tooltip contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8 }}/>
+              <Legend/>
+              <Area yAxisId="bp" type="monotone" dataKey="systolic" name="Systolic" stroke="#2dd4bf" fill="#2dd4bf" fillOpacity={0.25}/>
+              <Area yAxisId="bp" type="monotone" dataKey="diastolic" name="Diastolic" stroke="#eab308" fill="#eab308" fillOpacity={0.2}/>
+              <Line yAxisId="hr" type="monotone" dataKey="heartRate" name="Heart Rate" stroke="var(--color-primary)" strokeWidth={2} dot={false}/>
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </OverviewCard>
+  );
+}
+
+/* ─── overview: AI personalized recommendations ─── */
+function RecommendationsCard() {
+  const [notes, setNotes] = useState('');
+  const [prefs, setPrefs] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  async function run() {
+    setBusy(true); setError(null); setResult(null);
+    const extra = [notes.trim() && `Supplementary journal notes: ${notes.trim()}`,
+      prefs.trim() && `Preferences for today: ${prefs.trim()}`].filter(Boolean).join('\n');
+    try {
+      const { data } = await api.post('/personalization/recommendations', {
+        type: 'wellness',
+        specific_request: extra ? extra.slice(0, 500) : null,
+      });
+      setResult(data);
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Could not generate recommendations right now. Please try again later.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const taStyle = { width: '100%', minHeight: 90, resize: 'vertical' };
+  return (
+    <OverviewCard icon={MessageSquareText} title="Alafia Personalized Recommendations"
+      subtitle="Enter supplementary notes or preferences. Alafia will primarily use your latest profile, journal, nutrition, vitals, and lab data.">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '.85rem' }}>
+        <div>
+          <label style={{ display: 'block', fontWeight: 600, fontSize: '.88rem', marginBottom: '.35rem' }}>
+            Supplementary Journal Notes (Optional)
+          </label>
+          <textarea className="form-input" style={taStyle} value={notes} onChange={e => setNotes(e.target.value)}
+            placeholder="e.g., Feeling particularly tired today, specific dietary craving…"/>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontWeight: 600, fontSize: '.88rem', marginBottom: '.35rem' }}>
+            Personal Preferences for Today (Optional)
+          </label>
+          <textarea className="form-input" style={taStyle} value={prefs} onChange={e => setPrefs(e.target.value)}
+            placeholder="e.g., prefer indoor activities, looking for quick meal ideas"/>
+        </div>
+      </div>
+      <button className="btn btn-primary" onClick={run} disabled={busy}
+        style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+        {busy && <Loader2 size={15} style={{ animation: 'spin-anim 1s linear infinite' }}/>}
+        {busy ? 'Generating…' : 'Get Recommendations'}
+      </button>
+      {error && <p style={{ color: 'var(--color-danger)', fontSize: '.85rem', marginTop: '.75rem', marginBottom: 0 }}>{error}</p>}
+      {result && (
+        <div style={{ marginTop: '1rem', padding: '.85rem 1rem', borderRadius: 8, background: 'var(--color-bg)',
+          border: '1px solid var(--color-border)', fontSize: '.88rem', whiteSpace: 'pre-wrap' }}>
+          {result.recommendations}
+        </div>
+      )}
+    </OverviewCard>
+  );
+}
+
+/* ─── overview: AI health insights (experimental) ─── */
+function InsightsCard() {
+  const [symptoms, setSymptoms] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  async function run() {
+    if (symptoms.trim().length < 10) {
+      setError('Please describe your symptoms in a bit more detail (at least 10 characters).');
+      return;
+    }
+    setBusy(true); setError(null); setResult(null);
+    try {
+      const { data } = await api.post('/personalization/analyze-symptoms', {
+        symptoms_description: symptoms.trim().slice(0, 1000),
+      });
+      setResult(data);
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Could not analyze symptoms right now. Please try again later.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <OverviewCard icon={Sparkles} title="Alafia Health Insights (Experimental)"
+      subtitle="Describe your current symptoms. Alafia will use your full health context (profile, journals, vitals, labs) to provide general insights. This is NOT a medical diagnosis.">
+      <label style={{ display: 'block', fontWeight: 600, fontSize: '.88rem', marginBottom: '.35rem' }}>
+        Describe your current symptoms
+      </label>
+      <textarea className="form-input" style={{ width: '100%', minHeight: 90, resize: 'vertical', marginBottom: '.85rem' }}
+        value={symptoms} onChange={e => setSymptoms(e.target.value)}
+        placeholder="e.g., I've had a persistent cough for 3 days, and a slight headache…"/>
+      <button className="btn btn-primary" onClick={run} disabled={busy}
+        style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+        {busy && <Loader2 size={15} style={{ animation: 'spin-anim 1s linear infinite' }}/>}
+        {busy ? 'Analyzing…' : 'Get Alafia Insights'}
+      </button>
+      {error && <p style={{ color: 'var(--color-danger)', fontSize: '.85rem', marginTop: '.75rem', marginBottom: 0 }}>{error}</p>}
+      {result && (
+        <div style={{ marginTop: '1rem', padding: '.85rem 1rem', borderRadius: 8, background: 'var(--color-bg)',
+          border: '1px solid var(--color-border)', fontSize: '.88rem', whiteSpace: 'pre-wrap' }}>
+          {result.analysis}
+          {result.disclaimer && (
+            <p style={{ marginTop: '.75rem', marginBottom: 0, fontSize: '.78rem', fontStyle: 'italic',
+              color: 'var(--color-text-secondary)' }}>{result.disclaimer}</p>
+          )}
+        </div>
+      )}
+    </OverviewCard>
+  );
+}
+
+/* ─── overview: daily food idea (auto-generated, cached per day) ─── */
+const FOOD_IDEA_KEY = 'alafia-daily-food-idea';
+
+function DailyFoodIdeaCard() {
+  const [state, setState] = useState({ status: 'loading', meal: null });
+
+  useEffect(() => {
+    const today = todayStr();
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(FOOD_IDEA_KEY));
+      if (cached?.date === today) {
+        setState({ status: cached.meal ? 'ok' : 'error', meal: cached.meal });
+        return;
+      }
+    } catch { /* ignore bad cache */ }
+
+    let cancelled = false;
+    api.post('/planners/meal-suggestions', { health_goals: '', count: 1 })
+      .then(({ data }) => {
+        if (cancelled) return;
+        const meal = data.suggestions?.[0] || null;
+        sessionStorage.setItem(FOOD_IDEA_KEY, JSON.stringify({ date: today, meal }));
+        setState({ status: meal ? 'ok' : 'error', meal });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        sessionStorage.setItem(FOOD_IDEA_KEY, JSON.stringify({ date: today, meal: null }));
+        setState({ status: 'error', meal: null });
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const { status, meal } = state;
+  return (
+    <OverviewCard icon={UtensilsCrossed} title="Daily Food Ideas"
+      subtitle="An auto-generated meal suggestion based on your health data.">
+      {status === 'loading' ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.9rem', margin: '0 0 .85rem 0' }}>
+          Generating today's meal idea…
+        </p>
+      ) : status === 'error' ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.95rem', margin: '0 0 .85rem 0' }}>
+          Could not generate a meal idea. Try again later or visit the full planner.
+        </p>
+      ) : (
+        <div style={{ marginBottom: '.85rem' }}>
+          <div style={{ fontWeight: 700, fontSize: '1rem', textTransform: 'capitalize' }}>
+            {meal.meal_type !== 'meal' ? `${meal.meal_type}: ` : ''}{meal.name}
+          </div>
+          {meal.description && (
+            <p style={{ margin: '.35rem 0 0 0', fontSize: '.88rem', color: 'var(--color-text-secondary)' }}>{meal.description}</p>
+          )}
+          {meal.calories != null && (
+            <p style={{ margin: '.35rem 0 0 0', fontSize: '.8rem', color: 'var(--color-text-secondary)' }}>
+              ~{Math.round(meal.calories)} kcal
+              {meal.protein_g != null && ` · ${Math.round(meal.protein_g)}g protein`}
+              {meal.carbs_g != null && ` · ${Math.round(meal.carbs_g)}g carbs`}
+              {meal.fat_g != null && ` · ${Math.round(meal.fat_g)}g fat`}
+            </p>
+          )}
+        </div>
+      )}
+      <Link to="/meal-planner" style={{ color: 'var(--color-primary)', fontSize: '.9rem', fontWeight: 600 }}>
+        Go to AI Meal Planner for more
+      </Link>
+    </OverviewCard>
+  );
+}
+
+/* ─── overview: resources quick links ─── */
+const RESOURCES = [
+  { label: 'My Profile', to: '/profile', icon: User },
+  { label: 'Chat with Alafia', to: '/ai', icon: Bot },
+  { label: 'Health Journal', to: '/journal', icon: BookOpen },
+  { label: 'Daily Vitals', to: '/vitals', icon: HeartPulse },
+  { label: 'HD Flowsheet', to: '/hemodialysis', icon: Activity },
+  { label: 'PD Report', to: '/peritoneal-dialysis', icon: Droplets },
+  { label: 'Food & Meds Log', to: '/nutrition', icon: Apple },
+  { label: 'Meals Diary', to: '/meals-diary', icon: UtensilsCrossed },
+  { label: 'Lab Tests', to: '/labs', icon: FlaskConical },
+  { label: 'Daily Calendar', to: '/calendar', icon: CalendarDays },
+  { label: 'Food & Drug Recalls', to: '/fda-recalls', icon: AlertTriangle },
+  { label: 'Connect Records', to: '/data-sharing', icon: Share2 },
+  { label: 'CDC Health Info', href: 'https://www.cdc.gov/health-topics.html', icon: Globe },
+  { label: 'WHO Wellness Tips', href: 'https://www.who.int/health-topics', icon: Globe },
+];
+
+function ResourceTile({ item }) {
+  const navigate = useNavigate();
+  const Icon = item.icon;
+  const inner = (
+    <>
+      <div style={{ width: '100%', height: 100, borderRadius: 8, background: 'var(--color-bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '.6rem' }}>
+        <Icon size={36} style={{ color: 'var(--color-primary)' }}/>
+      </div>
+      <div style={{ fontWeight: 600, fontSize: '.92rem', textAlign: 'center', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', gap: '.3rem' }}>
+        {item.label}{item.href && <ExternalLink size={12} style={{ color: 'var(--color-text-secondary)' }}/>}
+      </div>
+    </>
+  );
+  const cardStyle = { cursor: 'pointer', textDecoration: 'none', color: 'inherit', display: 'block' };
+  return item.href ? (
+    <a className="card" style={cardStyle} href={item.href} target="_blank" rel="noopener noreferrer">{inner}</a>
+  ) : (
+    <div className="card" style={cardStyle} onClick={() => navigate(item.to)} role="link" tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter') navigate(item.to); }}>
+      {inner}
+    </div>
+  );
+}
+
+function ResourcesSection() {
+  return (
+    <OverviewCard title="Resources" subtitle="Quick links to helpful sections and external resources.">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '1rem' }}>
+        {RESOURCES.map(item => <ResourceTile key={item.label} item={item}/>)}
+      </div>
+    </OverviewCard>
+  );
+}
+
+/* ─── overview: page footer ─── */
+function DashboardFooter() {
+  return (
+    <footer style={{ borderTop: '1px solid var(--color-border)', marginTop: '2rem', padding: '1.25rem 0 .5rem',
+      display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem',
+      color: 'var(--color-text-secondary)', fontSize: '.85rem' }}>
+      <span>Alafia is a 6igma Health App.</span>
+      <span style={{ display: 'flex', gap: '1.25rem' }}>
+        {['About Us', 'Contact Us', 'Investors', 'Legal'].map(l => (
+          <Link key={l} to="/landing" style={{ color: 'inherit' }}>{l}</Link>
+        ))}
+      </span>
+    </footer>
+  );
+}
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -185,7 +629,31 @@ export default function Dashboard() {
   const noData = (text) => <p style={{ color: 'var(--color-text-tertiary)', fontSize: '.85rem', margin: 0 }}>{text}</p>;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.25rem', alignItems: 'start' }}>
+    <div>
+
+      {/* ═══ Health overview (Alafia dashboard) ═══ */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
+          <Sparkles size={28} style={{ color: 'var(--color-primary)' }}/>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Health Dashboard</h1>
+        </div>
+        <p style={{ margin: '.35rem 0 0 0', color: 'var(--color-text-secondary)', fontSize: '1rem' }}>
+          Your personal health overview and Alafia-powered insights.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+        <WellnessScoreCard/>
+        <LatestLabsCard/>
+      </div>
+      <VitalsTrendCard/>
+      <RecommendationsCard/>
+      <InsightsCard/>
+      <DailyFoodIdeaCard/>
+
+      {/* ═══ Daily review (calendar + logged data) ═══ */}
+      <h2 style={{ margin: '2rem 0 1rem 0', fontSize: '1.25rem', fontWeight: 700 }}>Daily Review</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.25rem', alignItems: 'start' }}>
 
       {/* ── LEFT: Calendar ── */}
       <div className="card" style={{ position: 'sticky', top: '1rem' }}>
@@ -325,6 +793,10 @@ export default function Dashboard() {
         </Section>
 
       </div>
+      </div>
+
+      <ResourcesSection/>
+      <DashboardFooter/>
     </div>
   );
 }

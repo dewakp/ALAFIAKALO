@@ -100,7 +100,21 @@ export default function ChartDashboard() {
 
   /* Load available datasets on mount */
   useEffect(() => {
-    api.get('/chart-dashboard/datasets').then(r => setDatasets(r.data)).catch(() => {});
+    api.get('/chart-dashboard/datasets').then(r => {
+      setDatasets(r.data);
+      // Auto-select up to 3 populated datasets (one per domain) so the page
+      // starts with a live chart instead of an empty canvas.
+      setSelected(prev => {
+        if (prev.length) return prev;
+        const picks = [];
+        for (const items of Object.values(r.data)) {
+          const best = [...items].filter(d => (d.count ?? 0) > 0).sort((a, b) => b.count - a.count)[0];
+          if (best) picks.push(best.key);
+          if (picks.length >= 3) break;
+        }
+        return picks;
+      });
+    }).catch(() => {});
   }, []);
 
   /* Fetch chart data whenever selection or params change */
@@ -145,6 +159,14 @@ export default function ChartDashboard() {
     }
     return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
   }, [chartData]);
+
+  /* Profile target weight — from the composite weight dataset summaries;
+     marked on the chart as a horizontal goal line. */
+  const weightGoal = useMemo(() => {
+    const s = summaries.weight_all || summaries.weight_all_7d;
+    if (s?.profile_target_weight_kg == null) return null;
+    return { targetKg: s.profile_target_weight_kg };
+  }, [summaries]);
 
   /* Pie/radar aggregation: average each selected dataset */
   const pieData = useMemo(() => {
@@ -242,17 +264,20 @@ export default function ChartDashboard() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {items.map(ds => {
                   const active = selected.includes(ds.key);
+                  const empty = (ds.count ?? 0) === 0;
                   return (
                     <button key={ds.key}
                       onClick={() => toggle(ds.key)}
+                      title={empty ? 'No entries logged yet for this metric' : `${ds.count} entries`}
                       style={{
                         padding: '4px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
                         border: active ? '2px solid #3b82f6' : '1px solid #d1d5db',
                         background: active ? '#eff6ff' : '#fff', color: active ? '#1d4ed8' : '#374151',
                         fontWeight: active ? 600 : 400,
+                        opacity: empty ? 0.45 : 1,
                       }}
                     >
-                      {ds.label} {ds.unit ? `(${ds.unit})` : ''}
+                      {ds.label} {ds.unit ? `(${ds.unit})` : ''}{empty ? ' — no data' : ''}
                     </button>
                   );
                 })}
@@ -309,11 +334,24 @@ export default function ChartDashboard() {
 
       {/* ── Chart Area ─────────────────────────────────────── */}
       {!loading && chartData && selected.length > 0 && (
-        <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-          <ResponsiveContainer width="100%" height={420}>
-            {renderChart(chartType, mergedData, selected, chartData, pieData, radarData, correlateData)}
-          </ResponsiveContainer>
-        </div>
+        mergedData.length === 0 ? (
+          <div className="card" style={{ padding: 40, textAlign: 'center', color: '#9ca3af', marginBottom: 16 }}>
+            <AlertCircle size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
+            <p style={{ fontSize: 16, fontWeight: 500, margin: '0 0 6px' }}>
+              No data points in the last {DAY_OPTIONS.find(o => o.key === days)?.label || `${days} days`} for the selected dataset{selected.length > 1 ? 's' : ''}
+            </p>
+            <p style={{ fontSize: 13, margin: 0 }}>
+              Datasets marked <strong>“no data”</strong> in the picker have no entries yet — pick a highlighted
+              metric, extend the time range, or start logging to see trends here.
+            </p>
+          </div>
+        ) : (
+          <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+            <ResponsiveContainer width="100%" height={420}>
+              {renderChart(chartType, mergedData, selected, chartData, pieData, radarData, correlateData, weightGoal)}
+            </ResponsiveContainer>
+          </div>
+        )
       )}
 
       {/* ── Summary Cards ──────────────────────────────────── */}
@@ -360,11 +398,26 @@ export default function ChartDashboard() {
 }
 
 /* ── Chart rendering helper ──────────────────────────────── */
-function renderChart(type, merged, selected, chartData, pieData, radarData, correlateData) {
+function renderChart(type, merged, selected, chartData, pieData, radarData, correlateData, weightGoal) {
   const commonProps = {
     data: merged,
     margin: { top: 5, right: 20, bottom: 5, left: 0 },
   };
+
+  /* Profile weight-goal marker: horizontal line at the target weight. */
+  const goalMarkers = weightGoal ? [
+    <ReferenceLine key="goal-kg" y={weightGoal.targetKg} stroke="#ef4444" strokeDasharray="6 3"
+      label={{ value: `Target ${weightGoal.targetKg} kg`, fill: '#ef4444', fontSize: 11, position: 'insideBottomLeft' }} />,
+  ] : [];
+
+  /* Y-domain: reach the target weight so its line is visible, and when only
+     weight datasets are charted lift the baseline to ~40 kg (never above the
+     data minimum) so the curve isn't flattened against a zero axis. */
+  const weightOnly = selected.length > 0 && selected.every(k => k.startsWith('weight_all'));
+  const yMin = weightOnly ? (dataMin) => Math.min(40, Math.floor(dataMin - 5)) : 0;
+  const yDomain = weightGoal?.targetKg != null
+    ? [yMin, (dataMax) => Math.ceil(Math.max(dataMax, weightGoal.targetKg) * 1.03)]
+    : [yMin, 'auto'];
 
   switch (type) {
     case 'line':
@@ -372,9 +425,10 @@ function renderChart(type, merged, selected, chartData, pieData, radarData, corr
         <LineChart {...commonProps}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
           <XAxis dataKey="_label" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} domain={yDomain} />
           <Tooltip content={<ChartTooltip />} />
           <Legend />
+          {goalMarkers}
           {selected.map((key, i) => (
             <Line key={key} type="monotone" dataKey={key} name={chartData[key]?.label || key}
               stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} dot={{ r: 2 }} connectNulls />
@@ -387,9 +441,10 @@ function renderChart(type, merged, selected, chartData, pieData, radarData, corr
         <BarChart {...commonProps}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
           <XAxis dataKey="_label" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} domain={yDomain} />
           <Tooltip content={<ChartTooltip />} />
           <Legend />
+          {goalMarkers}
           {selected.map((key, i) => (
             <Bar key={key} dataKey={key} name={chartData[key]?.label || key}
               fill={PALETTE[i % PALETTE.length]} radius={[4, 4, 0, 0]} />
@@ -402,9 +457,10 @@ function renderChart(type, merged, selected, chartData, pieData, radarData, corr
         <AreaChart {...commonProps}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
           <XAxis dataKey="_label" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} domain={yDomain} />
           <Tooltip content={<ChartTooltip />} />
           <Legend />
+          {goalMarkers}
           {selected.map((key, i) => (
             <Area key={key} type="monotone" dataKey={key} name={chartData[key]?.label || key}
               stroke={PALETTE[i % PALETTE.length]} fill={PALETTE[i % PALETTE.length] + '33'}
@@ -432,7 +488,7 @@ function renderChart(type, merged, selected, chartData, pieData, radarData, corr
         <ScatterChart margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
           <XAxis dataKey="_label" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} domain={yDomain} />
           <Tooltip content={<ChartTooltip />} />
           <Legend />
           {selected.map((key, i) => (
@@ -477,9 +533,10 @@ function renderChart(type, merged, selected, chartData, pieData, radarData, corr
         <ComposedChart {...commonProps}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
           <XAxis dataKey="_label" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} domain={yDomain} />
           <Tooltip content={<ChartTooltip />} />
           <Legend />
+          {goalMarkers}
           {selected.map((key, i) => {
             // Alternate between Line, Bar, Area for composed
             const mod = i % 3;
