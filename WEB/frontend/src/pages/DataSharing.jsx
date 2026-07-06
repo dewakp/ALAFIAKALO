@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Share2, Plus, Trash2, Mail, Check, X, Clock, Shield } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import EHRPortals from '../components/EHRPortals';
 
 export default function DataSharing() {
   const [activeTab, setActiveTab] = useState('grants');
@@ -93,6 +94,9 @@ export default function DataSharing() {
           </button>
         </div>
       </div>
+
+      {/* MyChart / patient-portal record connections */}
+      <EHRPortals />
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
         {tabs.map(t => (

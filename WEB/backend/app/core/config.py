@@ -95,6 +95,17 @@ class Settings(BaseSettings):
     # USDA FoodData Central
     USDA_API_KEY: str = "DEMO_KEY"
 
+    # ── EHR / MyChart (SMART on FHIR patient access) ────────────────────────
+    # Client ID from an Epic app registration (fhir.epic.com). One non-prod +
+    # one prod ID cover every Epic-hosted portal (Kaiser, Trinity Health, …).
+    EPIC_CLIENT_ID: str = ""
+    # Where the portal redirects after the patient signs in. Must exactly match
+    # the redirect URI on the Epic app registration.
+    EHR_REDIRECT_URI: str = "http://localhost:8080/ehr/callback"
+    # Expose the registration-free SMART Health IT sandbox as a connectable
+    # "organization" for local testing/demo (works without EPIC_CLIENT_ID).
+    EHR_ENABLE_SANDBOX: bool = True
+
     # Firebase (for migration & sync pipeline)
     FIREBASE_SERVICE_ACCOUNT: str = ""  # Path to service account JSON
     FIREBASE_WEB_API_KEY: str = ""  # Firebase Web API key (for password verification)

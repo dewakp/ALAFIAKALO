@@ -28,6 +28,7 @@ class EHRConnectionUpdate(BaseModel):
 class EHRConnectionResponse(EHRConnectionBase):
     id: int
     status: str
+    org_name: str | None = None
     last_sync_at: datetime | None = None
     created_at: datetime
     updated_at: datetime

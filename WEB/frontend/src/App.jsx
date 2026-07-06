@@ -39,6 +39,7 @@ const Chemotherapy = lazy(() => import('./pages/Chemotherapy'));
 const AdvancedDirectives = lazy(() => import('./pages/AdvancedDirectives'));
 const ClinicianDashboard = lazy(() => import('./pages/ClinicianDashboard'));
 const DataSharing = lazy(() => import('./pages/DataSharing'));
+const EHRCallback = lazy(() => import('./pages/EHRCallback'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const ChartDashboard = lazy(() => import('./pages/ChartDashboard'));
 const Pharmacy = lazy(() => import('./pages/Pharmacy'));
@@ -110,6 +111,7 @@ export default function App() {
           <Route path="advanced-directives" element={<AdvancedDirectives />} />
           <Route path="clinician-dashboard" element={<ClinicianDashboard />} />
           <Route path="data-sharing" element={<DataSharing />} />
+          <Route path="ehr/callback" element={<EHRCallback />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="chart-dashboard" element={<ChartDashboard />} />
           <Route path="pharmacy" element={<Pharmacy />} />
