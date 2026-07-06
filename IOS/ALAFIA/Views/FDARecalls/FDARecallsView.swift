@@ -5,8 +5,9 @@ import SwiftUI
 @Observable
 final class FDARecallsViewModel {
     var searchTerm = ""
-    var days: Int = 30
+    var days: Int = 90
     var limit: Int = 10
+    var kind: String = "both"        // food | drug | both
     var results: [FDARecallItem] = []
     var totalResults: Int = 0
     var isLoading = false
@@ -19,7 +20,7 @@ final class FDARecallsViewModel {
         do {
             let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchTerm
             let response: FDARecallResponse = try await APIClient.shared.get(
-                "/fda-recalls/?search_term=\(encoded)&days=\(days)&limit=\(limit)"
+                "/fda-recalls/?search_term=\(encoded)&days=\(days)&limit=\(limit)&kind=\(kind)"
             )
             results = response.results
             totalResults = response.total
@@ -30,7 +31,7 @@ final class FDARecallsViewModel {
     func loadRecent() async {
         isLoading = true; errorMessage = nil; hasSearched = true
         do {
-            let response: FDARecallResponse = try await APIClient.shared.get("/fda-recalls/recent")
+            let response: FDARecallResponse = try await APIClient.shared.get("/fda-recalls/recent?kind=\(kind)")
             results = response.results
             totalResults = response.total
         } catch { errorMessage = error.localizedDescription }
@@ -67,6 +68,13 @@ struct FDARecallsView: View {
             .padding(10)
             .background(Color(.systemGray6))
             .cornerRadius(10)
+
+            Picker("Type", selection: $vm.kind) {
+                Text("Food & Drug").tag("both")
+                Text("Food").tag("food")
+                Text("Drug").tag("drug")
+            }
+            .pickerStyle(.segmented)
 
             HStack {
                 Stepper("Days: \(vm.days)", value: $vm.days, in: 1...365)
@@ -146,9 +154,24 @@ private struct FDARecallRow: View {
                 .font(.headline)
                 .lineLimit(3)
 
-            // Classification badge
-            if let classification = item.classification {
-                classificationBadge(classification)
+            // Badges: Food/Drug type, classification, source authority
+            HStack(spacing: 6) {
+                if let type = item.productType {
+                    Text(type.capitalized)
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background((type == "drug" ? Color.purple : Color.green).opacity(0.15))
+                        .foregroundStyle(type == "drug" ? Color.purple : Color.green)
+                        .clipShape(Capsule())
+                }
+                if let classification = item.classification {
+                    classificationBadge(classification)
+                }
+                if let source = item.source {
+                    Text(source)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // Reason
@@ -167,17 +190,18 @@ private struct FDARecallRow: View {
                 if let city = item.city, let state = item.state {
                     detailRow("mappin", "\(city), \(state)")
                 }
-                if let date = item.recallDate {
+                if let date = item.recallInitiationDate ?? item.reportDate {
                     detailRow("calendar", date)
                 }
                 if let status = item.status {
                     detailRow("info.circle", status)
                 }
+                coverageRow
             }
             .font(.caption)
 
             // Distribution pattern
-            if let pattern = item.distributionPattern, !pattern.isEmpty {
+            if let pattern = item.distribution, !pattern.isEmpty {
                 DisclosureGroup {
                     Text(pattern)
                         .font(.caption)
@@ -187,8 +211,29 @@ private struct FDARecallRow: View {
                         .font(.caption.bold())
                 }
             }
+
+            // Official notice link
+            if let urlString = item.url, let url = URL(string: urlString) {
+                Link(destination: url) {
+                    Label("Official notice", systemImage: "arrow.up.right.square")
+                        .font(.caption.bold())
+                }
+            }
         }
         .padding(.vertical, 4)
+    }
+
+    /// Geographic coverage: nationwide flag, US states, countries reached.
+    @ViewBuilder
+    private var coverageRow: some View {
+        if item.nationwide == true {
+            detailRow("map", "Coverage: Nationwide (US)")
+        } else if let states = item.states, !states.isEmpty {
+            detailRow("map", "Coverage: \(states.joined(separator: ", "))")
+        }
+        if let countries = item.countries, countries.count > 1 {
+            detailRow("globe", "Countries: \(countries.joined(separator: ", "))")
+        }
     }
 
     private func classificationBadge(_ classification: String) -> some View {

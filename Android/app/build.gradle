@@ -10,6 +10,12 @@ android {
     namespace "com.alafia.android"
     compileSdk 36
 
+    // JVM unit tests hit android.util.Log via ErrorUtil — return defaults
+    // instead of throwing "not mocked".
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
     defaultConfig {
         applicationId "com.alafia.android"
         minSdk 26

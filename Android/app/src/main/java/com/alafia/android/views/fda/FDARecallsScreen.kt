@@ -31,6 +31,7 @@ fun FDARecallsScreen(navController: NavHostController) {
     var recallResponse by remember { mutableStateOf<FDARecallResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var searchQuery by remember { mutableStateOf("") }
+    var kind by remember { mutableStateOf("both") }   // food | drug | both
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -38,7 +39,7 @@ fun FDARecallsScreen(navController: NavHostController) {
         scope.launch {
             isLoading = true
             try {
-                recallResponse = ApiClient.getApiService().getRecentFDARecalls()
+                recallResponse = ApiClient.getApiService().getRecentFDARecalls(kind = kind)
             } catch (e: Exception) {
                 Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
             }
@@ -50,7 +51,7 @@ fun FDARecallsScreen(navController: NavHostController) {
         scope.launch {
             isLoading = true
             try {
-                recallResponse = ApiClient.getApiService().searchFDARecalls(searchTerm = query)
+                recallResponse = ApiClient.getApiService().searchFDARecalls(searchTerm = query, kind = kind)
             } catch (e: Exception) {
                 Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
             }
@@ -58,7 +59,7 @@ fun FDARecallsScreen(navController: NavHostController) {
         }
     }
 
-    LaunchedEffect(Unit) { loadRecent() }
+    LaunchedEffect(kind) { if (searchQuery.isNotBlank()) search(searchQuery) else loadRecent() }
 
     Scaffold(
         topBar = { TopAppBar(
@@ -110,6 +111,22 @@ fun FDARecallsScreen(navController: NavHostController) {
                     Spacer(Modifier.width(4.dp))
                     Text("Search")
                 }
+            }
+
+            // Food / Drug / Both filter
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                listOf("both" to "Food & Drug", "food" to "Food", "drug" to "Drug")
+                    .forEachIndexed { i, (tag, label) ->
+                        SegmentedButton(
+                            selected = kind == tag,
+                            onClick = { kind = tag },
+                            shape = SegmentedButtonDefaults.itemShape(index = i, count = 3)
+                        ) { Text(label) }
+                    }
             }
 
             // Total count
@@ -202,22 +219,45 @@ private fun FDARecallCard(item: FDARecallItem) {
 
             Spacer(Modifier.height(8.dp))
 
-            // Classification badge
-            item.classification?.let { classification ->
-                Surface(
-                    color = classificationColor.copy(alpha = 0.15f),
-                    shape = MaterialTheme.shapes.small
-                ) {
+            // Type + classification + source badges
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                item.productType?.let { type ->
+                    val typeColor = if (type == "drug") Color(0xFF7B1FA2) else Color(0xFF2E7D32)
+                    Surface(color = typeColor.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
+                        Text(
+                            text = type.replaceFirstChar { it.uppercase() },
+                            color = typeColor,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                }
+                item.classification?.let { classification ->
+                    Surface(
+                        color = classificationColor.copy(alpha = 0.15f),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = "$classification${if (classificationLabel.isNotEmpty()) " — $classificationLabel" else ""}",
+                            color = classificationColor,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                }
+                item.source?.let { source ->
                     Text(
-                        text = "$classification${if (classificationLabel.isNotEmpty()) " — $classificationLabel" else ""}",
-                        color = classificationColor,
+                        text = source,
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(Modifier.height(8.dp))
             }
+            Spacer(Modifier.height(8.dp))
 
             // Reason
             item.reason?.let { reason ->
@@ -260,7 +300,7 @@ private fun FDARecallCard(item: FDARecallItem) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                item.recallDate?.let { date ->
+                (item.recallInitiationDate ?: item.reportDate)?.let { date ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.CalendarToday,
@@ -290,8 +330,25 @@ private fun FDARecallCard(item: FDARecallItem) {
                 }
             }
 
+            // Geographic coverage
+            val coverage = when {
+                item.nationwide -> "Coverage: Nationwide (US)"
+                item.states.isNotEmpty() -> "Coverage: ${item.states.joinToString(", ")}"
+                else -> null
+            }
+            coverage?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(it, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (item.countries.size > 1) {
+                Text("Countries: ${item.countries.joinToString(", ")}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
             // Expandable distribution pattern
-            item.distributionPattern?.let { pattern ->
+            item.distribution?.let { pattern ->
                 Spacer(Modifier.height(4.dp))
                 TextButton(
                     onClick = { expanded = !expanded },

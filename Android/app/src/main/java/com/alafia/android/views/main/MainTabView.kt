@@ -57,6 +57,9 @@ import com.alafia.android.views.fda.FDARecallsScreen
 import com.alafia.android.views.clinician.ClinicianDashboardScreen
 import com.alafia.android.views.sharing.DataSharingScreen
 import com.alafia.android.views.chartdashboard.ChartDashboardScreen
+import com.alafia.android.views.chartdashboard.WeightTrendScreen
+import com.alafia.android.views.community.FacilitiesScreen
+import com.alafia.android.views.community.SurveillanceScreen
 import com.alafia.android.views.pharmacy.PharmacyScreen
 import com.alafia.android.views.elimination.EliminationScreen
 import com.alafia.android.views.pantry.PantryScreen
@@ -280,6 +283,18 @@ fun MainTabView(
                 ChartDashboardScreen(navController = innerNavController)
             }
 
+            composable("weight-trend") {
+                WeightTrendScreen(navController = innerNavController)
+            }
+
+            composable("facilities") {
+                FacilitiesScreen(navController = innerNavController)
+            }
+
+            composable("surveillance") {
+                SurveillanceScreen(navController = innerNavController)
+            }
+
             composable("pharmacy") {
                 PharmacyScreen(navController = innerNavController)
             }
@@ -345,6 +360,7 @@ fun MoreScreen(
             MoreGridItem("Lifestyle", Icons.Default.Favorite, "lifestyle"),
             MoreGridItem("Wellness", Icons.Default.Speed, "wellness"),
             MoreGridItem("Charts", Icons.Default.BarChart, "chart-dashboard"),
+            MoreGridItem("Weight Trend", Icons.Default.MonitorWeight, "weight-trend"),
             MoreGridItem("Elimination", Icons.Default.WaterDrop, "elimination"),
         )),
         MoreGridSection("Mental Health", listOf(
@@ -352,6 +368,9 @@ fun MoreScreen(
         )),
         MoreGridSection("Community", listOf(
             MoreGridItem("Community", Icons.Default.Public, "community-health"),
+            MoreGridItem("Facilities", Icons.Default.Business, "facilities"),
+            MoreGridItem("Recalls", Icons.Default.Warning, "fda-recalls"),
+            MoreGridItem("Surveillance", Icons.Default.Radar, "surveillance"),
         )),
         MoreGridSection("Planning", listOf(
             MoreGridItem("Meal Planner", Icons.Default.Restaurant, "meal-planner"),

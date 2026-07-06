@@ -564,26 +564,36 @@ struct AdvancedDirective: Codable, Identifiable {
 // MARK: - FDA Recalls
 
 struct FDARecallItem: Codable {
+    // Global recalls schema (US openFDA food+drug, Health Canada, UK FSA)
+    let productType: String?          // "food" | "drug"
+    let source: String?               // issuing authority
+    let url: String?                  // official notice link
     let recallNumber: String?
     let productDescription: String?
     let reason: String?
     let classification: String?
     let status: String?
-    let recallDate: String?
+    let recallInitiationDate: String?
+    let reportDate: String?
     let recallingFirm: String?
     let city: String?
     let state: String?
     let country: String?
-    let distributionPattern: String?
+    let distribution: String?
     let voluntaryMandated: String?
+    let states: [String]?             // US state codes reached
+    let countries: [String]?          // ISO-2 countries reached
+    let nationwide: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case reason, classification, status, city, state, country
+        case reason, classification, status, city, state, country, source, url
+        case distribution, states, countries, nationwide
+        case productType = "product_type"
         case recallNumber = "recall_number"
         case productDescription = "product_description"
-        case recallDate = "recall_date"
+        case recallInitiationDate = "recall_initiation_date"
+        case reportDate = "report_date"
         case recallingFirm = "recalling_firm"
-        case distributionPattern = "distribution_pattern"
         case voluntaryMandated = "voluntary_mandated"
     }
 }
@@ -591,6 +601,138 @@ struct FDARecallItem: Codable {
 struct FDARecallResponse: Codable {
     let total: Int
     let results: [FDARecallItem]
+}
+
+// MARK: - Recipe URL Analysis (third meal input: URL / description / photo)
+
+struct RecipeAnalyzeRequest: Codable {
+    let url: String
+    var servings: Int?
+}
+
+struct RecipeAnalyzeResponse: Codable {
+    let name: String
+    let url: String
+    let servings: Int
+    let ingredients: [String]
+    let perServing: [String: Double]
+    let total: [String: Double]
+    let totalWeightG: Double
+    let source: String        // "published" | "estimated"
+    let learned: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case name, url, servings, ingredients, total, source, learned
+        case perServing = "per_serving"
+        case totalWeightG = "total_weight_g"
+    }
+}
+
+// MARK: - Facilities Directory
+
+struct Facility: Codable, Identifiable {
+    let id: Int
+    let name: String
+    let facilityType: String
+    let phone: String?
+    let website: String?
+    let addressLine1: String?
+    let city: String?
+    let stateProvince: String?
+    let postalCode: String?
+    let country: String?
+    let latitude: Double?
+    let longitude: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, phone, website, city, country, latitude, longitude
+        case facilityType = "facility_type"
+        case addressLine1 = "address_line1"
+        case stateProvince = "state_province"
+        case postalCode = "postal_code"
+    }
+}
+
+// MARK: - Disease Surveillance
+
+struct SurveillanceDisease: Codable, Identifiable {
+    let id: String
+    let label: String
+    let icon: String
+    let category: String
+}
+
+struct SurveillanceCountry: Codable, Identifiable {
+    var id: String { iso2 }
+    let iso2: String
+    let name: String
+    let region: String?
+    let outward: Double?         // WHO indicator value
+    let outwardYear: Int?
+    let inward: Int              // ALAFIA patient symptom activity
+
+    enum CodingKeys: String, CodingKey {
+        case iso2, name, region, outward, inward
+        case outwardYear = "outward_year"
+    }
+}
+
+struct SurveillanceGlobal: Codable {
+    let disease: SurveillanceDisease
+    let days: Int
+    let countries: [SurveillanceCountry]
+    let inwardTotal: Int
+
+    enum CodingKeys: String, CodingKey {
+        case disease, days, countries
+        case inwardTotal = "inward_total"
+    }
+}
+
+// MARK: - Composite Weight Series
+
+struct WeightSeriesPoint: Codable, Identifiable {
+    var id: String { date }
+    let date: String
+    let value: Double
+    let min: Double
+    let max: Double
+    let count: Int
+    let rolling7d: Double
+    let sources: [String: Int]
+
+    enum CodingKeys: String, CodingKey {
+        case date, value, min, max, count, sources
+        case rolling7d = "rolling_7d"
+    }
+}
+
+struct WeightSeriesSummary: Codable {
+    let count: Int
+    let avg: Double?
+    let stddev: Double?
+    let min: Double?
+    let max: Double?
+    let sources: [String: Int]
+    let trend: String
+    let dryWeightKg: Double?
+    let profileCurrentWeightKg: Double?
+    let profileTargetWeightKg: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case count, avg, stddev, min, max, sources, trend
+        case dryWeightKg = "dry_weight_kg"
+        case profileCurrentWeightKg = "profile_current_weight_kg"
+        case profileTargetWeightKg = "profile_target_weight_kg"
+    }
+}
+
+struct WeightSeriesResponse: Codable {
+    let label: String
+    let unit: String
+    let days: Int
+    let points: [WeightSeriesPoint]
+    let summary: WeightSeriesSummary
 }
 
 // MARK: - Data Sharing

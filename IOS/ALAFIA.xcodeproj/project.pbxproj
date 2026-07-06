@@ -74,6 +74,9 @@
 		CC0000000000000000000604 /* PharmacyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000603; };
 		DD0000000000000000000702 /* PantryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000701; };
 		DD0000000000000000000704 /* PantryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000703; };
+		DD0000000000000000000802 /* FacilitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000801; };
+		DD0000000000000000000804 /* SurveillanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000803; };
+		DD0000000000000000000806 /* WeightTrendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000805; };
 		EE0000000000000000000101 /* BiometricAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001; };
 		EE0000000000000000000102 /* OfflineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000002; };
 		EE0000000000000000000103 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003; };
@@ -157,6 +160,9 @@
 		CC0000000000000000000603 /* PharmacyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PharmacyView.swift; sourceTree = "<group>"; };
 		DD0000000000000000000701 /* PantryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantryItem.swift; sourceTree = "<group>"; };
 		DD0000000000000000000703 /* PantryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantryView.swift; sourceTree = "<group>"; };
+		DD0000000000000000000801 /* FacilitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FacilitiesView.swift; sourceTree = "<group>"; };
+		DD0000000000000000000803 /* SurveillanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveillanceView.swift; sourceTree = "<group>"; };
+		DD0000000000000000000805 /* WeightTrendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightTrendView.swift; sourceTree = "<group>"; };
 		EE0000000000000000000001 /* BiometricAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthManager.swift; sourceTree = "<group>"; };
 		EE0000000000000000000002 /* OfflineCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineCache.swift; sourceTree = "<group>"; };
 		EE0000000000000000000003 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
@@ -453,6 +459,8 @@
 			isa = PBXGroup;
 			children = (
 				4A0000000000000000000120 /* CommunityHealthView.swift */,
+				DD0000000000000000000801 /* FacilitiesView.swift */,
+				DD0000000000000000000803 /* SurveillanceView.swift */,
 			);
 			path = CommunityHealth;
 			sourceTree = "<group>";
@@ -543,6 +551,7 @@
 			children = (
 				BB0000000000000000000403 /* LabChartsView.swift */,
 				BB0000000000000000000510 /* ChartDashboardView.swift */,
+				DD0000000000000000000805 /* WeightTrendView.swift */,
 			);
 			path = LabCharts;
 			sourceTree = "<group>";
@@ -788,6 +797,9 @@
 				CC0000000000000000000604 /* PharmacyView.swift in Sources */,
 				DD0000000000000000000702 /* PantryItem.swift in Sources */,
 				DD0000000000000000000704 /* PantryView.swift in Sources */,
+				DD0000000000000000000802 /* FacilitiesView.swift in Sources */,
+				DD0000000000000000000804 /* SurveillanceView.swift in Sources */,
+				DD0000000000000000000806 /* WeightTrendView.swift in Sources */,
 				EE0000000000000000000101 /* BiometricAuthManager.swift in Sources */,
 				EE0000000000000000000102 /* OfflineCache.swift in Sources */,
 				EE0000000000000000000103 /* CrashReporter.swift in Sources */,

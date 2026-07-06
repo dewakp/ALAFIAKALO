@@ -100,8 +100,36 @@ class AuthManager: ObservableObject {
         }
     }
 
+    // MARK: - Firebase token exchange (phone / Google / Apple sign-in)
+
+    /// Exchange a Firebase Auth ID token (minted by a native phone-OTP,
+    /// Google or Apple sign-in flow) for ALAFIA JWTs via POST /auth/firebase.
+    /// The provider SDK flows themselves are wired separately; this is the
+    /// backend-parity plumbing they all funnel through.
+    func loginWithFirebaseToken(_ idToken: String) async {
+        error = nil
+        do {
+            struct FirebaseTokenBody: Encodable { let id_token: String }
+            let response: TokenResponse = try await APIClient.shared.post(
+                "/auth/firebase", body: FirebaseTokenBody(id_token: idToken)
+            )
+            KeychainHelper.save(key: AppConfig.tokenKey, value: response.accessToken)
+            if let refresh = response.refreshToken {
+                KeychainHelper.save(key: Self.refreshTokenKey, value: refresh)
+            }
+            await APIClient.shared.setToken(response.accessToken)
+
+            let user: User = try await APIClient.shared.get("/users/me")
+            self.currentUser = user
+            self.isAuthenticated = true
+            PushNotificationManager.shared.registerTokenWithBackend()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     // MARK: - Register
-    
+
     func register(email: String, password: String, fullName: String) async {
         error = nil
         do {

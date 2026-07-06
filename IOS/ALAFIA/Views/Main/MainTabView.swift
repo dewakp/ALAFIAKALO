@@ -113,6 +113,13 @@ struct HealthHubView: View {
                         Label("Chart Dashboard", systemImage: "chart.bar.xaxis")
                             .foregroundStyle(.indigo)
                     }
+
+                    NavigationLink {
+                        WeightTrendView()
+                    } label: {
+                        Label("Weight Trend", systemImage: "scalemass.fill")
+                            .foregroundStyle(.green)
+                    }
                 }
 
                 Section("Mental Health") {
@@ -139,6 +146,26 @@ struct HealthHubView: View {
                             .foregroundStyle(.blue)
                     }
 
+                    NavigationLink {
+                        FacilitiesView()
+                    } label: {
+                        Label("Facility Directory", systemImage: "building.2.fill")
+                            .foregroundStyle(.teal)
+                    }
+
+                    NavigationLink {
+                        FDARecallsView()
+                    } label: {
+                        Label("Food & Drug Recalls", systemImage: "exclamationmark.shield.fill")
+                            .foregroundStyle(.orange)
+                    }
+
+                    NavigationLink {
+                        SurveillanceView()
+                    } label: {
+                        Label("Disease Surveillance", systemImage: "dot.radiowaves.left.and.right")
+                            .foregroundStyle(.red)
+                    }
                 }
 
                 Section("Planning") {

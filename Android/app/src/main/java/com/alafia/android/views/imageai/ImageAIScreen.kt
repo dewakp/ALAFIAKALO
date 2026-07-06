@@ -74,6 +74,9 @@ private fun NutritionFromImageTab() {
     var result by remember { mutableStateOf<NutritionFromImageResponse?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
+    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var correction by remember { mutableStateOf("") }
+    var isTeaching by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -86,14 +89,37 @@ private fun NutritionFromImageTab() {
                     val inputStream = context.contentResolver.openInputStream(uri)
                     val bytes = inputStream?.readBytes() ?: byteArrayOf()
                     inputStream?.close()
+                    imageBytes = bytes
                     val requestBody = bytes.toRequestBody("image/*".toMediaTypeOrNull())
                     val part = MultipartBody.Part.createFormData("file", "image.jpg", requestBody)
                     result = ApiClient.getApiService().nutritionFromImage(part)
+                    correction = result?.foodItems?.joinToString("; ") { it.name } ?: ""
                 } catch (e: Exception) {
                     Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                 }
                 isLoading = false
             }
+        }
+    }
+
+    // Teach ALAFIA: store the ground-truth foods for this photo (visual memory)
+    fun teach() {
+        val bytes = imageBytes ?: return
+        if (correction.isBlank()) return
+        scope.launch {
+            isTeaching = true
+            try {
+                result = ApiClient.getApiService().labelFoodImage(
+                    FoodLabelRequest(
+                        imageBase64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP),
+                        foods = correction.trim(),
+                    )
+                )
+                Toast.makeText(context, "Learned — this meal will be recognized next time", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+            }
+            isTeaching = false
         }
     }
 
@@ -171,6 +197,31 @@ private fun NutritionFromImageTab() {
                         Text("${res.totalCarbsG ?: "-"}", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
                         Text("${res.totalFatG ?: "-"}", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
                     }
+                }
+            }
+
+            // Teach ALAFIA: correct the food list → learned for future photos
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Not right? Teach ALAFIA what this actually is",
+                        style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = correction,
+                        onValueChange = { correction = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("e.g. beans in palm oil; grilled chicken", fontSize = 12.sp) },
+                        textStyle = MaterialTheme.typography.bodySmall,
+                    )
+                    Button(
+                        onClick = { teach() },
+                        enabled = !isTeaching && correction.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (isTeaching) "Saving…" else "Teach")
+                    }
+                    Text("Separate foods with semicolons — ALAFIA will recognize this meal in future photos.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

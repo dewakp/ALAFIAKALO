@@ -110,7 +110,7 @@ actor APIClient {
     /// and retries — so short-lived hybrid EdDSA+ML-DSA access tokens never surface
     /// as spurious mid-session auth failures.
     private func send(_ request: URLRequest) async throws -> (Data, URLResponse) {
-        let (data, response) = try await send(request)
+        let (data, response) = try await session.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 401,
               !(request.url?.path.hasSuffix("/auth/refresh") ?? false),
               await attemptRefresh() else {

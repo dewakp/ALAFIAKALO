@@ -14,6 +14,8 @@ final class ImageAIViewModel {
     var nutritionImageData: Data?
     var nutritionResult: NutritionFromImageResponse?
     var isUploadingNutrition = false
+    var correction = ""            // "Teach ALAFIA" ground-truth foods
+    var isTeaching = false
 
     // Medication
     var medicationPhotoItem: PhotosPickerItem?
@@ -44,8 +46,27 @@ final class ImageAIViewModel {
         isUploadingNutrition = true; errorMessage = nil
         do {
             nutritionResult = try await uploadImage(data, to: "/image-ai/nutrition-from-image")
+            correction = (nutritionResult?.foodItems ?? []).map(\.name).joined(separator: "; ")
         } catch { errorMessage = error.localizedDescription }
         isUploadingNutrition = false
+    }
+
+    /// Teach ALAFIA: store the ground-truth foods for this photo (visual
+    /// memory) — the same meal is recognized instantly in future photos.
+    func teachNutrition() async {
+        guard let data = nutritionImageData,
+              !correction.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        isTeaching = true; errorMessage = nil
+        struct LabelBody: Encodable {
+            let image_base64: String
+            let foods: String
+        }
+        do {
+            let body = LabelBody(image_base64: data.base64EncodedString(),
+                                 foods: correction.trimmingCharacters(in: .whitespaces))
+            nutritionResult = try await APIClient.shared.post("/image-ai/label", body: body)
+        } catch { errorMessage = error.localizedDescription }
+        isTeaching = false
     }
 
     // MARK: - Medication Upload
@@ -223,6 +244,26 @@ struct ImageAIView: View {
             if let note = result.confidenceNote {
                 Text(note).font(.caption).foregroundStyle(.secondary)
             }
+
+            // Teach ALAFIA: correct the food list → learned for future photos
+            Divider()
+            Text("Not right? Teach ALAFIA what this actually is")
+                .font(.caption).fontWeight(.semibold)
+            HStack(spacing: 8) {
+                TextField("e.g. beans in palm oil; grilled chicken", text: $vm.correction)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
+                Button {
+                    Task { await vm.teachNutrition() }
+                } label: {
+                    if vm.isTeaching { ProgressView().controlSize(.small) }
+                    else { Text("Teach").font(.caption).fontWeight(.semibold) }
+                }
+                .buttonStyle(.bordered)
+                .disabled(vm.isTeaching || vm.correction.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            Text("Separate foods with semicolons — ALAFIA will recognize this meal in future photos.")
+                .font(.caption2).foregroundStyle(.secondary)
         }
         .padding()
         .background(Color(.systemGray6))

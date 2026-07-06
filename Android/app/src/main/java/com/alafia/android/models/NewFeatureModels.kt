@@ -302,23 +302,139 @@ data class AdvancedDirective(
 // ── FDA Recalls ─────────────────────────────────────────────────────────────
 
 data class FDARecallItem(
+    // Global recalls schema (US openFDA food+drug, Health Canada, UK FSA)
+    @SerializedName("product_type") val productType: String? = null,   // "food" | "drug"
+    val source: String? = null,                                        // issuing authority
+    val url: String? = null,                                           // official notice link
     @SerializedName("recall_number") val recallNumber: String? = null,
     @SerializedName("product_description") val productDescription: String? = null,
     val reason: String? = null,
     val classification: String? = null,
     val status: String? = null,
-    @SerializedName("recall_date") val recallDate: String? = null,
+    @SerializedName("recall_initiation_date") val recallInitiationDate: String? = null,
+    @SerializedName("report_date") val reportDate: String? = null,
     @SerializedName("recalling_firm") val recallingFirm: String? = null,
     val city: String? = null,
     val state: String? = null,
     val country: String? = null,
-    @SerializedName("distribution_pattern") val distributionPattern: String? = null,
-    @SerializedName("voluntary_mandated") val voluntaryMandated: String? = null
+    val distribution: String? = null,
+    @SerializedName("voluntary_mandated") val voluntaryMandated: String? = null,
+    val states: List<String> = emptyList(),     // US state codes reached
+    val countries: List<String> = emptyList(),  // ISO-2 countries reached
+    val nationwide: Boolean = false
 )
 
 data class FDARecallResponse(
     val total: Int,
     val results: List<FDARecallItem> = emptyList()
+)
+
+// ── Facilities Directory ────────────────────────────────────────────────────
+
+data class Facility(
+    val id: Int,
+    val name: String,
+    @SerializedName("facility_type") val facilityType: String,
+    val phone: String? = null,
+    val website: String? = null,
+    @SerializedName("address_line1") val addressLine1: String? = null,
+    val city: String? = null,
+    @SerializedName("state_province") val stateProvince: String? = null,
+    @SerializedName("postal_code") val postalCode: String? = null,
+    val country: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
+)
+
+// ── Disease Surveillance ────────────────────────────────────────────────────
+
+data class SurveillanceDisease(
+    val id: String,
+    val label: String,
+    val icon: String,
+    val category: String
+)
+
+data class SurveillanceCountry(
+    val iso2: String,
+    val name: String,
+    val region: String? = null,
+    val outward: Double? = null,                              // WHO indicator value
+    @SerializedName("outward_year") val outwardYear: Int? = null,
+    val inward: Int = 0                                       // ALAFIA symptom activity
+)
+
+data class SurveillanceGlobal(
+    val disease: SurveillanceDisease,
+    val days: Int,
+    val countries: List<SurveillanceCountry> = emptyList(),
+    @SerializedName("inward_total") val inwardTotal: Int = 0
+)
+
+// ── Composite Weight Series ─────────────────────────────────────────────────
+
+data class WeightSeriesPoint(
+    val date: String,
+    val value: Double,
+    val min: Double,
+    val max: Double,
+    val count: Int,
+    @SerializedName("rolling_7d") val rolling7d: Double,
+    val sources: Map<String, Int> = emptyMap()
+)
+
+data class WeightSeriesSummary(
+    val count: Int,
+    val avg: Double? = null,
+    val stddev: Double? = null,
+    val min: Double? = null,
+    val max: Double? = null,
+    val sources: Map<String, Int> = emptyMap(),
+    val trend: String = "stable",
+    @SerializedName("dry_weight_kg") val dryWeightKg: Double? = null,
+    @SerializedName("profile_current_weight_kg") val profileCurrentWeightKg: Double? = null,
+    @SerializedName("profile_target_weight_kg") val profileTargetWeightKg: Double? = null
+)
+
+data class WeightSeriesResponse(
+    val label: String,
+    val unit: String,
+    val days: Int,
+    val points: List<WeightSeriesPoint> = emptyList(),
+    val summary: WeightSeriesSummary
+)
+
+// ── Firebase token exchange (phone / Google / Apple sign-in) ────────────────
+
+data class FirebaseTokenRequest(
+    @SerializedName("id_token") val idToken: String
+)
+
+// ── Food photo labeling (visual memory) ─────────────────────────────────────
+
+data class FoodLabelRequest(
+    @SerializedName("image_base64") val imageBase64: String,
+    val foods: String? = null,
+    @SerializedName("recipe_url") val recipeUrl: String? = null
+)
+
+// ── Recipe URL analysis (third meal input: URL / description / photo) ───────
+
+data class RecipeAnalyzeRequest(
+    val url: String,
+    val servings: Int? = null
+)
+
+data class RecipeAnalyzeResponse(
+    val name: String,
+    val url: String,
+    val servings: Int,
+    val ingredients: List<String> = emptyList(),
+    @SerializedName("per_serving") val perServing: Map<String, Double> = emptyMap(),
+    val total: Map<String, Double> = emptyMap(),
+    @SerializedName("total_weight_g") val totalWeightG: Double = 0.0,
+    val source: String = "estimated",
+    val learned: Boolean = false
 )
 
 // ── Data Sharing ────────────────────────────────────────────────────────────

@@ -26,6 +26,11 @@ interface ApiService {
     @POST("auth/refresh")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): LoginResponse
 
+    /** Exchange a Firebase Auth ID token (native phone-OTP / Google / Apple
+     *  sign-in flow) for ALAFIA JWTs. Provider SDK flows are wired separately. */
+    @POST("auth/firebase")
+    suspend fun loginWithFirebase(@Body request: FirebaseTokenRequest): LoginResponse
+
     @POST("auth/password-reset/request")
     suspend fun requestPasswordReset(@Body request: PasswordResetRequest): PasswordResetResponse
 
@@ -666,6 +671,17 @@ interface ApiService {
     @POST("image-ai/nutrition-from-image")
     suspend fun nutritionFromImage(@Part file: MultipartBody.Part): NutritionFromImageResponse
 
+    /** Teach ALAFIA the ground-truth foods for a photo (visual memory) —
+     *  the same meal is recognized instantly in future photos. Ground truth
+     *  can be a foods string or a recipe URL. */
+    @POST("image-ai/label")
+    suspend fun labelFoodImage(@Body body: FoodLabelRequest): NutritionFromImageResponse
+
+    /** Analyze a recipe URL: structured recipe → per-serving nutrition
+     *  (published nutrition is learned server-side under the dish name). */
+    @POST("nutrition/recipe-analyze")
+    suspend fun analyzeRecipeUrl(@Body body: RecipeAnalyzeRequest): RecipeAnalyzeResponse
+
     @Multipart
     @POST("image-ai/medication-from-image")
     suspend fun medicationFromImage(@Part file: MultipartBody.Part): MedicationFromImageResponse
@@ -704,16 +720,46 @@ interface ApiService {
     @DELETE("advanced-directives/")
     suspend fun deleteAdvancedDirective()
 
-    // ── FDA Recalls ──────────────────────────────────
+    // ── FDA Recalls (global: US food+drug, Canada, UK) ──
     @GET("fda-recalls/")
     suspend fun searchFDARecalls(
         @Query("search_term") searchTerm: String? = null,
-        @Query("days") days: Int = 30,
-        @Query("limit") limit: Int = 10
+        @Query("days") days: Int = 90,
+        @Query("limit") limit: Int = 10,
+        @Query("kind") kind: String = "both"
     ): FDARecallResponse
 
     @GET("fda-recalls/recent")
-    suspend fun getRecentFDARecalls(): FDARecallResponse
+    suspend fun getRecentFDARecalls(@Query("kind") kind: String = "both"): FDARecallResponse
+
+    // ── Facilities Directory ─────────────────────────
+    @GET("facilities/")
+    suspend fun getFacilities(
+        @Query("search") search: String? = null,
+        @Query("facility_type") facilityType: String? = null,
+        @Query("limit") limit: Int = 50
+    ): List<Facility>
+
+    @GET("facilities/{id}/clinicians")
+    suspend fun getFacilityClinicians(@Path("id") id: Int): List<Map<String, Any?>>
+
+    // ── Disease Surveillance ─────────────────────────
+    @GET("surveillance/diseases")
+    suspend fun getSurveillanceDiseases(): List<SurveillanceDisease>
+
+    @GET("surveillance/global")
+    suspend fun getSurveillanceGlobal(
+        @Query("disease") disease: String,
+        @Query("days") days: Int = 90,
+        @Query("view") view: String = "both"
+    ): SurveillanceGlobal
+
+    // ── Composite Weight Series ──────────────────────
+    @GET("chart-dashboard/weight-series")
+    suspend fun getWeightSeries(
+        @Query("days") days: Int = 90,
+        @Query("aggregation") aggregation: String = "daily"
+    ): WeightSeriesResponse
 
     // ── Data Sharing ─────────────────────────────────
     @GET("data-sharing/grants")
