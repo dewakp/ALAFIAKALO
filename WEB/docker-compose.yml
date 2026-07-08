@@ -15,17 +15,9 @@ services:
       timeout: 5s
       retries: 5
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollamadata:/root/.ollama
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # NOTE: Ollama runs NATIVELY on the macOS host (Metal GPU + 24 GB), not in Docker.
+  # The Docker Ollama was CPU-only inside a 7.7 GB VM — too small/slow for a real
+  # model. The backend reaches the host daemon via host.docker.internal:11434.
 
   chain:
     image: ghcr.io/foundry-rs/foundry:latest
@@ -56,13 +48,12 @@ services:
       IDENTITY_ISSUER: 6igma-identity
       IDENTITY_AUDIENCE: alafia
       IDENTITY_MIGRATION_SECRET: ${IDENTITY_MIGRATION_SECRET:-dev-migration-secret-change-me}
-      # Ollama runs as its own container (CPU-only on macOS Docker — no Metal/GPU
-      # passthrough — so use a small, fast model; gpt-oss:20b would time out).
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: llama3.2:3b
-      # Vision (food photos) routes through a small local vision model in dev.
-      # moondream (~1.7GB) fits the 7.7GB Docker VM alongside the text model;
-      # llava:7b OOM-killed llama-server on load. Bump VM RAM to use a larger one.
+      # Ollama runs NATIVELY on the macOS host (Metal GPU + full RAM). Reach it via
+      # host.docker.internal; the host daemon must listen on 0.0.0.0:11434
+      # (launchctl setenv OLLAMA_HOST "0.0.0.0:11434" then relaunch Ollama).
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: gpt-oss:20b
+      # Vision (food photos) routes through a local vision model on the host.
       OLLAMA_VISION_MODEL: moondream
       OLLAMA_TIMEOUT: "300"
       FIREBASE_SERVICE_ACCOUNT: /run/secrets/firebase_sa
@@ -80,8 +71,6 @@ services:
         condition: service_healthy
       chain:
         condition: service_healthy
-      ollama:
-        condition: service_started
       identity:
         condition: service_started
 
@@ -156,4 +145,3 @@ services:
 
 volumes:
   pgdata:
-  ollamadata:
