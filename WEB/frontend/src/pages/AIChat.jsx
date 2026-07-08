@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import api, { ensureCsrfToken, refreshAccessToken } from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
-import { Send, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Send, RefreshCw, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
 const REGION_ORDER = ['africa', 'middle_east', 'south_asia', 'europe', 'north_america'];
@@ -63,8 +63,19 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [showCultural, setShowCultural] = useState(false);
   const messagesEndRef = useRef(null);
+  const lastUserRef = useRef(null);
   const { state } = useLocation();
   const autoAskHandled = useRef(false);
+
+  // Voice input (speak your question to the agent)
+  const [recording, setRecording] = useState(false);
+  const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+
+  // Number of user turns — drives the "anchor the question to the top" scroll.
+  const userTurnCount = messages.reduce((n, m) => n + (m.role === 'user' ? 1 : 0), 0);
+  const lastUserIndex = messages.map((m) => m.role).lastIndexOf('user');
 
   useEffect(() => {
     api.get('/ai/personas')
@@ -78,9 +89,17 @@ export default function AIChat() {
       });
   }, []);
 
+  // When a new question is asked, bring THAT question to the top of the view so the
+  // streamed answer flows beneath it — instead of jumping to the bottom of a long reply
+  // and burying what was asked (the "disappearing prompt" complaint).
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (lastUserRef.current) {
+      lastUserRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userTurnCount]);
 
   // Prompt Hub hand-off: a general health question arrives here as autoAsk. Skip
   // the persona picker, default to the general practitioner, and answer it.
@@ -113,6 +132,77 @@ export default function AIChat() {
     setInput('');
     sendMessage(userMessage, selectedPersona, messages);
   }
+
+  // ── Voice input ─────────────────────────────────────────────────
+  // Prefer the browser's on-device Web Speech API; fall back to recording +
+  // the server Whisper endpoint (/ai/voice). A finished transcript is sent
+  // straight to the agent as the next question.
+  function handleVoiceResult(transcript) {
+    const t = (transcript || '').trim();
+    if (!t || !selectedPersona) return;
+    setInput('');
+    sendMessage(t, selectedPersona, messages);
+  }
+
+  function toggleRecording() {
+    if (recording) {
+      recognitionRef.current?.stop();
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+    if (loading || !selectedPersona) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    if (SR) {
+      try {
+        const recognition = new SR();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.onresult = (event) => handleVoiceResult(event.results?.[0]?.[0]?.transcript || '');
+        recognition.onerror = () => setRecording(false);
+        recognition.onend = () => setRecording(false);
+        recognitionRef.current = recognition;
+        recognition.start();
+        setRecording(true);
+      } catch {
+        startServerRecording();
+      }
+    } else {
+      startServerRecording();
+    }
+  }
+
+  async function startServerRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        try {
+          const form = new FormData();
+          form.append('file', new Blob(chunksRef.current, { type: 'audio/webm' }), 'note.webm');
+          form.append('task', 'transcribe');
+          const { data } = await api.post('/ai/voice', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 180000,
+          });
+          handleVoiceResult(data.transcript || data.text || '');
+        } catch { /* transcription unavailable — user can type instead */ }
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch { /* mic permission denied / unavailable — user can type instead */ }
+  }
+
+  // Stop any in-flight capture when leaving the chat.
+  useEffect(() => () => {
+    recognitionRef.current?.stop();
+    mediaRecorderRef.current?.stop();
+  }, []);
 
   async function sendMessage(userMessage, persona, baseMessages) {
     if (!userMessage.trim() || !persona) return;
@@ -382,7 +472,12 @@ export default function AIChat() {
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div className="chat-messages">
           {messages.map((msg, i) => (
-            <div key={i} className={`chat-message ${msg.role}`}>
+            <div
+              key={i}
+              ref={i === lastUserIndex ? lastUserRef : null}
+              className={`chat-message ${msg.role}`}
+              style={i === lastUserIndex ? { scrollMarginTop: '0.5rem' } : undefined}
+            >
               <div className="chat-bubble">
                 {msg.content}
                 {loading && i === messages.length - 1 && msg.role === 'assistant' && (
@@ -399,9 +494,22 @@ export default function AIChat() {
             className="form-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isSpecialist ? `Ask ${selectedPersona.title} about your health data...` : 'Ask about your health...'}
+            placeholder={recording
+              ? 'Listening… speak your question'
+              : (isSpecialist ? `Ask ${selectedPersona.title} about your health data...` : 'Ask about your health...')}
             disabled={loading}
           />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={toggleRecording}
+            disabled={loading}
+            title={recording ? 'Stop recording' : 'Speak your question'}
+            aria-label={recording ? 'Stop recording' : 'Speak your question'}
+            style={recording ? { background: '#ef4444', color: '#fff', borderColor: '#ef4444' } : undefined}
+          >
+            {recording ? <MicOff size={18} /> : <Mic size={18} />}
+          </button>
           <button className="btn btn-primary" type="submit" disabled={loading}>
             <Send size={18} />
           </button>
