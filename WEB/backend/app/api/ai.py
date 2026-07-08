@@ -513,7 +513,7 @@ PERSONA_PROFILES = {
             "4. Target Hemoglobin: 10–11.5 g/dL. Albumin < 3.5 g/dL = significant malnutrition.\n"
             "5. Cite specific dates and values from the patient's record — never generalise without data.\n"
             "6. Reference KDOQI/KDIGO/DOPPS evidence. Be precise, clinical, and actionable.\n"
-            "EXAMPLE: 'Your most recent phosphorus was X mg/dL on [date] — KDIGO target is <5.5 mg/dL. [Trend/context]. [Recommendation].'\n"
+            "HOW TO ANSWER: Cite the patient's most recent phosphorus value with its date, compare it to the KDIGO target (<5.5 mg/dL), note the trend, and give one concrete recommendation. Use their real values — never a bracketed placeholder or an invented number.\n"
         ),
     },
     "renal_dietitian": {
@@ -536,7 +536,7 @@ PERSONA_PROFILES = {
             "5. Remind that phosphate binders (e.g., Sevelamer) must be taken WITH meals, not separately.\n"
             "6. Give practical, culturally-sensitive food substitutions for problematic foods.\n"
             "7. Protein for HD is HIGHER than for pre-dialysis CKD — dialysis is catabolic.\n"
-            "EXAMPLE: 'Looking at your recent food diary, I can see [specific foods]. [Concern + food-to-lab connection]. [2-3 practical substitutes].'\n"
+            "HOW TO ANSWER: Name the specific foods you see in the recent food diary, connect them to the relevant lab values, and offer two or three practical substitutes. Use their real entries — never a bracketed placeholder or an invented food.\n"
         ),
     },
     "cardiologist": {
@@ -558,7 +558,7 @@ PERSONA_PROFILES = {
             "4. ACE inhibitors/ARBs reduce CV mortality in dialysis patients independent of BP effect.\n"
             "5. ALWAYS cite actual BP values from the vitals record with dates.\n"
             "6. Connect weight trends, fluid intake, and dietary sodium to BP patterns.\n"
-            "EXAMPLE: 'Your BP readings over the last X days show [values from record]. [Trend analysis]. [Connection to weight/fluid]. [Recommendation].'\n"
+            "HOW TO ANSWER: Cite the actual BP readings from the vitals record with their dates, describe the trend, connect it to weight/fluid, and give one recommendation. Use their real values — never a bracketed placeholder or an invented number.\n"
         ),
     },
     "mental_health_counselor": {
@@ -581,7 +581,7 @@ PERSONA_PROFILES = {
             "5. Offer specific evidence-based coping strategies (CBT techniques, behavioural activation, mindfulness).\n"
             "6. Maintain hope while being honest — chronic illness is genuinely hard.\n"
             "7. Be compassionate first, clinical second.\n"
-            "EXAMPLE: 'I can see from your journal entries that [specific observation from record]. That sounds really difficult. [Validate]. [Offer 1-2 specific strategies].'\n"
+            "HOW TO ANSWER: Reference a specific journal entry with its date, validate the emotion first, then offer one or two specific coping strategies. Use their real entries — never a bracketed placeholder.\n"
         ),
     },
     "exercise_physiologist": {
@@ -604,7 +604,7 @@ PERSONA_PROFILES = {
             "5. ALWAYS review actual fitness logs before prescribing — don't recommend what they're already doing.\n"
             "6. Build gradually — CONSISTENCY beats intensity for ESRD patients.\n"
             "7. Celebrate every small win — motivation is medicine.\n"
-            "EXAMPLE: 'Looking at your exercise logs, [cite actual entries]. [Assess baseline]. [Recommend specific schedule accounting for dialysis days].'\n"
+            "HOW TO ANSWER: Cite the patient's actual exercise-log entries, assess their baseline, and recommend a specific schedule that accounts for dialysis days. Use their real entries — never a bracketed placeholder.\n"
         ),
     },
     "dialysis_coordinator": {
@@ -626,7 +626,7 @@ PERSONA_PROFILES = {
             "4. Vascular access: NEVER measure BP or draw blood from the fistula arm. Bruit/thrill changes = report immediately.\n"
             "5. Common HD symptoms to assess: intradialytic hypotension, muscle cramps, headache, nausea.\n"
             "6. Be nurturing and practical — patients share more with nurses than physicians.\n"
-            "EXAMPLE: 'Looking at your pre-dialysis weights, [cite values]. [Identify fluid management pattern]. [Give practical daily tip].'\n"
+            "HOW TO ANSWER: Cite the patient's actual pre-dialysis weights with their dates, identify the fluid-management pattern, and give one practical daily tip. Use their real values — never a bracketed placeholder.\n"
         ),
     },
     "general_practitioner": {
@@ -649,7 +649,7 @@ PERSONA_PROFILES = {
             "5. Prioritise: surface top 2-3 actionable concerns rather than overwhelming with everything.\n"
             "6. Respect patient autonomy — present options, not mandates.\n"
             "7. End on an encouraging, motivating note.\n"
-            "EXAMPLE: 'Looking across your complete health record, here is what stands out: [comprehensive summary]. [Top 2-3 priorities]. [Positive/motivating close].'\n"
+            "HOW TO ANSWER: First answer the specific question the patient asked, citing their real values and dates. Only when they explicitly ask for an overall review should you summarise across domains — and even then, name just the top two or three priorities and close on an encouraging note. Never print bracketed placeholders, and never state a value (BMI, phosphorus, etc.) that is not in the record.\n"
         ),
     },
     "pharmacologist": {
@@ -1282,8 +1282,17 @@ def _build_system_prompt(
 
         core_rules = (
             f"\n\nFUNDAMENTAL RULES (apply to every response):\n"
+            f"  - ANSWER THE SPECIFIC QUESTION {user_name} ASKED. Respond directly to what they asked — "
+            f"do NOT deliver a full multi-section health review unless they explicitly ask for an overall review.\n"
             f"  - You have full access to {user_name}'s complete health record shown above. Use it.\n"
             f"  - ALWAYS cite specific dates and values from the record. Never generalise when data exists.\n"
+            f"  - NEVER print bracketed placeholders such as [date], [value], [insert], [trend], or "
+            f"[comprehensive summary]. Those are notes to you, not text to output. If you do not have a value, "
+            f"omit it or say it is not recorded — do not leave a placeholder and do not invent one.\n"
+            f"  - Do NOT fabricate values. Never state a number (BMI, phosphorus, weight, lab result, stress level, "
+            f"etc.) unless that exact value appears in the record above.\n"
+            f"  - Only describe a lab or vital as high, low, elevated, or abnormal when it falls OUTSIDE the "
+            f"reference range shown in the record. If it is within range, call it normal — do not imply concern.\n"
             f"  - FORBIDDEN: Do NOT say 'I cannot access your data' or 'I don't have your records'. The data is above.\n"
             f"  - FORBIDDEN: Do NOT tell {user_name} to check another platform or app when data is here.\n"
             f"  - If something is not in the record, say so plainly — do not fabricate values.\n"
@@ -1312,10 +1321,15 @@ def _build_system_prompt(
         f"Your only job is to read the health record above and answer {user_name}'s questions "
         "based on what is written there. "
         "RULES (must follow every single one):\n"
+        f"  - ANSWER THE SPECIFIC QUESTION {user_name} ASKED — do not deliver a full health review unless asked.\n"
         f"  - If {user_name} asks about their meals, read NUTRITION LOGS and report the most recent entry with its date, food name, and meal type.\n"
         f"  - If {user_name} asks about their conditions, read the 'Chronic Cond.' line in PATIENT PROFILE.\n"
         f"  - If {user_name} asks about labs, read LAB RESULTS.\n"
         f"  - If {user_name} asks about medications, read MEDICATIONS.\n"
+        "  - NEVER print bracketed placeholders like [date], [value], or [insert]. If you don't have a value, "
+        "omit it or say it isn't recorded — never leave or invent a placeholder.\n"
+        "  - Do NOT fabricate values. Never state a number that is not written in the record above. Only call a "
+        "value high or low when it is outside the reference range shown; otherwise treat it as normal.\n"
         "  - FORBIDDEN: Do NOT say 'I cannot access your data', 'I don't have your records', "
         "or 'I'm a large language model'. The data IS available — it is above.\n"
         "  - FORBIDDEN: Do NOT suggest checking MyChart, asking a doctor, or using another platform when the data is here.\n"
@@ -1366,11 +1380,29 @@ def _augment_query(query: str, patient_context: str, user_name: str) -> str:
 
     relevant_data = "\n\n".join(matched_sections)
     return (
-        f"[{user_name}'s relevant health records for this question:]\n"
+        f"--- {user_name}'s relevant health records for this question ---\n"
         f"{relevant_data}\n"
-        f"[End of records]\n\n"
+        f"--- end of records ---\n\n"
         f"{query}"
     )
+
+
+def _assemble_chat_messages(system_prompt: str, history, query: str, augmented_query: str) -> list[dict]:
+    """Build the Ollama message list for a chat turn.
+
+    The frontend includes the just-sent user turn in `history`; drop that trailing
+    duplicate so the question isn't sent twice (once raw, once augmented). The
+    augmented copy — which carries the retrieved health-record snippet — becomes
+    the final user turn the model answers.
+    """
+    messages: list[dict] = [{"role": "system", "content": system_prompt}]
+    hist = list(history or [])
+    if hist and hist[-1].role == "user" and (hist[-1].content or "").strip() == (query or "").strip():
+        hist = hist[:-1]
+    for m in hist:
+        messages.append({"role": m.role, "content": m.content})
+    messages.append({"role": "user", "content": augmented_query})
+    return messages
 
 
 # ── Semantic RAG helpers ───────────────────────────────────────────────────────
@@ -1549,11 +1581,9 @@ async def ai_chat(
     augmented_query = await _semantic_augment_query(
         request.query, current_user.id, db, patient_context
     )
-    ollama_messages = [{"role": "system", "content": system_prompt}]
-    if request.messages:
-        for m in request.messages:
-            ollama_messages.append({"role": m.role, "content": m.content})
-    ollama_messages.append({"role": "user", "content": augmented_query})
+    ollama_messages = _assemble_chat_messages(
+        system_prompt, request.messages, request.query, augmented_query
+    )
 
     t0 = time.monotonic()
     # Routed through the ALAFIAModel facade (Ollama primary → OpenAI fallback).
@@ -1640,11 +1670,9 @@ async def ai_chat_stream(
     augmented_query = await _semantic_augment_query(
         request.query, current_user.id, db, patient_context
     )
-    ollama_messages = [{"role": "system", "content": system_prompt}]
-    if request.messages:
-        for m in request.messages:
-            ollama_messages.append({"role": m.role, "content": m.content})
-    ollama_messages.append({"role": "user", "content": augmented_query})
+    ollama_messages = _assemble_chat_messages(
+        system_prompt, request.messages, request.query, augmented_query
+    )
 
     t0 = time.monotonic()
     accumulated: list[str] = []
