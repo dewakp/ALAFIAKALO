@@ -7,7 +7,9 @@ final class NutritionLogModelTests: XCTestCase {
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
-        d.keyDecodingStrategy = .convertFromSnakeCase
+        // Models use explicit snake_case CodingKeys (matching APIClient, which sets
+        // no keyDecodingStrategy) — do NOT convertFromSnakeCase or the explicit
+        // "user_id" keys won't match.
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         d.dateDecodingStrategy = .custom { dec in
@@ -100,7 +102,9 @@ final class LabResultModelTests: XCTestCase {
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
-        d.keyDecodingStrategy = .convertFromSnakeCase
+        // Models use explicit snake_case CodingKeys (matching APIClient, which sets
+        // no keyDecodingStrategy) — do NOT convertFromSnakeCase or the explicit
+        // "user_id" keys won't match.
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         d.dateDecodingStrategy = .custom { dec in
@@ -156,7 +160,7 @@ final class LabResultModelTests: XCTestCase {
             "test_date": "2026-04-28",
             "test_name": "Culture",
             "value_string": "Negative",
-            "unit": nil,
+            "unit": NSNull(),
             "status": "final",
             "created_at": "2026-04-28T10:00:00Z",
         ]
@@ -181,7 +185,9 @@ final class MedicationModelTests: XCTestCase {
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
-        d.keyDecodingStrategy = .convertFromSnakeCase
+        // Models use explicit snake_case CodingKeys (matching APIClient, which sets
+        // no keyDecodingStrategy) — do NOT convertFromSnakeCase or the explicit
+        // "user_id" keys won't match.
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         d.dateDecodingStrategy = .custom { dec in
