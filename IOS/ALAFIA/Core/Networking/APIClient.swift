@@ -155,13 +155,15 @@ actor APIClient {
         path: String,
         method: String,
         body: Data? = nil,
-        contentType: String = "application/json"
+        contentType: String = "application/json",
+        timeout: TimeInterval? = nil
     ) -> URLRequest {
         let url = URL(string: "\(AppConfig.baseURL)\(path)")!
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
-        
+        if let timeout { request.timeoutInterval = timeout }
+
         if let token = token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -195,9 +197,9 @@ actor APIClient {
         }
     }
     
-    func post<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
+    func post<T: Decodable, B: Encodable>(_ path: String, body: B, timeout: TimeInterval? = nil) async throws -> T {
         let bodyData = try encoder.encode(body)
-        let request = buildRequest(path: path, method: "POST", body: bodyData)
+        let request = buildRequest(path: path, method: "POST", body: bodyData, timeout: timeout)
         let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         return try decoder.decode(T.self, from: data)

@@ -119,6 +119,7 @@ final class AIChatViewModel {
 
 struct AIChatView: View {
     @State private var vm = AIChatViewModel()
+    @State private var speech = SpeechRecognizer()
     @FocusState private var isFocused: Bool
     
     var body: some View {
@@ -160,13 +161,24 @@ struct AIChatView: View {
                 
                 // Input
                 HStack(spacing: 12) {
-                    TextField("Ask about your health...", text: $vm.inputText, axis: .vertical)
+                    TextField(speech.isRecording ? "Listening… speak your question" : "Ask about your health...",
+                              text: $vm.inputText, axis: .vertical)
                         .lineLimit(1...4)
                         .textFieldStyle(.plain)
                         .focused($isFocused)
                         .onSubmit { sendIfReady() }
                         .disabled(vm.selectedPersona == nil)
-                    
+
+                    // Voice input (parity with the web chat mic) — speak your question.
+                    Button {
+                        toggleVoice()
+                    } label: {
+                        Image(systemName: speech.isRecording ? "mic.fill" : "mic")
+                            .font(.title2)
+                            .foregroundStyle(speech.isRecording ? .red : (vm.selectedPersona == nil ? .gray : .green))
+                    }
+                    .disabled(vm.isLoading || vm.selectedPersona == nil)
+
                     Button {
                         sendIfReady()
                     } label: {
@@ -182,6 +194,19 @@ struct AIChatView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .background(.ultraThinMaterial)
+                // Live transcript into the field while speaking.
+                .onChange(of: speech.transcript) { _, t in
+                    if speech.isRecording { vm.inputText = t }
+                }
+                // When recording ends, send the final transcript to the agent.
+                .onChange(of: speech.isRecording) { wasRecording, nowRecording in
+                    if wasRecording && !nowRecording {
+                        let text = speech.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !text.isEmpty else { return }
+                        vm.inputText = text
+                        Task { await vm.sendMessage() }
+                    }
+                }
             }
             .navigationTitle("AI Assistant")
             .navigationBarTitleDisplayMode(.inline)
@@ -209,6 +234,18 @@ struct AIChatView: View {
     
     private func sendIfReady() {
         Task { await vm.sendMessage() }
+    }
+
+    private func toggleVoice() {
+        if speech.isRecording {
+            speech.stop()
+        } else {
+            Task {
+                if await speech.authorize() {
+                    try? speech.start()
+                }
+            }
+        }
     }
 }
 

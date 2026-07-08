@@ -20,6 +20,14 @@
     <uses-permission android:name="android.permission.health.READ_NUTRITION" />
     <uses-permission android:name="android.permission.health.READ_MINDFULNESS" />
 
+    <!-- Voice input in the AI chat launches the system speech recognizer. On
+         Android 11+ package visibility, this <queries> entry lets the app see it. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
     <application
         android:name=".AlafiaApplication"
         android:allowBackup="true"

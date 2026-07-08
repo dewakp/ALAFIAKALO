@@ -1,7 +1,12 @@
 package com.alafia.android.views.ai
 import com.alafia.android.util.ErrorUtil
 
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -70,6 +75,106 @@ fun AIChatScreen(navController: NavHostController) {
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
+    // Stream a user message to the agent — shared by the send button and voice input.
+    fun send(userMsg: String) {
+        if (userMsg.isBlank() || isTyping || selectedPersona == null) return
+        // Snapshot history before adding the new user message
+        val history = messages.map { ChatMessage(it.role, it.content) }
+        inputText = ""
+        messages = messages + UIChatMessage("user", userMsg)
+        isTyping = true
+
+        scope.launch {
+            // Add placeholder for streaming tokens
+            messages = messages + UIChatMessage("assistant", "")
+            val placeholderIdx = messages.size - 1
+            val acc = StringBuilder()
+
+            try {
+                val requestBody = AIRequest(
+                    query = userMsg,
+                    messages = history,
+                    persona = selectedPersona?.key
+                )
+                val json = Gson().toJson(requestBody)
+                val mediaType = "application/json".toMediaType()
+                val token = KeychainHelper.getToken(context)
+                val okRequest = Request.Builder()
+                    .url("${ApiClient.BASE_URL}ai/chat/stream")
+                    .post(json.toRequestBody(mediaType))
+                    .apply { token?.let { addHeader("Authorization", "Bearer $it") } }
+                    .build()
+
+                withContext(Dispatchers.IO) {
+                    ApiClient.getOkHttpClient()
+                        .newCall(okRequest)
+                        .execute()
+                        .use { response ->
+                            val source = response.body?.source() ?: return@use
+                            while (!source.exhausted()) {
+                                val line = source.readUtf8Line() ?: break
+                                if (line.startsWith("data: ")) {
+                                    val payload = line.removePrefix("data: ")
+                                    if (payload == "[DONE]") break
+                                    val chunk = runCatching {
+                                        @Suppress("UNCHECKED_CAST")
+                                        (Gson().fromJson(payload, Map::class.java)["content"] as? String) ?: ""
+                                    }.getOrDefault("")
+                                    if (chunk.isNotEmpty()) {
+                                        acc.append(chunk)
+                                        val snap = acc.toString()
+                                        withContext(Dispatchers.Main) {
+                                            val updated = messages.toMutableList()
+                                            if (placeholderIdx < updated.size) {
+                                                updated[placeholderIdx] = UIChatMessage("assistant", snap)
+                                                messages = updated
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                }
+            } catch (e: Exception) {
+                val updated = messages.toMutableList()
+                if (placeholderIdx < updated.size) {
+                    updated[placeholderIdx] = UIChatMessage("assistant", "Sorry, I couldn't process your request. Please try again.")
+                    messages = updated
+                }
+                Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+            }
+            isTyping = false
+        }
+    }
+
+    // Voice input: the system speech recognizer returns a final transcript that is
+    // sent straight to the agent (parity with the web chat's mic). Uses the out-of-
+    // process RecognizerIntent, so no RECORD_AUDIO permission is needed here.
+    val speechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                ?.trim()
+                .orEmpty()
+            if (spoken.isNotBlank()) send(spoken)
+        }
+    }
+
+    fun startVoice() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your question")
+        }
+        try {
+            speechLauncher.launch(intent)
+        } catch (_: Exception) {
+            Toast.makeText(context, "Voice input isn't available on this device", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -161,80 +266,16 @@ fun AIChatScreen(navController: NavHostController) {
                         shape = RoundedCornerShape(24.dp),
                         enabled = !isTyping && selectedPersona != null
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(4.dp))
+                    IconButton(
+                        onClick = { startVoice() },
+                        enabled = !isTyping && selectedPersona != null
+                    ) {
+                        Icon(Icons.Default.Mic, contentDescription = "Speak your question")
+                    }
+                    Spacer(Modifier.width(4.dp))
                     FilledIconButton(
-                        onClick = {
-                            if (inputText.isNotBlank() && !isTyping && selectedPersona != null) {
-                                val userMsg = inputText.trim()
-                                // Snapshot history before adding the new user message
-                                val history = messages.map { ChatMessage(it.role, it.content) }
-                                inputText = ""
-                                messages = messages + UIChatMessage("user", userMsg)
-                                isTyping = true
-
-                                scope.launch {
-                                    // Add placeholder for streaming tokens
-                                    messages = messages + UIChatMessage("assistant", "")
-                                    val placeholderIdx = messages.size - 1
-                                    val acc = StringBuilder()
-
-                                    try {
-                                        val requestBody = AIRequest(
-                                            query = userMsg,
-                                            messages = history,
-                                            persona = selectedPersona?.key
-                                        )
-                                        val json = Gson().toJson(requestBody)
-                                        val mediaType = "application/json".toMediaType()
-                                        val token = KeychainHelper.getToken(context)
-                                        val okRequest = Request.Builder()
-                                            .url("${ApiClient.BASE_URL}ai/chat/stream")
-                                            .post(json.toRequestBody(mediaType))
-                                            .apply { token?.let { addHeader("Authorization", "Bearer $it") } }
-                                            .build()
-
-                                        withContext(Dispatchers.IO) {
-                                            ApiClient.getOkHttpClient()
-                                                .newCall(okRequest)
-                                                .execute()
-                                                .use { response ->
-                                                    val source = response.body?.source() ?: return@use
-                                                    while (!source.exhausted()) {
-                                                        val line = source.readUtf8Line() ?: break
-                                                        if (line.startsWith("data: ")) {
-                                                            val payload = line.removePrefix("data: ")
-                                                            if (payload == "[DONE]") break
-                                                            val chunk = runCatching {
-                                                                @Suppress("UNCHECKED_CAST")
-                                                                (Gson().fromJson(payload, Map::class.java)["content"] as? String) ?: ""
-                                                            }.getOrDefault("")
-                                                            if (chunk.isNotEmpty()) {
-                                                                acc.append(chunk)
-                                                                val snap = acc.toString()
-                                                                withContext(Dispatchers.Main) {
-                                                                    val updated = messages.toMutableList()
-                                                                    if (placeholderIdx < updated.size) {
-                                                                        updated[placeholderIdx] = UIChatMessage("assistant", snap)
-                                                                        messages = updated
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                        }
-                                    } catch (e: Exception) {
-                                        val updated = messages.toMutableList()
-                                        if (placeholderIdx < updated.size) {
-                                            updated[placeholderIdx] = UIChatMessage("assistant", "Sorry, I couldn't process your request. Please try again.")
-                                            messages = updated
-                                        }
-                                        Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
-                                    }
-                                    isTyping = false
-                                }
-                            }
-                        },
+                        onClick = { send(inputText.trim()) },
                         enabled = inputText.isNotBlank() && !isTyping && selectedPersona != null
                     ) {
                         Icon(Icons.Default.Send, "Send")

@@ -26,8 +26,7 @@ final class ImageAIViewModel {
     // Dosage
     var dosageMedName = ""
     var dosagePrescribed = ""
-    var dosageWeight = ""
-    var dosageAge = ""
+    var dosageFrequency = ""
     var dosageResult: DosageVerificationResponse?
     var isVerifyingDosage = false
 
@@ -94,9 +93,8 @@ final class ImageAIViewModel {
         do {
             let request = DosageVerificationRequest(
                 medicationName: dosageMedName,
-                prescribedDosage: dosagePrescribed,
-                patientWeightKg: Double(dosageWeight),
-                patientAge: Int(dosageAge)
+                dosage: dosagePrescribed,
+                frequency: dosageFrequency.isEmpty ? nil : dosageFrequency
             )
             dosageResult = try await APIClient.shared.post("/image-ai/verify-dosage", body: request)
         } catch { errorMessage = error.localizedDescription }
@@ -322,29 +320,29 @@ struct ImageAIView: View {
                     Spacer()
                 }
             }
-            if let generic = result.genericName {
-                Label(generic, systemImage: "textformat")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            }
-            if let drugClass = result.drugClass {
-                Label(drugClass, systemImage: "tag")
-                    .font(.subheadline).foregroundStyle(.blue)
-            }
-            if let dosages = result.commonDosages {
-                Label(dosages, systemImage: "scalemass")
+            if let dosage = result.dosage {
+                Label(dosage, systemImage: "scalemass")
                     .font(.subheadline).foregroundStyle(.green)
             }
-
-            if let effects = result.sideEffects, !effects.isEmpty {
-                sectionList("Side Effects", items: effects, icon: "exclamationmark.circle", color: .orange)
+            if let instructions = result.instructions {
+                Label(instructions, systemImage: "list.bullet.rectangle")
+                    .font(.subheadline)
             }
-            if let interactions = result.interactions, !interactions.isEmpty {
-                sectionList("Interactions", items: interactions, icon: "arrow.triangle.2.circlepath", color: .red)
+            if let ndc = result.ndcCode {
+                Label("NDC \(ndc)", systemImage: "barcode")
+                    .font(.subheadline).foregroundStyle(.secondary)
             }
-            if let warnings = result.warnings, !warnings.isEmpty {
-                sectionList("Warnings", items: warnings, icon: "exclamationmark.triangle", color: .red)
+            if let mfr = result.manufacturer {
+                Label(mfr, systemImage: "building.2")
+                    .font(.subheadline).foregroundStyle(.secondary)
             }
-            if let note = result.confidenceNote {
+            ForEach(Array(result.fields.enumerated()), id: \.offset) { _, f in
+                if let label = f.label, let value = f.value, !label.isEmpty, !value.isEmpty {
+                    Label("\(label): \(value)", systemImage: "info.circle")
+                        .font(.subheadline).foregroundStyle(.blue)
+                }
+            }
+            if let note = result.notes {
                 Text(note).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
             }
         }
@@ -369,9 +367,8 @@ struct ImageAIView: View {
     private var dosageTab: some View {
         VStack(spacing: 16) {
             LKTextField(title: "Medication Name", text: $vm.dosageMedName)
-            LKTextField(title: "Prescribed Dosage", text: $vm.dosagePrescribed)
-            LKTextField(title: "Patient Weight (kg) — optional", text: $vm.dosageWeight, keyboardType: .decimalPad)
-            LKTextField(title: "Patient Age — optional", text: $vm.dosageAge, keyboardType: .numberPad)
+            LKTextField(title: "Dosage", text: $vm.dosagePrescribed)
+            LKTextField(title: "Frequency — optional", text: $vm.dosageFrequency)
 
             LKButton(title: "Verify Dosage", isLoading: vm.isVerifyingDosage) {
                 Task { await vm.verifyDosage() }
@@ -386,46 +383,46 @@ struct ImageAIView: View {
     }
 
     private func dosageResultCard(_ result: DosageVerificationResponse) -> some View {
-        let inRange = result.isWithinRange ?? true
+        let typical = result.isTypical ?? true
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: inRange ? "checkmark.seal.fill" : "xmark.seal.fill")
-                    .foregroundStyle(inRange ? .green : .red)
+                Image(systemName: typical ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                    .foregroundStyle(typical ? .green : .red)
                     .font(.title2)
-                Text(inRange ? "Within Standard Range" : "Outside Standard Range")
+                Text(typical ? "Typical Dosage" : "Atypical — please verify")
                     .font(.headline)
-                    .foregroundStyle(inRange ? .green : .red)
+                    .foregroundStyle(typical ? .green : .red)
             }
 
             if let medName = result.medicationName {
                 Label(medName, systemImage: "pills").font(.subheadline)
             }
-            if let prescribed = result.prescribedDosage {
-                Label("Prescribed: \(prescribed)", systemImage: "scalemass").font(.subheadline)
+            if let dosage = result.dosage {
+                Label("Dosage: \(dosage)", systemImage: "scalemass").font(.subheadline)
             }
-            if let range = result.standardRange {
-                Label("Standard: \(range)", systemImage: "ruler").font(.subheadline).foregroundStyle(.secondary)
+            if let range = result.typicalRange {
+                Label("Typical: \(range)", systemImage: "ruler").font(.subheadline).foregroundStyle(.secondary)
             }
-            if let rec = result.recommendation {
-                Text(rec).font(.subheadline).padding(.top, 4)
+            if let feedback = result.feedback {
+                Text(feedback).font(.subheadline).padding(.top, 4)
             }
-            if let warnings = result.warnings, !warnings.isEmpty {
+            if !result.precautions.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Label("Warnings", systemImage: "exclamationmark.triangle")
+                    Label("Precautions", systemImage: "exclamationmark.triangle")
                         .font(.subheadline).fontWeight(.semibold).foregroundStyle(.red)
-                    ForEach(warnings, id: \.self) { w in
-                        Text("• \(w)").font(.caption)
+                    ForEach(result.precautions, id: \.self) { p in
+                        Text("• \(p)").font(.caption)
                     }
                 }
                 .padding(.top, 6)
             }
         }
         .padding()
-        .background((inRange ? Color.green : Color.red).opacity(0.08))
+        .background((typical ? Color.green : Color.red).opacity(0.08))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(inRange ? Color.green : Color.red, lineWidth: 1)
+                .stroke(typical ? Color.green : Color.red, lineWidth: 1)
         )
     }
 }

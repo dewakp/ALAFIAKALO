@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 @Observable
 final class MedicationsViewModel {
@@ -48,12 +49,30 @@ final class MedicationsViewModel {
             return false
         }
     }
+
+    /// Scan a bottle/label photo → AI reads name/dosage/instructions to prefill the form.
+    func scanLabel(imageData: Data) async -> MedicationFromImageResponse? {
+        struct Body: Encodable { let image_base64: String }
+        do {
+            let body = Body(image_base64: "data:image/jpeg;base64," + imageData.base64EncodedString())
+            let res: MedicationFromImageResponse = try await APIClient.shared.post(
+                "/image-ai/medication-from-image", body: body, timeout: 180)
+            return res
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
 }
 
 struct MedicationsView: View {
     @State private var vm = MedicationsViewModel()
     @State private var showAdd = false
     @State private var doseTarget: Medication?
+    @State private var scanItem: PhotosPickerItem?
+    @State private var scanning = false
+    @State private var scanPrefill: MedicationFromImageResponse?
+    @State private var showScanForm = false
 
     var body: some View {
         Group {
@@ -86,14 +105,39 @@ struct MedicationsView: View {
         }
         .navigationTitle("Medications")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                PhotosPicker(selection: $scanItem, matching: .images) {
+                    if scanning { ProgressView() } else { Image(systemName: "camera.viewfinder") }
+                }
+                .disabled(scanning)
                 Button { showAdd = true } label: {
                     Image(systemName: "plus")
                 }
             }
         }
+        .onChange(of: scanItem) { _, item in
+            guard let item else { return }
+            Task {
+                scanning = true
+                defer { scanning = false }
+                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+                if let res = await vm.scanLabel(imageData: data) {
+                    let name = res.medicationName ?? ""
+                    if name.isEmpty || name.caseInsensitiveCompare("Unknown Medication") == .orderedSame {
+                        vm.errorMessage = res.notes ?? "Couldn't read the label — try a clearer, well-lit photo."
+                    } else {
+                        scanPrefill = res
+                        showScanForm = true
+                    }
+                }
+                scanItem = nil
+            }
+        }
         .sheet(isPresented: $showAdd) {
             AddMedicationSheet(vm: vm)
+        }
+        .sheet(isPresented: $showScanForm, onDismiss: { scanPrefill = nil }) {
+            AddMedicationSheet(vm: vm, prefill: scanPrefill)
         }
         .sheet(item: $doseTarget) { med in
             MedicationDoseSheet(medication: med, vm: vm)
@@ -148,8 +192,9 @@ struct MedicationRow: View {
 
 struct AddMedicationSheet: View {
     @Bindable var vm: MedicationsViewModel
+    var prefill: MedicationFromImageResponse? = nil
     @Environment(\.dismiss) var dismiss
-    
+
     @State private var medicationName = ""
     @State private var dosage = ""
     @State private var dosageUnit = "mg"
@@ -159,9 +204,20 @@ struct AddMedicationSheet: View {
     @State private var active = true
     @State private var notes = ""
     @State private var saving = false
-    
+
     let dosageUnits = ["mg", "mcg", "mL", "units", "tablets"]
     let frequencies = ["once daily", "twice daily", "three times daily", "as needed", "weekly"]
+
+    private func applyPrefill() {
+        guard let p = prefill, medicationName.isEmpty else { return }
+        medicationName = p.medicationName ?? ""
+        if let d = p.dosage, d.caseInsensitiveCompare("See label") != .orderedSame {
+            dosage = d.filter { "0123456789.".contains($0) }
+            let unit = d.filter { $0.isLetter }
+            if !unit.isEmpty, dosageUnits.contains(unit) { dosageUnit = unit }
+        }
+        notes = [p.instructions, p.notes].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n")
+    }
     
     var body: some View {
         NavigationStack {
@@ -191,7 +247,7 @@ struct AddMedicationSheet: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle("Add Medication")
+            .navigationTitle(prefill != nil ? "Add Scanned Medication" : "Add Medication")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -203,6 +259,7 @@ struct AddMedicationSheet: View {
                         .fontWeight(.semibold)
                 }
             }
+            .onAppear { applyPrefill() }
         }
     }
     

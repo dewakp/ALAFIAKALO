@@ -2,6 +2,8 @@ package com.alafia.android.views.medications
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,9 +22,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.Medication
+import com.alafia.android.models.MedicationFromImageResponse
 import com.alafia.android.schemas.MedicationRequest
 import com.alafia.android.schemas.MedicationDoseLogRequest
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.navigation.NavHostController
@@ -34,8 +40,37 @@ fun MedicationsScreen(navController: NavHostController) {
     var isLoading by remember { mutableStateOf(true) }
     var showForm by remember { mutableStateOf(false) }
     var doseTarget by remember { mutableStateOf<Medication?>(null) }
+    var scanPrefill by remember { mutableStateOf<MedicationFromImageResponse?>(null) }
+    var scanning by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // Scan Label: read a bottle/label photo → AI extracts the name/dosage/instructions
+    // → open the Add-Medication form prefilled (parity with the web "Scan Label").
+    val scanPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                scanning = true
+                try {
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: byteArrayOf()
+                    val part = MultipartBody.Part.createFormData(
+                        "file", "label.jpg", bytes.toRequestBody("image/*".toMediaTypeOrNull())
+                    )
+                    val res = ApiClient.getApiService().medicationFromImage(part)
+                    val name = res.medicationName?.takeIf { it.isNotBlank() && !it.equals("Unknown Medication", true) }
+                    if (name == null) {
+                        Toast.makeText(context, res.notes ?: "Couldn't read the label — try a clearer, well-lit photo.", Toast.LENGTH_LONG).show()
+                    } else {
+                        scanPrefill = res
+                        showForm = true
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+                }
+                scanning = false
+            }
+        }
+    }
 
     fun loadMedications() {
         scope.launch {
@@ -57,6 +92,12 @@ fun MedicationsScreen(navController: NavHostController) {
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { if (!scanning) scanPicker.launch("image/*") }, enabled = !scanning) {
+                        if (scanning) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        else Icon(Icons.Default.CameraAlt, contentDescription = "Scan Label")
                     }
                 }
             ) },
@@ -107,12 +148,19 @@ fun MedicationsScreen(navController: NavHostController) {
 
     if (showForm) {
         AddMedicationDialog(
-            onDismiss = { showForm = false },
+            initialName = scanPrefill?.medicationName.orEmpty(),
+            initialDosage = scanPrefill?.dosage?.takeIf { !it.equals("See label", true) }.orEmpty(),
+            initialNotes = listOfNotNull(
+                scanPrefill?.instructions?.takeIf { it.isNotBlank() },
+                scanPrefill?.notes?.takeIf { it.isNotBlank() }
+            ).joinToString("\n"),
+            onDismiss = { showForm = false; scanPrefill = null },
             onSave = { request ->
                 scope.launch {
                     try {
                         ApiClient.getApiService().createMedication(request)
                         showForm = false
+                        scanPrefill = null
                         loadMedications()
                         Toast.makeText(context, "Medication added!", Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
@@ -186,16 +234,23 @@ private fun MedicationCard(medication: Medication, onLogDose: () -> Unit, onDele
 }
 
 @Composable
-private fun AddMedicationDialog(onDismiss: () -> Unit, onSave: (MedicationRequest) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var dosage by remember { mutableStateOf("") }
+private fun AddMedicationDialog(
+    initialName: String = "",
+    initialDosage: String = "",
+    initialNotes: String = "",
+    onDismiss: () -> Unit,
+    onSave: (MedicationRequest) -> Unit
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var dosage by remember { mutableStateOf(initialDosage) }
     var frequency by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf(initialNotes) }
+    val scanned = initialName.isNotBlank()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Medication") },
+        title = { Text(if (scanned) "Add Scanned Medication" else "Add Medication") },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),

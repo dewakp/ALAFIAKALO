@@ -1,4 +1,61 @@
 import SwiftUI
+import PhotosUI
+
+// MARK: - Analyze-photo control (shared by the three log sheets)
+
+/// "Analyze photo" button: picks an image, runs it through the vision model
+/// (`elimination-from-image`) for the given `eventType`, hands the suggested
+/// fields back via `onResult`, and renders any attention flags + disclaimer.
+/// AI visual estimate — not a diagnosis.
+struct AnalyzeEliminationPhotoButton: View {
+    let eventType: String
+    let onResult: (EliminationFromImageResponse) -> Void
+
+    @State private var photoItem: PhotosPickerItem?
+    @State private var analyzing = false
+    @State private var flags: [String] = []
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                HStack {
+                    if analyzing { ProgressView() } else { Image(systemName: "camera.viewfinder") }
+                    Text(analyzing ? "Analyzing photo…" : "Analyze photo")
+                }
+            }
+            .disabled(analyzing)
+            .onChange(of: photoItem) { _, item in
+                guard let item else { return }
+                Task { await analyze(item) }
+            }
+            ForEach(flags, id: \.self) { f in
+                Label(f, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption).foregroundStyle(.orange)
+            }
+            if let e = errorMessage {
+                Text(e).font(.caption).foregroundStyle(.red)
+            }
+        }
+    }
+
+    private func analyze(_ item: PhotosPickerItem) async {
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+        analyzing = true; errorMessage = nil; flags = []
+        struct Body: Encodable { let event_type: String; let image_base64: String }
+        do {
+            let body = Body(event_type: eventType,
+                            image_base64: "data:image/jpeg;base64," + data.base64EncodedString())
+            let res: EliminationFromImageResponse = try await APIClient.shared.post(
+                "/image-ai/elimination-from-image", body: body, timeout: 180)
+            onResult(res)
+            flags = res.flags + [res.disclaimer].compactMap { $0 }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        analyzing = false
+    }
+}
 
 // MARK: - ViewModels
 
@@ -241,6 +298,22 @@ struct AddBowelSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    AnalyzeEliminationPhotoButton(eventType: "bowel") { res in
+                        let s = res.suggested
+                        if let b = s.bristolScale { bristolScale = Double(b) }
+                        if s.bloodPresent == true { bloodPresent = true }
+                        if s.mucusPresent == true { mucusPresent = true }
+                        var bits: [String] = []
+                        if let b = s.bristolScale { bits.append("Bristol type \(b)") }
+                        if let c = s.consistency { bits.append(c) }
+                        if let c = s.color { bits.append("\(c) color") }
+                        if s.bloodPresent == true { bits.append("possible blood") }
+                        if s.mucusPresent == true { bits.append("possible mucus") }
+                        notes = bits.isEmpty ? res.description : "\(bits.joined(separator: ", ")) — \(res.description)"
+                    }
+                } header: { Text("Analyze Photo (Optional)") }
+
                 Section("Bristol Stool Scale") {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Type \(Int(bristolScale))")
@@ -406,6 +479,13 @@ struct AddVomitingSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    AnalyzeEliminationPhotoButton(eventType: "vomiting") { res in
+                        if res.suggested.bloodPresent == true { containsBlood = true }
+                        notes = res.description
+                    }
+                } header: { Text("Analyze Photo (Optional)") }
+
                 Section("Contents") {
                     Toggle("Contains food", isOn: $containsFood)
                     Toggle("Contains bile (yellow/green)", isOn: $containsBile).tint(.yellow)
@@ -555,6 +635,18 @@ struct AddUrinationSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    AnalyzeEliminationPhotoButton(eventType: "urination") { res in
+                        let s = res.suggested
+                        if let c = s.color { color = c }
+                        if s.bloodPresent == true { bloodPresent = true }
+                        var bits: [String] = []
+                        if let c = s.color { bits.append("\(c) color") }
+                        if s.bloodPresent == true { bits.append("possible blood") }
+                        notes = bits.isEmpty ? res.description : "\(bits.joined(separator: ", ")) — \(res.description)"
+                    }
+                } header: { Text("Analyze Photo (Optional)") }
+
                 Section("Measurement") {
                     TextField("Volume (mL)", text: $volumeStr)
                         .keyboardType(.numberPad)

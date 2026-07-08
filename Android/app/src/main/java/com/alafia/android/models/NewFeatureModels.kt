@@ -166,31 +166,34 @@ data class NutritionFromImageResponse(
     @SerializedName("confidence_note") val confidenceNote: String? = null
 )
 
+data class MedicationImageField(
+    val label: String? = null,
+    val value: String? = null
+)
+
 data class MedicationFromImageResponse(
     @SerializedName("medication_name") val medicationName: String? = null,
-    @SerializedName("generic_name") val genericName: String? = null,
-    @SerializedName("drug_class") val drugClass: String? = null,
-    @SerializedName("common_dosages") val commonDosages: String? = null,
-    @SerializedName("side_effects") val sideEffects: List<String>? = null,
-    val interactions: List<String>? = null,
-    val warnings: List<String>? = null,
-    @SerializedName("confidence_note") val confidenceNote: String? = null
+    val dosage: String? = null,
+    val instructions: String? = null,
+    @SerializedName("ndc_code") val ndcCode: String? = null,
+    val manufacturer: String? = null,
+    val fields: List<MedicationImageField> = emptyList(),
+    val notes: String? = null
 )
 
 data class DosageVerificationRequest(
     @SerializedName("medication_name") val medicationName: String,
-    @SerializedName("prescribed_dosage") val prescribedDosage: String,
-    @SerializedName("patient_weight_kg") val patientWeightKg: Double? = null,
-    @SerializedName("patient_age") val patientAge: Int? = null
+    val dosage: String,
+    val frequency: String? = null
 )
 
 data class DosageVerificationResponse(
     @SerializedName("medication_name") val medicationName: String? = null,
-    @SerializedName("prescribed_dosage") val prescribedDosage: String? = null,
-    @SerializedName("is_within_range") val isWithinRange: Boolean? = null,
-    @SerializedName("standard_range") val standardRange: String? = null,
-    val recommendation: String? = null,
-    val warnings: List<String>? = null
+    val dosage: String? = null,
+    @SerializedName("is_typical") val isTypical: Boolean? = null,
+    val feedback: String? = null,
+    @SerializedName("typical_range") val typicalRange: String? = null,
+    val precautions: List<String> = emptyList()
 )
 
 // ── PDF Tools ───────────────────────────────────────────────────────────────
@@ -435,6 +438,29 @@ data class RecipeAnalyzeResponse(
     @SerializedName("total_weight_g") val totalWeightG: Double = 0.0,
     val source: String = "estimated",
     val learned: Boolean = false
+)
+
+// ── Elimination photo analysis (stool / urine / vomit) ──────────────────────
+
+data class EliminationImageRequest(
+    @SerializedName("event_type") val eventType: String,   // bowel | urination | vomiting
+    @SerializedName("image_base64") val imageBase64: String
+)
+
+data class EliminationSuggested(
+    val color: String? = null,
+    @SerializedName("bristol_scale") val bristolScale: Int? = null,
+    val consistency: String? = null,
+    @SerializedName("blood_present") val bloodPresent: Boolean? = null,
+    @SerializedName("mucus_present") val mucusPresent: Boolean? = null
+)
+
+data class EliminationFromImageResponse(
+    @SerializedName("event_type") val eventType: String = "bowel",
+    val description: String = "",
+    val suggested: EliminationSuggested = EliminationSuggested(),
+    val flags: List<String> = emptyList(),
+    val disclaimer: String? = null
 )
 
 // ── Data Sharing ────────────────────────────────────────────────────────────

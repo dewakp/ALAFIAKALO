@@ -92,6 +92,22 @@ final class NutritionViewModel {
             goals = nil
         }
     }
+
+    /// Analyze a recipe link: parse the page's structured recipe, price the
+    /// ingredients, return per-serving nutrition. Published nutrition is learned
+    /// server-side under the dish name.
+    func analyzeRecipe(url: String) async -> RecipeAnalyzeResponse? {
+        do {
+            return try await APIClient.shared.post(
+                "/nutrition/recipe-analyze",
+                body: RecipeAnalyzeRequest(url: url, servings: nil),
+                timeout: 120
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
 }
 
 // MARK: - Main View
@@ -490,6 +506,9 @@ struct AddNutritionSheet: View {
     @State private var preMealWeightKg = ""
     @State private var postMealWeightKg = ""
     @State private var recipeUrl = ""
+    @State private var analyzingRecipe = false
+    @State private var recipeInfo = ""
+    @State private var recipePreview: RecipeAnalyzeResponse?
     @State private var saving = false
     @State private var showSearch = false
     @State private var searchText = ""
@@ -631,6 +650,23 @@ struct AddNutritionSheet: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    Button {
+                        analyzeRecipe()
+                    } label: {
+                        HStack {
+                            Image(systemName: "link")
+                            Text(analyzingRecipe ? "Analyzing…" : "Analyze Recipe")
+                            Spacer()
+                            if analyzingRecipe { ProgressView() }
+                        }
+                    }
+                    .disabled(recipeUrl.trimmingCharacters(in: .whitespaces).isEmpty || analyzingRecipe)
+                    if !recipeInfo.isEmpty {
+                        Text(recipeInfo).font(.caption).foregroundStyle(.secondary)
+                    }
+                    if let rp = recipePreview {
+                        RecipePreviewRow(data: rp)
+                    }
                 }
             }
             .navigationTitle("Add Meal")
@@ -667,6 +703,25 @@ struct AddNutritionSheet: View {
         }
     }
 
+    private func analyzeRecipe() {
+        let url = recipeUrl.trimmingCharacters(in: .whitespaces)
+        guard !url.isEmpty else { return }
+        analyzingRecipe = true; recipeInfo = ""
+        Task {
+            if let data = await vm.analyzeRecipe(url: url) {
+                if foodName.isEmpty { foodName = data.name; fdcId = nil }
+                if servingSize.isEmpty { servingSize = "1 serving (of \(data.servings))" }
+                recipePreview = data
+                recipeInfo = "\(data.name) — \(data.ingredients.count) ingredients, \(data.servings) servings"
+                    + (data.learned ? ". Published nutrition learned for this dish." : "")
+            } else {
+                recipePreview = nil
+                recipeInfo = "Could not analyze that recipe link"
+            }
+            analyzingRecipe = false
+        }
+    }
+
     private func save() {
         saving = true
         var log = NutritionLogCreate(
@@ -689,6 +744,47 @@ struct AddNutritionSheet: View {
         Task {
             if await vm.addLog(log) { dismiss() }
             saving = false
+        }
+    }
+}
+
+// MARK: - Recipe Analysis Preview
+
+struct RecipePreviewRow: View {
+    let data: RecipeAnalyzeResponse
+
+    private func macro(_ key: String, _ unit: String) -> String {
+        guard let x = data.perServing[key] else { return "-" }
+        let num = x >= 10 ? String(Int(x.rounded())) : String(format: "%.1f", x)
+        return "\(num)\(unit)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles").font(.caption).foregroundStyle(.tint)
+                Text("Per serving · \(data.source == "published" ? "recipe (published)" : "recipe (estimated)")")
+                    .font(.caption).fontWeight(.semibold)
+            }
+            HStack {
+                previewMacro("Calories", macro("calories", ""))
+                Spacer()
+                previewMacro("Protein", macro("protein_g", " g"))
+                Spacer()
+                previewMacro("Carbs", macro("carbs_g", " g"))
+                Spacer()
+                previewMacro("Fat", macro("fat_g", " g"))
+            }
+            Text("Suggestions — final nutrients are computed server-side when you save.")
+                .font(.caption2).foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func previewMacro(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.subheadline).fontWeight(.bold)
+            Text(label).font(.system(size: 10)).foregroundStyle(.secondary)
         }
     }
 }

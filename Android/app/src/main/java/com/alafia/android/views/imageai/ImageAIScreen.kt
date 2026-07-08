@@ -286,62 +286,30 @@ private fun MedicationFromImageTab() {
         }
 
         result?.let { res ->
-            res.confidenceNote?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Medication Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
                     res.medicationName?.let { LabeledValue("Name", it) }
-                    res.genericName?.let { LabeledValue("Generic Name", it) }
-                    res.drugClass?.let { LabeledValue("Drug Class", it) }
-                    res.commonDosages?.let { LabeledValue("Common Dosages", it) }
-                }
-            }
-
-            res.sideEffects?.takeIf { it.isNotEmpty() }?.let { effects ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Side Effects", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        effects.forEach { effect ->
-                            Row(verticalAlignment = Alignment.Top) {
-                                Text("• ", fontWeight = FontWeight.Bold)
-                                Text(effect, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
+                    res.dosage?.let { LabeledValue("Dosage / Strength", it) }
+                    res.instructions?.let { LabeledValue("Instructions", it) }
+                    res.ndcCode?.let { LabeledValue("NDC Code", it) }
+                    res.manufacturer?.let { LabeledValue("Manufacturer", it) }
+                    res.fields.forEach { f ->
+                        if (!f.label.isNullOrBlank() && !f.value.isNullOrBlank()) LabeledValue(f.label, f.value)
                     }
                 }
             }
 
-            res.interactions?.takeIf { it.isNotEmpty() }?.let { interactions ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Interactions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color(0xFFFF9800))
-                        interactions.forEach { interaction ->
-                            Row(verticalAlignment = Alignment.Top) {
-                                Text("⚠ ", fontWeight = FontWeight.Bold)
-                                Text(interaction, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    }
-                }
-            }
-
-            res.warnings?.takeIf { it.isNotEmpty() }?.let { warnings ->
+            res.notes?.takeIf { it.isNotBlank() }?.let { note ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Warnings", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                        warnings.forEach { warning ->
-                            Row(verticalAlignment = Alignment.Top) {
-                                Text("⛔ ", fontWeight = FontWeight.Bold)
-                                Text(warning, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(note, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -354,9 +322,8 @@ private fun MedicationFromImageTab() {
 @Composable
 private fun DosageVerificationTab() {
     var medicationName by remember { mutableStateOf("") }
-    var prescribedDosage by remember { mutableStateOf("") }
-    var patientWeight by remember { mutableStateOf("") }
-    var patientAge by remember { mutableStateOf("") }
+    var dosage by remember { mutableStateOf("") }
+    var frequency by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<DosageVerificationResponse?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -378,33 +345,26 @@ private fun DosageVerificationTab() {
         )
 
         OutlinedTextField(
-            value = prescribedDosage,
-            onValueChange = { prescribedDosage = it },
-            label = { Text("Prescribed Dosage") },
+            value = dosage,
+            onValueChange = { dosage = it },
+            label = { Text("Dosage") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("e.g., 500mg twice daily") }
+            placeholder = { Text("e.g., 500mg") }
         )
 
         OutlinedTextField(
-            value = patientWeight,
-            onValueChange = { patientWeight = it },
-            label = { Text("Patient Weight (kg) - Optional") },
+            value = frequency,
+            onValueChange = { frequency = it },
+            label = { Text("Frequency - Optional") },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        OutlinedTextField(
-            value = patientAge,
-            onValueChange = { patientAge = it },
-            label = { Text("Patient Age - Optional") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            placeholder = { Text("e.g., twice daily") }
         )
 
         Button(
             onClick = {
-                if (medicationName.isBlank() || prescribedDosage.isBlank()) {
+                if (medicationName.isBlank() || dosage.isBlank()) {
                     Toast.makeText(context, "Medication name and dosage are required", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
@@ -413,9 +373,8 @@ private fun DosageVerificationTab() {
                     try {
                         val request = DosageVerificationRequest(
                             medicationName = medicationName.trim(),
-                            prescribedDosage = prescribedDosage.trim(),
-                            patientWeightKg = patientWeight.toDoubleOrNull(),
-                            patientAge = patientAge.toIntOrNull()
+                            dosage = dosage.trim(),
+                            frequency = frequency.trim().ifBlank { null }
                         )
                         result = ApiClient.getApiService().verifyDosage(request)
                     } catch (e: Exception) {
@@ -442,37 +401,37 @@ private fun DosageVerificationTab() {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (res.isWithinRange == true)
+                    containerColor = if (res.isTypical == true)
                         Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (res.isWithinRange == true) {
-                            Icon(Icons.Default.CheckCircle, "Safe", tint = Color(0xFF4CAF50), modifier = Modifier.size(28.dp))
+                        if (res.isTypical == true) {
+                            Icon(Icons.Default.CheckCircle, "Typical", tint = Color(0xFF4CAF50), modifier = Modifier.size(28.dp))
                         } else {
-                            Icon(Icons.Default.Cancel, "Warning", tint = Color(0xFFF44336), modifier = Modifier.size(28.dp))
+                            Icon(Icons.Default.Warning, "Atypical", tint = Color(0xFFF44336), modifier = Modifier.size(28.dp))
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            if (res.isWithinRange == true) "Dosage Within Range" else "Dosage Outside Range",
+                            if (res.isTypical == true) "Typical Dosage" else "Atypical — please verify",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
                     res.medicationName?.let { LabeledValue("Medication", it) }
-                    res.prescribedDosage?.let { LabeledValue("Prescribed", it) }
-                    res.standardRange?.let { LabeledValue("Standard Range", it) }
-                    res.recommendation?.let { LabeledValue("Recommendation", it) }
+                    res.dosage?.let { LabeledValue("Dosage", it) }
+                    res.typicalRange?.let { LabeledValue("Typical Range", it) }
+                    res.feedback?.let { LabeledValue("Assessment", it) }
 
-                    res.warnings?.takeIf { it.isNotEmpty() }?.let { warnings ->
+                    res.precautions.takeIf { it.isNotEmpty() }?.let { precautions ->
                         HorizontalDivider()
-                        Text("Warnings", fontWeight = FontWeight.Bold, color = Color(0xFFF44336))
-                        warnings.forEach { warning ->
+                        Text("Precautions", fontWeight = FontWeight.Bold, color = Color(0xFFF44336))
+                        precautions.forEach { p ->
                             Row(verticalAlignment = Alignment.Top) {
                                 Text("⚠ ")
-                                Text(warning, style = MaterialTheme.typography.bodyMedium)
+                                Text(p, style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }

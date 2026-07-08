@@ -277,55 +277,72 @@ struct NutritionFromImageResponse: Codable {
     }
 }
 
+struct MedicationImageField: Codable {
+    let label: String?
+    let value: String?
+}
+
 struct MedicationFromImageResponse: Codable {
     let medicationName: String?
-    let genericName: String?
-    let drugClass: String?
-    let commonDosages: String?
-    let sideEffects: [String]?
-    let interactions: [String]?
-    let warnings: [String]?
-    let confidenceNote: String?
+    let dosage: String?
+    let instructions: String?
+    let ndcCode: String?
+    let manufacturer: String?
+    let fields: [MedicationImageField]
+    let notes: String?
 
     enum CodingKeys: String, CodingKey {
         case medicationName = "medication_name"
-        case genericName = "generic_name"
-        case drugClass = "drug_class"
-        case commonDosages = "common_dosages"
-        case sideEffects = "side_effects"
-        case interactions, warnings
-        case confidenceNote = "confidence_note"
+        case dosage, instructions, manufacturer, fields, notes
+        case ndcCode = "ndc_code"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        medicationName = try c.decodeIfPresent(String.self, forKey: .medicationName)
+        dosage = try c.decodeIfPresent(String.self, forKey: .dosage)
+        instructions = try c.decodeIfPresent(String.self, forKey: .instructions)
+        ndcCode = try c.decodeIfPresent(String.self, forKey: .ndcCode)
+        manufacturer = try c.decodeIfPresent(String.self, forKey: .manufacturer)
+        fields = try c.decodeIfPresent([MedicationImageField].self, forKey: .fields) ?? []
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
     }
 }
 
 struct DosageVerificationRequest: Codable {
     let medicationName: String
-    let prescribedDosage: String
-    let patientWeightKg: Double?
-    let patientAge: Int?
+    let dosage: String
+    let frequency: String?
 
     enum CodingKeys: String, CodingKey {
         case medicationName = "medication_name"
-        case prescribedDosage = "prescribed_dosage"
-        case patientWeightKg = "patient_weight_kg"
-        case patientAge = "patient_age"
+        case dosage, frequency
     }
 }
 
 struct DosageVerificationResponse: Codable {
     let medicationName: String?
-    let prescribedDosage: String?
-    let isWithinRange: Bool?
-    let standardRange: String?
-    let recommendation: String?
-    let warnings: [String]?
+    let dosage: String?
+    let isTypical: Bool?
+    let feedback: String?
+    let typicalRange: String?
+    let precautions: [String]
 
     enum CodingKeys: String, CodingKey {
         case medicationName = "medication_name"
-        case prescribedDosage = "prescribed_dosage"
-        case isWithinRange = "is_within_range"
-        case standardRange = "standard_range"
-        case recommendation, warnings
+        case dosage, feedback, precautions
+        case isTypical = "is_typical"
+        case typicalRange = "typical_range"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        medicationName = try c.decodeIfPresent(String.self, forKey: .medicationName)
+        dosage = try c.decodeIfPresent(String.self, forKey: .dosage)
+        isTypical = try c.decodeIfPresent(Bool.self, forKey: .isTypical)
+        feedback = try c.decodeIfPresent(String.self, forKey: .feedback)
+        typicalRange = try c.decodeIfPresent(String.self, forKey: .typicalRange)
+        precautions = try c.decodeIfPresent([String].self, forKey: .precautions) ?? []
     }
 }
 
@@ -625,6 +642,36 @@ struct RecipeAnalyzeResponse: Codable {
         case name, url, servings, ingredients, total, source, learned
         case perServing = "per_serving"
         case totalWeightG = "total_weight_g"
+    }
+}
+
+// MARK: - Elimination Photo Analysis (stool / urine / vomit)
+
+struct EliminationSuggested: Codable {
+    let color: String?
+    let bristolScale: Int?
+    let consistency: String?
+    let bloodPresent: Bool?
+    let mucusPresent: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case color, consistency
+        case bristolScale = "bristol_scale"
+        case bloodPresent = "blood_present"
+        case mucusPresent = "mucus_present"
+    }
+}
+
+struct EliminationFromImageResponse: Codable {
+    let eventType: String
+    let description: String
+    let suggested: EliminationSuggested
+    let flags: [String]
+    let disclaimer: String?
+
+    enum CodingKeys: String, CodingKey {
+        case description, suggested, flags, disclaimer
+        case eventType = "event_type"
     }
 }
 

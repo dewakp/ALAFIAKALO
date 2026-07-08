@@ -1526,3 +1526,171 @@ all feeding the learning stores.
   568.5 kcal/serving, learned 188 kcal/100 g (row in learned_food_nutrients); description
   "Nigerian Jollof Rice" prices believably; photo labeled via URL → visual-memory match at
   serving scale (160 kcal). 5 new tests; full suite **210 passed**; web/Android/iOS build.
+
+## Session 2026-07-08 — Mobile parity: recipe-URL Analyze UI + elimination photo-wiring
+
+Continued the 2026-07-06 round by closing two deferred mobile-UI bullets. Both apps build
+(Android `:app:compileDebugKotlin` BUILD SUCCESSFUL; iOS `xcodebuild` BUILD SUCCEEDED, iPhone 17
+sim / iOS 26.5 SDK).
+
+- **Recipe-URL Analyze UI (Android + iOS)**: the meal form already carried a recipe-URL field,
+  the `RecipeAnalyze*` models, and the client call — only the action + preview were missing. Added
+  an **Analyze** button beside the field (Android `AddMealDialog`, iOS `AddNutritionSheet`) that
+  calls `/nutrition/recipe-analyze`, prefills the food name + `1 serving (of N)` when blank, and
+  renders a per-serving macro preview (`recipe (published|estimated)`) + an
+  ingredients/servings info line (`…Published nutrition learned for this dish.`), mirroring web
+  `Nutrition.jsx`. iOS `APIClient.post` gained an optional per-request `timeout` (used at 120 s)
+  so the external fetch + pricing isn't killed by the global 30 s request cap.
+- **Elimination photo-wiring (Android + iOS)**: new model `EliminationFromImageResponse`
+  (+ `EliminationSuggested`) and `image-ai/elimination-from-image` client call. A shared
+  **Analyze-photo** control (Android `AnalyzeEliminationPhoto`, iOS
+  `AnalyzeEliminationPhotoButton`) drops into each of the three log dialogs/sheets: it picks an
+  image, runs the vision model for the tab's `event_type` (bowel/urination/vomiting), prefills the
+  structured fields (Bristol scale, color, blood/mucus) + a composed description into Notes, and
+  renders the backend's attention flags + disclaimer. Android dialogs became scrollable to fit
+  the new control.
+- **Verified live**: registered a throwaway user via the CSRF+login flow against the running
+  backend (`:8005/api/v1`); `elimination-from-image` (event_type=bowel, data-URL base64) returned
+  a `200` with exactly `{event_type, description, suggested{bristol_scale,color,blood_present,
+  consistency}, flags[], disclaimer}` — the mobile models decode it 1:1. `recipe-analyze`
+  accepted the `{url}` contract (the external page fetch is blocked at the container's egress in
+  this env, so it 422'd at the fetch step, not on schema); its response model mirrors the backend
+  Pydantic definition the web already consumes.
+- **Discovered pre-existing bug (deferred)**: mobile `MedicationFromImageResponse` and the
+  dosage-verification models are **stale** vs. the current backend schema (mobile expects
+  `drug_class`/`side_effects`/`interactions`/`warnings`; backend returns
+  `dosage`/`instructions`/`ndc_code`/`manufacturer`/`fields`/`notes`, and
+  `is_typical`/`feedback`/`typical_range`/`precautions` for dosage). The ImageAI medication/dosage
+  tabs therefore render mostly-null today. Medication "Scan Label" wiring is blocked on fixing
+  those models + the ImageAI rendering; tracked as a separate follow-up so this additive round
+  doesn't smuggle in a runtime-behavior migration.
+
+## Session 2026-07-08 (cont.) — Dr. Holista / AI chat: hallucination + template-leak fix
+
+Reported: the AI Health Assistant (Dr. Holista, general_practitioner persona) ignored the
+user's actual voice question, fabricated data (a BMI "above 30", phosphorus "2.6 mg/dL slightly
+elevated" — 2.6 is not elevated), leaked a literal `[insert]` placeholder, and buried the
+question under a generic ESRD wall-of-text.
+
+**Root cause**: every persona's system prompt (`ai.py` `PERSONA_PROFILES`) ended with an
+`EXAMPLE:` line built from square-bracket placeholders (`[date]`, `[comprehensive summary]`,
+`[Top 2-3 priorities]`, `[Positive/motivating close]`…). The small local model (llama3.2:3b)
+copies that few-shot structure literally → hence the `[insert]` leak, the exact "here's what
+stands out / Top 2-3 / motivating close" scaffold, and invented values. The GP EXAMPLE also
+taught "comprehensive summary" regardless of the question → generic, non-responsive answers.
+
+**Fixes (`WEB/backend/app/api/ai.py`)**:
+- Converted all seven bracketed `EXAMPLE:` lines to bracket-free `HOW TO ANSWER:` prose (no
+  `[...]`, no fake `X mg/dL` values) so the model has nothing to parrot.
+- Added FUNDAMENTAL RULES (specialist path) + analyst RULES (cultural/default path): answer the
+  SPECIFIC question asked (no full review unless requested); never print bracketed placeholders;
+  never state a number not in the record; only call a value high/low when outside its reference
+  range.
+- De-bracketed the RAG query wrapper (`--- … records ---` instead of `[…]`) in `_augment_query`.
+- Deduped the chat turn: the frontend already includes the just-sent user message in `messages`,
+  and the endpoint then appended the augmented (data-injected) copy → the question was sent
+  twice. New `_assemble_chat_messages()` drops the trailing duplicate so the augmented copy is
+  the single final user turn; used by both `/ai/chat` and `/ai/chat/stream`.
+- The "disappearing prompt" was not a rendering bug — the user's turn renders (right-aligned)
+  but scrolls above a long answer; the concise-answer fix keeps it in view.
+
+**Verified live** (patched the running `web-backend-1` via `docker cp` + restart; source is
+baked into the image, not bind-mounted): a specific GP question ("What was my most recent
+potassium result?") now returns a direct, 84-char answer that plainly says the value isn't
+recorded — no fabrication, no brackets. The exact trigger ("give me a comprehensive review")
+on a sparse record now reports fields as "not recorded" instead of inventing a BMI/phosphorus,
+with zero bracket leaks.
+
+Note: model quality is still capped by llama3.2:3b; a larger instruct model would further reduce
+generic phrasing. Follow-up worth considering.
+
+### 2026-07-08 (cont.) — follow-up fixes: prompt visibility + route audit + model finding
+
+- **Disappearing prompt (frontend, `AIChat.jsx`)**: replaced the scroll-to-bottom-on-every-token
+  effect with a scroll that anchors the newest QUESTION to the top of the view (ChatGPT-style),
+  so the streamed answer flows beneath it instead of the view jumping to the end of a long reply
+  and hiding what was asked. Keyed on user-turn count; falls back to bottom for the greeting.
+  Frontend rebuilt (vite) and the fresh bundle deployed into the running nginx container.
+- **Voice → route audit**: `/ai/route`'s `assistant_message` is a preset per intent (not
+  LLM-generated), and it already guards against 3B intent-mislabeling (trailing "?" ⇒
+  ask_question). The raw transcript is passed through as `autoAsk`, so the voice path answers the
+  actual question — no fix needed there once the chat prompt was corrected.
+- **Model finding (biggest remaining quality lever)**: the running backend uses
+  `OLLAMA_MODEL=llama3.2:3b` — the weakest option (config's intended default is `gpt-oss:20b`;
+  only `moondream`, `llava:7b`, `llama3.2:3b` are pulled). With the corrected prompts the 3B model
+  now answers the reported cases correctly (verified), but richer/nuanced answers need a stronger
+  instruct model (e.g. `gpt-oss:20b` per config, or a lighter `llama3.1:8b`/`qwen2.5:7b`). Left as
+  a recommendation — pulling 5–13 GB and the RAM to run it is the user's call.
+
+### 2026-07-08 (cont.) — LLM upgrade: deleted Docker Ollama, moved to native gpt-oss:20b
+
+The weak answers weren't just prompts — the backend was pointed at an Ollama running INSIDE
+Docker's Linux VM: 7.7 GB cap, CPU-only (no Metal), so it could only run llama3.2:3b. The Mac
+(M3, 24 GB) already had **gpt-oss:20b (13 GB)** pulled in its native Ollama, which was being
+ignored because the Docker container held port 11434.
+
+- **Deleted the Docker Ollama** (per request): removed the `ollama` service, its `depends_on`,
+  and the `ollamadata` volume from `WEB/docker-compose.yml`; `docker rm -f web-ollama-1` +
+  `docker volume rm web_ollamadata`.
+- **Repointed the backend** to the native host daemon: `OLLAMA_BASE_URL=http://host.docker.internal:11434`,
+  `OLLAMA_MODEL=gpt-oss:20b` (compose + `backend/.env`; `config.py` defaults already matched).
+  Docker Desktop proxies `host.docker.internal` to the host loopback, so the container reaches
+  the native daemon on 127.0.0.1:11434 with no rebind needed.
+- **Vision**: the host Ollama lacked `moondream`, so `ollama pull moondream` on the host keeps
+  food/elimination photo analysis working (`OLLAMA_VISION_MODEL=moondream`).
+- **Verified live**: nephrologist chat now runs on gpt-oss:20b (52 s incl. cold 13 GB Metal load,
+  vs ~2 s for 3B) — specific, accurate potassium answer with real mg values, no bracket leaks.
+  `elimination-from-image` returns 200 through host moondream. No Ollama container remains.
+
+Caveat: the backend image still bakes the pre-fix `ai.py`; the prompt fix is applied via
+`docker cp` + restart. A `docker compose build backend` is needed to bake it permanently (and to
+survive `compose down`/reboot). The recreate for the env change reverted ai.py once — re-applied.
+
+### 2026-07-08 (cont.) — Close mobile voice gap: mic in Android + iOS AI chat
+
+Web gained an in-app voice mic in the AI chat; mobile lacked it. Closed on both:
+
+- **Android** (`AIChatScreen.kt`): extracted the streaming send into a reusable `send()`, added a
+  mic `IconButton` that launches the system speech recognizer via `RecognizerIntent`
+  (`ACTION_RECOGNIZE_SPEECH`, out-of-process → **no RECORD_AUDIO permission** needed) and sends the
+  returned transcript straight to the agent. Added a `<queries>` entry for the recognize-speech
+  intent in `AndroidManifest.xml` (Android 11+ package visibility). `compileDebugKotlin` green.
+- **iOS** (`AIChatView.swift`): reused the existing `Core/SpeechRecognizer` (SFSpeechRecognizer +
+  AVAudioEngine, the same one PromptView uses). Mic button toggles recording, the live transcript
+  mirrors into the field, and on stop the final transcript is auto-sent. Info.plist already carried
+  `NSMicrophoneUsageDescription` + `NSSpeechRecognitionUsageDescription`. `xcodebuild` BUILD SUCCEEDED.
+
+The mic lives in the shared chat input on both platforms, so it works for EVERY persona
+(specialist + cultural), matching web. All personas also inherit the server-side prompt fix +
+gpt-oss:20b automatically.
+
+Mobile parity re-verified this session: recipe-URL Analyze ✅✅, elimination photo-wiring ✅✅,
+AI-chat personas+streaming ✅✅, and now AI-chat voice mic ✅✅ (Android/iOS). Remaining known gap:
+stale mobile Medication/dosage models + Scan-Label (tracked separately).
+
+### 2026-07-08 (cont.) — Fix stale mobile med/dosage models + wire Scan-Label (both platforms)
+
+Pre-existing bug (found earlier, now fixed): the mobile `MedicationFromImageResponse` and
+dosage-verification models did NOT match the backend, so medication-from-image showed mostly-null
+and verify-dosage 422'd ("dosage field required").
+
+- **Models (Android `NewFeatureModels.kt`, iOS `NewFeatureModels.swift`)** rewritten to the real
+  backend schema: `MedicationFromImageResponse` = medication_name/dosage/instructions/ndc_code/
+  manufacturer/fields[]/notes; `DosageVerificationRequest` = medication_name/dosage/frequency;
+  `DosageVerificationResponse` = medication_name/dosage/is_typical/feedback/typical_range/
+  precautions[].
+- **ImageAI screens** (Android `ImageAIScreen.kt`, iOS `ImageAIView.swift`) re-rendered to the new
+  fields (medication details + notes; dosage tab now sends dosage+frequency and shows
+  typical/atypical + precautions).
+- **Scan Label** added to the Medications screens (Android `MedicationsScreen.kt` toolbar camera
+  action, iOS `MedicationsView.swift` PhotosPicker): pick a bottle/label photo →
+  medication-from-image → open the Add-Medication form prefilled with name/dosage/instructions
+  (parity with the web "Scan Label"). Unreadable labels show a clear message.
+- **Verified live** against the running backend: verify-dosage NEW contract → HTTP 200 with exactly
+  `{medication_name,dosage,is_typical,feedback,typical_range,precautions}` (is_typical=True,
+  typical_range "500-2000 mg/day"); the OLD mobile contract → HTTP 422 "dosage field required"
+  (proves the bug). medication-from-image → exact 7-field shape the new model decodes. Android
+  `compileDebugKotlin` + iOS `xcodebuild` both green.
+
+Session parity status: recipe-URL ✅✅, elimination photo ✅✅, chat personas+streaming ✅✅,
+chat prompt-fix+gpt-oss:20b ✅✅ (server-side), chat voice mic ✅✅, med-scan + model fix ✅✅.

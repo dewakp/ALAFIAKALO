@@ -353,6 +353,11 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     var recipeUrl by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
 
+    // Recipe-URL analysis (third meal input: URL / description / photo)
+    var analyzingRecipe by remember { mutableStateOf(false) }
+    var recipeInfo by remember { mutableStateOf("") }
+    var recipePreview by remember { mutableStateOf<RecipeAnalyzeResponse?>(null) }
+
     // USDA search
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -554,10 +559,55 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                 }
 
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = recipeUrl, onValueChange = { recipeUrl = it },
-                    label = { Text("Recipe URL (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
-                    placeholder = { Text("https://example.com/recipe") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
+                Text("Recipe URL (Optional)", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                Spacer(Modifier.height(4.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(value = recipeUrl, onValueChange = { recipeUrl = it },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        placeholder = { Text("https://example.com/recipe") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
+                    Button(
+                        onClick = {
+                            val url = recipeUrl.trim()
+                            if (url.isBlank()) return@Button
+                            analyzingRecipe = true; recipeInfo = ""
+                            scope.launch {
+                                try {
+                                    // Parse the page's structured recipe, price the ingredients, prefill
+                                    // per-serving nutrition. Published nutrition is learned server-side.
+                                    val data = ApiClient.getApiService()
+                                        .analyzeRecipeUrl(RecipeAnalyzeRequest(url = url))
+                                    if (foodName.isBlank()) { foodName = data.name; fdcId = null }
+                                    if (servingSize.isBlank()) servingSize = "1 serving (of ${data.servings})"
+                                    recipePreview = data
+                                    recipeInfo = "${data.name} — ${data.ingredients.size} ingredients, " +
+                                        "${data.servings} servings" +
+                                        (if (data.learned) ". Published nutrition learned for this dish." else "")
+                                } catch (e: Exception) {
+                                    recipePreview = null
+                                    recipeInfo = "Could not analyze that recipe link"
+                                }
+                                analyzingRecipe = false
+                            }
+                        },
+                        enabled = recipeUrl.isNotBlank() && !analyzingRecipe
+                    ) {
+                        if (analyzingRecipe)
+                            CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary)
+                        else Text("Analyze")
+                    }
+                }
+                if (recipeInfo.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(recipeInfo, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                }
+                recipePreview?.let { rp ->
+                    Spacer(Modifier.height(6.dp))
+                    RecipePreviewCard(rp)
+                }
 
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = notes, onValueChange = { notes = it },
@@ -650,6 +700,51 @@ private fun InfoChip(text: String) {
         color = Color(0xFF3B82F6),
         modifier = Modifier.background(Color(0xFF3B82F6).copy(alpha = 0.1f), RoundedCornerShape(50))
             .padding(horizontal = 8.dp, vertical = 3.dp))
+}
+
+// ─── Recipe Analysis Preview ───
+
+@Composable
+private fun RecipePreviewCard(data: RecipeAnalyzeResponse) {
+    val ps = data.perServing
+    fun macro(key: String, unit: String): String {
+        val x = ps[key] ?: return "-"
+        val num = if (x >= 10) x.roundToInt().toString() else String.format("%.1f", x)
+        return "$num$unit"
+    }
+    val sourceLabel = if (data.source == "published") "recipe (published)" else "recipe (estimated)"
+
+    Card(Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(6.dp))
+                Text("Per serving · $sourceLabel", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                PreviewMacro("Calories", macro("calories", ""))
+                PreviewMacro("Protein", macro("protein_g", " g"))
+                PreviewMacro("Carbs", macro("carbs_g", " g"))
+                PreviewMacro("Fat", macro("fat_g", " g"))
+            }
+            Text("Suggestions — final nutrients are computed server-side when you save.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                modifier = Modifier.padding(top = 8.dp))
+        }
+    }
+}
+
+@Composable
+private fun PreviewMacro(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+    }
 }
 
 @Composable

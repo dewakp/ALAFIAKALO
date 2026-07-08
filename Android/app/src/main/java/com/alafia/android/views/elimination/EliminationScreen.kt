@@ -2,9 +2,13 @@ package com.alafia.android.views.elimination
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,6 +24,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.BowelMovement
 import com.alafia.android.models.VomitingLog
 import com.alafia.android.models.UrinationLog
+import com.alafia.android.models.EliminationFromImageResponse
+import com.alafia.android.models.EliminationImageRequest
 import com.alafia.android.schemas.BowelMovementRequest
 import com.alafia.android.schemas.VomitingLogRequest
 import com.alafia.android.schemas.UrinationLogRequest
@@ -55,6 +61,64 @@ fun EliminationScreen() {
             0 -> BowelMovementTab()
             1 -> VomitingTab()
             2 -> UrinationTab()
+        }
+    }
+}
+
+// ── Analyze-photo control (shared by the three log dialogs) ─────────────────────
+
+/**
+ * "Analyze photo" button: picks an image, runs it through the vision model
+ * (`elimination-from-image`) for the given [eventType], hands the suggested
+ * fields back via [onResult], and renders any attention flags + disclaimer.
+ * AI visual estimate — not a diagnosis.
+ */
+@Composable
+private fun AnalyzeEliminationPhoto(
+    eventType: String,
+    onResult: (EliminationFromImageResponse) -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var analyzing by remember { mutableStateOf(false) }
+    var flags by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            analyzing = true
+            try {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: byteArrayOf()
+                val b64 = "data:image/jpeg;base64," +
+                    android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                val res = ApiClient.getApiService().eliminationFromImage(
+                    EliminationImageRequest(eventType = eventType, imageBase64 = b64)
+                )
+                onResult(res)
+                flags = res.flags + listOfNotNull(res.disclaimer)
+            } catch (e: Exception) {
+                Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+            }
+            analyzing = false
+        }
+    }
+
+    Column {
+        OutlinedButton(onClick = { picker.launch("image/*") }, enabled = !analyzing,
+            modifier = Modifier.fillMaxWidth()) {
+            if (analyzing) {
+                CircularProgressIndicator(Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp)); Text("Analyzing photo…")
+            } else {
+                Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp)); Text("Analyze photo")
+            }
+        }
+        flags.forEach { f ->
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.Top) {
+                Text("⚠ ", color = Color(0xFFE65100), fontSize = 12.sp)
+                Text(f, style = MaterialTheme.typography.bodySmall, color = Color(0xFFE65100))
+            }
         }
     }
 }
@@ -193,9 +257,25 @@ fun AddBowelDialog(onDismiss: () -> Unit, onSave: (BowelMovementRequest) -> Unit
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 500.dp),
+                    .heightIn(max = 500.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                AnalyzeEliminationPhoto(eventType = "bowel") { res ->
+                    val s = res.suggested
+                    s.bristolScale?.let { bristolScale = it.toFloat() }
+                    if (s.bloodPresent == true) bloodPresent = true
+                    if (s.mucusPresent == true) mucusPresent = true
+                    val bits = buildList {
+                        s.bristolScale?.let { add("Bristol type $it") }
+                        s.consistency?.let { add(it) }
+                        s.color?.let { add("$it color") }
+                        if (s.bloodPresent == true) add("possible blood")
+                        if (s.mucusPresent == true) add("possible mucus")
+                    }
+                    notes = if (bits.isNotEmpty()) "${bits.joinToString(", ")} — ${res.description}" else res.description
+                }
+                HorizontalDivider()
                 Text("Bristol Scale: ${bristolScale.toInt()}", fontWeight = FontWeight.Medium)
                 Slider(value = bristolScale, onValueChange = { bristolScale = it }, valueRange = 1f..7f, steps = 5)
                 Text(bristolDescription(bristolScale.toInt()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -372,9 +452,15 @@ fun AddVomitingDialog(onDismiss: () -> Unit, onSave: (VomitingLogRequest) -> Uni
         title = { Text("Log Vomiting Episode") },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                AnalyzeEliminationPhoto(eventType = "vomiting") { res ->
+                    if (res.suggested.bloodPresent == true) containsBlood = true
+                    notes = res.description
+                }
+                HorizontalDivider()
                 Text("Contents", fontWeight = FontWeight.SemiBold)
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = containsFood, onCheckedChange = { containsFood = it }); Text("Contains food") }
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = containsBile, onCheckedChange = { containsBile = it }); Text("Contains bile") }
@@ -531,9 +617,21 @@ fun AddUrinationDialog(onDismiss: () -> Unit, onSave: (UrinationLogRequest) -> U
         title = { Text("Log Urination") },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                AnalyzeEliminationPhoto(eventType = "urination") { res ->
+                    val s = res.suggested
+                    s.color?.let { color = it }
+                    if (s.bloodPresent == true) bloodPresent = true
+                    val bits = buildList {
+                        s.color?.let { add("$it color") }
+                        if (s.bloodPresent == true) add("possible blood")
+                    }
+                    notes = if (bits.isNotEmpty()) "${bits.joinToString(", ")} — ${res.description}" else res.description
+                }
+                HorizontalDivider()
                 OutlinedTextField(value = volumeStr, onValueChange = { volumeStr = it }, label = { Text("Volume (mL)") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = color, onValueChange = { color = it }, label = { Text("Color") }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("pale, yellow, amber, dark…") })
                 OutlinedTextField(value = clarity, onValueChange = { clarity = it }, label = { Text("Clarity") }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("clear, cloudy, foamy…") })

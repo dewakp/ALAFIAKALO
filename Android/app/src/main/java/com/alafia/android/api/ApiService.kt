@@ -686,6 +686,11 @@ interface ApiService {
     @POST("image-ai/medication-from-image")
     suspend fun medicationFromImage(@Part file: MultipartBody.Part): MedicationFromImageResponse
 
+    /** Analyze an elimination photo (stool / urine / vomit) → suggested log
+     *  fields (Bristol scale, color, blood/mucus) + attention flags. Not a diagnosis. */
+    @POST("image-ai/elimination-from-image")
+    suspend fun eliminationFromImage(@Body body: EliminationImageRequest): EliminationFromImageResponse
+
     @POST("image-ai/verify-dosage")
     suspend fun verifyDosage(@Body request: DosageVerificationRequest): DosageVerificationResponse
 
