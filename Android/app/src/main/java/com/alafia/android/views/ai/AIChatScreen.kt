@@ -7,6 +7,7 @@ import android.speech.RecognizerIntent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -54,21 +55,41 @@ fun AIChatScreen(navController: NavHostController) {
     // Persona state
     var personas by remember { mutableStateOf<List<AIPersona>>(emptyList()) }
     var selectedPersona by remember { mutableStateOf<AIPersona?>(null) }
-    var showPersonaPicker by remember { mutableStateOf(true) }
+    var showPersonaPicker by remember { mutableStateOf(false) }   // opt-in; default to device locale
+
+    // Select a persona and seed its greeting (shared by the picker + the locale default).
+    fun choosePersona(p: AIPersona) {
+        selectedPersona = p
+        showPersonaPicker = false
+        messages = listOf(
+            UIChatMessage("assistant", "Welcome! I'm ${p.title} \u2014 think of me as your personal wellness guide. What's on your mind?")
+        )
+    }
 
     // Load personas on first composition
     LaunchedEffect(Unit) {
         try {
             personas = ApiClient.getApiService().getAIPersonas()
         } catch (_: Exception) {
-            // Fallback personas if API unavailable
+            // Fallback: a neutral clinical default + a few cultural guides.
             personas = listOf(
+                AIPersona("general_practitioner", "Dr. Holista", "General Practice \u00b7 Primary Care", "specialist", "Welcome", "Comprehensive health overview."),
                 AIPersona("babalawo", "Babalawo", "Yoruba \u00b7 Nigeria", "africa", "\u1eb8 k\u00fa \u00e0\u00e1r\u1ecd\u0300", "Your personal health guide."),
                 AIPersona("dibia", "Dibia", "Igbo \u00b7 Nigeria", "africa", "Nn\u1ecd\u1ecd", "Your personal health guide."),
                 AIPersona("boka", "Boka", "Hausa \u00b7 Nigeria", "africa", "Sannu", "Your personal health guide."),
                 AIPersona("sage", "Sage", "English \u00b7 UK / Ireland", "europe", "Welcome", "Your personal health guide."),
                 AIPersona("medicine_keeper", "Medicine Keeper", "Native American \u00b7 United States / Canada", "north_america", "Aho", "Your personal health guide.")
             )
+        }
+        // Default to a device-locale guide instead of forcing the picker.
+        if (selectedPersona == null && personas.isNotEmpty()) {
+            val code = java.util.Locale.getDefault().language
+            val langEn = java.util.Locale(code, "").getDisplayLanguage(java.util.Locale.ENGLISH)
+            val default = personas.firstOrNull { langEn.isNotEmpty() && it.origin.startsWith(langEn, ignoreCase = true) }
+                ?: personas.firstOrNull { it.key == "general_practitioner" }
+                ?: personas.firstOrNull { it.region == "specialist" }
+                ?: personas.firstOrNull()
+            default?.let { choosePersona(it) }
         }
     }
 
@@ -288,14 +309,8 @@ fun AIChatScreen(navController: NavHostController) {
                 PersonaPickerDialog(
                     personas = personas,
                     selectedPersona = selectedPersona,
-                    onSelect = { persona ->
-                        selectedPersona = persona
-                        showPersonaPicker = false
-                        messages = listOf(
-                            UIChatMessage("assistant", "Welcome! I'm ${persona.title} — think of me as your personal wellness guide. What's on your mind?")
-                        )
-                    },
-                    onDismiss = { if (selectedPersona != null) showPersonaPicker = false }
+                    onSelect = { persona -> choosePersona(persona) },
+                    onDismiss = { showPersonaPicker = false }
                 )
             }
         }
@@ -304,13 +319,14 @@ fun AIChatScreen(navController: NavHostController) {
 
 // ── Region labels ──────────────────────────────────────────────────
 private val REGION_LABELS = mapOf(
+    "specialist" to "🏥 Specialist Agents",
     "africa" to "🌍 Africa",
     "middle_east" to "🕌 Middle East",
     "south_asia" to "🕉 South Asia",
     "europe" to "🏰 Europe",
     "north_america" to "🗽 North America"
 )
-private val REGION_ORDER = listOf("africa", "middle_east", "south_asia", "europe", "north_america")
+private val REGION_ORDER = listOf("specialist", "africa", "middle_east", "south_asia", "europe", "north_america")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -321,6 +337,7 @@ private fun PersonaPickerDialog(
     onDismiss: () -> Unit
 ) {
     val grouped = personas.groupBy { it.region }
+    var expanded by remember { mutableStateOf(setOf("specialist")) }   // roll up per region
 
     AlertDialog(onDismissRequest = onDismiss) {
         Surface(
@@ -341,7 +358,7 @@ private fun PersonaPickerDialog(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Pick the name you'd like your health assistant to go by",
+                        "Optional — close to keep your device-language guide, or pick another.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -357,18 +374,39 @@ private fun PersonaPickerDialog(
                 ) {
                     REGION_ORDER.forEach { region ->
                         val regionPersonas = grouped[region] ?: return@forEach
+                        val isExpanded = expanded.contains(region)
 
                         item {
-                            Text(
-                                REGION_LABELS[region] ?: region,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { expanded = if (isExpanded) expanded - region else expanded + region }
+                                    .padding(top = 12.dp, bottom = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    REGION_LABELS[region] ?: region,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    "${regionPersonas.size}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
 
-                        items(regionPersonas) { persona ->
+                        if (isExpanded) items(regionPersonas) { persona ->
                             val isSelected = selectedPersona?.key == persona.key
                             OutlinedCard(
                                 onClick = { onSelect(persona) },
@@ -412,6 +450,13 @@ private fun PersonaPickerDialog(
                         }
                     }
                 }
+                HorizontalDivider()
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) { Text("Close") }
             }
         }
     }

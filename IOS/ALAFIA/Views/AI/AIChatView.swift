@@ -10,8 +10,8 @@ final class AIChatViewModel {
     // Persona
     var personas: [AIPersona] = []
     var selectedPersona: AIPersona?
-    var showPersonaPicker = true
-    
+    var showPersonaPicker = false   // opt-in — we default to the device locale
+
     init() {
         Task { await loadPersonas() }
     }
@@ -40,11 +40,11 @@ final class AIChatViewModel {
     
     func loadPersonas() async {
         do {
-            let loaded: [AIPersona] = try await APIClient.shared.get("/ai/personas")
-            personas = loaded
+            personas = try await APIClient.shared.get("/ai/personas")
         } catch {
-            // Fallback
+            // Fallback: a neutral clinical default + a few cultural guides.
             personas = [
+                AIPersona(key: "general_practitioner", title: "Dr. Holista", origin: "General Practice · Primary Care", region: "specialist", greeting: "Welcome", description: "Comprehensive health overview."),
                 AIPersona(key: "babalawo", title: "Babalawo", origin: "Yoruba · Nigeria", region: "africa", greeting: "Ẹ kú àárọ̀", description: "Your personal health guide."),
                 AIPersona(key: "dibia", title: "Dibia", origin: "Igbo · Nigeria", region: "africa", greeting: "Nnọọ", description: "Your personal health guide."),
                 AIPersona(key: "boka", title: "Boka", origin: "Hausa · Nigeria", region: "africa", greeting: "Sannu", description: "Your personal health guide."),
@@ -52,6 +52,21 @@ final class AIChatViewModel {
                 AIPersona(key: "medicine_keeper", title: "Medicine Keeper", origin: "Native American · United States / Canada", region: "north_america", greeting: "Aho", description: "Your personal health guide."),
             ]
         }
+        applyDefaultPersona()
+    }
+
+    /// Land the user straight in the chat with a sensible default rather than
+    /// forcing the picker: match the device language to a guide, else the general
+    /// practitioner, else the first specialist. The user can still change it.
+    private func applyDefaultPersona() {
+        guard selectedPersona == nil, !personas.isEmpty else { return }
+        let code = Locale.current.language.languageCode?.identifier ?? ""
+        let langEN = Locale(identifier: "en_US").localizedString(forLanguageCode: code)?.lowercased() ?? ""
+        let match = (langEN.isEmpty ? nil : personas.first { $0.origin.lowercased().hasPrefix(langEN) })
+            ?? personas.first { $0.key == "general_practitioner" }
+            ?? personas.first { $0.region == "specialist" }
+            ?? personas.first
+        if let match { selectPersona(match) }
     }
     
     func selectPersona(_ persona: AIPersona) {
@@ -254,16 +269,19 @@ struct AIChatView: View {
 struct PersonaPickerSheet: View {
     @Bindable var vm: AIChatViewModel
     @Environment(\.dismiss) private var dismiss
-    
-    private let regionOrder = ["africa", "middle_east", "south_asia", "europe", "north_america"]
+    // Rolled up per region: specialists open, cultural regions collapsed.
+    @State private var expanded: Set<String> = ["specialist"]
+
+    private let regionOrder = ["specialist", "africa", "middle_east", "south_asia", "europe", "north_america"]
     private let regionLabels: [String: String] = [
+        "specialist": "🏥 Specialist Agents",
         "africa": "🌍 Africa",
         "middle_east": "🕌 Middle East",
         "south_asia": "🕉 South Asia",
         "europe": "🏰 Europe",
         "north_america": "🗽 North America",
     ]
-    
+
     private var grouped: [(String, [AIPersona])] {
         let dict = Dictionary(grouping: vm.personas, by: { $0.region })
         return regionOrder.compactMap { region in
@@ -271,17 +289,20 @@ struct PersonaPickerSheet: View {
             return (region, items)
         }
     }
-    
+
     var body: some View {
         NavigationStack {
             List {
-                Text("Pick the name you'd like your health assistant to go by")
-                    .font(.subheadline)
+                Text("Optional — close this to keep your device-language guide, or pick another.")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .listRowBackground(Color.clear)
-                
+
                 ForEach(grouped, id: \.0) { region, personas in
-                    Section(regionLabels[region] ?? region) {
+                    DisclosureGroup(isExpanded: Binding(
+                        get: { expanded.contains(region) },
+                        set: { if $0 { expanded.insert(region) } else { expanded.remove(region) } }
+                    )) {
                         ForEach(personas) { persona in
                             let isSelected = vm.selectedPersona?.key == persona.key
                             Button {
@@ -290,24 +311,22 @@ struct PersonaPickerSheet: View {
                             } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(persona.title)
-                                            .font(.headline)
-                                        Text(persona.origin)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                        Text(persona.title).font(.subheadline).fontWeight(.medium)
+                                        Text(persona.origin).font(.caption).foregroundStyle(.secondary)
                                     }
                                     Spacer()
                                     if isSelected {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.green)
+                                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                                     }
                                 }
-                                .padding(.vertical, 4)
                             }
                             .buttonStyle(.plain)
-                            .listRowBackground(
-                                isSelected ? Color.green.opacity(0.08) : nil
-                            )
+                        }
+                    } label: {
+                        HStack {
+                            Text(regionLabels[region] ?? region).font(.headline)
+                            Spacer()
+                            Text("\(personas.count)").font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -315,13 +334,8 @@ struct PersonaPickerSheet: View {
             .navigationTitle("Choose Your Guide")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if vm.selectedPersona != nil {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { dismiss() }
-                    }
-                }
+                ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
             }
-            .interactiveDismissDisabled(vm.selectedPersona == nil)
         }
     }
 }
