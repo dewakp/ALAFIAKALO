@@ -16,10 +16,11 @@ struct Medication: Codable, Identifiable {
     let sideEffects: String?
     let isActive: Bool
     let notes: String?
+    let source: String?     // nil = entered manually; else importing portal/org
     let createdAt: Date
-    
+
     enum CodingKeys: String, CodingKey {
-        case id, name, dosage, frequency, route, reason, notes
+        case id, name, dosage, frequency, route, reason, notes, source
         case userId = "user_id"
         case rxnormCode = "rxnorm_code"
         case dosageUnit = "dosage_unit"

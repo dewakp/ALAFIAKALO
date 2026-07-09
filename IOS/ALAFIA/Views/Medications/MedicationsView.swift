@@ -152,9 +152,17 @@ struct MedicationRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(med.name)
                         .font(.headline)
+                    if let src = med.source {
+                        Text("⤵ Imported · \(src)")
+                            .font(.caption2).fontWeight(.medium)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(Color.orange.opacity(0.15))
+                            .foregroundStyle(.orange)
+                            .clipShape(Capsule())
+                    }
                     Text(med.dosageDisplay)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)

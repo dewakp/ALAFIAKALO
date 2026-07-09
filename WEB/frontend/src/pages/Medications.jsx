@@ -376,7 +376,12 @@ export default function Medications() {
               <tbody>
                 {meds.map((m) => (
                   <tr key={m.id}>
-                    <td>{m.name}</td><td>{m.dosage} {m.dosage_unit}</td><td>{m.frequency ?? '-'}</td>
+                    <td>{m.name}{m.source && (
+                      <span title={`Imported from ${m.source}`}
+                        style={{ marginLeft: 6, fontSize: '.62rem', fontWeight: 700, padding: '1px 6px',
+                          borderRadius: 8, background: '#fff3cd', color: '#856404', whiteSpace: 'nowrap' }}>
+                        ⤵ Imported
+                      </span>)}</td><td>{m.dosage} {m.dosage_unit}</td><td>{m.frequency ?? '-'}</td>
                     <td>{m.is_active ? '🟢 Active' : '⚪ Inactive'}</td>
                     <td><button className="btn btn-danger btn-sm" onClick={() => deleteRx(m.id)}><Trash2 size={14} /></button></td>
                   </tr>

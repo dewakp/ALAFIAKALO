@@ -53,6 +53,7 @@ class MedicationResponse(BaseModel):
     side_effects: str | None = None
     is_active: bool
     notes: str | None = None
+    source: str | None = None    # None = entered manually; else importing portal/org
     created_at: datetime
 
     model_config = {"from_attributes": True}

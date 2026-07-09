@@ -197,6 +197,7 @@ data class Medication(
     val start_date: String,
     val end_date: String?,
     val notes: String?,
+    val source: String? = null,   // null = entered manually; else importing portal/org
     val created_at: String
 )
 

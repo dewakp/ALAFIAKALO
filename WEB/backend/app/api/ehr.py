@@ -345,7 +345,10 @@ async def sync_connection(
     for mr in meds:
         row = smart_fhir.map_medication_request(mr)
         if row and row["notes"] not in seen:
-            db.add(Medication(user_id=current_user.id, **row))
+            # Tag portal-imported meds so the UI can distinguish them from ones the
+            # patient entered (e.g. sandbox/test data must not read as a real Rx).
+            db.add(Medication(user_id=current_user.id,
+                              source=conn.org_name or "Imported (portal)", **row))
             seen.add(row["notes"])
             counts["medications"] += 1
 

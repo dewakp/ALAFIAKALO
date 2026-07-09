@@ -199,6 +199,14 @@ private fun MedicationCard(medication: Medication, onLogDose: () -> Unit, onDele
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(medication.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    medication.source?.let { src ->
+                        Spacer(Modifier.height(2.dp))
+                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.small) {
+                            Text("⤵ Imported · $src",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                                style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                     Text(medication.dosage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = onDelete) {

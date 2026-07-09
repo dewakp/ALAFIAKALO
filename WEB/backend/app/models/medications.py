@@ -26,6 +26,8 @@ class Medication(Base):
     side_effects: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[str | None] = mapped_column(Text)
+    # None = entered by the patient; else the importing portal/org (e.g. FHIR sync).
+    source: Mapped[str | None] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
