@@ -7,6 +7,7 @@ Create Date: 2026-02-16 14:00:00.000000
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 revision: str = "b5c6d7e8f9a1"
 down_revision: Union[str, None] = "2940057c9079"
@@ -43,9 +44,12 @@ def upgrade() -> None:
         END $$;
     """)
 
-    # Use create_type=False so create_table won't try to re-create the enums
-    cat_col = sa.Enum(*CATEGORY_VALUES, name="notificationcategory", create_type=False)
-    pri_col = sa.Enum(*PRIORITY_VALUES, name="notificationpriority", create_type=False)
+    # Reference the existing PG enums without re-creating them. postgresql.ENUM
+    # with create_type=False reliably suppresses the CREATE TYPE that create_table's
+    # before_create hook would otherwise emit (generic sa.Enum still emitted it here,
+    # colliding with the DO-block types above → "type already exists" on a fresh DB).
+    cat_col = postgresql.ENUM(*CATEGORY_VALUES, name="notificationcategory", create_type=False)
+    pri_col = postgresql.ENUM(*PRIORITY_VALUES, name="notificationpriority", create_type=False)
 
     op.create_table(
         "notifications",
