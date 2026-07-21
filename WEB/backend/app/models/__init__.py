@@ -132,6 +132,13 @@ from app.models.food_nutrient_cache import FoodNutrientCache
 from app.models.learned_nutrient import LearnedFoodNutrient
 from app.models.image_label import LabeledFoodImage
 from app.models.flagged_estimate import FlaggedEstimate
+from app.models.subscription import (
+    Subscription,
+    SubscriptionEvent,
+    SubscriptionStatus,
+    SubscriptionProvider,
+    PLAN_PLUS_MONTHLY,
+)
 
 __all__ = [
     "User",
@@ -268,4 +275,9 @@ __all__ = [
     "LearnedFoodNutrient",
     "FlaggedEstimate",
     "LabeledFoodImage",
+    "Subscription",
+    "SubscriptionEvent",
+    "SubscriptionStatus",
+    "SubscriptionProvider",
+    "PLAN_PLUS_MONTHLY",
 ]

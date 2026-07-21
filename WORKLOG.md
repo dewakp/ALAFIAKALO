@@ -1694,3 +1694,82 @@ and verify-dosage 422'd ("dosage field required").
 
 Session parity status: recipe-URL ✅✅, elimination photo ✅✅, chat personas+streaming ✅✅,
 chat prompt-fix+gpt-oss:20b ✅✅ (server-side), chat voice mic ✅✅, med-scan + model fix ✅✅.
+
+### 2026-07-19 — Subscription ("ALAFIA Plus") across web + Android + iOS
+
+New paid tier wired end-to-end on all four rails per SubscriptionRail.md ($12/mo web via
+Stripe/PayPal, $14/mo Android via Google Play, $14/mo iOS via Apple — USD everywhere). The
+**backend is the single source of truth for entitlement**; every rail reports a *verified*
+purchase and the backend records the active period on the user's one `subscriptions` row.
+
+**Backend (`WEB/backend`)** — no new Python deps; all provider I/O via `httpx` + stdlib crypto:
+- `models/subscription.py` — `Subscription` (per-user state: status/provider/period/cancel + per-rail
+  reconciliation ids) with `is_entitled(grace_days)`, and `SubscriptionEvent` (append-only idempotency
+  + audit log; unique `(provider, event_id)`). Registered in `models/__init__.py`.
+- `services/subscription_service.py` — Stripe (Checkout + webhook HMAC verify + sync), PayPal
+  (Subscriptions API + webhook verify), Google Play (Android Publisher `subscriptionsv2` via a
+  service-account JWT), Apple (StoreKit 2 JWS decode + legacy verifyReceipt fallback), plus cancel.
+  Dev **test-mode**: a rail with blank creds + `DEBUG=true` returns a synthetic active purchase so the
+  whole flow is exercisable without live keys; in prod a missing cred raises 503 (never a fake grant).
+- `api/subscription.py` — `/plans`, `/status`, `/checkout`, `/confirm`, `/webhook/{stripe,paypal}`,
+  `/verify/{google,apple}`, `/cancel`. Registered under `/subscription`. Webhook paths added to the
+  CSRF exemption in `main.py` (they're signature-authenticated, not cookie-authenticated).
+- `core/entitlement.py` — `require_plus` FastAPI dependency to gate premium endpoints server-side.
+- `core/config.py` — SUBSCRIPTION_*/STRIPE_*/PAYPAL_*/GOOGLE_PLAY_*/APPLE_* settings + `PUBLIC_WEB_URL`.
+- Alembic `bb002_add_subscriptions` (down_revision `aa001_add_medication_source`; id 23 chars ≤ 32).
+
+**Web (`WEB/frontend`)** — `pages/Subscription.jsx`: pricing card + card/PayPal buttons that hand off to
+the hosted checkout, redirect-return `/confirm`, subscribed card with cancel, and a mobile-pricing note.
+Route `/subscription` in `App.jsx`; "ALAFIA Plus" nav entry (Sparkles) in `Layout.jsx`.
+
+**Android** — Play Billing `billing-ktx:7.1.1` in `app/build.gradle`. `billing/BillingManager.kt` (v7:
+query SUBS product, launch flow, re-report owned purchases, acknowledge after server verify).
+`views/subscription/SubscriptionScreen.kt` verifies the purchase token via `/verify/google`. Models +
+`ApiService` methods added; route + a "ALAFIA Plus" More-grid tile in `MainTabView.kt`.
+
+**iOS** — StoreKit 2 in `Views/Subscription/SubscriptionView.swift` (`StoreManager`: load product,
+purchase, `Transaction.updates`/`currentEntitlements`, verify JWS via `/verify/apple`, finish). Codable
+models in `NewFeatureModels.swift`; new file wired into `project.pbxproj`; "ALAFIA Plus" section in
+`MainTabView.swift`.
+
+**Verified this session (Docker daemon was down → no live stack):**
+- Android `:app:compileDebugKotlin` — BUILD SUCCESSFUL (billing dep resolved).
+- iOS `xcodebuild -scheme ALAFIA` (iPhone 17 Pro sim) — BUILD SUCCEEDED (SubscriptionView compiled).
+- Backend: `py_compile` clean; 24/24 pure-logic unit checks PASS against the real modules in a minimal
+  venv (entitlement grace math, cancel-still-in-period, naive-tz handling; Stripe sig valid/tampered/
+  replay/malformed; ts→dt; rail pricing bound to settings; status maps).
+
+**To go live (owner action, not code):** set provider keys (Stripe price/webhook, PayPal plan/webhook,
+Google service account, Apple shared secret) in `backend/.env`; create the `alafia_plus_monthly` product
+in Play Console + App Store Connect; run `docker compose exec backend alembic upgrade bb002_add_subscriptions`.
+Apple JWS x5c cert-chain verification is decoded-but-not-chain-validated — hardening follow-up noted in
+the service. Web/DB live smoke test still pending (blocked on Docker this session).
+
+## Session 2026-07-21 — Subscription: finish + live smoke test (found/fixed a real bug)
+
+**Instruction:** finish the remaining task (subscription) and start deployment (GCP + Play + App Store).
+
+Brought the stack up and closed out the pending subscription items:
+
+- **Migration graph was broken (two heads → couldn't `upgrade head`).** `bb002_add_subscriptions`
+  and the last commit's `aa001_add_medication_source` were BOTH branched off `z001` (a stale head),
+  while the mainline had advanced to `ll001`. Re-parented to linearize:
+  `ll001 → aa001_add_medication_source → bb002_add_subscriptions` (subscription tables are
+  independent, so this is a pure graph repair). `medications.source` and the `subscriptions`/
+  `subscription_events` tables already existed out-of-band (auto-created from the models), so on this
+  dev DB I `stamp`ed past them; the linear chain still applies cleanly on a fresh DB (CI/prod).
+- **Live smoke test surfaced a real bug.** In DEBUG test-mode the web rails (Stripe/PayPal) return a
+  *constant* reference id, and unlike the mobile rails they didn't guard the idempotency insert — so
+  the **2nd user (or any double checkout-redirect) 500'd** on the unique `(provider, event_id)`
+  constraint. Fixed the single choke point `_record_event` to wrap the insert in a **SAVEPOINT**
+  (`begin_nested` + catch `IntegrityError`) → idempotent, race-safe, and dialect-agnostic (Postgres in
+  prod, SQLite in tests — so it can't be a `postgresql.insert` only fix).
+- **Verified end-to-end (live):** all 4 rails activate → entitled (Stripe $12, PayPal, Google $14,
+  Apple $14); status flips none→active; cancel-at-period-end keeps access through the period;
+  same-user double-confirm and cross-user shared-ref both return 200. Added
+  `tests/test_subscription_service.py` (3 tests). **Full suite: 213 passed.**
+- **Still open for iOS go-live:** Apple StoreKit JWS x5c cert-chain validation (decoded, not yet
+  chain-verified to Apple's root CA) — harden before trusting real iOS purchases.
+
+**Deployment kickoff:** target **Google Cloud** (Cloud Run + Cloud SQL) for backend/web/db/identity,
+**web/API track first** (user decisions). IaC + runbook to follow.

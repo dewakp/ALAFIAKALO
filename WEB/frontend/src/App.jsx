@@ -57,6 +57,7 @@ const Symptoms = lazy(() => import('./pages/Symptoms'));
 const Sleep = lazy(() => import('./pages/Sleep'));
 const Vitals = lazy(() => import('./pages/Vitals'));
 const HealthInsights = lazy(() => import('./pages/HealthInsights'));
+const Subscription = lazy(() => import('./pages/Subscription'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -130,6 +131,7 @@ export default function App() {
           <Route path="sleep" element={<Sleep />} />
           <Route path="vitals" element={<Vitals />} />
           <Route path="insights" element={<HealthInsights />} />
+          <Route path="subscription" element={<Subscription />} />
         </Route>
       </Routes>
       </Suspense>

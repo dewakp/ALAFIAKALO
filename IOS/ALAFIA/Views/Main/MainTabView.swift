@@ -64,6 +64,15 @@ struct HealthHubView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section("ALAFIA Plus") {
+                    NavigationLink {
+                        SubscriptionView()
+                    } label: {
+                        Label("Subscription", systemImage: "sparkles")
+                            .foregroundStyle(Color(red: 0.49, green: 0.30, blue: 1.0))
+                    }
+                }
+
                 Section("Health Tracking") {
                     NavigationLink {
                         LabsView()

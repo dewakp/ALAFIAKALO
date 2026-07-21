@@ -9,7 +9,9 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'aa001_add_medication_source'
-down_revision = 'z001_elimination_weights_image'
+# Was branched off z001 (a stale head) in commit 05fd81c, creating a second head.
+# Re-parented onto the mainline tip (ll001) to linearize the migration graph.
+down_revision = 'll001_labeled_food_images'
 branch_labels = None
 depends_on = None
 

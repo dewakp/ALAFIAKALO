@@ -52,6 +52,7 @@ from app.api.firebase_sync import router as firebase_sync_router
 from app.api.surveillance import router as surveillance_router
 from app.api.clinician_directory import router as clinician_directory_router
 from app.api.facilities import router as facilities_router
+from app.api.subscription import router as subscription_router
 
 router = APIRouter()
 
@@ -105,3 +106,4 @@ router.include_router(ground_truth_router, prefix="/ground-truth", tags=["Ground
 router.include_router(ai_learning_router, prefix="/ai", tags=["AI Learning & Intelligence"])
 router.include_router(firebase_sync_router, prefix="/firebase", tags=["Firebase Sync"])
 router.include_router(surveillance_router, prefix="/surveillance", tags=["Disease Surveillance"])
+router.include_router(subscription_router, prefix="/subscription", tags=["Subscription & Billing"])

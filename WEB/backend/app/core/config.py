@@ -122,6 +122,51 @@ class Settings(BaseSettings):
     PRACTICE_GEOCODE_BATCH_LIMIT: int = 5000   # addresses per Census batch call
     PRACTICE_GEOCODE_MAX_BATCHES: int = 6      # cap passes per run (~30k/run)
 
+    # ── Subscription / Billing ──────────────────────────────────────────────
+    # A single paid tier ("ALAFIA Plus"). Prices are USD/month and differ by the
+    # rail because the mobile stores take a cut. The BACKEND is the single source
+    # of truth for entitlement: each rail reports a verified purchase and the
+    # backend records the active period. If a provider's keys are blank the
+    # matching rail runs in dev "test-mode" — it returns a fake but internally
+    # consistent purchase so the UI + entitlement flow can be exercised without
+    # live credentials (never enabled when DEBUG is False).
+    SUBSCRIPTION_ENABLED: bool = True
+    SUBSCRIPTION_PRODUCT_NAME: str = "ALAFIA Plus"
+    SUBSCRIPTION_PRICE_WEB_USD: float = 12.0        # Stripe / PayPal
+    SUBSCRIPTION_PRICE_ANDROID_USD: float = 14.0    # Google Play Billing
+    SUBSCRIPTION_PRICE_IOS_USD: float = 14.0        # Apple StoreKit
+    SUBSCRIPTION_TRIAL_DAYS: int = 0
+    # Grace window after a period ends before entitlement is revoked (covers
+    # webhook lag / renewal retries).
+    SUBSCRIPTION_GRACE_DAYS: int = 3
+    # Public base URL of the web app; used to build Stripe/PayPal return URLs.
+    PUBLIC_WEB_URL: str = "http://localhost:8080"
+
+    # Stripe (web card rail). Blank STRIPE_SECRET_KEY ⇒ dev test-mode checkout.
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PRICE_ID: str = ""            # price_… recurring $12/mo price
+    STRIPE_WEBHOOK_SECRET: str = ""      # whsec_… for signature verification
+    STRIPE_API_BASE: str = "https://api.stripe.com"
+
+    # PayPal (web alternative rail).
+    PAYPAL_CLIENT_ID: str = ""
+    PAYPAL_CLIENT_SECRET: str = ""
+    PAYPAL_PLAN_ID: str = ""             # P-… billing plan for the $12/mo sub
+    PAYPAL_WEBHOOK_ID: str = ""          # for webhook signature verification
+    PAYPAL_API_BASE: str = "https://api-m.sandbox.paypal.com"  # live: api-m.paypal.com
+
+    # Google Play Billing (Android). Server-side purchase verification via a
+    # service account with the Android Publisher scope.
+    GOOGLE_PLAY_PACKAGE_NAME: str = "com.alafia.android"
+    GOOGLE_PLAY_PRODUCT_ID: str = "alafia_plus_monthly"
+    GOOGLE_PLAY_SERVICE_ACCOUNT: str = ""   # path to service-account JSON
+
+    # Apple StoreKit (iOS). Server-side transaction verification.
+    APPLE_BUNDLE_ID: str = "com.alafia.ios"
+    APPLE_PRODUCT_ID: str = "alafia_plus_monthly"
+    APPLE_SHARED_SECRET: str = ""           # app-specific shared secret (verifyReceipt)
+    APPLE_ENVIRONMENT: str = "sandbox"      # sandbox | production
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

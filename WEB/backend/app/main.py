@@ -108,6 +108,10 @@ def _csrf_exempt(request: Request) -> bool:
         return True
     if request.url.path == "/api/v1/auth/refresh" and not request.cookies.get("refresh_token"):
         return True
+    # Payment-provider webhooks carry no browser credentials — they are
+    # authenticated by a provider signature (verified in the handler), not CSRF.
+    if request.url.path.startswith("/api/v1/subscription/webhook/"):
+        return True
     return False
 
 

@@ -1730,3 +1730,61 @@ struct SystemIdResponse: Codable {
         case systemId = "system_id"
     }
 }
+
+// MARK: - Subscription / Billing (ALAFIA Plus)
+
+struct SubscriptionRailPrice: Codable {
+    let provider: String
+    let priceUsd: Double
+    let storeProductId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case provider
+        case priceUsd = "price_usd"
+        case storeProductId = "store_product_id"
+    }
+}
+
+struct SubscriptionPlans: Codable {
+    let productName: String
+    let plan: String
+    let currency: String
+    let interval: String
+    let rails: [SubscriptionRailPrice]
+
+    enum CodingKeys: String, CodingKey {
+        case productName = "product_name"
+        case plan, currency, interval, rails
+    }
+}
+
+struct SubscriptionStatus: Codable {
+    let status: String
+    let provider: String
+    let plan: String
+    let entitled: Bool
+    let productName: String
+    let priceUsd: Double?
+    let currentPeriodEnd: String?
+    let cancelAtPeriodEnd: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case status, provider, plan, entitled
+        case productName = "product_name"
+        case priceUsd = "price_usd"
+        case currentPeriodEnd = "current_period_end"
+        case cancelAtPeriodEnd = "cancel_at_period_end"
+    }
+}
+
+struct AppleVerifyRequest: Codable {
+    let signedTransaction: String?
+    let receiptData: String?
+    let transactionId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case signedTransaction = "signed_transaction"
+        case receiptData = "receipt_data"
+        case transactionId = "transaction_id"
+    }
+}

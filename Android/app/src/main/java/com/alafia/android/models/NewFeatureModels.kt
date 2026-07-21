@@ -818,3 +818,36 @@ data class WhatIfRequest(
     @SerializedName("Glucose") val glucose: Double? = null,
     @SerializedName("Sodium") val sodium: Double? = null
 )
+
+// ── Subscription / Billing (ALAFIA Plus) ────────────────────────────────────
+
+data class SubscriptionRailPrice(
+    val provider: String,
+    @SerializedName("price_usd") val priceUsd: Double,
+    @SerializedName("store_product_id") val storeProductId: String? = null
+)
+
+data class SubscriptionPlans(
+    @SerializedName("product_name") val productName: String,
+    val plan: String,
+    val currency: String = "USD",
+    val interval: String = "month",
+    val rails: List<SubscriptionRailPrice> = emptyList()
+)
+
+data class SubscriptionStatus(
+    val status: String,
+    val provider: String,
+    val plan: String,
+    val entitled: Boolean,
+    @SerializedName("product_name") val productName: String,
+    @SerializedName("price_usd") val priceUsd: Double? = null,
+    @SerializedName("current_period_end") val currentPeriodEnd: String? = null,
+    @SerializedName("cancel_at_period_end") val cancelAtPeriodEnd: Boolean = false
+)
+
+data class GoogleVerifyRequest(
+    @SerializedName("purchase_token") val purchaseToken: String,
+    @SerializedName("product_id") val productId: String,
+    @SerializedName("order_id") val orderId: String? = null
+)

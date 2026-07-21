@@ -42,6 +42,7 @@ import com.alafia.android.views.ai.AIChatScreen
 import com.alafia.android.views.chronic.ChronicConditionsScreen
 import com.alafia.android.views.privacy.PrivacySettingsScreen
 import com.alafia.android.views.insurance.InsuranceScreen
+import com.alafia.android.views.subscription.SubscriptionScreen
 import com.alafia.android.views.physicians.PhysiciansScreen
 import com.alafia.android.views.labcharts.LabChartsScreen
 import com.alafia.android.views.wellness.WellnessScreen
@@ -223,6 +224,10 @@ fun MainTabView(
                 InsuranceScreen(navController = innerNavController)
             }
 
+            composable("subscription") {
+                SubscriptionScreen(navController = innerNavController)
+            }
+
             composable("physicians") {
                 PhysiciansScreen(navController = innerNavController)
             }
@@ -397,6 +402,7 @@ fun MoreScreen(
             MoreGridItem("Data Share", Icons.Default.Share, "data-sharing"),
         )),
         MoreGridSection("Profile", listOf(
+            MoreGridItem("ALAFIA Plus", Icons.Default.AutoAwesome, "subscription"),
             MoreGridItem("My Profile", Icons.Default.Person, "profile"),
             MoreGridItem("Role", Icons.Default.Badge, "roles"),
             MoreGridItem("Conditions", Icons.Default.MonitorHeart, "chronic-conditions"),

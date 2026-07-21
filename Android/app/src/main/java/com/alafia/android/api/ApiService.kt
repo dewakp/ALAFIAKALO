@@ -985,4 +985,17 @@ interface ApiService {
 
     @GET("auth/me/system-id")
     suspend fun getSystemId(): SystemIdResponse
+
+    // ── Subscription / Billing (ALAFIA Plus) ──────────────────────────────────
+
+    @GET("subscription/plans")
+    suspend fun getSubscriptionPlans(): SubscriptionPlans
+
+    @GET("subscription/status")
+    suspend fun getSubscriptionStatus(): SubscriptionStatus
+
+    /** Verify a Google Play purchase server-side; the backend records the
+     *  entitlement and returns the updated status. */
+    @POST("subscription/verify/google")
+    suspend fun verifyGooglePurchase(@Body request: GoogleVerifyRequest): SubscriptionStatus
 }

@@ -49,6 +49,7 @@ import {
   Network,
   Radar,
   Building,
+  Sparkles,
 } from 'lucide-react';
 
 // Roles that can see the Clinician Dashboard
@@ -74,6 +75,8 @@ function isClinician(user) {
 const navGroups = [
   // Prompt Hub — the modality-aware entry point (Basis.md)
   { to: '/', icon: Bot, label: 'Ask ALAFIA' },
+  // ALAFIA Plus subscription / upgrade
+  { to: '/subscription', icon: Sparkles, label: 'ALAFIA Plus' },
   // ── Firebase-matching primary nav ──
   {
     label: 'Overview & Analysis', icon: LayoutDashboard, children: [
