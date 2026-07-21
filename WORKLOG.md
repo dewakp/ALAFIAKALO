@@ -1789,3 +1789,29 @@ Built the GCP web/API deploy scaffold under `deploy/gcp/`:
   blockchain, schedulers, email, media storage).
 - `config.env` + `keys/` git-ignored. Scripts pass `bash -n`. **Executing needs the owner's GCP
   project + billing + `gcloud auth login`** — I can't run it without those.
+
+### 2026-07-21 (cont.) — LIVE on Google Cloud (web/API track)
+
+Deployed to a dedicated project **`alafia-prod-6igma`** (org 6igma.com, billing New2025 — freed a
+project-quota slot by unlinking 4 unused projects). Cloud SQL `alafia-db` (Postgres 16, db-g1-small,
+ENTERPRISE edition), Secret Manager for all secrets, three Cloud Run services in `europe-west1`.
+
+**Live URLs:**
+- App: https://alafia-frontend-xj37wg452q-ew.a.run.app
+- API (mobile targets this): https://alafia-backend-xj37wg452q-ew.a.run.app
+- Identity (PQC SSO): https://alafia-identity-xj37wg452q-ew.a.run.app
+
+**Two latent bugs the first-ever clean migration-from-base exposed (fixed + committed):**
+1. `b5c6d7e8f9a1` notifications — DO-block created the enum, then `create_table` re-emitted CREATE TYPE
+   in the same txn (generic `sa.Enum(create_type=False)` didn't suppress it) → use `postgresql.ENUM`.
+2. Model/migration drift — `users.firebase_uid` (and 11 more cols + 2 tables) only ever existed via
+   `create_all` on dev DBs → additive migration `cc002`. Both verified `upgrade head` from base.
+
+**Verified live end-to-end:** backend health; SPA; frontend→/api proxy → DB-backed subscription plans;
+hybrid JWKS (Ed25519 `OKP` + ML-DSA `AKP`); register 201 → login (5.3 KB hybrid token) → `/users/me`
+(backend verifies via JWKS) → subscription status. Full auth + entitlement chain works in prod.
+
+**Deferred (documented in deploy/gcp/README.md):** GPU LLM (AI → 503), Redis (WS off), blockchain,
+in-process schedulers (off on autoscale), SMTP, media→GCS. **Subscription rails 503 until real
+provider keys go into Secret Manager** (never a fake charge). Next tracks: custom domain + TLS, then
+Google Play + iOS App Store (mobile apps point at the API URL above).
