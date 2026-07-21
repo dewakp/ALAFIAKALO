@@ -22,8 +22,11 @@ CONN="$(gcloud sql instances describe "$SQL_INSTANCE" --format='value(connection
 gcloud config set project "$PROJECT_ID"
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
-# Runtime service account gets read access to the secrets it mounts.
-SA="$(gcloud iam service-accounts list --filter='displayName:Compute Engine default' --format='value(email)' | head -1)"
+# Runtime service account (the Compute Engine default SA, which Cloud Run uses)
+# gets read access to the secrets it mounts. Derive it deterministically from the
+# project number — the displayName varies and can't be filtered on reliably.
+PROJ_NUM="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+SA="${PROJ_NUM}-compute@developer.gserviceaccount.com"
 for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
          stripe-secret-key stripe-price-id stripe-webhook-secret \
@@ -32,29 +35,34 @@ for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
 done
+# …and the ability to connect to Cloud SQL through the socket.
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:${SA}" \
+  --role=roles/cloudsql.client --quiet >/dev/null 2>&1 || true
 
-# ── 1. Build + push images (local Docker → Artifact Registry) ─────────────────
-# Docker is this project's standard build tool; a local build also lets the
-# frontend use the prod Dockerfile + proxy template cleanly. (Prefer Cloud Build
-# later for CI: `gcloud builds submit` with a cloudbuild.yaml.)
-echo "── Building + pushing images ─────────────────────────────────"
-docker build --platform linux/amd64 -t "$AR/identity:latest" "$REPO_ROOT/WEB/identity_service"
-docker push "$AR/identity:latest"
-docker build --platform linux/amd64 -t "$AR/backend:latest" "$REPO_ROOT/WEB/backend"
-docker push "$AR/backend:latest"
+# ── 1. Build + push images (set SKIP_BUILD=1 to reuse the images already in AR) ─
+# backend (Rust) + identity (liboqs C) compile native code — build them on
+# Cloud Build (native amd64) rather than slow local qemu emulation on an arm64 Mac.
+if [ "${SKIP_BUILD:-}" != "1" ]; then
+  echo "── Building identity + backend (Cloud Build) ─────────────────"
+  gcloud builds submit "$REPO_ROOT/WEB/identity_service" --tag "$AR/identity:latest"
+  gcloud builds submit "$REPO_ROOT/WEB/backend"          --tag "$AR/backend:latest"
 
-# Frontend: the prod Dockerfile COPYs the proxy template from its build context,
-# so stage the template into WEB/frontend for the build, then remove it.
-STAGE="$REPO_ROOT/WEB/frontend"
-cp frontend/nginx.conf.template "$STAGE/deploy-nginx.conf.template"
-trap 'rm -f "$STAGE/deploy-nginx.conf.template"' EXIT
-docker build --platform linux/amd64 -t "$AR/frontend:latest" -f frontend/Dockerfile "$STAGE"
-docker push "$AR/frontend:latest"
+  # Frontend (node, no native compile): local buildx amd64 with the prod Dockerfile,
+  # which COPYs the proxy template from its build context — stage it, then remove.
+  echo "── Building frontend (local buildx) ──────────────────────────"
+  STAGE="$REPO_ROOT/WEB/frontend"
+  cp frontend/nginx.conf.template "$STAGE/deploy-nginx.conf.template"
+  trap 'rm -f "$STAGE/deploy-nginx.conf.template"' EXIT
+  docker build --platform linux/amd64 -t "$AR/frontend:latest" -f frontend/Dockerfile "$STAGE"
+  docker push "$AR/frontend:latest"
+fi
 
 # ── 2. Identity service ───────────────────────────────────────────────────────
 echo "── Deploying identity ────────────────────────────────────────"
+# Public: the backend calls it server-to-server (no Google ID token attached), and
+# an IdP's endpoints (login, JWKS) are meant to be reachable. App auth still gates data.
 gcloud run deploy "$SVC_IDENTITY" --image "$AR/identity:latest" --region "$REGION" \
-  --no-allow-unauthenticated --add-cloudsql-instances "$CONN" \
+  --allow-unauthenticated --port 8000 --add-cloudsql-instances "$CONN" \
   --set-env-vars "IDENTITY_ENV=production,IDENTITY_DB_SCHEMA=identity,IDENTITY_KEYS_FILE=/run/keys/identity_keys.json" \
   --set-secrets "IDENTITY_DATABASE_URL=alafia-database-url:latest,IDENTITY_MIGRATION_SECRET=identity-migration-secret:latest" \
   --set-secrets "/run/keys/identity_keys.json=identity-keys:latest"
@@ -63,7 +71,7 @@ IDENTITY_URL="$(gcloud run services describe "$SVC_IDENTITY" --region "$REGION" 
 # ── 3. DB migrations (one-off Cloud Run job on the backend image) ─────────────
 echo "── Running alembic upgrade head ──────────────────────────────"
 gcloud run jobs deploy alafia-migrate --image "$AR/backend:latest" --region "$REGION" \
-  --add-cloudsql-instances "$CONN" \
+  --set-cloudsql-instances "$CONN" \
   --set-secrets "DATABASE_URL=alafia-database-url:latest,DATABASE_URL_SYNC=alafia-database-url-sync:latest,SECRET_KEY=alafia-secret-key:latest" \
   --command alembic --args "upgrade,head"
 gcloud run jobs execute alafia-migrate --region "$REGION" --wait
@@ -74,12 +82,30 @@ BACKEND_ENV="DEBUG=false,IDENTITY_ENABLED=true,IDENTITY_BASE_URL=${IDENTITY_URL}
 BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_ENABLED=true,APPLE_ENVIRONMENT=production,PAYPAL_API_BASE=https://api-m.paypal.com"
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
+# Core secrets always mount. Provider keys mount ONLY if the secret has a value
+# (an enabled version) — otherwise the rail stays unconfigured (503 in prod), which
+# is the correct pre-go-live state. Add a version to a provider secret to enable it.
+BACKEND_SECRETS="SECRET_KEY=alafia-secret-key:latest,DATABASE_URL=alafia-database-url:latest,DATABASE_URL_SYNC=alafia-database-url-sync:latest,IDENTITY_MIGRATION_SECRET=identity-migration-secret:latest"
+add_secret_if_present() {  # ENV_VAR  SECRET_NAME
+  if gcloud secrets versions list "$2" --filter='state=enabled' --format='value(name)' --limit=1 2>/dev/null | grep -q .; then
+    BACKEND_SECRETS="${BACKEND_SECRETS},$1=$2:latest"
+    echo "   + mounting $1 (configured)"
+  fi
+}
+add_secret_if_present STRIPE_SECRET_KEY     stripe-secret-key
+add_secret_if_present STRIPE_PRICE_ID       stripe-price-id
+add_secret_if_present STRIPE_WEBHOOK_SECRET stripe-webhook-secret
+add_secret_if_present PAYPAL_CLIENT_ID      paypal-client-id
+add_secret_if_present PAYPAL_CLIENT_SECRET  paypal-client-secret
+add_secret_if_present PAYPAL_PLAN_ID        paypal-plan-id
+add_secret_if_present PAYPAL_WEBHOOK_ID     paypal-webhook-id
+add_secret_if_present APPLE_SHARED_SECRET   apple-shared-secret
 gcloud run deploy "$SVC_BACKEND" --image "$AR/backend:latest" --region "$REGION" \
   --allow-unauthenticated --port 8000 --add-cloudsql-instances "$CONN" \
   --min-instances "$BACKEND_MIN_INSTANCES" --max-instances "$BACKEND_MAX_INSTANCES" \
   --cpu 2 --memory 2Gi --timeout 300 \
   --set-env-vars "$BACKEND_ENV" \
-  --set-secrets "SECRET_KEY=alafia-secret-key:latest,DATABASE_URL=alafia-database-url:latest,DATABASE_URL_SYNC=alafia-database-url-sync:latest,IDENTITY_MIGRATION_SECRET=identity-migration-secret:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_PRICE_ID=stripe-price-id:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,PAYPAL_CLIENT_ID=paypal-client-id:latest,PAYPAL_CLIENT_SECRET=paypal-client-secret:latest,PAYPAL_PLAN_ID=paypal-plan-id:latest,PAYPAL_WEBHOOK_ID=paypal-webhook-id:latest,APPLE_SHARED_SECRET=apple-shared-secret:latest"
+  --set-secrets "$BACKEND_SECRETS"
 BACKEND_URL="$(gcloud run services describe "$SVC_BACKEND" --region "$REGION" --format='value(status.url)')"
 BACKEND_HOST="${BACKEND_URL#https://}"
 
