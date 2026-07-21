@@ -1772,4 +1772,20 @@ Brought the stack up and closed out the pending subscription items:
   chain-verified to Apple's root CA) — harden before trusting real iOS purchases.
 
 **Deployment kickoff:** target **Google Cloud** (Cloud Run + Cloud SQL) for backend/web/db/identity,
-**web/API track first** (user decisions). IaC + runbook to follow.
+**web/API track first** (user decisions).
+
+Built the GCP web/API deploy scaffold under `deploy/gcp/`:
+- `provision.sh` — enable APIs, Artifact Registry, Cloud SQL (Postgres 16), and app secrets
+  (SECRET_KEY, composed DATABASE_URL(s), identity-migration-secret, provider-key placeholders) in
+  Secret Manager. Idempotent.
+- `deploy.sh` — build/push (local Docker, `--platform linux/amd64`) → deploy **identity** → run a
+  one-off **alembic-migrate job** → deploy **backend** → deploy **frontend**, then a 2nd pass to set
+  `PUBLIC_WEB_URL`/`CORS_ORIGINS` to the public URL. Backend pinned to 1 always-on instance with the
+  in-process schedulers disabled (they can't fan out on an autoscaled service).
+- `frontend/` — prod nginx image that proxies `/api` + `/ws` to the backend's `run.app` host, so the
+  app keeps **one origin** (CSRF + refresh-token cookies stay same-site; no CORS split).
+- `README.md` — full runbook incl. identity-key generation, HIPAA BAA, subscription go-live (fill
+  Secret Manager, rails 503 until then — never a fake charge), and what's deferred (GPU LLM, Redis,
+  blockchain, schedulers, email, media storage).
+- `config.env` + `keys/` git-ignored. Scripts pass `bash -n`. **Executing needs the owner's GCP
+  project + billing + `gcloud auth login`** — I can't run it without those.

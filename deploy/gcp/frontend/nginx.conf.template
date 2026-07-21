@@ -1,0 +1,56 @@
+# Production SPA + reverse proxy for Cloud Run.
+#
+# The SPA calls the API at the RELATIVE path /api/v1, and this nginx proxies
+# /api and /ws to the backend Cloud Run service. Keeping one public origin means
+# the CSRF + refresh-token cookies stay same-site (a cross-origin split would
+# break them). ${BACKEND_HOST} is the backend's *.run.app host (no scheme),
+# injected by envsubst from the BACKEND_HOST env var at container start
+# (nginx:alpine runs envsubst on /etc/nginx/templates/*.template automatically).
+server {
+    listen       ${PORT};
+    server_name  _;
+    root         /usr/share/nginx/html;
+    index        index.html;
+
+    # Camera photos / voice notes must reach the backend (default is 1 MB).
+    client_max_body_size 25M;
+
+    # Cloud Run's internal DNS; needed because proxy_pass uses a variable.
+    resolver 169.254.169.254 ipv6=off valid=30s;
+
+    location = /healthz { return 200 "ok\n"; add_header Content-Type text/plain; }
+
+    # ── API + WebSocket → backend Cloud Run service (server-to-server, HTTPS) ──
+    location /api/ {
+        set $backend https://${BACKEND_HOST};
+        proxy_pass $backend;
+        proxy_ssl_server_name on;                 # SNI = run.app host (required)
+        proxy_set_header Host ${BACKEND_HOST};    # Cloud Run routes by Host
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 300s;                  # slow LLM/vision calls
+    }
+
+    location /ws/ {
+        set $backend https://${BACKEND_HOST};
+        proxy_pass $backend;
+        proxy_ssl_server_name on;
+        proxy_set_header Host ${BACKEND_HOST};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+    }
+
+    # App shell must always revalidate so a post-deploy chunk hash is never stale.
+    location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
