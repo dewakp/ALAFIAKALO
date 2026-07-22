@@ -1815,3 +1815,37 @@ hybrid JWKS (Ed25519 `OKP` + ML-DSA `AKP`); register 201 → login (5.3 KB hybri
 in-process schedulers (off on autoscale), SMTP, media→GCS. **Subscription rails 503 until real
 provider keys go into Secret Manager** (never a fake charge). Next tracks: custom domain + TLS, then
 Google Play + iOS App Store (mobile apps point at the API URL above).
+
+## Session 2026-07-22 — Prod data migration, hard paywall, timezone fixes, task tracker
+
+**Data + identity migration (local → prod Cloud SQL).** "login not working" was just the fresh prod
+DB having no accounts. Migrated the local `public` schema (75 users + all health + subscription data)
+via `pg_dump -n public --no-owner` (NOT `--clean` — that emits `DROP SCHEMA public`, which broke on a
+leftover enum dep and half-dropped the DB; recovered by recreating the DB + plain import as
+`--user=alafia`) excluding the ~340 MB clinician-ingest staging; `alembic stamp cc002`. Then also
+migrated the `identity` schema data-only (124 identity users + Argon2 creds; self-contained FKs) so
+migrated users — incl. `developer@hntsolutions.com` — log in via the prod IdP exactly as locally.
+Verified in-browser. PHI/credential dumps deleted from GCS after import.
+
+**Hard paywall (no free tier).** `SUBSCRIPTION_REQUIRED=true` + a router dependency
+`require_active_subscription` gate the whole `/api/v1` surface: authenticated non-exempt users without
+an active subscription get 402 on gated paths; `/auth`, `/subscription`, `/users` stay open so they can
+sign in + pay; `SUBSCRIPTION_EXEMPT_EMAILS` (default `developer@hntsolutions.com`) bypasses. Frontend
+redirects to `/subscription` on 402. Verified live (non-sub → 402/redirect; entitled + exempt → pass).
+`54532a1`. **Consequence:** with the paywall on AND no live keys, new users are locked out until
+payments go live. Kill-switch: set `SUBSCRIPTION_REQUIRED=false`.
+
+**Timezone — "times race ahead as if UTC."**
+- Web `27e63c8`: added `utils/datetime.js` (parse naive-as-UTC + format in machine locale; `localToday`
+  for date inputs); swept 27 pages off `new Date().toISOString().split('T')[0]` (UTC "today") and the
+  timestamp displays. Verified live (showed local July 21, not UTC July 22).
+- Mobile `9e7b9a6`: Android formatters were `LocalDateTime.parse(strip "Z")` (UTC read as local); iOS
+  used UTC `ISO8601DateFormatter` for "today" + sliced raw ISO strings. Added `AppDate` on each platform
+  (parse naive-as-UTC + device-local format) and routed the buggy sites. Both compile; on-device visual
+  check still pending.
+
+**All outstanding work is now logged in `DEPLOYMENT_TASKS.md`** (master tracker): payments go-live,
+custom domain, deferred infra (GPU LLM / Redis / blockchain / email / media / Firebase sync), and full
+**iOS + Android app-store deployment checklists**. Surfaced two mobile blockers there: apps hardcode
+`https://api.alafia.com` (no domain yet), and iOS bundle `com.alafia.app` ≠ backend
+`APPLE_BUNDLE_ID=com.alafia.ios` (must match for Apple purchase verification).
