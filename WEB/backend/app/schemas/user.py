@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    phone: str | None = None  # E.164 — enables phone/password login (PostgreSQL IdP)
     date_of_birth: str | None = None
     gender: str | None = None
     gender_at_birth: str | None = None

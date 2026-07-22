@@ -98,6 +98,7 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
         "gender": user_in.gender,
         "biological_sex": user_in.gender_at_birth,
         "account_role": "patient",
+        "phone": user_in.phone,
     })
     identity_uid = sid = None
     if istatus == 201 and ireg:
@@ -120,6 +121,7 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
         locale=user_in.locale,
         timezone=user_in.timezone,
         country=user_in.country,
+        phone_number=user_in.phone,
         preferred_language=user_in.preferred_language,
         preferred_units=user_in.preferred_units
         or units_for_locale(user_in.locale, user_in.country),
