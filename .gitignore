@@ -78,3 +78,6 @@ WEB/.env
 # ── Deploy secrets / local config ──────────────────────────────────
 deploy/gcp/config.env
 deploy/gcp/keys/
+
+# iCloud/Finder conflict-copy duplicates
+*[ ]2.*
