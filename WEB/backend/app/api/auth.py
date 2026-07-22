@@ -151,13 +151,12 @@ async def login(
 ):
     """Login and receive a JWT token.
 
-    Delegates to the shared 6IGMA Identity service first (PostgreSQL-native IdP →
-    one credential set + SSO across ALAFIA and FlowSheet). Falls back to the
-    legacy local/Firebase path during the migration window.
+    CANON: authentication is PostgreSQL only — the shared 6IGMA Identity service
+    (PostgreSQL-native IdP → one credential set + SSO across ALAFIA and FlowSheet),
+    with a legacy local-password fallback (also PostgreSQL) during the migration
+    window. Firebase is never consulted for login.
     """
-    from app.services.identity_client import (
-        identity_login, migrate_password_into_identity,
-    )
+    from app.services.identity_client import identity_login
     ident = await identity_login(form_data.username, form_data.password)
     if ident and ident.get("access_token"):
         _set_refresh_cookie(response, ident.get("refresh_token", ""))
@@ -172,38 +171,11 @@ async def login(
             detail="Incorrect email or password",
         )
 
-    # Try local password first
+    # Legacy local-password fallback (PostgreSQL `users.hashed_password`) for accounts
+    # not yet in the IdP. No Firebase verification — login is PostgreSQL only (canon).
     local_ok = verify_password(form_data.password, user.hashed_password)
 
-    if not local_ok and user.firebase_uid and user.auth_provider == "password":
-        # Migrated Firebase password user — verify against Firebase Auth, then update local hash
-        firebase_ok = await _verify_firebase_password(user.email, form_data.password)
-        if firebase_ok:
-            user.hashed_password = hash_password(form_data.password)
-            await db.commit()
-            logger.info("Updated local password hash for Firebase user %s", user.email)
-            local_ok = True
-            # Firebase→IdP bridge: the legacy password is now verified, so set it
-            # as the credential in the shared PostgreSQL IdP. After this the account
-            # is identity-native: subsequent logins authenticate via the IdP and
-            # receive an RS256 SSO token — Firebase is no longer consulted.
-            if await migrate_password_into_identity(user.email, form_data.password):
-                ident = await identity_login(user.email, form_data.password)
-                if ident and ident.get("access_token"):
-                    _set_refresh_cookie(response, ident.get("refresh_token", ""))
-                    logger.info("Migrated Firebase user %s into the identity IdP", user.email)
-                    return Token(
-                        access_token=ident["access_token"],
-                        refresh_token=ident.get("refresh_token", ""),
-                    )
-
     if not local_ok:
-        # For OAuth-only users, give a more helpful error
-        if user.firebase_uid and user.auth_provider != "password":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"This account uses {user.auth_provider} sign-in. Please use the appropriate login method.",
-            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

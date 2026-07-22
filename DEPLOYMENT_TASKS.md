@@ -11,11 +11,12 @@ Last updated: 2026-07-22.
 
 | | URL |
 |---|---|
-| Web app | https://alafia-frontend-xj37wg452q-ew.a.run.app |
-| API (mobile targets this) | https://alafia-backend-xj37wg452q-ew.a.run.app |
-| Identity (PQC SSO) | https://alafia-identity-xj37wg452q-ew.a.run.app |
+| Web app | https://alafia-frontend-xj37wg452q-uk.a.run.app |
+| API (mobile targets this) | https://alafia-backend-xj37wg452q-uk.a.run.app |
+| Identity (PQC SSO) | https://alafia-identity-xj37wg452q-uk.a.run.app |
 
-Cloud Run ×3 + Cloud SQL (Postgres 16) + Secret Manager, region `europe-west1`.
+Cloud Run ×3 + Cloud SQL `alafia-db-va` (Postgres 16) + Secret Manager, region **`us-east4`**
+(Northern Virginia). Migrated from europe-west1 2026-07-22; europe torn down.
 
 ---
 
@@ -63,7 +64,7 @@ Apps + backend now point at `alafia.app` in code ✅ (`9e7b9a6`+). Remaining:
 2. 🔴👤 **Verify domain ownership**: `gcloud domains verify alafia.app` (Search Console → add the TXT
    record to alafia.app DNS). Verifying the apex covers `api.`/`app.` subdomains.
 3. 🔴 Map `api.alafia.app` → `alafia-backend` and `app.alafia.app` → `alafia-frontend`
-   (`gcloud beta run domain-mappings create --region europe-west1 …`; Cloud Run issues managed certs).
+   (`gcloud beta run domain-mappings create --region us-east4 …`; Cloud Run issues managed certs).
 4. 🔴👤 Add the **CNAME/A records** the mapping outputs at your DNS provider; wait for cert provisioning.
 5. 🔴 Re-run `deploy.sh` (or `gcloud run services update`) so `PUBLIC_WEB_URL`/`CORS_ORIGINS` =
    `https://app.alafia.app`.
@@ -174,5 +175,5 @@ automatic signing, release `baseURL = https://api.alafia.com/api/v1`.
 ## Notes
 - `deploy/gcp/README.md` — cloud runbook. `SubscriptionRail.md` — pricing. `docs/IDENTITY_DEPLOYMENT.md`
   — identity/PQC ops.
-- Paywall kill-switch: `gcloud run services update alafia-backend --region europe-west1
+- Paywall kill-switch: `gcloud run services update alafia-backend --region us-east4
   --update-env-vars SUBSCRIPTION_REQUIRED=false`.
