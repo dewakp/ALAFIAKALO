@@ -57,13 +57,17 @@ keys exist (checkout returns 503). Steps:
 5. 🔴 Re-run `deploy/gcp/deploy.sh` (mounts the now-configured secrets) and verify a real test checkout.
 6. 🔴👤 Sign the **HIPAA BAA** in the Google Cloud console before real PHI/payments (free, self-service).
 
-### B. Custom domain + TLS 🔴 (also unblocks mobile — see D/E)
-The mobile apps are hardcoded to `https://api.alafia.com` (doesn't exist yet).
-1. 🔴👤 Confirm you control DNS for `alafia.com` (or pick a domain).
-2. 🔴 Map `app.alafia.com` → `alafia-frontend`, `api.alafia.com` → `alafia-backend`
-   (`gcloud run domain-mappings create …`; Cloud Run issues managed certs).
-3. 🔴 Re-run `deploy.sh` so `PUBLIC_WEB_URL`/`CORS_ORIGINS` pick up the domain.
-   *(Alternative: point the mobile apps at the `run.app` URL instead — see D1/E1.)*
+### B. Custom domain + TLS 🟡 — domain is **alafia.app** (owner-controlled)
+Apps + backend now point at `alafia.app` in code ✅ (`9e7b9a6`+). Remaining:
+1. ✅ Mobile + iOS/Android code repointed to `https://api.alafia.app`.
+2. 🔴👤 **Verify domain ownership**: `gcloud domains verify alafia.app` (Search Console → add the TXT
+   record to alafia.app DNS). Verifying the apex covers `api.`/`app.` subdomains.
+3. 🔴 Map `api.alafia.app` → `alafia-backend` and `app.alafia.app` → `alafia-frontend`
+   (`gcloud beta run domain-mappings create --region europe-west1 …`; Cloud Run issues managed certs).
+4. 🔴👤 Add the **CNAME/A records** the mapping outputs at your DNS provider; wait for cert provisioning.
+5. 🔴 Re-run `deploy.sh` (or `gcloud run services update`) so `PUBLIC_WEB_URL`/`CORS_ORIGINS` =
+   `https://app.alafia.app`.
+   *Note: `.app` is HSTS-preloaded (HTTPS-only) — Cloud Run's managed cert satisfies this.*
 
 ### C. Deferred infra (app works without these; features degrade) 🔴
 - 🔴 **LLM/AI** — no GPU attached → AI chat/vision/planner return 503. Enable: GKE L4 GPU node pool
@@ -98,8 +102,8 @@ minSdk 26 / targetSdk 36, release `minifyEnabled true`, release signing reads `k
 - [ ] 🔴 Enable **Play App Signing** (Google manages the app signing key; you keep the upload key).
 
 **Backend / config wiring**
-- [ ] 🔴 Point `API_BASE_URL` at prod — either the custom domain (B) or the `run.app` URL. (Both the
-      release buildConfigField and `AlafiaApplication` fallback say `api.alafia.com`.)
+- [x] ✅ `API_BASE_URL` = `https://api.alafia.app/api/v1/` (release buildConfigField + `AlafiaApplication`
+      fallback). Goes live once the domain mapping (B) is up.
 - [ ] 🔴 Real **cert-pinning SHA-512 pins** in `ApiClient` (currently `AAAA…`/`BBBB…` placeholders —
       release traffic is rejected until set), or disable pinning for launch.
 - [ ] 🔴 Confirm **ProGuard/R8** keep-rules cover Gson/Retrofit models (`minifyEnabled true`).
@@ -132,10 +136,9 @@ minSdk 26 / targetSdk 36, release `minifyEnabled true`, release signing reads `k
 Current: Xcode bundle **`com.alafia.app`**, `MARKETING_VERSION 1.0`, `CURRENT_PROJECT_VERSION 1`,
 automatic signing, release `baseURL = https://api.alafia.com/api/v1`.
 
-**⚠️ Bundle-ID mismatch:** app is `com.alafia.app` but backend `APPLE_BUNDLE_ID = com.alafia.ios`.
-They **must match** or Apple purchase verification (`apple_verify` bundleId check) rejects.
-- [ ] 🔴 Set backend `APPLE_BUNDLE_ID=com.alafia.app` (or rename the app bundle) — and use the same in
-      App Store Connect.
+**Bundle ID = `com.alafia.app`** (matches the alafia.app domain).
+- [x] ✅ Backend `APPLE_BUNDLE_ID=com.alafia.app` (config default fixed; applies on next backend deploy).
+- [ ] 🔴👤 Use the same bundle `com.alafia.app` when creating the app in App Store Connect.
 
 **Accounts & signing**
 - [ ] 🔴👤 **Apple Developer Program** membership ($99/yr).
@@ -143,7 +146,7 @@ They **must match** or Apple purchase verification (`apple_verify` bundleId chec
       distribution certificate + App Store provisioning profile (or automatic signing with the team).
 
 **Backend / config wiring**
-- [ ] 🔴 Point `baseURL` at prod — custom domain (B) or the `run.app` URL (currently `api.alafia.com`).
+- [x] ✅ `baseURL` = `https://api.alafia.app/api/v1` (AppConfig). Goes live once the domain mapping (B) is up.
 - [ ] 🔴 Real **cert-pin hashes** in `APIClient` (same placeholder issue as Android) or disable for launch.
 
 **StoreKit (subscription)**

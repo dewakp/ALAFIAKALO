@@ -169,7 +169,7 @@ class Settings(BaseSettings):
     GOOGLE_PLAY_SERVICE_ACCOUNT: str = ""   # path to service-account JSON
 
     # Apple StoreKit (iOS). Server-side transaction verification.
-    APPLE_BUNDLE_ID: str = "com.alafia.ios"
+    APPLE_BUNDLE_ID: str = "com.alafia.app"   # matches the iOS Xcode bundle + alafia.app domain
     APPLE_PRODUCT_ID: str = "alafia_plus_monthly"
     APPLE_SHARED_SECRET: str = ""           # app-specific shared secret (verifyReceipt)
     APPLE_ENVIRONMENT: str = "sandbox"      # sandbox | production

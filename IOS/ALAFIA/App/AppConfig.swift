@@ -13,7 +13,7 @@ enum AppConfig {
         #if targetEnvironment(simulator)
         return "http://localhost:8005/api/v1"
         #else
-        return "https://api.alafia.com/api/v1"  // Production — HTTPS enforced
+        return "https://api.alafia.app/api/v1"  // Production — HTTPS enforced
         #endif
     }()
     

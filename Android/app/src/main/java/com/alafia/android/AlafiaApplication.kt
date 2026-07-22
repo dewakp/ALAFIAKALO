@@ -124,9 +124,9 @@ object CrashReporter {
     private fun getBaseUrl(app: Application): String {
         return try {
             val ai = app.packageManager.getApplicationInfo(app.packageName, android.content.pm.PackageManager.GET_META_DATA)
-            ai.metaData?.getString("alafia_api_base_url") ?: "https://api.alafia.com"
+            ai.metaData?.getString("alafia_api_base_url") ?: "https://api.alafia.app"
         } catch (e: Exception) {
-            "https://api.alafia.com"
+            "https://api.alafia.app"
         }
     }
 }
