@@ -7,6 +7,7 @@ export default function Register() {
   const { register } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -19,7 +20,7 @@ export default function Register() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Please enter a valid email address'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     try {
-      await register(email, password, fullName);
+      await register(email, password, fullName, phone);
     } catch (err) {
       setError(apiErrorMessage(err, 'Registration failed'));
     }
@@ -54,6 +55,16 @@ export default function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Phone Number <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional — enables phone login)</span></label>
+            <input
+              className="form-input"
+              type="tel"
+              placeholder="+1 555 123 4567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
             />
           </div>
           <div className="form-group">

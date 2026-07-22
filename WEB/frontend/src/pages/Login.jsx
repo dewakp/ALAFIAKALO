@@ -6,8 +6,6 @@ import { LogIn, Mail, Phone, Loader2 } from 'lucide-react';
 import {
   signInWithGoogle,
   signInWithApple,
-  startPhoneSignIn,
-  confirmPhoneCode,
   firebaseErrorMessage,
 } from '../services/firebase';
 
@@ -34,8 +32,6 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [smsCode, setSmsCode] = useState('');
-  const [confirmation, setConfirmation] = useState(null); // Firebase phone confirmation
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');                 // which action is in flight
 
@@ -56,33 +52,22 @@ export default function Login() {
     } finally { setBusy(''); }
   }
 
-  async function handleSendCode(e) {
+  async function handlePhoneSubmit(e) {
     e.preventDefault();
     setError('');
     const p = phone.trim();
-    if (!/^\+[1-9]\d{6,14}$/.test(p)) {
-      setError('Enter the phone number in international format, e.g. +15551234567');
+    if (!/^\+?[0-9][0-9\s\-()]{6,}$/.test(p)) {
+      setError('Enter a valid phone number, e.g. +15551234567');
       return;
     }
-    setBusy('send-code');
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    setBusy('phone');
     try {
-      setConfirmation(await startPhoneSignIn(p, 'recaptcha-container'));
-    } catch (err) {
-      setError(firebaseErrorMessage(err, 'Could not send the verification code.'));
-    } finally { setBusy(''); }
-  }
-
-  async function handleVerifyCode(e) {
-    e.preventDefault();
-    setError('');
-    if (!/^\d{4,8}$/.test(smsCode.trim())) { setError('Enter the code from the SMS.'); return; }
-    setBusy('verify-code');
-    try {
-      const idToken = await confirmPhoneCode(confirmation, smsCode.trim());
-      await loginWithFirebase(idToken);
+      // Phone is just another identifier for the PostgreSQL IdP (no OTP/Firebase).
+      await login(p, password);
       done();
     } catch (err) {
-      setError(err?.code ? firebaseErrorMessage(err, 'Verification failed.') : apiErrorMessage(err, 'Login failed'));
+      setError(apiErrorMessage(err, 'Login failed'));
     } finally { setBusy(''); }
   }
 
@@ -168,43 +153,24 @@ export default function Login() {
             </form>
           )}
 
-          {/* ── Phone login (Firebase OTP) ── */}
+          {/* ── Phone login (phone + password → PostgreSQL IdP) ── */}
           {mode === 'phone' && (
-            !confirmation ? (
-              <form onSubmit={handleSendCode}>
-                <div className="form-group">
-                  <label className="form-label">Phone Number</label>
-                  <input className="form-input" type="tel" placeholder="+1 555 123 4567"
-                    value={phone} onChange={(e) => setPhone(e.target.value)} required />
-                </div>
-                <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={!!busy}>
-                  {busy === 'send-code' ? spinner : null} Send Verification Code
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyCode}>
-                <div className="form-group">
-                  <label className="form-label">Verification Code</label>
-                  <input className="form-input" type="text" inputMode="numeric" placeholder="123456"
-                    value={smsCode} onChange={(e) => setSmsCode(e.target.value)} autoFocus required />
-                  <p style={{ fontSize: '.8rem', color: 'var(--color-text-secondary)', marginTop: 6 }}>
-                    Code sent to {phone}.{' '}
-                    <button type="button" onClick={() => { setConfirmation(null); setSmsCode(''); setError(''); }}
-                      style={{ background: 'none', border: 'none', color: 'var(--color-primary)',
-                        cursor: 'pointer', padding: 0, fontSize: 'inherit' }}>
-                      Use a different number
-                    </button>
-                  </p>
-                </div>
-                <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={!!busy}>
-                  {busy === 'verify-code' ? spinner : null} Verify & Login
-                </button>
-              </form>
-            )
+            <form onSubmit={handlePhoneSubmit}>
+              <div className="form-group">
+                <label className="form-label">Phone Number</label>
+                <input className="form-input" type="tel" placeholder="+1 555 123 4567"
+                  value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <input className="form-input" type="password" placeholder="••••••••"
+                  value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={!!busy}>
+                {busy === 'phone' ? spinner : null} Login with Phone
+              </button>
+            </form>
           )}
-
-          {/* Invisible reCAPTCHA anchor for phone sign-in */}
-          <div id="recaptcha-container" />
 
           {/* ── Social sign-in ── */}
           <div style={{ margin: '1.25rem 0 0', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>

@@ -52,11 +52,12 @@ export function AuthProvider({ children }) {
     await loadUser();
   }
 
-  async function register(email, password, fullName) {
+  async function register(email, password, fullName, phone) {
     await api.post('/auth/register', {
       email,
       password,
       full_name: fullName,
+      phone: phone || null,
     });
     await login(email, password);
   }
