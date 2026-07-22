@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -10,7 +11,7 @@ import { useTempUnit } from '../hooks/useTempUnit';
 // form with the history calendar beside it, and date-filtered intake cards.
 // The legacy ai_analysis error blob in synced notes is stripped from display.
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => localToday();
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 const fmtLong = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];

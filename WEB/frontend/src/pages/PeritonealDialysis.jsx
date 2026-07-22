@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus, Trash2, Droplets, Clock, ChevronDown, ChevronUp } from 'lucide-react';
@@ -9,7 +10,7 @@ export default function PeritonealDialysis() {
   const [expanded, setExpanded] = useState(null);
   const [form, setForm] = useState({
     condition_id: '',
-    session_date: new Date().toISOString().split('T')[0],
+    session_date: localToday(),
     modality: 'capd',
     pre_weight_kg: '',
     post_weight_kg: '',

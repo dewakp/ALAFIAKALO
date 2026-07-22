@@ -1,3 +1,4 @@
+import { fmtDateTime } from '../utils/datetime';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -163,7 +164,7 @@ export default function Notifications() {
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: 13, color: '#555' }}>{n.message}</p>
                   <span style={{ fontSize: 11, color: '#999' }}>
-                    {new Date(n.created_at).toLocaleString()}
+                    {fmtDateTime(n.created_at)}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>

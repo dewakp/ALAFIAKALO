@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -5,7 +6,7 @@ import { Plus, Trash2, Moon } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => localToday();
 
 const EMPTY = {
   sleep_date: today(),

@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -5,7 +6,7 @@ import { ChevronLeft, ChevronRight, Clock, Weight, Plus, RefreshCw, Edit2 } from
 import BackButton from '../components/BackButton';
 
 /* ─── helpers ─── */
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => localToday();
 const fmt = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'other'];
 const MEAL_EMOJI = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', other: '🍽️' };

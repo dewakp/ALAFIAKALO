@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -9,7 +10,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
 } from 'recharts';
 
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => localToday();
 
 const EMPTY = {
   log_date: today(), log_time: '',

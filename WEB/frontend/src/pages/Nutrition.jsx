@@ -1,3 +1,4 @@
+import { localToday, toDateInput } from '../utils/datetime';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
@@ -10,7 +11,7 @@ import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
 /* ─── tiny helpers ─── */
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => localToday();
 const pct = (v, rda) => (rda ? Math.min(Math.round((v / rda) * 100), 999) : null);
 const colorForPct = (p) => {
   if (p == null) return 'var(--color-text-tertiary)';
@@ -33,7 +34,7 @@ export default function Nutrition() {
   const [loading, setLoading] = useState(false);
 
   // Date-range filter for food log
-  const sevenDaysAgo = () => { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().split('T')[0]; };
+  const sevenDaysAgo = () => { const d = new Date(); d.setDate(d.getDate() - 6); return toDateInput(d); };
   const [filterStart, setFilterStart] = useState(sevenDaysAgo);
   const [filterEnd, setFilterEnd] = useState(today);
 
@@ -662,8 +663,8 @@ export default function Nutrition() {
             <div style={{ display: 'flex', gap: '.35rem' }}>
               {[
                 { label: 'Today',  fn: () => { setFilterStart(today()); setFilterEnd(today()); } },
-                { label: '7 days', fn: () => { const d = new Date(); d.setDate(d.getDate()-6); setFilterStart(d.toISOString().split('T')[0]); setFilterEnd(today()); } },
-                { label: '30 days',fn: () => { const d = new Date(); d.setDate(d.getDate()-29); setFilterStart(d.toISOString().split('T')[0]); setFilterEnd(today()); } },
+                { label: '7 days', fn: () => { const d = new Date(); d.setDate(d.getDate()-6); setFilterStart(toDateInput(d)); setFilterEnd(today()); } },
+                { label: '30 days',fn: () => { const d = new Date(); d.setDate(d.getDate()-29); setFilterStart(toDateInput(d)); setFilterEnd(today()); } },
                 { label: 'All',    fn: () => { setFilterStart(''); setFilterEnd(''); } },
               ].map(({ label, fn }) => (
                 <button key={label} className="btn btn-secondary btn-sm" type="button" onClick={fn}

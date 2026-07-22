@@ -1,3 +1,4 @@
+import { fmtDateTime, toDateTimeInput } from '../utils/datetime';
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
@@ -125,7 +126,7 @@ export default function Capture() {
               <input
                 className="form-input"
                 type="datetime-local"
-                value={form.captured_at.slice(0, 16)}
+                value={toDateTimeInput(form.captured_at)}
                 onChange={(e) => updateField('captured_at', e.target.value)}
               />
             </div>
@@ -168,7 +169,7 @@ export default function Capture() {
             />
             <div className="media-meta">
               <div className="media-title">{item.title || item.category}</div>
-              <div className="media-subtitle">{new Date(item.created_at).toLocaleString()}</div>
+              <div className="media-subtitle">{fmtDateTime(item.created_at)}</div>
             </div>
             <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item.id)}>
               Delete

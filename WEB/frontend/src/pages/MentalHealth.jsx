@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
@@ -70,7 +71,7 @@ function MoodTab() {
   const [entries, setEntries] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    entry_date: new Date().toISOString().split('T')[0],
+    entry_date: localToday(),
     mood_score: 5, energy_level: 5, stress_level: 5, anxiety_level: 5, sleep_quality: 5,
     sleep_hours: '', emotions: '', triggers: '', coping_strategies: '', journal_entry: '', gratitude: '',
   });
@@ -386,7 +387,7 @@ function BreathingTab({ exercises, onComplete }) {
     const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
     try {
       await api.post('/mental-health/breathing/sessions', {
-        session_date: new Date().toISOString().split('T')[0],
+        session_date: localToday(),
         exercise_type: active.id,
         duration_seconds: duration,
         mood_before: moodBefore,
@@ -470,7 +471,7 @@ function GratitudeTab({ entries, onSave }) {
     setSaving(true);
     try {
       await api.post('/mental-health/gratitude', {
-        entry_date: new Date().toISOString().split('T')[0],
+        entry_date: localToday(),
         ...form,
       });
       setForm({ item_1: '', item_2: '', item_3: '', reflection: '' });
@@ -561,7 +562,7 @@ function AssessmentTab({ assessments, onSave }) {
     setSaving(true);
     try {
       await api.post('/mental-health/assessments', {
-        assessment_date: new Date().toISOString().split('T')[0],
+        assessment_date: localToday(),
         assessment_type: type,
         ...answers,
       });

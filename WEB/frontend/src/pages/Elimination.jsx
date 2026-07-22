@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -16,7 +17,7 @@ const EVENT_OPTIONS = [
 ];
 const EVENT_LABEL = { poop: 'Poop', urine: 'Urination', vomit: 'Vomiting' };
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => localToday();
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 const fmtLong = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 const num = (v) => (v !== '' && v != null ? Number(v) : null);

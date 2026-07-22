@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
@@ -20,7 +21,7 @@ const emptyReading = () => ({
 const emptyForm = () => ({
   condition_id: 14,
   therapy_type: 'HEMODIALYSIS',
-  scheduled_date: new Date().toISOString().split('T')[0],
+  scheduled_date: localToday(),
   status: 'COMPLETED',
   facility_name: '',
   attending_physician: '',

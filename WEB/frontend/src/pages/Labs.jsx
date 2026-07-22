@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus } from 'lucide-react';
@@ -16,7 +17,7 @@ export default function Labs() {
   });
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    test_date: new Date().toISOString().split('T')[0],
+    test_date: localToday(),
     test_name: '',
     loinc_code: '',
     category: '',

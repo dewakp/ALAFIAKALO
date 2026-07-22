@@ -1,0 +1,63 @@
+// Date/time helpers — display EVERYTHING in the user's machine locale + timezone.
+//
+// The backend stores timestamps in UTC. Some columns serialize with a 'Z'/offset,
+// some are naive (no designator). `new Date('2026-07-22T01:00:00')` would read a
+// naive string as LOCAL time, which makes UTC values "race ahead" of the user's
+// clock. So we normalize: strings without a timezone are treated as UTC, and every
+// formatter uses the browser locale (toLocale*), never a hardcoded zone.
+
+/** Parse a server value to a Date, interpreting naive (no-offset) strings as UTC. */
+export function parseServer(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date) return v;
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(`${s}T00:00:00`); // date-only → local midnight
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s);           // already has a timezone
+  return new Date(`${s}Z`);                                           // naive datetime → assume UTC
+}
+
+const _ok = (d) => d instanceof Date && !Number.isNaN(d.getTime());
+
+/** Locale date + time, e.g. "7/22/2026, 3:45 AM" (machine locale + timezone). */
+export function fmtDateTime(v, opts) {
+  const d = parseServer(v);
+  return _ok(d) ? d.toLocaleString(undefined, opts) : '';
+}
+
+/** Locale date only. */
+export function fmtDate(v, opts) {
+  const d = parseServer(v);
+  return _ok(d) ? d.toLocaleDateString(undefined, opts) : '';
+}
+
+/** Locale time only (defaults to HH:MM). */
+export function fmtTime(v, opts = { hour: '2-digit', minute: '2-digit' }) {
+  const d = parseServer(v);
+  return _ok(d) ? d.toLocaleTimeString(undefined, opts) : '';
+}
+
+/** YYYY-MM-DD in the LOCAL timezone — for <input type="date"> and calendars. */
+export function toDateInput(v) {
+  const d = v instanceof Date ? v : parseServer(v);
+  if (!_ok(d)) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** Today's date, LOCAL, as YYYY-MM-DD. Use instead of new Date().toISOString(). */
+export const localToday = () => toDateInput(new Date());
+
+/** YYYY-MM-DDTHH:MM (local) — for <input type="datetime-local">. */
+export function toDateTimeInput(v) {
+  const d = v instanceof Date ? v : parseServer(v);
+  if (!_ok(d)) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${toDateInput(d)}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** Current LOCAL time as HH:MM — for <input type="time"> defaults. */
+export function localNowTime() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+}

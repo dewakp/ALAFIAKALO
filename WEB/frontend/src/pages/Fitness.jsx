@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus } from 'lucide-react';
@@ -8,7 +9,7 @@ export default function Fitness() {
   const [logs, setLogs] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    log_date: new Date().toISOString().split('T')[0],
+    log_date: localToday(),
     activity_type: '',
     duration_minutes: '',
     calories_burned: '',

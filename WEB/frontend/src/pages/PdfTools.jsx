@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState } from 'react';
 import api from '../services/api';
 import { FileText, Download, Upload, FileBarChart } from 'lucide-react';
@@ -160,7 +161,7 @@ function GenerateFlowsheet() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `flowsheet_${form.session_type}_${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `flowsheet_${form.session_type}_${localToday()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }

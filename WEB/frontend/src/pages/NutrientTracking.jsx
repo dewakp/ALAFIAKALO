@@ -1,10 +1,11 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { Calendar, BarChart3, Target } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
 /* ─── helpers ─── */
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => localToday();
 const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
 /* Static personalized targets — FDA DV 2020, renal-adjusted per app profile

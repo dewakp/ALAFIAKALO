@@ -1,3 +1,4 @@
+import { fmtDateTime } from '../utils/datetime';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
@@ -668,7 +669,7 @@ const TherapySessions = () => {
                   
                   <div style={{ color: '#666', marginBottom: '15px' }}>
                     <p style={{ margin: '5px 0' }}>
-                      <strong>Scheduled:</strong> {new Date(session.scheduled_date).toLocaleString()}
+                      <strong>Scheduled:</strong> {fmtDateTime(session.scheduled_date)}
                     </p>
                     {session.therapy_name && (
                       <p style={{ margin: '5px 0' }}>

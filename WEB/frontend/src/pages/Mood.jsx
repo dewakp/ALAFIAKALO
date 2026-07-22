@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus } from 'lucide-react';
@@ -7,7 +8,7 @@ export default function Mood() {
   const [entries, setEntries] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    entry_date: new Date().toISOString().split('T')[0],
+    entry_date: localToday(),
     mood_score: 5,
     energy_level: 5,
     stress_level: 5,

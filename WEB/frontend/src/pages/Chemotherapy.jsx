@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
@@ -19,7 +20,7 @@ const emptyForm = () => ({
   therapy_name: '',
   session_number: '',
   total_sessions_planned: '',
-  scheduled_date: new Date().toISOString().split('T')[0],
+  scheduled_date: localToday(),
   actual_start_time: '',
   actual_end_time: '',
   duration_minutes: '',

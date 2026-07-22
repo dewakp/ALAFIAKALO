@@ -1,3 +1,4 @@
+import { fmtDateTime, toDateTimeInput } from '../utils/datetime';
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -70,7 +71,7 @@ export default function Pharmacy() {
   });
   const [adherenceForm, setAdherenceForm] = useState({
     prescription_id: '', status: 'taken', dose_taken: '',
-    scheduled_time: new Date().toISOString().slice(0, 16),
+    scheduled_time: toDateTimeInput(new Date()),
     notes: '', side_effects_reported: '',
     mood_before: '', mood_after: '', pain_before: '', pain_after: '',
   });
@@ -594,7 +595,7 @@ export default function Pharmacy() {
                   return (
                     <tr key={log.id}>
                       <td style={{ fontWeight: 600 }}>{log.medication_name || `Rx #${log.prescription_id}`}</td>
-                      <td>{new Date(log.scheduled_time).toLocaleString()}</td>
+                      <td>{fmtDateTime(log.scheduled_time)}</td>
                       <td><Badge status={log.status} /></td>
                       <td>{log.mood_before != null ? `${log.mood_before}→${log.mood_after ?? '?'}` : '-'}</td>
                       <td>{log.pain_before != null ? `${log.pain_before}→${log.pain_after ?? '?'}` : '-'}</td>

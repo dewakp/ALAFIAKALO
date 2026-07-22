@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useMemo } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
@@ -21,7 +22,7 @@ const PRIORITY_OPTIONS = ['low', 'medium', 'high'];
 
 const catColor = (key) => CATEGORIES.find(c => c.key === key)?.color || '#9E9E9E';
 const catLabel = (key) => CATEGORIES.find(c => c.key === key)?.label || key;
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => localToday();
 
 function daysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();

@@ -1,3 +1,4 @@
+import { fmtDateTime, fmtTime } from '../utils/datetime';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -579,7 +580,7 @@ function MessageBubble({ msg, isOwn }) {
         )}
         {msg.content && <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{msg.content}</div>}
         <div style={{ fontSize: 10, opacity: 0.6, marginTop: 4, textAlign: 'right' }}>
-          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {fmtTime(msg.created_at)}
           {msg.is_edited && ' (edited)'}
           {msg.is_clinical && <span style={{ marginLeft: 4 }}>🏥</span>}
           {msg.is_priority && <span style={{ marginLeft: 4 }}>⚡</span>}
@@ -865,7 +866,7 @@ function PostDetailView({ postId, userId, onBack }) {
           <div>
             <div style={{ fontWeight: 600 }}>{post.is_anonymous ? 'Anonymous' : `User #${post.author_id}`}</div>
             <div style={{ fontSize: 12, color: '#888' }}>
-              {new Date(post.created_at).toLocaleString()}
+              {fmtDateTime(post.created_at)}
               {post.topic && <span style={{ marginLeft: 8 }}><Hash size={10} style={{ verticalAlign: 'middle' }} />{post.topic}</span>}
               {post.is_edited && <span style={{ marginLeft: 8, fontStyle: 'italic' }}>(edited)</span>}
             </div>
@@ -941,7 +942,7 @@ function PostDetailView({ postId, userId, onBack }) {
                   #{r.author_id}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>User #{r.author_id}</div>
-                <div style={{ fontSize: 11, color: '#888' }}>{new Date(r.created_at).toLocaleString()}</div>
+                <div style={{ fontSize: 11, color: '#888' }}>{fmtDateTime(r.created_at)}</div>
                 {r.is_edited && <span style={{ fontSize: 11, fontStyle: 'italic', color: '#888' }}>(edited)</span>}
               </div>
               <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{r.content}</div>

@@ -1,3 +1,4 @@
+import { fmtDateTime } from '../utils/datetime';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -105,7 +106,7 @@ export default function EHRPortals() {
                 <div style={{ fontWeight: 600, fontSize: '.92rem' }}>{conn.org_name || conn.provider}</div>
                 <div style={{ fontSize: '.78rem', color: 'var(--color-text-secondary)' }}>
                   {conn.last_sync_at
-                    ? `Last synced ${new Date(conn.last_sync_at).toLocaleString()}`
+                    ? `Last synced ${fmtDateTime(conn.last_sync_at)}`
                     : 'Connected — not synced yet'}
                 </div>
               </div>

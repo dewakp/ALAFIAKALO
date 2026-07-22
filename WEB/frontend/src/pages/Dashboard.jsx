@@ -1,3 +1,4 @@
+import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
@@ -12,7 +13,7 @@ import {
 } from 'recharts';
 
 /* ─── helpers ─── */
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => localToday();
 const fmtDateLabel = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 const fmtTime = (t) => { if (!t) return ''; const [h, m] = t.split(':'); const hr = parseInt(h, 10); return `${String(hr % 12 || 12).padStart(2,'0')}:${m} ${hr < 12 ? 'AM' : 'PM'}`; };
 

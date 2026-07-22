@@ -1,3 +1,4 @@
+import { localToday, toDateInput } from '../utils/datetime';
 import { useState, useEffect, useCallback } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import { useNavigate } from 'react-router-dom';
@@ -6,9 +7,9 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, Save, BookOpen, Smile } from '
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => localToday();
 const fmtDate = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-const shiftDay = (d, n) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + n); return dt.toISOString().split('T')[0]; };
+const shiftDay = (d, n) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + n); return toDateInput(dt); };
 
 const MOOD_LABELS = { 1: 'Very Low', 2: 'Low', 3: 'Below Average', 4: 'Slightly Low', 5: 'Neutral', 6: 'Slightly Good', 7: 'Good', 8: 'Very Good', 9: 'Excellent', 10: 'Outstanding' };
 const MOOD_COLOR = (s) => s >= 8 ? '#22c55e' : s >= 6 ? '#3b82f6' : s >= 4 ? '#f59e0b' : '#ef4444';
