@@ -14,6 +14,7 @@ class RegisterRequest(BaseModel):
     gender: str | None = None
     biological_sex: str | None = None
     account_role: str = "patient"
+    phone: str | None = Field(default=None, max_length=32)  # E.164, an alternate login id
 
 
 class LoginRequest(BaseModel):

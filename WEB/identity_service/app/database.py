@@ -30,3 +30,8 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{settings.DB_SCHEMA}"'))
         await conn.run_sync(Base.metadata.create_all)
+        # Additive columns create_all won't add to an existing users table.
+        sch = settings.DB_SCHEMA
+        await conn.execute(text(f'ALTER TABLE "{sch}".users ADD COLUMN IF NOT EXISTS phone VARCHAR(32)'))
+        await conn.execute(text(
+            f'CREATE UNIQUE INDEX IF NOT EXISTS ix_{sch}_users_phone ON "{sch}".users (phone)'))

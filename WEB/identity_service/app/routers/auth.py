@@ -24,12 +24,14 @@ router = APIRouter(prefix="/identity", tags=["auth"])
 
 
 async def _by_identifier(db: AsyncSession, identifier: str) -> User | None:
-    q = (
-        select(User)
-        .options(selectinload(User.identity))
-        .where(or_(func.lower(User.email) == identifier.lower(),
-                   func.lower(User.username) == identifier.lower()))
-    )
+    ident = identifier.strip()
+    # Phone identifiers are matched on their digits (tolerate +, spaces, dashes).
+    phone_digits = "".join(ch for ch in ident if ch.isdigit())
+    conds = [func.lower(User.email) == ident.lower(),
+             func.lower(User.username) == ident.lower()]
+    if len(phone_digits) >= 7:
+        conds.append(func.regexp_replace(User.phone, r"[^0-9]", "", "g") == phone_digits)
+    q = select(User).options(selectinload(User.identity)).where(or_(*conds))
     return (await db.execute(q)).scalar_one_or_none()
 
 
@@ -38,18 +40,27 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if body.account_role not in ACCOUNT_ROLES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"role must be one of {ACCOUNT_ROLES}")
 
-    # Uniqueness across the ONE identity store (email AND username).
-    dup = (await db.execute(
-        select(User).where(or_(func.lower(User.email) == body.email.lower(),
-                               func.lower(User.username) == body.username.lower()))
-    )).scalar_one_or_none()
+    # Normalize phone to E.164-ish (keep a leading +, digits only).
+    phone = None
+    if body.phone and body.phone.strip():
+        digits = "".join(ch for ch in body.phone if ch.isdigit())
+        phone = ("+" + digits) if body.phone.strip().startswith("+") else digits or None
+
+    # Uniqueness across the ONE identity store (email, username, phone).
+    conds = [func.lower(User.email) == body.email.lower(),
+             func.lower(User.username) == body.username.lower()]
+    if phone:
+        conds.append(func.regexp_replace(User.phone, r"[^0-9]", "", "g")
+                     == "".join(ch for ch in phone if ch.isdigit()))
+    dup = (await db.execute(select(User).where(or_(*conds)))).scalar_one_or_none()
     if dup:
         raise HTTPException(status.HTTP_409_CONFLICT,
-                            "A 6IGMA account with this email or username already exists — sign in instead.")
+                            "A 6IGMA account with this email, username, or phone already exists — sign in instead.")
 
     user = User(
         email=str(body.email).lower(),
         username=body.username,
+        phone=phone,
         password_hash=hash_password(body.password),
         account_role=body.account_role,
         tier="flowsheet",            # everyone starts on the FlowSheet (intro) tier
