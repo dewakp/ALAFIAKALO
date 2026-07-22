@@ -80,6 +80,9 @@ gcloud run jobs execute alafia-migrate --region "$REGION" --wait
 echo "── Deploying backend ─────────────────────────────────────────"
 BACKEND_ENV="DEBUG=false,IDENTITY_ENABLED=true,IDENTITY_BASE_URL=${IDENTITY_URL},IDENTITY_AUDIENCE=alafia"
 BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_ENABLED=true,APPLE_ENVIRONMENT=production,PAYPAL_API_BASE=https://api-m.paypal.com"
+# Hard paywall: every user needs an active subscription (owner email exempt via the
+# config default). Flip to false to open the app.
+BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_REQUIRED=true"
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
 # Core secrets always mount. Provider keys mount ONLY if the secret has a value

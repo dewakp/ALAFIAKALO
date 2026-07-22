@@ -13,7 +13,7 @@ from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 import logging as _logging
 
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -351,8 +351,11 @@ async def health_check():
     return {"status": "healthy", "app": settings.APP_NAME}
 
 
-# Mount all API routes
-app.include_router(api_router, prefix="/api/v1")
+# Mount all API routes. The paywall dependency runs first on every /api/v1 request:
+# when SUBSCRIPTION_REQUIRED is on it 402s unsubscribed, non-exempt users on gated
+# paths (auth/subscription/users stay open so they can sign in and pay).
+from app.core.entitlement import require_active_subscription  # noqa: E402
+app.include_router(api_router, prefix="/api/v1", dependencies=[Depends(require_active_subscription)])
 
 # WebSocket routes (no /api/v1 prefix — direct on root)
 from app.api.ws_telehealth import router as ws_router

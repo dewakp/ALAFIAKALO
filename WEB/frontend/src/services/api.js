@@ -99,6 +99,12 @@ api.interceptors.response.use(
       }
     }
 
+    // 402 — an active subscription is required: send the user to the paywall page.
+    if (error.response?.status === 402
+        && !window.location.pathname.startsWith('/subscription')) {
+      window.location.href = '/subscription';
+    }
+
     return Promise.reject(error);
   }
 );

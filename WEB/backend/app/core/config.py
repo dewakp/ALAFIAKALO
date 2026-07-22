@@ -139,6 +139,13 @@ class Settings(BaseSettings):
     # Grace window after a period ends before entitlement is revoked (covers
     # webhook lag / renewal retries).
     SUBSCRIPTION_GRACE_DAYS: int = 3
+    # App-wide paywall: when True, EVERY authenticated data request requires an
+    # active subscription (402 otherwise). Auth / subscription / users endpoints stay
+    # open so a user can still sign in, see their status, and pay. Off by default
+    # (dev / self-host); enable in production.
+    SUBSCRIPTION_REQUIRED: bool = False
+    # Emails that bypass the paywall entirely (owner / staff), comma-separated in env.
+    SUBSCRIPTION_EXEMPT_EMAILS: list[str] = ["developer@hntsolutions.com"]
     # Public base URL of the web app; used to build Stripe/PayPal return URLs.
     PUBLIC_WEB_URL: str = "http://localhost:8080"
 

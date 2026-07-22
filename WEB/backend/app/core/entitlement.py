@@ -15,7 +15,7 @@ Usage::
 When ``SUBSCRIPTION_ENABLED`` is false the gate is a no-op (open beta / self-host).
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -23,6 +23,56 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.services import subscription_service as svc
+
+# Endpoints that MUST work without a subscription, so an unsubscribed user can still
+# sign in, view their status, manage their account, and pay. Everything else is gated
+# when SUBSCRIPTION_REQUIRED is on.
+_PAYWALL_OPEN_PREFIXES = (
+    "/api/v1/auth",          # login / register / logout / refresh / csrf / password reset
+    "/api/v1/subscription",  # plans / status / checkout / confirm / verify / webhook / cancel
+    "/api/v1/users",         # profile + /me + roles/personas (needed to load the app + paywall)
+)
+
+
+def _paywall_open_path(path: str) -> bool:
+    return any(path.startswith(p) for p in _PAYWALL_OPEN_PREFIXES)
+
+
+def _is_exempt_user(user: User | None) -> bool:
+    """True for owner/staff emails that bypass the paywall entirely."""
+    exempt = {e.strip().lower() for e in settings.SUBSCRIPTION_EXEMPT_EMAILS if e.strip()}
+    return bool(user and user.email and user.email.lower() in exempt)
+
+
+async def _user_from_bearer(request: Request, db: AsyncSession) -> User | None:
+    """Resolve the user from a Bearer token WITHOUT raising (None if absent/invalid)."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    try:
+        return await get_current_user(token=auth.split(" ", 1)[1], db=db)
+    except HTTPException:
+        return None
+
+
+async def require_active_subscription(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """App-wide paywall (router dependency). When ``SUBSCRIPTION_REQUIRED`` is on,
+    any authenticated request to a gated path needs an active subscription — except
+    exempt (owner) emails. Open paths (auth/subscription/users) and unauthenticated
+    requests pass through (the endpoint's own auth still applies)."""
+    if not settings.SUBSCRIPTION_REQUIRED or _paywall_open_path(request.url.path):
+        return
+    user = await _user_from_bearer(request, db)
+    if user is None or _is_exempt_user(user):
+        return
+    if not svc.is_entitled(await svc.get_subscription(db, user.id)):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="An active ALAFIA Plus subscription is required to use ALAFIA.",
+        )
 
 
 async def require_plus(
