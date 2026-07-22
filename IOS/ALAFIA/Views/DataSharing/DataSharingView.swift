@@ -290,7 +290,7 @@ private struct GrantRow: View {
             }
 
             if let expires = grant.expiresAt {
-                Text("Expires: \(expires.prefix(10))")
+                Text("Expires: \(AppDate.date(expires))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

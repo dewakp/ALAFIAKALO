@@ -590,7 +590,7 @@ struct HemodialysisView: View {
                             HStack {
                                 Text(note.noteType).font(.caption2).bold()
                                 Spacer()
-                                Text(String(note.createdAt.prefix(16))).font(.system(size: 9)).foregroundStyle(.secondary)
+                                Text(AppDate.dateTime(note.createdAt)).font(.system(size: 9)).foregroundStyle(.secondary)
                             }
                             Text(note.noteText).font(.caption).lineLimit(3)
                         }

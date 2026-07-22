@@ -356,7 +356,7 @@ struct AddBowelSheet: View {
                         Task {
                             saving = true
                             let entry = BowelMovementCreate(
-                                logDate: ISO8601DateFormatter().string(from: Date()).prefix(10).description,
+                                logDate: AppDate.localToday(),
                                 bristolScale: Int(bristolScale),
                                 bloodPresent: bloodPresent,
                                 mucusPresent: mucusPresent,
@@ -515,7 +515,7 @@ struct AddVomitingSheet: View {
                     Button("Save") {
                         Task {
                             saving = true
-                            let today = ISO8601DateFormatter().string(from: Date()).prefix(10).description
+                            let today = AppDate.localToday()
                             let entry = VomitingLogCreate(
                                 logDate: today,
                                 containsFood: containsFood,
@@ -678,7 +678,7 @@ struct AddUrinationSheet: View {
                     Button("Save") {
                         Task {
                             saving = true
-                            let today = ISO8601DateFormatter().string(from: Date()).prefix(10).description
+                            let today = AppDate.localToday()
                             let entry = UrinationLogCreate(
                                 logDate: today,
                                 color: color.isEmpty ? nil : color,

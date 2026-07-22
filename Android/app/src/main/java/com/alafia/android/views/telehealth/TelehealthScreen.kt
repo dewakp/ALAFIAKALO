@@ -617,7 +617,7 @@ private fun SessionDetailSheet(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         StatusChip(statusLabel(note.noteType), StatusScheduled)
                                         Spacer(Modifier.weight(1f))
-                                        Text(note.createdAt.take(10), fontSize = 11.sp, color = Color.Gray)
+                                        Text(com.alafia.android.util.AppDate.date(note.createdAt), fontSize = 11.sp, color = Color.Gray)
                                         IconButton(
                                             onClick = {
                                                 scope.launch {
@@ -867,12 +867,5 @@ private fun CallControlBtn(
 
 /* ── Helpers ── */
 
-private fun formatDateTime(iso: String): String {
-    return try {
-        val dt = LocalDateTime.parse(iso.substringBefore("+").substringBefore("Z")
-            .let { if (it.contains(".")) it.substringBefore(".") else it })
-        dt.format(DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
-    } catch (e: Exception) {
-        iso.take(16)
-    }
-}
+// Local timezone (server timestamps are UTC).
+private fun formatDateTime(iso: String): String = com.alafia.android.util.AppDate.dateTime(iso)

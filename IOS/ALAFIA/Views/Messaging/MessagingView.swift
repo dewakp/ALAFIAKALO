@@ -944,7 +944,7 @@ private func formatShortDate(_ iso: String) -> String {
         df.timeStyle = .short
         return df.string(from: d)
     }
-    return String(iso.prefix(16))
+    return AppDate.dateTime(iso)
 }
 
 private func formatTime(_ iso: String) -> String {

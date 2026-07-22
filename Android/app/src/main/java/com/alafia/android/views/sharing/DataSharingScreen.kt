@@ -549,7 +549,7 @@ private fun InvitationCard(
                     )
                     invitation.createdAt?.let { date ->
                         Text(
-                            text = "Sent: $date",
+                            text = "Sent: ${com.alafia.android.util.AppDate.date(date)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

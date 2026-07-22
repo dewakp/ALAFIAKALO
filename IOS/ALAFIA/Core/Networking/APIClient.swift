@@ -417,3 +417,66 @@ final class CertificatePinningDelegate: NSObject, URLSessionDelegate {
         return Data(hash)
     }
 }
+
+// MARK: - Local date/time display
+
+/// Render server timestamps in the device's LOCAL timezone + locale.
+///
+/// The backend stores UTC. Slicing an ISO string (`iso.prefix(16)`) shows the raw UTC
+/// clock, which races ahead of the user's time; and `ISO8601DateFormatter` defaults to
+/// UTC, so using it for "today" can roll to tomorrow. `AppDate` parses (naive strings
+/// assumed UTC) and formats with `TimeZone.current`.
+enum AppDate {
+    /// Parse a server value to a Date. Naive (no-offset) strings are treated as UTC.
+    static func parse(_ s: String?) -> Date? {
+        guard let s, !s.isEmpty else { return nil }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = iso.date(from: s) { return d }
+        iso.formatOptions = [.withInternetDateTime]
+        if let d = iso.date(from: s) { return d }
+        // naive datetime (no zone) → assume UTC
+        let naive = DateFormatter()
+        naive.locale = Locale(identifier: "en_US_POSIX")
+        naive.timeZone = TimeZone(identifier: "UTC")
+        naive.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        if s.count >= 19, let d = naive.date(from: String(s.prefix(19))) { return d }
+        // date-only → local midnight
+        let dOnly = DateFormatter()
+        dOnly.locale = Locale(identifier: "en_US_POSIX")
+        dOnly.timeZone = .current
+        dOnly.dateFormat = "yyyy-MM-dd"
+        if s.count >= 10, let d = dOnly.date(from: String(s.prefix(10))) { return d }
+        return nil
+    }
+
+    /// Today's date, LOCAL, as "yyyy-MM-dd" (for date fields sent to the backend).
+    static func localToday() -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: Date())
+    }
+
+    /// Localized date + time in the device timezone.
+    static func dateTime(_ s: String?) -> String {
+        guard let d = parse(s) else { return s ?? "" }
+        let f = DateFormatter(); f.timeZone = .current; f.dateStyle = .medium; f.timeStyle = .short
+        return f.string(from: d)
+    }
+
+    /// Localized date only.
+    static func date(_ s: String?) -> String {
+        guard let d = parse(s) else { return s ?? "" }
+        let f = DateFormatter(); f.timeZone = .current; f.dateStyle = .medium
+        return f.string(from: d)
+    }
+
+    /// Local time only (HH:mm).
+    static func time(_ s: String?) -> String {
+        guard let d = parse(s) else { return s ?? "" }
+        let f = DateFormatter(); f.timeZone = .current; f.timeStyle = .short
+        return f.string(from: d)
+    }
+}

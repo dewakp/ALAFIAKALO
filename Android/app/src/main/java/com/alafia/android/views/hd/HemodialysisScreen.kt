@@ -389,7 +389,7 @@ private fun HDSessionCard(
                                     Row {
                                         Text(note.noteType, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         Spacer(Modifier.weight(1f))
-                                        Text(note.createdAt.take(16), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(com.alafia.android.util.AppDate.dateTime(note.createdAt), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Text(note.noteText, fontSize = 12.sp, maxLines = 3)
                                 }

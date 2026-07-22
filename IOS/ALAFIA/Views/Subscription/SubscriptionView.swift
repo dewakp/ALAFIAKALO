@@ -209,7 +209,7 @@ struct SubscriptionView: View {
                 Text("Billing via: \(prettyProvider(s.provider))")
                 if let end = s.currentPeriodEnd {
                     let label = s.cancelAtPeriodEnd ? "Access ends" : "Renews"
-                    Text("\(label) on \(String(end.prefix(10)))")
+                    Text("\(label) on \(AppDate.date(end))")
                 }
                 if s.provider == "apple" {
                     Text("Manage or cancel in Settings → Apple ID → Subscriptions.")

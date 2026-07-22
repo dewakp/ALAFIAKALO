@@ -1296,22 +1296,7 @@ private fun CreatePostSheet(
 
 // ── Date Helpers ──
 
-private fun formatShortDate(iso: String): String {
-    return try {
-        val cleaned = iso.replace(Regex("\\.\\d+"), "").replace("+00:00", "Z")
-        val dt = LocalDateTime.parse(cleaned.removeSuffix("Z"), DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-        dt.format(DateTimeFormatter.ofPattern("M/d HH:mm"))
-    } catch (_: Exception) {
-        iso.take(16)
-    }
-}
+// Display in the device's LOCAL timezone (server timestamps are UTC).
+private fun formatShortDate(iso: String): String = com.alafia.android.util.AppDate.shortDateTime(iso)
 
-private fun formatTime(iso: String): String {
-    return try {
-        val cleaned = iso.replace(Regex("\\.\\d+"), "").replace("+00:00", "Z")
-        val dt = LocalDateTime.parse(cleaned.removeSuffix("Z"), DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-        dt.format(DateTimeFormatter.ofPattern("HH:mm"))
-    } catch (_: Exception) {
-        iso.take(5)
-    }
-}
+private fun formatTime(iso: String): String = com.alafia.android.util.AppDate.time(iso)
