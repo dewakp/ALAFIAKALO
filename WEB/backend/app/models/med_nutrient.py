@@ -91,8 +91,11 @@ class MedicationDoseLog(Base):
     __tablename__ = "medication_dose_logs"
 
     __table_args__ = (
+        # log_time is part of the key so a user can log the same medication+dose
+        # more than once a day (e.g. morning + evening). Identical dose *events*
+        # (same date+time+med+dose) still dedupe — which the Firebase sync relies on.
         UniqueConstraint(
-            "user_id", "log_date", "medication_name", "dose_amount", "dose_unit",
+            "user_id", "log_date", "log_time", "medication_name", "dose_amount", "dose_unit",
             name="uq_dose_log_per_user_date_med_dose",
         ),
     )

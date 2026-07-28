@@ -2,9 +2,10 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -220,7 +221,15 @@ async def log_medication_dose(
         notes=dose_in.notes,
     )
     db.add(dose_log)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        # Same medication, amount, date AND time already logged — a true duplicate.
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This exact dose is already logged for that date and time.",
+        )
     await db.refresh(dose_log)
     return dose_log
 

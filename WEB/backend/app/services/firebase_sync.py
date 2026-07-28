@@ -579,7 +579,7 @@ class FirebaseSyncPipeline:
                      :pre_sys, :pre_dia, :pre_hr,
                      :post_sys, :post_dia, :post_hr,
                      :notes, false, NOW())
-                ON CONFLICT (user_id, log_date, medication_name, dose_amount, dose_unit)
+                ON CONFLICT (user_id, log_date, log_time, medication_name, dose_amount, dose_unit)
                 DO NOTHING
                 RETURNING id
             """), {
