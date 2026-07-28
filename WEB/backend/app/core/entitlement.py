@@ -1,7 +1,7 @@
 """Entitlement gating.
 
 ``require_plus`` is a FastAPI dependency any premium endpoint can add to require
-an active ALAFIA Plus subscription. Entitlement is derived server-side from the
+an active ALAFIA Membership. Entitlement is derived server-side from the
 user's ``Subscription`` row (status + period + grace) — never from the client.
 
 Usage::
@@ -71,7 +71,7 @@ async def require_active_subscription(
     if not svc.is_entitled(await svc.get_subscription(db, user.id)):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="An active ALAFIA Plus subscription is required to use ALAFIA.",
+            detail="An active ALAFIA Membership is required to use ALAFIA.",
         )
 
 
@@ -86,6 +86,6 @@ async def require_plus(
     if not svc.is_entitled(sub):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="An active ALAFIA Plus subscription is required for this feature.",
+            detail="An active ALAFIA Membership is required for this feature.",
         )
     return current_user

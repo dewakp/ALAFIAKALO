@@ -123,7 +123,7 @@ class Settings(BaseSettings):
     PRACTICE_GEOCODE_MAX_BATCHES: int = 6      # cap passes per run (~30k/run)
 
     # ── Subscription / Billing ──────────────────────────────────────────────
-    # A single paid tier ("ALAFIA Plus"). Prices are USD/month and differ by the
+    # A single paid tier ("ALAFIA Membership"). Prices are USD/month and differ by the
     # rail because the mobile stores take a cut. The BACKEND is the single source
     # of truth for entitlement: each rail reports a verified purchase and the
     # backend records the active period. If a provider's keys are blank the
@@ -131,7 +131,7 @@ class Settings(BaseSettings):
     # consistent purchase so the UI + entitlement flow can be exercised without
     # live credentials (never enabled when DEBUG is False).
     SUBSCRIPTION_ENABLED: bool = True
-    SUBSCRIPTION_PRODUCT_NAME: str = "ALAFIA Plus"
+    SUBSCRIPTION_PRODUCT_NAME: str = "ALAFIA Membership"
     SUBSCRIPTION_PRICE_WEB_USD: float = 12.0        # Stripe / PayPal
     SUBSCRIPTION_PRICE_ANDROID_USD: float = 14.0    # Google Play Billing
     SUBSCRIPTION_PRICE_IOS_USD: float = 14.0        # Apple StoreKit
