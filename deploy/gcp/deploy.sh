@@ -95,14 +95,16 @@ add_secret_if_present() {  # ENV_VAR  SECRET_NAME
     echo "   + mounting $1 (configured)"
   fi
 }
-add_secret_if_present STRIPE_SECRET_KEY     stripe-secret-key
-add_secret_if_present STRIPE_PRICE_ID       stripe-price-id
-add_secret_if_present STRIPE_WEBHOOK_SECRET stripe-webhook-secret
-add_secret_if_present PAYPAL_CLIENT_ID      paypal-client-id
-add_secret_if_present PAYPAL_CLIENT_SECRET  paypal-client-secret
-add_secret_if_present PAYPAL_PLAN_ID        paypal-plan-id
-add_secret_if_present PAYPAL_WEBHOOK_ID     paypal-webhook-id
-add_secret_if_present APPLE_SHARED_SECRET   apple-shared-secret
+add_secret_if_present STRIPE_SECRET_KEY       stripe-secret-key
+add_secret_if_present STRIPE_PRICE_ID         stripe-price-id
+add_secret_if_present STRIPE_PRICE_ID_ANNUAL  stripe-price-id-annual
+add_secret_if_present STRIPE_WEBHOOK_SECRET   stripe-webhook-secret
+add_secret_if_present PAYPAL_CLIENT_ID        paypal-client-id
+add_secret_if_present PAYPAL_CLIENT_SECRET    paypal-client-secret
+add_secret_if_present PAYPAL_PLAN_ID          paypal-plan-id
+add_secret_if_present PAYPAL_PLAN_ID_ANNUAL   paypal-plan-id-annual
+add_secret_if_present PAYPAL_WEBHOOK_ID       paypal-webhook-id
+add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
 gcloud run deploy "$SVC_BACKEND" --image "$AR/backend:latest" --region "$REGION" \
   --allow-unauthenticated --port 8000 --add-cloudsql-instances "$CONN" \
   --min-instances "$BACKEND_MIN_INSTANCES" --max-instances "$BACKEND_MAX_INSTANCES" \
