@@ -51,9 +51,17 @@ class SubscriptionProvider(str, PyEnum):
     APPLE = "apple"
 
 
-# The single plan offered today. Kept as a constant so pricing/labels live in one
-# place; the per-rail USD price is resolved from settings at request time.
+# The two billing intervals of the single membership tier. Kept as constants so
+# pricing/labels live in one place; the per-rail USD price is resolved from
+# settings at request time. (Names keep the historical "plus_" prefix so existing
+# subscription rows / store product ids stay valid.)
 PLAN_PLUS_MONTHLY = "plus_monthly"
+PLAN_PLUS_ANNUAL = "plus_annual"
+
+
+def plan_for_interval(interval: str) -> str:
+    """Map a billing interval ('month'|'year') to the plan constant."""
+    return PLAN_PLUS_ANNUAL if str(interval).lower() in ("year", "annual", "yearly") else PLAN_PLUS_MONTHLY
 
 
 class Subscription(Base):

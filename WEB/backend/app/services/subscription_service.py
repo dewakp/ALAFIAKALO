@@ -35,6 +35,8 @@ from app.models.subscription import (
     SubscriptionStatus,
     SubscriptionProvider,
     PLAN_PLUS_MONTHLY,
+    PLAN_PLUS_ANNUAL,
+    plan_for_interval,
 )
 from app.models.user import User
 
@@ -42,6 +44,28 @@ logger = get_logger(__name__)
 
 _HTTP_TIMEOUT = 20.0
 _MONTH = timedelta(days=30)
+_YEAR = timedelta(days=365)
+
+
+def _period_delta(plan: str) -> timedelta:
+    return _YEAR if plan == PLAN_PLUS_ANNUAL else _MONTH
+
+
+def _defer_start(sub: Subscription | None) -> datetime | None:
+    """If the user still has entitled time (grandfather comp or an existing paid
+    period), return its end so newly-purchased billing starts *then* — the paid
+    plan stacks on top of what they already have instead of overwriting it. This
+    is how a grandfathered user "extends": Stripe trial_end / PayPal start_time is
+    set to this instant, so they aren't charged (and don't lose time) until it
+    passes. Returns None when there's nothing to preserve (bill immediately)."""
+    if sub is None or not sub.is_entitled(grace_days=0):
+        return None
+    end = sub.current_period_end
+    if end is None:
+        return None
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=timezone.utc)
+    return end if end > datetime.now(timezone.utc) else None
 
 
 # ── Row helpers ─────────────────────────────────────────────────────────────
@@ -101,7 +125,9 @@ async def _record_event(db: AsyncSession, *, provider: str, event_id: str,
         pass  # already recorded — idempotent no-op
 
 
-def _rail_price(provider: str) -> float:
+def _rail_price(provider: str, plan: str = PLAN_PLUS_MONTHLY) -> float:
+    if plan == PLAN_PLUS_ANNUAL:
+        return settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD  # annual is web-only
     return {
         SubscriptionProvider.STRIPE.value: settings.SUBSCRIPTION_PRICE_WEB_USD,
         SubscriptionProvider.PAYPAL.value: settings.SUBSCRIPTION_PRICE_WEB_USD,
@@ -112,11 +138,12 @@ def _rail_price(provider: str) -> float:
 
 def _apply_active_period(sub: Subscription, *, provider: str, status_value: str,
                          period_end: datetime | None, cancel_at_period_end: bool = False,
-                         period_start: datetime | None = None) -> None:
+                         period_start: datetime | None = None, plan: str | None = None) -> None:
     """Record a verified active period from a provider onto the user's row."""
     sub.provider = provider
-    sub.plan = PLAN_PLUS_MONTHLY
-    sub.price_usd = _rail_price(provider)
+    if plan is not None:
+        sub.plan = plan
+    sub.price_usd = _rail_price(provider, sub.plan or PLAN_PLUS_MONTHLY)
     sub.status = status_value
     if period_start is not None:
         sub.current_period_start = period_start
@@ -177,8 +204,10 @@ async def _stripe_request(method: str, path: str, data: dict | None = None) -> d
     return resp.json()
 
 
-async def stripe_create_checkout(db: AsyncSession, user: User) -> dict:
+async def stripe_create_checkout(db: AsyncSession, user: User, interval: str = "month") -> dict:
     _require_configured(settings.STRIPE_SECRET_KEY, "Stripe")
+    plan = plan_for_interval(interval)
+    price_id = settings.STRIPE_PRICE_ID_ANNUAL if plan == PLAN_PLUS_ANNUAL else settings.STRIPE_PRICE_ID
     success_url = f"{settings.PUBLIC_WEB_URL}/subscription?status=success&provider=stripe&session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{settings.PUBLIC_WEB_URL}/subscription?status=cancel&provider=stripe"
 
@@ -188,7 +217,7 @@ async def stripe_create_checkout(db: AsyncSession, user: User) -> dict:
 
     form = {
         "mode": "subscription",
-        "line_items[0][price]": settings.STRIPE_PRICE_ID,
+        "line_items[0][price]": price_id,
         "line_items[0][quantity]": "1",
         "success_url": success_url,
         "cancel_url": cancel_url,
@@ -199,6 +228,11 @@ async def stripe_create_checkout(db: AsyncSession, user: User) -> dict:
     if sub and sub.stripe_customer_id:
         form.pop("customer_email", None)
         form["customer"] = sub.stripe_customer_id
+    # Extend: if the user still has entitled time (grandfather comp / paid), defer
+    # the first charge to its end so the paid plan stacks on top (no lost time).
+    defer = _defer_start(sub)
+    if defer is not None:
+        form["subscription_data[trial_end]"] = str(int(defer.timestamp()))
     session = await _stripe_request("POST", "/v1/checkout/sessions", form)
     return {"checkout_url": session["url"], "reference_id": session["id"], "test_mode": False}
 
@@ -244,11 +278,19 @@ def _stripe_apply_subscription_object(sub: Subscription, data: dict) -> None:
     if data.get("customer"):
         sub.stripe_customer_id = data["customer"]
     mapped = _STRIPE_STATUS_MAP.get(data.get("status", ""), SubscriptionStatus.NONE.value)
+    # Which interval did they buy? Read the price id off the subscription item.
+    try:
+        price_id = data["items"]["data"][0]["price"]["id"]
+    except (KeyError, IndexError, TypeError):
+        price_id = None
+    plan = (PLAN_PLUS_ANNUAL if price_id and price_id == settings.STRIPE_PRICE_ID_ANNUAL
+            else PLAN_PLUS_MONTHLY)
     _apply_active_period(
         sub, provider=SubscriptionProvider.STRIPE.value, status_value=mapped,
         period_start=_ts_to_dt(data.get("current_period_start")),
         period_end=_ts_to_dt(data.get("current_period_end")),
         cancel_at_period_end=bool(data.get("cancel_at_period_end")),
+        plan=plan,
     )
 
 
@@ -357,8 +399,10 @@ async def _paypal_request(method: str, path: str, token: str, json_body: dict | 
     return resp.json() if resp.content else {}
 
 
-async def paypal_create_checkout(db: AsyncSession, user: User) -> dict:
+async def paypal_create_checkout(db: AsyncSession, user: User, interval: str = "month") -> dict:
     _require_configured(settings.PAYPAL_CLIENT_SECRET, "PayPal")
+    plan = plan_for_interval(interval)
+    plan_id = settings.PAYPAL_PLAN_ID_ANNUAL if plan == PLAN_PLUS_ANNUAL else settings.PAYPAL_PLAN_ID
     return_url = f"{settings.PUBLIC_WEB_URL}/subscription?status=success&provider=paypal"
     cancel_url = f"{settings.PUBLIC_WEB_URL}/subscription?status=cancel&provider=paypal"
 
@@ -368,7 +412,7 @@ async def paypal_create_checkout(db: AsyncSession, user: User) -> dict:
 
     token = await _paypal_token()
     body = {
-        "plan_id": settings.PAYPAL_PLAN_ID,
+        "plan_id": plan_id,
         "custom_id": str(user.id),
         "subscriber": {"email_address": user.email},
         "application_context": {
@@ -378,6 +422,11 @@ async def paypal_create_checkout(db: AsyncSession, user: User) -> dict:
             "cancel_url": cancel_url,
         },
     }
+    # Extend: defer first billing to the end of any entitled time they already have
+    # (grandfather comp / paid) so the paid plan stacks on top instead of overwriting.
+    defer = _defer_start(await get_subscription(db, user.id))
+    if defer is not None:
+        body["start_time"] = defer.strftime("%Y-%m-%dT%H:%M:%SZ")
     data = await _paypal_request("POST", "/v1/billing/subscriptions", token, body)
     approve = next((l["href"] for l in data.get("links", []) if l.get("rel") == "approve"), None)
     if not approve:
@@ -413,6 +462,8 @@ async def paypal_confirm(db: AsyncSession, user: User, subscription_id: str) -> 
 
 def _paypal_apply(sub: Subscription, data: dict) -> None:
     mapped = _PAYPAL_STATUS_MAP.get(data.get("status", ""), SubscriptionStatus.NONE.value)
+    plan = (PLAN_PLUS_ANNUAL if data.get("plan_id") and data.get("plan_id") == settings.PAYPAL_PLAN_ID_ANNUAL
+            else PLAN_PLUS_MONTHLY)
     next_billing = (data.get("billing_info") or {}).get("next_billing_time")
     period_end = None
     if next_billing:
@@ -421,9 +472,9 @@ def _paypal_apply(sub: Subscription, data: dict) -> None:
         except ValueError:
             period_end = None
     if period_end is None and mapped == SubscriptionStatus.ACTIVE.value:
-        period_end = datetime.now(timezone.utc) + _MONTH
+        period_end = datetime.now(timezone.utc) + _period_delta(plan)
     _apply_active_period(sub, provider=SubscriptionProvider.PAYPAL.value,
-                         status_value=mapped, period_end=period_end)
+                         status_value=mapped, period_end=period_end, plan=plan)
 
 
 async def paypal_verify_webhook(headers: dict, body: dict) -> bool:

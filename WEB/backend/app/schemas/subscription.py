@@ -16,14 +16,28 @@ class RailPrice(BaseModel):
     store_product_id: str | None = None  # native store product id (mobile)
 
 
+class PlanOption(BaseModel):
+    """One billing interval of the membership and its per-rail pricing."""
+
+    interval: str            # "month" | "year"
+    plan: str                # plus_monthly | plus_annual
+    rails: list[RailPrice]
+
+
 class PlansResponse(BaseModel):
-    """The single paid tier and its per-rail pricing."""
+    """The membership tier, offered monthly or annually, priced per rail.
+
+    ``plans`` carries every interval (monthly + annual). The top-level ``plan`` /
+    ``interval`` / ``rails`` are kept for backward compatibility with older
+    (mobile) clients and mirror the monthly option.
+    """
 
     product_name: str
     plan: str
     currency: str = "USD"
     interval: str = "month"
     rails: list[RailPrice]
+    plans: list[PlanOption] = []
 
 
 # ── Status ────────────────────────────────────────────────────────────────
@@ -45,6 +59,8 @@ class SubscriptionStatusResponse(BaseModel):
 
 class CheckoutRequest(BaseModel):
     provider: Literal["stripe", "paypal"]
+    # Billing interval. Defaults to monthly for older clients that don't send it.
+    interval: Literal["month", "year"] = "month"
 
 
 class CheckoutResponse(BaseModel):

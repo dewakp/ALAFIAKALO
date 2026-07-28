@@ -132,9 +132,11 @@ class Settings(BaseSettings):
     # live credentials (never enabled when DEBUG is False).
     SUBSCRIPTION_ENABLED: bool = True
     SUBSCRIPTION_PRODUCT_NAME: str = "ALAFIA Membership"
-    SUBSCRIPTION_PRICE_WEB_USD: float = 12.0        # Stripe / PayPal
-    SUBSCRIPTION_PRICE_ANDROID_USD: float = 14.0    # Google Play Billing
-    SUBSCRIPTION_PRICE_IOS_USD: float = 14.0        # Apple StoreKit
+    SUBSCRIPTION_PRICE_WEB_USD: float = 12.0        # Stripe / PayPal (monthly)
+    SUBSCRIPTION_PRICE_ANDROID_USD: float = 14.0    # Google Play Billing (monthly)
+    SUBSCRIPTION_PRICE_IOS_USD: float = 14.0        # Apple StoreKit (monthly)
+    # Annual web plan (Stripe / PayPal). ~$10.75/mo vs $12/mo monthly.
+    SUBSCRIPTION_PRICE_WEB_ANNUAL_USD: float = 129.0
     SUBSCRIPTION_TRIAL_DAYS: int = 0
     # Grace window after a period ends before entitlement is revoked (covers
     # webhook lag / renewal retries).
@@ -152,6 +154,7 @@ class Settings(BaseSettings):
     # Stripe (web card rail). Blank STRIPE_SECRET_KEY ⇒ dev test-mode checkout.
     STRIPE_SECRET_KEY: str = ""
     STRIPE_PRICE_ID: str = ""            # price_… recurring $12/mo price
+    STRIPE_PRICE_ID_ANNUAL: str = ""     # price_… recurring $129/yr price
     STRIPE_WEBHOOK_SECRET: str = ""      # whsec_… for signature verification
     STRIPE_API_BASE: str = "https://api.stripe.com"
 
@@ -159,6 +162,7 @@ class Settings(BaseSettings):
     PAYPAL_CLIENT_ID: str = ""
     PAYPAL_CLIENT_SECRET: str = ""
     PAYPAL_PLAN_ID: str = ""             # P-… billing plan for the $12/mo sub
+    PAYPAL_PLAN_ID_ANNUAL: str = ""      # P-… billing plan for the $129/yr sub
     PAYPAL_WEBHOOK_ID: str = ""          # for webhook signature verification
     PAYPAL_API_BASE: str = "https://api-m.sandbox.paypal.com"  # live: api-m.paypal.com
 

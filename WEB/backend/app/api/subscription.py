@@ -1,7 +1,7 @@
 """Subscription / billing endpoints.
 
-One paid tier ("ALAFIA Plus"), four rails:
-  • Web  — Stripe Checkout + PayPal ($12/mo)   → /checkout, /confirm, /webhook/*
+One membership tier ("ALAFIA Membership"), monthly or annual, four rails:
+  • Web  — Stripe Checkout + PayPal ($12/mo or $129/yr) → /checkout, /confirm, /webhook/*
   • Android — Google Play Billing ($14/mo)     → /verify/google
   • iOS  — Apple StoreKit 2 ($14/mo)            → /verify/apple
 
@@ -20,7 +20,7 @@ from app.core.config import settings
 from app.models.user import User
 from app.models.subscription import Subscription, SubscriptionProvider
 from app.schemas.subscription import (
-    PlansResponse, RailPrice, SubscriptionStatusResponse,
+    PlansResponse, PlanOption, RailPrice, SubscriptionStatusResponse,
     CheckoutRequest, CheckoutResponse, ConfirmRequest,
     GoogleVerifyRequest, AppleVerifyRequest, CancelRequest,
 )
@@ -47,17 +47,28 @@ def _status_response(sub: Subscription | None) -> SubscriptionStatusResponse:
 
 @router.get("/plans", response_model=PlansResponse)
 async def get_plans():
-    """Public pricing catalog — one plan, priced per rail."""
+    """Public pricing catalog — the membership, monthly or annually, per rail."""
+    monthly_rails = [
+        RailPrice(provider="stripe", price_usd=settings.SUBSCRIPTION_PRICE_WEB_USD),
+        RailPrice(provider="paypal", price_usd=settings.SUBSCRIPTION_PRICE_WEB_USD),
+        RailPrice(provider="google_play", price_usd=settings.SUBSCRIPTION_PRICE_ANDROID_USD,
+                  store_product_id=settings.GOOGLE_PLAY_PRODUCT_ID),
+        RailPrice(provider="apple", price_usd=settings.SUBSCRIPTION_PRICE_IOS_USD,
+                  store_product_id=settings.APPLE_PRODUCT_ID),
+    ]
+    # Annual is web-only for now — the mobile stores need their own annual products.
+    annual_rails = [
+        RailPrice(provider="stripe", price_usd=settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD),
+        RailPrice(provider="paypal", price_usd=settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD),
+    ]
     return PlansResponse(
         product_name=settings.SUBSCRIPTION_PRODUCT_NAME,
         plan="plus_monthly",
-        rails=[
-            RailPrice(provider="stripe", price_usd=settings.SUBSCRIPTION_PRICE_WEB_USD),
-            RailPrice(provider="paypal", price_usd=settings.SUBSCRIPTION_PRICE_WEB_USD),
-            RailPrice(provider="google_play", price_usd=settings.SUBSCRIPTION_PRICE_ANDROID_USD,
-                      store_product_id=settings.GOOGLE_PLAY_PRODUCT_ID),
-            RailPrice(provider="apple", price_usd=settings.SUBSCRIPTION_PRICE_IOS_USD,
-                      store_product_id=settings.APPLE_PRODUCT_ID),
+        interval="month",
+        rails=monthly_rails,  # legacy top-level = monthly
+        plans=[
+            PlanOption(interval="month", plan="plus_monthly", rails=monthly_rails),
+            PlanOption(interval="year", plan="plus_annual", rails=annual_rails),
         ],
     )
 
@@ -76,9 +87,9 @@ async def create_checkout(body: CheckoutRequest,
                           current_user: User = Depends(get_current_user),
                           db: AsyncSession = Depends(get_db)):
     if body.provider == "stripe":
-        result = await svc.stripe_create_checkout(db, current_user)
+        result = await svc.stripe_create_checkout(db, current_user, body.interval)
     else:
-        result = await svc.paypal_create_checkout(db, current_user)
+        result = await svc.paypal_create_checkout(db, current_user, body.interval)
     return CheckoutResponse(provider=body.provider, **result)
 
 
