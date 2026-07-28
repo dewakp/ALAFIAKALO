@@ -81,3 +81,6 @@ deploy/gcp/keys/
 
 # iCloud/Finder conflict-copy duplicates
 *[ ]2.*
+
+# local plaintext secrets — never commit
+.env_sec

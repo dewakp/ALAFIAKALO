@@ -29,8 +29,8 @@ PROJ_NUM="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber
 SA="${PROJ_NUM}-compute@developer.gserviceaccount.com"
 for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
-         stripe-secret-key stripe-price-id stripe-webhook-secret \
-         paypal-client-id paypal-client-secret paypal-plan-id paypal-webhook-id \
+         stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
+         paypal-client-id paypal-client-secret paypal-plan-id paypal-plan-id-annual paypal-webhook-id \
          apple-shared-secret; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
