@@ -175,6 +175,7 @@ class Settings(BaseSettings):
     # Apple StoreKit (iOS). Server-side transaction verification.
     APPLE_BUNDLE_ID: str = "com.alafia.app"   # matches the iOS Xcode bundle + alafia.app domain
     APPLE_PRODUCT_ID: str = "alafia_plus_monthly"
+    APPLE_PRODUCT_ID_ANNUAL: str = "alafia_plus_annual"
     APPLE_SHARED_SECRET: str = ""           # app-specific shared secret (verifyReceipt)
     APPLE_ENVIRONMENT: str = "sandbox"      # sandbox | production
 

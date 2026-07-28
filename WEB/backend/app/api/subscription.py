@@ -56,10 +56,14 @@ async def get_plans():
         RailPrice(provider="apple", price_usd=settings.SUBSCRIPTION_PRICE_IOS_USD,
                   store_product_id=settings.APPLE_PRODUCT_ID),
     ]
-    # Annual is web-only for now — the mobile stores need their own annual products.
+    # Annual: web (Stripe/PayPal) + iOS (App Store). Google Play annual not offered yet.
+    # The App Store price shown on-device comes from StoreKit; this catalog value is a
+    # fallback for display only.
     annual_rails = [
         RailPrice(provider="stripe", price_usd=settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD),
         RailPrice(provider="paypal", price_usd=settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD),
+        RailPrice(provider="apple", price_usd=settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD,
+                  store_product_id=settings.APPLE_PRODUCT_ID_ANNUAL),
     ]
     return PlansResponse(
         product_name=settings.SUBSCRIPTION_PRODUCT_NAME,

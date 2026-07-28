@@ -1,23 +1,27 @@
 import SwiftUI
 import StoreKit
 
-private let plusProductId = "alafia_plus_monthly"
+private let monthlyProductId = "alafia_plus_monthly"
+private let annualProductId = "alafia_plus_annual"
+private let membershipProductIds = [monthlyProductId, annualProductId]
 
-private let plusFeatures = [
+private let membershipFeatures = [
     "Unlimited AI health-guide conversations",
     "Advanced labs & vitals trend forecasting",
     "Meal & exercise planners with AI photo analysis",
     "Priority sync across web, iOS & Android",
 ]
 
-/// Drives the App Store purchase for the single ALAFIA Plus subscription and
-/// verifies it server-side. The backend owns entitlement — every purchase (new,
-/// restored, or renewed via `Transaction.updates`) is POSTed to
+/// Drives the App Store purchase for the ALAFIA Membership (monthly or annual)
+/// and verifies it server-side. The backend owns entitlement — every purchase
+/// (new, restored, or renewed via `Transaction.updates`) is POSTed to
 /// `/subscription/verify/apple` as a signed JWS, and `GET /subscription/status`
 /// is the source of truth reflected in the UI.
 @MainActor
 final class StoreManager: ObservableObject {
-    @Published var product: Product?
+    @Published var monthly: Product?
+    @Published var annual: Product?
+    @Published var selected: Product?          // the plan the user is about to buy
     @Published var isLoading = true
     @Published var purchasing = false
     @Published var status: SubscriptionStatus?
@@ -26,10 +30,11 @@ final class StoreManager: ObservableObject {
     private var updatesTask: Task<Void, Never>?
 
     var entitled: Bool { status?.entitled == true }
+    var hasBothPlans: Bool { monthly != nil && annual != nil }
 
     func start() async {
         if updatesTask == nil { updatesTask = listenForTransactions() }
-        await loadProduct()
+        await loadProducts()
         await refreshStatus()
         await syncCurrentEntitlements()
     }
@@ -39,14 +44,21 @@ final class StoreManager: ObservableObject {
         updatesTask = nil
     }
 
-    private func loadProduct() async {
+    func select(id: String) {
+        selected = [monthly, annual].compactMap { $0 }.first { $0.id == id }
+    }
+
+    private func loadProducts() async {
         do {
-            product = try await Product.products(for: [plusProductId]).first
-            if product == nil {
-                errorMessage = "Subscription isn’t available. Is it configured in App Store Connect?"
+            let products = try await Product.products(for: membershipProductIds)
+            monthly = products.first { $0.id == monthlyProductId }
+            annual = products.first { $0.id == annualProductId }
+            selected = monthly ?? annual ?? products.first
+            if selected == nil {
+                errorMessage = "Membership isn’t available. Is it configured in App Store Connect?"
             }
         } catch {
-            errorMessage = "Couldn’t load the subscription."
+            errorMessage = "Couldn’t load the membership options."
         }
         isLoading = false
     }
@@ -56,7 +68,7 @@ final class StoreManager: ObservableObject {
     }
 
     func purchase() async {
-        guard let product else { return }
+        guard let product = selected else { return }
         purchasing = true
         defer { purchasing = false }
         do {
@@ -98,7 +110,7 @@ final class StoreManager: ObservableObject {
     /// Re-verify any active entitlement on open (covers reinstalls / new devices).
     private func syncCurrentEntitlements() async {
         for await result in StoreKit.Transaction.currentEntitlements {
-            if case .verified(let transaction) = result, transaction.productID == plusProductId {
+            if case .verified(let transaction) = result, membershipProductIds.contains(transaction.productID) {
                 await handle(result)
             }
         }
@@ -119,8 +131,10 @@ struct SubscriptionView: View {
     @StateObject private var store = StoreManager()
     @State private var plans: SubscriptionPlans?
 
+    private var isAnnual: Bool { store.selected?.id == annualProductId }
+
     private var priceLabel: String {
-        if let display = store.product?.displayPrice { return display }
+        if let display = store.selected?.displayPrice { return display }
         if let usd = plans?.rails.first(where: { $0.provider == "apple" })?.priceUsd {
             return String(format: "$%.2f", usd)
         }
@@ -133,7 +147,7 @@ struct SubscriptionView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
                         .foregroundColor(Color(red: 0.49, green: 0.30, blue: 1.0))
-                    Text(plans?.productName ?? "ALAFIA Plus")
+                    Text(plans?.productName ?? "ALAFIA Membership")
                         .font(.title).bold()
                 }
                 Text("Unlock the full ALAFIA experience across every device.")
@@ -149,7 +163,7 @@ struct SubscriptionView: View {
             }
             .padding()
         }
-        .navigationTitle("ALAFIA Plus")
+        .navigationTitle("ALAFIA Membership")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             plans = try? await APIClient.shared.get("/subscription/plans")
@@ -168,11 +182,28 @@ struct SubscriptionView: View {
 
     private var offerCard: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // Monthly / Annual chooser — only when both products load.
+            if store.hasBothPlans {
+                Picker("Billing period", selection: Binding(
+                    get: { store.selected?.id ?? monthlyProductId },
+                    set: { store.select(id: $0) }
+                )) {
+                    Text("Monthly").tag(monthlyProductId)
+                    Text("Annual").tag(annualProductId)
+                }
+                .pickerStyle(.segmented)
+            }
+
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(priceLabel).font(.system(size: 36, weight: .heavy))
-                Text("/ month").foregroundColor(.secondary)
+                Text(isAnnual ? "/ year" : "/ month").foregroundColor(.secondary)
             }
-            ForEach(plusFeatures, id: \.self) { feature in
+            if isAnnual, let annual = store.annual {
+                Text("Billed yearly (\(annual.displayPrice)).")
+                    .font(.footnote).foregroundColor(.green)
+            }
+
+            ForEach(membershipFeatures, id: \.self) { feature in
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                     Text(feature)
@@ -188,9 +219,9 @@ struct SubscriptionView: View {
                 .frame(maxWidth: .infinity).padding(.vertical, 14)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(store.product == nil || store.purchasing)
+            .disabled(store.selected == nil || store.purchasing)
 
-            Text("Billed monthly through the App Store. Cancel anytime in Settings → Apple ID → Subscriptions.")
+            Text("Billed \(isAnnual ? "yearly" : "monthly") through the App Store. Cancel anytime in Settings → Apple ID → Subscriptions.")
                 .font(.caption).foregroundColor(.secondary)
         }
         .padding()
@@ -205,7 +236,9 @@ struct SubscriptionView: View {
             }
             if let s = store.status {
                 Text("Plan: \(s.productName)")
-                if let price = s.priceUsd { Text(String(format: "Price: $%.2f / month", price)) }
+                if let price = s.priceUsd {
+                    Text(String(format: "Price: $%.2f / %@", price, s.plan == "plus_annual" ? "year" : "month"))
+                }
                 Text("Billing via: \(prettyProvider(s.provider))")
                 if let end = s.currentPeriodEnd {
                     let label = s.cancelAtPeriodEnd ? "Access ends" : "Renews"

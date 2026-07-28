@@ -672,6 +672,7 @@ async def apple_verify(db: AsyncSession, user: User, *, signed_transaction: str 
         return sub
 
     expiry = None
+    product_id = None
     original_tx = transaction_id
     latest_tx = transaction_id
     if signed_transaction:
@@ -680,6 +681,7 @@ async def apple_verify(db: AsyncSession, user: User, *, signed_transaction: str 
             raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                                 detail="Transaction bundle mismatch")
         expiry = _ts_to_dt(claims.get("expiresDate"))
+        product_id = claims.get("productId") or product_id
         original_tx = claims.get("originalTransactionId") or original_tx
         latest_tx = claims.get("transactionId") or latest_tx
     elif receipt_data:
@@ -689,6 +691,7 @@ async def apple_verify(db: AsyncSession, user: User, *, signed_transaction: str 
         latest = max(infos, key=lambda i: int(i.get("expires_date_ms", 0)), default=None)
         if latest:
             expiry = _ts_to_dt(latest.get("expires_date_ms"))
+            product_id = latest.get("product_id") or product_id
             original_tx = latest.get("original_transaction_id") or original_tx
             latest_tx = latest.get("transaction_id") or latest_tx
     else:
@@ -699,10 +702,12 @@ async def apple_verify(db: AsyncSession, user: User, *, signed_transaction: str 
         return sub  # idempotent re-submit of the same transaction
     now = datetime.now(timezone.utc)
     entitled = expiry is not None and expiry > now
+    plan = (PLAN_PLUS_ANNUAL if product_id and product_id == settings.APPLE_PRODUCT_ID_ANNUAL
+            else PLAN_PLUS_MONTHLY)
     _apply_active_period(sub, provider=SubscriptionProvider.APPLE.value,
                          status_value=(SubscriptionStatus.ACTIVE.value if entitled
                                        else SubscriptionStatus.EXPIRED.value),
-                         period_end=expiry)
+                         period_end=expiry, plan=plan)
     sub.apple_original_transaction_id = original_tx
     sub.apple_transaction_id = latest_tx
     await _record_event(db, provider="apple", event_id=f"{original_tx}:{latest_tx}",
