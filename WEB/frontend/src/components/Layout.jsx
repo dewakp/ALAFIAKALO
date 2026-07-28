@@ -76,8 +76,6 @@ function isClinician(user) {
 const navGroups = [
   // Prompt Hub — the modality-aware entry point (Basis.md)
   { to: '/', icon: Bot, label: 'Ask ALAFIA' },
-  // ALAFIA Membership subscription / upgrade
-  { to: '/subscription', icon: Sparkles, label: 'ALAFIA Membership' },
   // ── Firebase-matching primary nav ──
   {
     label: 'Overview & Analysis', icon: LayoutDashboard, children: [
@@ -148,6 +146,7 @@ const navGroups = [
   {
     label: 'Profile', icon: User, children: [
       { to: '/profile', icon: User, label: 'My Profile' },
+      { to: '/subscription', icon: Sparkles, label: 'ALAFIA Membership' },
       { to: '/roles', icon: UserCog, label: 'Role' },
       { to: '/advanced-directives', icon: FileHeart, label: 'Advanced Directives' },
       { to: '/insurance', icon: Shield, label: 'Insurance' },

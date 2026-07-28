@@ -117,6 +117,10 @@ export default function Subscription() {
     ? Math.max(0, Math.round(monthlyWeb * 12 - annualWeb)) : 0;
   const perPeriod = interval === 'year' ? '/ year' : '/ month';
   const entitled = status?.entitled;
+  // Grandfather comp = entitled but not paying (no provider). Such users still
+  // need to see & buy a plan so they can subscribe/extend before the comp ends.
+  const isComp = entitled && status?.provider === 'none';
+  const canBuy = !entitled || isComp;   // show plan selection
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '1rem' }}>
@@ -143,7 +147,9 @@ export default function Subscription() {
         <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
           <Loader2 className="spin" size={28} />
         </div>
-      ) : entitled ? (
+      ) : (
+        <>
+        {entitled && !isComp && (
         <div style={{ border: '1px solid #c8e6c9', background: '#f1f8f4', borderRadius: 14, padding: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <ShieldCheck size={22} color="#2e7d32" />
@@ -177,8 +183,25 @@ export default function Subscription() {
             </p>
           )}
         </div>
-      ) : (
+        )}
+        {isComp && (
+          <div style={{ border: '1px solid #c8e6c9', background: '#f1f8f4', borderRadius: 14, padding: 20, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <ShieldCheck size={22} color="#2e7d32" />
+              <strong style={{ fontSize: 18 }}>Complimentary access</strong>
+            </div>
+            {status.current_period_end && (
+              <div style={{ fontSize: 14, color: '#333' }}>
+                Ends on <strong>{new Date(status.current_period_end).toLocaleDateString()}</strong> — subscribe below to keep your membership after that.
+              </div>
+            )}
+          </div>
+        )}
+        {canBuy && (
         <div style={{ border: '1px solid #e0e0e0', borderRadius: 14, padding: 24 }}>
+          {isComp && (
+            <h2 style={{ margin: '0 0 14px', fontSize: 18 }}>Keep your ALAFIA Membership</h2>
+          )}
           {hasAnnual && (
             <div style={billingToggle}>
               <button onClick={() => setBillingInterval('month')} style={toggleBtn(interval === 'month')}>
@@ -229,6 +252,8 @@ export default function Subscription() {
             </p>
           </div>
         </div>
+        )}
+        </>
       )}
     </div>
   );
