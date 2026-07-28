@@ -46,5 +46,9 @@
 	<string>ALAFIA transcribes your speech on device to understand spoken health logs and questions.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>ALAFIA lets you attach a photo of a meal so it can estimate nutrition.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>ALAFIA uses Face ID to lock and unlock your health information so only you can open the app.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
