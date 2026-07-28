@@ -4,7 +4,7 @@ import api from '../services/api';
 import { Sparkles, Check, CreditCard, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
-const PLUS_FEATURES = [
+const MEMBERSHIP_FEATURES = [
   'Unlimited AI health-guide conversations',
   'Advanced labs & vitals trend forecasting',
   'Meal & exercise planners with AI photo analysis',
@@ -21,6 +21,7 @@ export default function Subscription() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');        // 'stripe' | 'paypal' | 'cancel'
   const [banner, setBanner] = useState(null);  // { type, text }
+  const [interval, setBillingInterval] = useState('month'); // 'month' | 'year'
   const [params, setParams] = useSearchParams();
 
   const load = useCallback(async () => {
@@ -77,7 +78,7 @@ export default function Subscription() {
     setBusy(provider);
     setBanner(null);
     try {
-      const { data } = await api.post('/subscription/checkout', { provider });
+      const { data } = await api.post('/subscription/checkout', { provider, interval });
       window.location.assign(data.checkout_url); // hand off to the hosted checkout
     } catch (e) {
       setBusy('');
@@ -99,9 +100,22 @@ export default function Subscription() {
     }
   }
 
-  const webRail = plans?.rails?.find(r => r.provider === 'stripe');
-  const androidRail = plans?.rails?.find(r => r.provider === 'google_play');
-  const iosRail = plans?.rails?.find(r => r.provider === 'apple');
+  const monthlyOpt = plans?.plans?.find(o => o.interval === 'month');
+  const annualOpt = plans?.plans?.find(o => o.interval === 'year');
+  const hasAnnual = !!annualOpt;
+  const selectedOpt = interval === 'year' ? annualOpt : monthlyOpt;
+  // web (Stripe) price for the selected interval; fall back to legacy flat rails.
+  const webRail = (selectedOpt?.rails || plans?.rails)?.find(r => r.provider === 'stripe');
+  // mobile stays monthly-only for now.
+  const monthlyRails = monthlyOpt?.rails || plans?.rails || [];
+  const androidRail = monthlyRails.find(r => r.provider === 'google_play');
+  const iosRail = monthlyRails.find(r => r.provider === 'apple');
+  const monthlyWeb = monthlyRails.find(r => r.provider === 'stripe')?.price_usd;
+  const annualWeb = annualOpt?.rails?.find(r => r.provider === 'stripe')?.price_usd;
+  // annual savings vs paying monthly for a year
+  const annualSavings = (typeof monthlyWeb === 'number' && typeof annualWeb === 'number')
+    ? Math.max(0, Math.round(monthlyWeb * 12 - annualWeb)) : 0;
+  const perPeriod = interval === 'year' ? '/ year' : '/ month';
   const entitled = status?.entitled;
 
   return (
@@ -109,7 +123,7 @@ export default function Subscription() {
       <BackButton />
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <Sparkles size={26} color="#7c4dff" />
-        <h1 style={{ margin: 0 }}>{plans?.product_name || 'ALAFIA Plus'}</h1>
+        <h1 style={{ margin: 0 }}>{plans?.product_name || 'ALAFIA Membership'}</h1>
       </div>
       <p style={{ color: '#666', marginTop: 0 }}>
         Unlock the full ALAFIA experience across every device.
@@ -142,7 +156,7 @@ export default function Subscription() {
             </span>
           </div>
           <div style={{ fontSize: 14, color: '#333', lineHeight: 1.8 }}>
-            <div>Plan: <strong>{status.product_name}</strong> · {money(status.price_usd)}/mo</div>
+            <div>Plan: <strong>{status.product_name}</strong> · {money(status.price_usd)}{status.plan === 'plus_annual' ? '/yr' : '/mo'}</div>
             <div>Billing via: <strong>{prettyProvider(status.provider)}</strong></div>
             {status.current_period_end && (
               <div>
@@ -165,12 +179,28 @@ export default function Subscription() {
         </div>
       ) : (
         <div style={{ border: '1px solid #e0e0e0', borderRadius: 14, padding: 24 }}>
+          {hasAnnual && (
+            <div style={billingToggle}>
+              <button onClick={() => setBillingInterval('month')} style={toggleBtn(interval === 'month')}>
+                Monthly
+              </button>
+              <button onClick={() => setBillingInterval('year')} style={toggleBtn(interval === 'year')}>
+                Annual{annualSavings > 0 ? ` · save $${annualSavings}` : ''}
+              </button>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 40, fontWeight: 800 }}>{money(webRail?.price_usd)}</span>
-            <span style={{ color: '#666' }}>/ month</span>
+            <span style={{ color: '#666' }}>{perPeriod}</span>
           </div>
+          {interval === 'year' && typeof annualWeb === 'number' && (
+            <div style={{ color: '#2e7d32', fontSize: 13, marginTop: 2 }}>
+              ≈ ${(annualWeb / 12).toFixed(2)}/mo, billed yearly
+              {annualSavings > 0 ? ` — save $${annualSavings} vs monthly` : ''}
+            </div>
+          )}
           <ul style={{ listStyle: 'none', padding: 0, margin: '18px 0' }}>
-            {PLUS_FEATURES.map(f => (
+            {MEMBERSHIP_FEATURES.map(f => (
               <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
                 <Check size={18} color="#2e7d32" style={{ flexShrink: 0, marginTop: 2 }} />
                 <span style={{ fontSize: 15 }}>{f}</span>
@@ -222,3 +252,11 @@ const secondaryBtn = {
   marginTop: 16, padding: '9px 16px', border: '1px solid #ef9a9a', borderRadius: 8,
   background: 'transparent', color: '#c62828', cursor: 'pointer', fontSize: 14,
 };
+const billingToggle = {
+  display: 'flex', gap: 6, padding: 4, background: '#f2f0fa', borderRadius: 10,
+  marginBottom: 16, width: 'fit-content',
+};
+const toggleBtn = (active) => ({
+  padding: '7px 16px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14,
+  fontWeight: 600, background: active ? '#7c4dff' : 'transparent', color: active ? '#fff' : '#555',
+});

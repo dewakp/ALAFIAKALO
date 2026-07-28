@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import MembershipNudge from './MembershipNudge';
 import {
   LayoutDashboard,
   Apple,
@@ -75,8 +76,8 @@ function isClinician(user) {
 const navGroups = [
   // Prompt Hub — the modality-aware entry point (Basis.md)
   { to: '/', icon: Bot, label: 'Ask ALAFIA' },
-  // ALAFIA Plus subscription / upgrade
-  { to: '/subscription', icon: Sparkles, label: 'ALAFIA Plus' },
+  // ALAFIA Membership subscription / upgrade
+  { to: '/subscription', icon: Sparkles, label: 'ALAFIA Membership' },
   // ── Firebase-matching primary nav ──
   {
     label: 'Overview & Analysis', icon: LayoutDashboard, children: [
@@ -276,6 +277,7 @@ export default function Layout() {
         </div>
       </aside>
       <main className="main-content">
+        <MembershipNudge />
         <Outlet />
       </main>
     </div>
