@@ -4,7 +4,7 @@ sqlalchemy==2.0.36
 asyncpg==0.30.0
 PyJWT[crypto]==2.10.1
 argon2-cffi==25.1.0
-liboqs-python==0.15.0
+liboqs-python==0.16.0
 dilithium-py==1.4.0
 bcrypt==4.2.1
 pydantic==2.10.4
