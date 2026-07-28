@@ -67,7 +67,7 @@ SKIP_SHEETS = {
 # All flowsheet workbooks to import
 WORKBOOKS = [
     {
-        'path': '/Users/woleakpose/Documents/Developer/WellnessScore/Flowsheets.xlsx',
+        'path': '/Users/woleakpose/Developer/WellnessScore/Flowsheets.xlsx',
         'label': 'Flowsheets 2017-2018',
     },
     {
@@ -75,7 +75,7 @@ WORKBOOKS = [
         'label': '2023 FlowSheets',
     },
     {
-        'path': '/Users/woleakpose/Documents/Developer/data/2024FlowSheets.xlsx',
+        'path': '/Users/woleakpose/Developer/data/2024FlowSheets.xlsx',
         'label': '2024 FlowSheets',
     },
     {

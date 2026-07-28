@@ -509,7 +509,7 @@ def parse_vomit_log(df, source_file):
 def main():
     files = [
         {
-            'path': os.path.expanduser('~/Documents/Developer/WellnessScore/Flowsheets.xlsx'),
+            'path': os.path.expanduser('~/Developer/WellnessScore/Flowsheets.xlsx'),
             'label': 'Flowsheets.xlsx (2017-2018)',
             'year_hint': 2018,
         },
@@ -524,7 +524,7 @@ def main():
             'year_hint': 2023,
         },
         {
-            'path': os.path.expanduser('~/Documents/Developer/data/2024FlowSheets.xlsx'),
+            'path': os.path.expanduser('~/Developer/data/2024FlowSheets.xlsx'),
             'label': '2024FlowSheets.xlsx',
             'year_hint': 2024,
         },

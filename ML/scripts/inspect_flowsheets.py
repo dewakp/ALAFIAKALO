@@ -4,7 +4,7 @@ import os
 
 # 2017 format
 df = pd.read_excel(
-    os.path.expanduser('~/Documents/Developer/WellnessScore/Flowsheets.xlsx'),
+    os.path.expanduser('~/Developer/WellnessScore/Flowsheets.xlsx'),
     sheet_name='July 1-2017', header=None
 )
 print("2017 rows 42-56:")
@@ -14,7 +14,7 @@ for r in range(42, min(56, len(df))):
 
 # 2024 format
 df2 = pd.read_excel(
-    os.path.expanduser('~/Documents/Developer/data/2024FlowSheets.xlsx'),
+    os.path.expanduser('~/Developer/data/2024FlowSheets.xlsx'),
     sheet_name='01-02-2024', header=None
 )
 print("\n2024 (01-02-2024) rows 28-55:")

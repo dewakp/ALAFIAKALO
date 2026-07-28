@@ -5,7 +5,7 @@ import openpyxl
 
 # Look at a 2024 session (most recent format)
 wb = openpyxl.load_workbook(
-    '/Users/woleakpose/Documents/Developer/data/2024FlowSheets.xlsx',
+    '/Users/woleakpose/Developer/data/2024FlowSheets.xlsx',
     read_only=True, data_only=True
 )
 
@@ -25,7 +25,7 @@ wb.close()
 # Also look at a 2018 session for comparison
 print("\n\n")
 wb2 = openpyxl.load_workbook(
-    '/Users/woleakpose/Documents/Developer/WellnessScore/Flowsheets.xlsx',
+    '/Users/woleakpose/Developer/WellnessScore/Flowsheets.xlsx',
     read_only=True, data_only=True
 )
 

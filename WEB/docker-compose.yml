@@ -61,11 +61,11 @@ services:
       FIREBASE_SYNC_ENABLED: "true"
       FIREBASE_SYNC_INTERVAL_SECONDS: "300"
     volumes:
-      - /Users/woleakpose/Documents/Developer/LAFIAKALO/alafia-9i0hh-firebase-adminsdk-fbsvc-fb3e9a5364.json:/run/secrets/firebase_sa:ro
+      - /Users/woleakpose/Developer/LAFIAKALO/alafia-9i0hh-firebase-adminsdk-fbsvc-fb3e9a5364.json:/run/secrets/firebase_sa:ro
       # ALAFIAModel router lives in ML/src (outside the backend build context).
       # alafia_model_service.py adds /ML/src to sys.path → mount it there so the
       # LLM/AI routing actually loads instead of falling back to "unavailable".
-      - /Users/woleakpose/Documents/Developer/LAFIAKALO/ML/src:/ML/src:ro
+      - /Users/woleakpose/Developer/LAFIAKALO/ML/src:/ML/src:ro
     depends_on:
       db:
         condition: service_healthy

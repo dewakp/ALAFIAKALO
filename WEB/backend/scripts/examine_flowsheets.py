@@ -5,8 +5,8 @@ import openpyxl
 
 files = [
     '/Users/woleakpose/Documents/2023FlowSheets-ex.xlsx',
-    '/Users/woleakpose/Documents/Developer/data/2024FlowSheets.xlsx',
-    '/Users/woleakpose/Documents/Developer/WellnessScore/Flowsheets.xlsx',
+    '/Users/woleakpose/Developer/data/2024FlowSheets.xlsx',
+    '/Users/woleakpose/Developer/WellnessScore/Flowsheets.xlsx',
 ]
 
 for f in files:
