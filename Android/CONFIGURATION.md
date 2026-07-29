@@ -34,12 +34,12 @@ private const val BASE_URL = "http://192.168.1.100:8000/api/"
 
 #### Staging Environment
 ```kotlin
-private const val BASE_URL = "https://staging-api.alafia.com/api/"
+private const val BASE_URL = "https://staging-api.alafia.app/api/"
 ```
 
 #### Production Environment
 ```kotlin
-private const val BASE_URL = "https://api.alafia.com/api/"
+private const val BASE_URL = "https://api.alafia.app/api/"
 ```
 
 ## Build Configuration
@@ -117,7 +117,7 @@ buildTypes {
         buildConfigField "String", "API_BASE_URL", "\"http://10.0.2.2:8000/api/\""
     }
     release {
-        buildConfigField "String", "API_BASE_URL", "\"https://api.alafia.com/api/\""
+        buildConfigField "String", "API_BASE_URL", "\"https://api.alafia.app/api/\""
     }
 }
 ```
@@ -141,17 +141,25 @@ Required permissions are declared in `AndroidManifest.xml`:
 
 ## Network Security
 
-### SSL Certificate Pinning (Optional)
+### SSL Certificate Pinning — intentionally NOT used
 
-For production, consider implementing certificate pinning:
+We rely on standard system TLS validation (the Android trust store +
+`network_security_config` below), and deliberately do **not** certificate-pin.
+
+`api.alafia.app` is served by Cloud Run behind **Google-managed certificates
+that auto-rotate**, so a hardcoded leaf pin would break the app on every
+rotation. (This exact bug shipped once on iOS as a stale placeholder pin that
+failed every request with `URLError.cancelled` — see `IOS/.../APIClient.swift`.)
+
+Do NOT add the example below to `ApiClient.kt`. If pinning is ever truly
+required, pin the **Google Trust Services intermediate** SPKI (stable for
+years), never the auto-rotated leaf, and ship pin updates ahead of any CA
+migration:
 
 ```kotlin
+// ⚠️ Reference only — do not enable against api.alafia.app's managed cert.
 val certificatePinner = CertificatePinner.Builder()
-    .add("api.alafia.com", "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
-    .build()
-
-val httpClient = OkHttpClient.Builder()
-    .certificatePinner(certificatePinner)
+    .add("api.alafia.app", "sha256/<REAL_GTS_INTERMEDIATE_SPKI_HASH>")
     .build()
 ```
 
@@ -162,7 +170,7 @@ Create `res/xml/network_security_config.xml`:
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">api.alafia.com</domain>
+        <domain includeSubdomains="true">api.alafia.app</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
