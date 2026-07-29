@@ -1,35 +1,26 @@
 import Foundation
-import CommonCrypto
 
 /// Centralized API client for all network requests
 actor APIClient {
     static let shared = APIClient()
-    
+
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
-    private let pinningDelegate: CertificatePinningDelegate?
-    
-    /// SHA-512 hashes of the Subject Public Key Info (SPKI) for api.alafia.com
-    /// Replace with real pin hashes extracted from your production certificates.
-    private static let pinnedHashes: [String] = [
-        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",  // Primary — SHA-512
-        "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",  // Backup — SHA-512
-    ]
-    
+
     private init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
-
-        #if DEBUG
-        self.pinningDelegate = nil
+        // Standard system TLS validation (App Transport Security + the OS trust
+        // store) secures every request. We deliberately do NOT certificate-pin:
+        // api.alafia.app is served by Cloud Run behind Google-managed certificates
+        // that auto-rotate, so a hardcoded leaf pin would break the app on every
+        // rotation (it did — a stale placeholder pin surfaced as URLError.cancelled).
+        // If pinning is ever required, pin the Google Trust Services *intermediate*
+        // SPKI (stable for years), never the auto-rotated leaf, and ship pin updates
+        // ahead of CA migrations.
         self.session = URLSession(configuration: config)
-        #else
-        let delegate = CertificatePinningDelegate(pinnedHashes: Self.pinnedHashes)
-        self.pinningDelegate = delegate
-        self.session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
-        #endif
-        
+
         self.decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
@@ -359,63 +350,6 @@ enum APIError: LocalizedError {
 
 struct ErrorDetail: Decodable {
     let detail: String
-}
-
-// MARK: - Certificate Pinning Delegate
-
-final class CertificatePinningDelegate: NSObject, URLSessionDelegate {
-    private let pinnedHashes: [String]
-
-    init(pinnedHashes: [String]) {
-        self.pinnedHashes = pinnedHashes
-    }
-
-    func urlSession(
-        _ session: URLSession,
-        didReceive challenge: URLAuthenticationChallenge,
-        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
-    ) {
-        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
-              let serverTrust = challenge.protectionSpace.serverTrust else {
-            completionHandler(.performDefaultHandling, nil)
-            return
-        }
-
-        // Evaluate the server certificate chain
-        let policy = SecPolicyCreateSSL(true, challenge.protectionSpace.host as CFString)
-        SecTrustSetPolicies(serverTrust, policy)
-
-        var error: CFError?
-        guard SecTrustEvaluateWithError(serverTrust, &error) else {
-            completionHandler(.cancelAuthenticationChallenge, nil)
-            return
-        }
-
-        // Check each certificate in the chain against our pinned hashes
-        let certCount = SecTrustGetCertificateCount(serverTrust)
-        for i in 0..<certCount {
-            guard let cert = SecTrustCopyCertificateChain(serverTrust) as? [SecCertificate],
-                  i < cert.count else { continue }
-            let certData = SecCertificateCopyData(cert[i]) as Data
-            let hash = sha512(data: certData)
-            let base64Hash = hash.base64EncodedString()
-            if pinnedHashes.contains(base64Hash) {
-                completionHandler(.useCredential, URLCredential(trust: serverTrust))
-                return
-            }
-        }
-
-        // No pin matched — reject
-        completionHandler(.cancelAuthenticationChallenge, nil)
-    }
-
-    private func sha512(data: Data) -> Data {
-        var hash = [UInt8](repeating: 0, count: Int(CC_SHA512_DIGEST_LENGTH))
-        data.withUnsafeBytes { buffer in
-            _ = CC_SHA512(buffer.baseAddress, CC_LONG(data.count), &hash)
-        }
-        return Data(hash)
-    }
 }
 
 // MARK: - Local date/time display
