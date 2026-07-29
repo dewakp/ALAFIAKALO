@@ -19,6 +19,8 @@ import os
 import re
 
 import httpx
+
+from app.services.ollama_auth import ollama_auth_headers
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -93,6 +95,7 @@ async def _vision_ask(image: bytes, prompt: str) -> str:
             resp = await client.post(
                 f"{settings.OLLAMA_BASE_URL}/api/generate",
                 json={"model": model, "prompt": prompt, "images": [b64], "stream": False},
+                headers=await ollama_auth_headers(),
             )
             resp.raise_for_status()
             return (resp.json().get("response") or "").strip()
@@ -181,6 +184,7 @@ async def _extract_food_list(caption: str) -> list[str]:
                 json={"model": settings.OLLAMA_MODEL, "prompt": prompt,
                       "stream": False, "format": "json",
                       "options": {"temperature": 0}},
+                headers=await ollama_auth_headers(),
             )
             resp.raise_for_status()
             parsed = json.loads((resp.json().get("response") or "").strip())
@@ -420,6 +424,7 @@ async def _vision_read_med_label(image: bytes) -> dict | None:
                 f"{settings.OLLAMA_BASE_URL}/api/generate",
                 json={"model": model, "prompt": _MED_LABEL_PROMPT, "images": [b64],
                       "stream": False, "format": "json"},
+                headers=await ollama_auth_headers(),
             )
             resp.raise_for_status()
             raw = (resp.json().get("response") or "").strip()
@@ -561,6 +566,7 @@ async def verify_dosage(
                 resp = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/generate",
                     json={"model": settings.OLLAMA_MODEL, "prompt": prompt, "stream": False},
+                    headers=await ollama_auth_headers(),
                 )
                 resp.raise_for_status()
                 ai_notes = (resp.json().get("response") or "").strip() or None

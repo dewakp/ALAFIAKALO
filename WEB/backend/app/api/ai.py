@@ -24,6 +24,8 @@ import time
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
+
+from app.services.ollama_auth import ollama_auth_headers
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select, desc, update
@@ -1424,6 +1426,7 @@ async def _embed_text(text: str) -> list[float] | None:
             resp = await client.post(
                 f"{settings.OLLAMA_BASE_URL}/api/embeddings",
                 json={"model": "llama3.2:latest", "prompt": text[:2000]},
+                headers=await ollama_auth_headers(),
             )
             if resp.status_code == 200:
                 return resp.json().get("embedding")
@@ -1687,6 +1690,7 @@ async def ai_chat_stream(
                     "POST",
                     f"{settings.OLLAMA_BASE_URL}/api/chat",
                     json={"model": model, "messages": ollama_messages, "stream": True},
+                    headers=await ollama_auth_headers(),
                 ) as response:
                     response.raise_for_status()
                     async for line in response.aiter_lines():

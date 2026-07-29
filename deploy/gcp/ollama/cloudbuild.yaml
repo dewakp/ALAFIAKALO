@@ -1,0 +1,14 @@
+# Build the Ollama+gpt-oss:20b image on Cloud Build (needs disk for the ~13 GB model).
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - us-central1-docker.pkg.dev/alafia-prod-6igma/alafia-ml/ollama:latest
+      - .
+images:
+  - us-central1-docker.pkg.dev/alafia-prod-6igma/alafia-ml/ollama:latest
+options:
+  machineType: E2_HIGHCPU_8
+  diskSizeGb: 120
+timeout: 3600s
