@@ -74,6 +74,9 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
     med_count = result.scalar() or 0
     scores["medication_adherence"] = 80 if med_count > 0 else 50
 
+    # SQL AVG() returns Decimal (sleep, mood); the rest are Python floats/ints.
+    # Normalise to float so sum()/round()/comparisons don't hit Decimal+float.
+    scores = {k: float(v) for k, v in scores.items()}
     overall = sum(scores.values()) / len(scores)
 
     # Explanation
