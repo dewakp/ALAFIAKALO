@@ -1731,7 +1731,7 @@ struct SystemIdResponse: Codable {
     }
 }
 
-// MARK: - Subscription / Billing (ALAFIA Plus)
+// MARK: - Subscription / Billing (ALAFIA Membership)
 
 struct SubscriptionRailPrice: Codable {
     let provider: String

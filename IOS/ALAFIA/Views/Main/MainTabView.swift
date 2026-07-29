@@ -64,7 +64,7 @@ struct HealthHubView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("ALAFIA Plus") {
+                Section("ALAFIA Membership") {
                     NavigationLink {
                         SubscriptionView()
                     } label: {

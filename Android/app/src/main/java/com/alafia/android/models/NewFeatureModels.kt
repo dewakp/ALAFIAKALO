@@ -819,7 +819,7 @@ data class WhatIfRequest(
     @SerializedName("Sodium") val sodium: Double? = null
 )
 
-// ── Subscription / Billing (ALAFIA Plus) ────────────────────────────────────
+// ── Subscription / Billing (ALAFIA Membership) ────────────────────────────────────
 
 data class SubscriptionRailPrice(
     val provider: String,

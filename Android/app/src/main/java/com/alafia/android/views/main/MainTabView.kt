@@ -402,7 +402,7 @@ fun MoreScreen(
             MoreGridItem("Data Share", Icons.Default.Share, "data-sharing"),
         )),
         MoreGridSection("Profile", listOf(
-            MoreGridItem("ALAFIA Plus", Icons.Default.AutoAwesome, "subscription"),
+            MoreGridItem("ALAFIA Membership", Icons.Default.AutoAwesome, "subscription"),
             MoreGridItem("My Profile", Icons.Default.Person, "profile"),
             MoreGridItem("Role", Icons.Default.Badge, "roles"),
             MoreGridItem("Conditions", Icons.Default.MonitorHeart, "chronic-conditions"),

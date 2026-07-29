@@ -986,7 +986,7 @@ interface ApiService {
     @GET("auth/me/system-id")
     suspend fun getSystemId(): SystemIdResponse
 
-    // ── Subscription / Billing (ALAFIA Plus) ──────────────────────────────────
+    // ── Subscription / Billing (ALAFIA Membership) ──────────────────────────────────
 
     @GET("subscription/plans")
     suspend fun getSubscriptionPlans(): SubscriptionPlans

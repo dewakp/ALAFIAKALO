@@ -6,7 +6,7 @@ import android.util.Log
 import com.android.billingclient.api.*
 
 /**
- * Thin wrapper around Google Play Billing v7 for the single ALAFIA Plus
+ * Thin wrapper around Google Play Billing v7 for the single ALAFIA Membership
  * subscription product. Flow:
  *
  *   start()  → connect + query the SUBS product details

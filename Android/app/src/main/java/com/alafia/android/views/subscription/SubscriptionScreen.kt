@@ -76,7 +76,7 @@ fun SubscriptionScreen(navController: NavHostController) {
                             GoogleVerifyRequest(purchaseToken = token,
                                 productId = PLUS_PRODUCT_ID, orderId = orderId)
                         )
-                        message = "You're now on ALAFIA Plus. Welcome aboard!"
+                        message = "You're now on ALAFIA Membership. Welcome aboard!"
                     } catch (e: Exception) {
                         message = "Purchase made but verification failed — it may update shortly."
                     } finally {
@@ -116,7 +116,7 @@ fun SubscriptionScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ALAFIA Plus") },
+                title = { Text("ALAFIA Membership") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -136,7 +136,7 @@ fun SubscriptionScreen(navController: NavHostController) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF7C4DFF))
                 Spacer(Modifier.width(8.dp))
-                Text(plans?.productName ?: "ALAFIA Plus",
+                Text(plans?.productName ?: "ALAFIA Membership",
                     fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
             Text("Unlock the full ALAFIA experience across every device.",
