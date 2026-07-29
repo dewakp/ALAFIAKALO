@@ -55,8 +55,7 @@ final class PdfToolsViewModel {
             request.httpBody = jsonData
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-                if let httpResponse = response as? HTTPURLResponse,
-                   let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
+                if let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
                     throw APIError.clientError(detail.detail)
                 }
                 throw APIError.invalidResponse
@@ -90,8 +89,7 @@ final class PdfToolsViewModel {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            if let httpResponse = response as? HTTPURLResponse,
-               let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
+            if let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
                 throw APIError.clientError(detail.detail)
             }
             throw APIError.invalidResponse

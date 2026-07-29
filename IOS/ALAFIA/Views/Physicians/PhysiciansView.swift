@@ -258,22 +258,24 @@ struct PhysicianDirectoryView: View {
 
     @ViewBuilder
     private var mapTab: some View {
-        Map(coordinateRegion: .constant(vm.mapRegion), annotationItems: vm.physicians.filter { $0.latitude != nil && $0.longitude != nil }) { p in
-            MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: p.latitude!, longitude: p.longitude!)) {
-                VStack(spacing: 2) {
-                    Image(systemName: "stethoscope.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(.indigo)
-                        .background(Circle().fill(.white).frame(width: 28, height: 28))
-                    Text(p.fullName)
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(4)
+        Map(initialPosition: .region(vm.mapRegion)) {
+            ForEach(vm.physicians.filter { $0.latitude != nil && $0.longitude != nil }) { p in
+                Annotation(p.fullName, coordinate: CLLocationCoordinate2D(latitude: p.latitude!, longitude: p.longitude!)) {
+                    VStack(spacing: 2) {
+                        Image(systemName: "stethoscope.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(.indigo)
+                            .background(Circle().fill(.white).frame(width: 28, height: 28))
+                        Text(p.fullName)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(4)
+                    }
+                    .onTapGesture { selectedPhysician = p }
                 }
-                .onTapGesture { selectedPhysician = p }
             }
         }
         .ignoresSafeArea(edges: .bottom)
@@ -463,11 +465,12 @@ struct PhysicianDetailSheet: View {
                 // Map
                 if let lat = physician.latitude, let lon = physician.longitude {
                     Section("Location") {
-                        Map(coordinateRegion: .constant(MKCoordinateRegion(
+                        Map(initialPosition: .region(MKCoordinateRegion(
                             center: CLLocationCoordinate2D(latitude: lat, longitude: lon),
                             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                        )), annotationItems: [physician]) { p in
-                            MapMarker(coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon), tint: .indigo)
+                        ))) {
+                            Marker(physician.fullName, coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon))
+                                .tint(.indigo)
                         }
                         .frame(height: 200)
                         .cornerRadius(12)

@@ -175,7 +175,7 @@ final class HealthKitSyncManager {
                     return
                 }
                 let records = (samples ?? []).compactMap { sample in
-                    self.mapSample(sample, dataType: dataType)
+                    Self.mapSample(sample, dataType: dataType)
                 }
                 continuation.resume(returning: records)
             }
@@ -183,7 +183,7 @@ final class HealthKitSyncManager {
         }
     }
 
-    private func mapSample(_ sample: HKSample, dataType: String) -> SyncRecord? {
+    private static func mapSample(_ sample: HKSample, dataType: String) -> SyncRecord? {
         let externalId = sample.uuid.uuidString
         let timestamp = sample.startDate
 
@@ -267,7 +267,7 @@ final class HealthKitSyncManager {
         )
     }
 
-    private func dateString(_ date: Date) -> String {
+    private static func dateString(_ date: Date) -> String {
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd"
         return df.string(from: date)

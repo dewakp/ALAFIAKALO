@@ -88,7 +88,7 @@ struct LabRow: View {
                 Text(result.testName)
                     .font(.headline)
                 Spacer()
-                StatusBadge(status: result.status ?? "final")
+                StatusBadge(status: result.status)
             }
             
             Text(result.displayValue)
