@@ -10,6 +10,9 @@ _INSECURE_SECRET = "change-me-in-production-use-a-long-random-string"
 
 class Settings(BaseSettings):
     APP_NAME: str = "ALAFIA"
+    # Deployed git commit — stamped at deploy time (deploy.sh) and surfaced by
+    # /api/health so prod can be verified byte-for-byte against a dev commit.
+    GIT_SHA: str = "dev"
     DEBUG: bool = False  # Must be explicitly set to True for development
     LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 

@@ -9,6 +9,12 @@ source ./config.env
 REPO_ROOT="$(cd ../.. && pwd)"
 AR="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}"
 
+# Prod config (versioned defaults; override in config.env). Making these part of
+# the pipeline is what keeps prod == a dev commit — no post-deploy hand-patching.
+: "${PUBLIC_DOMAIN:=https://alafia.app}"                 # apex the frontend/API serve on
+: "${OLLAMA_URL:=https://alafia-ollama-1087818475199.us-central1.run.app}"  # private GPU LLM
+GIT_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+
 # Preflight: identity signing keys must exist (they need liboqs, so they can't be
 # auto-generated here — see runbook §"Generate identity keys" / IDENTITY_DEPLOYMENT.md).
 if ! gcloud secrets describe identity-keys >/dev/null 2>&1; then
@@ -85,6 +91,8 @@ BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_ENABLED=true,APPLE_ENVIRONMENT=producti
 BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_REQUIRED=true"
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
+# Private GPU Ollama LLM + the deployed commit stamp (surfaced by /api/health).
+BACKEND_ENV="${BACKEND_ENV},OLLAMA_BASE_URL=${OLLAMA_URL},OLLAMA_MODEL=gpt-oss:20b,OLLAMA_TIMEOUT=300,GIT_SHA=${GIT_SHA}"
 # Core secrets always mount. Provider keys mount ONLY if the secret has a value
 # (an enabled version) — otherwise the rail stays unconfigured (503 in prod), which
 # is the correct pre-go-live state. Add a version to a provider secret to enable it.
@@ -122,15 +130,19 @@ gcloud run deploy "$SVC_FRONTEND" --image "$AR/frontend:latest" --region "$REGIO
   --set-env-vars "BACKEND_HOST=${BACKEND_HOST}"
 FRONTEND_URL="$(gcloud run services describe "$SVC_FRONTEND" --region "$REGION" --format='value(status.url)')"
 
-# ── 6. Backend second pass — now it knows the public origin ───────────────────
-echo "── Wiring backend → public URL (${FRONTEND_URL}) ─────────────"
+# ── 6. Backend second pass — pin the public origin to the custom domain ───────
+# (Not the *.run.app URL — the app is served at PUBLIC_DOMAIN, and mobile/web hit
+# api.$domain. Using the domain here is what keeps CORS/redirects prod-correct.)
+echo "── Wiring backend → public URL (${PUBLIC_DOMAIN}) ─────────────"
+WWW="${PUBLIC_DOMAIN/https:\/\//https:\/\/www.}"
 gcloud run services update "$SVC_BACKEND" --region "$REGION" \
-  --update-env-vars "PUBLIC_WEB_URL=${FRONTEND_URL},CORS_ORIGINS=[\"${FRONTEND_URL}\"],EHR_REDIRECT_URI=${FRONTEND_URL}/ehr/callback"
+  --update-env-vars "^|^PUBLIC_WEB_URL=${PUBLIC_DOMAIN}|CORS_ORIGINS=[\"${PUBLIC_DOMAIN}\",\"${WWW}\"]|EHR_REDIRECT_URI=${PUBLIC_DOMAIN}/ehr/callback"
 
 echo ""
-echo "✅ Deployed."
-echo "   App:      ${FRONTEND_URL}"
-echo "   API:      ${BACKEND_URL}   (mobile apps point here)"
+echo "✅ Deployed  (commit ${GIT_SHA})."
+echo "   App:      ${PUBLIC_DOMAIN}"
+echo "   API:      https://api.${PUBLIC_DOMAIN#https://}   (mobile apps point here)"
 echo "   Identity: ${IDENTITY_URL}  (internal)"
+echo "   Verify:   curl -s ${PUBLIC_DOMAIN}/api/health   # .version must == ${GIT_SHA}"
 echo ""
 echo "Smoke: curl -fsS ${FRONTEND_URL}/api/v1/subscription/plans"

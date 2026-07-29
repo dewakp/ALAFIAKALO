@@ -348,7 +348,7 @@ async def shutdown_event():
 
 @app.get("/api/health", tags=["Health"])
 async def health_check():
-    return {"status": "healthy", "app": settings.APP_NAME}
+    return {"status": "healthy", "app": settings.APP_NAME, "version": settings.GIT_SHA}
 
 
 # Mount all API routes. The paywall dependency runs first on every /api/v1 request:
