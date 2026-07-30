@@ -64,23 +64,44 @@ struct MainTabView: View {
         }
         .onAppear {
             #if DEBUG
-            // Screenshot automation: jump straight to a tab at launch (no
-            // openurl system dialog). DEBUG only — never in a release build.
-            if let r = ProcessInfo.processInfo.environment["ALAFIA_TEST_ROUTE"] {
-                switch r {
-                case "ask":               selectedTab = 0
-                case "home", "dashboard": selectedTab = 1
-                case "nutrition":         selectedTab = 2
-                case "fitness":           selectedTab = 3
-                case "health":            selectedTab = 4
-                case "ai":                selectedTab = 5
-                default:                  break
+            // Automation hooks (DEBUG only — never in a release build).
+            let env = ProcessInfo.processInfo.environment
+            // Single-screen screenshot: jump straight to a tab (no openurl dialog).
+            if let r = env["ALAFIA_TEST_ROUTE"] {
+                selectedTab = tabIndexForRoute(r)
+            }
+            // Auto-tour for app-preview video: cycle a comma-separated route list,
+            // holding each ALAFIA_TEST_TOUR_DWELL seconds.
+            if let routesStr = env["ALAFIA_TEST_TOUR_ROUTES"], !routesStr.isEmpty {
+                let dwell = Double(env["ALAFIA_TEST_TOUR_DWELL"] ?? "4") ?? 4
+                let seq = routesStr.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+                for (i, route) in seq.enumerated() {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + dwell * Double(i)) {
+                        withAnimation(.easeInOut(duration: 0.45)) {
+                            selectedTab = tabIndexForRoute(route)
+                        }
+                    }
                 }
             }
             #endif
         }
     }
 }
+
+#if DEBUG
+/// Maps an automation route name to its tab index (DEBUG screenshot/video tooling).
+private func tabIndexForRoute(_ route: String) -> Int {
+    switch route {
+    case "ask":               return 0
+    case "home", "dashboard": return 1
+    case "nutrition":         return 2
+    case "fitness":           return 3
+    case "health":            return 4
+    case "ai":                return 5
+    default:                  return 1
+    }
+}
+#endif
 
 /// Health Hub groups all features into sections
 struct HealthHubView: View {

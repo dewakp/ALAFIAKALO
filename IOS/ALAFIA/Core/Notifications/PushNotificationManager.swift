@@ -16,6 +16,11 @@ class PushNotificationManager: NSObject, ObservableObject, UNUserNotificationCen
     // MARK: - Registration
     
     func requestPermission() {
+        #if DEBUG
+        // Suppress the system notification prompt during screenshot/video automation
+        // (a seeded test session) so it never overlays captured screens.
+        if ProcessInfo.processInfo.environment["ALAFIA_TEST_TOKEN"] != nil { return }
+        #endif
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
             if granted {
                 DispatchQueue.main.async {
