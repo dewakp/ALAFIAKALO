@@ -13,13 +13,37 @@ class AuthManager: ObservableObject {
 
     private static let refreshTokenKey = "alafia_refresh_token"
     
-    init() {
-        Task { await checkExistingSession() }
+    init(skipSessionCheck: Bool = false) {
+        if skipSessionCheck {
+            isLoading = false
+        } else {
+            Task { await checkExistingSession() }
+        }
+    }
+    
+    static var preview: AuthManager {
+        let manager = AuthManager(skipSessionCheck: true)
+        manager.currentUser = .preview
+        manager.isAuthenticated = true
+        manager.isLoading = false
+        return manager
     }
     
     // MARK: - Session
     
     private func checkExistingSession() async {
+        #if DEBUG
+        // Screenshot / UI-automation hook (DEBUG only — never in a release build):
+        // seed a session from ALAFIA_TEST_TOKEN so the app launches straight into
+        // the authenticated UI for automated App Store screenshot capture.
+        if let t = ProcessInfo.processInfo.environment["ALAFIA_TEST_TOKEN"], !t.isEmpty {
+            KeychainHelper.save(key: AppConfig.tokenKey, value: t)
+            if let r = ProcessInfo.processInfo.environment["ALAFIA_TEST_REFRESH"], !r.isEmpty {
+                KeychainHelper.save(key: Self.refreshTokenKey, value: r)
+            }
+            await APIClient.shared.setToken(t)
+        }
+        #endif
         guard KeychainHelper.get(key: AppConfig.tokenKey) != nil else {
             isLoading = false
             return

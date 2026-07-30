@@ -2,40 +2,83 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var authManager: AuthManager
-    
+    @EnvironmentObject var deepLinkRouter: DeepLinkRouter
+    @State private var selectedTab = 1   // Home by default
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             PromptView()
                 .tabItem {
                     Label("Ask", systemImage: "sparkles")
                 }
+                .tag(0)
 
             DashboardView()
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
+                .tag(1)
 
             NutritionView()
                 .tabItem {
                     Label("Nutrition", systemImage: "leaf.fill")
                 }
-            
+                .tag(2)
+
             FitnessView()
                 .tabItem {
                     Label("Fitness", systemImage: "figure.run")
                 }
-            
+                .tag(3)
+
             HealthHubView()
                 .tabItem {
                     Label("Health", systemImage: "heart.text.clipboard")
                 }
-            
+                .tag(4)
+
             AIChatView()
                 .tabItem {
                     Label("AI", systemImage: "brain.head.profile")
                 }
+                .tag(5)
         }
         .tint(.green)
+        // Consume deep-link routes (push-notification taps, alafia:// URLs).
+        // Top-level destinations select their tab; everything else lives in the
+        // Health hub, so route there.
+        .onChange(of: deepLinkRouter.pendingRoute) { _, route in
+            guard let route else { return }
+            switch route {
+            case .dashboard: selectedTab = 1
+            case .nutrition: selectedTab = 2
+            case .fitness:   selectedTab = 3
+            case .aiChat:    selectedTab = 5
+            case .labs, .medications, .mood, .wellness, .telehealth,
+                 .messaging, .insurance, .calendar, .profile:
+                selectedTab = 4
+            case .passwordReset, .unknown:
+                break
+            }
+            deepLinkRouter.clearRoute()
+        }
+        .onAppear {
+            #if DEBUG
+            // Screenshot automation: jump straight to a tab at launch (no
+            // openurl system dialog). DEBUG only — never in a release build.
+            if let r = ProcessInfo.processInfo.environment["ALAFIA_TEST_ROUTE"] {
+                switch r {
+                case "ask":               selectedTab = 0
+                case "home", "dashboard": selectedTab = 1
+                case "nutrition":         selectedTab = 2
+                case "fitness":           selectedTab = 3
+                case "health":            selectedTab = 4
+                case "ai":                selectedTab = 5
+                default:                  break
+                }
+            }
+            #endif
+        }
     }
 }
 
