@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.database import get_sync_db
 from app.core.security import get_current_user
@@ -75,13 +75,38 @@ class PrivacySettingsResponse(BaseModel):
     allow_collective_insights: bool
     allow_research_participation: bool
     allow_marketing_emails: bool
+    allow_product_updates: bool
+    allow_health_reminders: bool
     ai_coaching_enabled: bool
     ai_memory_enabled: bool
+    ai_explainability_level: str
+    require_biometric_auth: bool
+    session_timeout_minutes: int
     gdpr_applies: bool
     hipaa_applies: bool
-    
+
     class Config:
         from_attributes = True
+
+    # These columns are nullable in the DB (added in a later migration without a
+    # backfill). Coerce any NULL to the model default so the mobile client — which
+    # decodes them as non-optional — never gets a null and the endpoint never 500s.
+    @field_validator(
+        "allow_product_updates", "allow_health_reminders",
+        "ai_explainability_level", "require_biometric_auth",
+        "session_timeout_minutes", mode="before",
+    )
+    @classmethod
+    def _default_if_null(cls, v, info):
+        if v is None:
+            return {
+                "allow_product_updates": True,
+                "allow_health_reminders": True,
+                "ai_explainability_level": "standard",
+                "require_biometric_auth": False,
+                "session_timeout_minutes": 60,
+            }[info.field_name]
+        return v
 
 
 class DataAccessLogResponse(BaseModel):
