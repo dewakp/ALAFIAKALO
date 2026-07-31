@@ -75,14 +75,22 @@ final class NutritionViewModel {
         isLoadingDetail = false
     }
 
+    private var latestSummaryReq = ""
     func fetchSummary(date: String) async {
+        latestSummaryReq = date
         isLoadingSummary = true
         do {
-            summary = try await APIClient.shared.get("/nutrition/daily-summary?date=\(date)")
+            let s: DailySummary = try await APIClient.shared.get("/nutrition/daily-summary?date=\(date)")
+            // Ignore a stale/out-of-order response: only apply if this is still the
+            // date the user is looking at (fixes "picker shows 7/30 but the summary
+            // holds another day's data → No meals logged").
+            guard latestSummaryReq == date else { return }
+            summary = s
         } catch {
+            guard latestSummaryReq == date else { return }
             summary = nil
         }
-        isLoadingSummary = false
+        if latestSummaryReq == date { isLoadingSummary = false }
     }
 
     func fetchGoals(date: String) async {
@@ -187,12 +195,6 @@ struct NutritionView: View {
                 DatePicker("Date", selection: $summaryDate, displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .padding(.horizontal)
-                    .onChange(of: summaryDate) { _, newVal in
-                        Task {
-                            await vm.fetchSummary(date: isoDate(newVal))
-                            await vm.fetchGoals(date: isoDate(newVal))
-                        }
-                    }
 
                 // Personalized daily nutrient goals / limits
                 if let g = vm.goals {
@@ -229,7 +231,9 @@ struct NutritionView: View {
             }
             .padding(.vertical)
         }
-        .task {
+        // Re-run on the selected date; changing the date cancels the in-flight
+        // fetch so a stale response can't overwrite the current day's summary.
+        .task(id: summaryDate) {
             await vm.fetchSummary(date: isoDate(summaryDate))
             await vm.fetchGoals(date: isoDate(summaryDate))
         }
@@ -237,6 +241,8 @@ struct NutritionView: View {
 
     private func isoDate(_ d: Date) -> String {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")   // stable Gregorian yyyy-MM-dd
+        f.timeZone = .current                            // the date the user sees, locally
         f.dateFormat = "yyyy-MM-dd"
         return f.string(from: d)
     }
