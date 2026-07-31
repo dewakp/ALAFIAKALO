@@ -75,4 +75,7 @@ struct AIPersona: Decodable, Identifiable {
     let region: String
     let greeting: String
     let description: String
+    /// The AI's opening chat line, composed backend-side so the greeting/voice
+    /// can change without an app release. Optional for older backends.
+    let opening: String?
 }

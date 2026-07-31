@@ -61,8 +61,10 @@ fun AIChatScreen(navController: NavHostController) {
     fun choosePersona(p: AIPersona) {
         selectedPersona = p
         showPersonaPicker = false
+        // Opening line comes from the backend (p.opening) so the AI's voice is
+        // server-controlled; only fall back to a neutral generic if absent.
         messages = listOf(
-            UIChatMessage("assistant", "Welcome! I'm ${p.title} \u2014 think of me as your personal wellness guide. What's on your mind?")
+            UIChatMessage("assistant", p.opening ?: "Welcome \u2014 how can I help with your health today?")
         )
     }
 
@@ -71,14 +73,11 @@ fun AIChatScreen(navController: NavHostController) {
         try {
             personas = ApiClient.getApiService().getAIPersonas()
         } catch (_: Exception) {
-            // Fallback: a neutral clinical default + a few cultural guides.
+            // The persona roster is backend-owned (AI stays server-driven \u2014 no
+            // named guides baked into the app). If the fetch fails, fall back to a
+            // single neutral assistant so chat still works offline.
             personas = listOf(
-                AIPersona("general_practitioner", "Dr. Holista", "General Practice \u00b7 Primary Care", "specialist", "Welcome", "Comprehensive health overview."),
-                AIPersona("babalawo", "Babalawo", "Yoruba \u00b7 Nigeria", "africa", "\u1eb8 k\u00fa \u00e0\u00e1r\u1ecd\u0300", "Your personal health guide."),
-                AIPersona("dibia", "Dibia", "Igbo \u00b7 Nigeria", "africa", "Nn\u1ecd\u1ecd", "Your personal health guide."),
-                AIPersona("boka", "Boka", "Hausa \u00b7 Nigeria", "africa", "Sannu", "Your personal health guide."),
-                AIPersona("sage", "Sage", "English \u00b7 UK / Ireland", "europe", "Welcome", "Your personal health guide."),
-                AIPersona("medicine_keeper", "Medicine Keeper", "Native American \u00b7 United States / Canada", "north_america", "Aho", "Your personal health guide.")
+                AIPersona("assistant", "Assistant", "", "specialist", "Welcome", "Your personal health guide.")
             )
         }
         // Default to a device-locale guide instead of forcing the picker.

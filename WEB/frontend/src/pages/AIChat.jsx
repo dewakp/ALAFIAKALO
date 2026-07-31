@@ -14,34 +14,11 @@ const REGION_LABELS = {
   north_america: '🗽 North America',
 };
 
-const SPECIALIST_DESCRIPTIONS = {
-  nephrologist: 'CKD staging, dialysis adequacy (KtV/URR), electrolytes, lab interpretation.',
-  renal_dietitian: 'Kidney-friendly meal planning, phosphorus & potassium restriction, protein targets.',
-  cardiologist: 'Blood pressure trends, cardiovascular risk, fluid management.',
-  mental_health_counselor: 'Emotional wellbeing, mood patterns, coping with chronic illness.',
-  exercise_physiologist: 'Safe exercise for dialysis patients, fatigue management, strength goals.',
-  dialysis_coordinator: 'Session monitoring, AV fistula care, daily dialysis guidance.',
-  general_practitioner: 'Comprehensive health overview, medication review, all-in-one evaluation.',
-  pharmacologist: 'Medication explanations, drug interactions, dosage review.',
-};
-
-const FALLBACK_SPECIALISTS = [
-  { key: 'nephrologist', title: 'Dr. Nephros', origin: 'Nephrology · Kidney & Dialysis', region: 'specialist', greeting: 'Good day', icon: '🔬', specialty: 'nephrology', description: SPECIALIST_DESCRIPTIONS.nephrologist },
-  { key: 'renal_dietitian', title: 'Dietitian Rena', origin: 'Renal Nutrition · Clinical Dietitian', region: 'specialist', greeting: 'Hi there', icon: '🥗', specialty: 'renal_nutrition', description: SPECIALIST_DESCRIPTIONS.renal_dietitian },
-  { key: 'cardiologist', title: 'Dr. Cardio', origin: 'Cardiology · Heart & Vascular', region: 'specialist', greeting: 'Good day', icon: '❤️', specialty: 'cardiology', description: SPECIALIST_DESCRIPTIONS.cardiologist },
-  { key: 'mental_health_counselor', title: 'Dr. Solace', origin: 'Psychology · Mental Health', region: 'specialist', greeting: 'Welcome', icon: '🧠', specialty: 'mental_health', description: SPECIALIST_DESCRIPTIONS.mental_health_counselor },
-  { key: 'exercise_physiologist', title: 'Coach Vitalis', origin: 'Exercise Physiology · Fitness', region: 'specialist', greeting: "Let's work on this together", icon: '🏃', specialty: 'exercise_physiology', description: SPECIALIST_DESCRIPTIONS.exercise_physiologist },
-  { key: 'dialysis_coordinator', title: 'Coordinator Adaeze', origin: 'Dialysis Nursing · Renal Care', region: 'specialist', greeting: 'Hello', icon: '💉', specialty: 'dialysis_nursing', description: SPECIALIST_DESCRIPTIONS.dialysis_coordinator },
-  { key: 'general_practitioner', title: 'Dr. Holista', origin: 'General Practice · Primary Care', region: 'specialist', greeting: 'Welcome', icon: '🩺', specialty: 'general_practice', description: SPECIALIST_DESCRIPTIONS.general_practitioner },
-  { key: 'pharmacologist', title: 'Pharmacologist', origin: 'Clinical Pharmacology · Global', region: 'specialist', greeting: 'Hello', icon: '💊', specialty: 'pharmacology', description: SPECIALIST_DESCRIPTIONS.pharmacologist },
-];
-
-const FALLBACK_CULTURAL = [
-  { key: 'babalawo', title: 'Babalawo', origin: 'Yoruba · Nigeria', region: 'africa', greeting: 'Ẹ kú àárọ̀', icon: '🪄', description: 'Yoruba healing wisdom — body, spirit, and destiny in balance.' },
-  { key: 'dibia', title: 'Dibia', origin: 'Igbo · Nigeria', region: 'africa', greeting: 'Nnọọ', icon: '🌿', description: 'Igbo holistic healer — practical, warm, grounded in nature.' },
-  { key: 'boka', title: 'Boka', origin: 'Hausa · Nigeria', region: 'africa', greeting: 'Sannu', icon: '🌙', description: 'Hausa healing wisdom — respectful and spiritually grounded.' },
-  { key: 'sage', title: 'Sage', origin: 'English · UK / Ireland', region: 'europe', greeting: 'Welcome', icon: '🎓', description: 'British sage — articulate, evidence-based, and reassuring.' },
-  { key: 'medicine_keeper', title: 'Medicine Keeper', origin: 'Native American · US / Canada', region: 'north_america', greeting: 'Aho', icon: '🦅', description: 'Native American healer — all is connected: body, mind, and spirit.' },
+// The persona roster is backend-owned (AI stays server-driven — no named guides
+// baked into the app). If /ai/personas can't be reached, fall back to a single
+// neutral assistant so chat still works; cultural guides render only when fetched.
+const FALLBACK_PERSONAS = [
+  { key: 'general_practitioner', title: 'Assistant', origin: '', region: 'specialist', greeting: 'Welcome', icon: '🩺', description: 'Your personal health guide.' },
 ];
 
 function groupByRegion(personas) {
@@ -84,8 +61,8 @@ export default function AIChat() {
         setSpecialists(data.filter((p) => p.region === 'specialist'));
       })
       .catch(() => {
-        setAllPersonas([...FALLBACK_SPECIALISTS, ...FALLBACK_CULTURAL]);
-        setSpecialists(FALLBACK_SPECIALISTS);
+        setAllPersonas(FALLBACK_PERSONAS);
+        setSpecialists(FALLBACK_PERSONAS);
       });
   }, []);
 
@@ -108,7 +85,7 @@ export default function AIChat() {
     autoAskHandled.current = true;
     const gp =
       allPersonas.find((p) => p.key === 'general_practitioner') ||
-      FALLBACK_SPECIALISTS.find((p) => p.key === 'general_practitioner');
+      FALLBACK_PERSONAS.find((p) => p.key === 'general_practitioner');
     if (!gp) return;
     setSelectedPersona(gp);
     setMessages([]);
@@ -118,10 +95,9 @@ export default function AIChat() {
 
   function pickPersona(persona) {
     setSelectedPersona(persona);
-    const isSpecialist = persona.region === 'specialist';
-    const intro = isSpecialist
-      ? `${persona.greeting}! I'm ${persona.title}. ${persona.description || ''} What can I help you with today?`
-      : `${persona.greeting}! I'm ${persona.title} — your personal health guide. What's on your mind today?`;
+    // Opening line comes from the backend (persona.opening) so the AI's voice is
+    // server-controlled; only fall back to a neutral generic if absent.
+    const intro = persona.opening || 'Welcome — how can I help with your health today?';
     setMessages([{ role: 'assistant', content: intro }]);
   }
 
@@ -308,8 +284,8 @@ export default function AIChat() {
   // ── Persona / Agent picker ──────────────────────────────────────
   if (!selectedPersona) {
     const culturalPersonas = allPersonas.filter((p) => p.region !== 'specialist');
-    const displaySpecialists = specialists.length ? specialists : FALLBACK_SPECIALISTS;
-    const culturalGroups = groupByRegion(culturalPersonas.length ? culturalPersonas : FALLBACK_CULTURAL);
+    const displaySpecialists = specialists.length ? specialists : FALLBACK_PERSONAS;
+    const culturalGroups = groupByRegion(culturalPersonas.length ? culturalPersonas : []);
 
     return (
       <div className="chat-container">
@@ -393,7 +369,7 @@ export default function AIChat() {
               {showCultural ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
               🌍 Cultural Health Guides
               <span style={{ fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                ({culturalPersonas.length || FALLBACK_CULTURAL.length} guides)
+                ({culturalPersonas.length} guides)
               </span>
             </button>
 

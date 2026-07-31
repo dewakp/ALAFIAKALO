@@ -688,6 +688,19 @@ _PERSONA_DESCRIPTION = (
     "fitness, labs, medications, mood, and lifestyle."
 )
 
+
+def _persona_opening(p: dict) -> str:
+    """The AI's first chat message for a persona. Composed server-side so the
+    greeting/voice can change backend-only — clients render it verbatim and must
+    NOT bake their own opening line (see canon: AI stays backend-driven).
+    A persona may override with its own 'opening'."""
+    if p.get("opening"):
+        return p["opening"]
+    return (
+        f"Welcome! I'm {p['title']} — think of me as your personal wellness guide. "
+        "What's on your mind?"
+    )
+
 # Shared style prompt for future LLM integration
 BASE_PERSONA_STYLE = (
     "You are a warm, knowledgeable health assistant. Blend holistic "
@@ -720,6 +733,7 @@ async def list_personas():
             "origin": p["origin"],
             "region": p["region"],
             "greeting": p["greeting"],
+            "opening": _persona_opening(p),
             "description": p.get("description") or _PERSONA_DESCRIPTION,
             "icon": p.get("icon"),
             "specialty": p.get("specialty"),
@@ -740,6 +754,7 @@ async def list_specialist_agents():
                 "origin": p["origin"],
                 "region": p["region"],
                 "greeting": p["greeting"],
+                "opening": _persona_opening(p),
                 "description": p.get("description") or _PERSONA_DESCRIPTION,
                 "icon": p.get("icon"),
                 "specialty": p.get("specialty"),
@@ -759,6 +774,7 @@ async def list_personas_grouped():
                 "title": p["title"],
                 "origin": p["origin"],
                 "greeting": p["greeting"],
+                "opening": _persona_opening(p),
                 "description": p.get("description") or _PERSONA_DESCRIPTION,
                 "icon": p.get("icon"),
                 "specialty": p.get("specialty"),

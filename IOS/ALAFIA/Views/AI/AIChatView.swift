@@ -42,14 +42,12 @@ final class AIChatViewModel {
         do {
             personas = try await APIClient.shared.get("/ai/personas")
         } catch {
-            // Fallback: a neutral clinical default + a few cultural guides.
+            // The persona roster is backend-owned (AI stays server-driven — no
+            // named guides baked into the app). If the fetch fails, fall back to
+            // a single neutral assistant so chat still works offline.
             personas = [
-                AIPersona(key: "general_practitioner", title: "Dr. Holista", origin: "General Practice · Primary Care", region: "specialist", greeting: "Welcome", description: "Comprehensive health overview."),
-                AIPersona(key: "babalawo", title: "Babalawo", origin: "Yoruba · Nigeria", region: "africa", greeting: "Ẹ kú àárọ̀", description: "Your personal health guide."),
-                AIPersona(key: "dibia", title: "Dibia", origin: "Igbo · Nigeria", region: "africa", greeting: "Nnọọ", description: "Your personal health guide."),
-                AIPersona(key: "boka", title: "Boka", origin: "Hausa · Nigeria", region: "africa", greeting: "Sannu", description: "Your personal health guide."),
-                AIPersona(key: "sage", title: "Sage", origin: "English · UK / Ireland", region: "europe", greeting: "Welcome", description: "Your personal health guide."),
-                AIPersona(key: "medicine_keeper", title: "Medicine Keeper", origin: "Native American · United States / Canada", region: "north_america", greeting: "Aho", description: "Your personal health guide."),
+                AIPersona(key: "assistant", title: "Assistant", origin: "", region: "specialist",
+                          greeting: "Welcome", description: "Your personal health guide.", opening: nil)
             ]
         }
         applyDefaultPersona()
@@ -72,8 +70,11 @@ final class AIChatViewModel {
     func selectPersona(_ persona: AIPersona) {
         selectedPersona = persona
         showPersonaPicker = false
+        // Opening line comes from the backend (persona.opening) so the AI's voice
+        // is server-controlled; only fall back to a neutral generic if absent.
         messages = [
-            ChatMessage(role: .assistant, content: "Welcome! I'm \(persona.title) — think of me as your personal wellness guide. What's on your mind?")
+            ChatMessage(role: .assistant,
+                        content: persona.opening ?? "Welcome — how can I help with your health today?")
         ]
     }
     

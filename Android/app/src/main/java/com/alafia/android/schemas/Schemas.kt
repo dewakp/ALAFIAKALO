@@ -272,7 +272,10 @@ data class AIPersona(
     val origin: String,
     val region: String,
     val greeting: String,
-    val description: String
+    val description: String,
+    // The AI's opening chat line, composed backend-side so the greeting/voice can
+    // change without an app release. Nullable for older backends.
+    val opening: String? = null
 )
 
 // Prompt Hub intent routing (Basis: prompt determines which UI is surfaced)
