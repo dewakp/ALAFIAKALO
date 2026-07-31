@@ -69,14 +69,23 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:${
 if [ "${SKIP_BUILD:-}" != "1" ]; then
   echo "── Building identity + backend (Cloud Build) ─────────────────"
   gcloud builds submit "$REPO_ROOT/WEB/identity_service" --tag "$AR/identity:latest"
+
+  # Vendor the ALAFIAModel package (ML/src/alafia_model) into the backend build
+  # context — it lives outside WEB/backend, so without this the provider
+  # round-robin / alafia_chat path is absent from the image. Staged for the build,
+  # removed after (canonical home stays ML/src). alafia_model_service adds the
+  # backend root to sys.path so the vendored copy imports in the container.
+  VENDORED="$REPO_ROOT/WEB/backend/alafia_model"
+  STAGE="$REPO_ROOT/WEB/frontend"
+  rm -rf "$VENDORED"
+  cp -R "$REPO_ROOT/ML/src/alafia_model" "$VENDORED"
+  trap 'rm -rf "$VENDORED"; rm -f "$STAGE/deploy-nginx.conf.template"' EXIT
   gcloud builds submit "$REPO_ROOT/WEB/backend"          --tag "$AR/backend:latest"
 
   # Frontend (node, no native compile): local buildx amd64 with the prod Dockerfile,
   # which COPYs the proxy template from its build context — stage it, then remove.
   echo "── Building frontend (local buildx) ──────────────────────────"
-  STAGE="$REPO_ROOT/WEB/frontend"
   cp frontend/nginx.conf.template "$STAGE/deploy-nginx.conf.template"
-  trap 'rm -f "$STAGE/deploy-nginx.conf.template"' EXIT
   docker build --platform linux/amd64 -t "$AR/frontend:latest" -f frontend/Dockerfile "$STAGE"
   docker push "$AR/frontend:latest"
 fi

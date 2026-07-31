@@ -19,12 +19,19 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Ensure the ML/src path is available so we can import ALAFIAModel
+# Make the ALAFIAModel package importable in every environment:
+#   - dev checkout: it lives at <repo>/ML/src/alafia_model
+#   - prod image:   deploy.sh vendors it to <backend root>/alafia_model
+# Add both candidate roots to sys.path (a missing one is harmless).
 _ML_SRC = os.path.normpath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "ML", "src")
 )
-if _ML_SRC not in sys.path:
-    sys.path.insert(0, _ML_SRC)
+_BACKEND_ROOT = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "..")
+)
+for _p in (_ML_SRC, _BACKEND_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 _model_instance = None
 
