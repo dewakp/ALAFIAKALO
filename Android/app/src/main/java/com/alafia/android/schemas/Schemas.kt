@@ -218,7 +218,12 @@ data class MedicationDoseLogRequest(
     val log_date: String,
     val dose_amount: Double,
     val dose_unit: String,
+    val log_time: String? = null,
     val medication_id: Int? = null,
+    val pre_systolic_bp: Int? = null,
+    val pre_diastolic_bp: Int? = null,
+    val pre_heart_rate: Int? = null,
+    val pre_temperature_c: Double? = null,
     val notes: String? = null
 )
 

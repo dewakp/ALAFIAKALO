@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.Medication
+import com.alafia.android.models.MedicationDoseLog
 import com.alafia.android.models.MedicationFromImageResponse
 import com.alafia.android.schemas.MedicationRequest
 import com.alafia.android.schemas.MedicationDoseLogRequest
@@ -42,8 +43,26 @@ fun MedicationsScreen(navController: NavHostController) {
     var doseTarget by remember { mutableStateOf<Medication?>(null) }
     var scanPrefill by remember { mutableStateOf<MedicationFromImageResponse?>(null) }
     var scanning by remember { mutableStateOf(false) }
+    var tab by remember { mutableStateOf(0) }                                   // 0 = Medications, 1 = Intake Log
+    var logDate by remember { mutableStateOf(LocalDate.now()) }
+    var doseLogs by remember { mutableStateOf<List<MedicationDoseLog>>(emptyList()) }
+    var loadingLogs by remember { mutableStateOf(false) }
+    var showLogSheet by remember { mutableStateOf(false) }                      // general "Log New Intake"
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    fun loadDoseLogs() {
+        scope.launch {
+            loadingLogs = true
+            try {
+                doseLogs = ApiClient.getApiService()
+                    .getMedicationDoseLogs(logDate = logDate.format(DateTimeFormatter.ISO_DATE))
+            } catch (e: Exception) {
+                doseLogs = emptyList()
+            }
+            loadingLogs = false
+        }
+    }
 
     // Scan Label: read a bottle/label photo → AI extracts the name/dosage/instructions
     // → open the Add-Medication form prefilled (parity with the web "Scan Label").
@@ -85,6 +104,7 @@ fun MedicationsScreen(navController: NavHostController) {
     }
 
     LaunchedEffect(Unit) { loadMedications() }
+    LaunchedEffect(tab, logDate) { if (tab == 1) loadDoseLogs() }
 
     Scaffold(
         topBar = { TopAppBar(
@@ -102,46 +122,69 @@ fun MedicationsScreen(navController: NavHostController) {
                 }
             ) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showForm = true }) {
-                Icon(Icons.Default.Add, "Add Medication")
+            FloatingActionButton(onClick = { if (tab == 0) showForm = true else showLogSheet = true }) {
+                Icon(Icons.Default.Add, if (tab == 0) "Add Medication" else "Log Intake")
             }
         }
     ) { padding ->
-        if (isLoading) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            TabRow(selectedTabIndex = tab) {
+                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Medications") })
+                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Intake Log") })
             }
-        } else if (medications.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.LocalPharmacy, "No medications", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(12.dp))
-                    Text("No medications", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Tap + to add a medication", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(medications, key = { it.id }) { med ->
-                    MedicationCard(
-                        medication = med,
-                        onLogDose = { doseTarget = med },
-                        onDelete = {
-                            scope.launch {
-                                try {
-                                    ApiClient.getApiService().deleteMedication(med.id)
-                                    loadMedications()
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+            if (tab == 0) {
+                if (isLoading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else if (medications.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.LocalPharmacy, "No medications", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(12.dp))
+                            Text("No medications", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Tap + to add a medication", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(medications, key = { it.id }) { med ->
+                            MedicationCard(
+                                medication = med,
+                                onLogDose = { doseTarget = med },
+                                onDelete = {
+                                    scope.launch {
+                                        try {
+                                            ApiClient.getApiService().deleteMedication(med.id)
+                                            loadMedications()
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                 }
+                            )
+                        }
+                    }
+                }
+            } else {
+                IntakeLogContent(
+                    date = logDate,
+                    onDateChange = { logDate = it },
+                    logs = doseLogs,
+                    loading = loadingLogs,
+                    onDelete = { id ->
+                        scope.launch {
+                            try {
+                                ApiClient.getApiService().deleteMedicationDoseLog(id)
+                                loadDoseLogs()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
         }
     }
@@ -174,6 +217,7 @@ fun MedicationsScreen(navController: NavHostController) {
     doseTarget?.let { med ->
         LogDoseDialog(
             medication = med,
+            defaultDate = logDate,
             onDismiss = { doseTarget = null },
             onSave = { request ->
                 scope.launch {
@@ -181,6 +225,28 @@ fun MedicationsScreen(navController: NavHostController) {
                         ApiClient.getApiService().logMedicationDose(request)
                         doseTarget = null
                         Toast.makeText(context, "Dose logged!", Toast.LENGTH_SHORT).show()
+                        if (tab == 1) loadDoseLogs()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+    }
+
+    if (showLogSheet) {
+        LogDoseDialog(
+            medication = null,
+            defaultDate = logDate,
+            existingMedications = medications,
+            onDismiss = { showLogSheet = false },
+            onSave = { request ->
+                scope.launch {
+                    try {
+                        ApiClient.getApiService().logMedicationDose(request)
+                        showLogSheet = false
+                        Toast.makeText(context, "Intake logged!", Toast.LENGTH_SHORT).show()
+                        loadDoseLogs()
                     } catch (e: Exception) {
                         Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                     }
@@ -295,47 +361,75 @@ private fun AddMedicationDialog(
 
 @Composable
 private fun LogDoseDialog(
-    medication: Medication,
+    medication: Medication?,
+    defaultDate: LocalDate,
+    existingMedications: List<Medication> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (MedicationDoseLogRequest) -> Unit
 ) {
-    // Prefill amount / unit from the prescription's dosage string (e.g. "500mg").
-    var amount by remember(medication.id) {
-        mutableStateOf(medication.dosage.filter { it.isDigit() || it == '.' })
-    }
-    var unit by remember(medication.id) {
-        mutableStateOf(medication.dosage.filter { it.isLetter() }.ifBlank { "mg" })
-    }
-    var notes by remember(medication.id) { mutableStateOf("") }
+    var medName by remember { mutableStateOf(medication?.name ?: "") }
+    var amount by remember { mutableStateOf((medication?.dosage ?: "").filter { it.isDigit() || it == '.' }) }
+    var unit by remember { mutableStateOf((medication?.dosage ?: "").filter { it.isLetter() }.ifBlank { "mg" }) }
+    var time by remember { mutableStateOf(java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))) }
+    var systolic by remember { mutableStateOf("") }
+    var diastolic by remember { mutableStateOf("") }
+    var heartRate by remember { mutableStateOf("") }
+    var tempF by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+
+    val resolvedName = (medication?.name ?: medName).trim()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Dose") },
+        title = { Text("Log Intake") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(medication.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { amount = it },
-                        label = { Text("Amount") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = unit,
-                        onValueChange = { unit = it },
-                        label = { Text("Unit") },
-                        modifier = Modifier.weight(1f)
-                    )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                if (medication != null) {
+                    Text(medication.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                } else {
+                    OutlinedTextField(value = medName, onValueChange = { medName = it }, label = { Text("Medication name") }, modifier = Modifier.fillMaxWidth())
+                    if (existingMedications.isNotEmpty()) {
+                        Box {
+                            TextButton(onClick = { expanded = true }) { Text("Choose from your medications") }
+                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                existingMedications.forEach { m ->
+                                    DropdownMenuItem(text = { Text(m.name) }, onClick = {
+                                        medName = m.name
+                                        m.dosage.filter { it.isLetter() }.takeIf { it.isNotBlank() }?.let { unit = it }
+                                        expanded = false
+                                    })
+                                }
+                            }
+                        }
+                    }
                 }
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2
-                )
+                Text("Date: ${defaultDate.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(value = time, onValueChange = { time = it }, label = { Text("Time (HH:mm)") }, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = unit, onValueChange = { unit = it }, label = { Text("Unit") }, modifier = Modifier.weight(1f))
+                }
+                Text("Pre-Medication Vitals (optional)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = systolic, onValueChange = { systolic = it }, label = { Text("Systolic") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = diastolic, onValueChange = { diastolic = it }, label = { Text("Diastolic") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = heartRate, onValueChange = { heartRate = it }, label = { Text("Heart Rate") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = tempF, onValueChange = { tempF = it }, label = { Text("Temp (°F)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
+                }
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes (optional)") },
+                    modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -344,20 +438,87 @@ private fun LogDoseDialog(
                     val value = amount.toDoubleOrNull() ?: return@TextButton
                     onSave(
                         MedicationDoseLogRequest(
-                            medication_name = medication.name,
-                            log_date = LocalDate.now().format(DateTimeFormatter.ISO_DATE),
+                            medication_name = resolvedName,
+                            log_date = defaultDate.format(DateTimeFormatter.ISO_DATE),
                             dose_amount = value,
                             dose_unit = unit.ifBlank { "unit" },
-                            medication_id = medication.id,
+                            log_time = time.ifBlank { null },
+                            medication_id = medication?.id,
+                            pre_systolic_bp = systolic.toIntOrNull(),
+                            pre_diastolic_bp = diastolic.toIntOrNull(),
+                            pre_heart_rate = heartRate.toIntOrNull(),
+                            pre_temperature_c = tempF.toDoubleOrNull()?.let { (it - 32) * 5 / 9 },
                             notes = notes.ifBlank { null }
                         )
                     )
                 },
-                enabled = amount.toDoubleOrNull() != null && unit.isNotBlank()
+                enabled = amount.toDoubleOrNull() != null && unit.isNotBlank() && resolvedName.isNotBlank()
             ) { Text("Log") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+// ── Intake-log tab: date stepper + that day's logged doses (with pre-med vitals) ──
+@Composable
+private fun IntakeLogContent(
+    date: LocalDate,
+    onDateChange: (LocalDate) -> Unit,
+    logs: List<MedicationDoseLog>,
+    loading: Boolean,
+    onDelete: (Int) -> Unit
+) {
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = { onDateChange(date.minusDays(1)) }) { Icon(Icons.Default.KeyboardArrowLeft, "Previous day") }
+            Text(date.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")),
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            IconButton(onClick = { onDateChange(date.plusDays(1)) }) { Icon(Icons.Default.KeyboardArrowRight, "Next day") }
+        }
+        HorizontalDivider()
+        when {
+            loading -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            logs.isEmpty() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                Text("No intake logged for this date.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            else -> LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(logs, key = { it.id }) { log -> DoseLogCard(log = log, onDelete = { onDelete(log.id) }) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DoseLogCard(log: MedicationDoseLog, onDelete: () -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(log.medication_name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    log.log_time?.take(5)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+                Text("${doseText(log.dose_amount)} ${log.dose_unit}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                vitalsSummary(log)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                log.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) }
+        }
+    }
+}
+
+private fun doseText(a: Double): String = if (a == a.toLong().toDouble()) a.toLong().toString() else a.toString()
+
+private fun vitalsSummary(log: MedicationDoseLog): String? {
+    val parts = mutableListOf<String>()
+    if (log.pre_systolic_bp != null || log.pre_diastolic_bp != null)
+        parts.add("BP ${log.pre_systolic_bp ?: "–"}/${log.pre_diastolic_bp ?: "–"}")
+    log.pre_heart_rate?.let { parts.add("HR $it") }
+    log.pre_temperature_c?.let { parts.add(String.format("%.1f°F", it * 9 / 5 + 32)) }
+    return if (parts.isEmpty()) null else "Pre: " + parts.joinToString(", ")
 }
