@@ -34,3 +34,9 @@ struct LoadingView: View {
         }
     }
 }
+
+#Preview {
+    ContentView()
+        .environmentObject(AuthManager.preview)
+        .previewDevice("iPhone 15 Pro")
+}

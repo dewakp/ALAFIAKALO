@@ -419,3 +419,9 @@ struct ProfileSheet: View {
         }
     }
 }
+
+#Preview {
+    DashboardView()
+        .environmentObject(AuthManager.preview)
+        .previewDevice("iPhone 15 Pro")
+}

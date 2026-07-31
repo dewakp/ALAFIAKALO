@@ -111,6 +111,53 @@ struct User: Codable, Identifiable {
     var firstName: String {
         fullName.components(separatedBy: " ").first ?? fullName
     }
+
+    static let preview = User(
+        id: 1,
+        email: "preview@alafia.health",
+        fullName: "Amina K.",
+        dateOfBirth: "1990-05-14",
+        gender: "Female",
+        genderAtBirth: "Female",
+        profilePictureUrl: nil,
+        bloodType: "O+",
+        insuranceId: "PREVIEW123",
+        insuranceProvider: "HealthSafe",
+        insuranceCountry: "US",
+        heightCm: 168,
+        currentWeightKg: 68,
+        targetWeightKg: 64,
+        locale: "en_US",
+        timezone: "America/New_York",
+        country: "US",
+        preferredUnits: "metric",
+        preferredLanguage: "English",
+        allergies: "None",
+        foodIntolerances: "None",
+        dietaryRestrictions: "Vegetarian",
+        dietaryPreferences: "Whole foods",
+        familyHistory: "Hypertension",
+        activityLevel: "moderately_active",
+        fitnessGoals: "Strength",
+        preferredActivities: "Walking, Yoga",
+        exerciseFrequencyPerWeek: 3,
+        smokingStatus: "never",
+        alcoholConsumption: "occasional",
+        sleepSchedule: "night_owl",
+        occupation: "Product Designer",
+        stressLevel: "moderate",
+        aiCoachingEnabled: true,
+        aiPersonalityPreference: "supportive",
+        aiLanguageComplexity: "moderate",
+        dataSharingConsent: true,
+        aiTrainingConsent: false,
+        isActive: true,
+        createdAt: Date(),
+        systemId: "preview-system",
+        primaryRole: "user",
+        activeRoles: ["user"],
+        isHealthcareProfessional: false
+    )
 }
 
 /// Partial update payload — only non-nil fields are included in JSON.
