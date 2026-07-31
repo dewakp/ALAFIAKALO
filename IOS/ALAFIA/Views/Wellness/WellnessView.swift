@@ -28,7 +28,10 @@ final class WellnessViewModel {
 
     func loadRecommendations() async {
         isLoading = true; errorMessage = nil
-        do { recommendations = try await APIClient.shared.get("/wellness/recommendations") }
+        do {
+            let resp: DailyRecommendationsResponse = try await APIClient.shared.get("/wellness/recommendations")
+            recommendations = resp.recommendations
+        }
         catch { errorMessage = error.localizedDescription }
         isLoading = false
     }
