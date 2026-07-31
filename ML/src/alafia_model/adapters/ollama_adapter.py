@@ -11,9 +11,11 @@ TODO(alafia-model): Phase 3 — replace OLLAMA_MODEL default with the fine-tuned
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import os
+import time
 from typing import Any
 
 import httpx
@@ -24,6 +26,50 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_BASE_URL = "http://localhost:11434"
 _DEFAULT_MODEL = "llama3.1:8b"
+
+# ── Auth for a private (IAM-protected) Ollama Cloud Run service ────────────────
+# Prod runs Ollama as a private GPU Cloud Run service; callers must attach a
+# Google OIDC ID token whose audience is the service URL. We fetch it from the
+# instance metadata server and cache it. For a non-Cloud-Run URL (local dev) no
+# auth is needed → {} (same code path works everywhere). Mirrors the backend's
+# app/services/ollama_auth.py (this package is standalone and can't import it).
+_METADATA_IDENTITY = (
+    "http://metadata.google.internal/computeMetadata/v1/instance/"
+    "service-accounts/default/identity"
+)
+_auth_cache: dict = {"token": None, "exp": 0.0, "aud": None}
+
+
+def _jwt_exp(token: str) -> float:
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        return float(json.loads(base64.urlsafe_b64decode(payload)).get("exp", 0))
+    except Exception:
+        return time.time() + 3000
+
+
+async def _ollama_auth_headers(base_url: str) -> dict:
+    """OIDC Authorization header for a private Cloud Run Ollama, or {} for local dev."""
+    if ".run.app" not in (base_url or ""):
+        return {}
+    aud = base_url.rstrip("/")
+    now = time.time()
+    if _auth_cache["token"] and _auth_cache["aud"] == aud and _auth_cache["exp"] - now > 60:
+        return {"Authorization": f"Bearer {_auth_cache['token']}"}
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(
+                _METADATA_IDENTITY,
+                params={"audience": aud, "format": "full"},
+                headers={"Metadata-Flavor": "Google"},
+            )
+        r.raise_for_status()
+        token = r.text.strip()
+        _auth_cache.update(token=token, exp=_jwt_exp(token), aud=aud)
+        return {"Authorization": f"Bearer {token}"}
+    except Exception:
+        return {}
 
 
 class OllamaAdapter(BaseAdapter):
@@ -49,8 +95,9 @@ class OllamaAdapter(BaseAdapter):
     async def health_check(self) -> bool:
         """Ping Ollama and verify the configured model is available."""
         try:
+            headers = await _ollama_auth_headers(self.base_url)
             async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(f"{self.base_url}/api/tags")
+                resp = await client.get(f"{self.base_url}/api/tags", headers=headers)
                 if resp.status_code != 200:
                     return False
                 tags = resp.json().get("models", [])
@@ -89,8 +136,9 @@ class OllamaAdapter(BaseAdapter):
         }
         if json_mode:
             payload["format"] = "json"
+        headers = await _ollama_auth_headers(self.base_url)
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(f"{self.base_url}/api/chat", json=payload)
+            resp = await client.post(f"{self.base_url}/api/chat", json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
@@ -115,8 +163,9 @@ class OllamaAdapter(BaseAdapter):
             "format": "json",
             "options": {"temperature": temperature, "num_predict": max_tokens},
         }
+        headers = await _ollama_auth_headers(self.base_url)
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(f"{self.base_url}/api/generate", json=payload)
+            resp = await client.post(f"{self.base_url}/api/generate", json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
