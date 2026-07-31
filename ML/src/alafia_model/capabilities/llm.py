@@ -17,6 +17,7 @@ TODO(alafia-model): Phase 4 — build RAG index over USDA + WAFCT and wire into 
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from alafia_model.capabilities.base import BaseCapability, CapabilityResult
@@ -65,6 +66,7 @@ class LLMCapability(BaseCapability):
         super().__init__()
         self._adapter: Any = None
         self._fallback: Any = None
+        self._pool: dict[str, Any] = {}   # provider name → cached adapter
 
     def _get_adapter(self, model: str | None = None) -> Any:
         from alafia_model.adapters.ollama_adapter import OllamaAdapter
@@ -78,15 +80,26 @@ class LLMCapability(BaseCapability):
             self._adapter = OllamaAdapter()
         return self._adapter
 
-    def _get_fallback_adapter(self) -> Any:
-        """OpenAI cloud fallback. Returns None when no API key is configured."""
-        if self._fallback is None:
-            try:
-                from alafia_model.adapters.openai_adapter import OpenAIAdapter
-                self._fallback = OpenAIAdapter()
-            except Exception:  # pragma: no cover
-                self._fallback = None
-        return self._fallback
+    def _adapter_for(self, spec) -> Any:
+        """Build (and cache) the adapter for a registry provider spec."""
+        cached = self._pool.get(spec.name)
+        if cached is not None:
+            return cached
+        if spec.kind == "anthropic":
+            from alafia_model.adapters.anthropic_adapter import AnthropicAdapter
+            adapter = AnthropicAdapter(api_key=spec.api_key, model=spec.resolved_model())
+        else:
+            from alafia_model.adapters.openai_compat_adapter import OpenAICompatAdapter
+            from alafia_model.registry.providers import base_url_for
+            adapter = OpenAICompatAdapter(
+                provider=spec.name,
+                base_url=base_url_for(spec),
+                api_key=spec.api_key,
+                model=spec.resolved_model(),
+                extra_headers=spec.extra_headers,
+            )
+        self._pool[spec.name] = adapter
+        return adapter
 
     async def infer(self, payload: dict[str, Any]) -> CapabilityResult:
         task = payload.get("task", "health_chat")
@@ -154,36 +167,61 @@ class LLMCapability(BaseCapability):
         self, kind: str, arg: Any, temperature: float, max_tokens: int, json_mode: bool,
         model: str | None = None,
     ) -> CapabilityResult:
-        """Run `kind` ("chat"|"complete") on the primary adapter, falling back to OpenAI."""
-        primary = self._get_adapter(model)
+        """Free-first weighted round-robin over the hosted provider pool, then a
+        terminal fall back to self-hosted Ollama. Every attempt is recorded for the
+        ALAFIA-model training corpus (telemetry)."""
+        from alafia_model.registry.providers import ordered_for_selection, mark_cooldown
+        from alafia_model import telemetry
+
+        chat_msgs = arg if kind == "chat" else None
+        last_error: str | None = None
+
+        for spec in ordered_for_selection():
+            t0 = time.monotonic()
+            try:
+                resp = await self._call(self._adapter_for(spec), kind, arg, temperature, max_tokens, json_mode)
+                telemetry.record(
+                    provider=spec.name, model=resp.get("model"), task=kind, tier=spec.tier,
+                    latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
+                    success=True, messages=chat_msgs, response=resp.get("content"),
+                )
+                return CapabilityResult(
+                    success=True, data={"text": resp["content"]}, confidence=0.7,
+                    source=f"{spec.name}:{resp.get('model', spec.resolved_model())}",
+                )
+            except Exception as exc:
+                last_error = str(exc)
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+                blob = str(exc).lower()
+                if status in (401, 402, 403, 429) or "quota" in blob or "rate" in blob or "insufficient" in blob:
+                    mark_cooldown(spec.name)  # back this provider off; free tier likely spent
+                telemetry.record(
+                    provider=spec.name, task=kind, tier=spec.tier,
+                    latency_ms=int((time.monotonic() - t0) * 1000), success=False, error=str(exc)[:300],
+                )
+                logger.warning("provider %s %s failed (%s); trying next", spec.name, kind, exc)
+
+        # ── Terminal fallback: self-hosted Ollama (never rate-limited) ──
+        ollama = self._get_adapter(model)
+        t0 = time.monotonic()
         try:
-            response = await self._call(primary, kind, arg, temperature, max_tokens, json_mode)
+            resp = await self._call(ollama, kind, arg, temperature, max_tokens, json_mode)
+            telemetry.record(
+                provider="ollama", model=resp.get("model"), task=kind, tier="local",
+                latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
+                success=True, messages=chat_msgs, response=resp.get("content"),
+            )
             return CapabilityResult(
-                success=True,
-                data={"text": response["content"]},
-                confidence=0.75,
-                source=f"adapter:{response.get('model', primary.model_name)}",
+                success=True, data={"text": resp["content"]}, confidence=0.75,
+                source=f"ollama:{resp.get('model', ollama.model_name)}",
             )
         except Exception as exc:
-            logger.warning("Ollama LLM %s failed (%s); trying OpenAI fallback", kind, exc)
-
-        fallback = self._get_fallback_adapter()
-        if fallback is None or not getattr(fallback, "is_available", False):
+            telemetry.record(provider="ollama", task=kind, tier="local", success=False, error=str(exc)[:300])
+            logger.error("all LLM providers failed; last cloud=%s ollama=%s", last_error, exc, exc_info=True)
             return CapabilityResult(
                 success=False,
-                error="LLM unavailable: Ollama call failed and no OpenAI fallback configured",
+                error=f"LLM unavailable: all providers failed (last: {last_error or exc})",
             )
-        try:
-            response = await self._call(fallback, kind, arg, temperature, max_tokens, json_mode)
-            return CapabilityResult(
-                success=True,
-                data={"text": response["content"]},
-                confidence=0.6,
-                source=f"adapter:openai:{response.get('model', '')}",
-            )
-        except Exception as exc:
-            logger.error("OpenAI fallback LLM %s failed: %s", kind, exc, exc_info=True)
-            return CapabilityResult(success=False, error=str(exc))
 
     @staticmethod
     async def _call(adapter, kind, arg, temperature, max_tokens, json_mode):

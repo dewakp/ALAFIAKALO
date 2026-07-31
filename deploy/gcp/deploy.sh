@@ -33,12 +33,30 @@ gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 # project number — the displayName varies and can't be filtered on reliably.
 PROJ_NUM="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
 SA="${PROJ_NUM}-compute@developer.gserviceaccount.com"
+# LLM round-robin provider keys (ML/src/alafia_model/registry/providers.py).
+# ENV_VAR:secret-name — each mounts ONLY when its secret exists, so a provider
+# lights up the moment you `gcloud secrets create` its key: no code change, no
+# app release (AI stays backend-driven — see canon).
+LLM_PROVIDER_SECRETS="\
+GEMINI_API_KEY:gemini-api-key GROQ_API_KEY:groq-api-key CEREBRAS_API_KEY:cerebras-api-key \
+SAMBANOVA_API_KEY:sambanova-api-key MISTRAL_API_KEY:mistral-api-key OPENROUTER_API_KEY:openrouter-api-key \
+GITHUB_MODELS_TOKEN:github-models-token NVIDIA_API_KEY:nvidia-api-key DASHSCOPE_API_KEY:dashscope-api-key \
+ZHIPU_API_KEY:zhipu-api-key CLOUDFLARE_API_TOKEN:cloudflare-api-token CLOUDFLARE_ACCOUNT_ID:cloudflare-account-id \
+DEEPSEEK_API_KEY:deepseek-api-key MOONSHOT_API_KEY:moonshot-api-key TOGETHER_API_KEY:together-api-key \
+FIREWORKS_API_KEY:fireworks-api-key DEEPINFRA_API_KEY:deepinfra-api-key XAI_API_KEY:xai-api-key \
+OPENAI_API_KEY:openai-api-key PERPLEXITY_API_KEY:perplexity-api-key ANTHROPIC_API_KEY:anthropic-api-key"
+
 for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
          paypal-client-id paypal-client-secret paypal-plan-id paypal-plan-id-annual paypal-webhook-id \
          apple-shared-secret; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
+    --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
+done
+# …and each LLM provider key (binding is a no-op until the secret is created).
+for pair in $LLM_PROVIDER_SECRETS; do
+  gcloud secrets add-iam-policy-binding "${pair##*:}" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
 done
 # …and the ability to connect to Cloud SQL through the socket.
@@ -113,6 +131,10 @@ add_secret_if_present PAYPAL_PLAN_ID          paypal-plan-id
 add_secret_if_present PAYPAL_PLAN_ID_ANNUAL   paypal-plan-id-annual
 add_secret_if_present PAYPAL_WEBHOOK_ID       paypal-webhook-id
 add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
+# LLM round-robin provider keys — mount whichever exist (adds them to the pool).
+for pair in $LLM_PROVIDER_SECRETS; do
+  add_secret_if_present "${pair%%:*}" "${pair##*:}"
+done
 gcloud run deploy "$SVC_BACKEND" --image "$AR/backend:latest" --region "$REGION" \
   --allow-unauthenticated --port 8000 --add-cloudsql-instances "$CONN" \
   --min-instances "$BACKEND_MIN_INSTANCES" --max-instances "$BACKEND_MAX_INSTANCES" \
