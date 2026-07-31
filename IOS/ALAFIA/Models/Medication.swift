@@ -59,14 +59,23 @@ struct MedicationCreate: Encodable {
 
 // MARK: - Dose Logging
 
-/// A recorded "taken" event for a medication dose.
+/// A recorded "taken" event for a medication dose (with pre-medication vitals).
 struct MedicationDoseLog: Decodable, Identifiable {
     let id: Int
     let medicationId: Int?
     let medicationName: String
     let logDate: String
+    let logTime: String?
     let doseAmount: Double
     let doseUnit: String
+    let preSystolicBp: Int?
+    let preDiastolicBp: Int?
+    let preHeartRate: Int?
+    let preTemperatureC: Double?
+    let postSystolicBp: Int?
+    let postDiastolicBp: Int?
+    let postHeartRate: Int?
+    let postTemperatureC: Double?
     let nutrientsResolved: Bool
     let notes: String?
 
@@ -75,9 +84,27 @@ struct MedicationDoseLog: Decodable, Identifiable {
         case medicationId = "medication_id"
         case medicationName = "medication_name"
         case logDate = "log_date"
+        case logTime = "log_time"
         case doseAmount = "dose_amount"
         case doseUnit = "dose_unit"
+        case preSystolicBp = "pre_systolic_bp"
+        case preDiastolicBp = "pre_diastolic_bp"
+        case preHeartRate = "pre_heart_rate"
+        case preTemperatureC = "pre_temperature_c"
+        case postSystolicBp = "post_systolic_bp"
+        case postDiastolicBp = "post_diastolic_bp"
+        case postHeartRate = "post_heart_rate"
+        case postTemperatureC = "post_temperature_c"
         case nutrientsResolved = "nutrients_resolved"
+    }
+
+    /// "HH:mm" for display, from a "HH:mm:ss" backend time.
+    var timeDisplay: String? {
+        guard let t = logTime, t.count >= 5 else { return nil }
+        return String(t.prefix(5))
+    }
+    var hasVitals: Bool {
+        preSystolicBp != nil || preDiastolicBp != nil || preHeartRate != nil || preTemperatureC != nil
     }
 }
 
@@ -87,15 +114,32 @@ struct MedicationDoseLogCreate: Encodable {
     let logDate: String
     let doseAmount: Double
     let doseUnit: String
-    var medicationId: Int?
-    var notes: String?
+    var logTime: String? = nil
+    var medicationId: Int? = nil
+    var preSystolicBp: Int? = nil
+    var preDiastolicBp: Int? = nil
+    var preHeartRate: Int? = nil
+    var preTemperatureC: Double? = nil
+    var notes: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case notes
         case medicationName = "medication_name"
         case logDate = "log_date"
+        case logTime = "log_time"
         case doseAmount = "dose_amount"
         case doseUnit = "dose_unit"
         case medicationId = "medication_id"
+        case preSystolicBp = "pre_systolic_bp"
+        case preDiastolicBp = "pre_diastolic_bp"
+        case preHeartRate = "pre_heart_rate"
+        case preTemperatureC = "pre_temperature_c"
     }
+}
+
+/// °F ↔ °C helpers (backend stores medication-dose temps in °C).
+enum TempConvert {
+    static func toCelsius(_ fahrenheit: Double) -> Double { (fahrenheit - 32) * 5 / 9 }
+    static func toFahrenheit(_ celsius: Double) -> Double { celsius * 9 / 5 + 32 }
+    static func fahrenheitString(fromCelsius c: Double) -> String { String(format: "%.1f°F", toFahrenheit(c)) }
 }

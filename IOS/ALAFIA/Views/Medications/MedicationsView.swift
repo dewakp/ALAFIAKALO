@@ -4,9 +4,32 @@ import PhotosUI
 @Observable
 final class MedicationsViewModel {
     var medications: [Medication] = []
+    var doseLogs: [MedicationDoseLog] = []
     var isLoading = false
+    var loadingLogs = false
     var errorMessage: String?
-    
+
+    /// Intake history for a single day (YYYY-MM-DD), newest first.
+    func fetchDoseLogs(date: String) async {
+        loadingLogs = true
+        defer { loadingLogs = false }
+        do {
+            doseLogs = try await APIClient.shared.get("/medications/dose-logs?log_date=\(date)")
+        } catch {
+            errorMessage = error.localizedDescription
+            doseLogs = []
+        }
+    }
+
+    func deleteDoseLog(id: Int) async {
+        do {
+            try await APIClient.shared.delete("/medications/dose-logs/\(id)")
+            doseLogs.removeAll { $0.id == id }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func fetchMedications() async {
         isLoading = true
         errorMessage = nil
@@ -66,7 +89,15 @@ final class MedicationsViewModel {
 }
 
 struct MedicationsView: View {
+    enum MedTab: String, CaseIterable, Identifiable {
+        case meds = "Medications", log = "Intake Log"
+        var id: String { rawValue }
+    }
+
     @State private var vm = MedicationsViewModel()
+    @State private var tab: MedTab = .meds
+    @State private var logDate = Date()
+    @State private var showLogSheet = false
     @State private var showAdd = false
     @State private var doseTarget: Medication?
     @State private var scanItem: PhotosPickerItem?
@@ -74,33 +105,25 @@ struct MedicationsView: View {
     @State private var scanPrefill: MedicationFromImageResponse?
     @State private var showScanForm = false
 
+    private var logDateISO: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: logDate)
+    }
+
     var body: some View {
-        Group {
-            if vm.isLoading {
-                ProgressView()
-            } else if vm.medications.isEmpty {
-                EmptyStateView(icon: "pills.fill", title: "No Medications", message: "Tap + to add a medication")
-            } else {
-                List {
-                    ForEach(vm.medications) { med in
-                        MedicationRow(med: med)
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                Button {
-                                    doseTarget = med
-                                } label: {
-                                    Label("Log Dose", systemImage: "checkmark.circle.fill")
-                                }
-                                .tint(.green)
-                            }
-                    }
-                    .onDelete { indexSet in
-                        Task {
-                            for index in indexSet {
-                                await vm.deleteMedication(id: vm.medications[index].id)
-                            }
-                        }
-                    }
-                }
+        VStack(spacing: 0) {
+            Picker("", selection: $tab) {
+                ForEach(MedTab.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.top, 8)
+
+            switch tab {
+            case .meds: medicationsList
+            case .log:  intakeLog
             }
         }
         .navigationTitle("Medications")
@@ -139,10 +162,112 @@ struct MedicationsView: View {
         .sheet(isPresented: $showScanForm, onDismiss: { scanPrefill = nil }) {
             AddMedicationSheet(vm: vm, prefill: scanPrefill)
         }
-        .sheet(item: $doseTarget) { med in
-            MedicationDoseSheet(medication: med, vm: vm)
+        .sheet(item: $doseTarget, onDismiss: refreshLogsIfNeeded) { med in
+            MedicationDoseSheet(medication: med, vm: vm, defaultDate: logDate)
+        }
+        .sheet(isPresented: $showLogSheet, onDismiss: refreshLogsIfNeeded) {
+            MedicationDoseSheet(medication: nil, vm: vm, defaultDate: logDate)
         }
         .task { await vm.fetchMedications() }
+    }
+
+    private func refreshLogsIfNeeded() {
+        if tab == .log { Task { await vm.fetchDoseLogs(date: logDateISO) } }
+    }
+
+    // MARK: - Medications registry tab
+
+    @ViewBuilder private var medicationsList: some View {
+        if vm.isLoading {
+            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if vm.medications.isEmpty {
+            EmptyStateView(icon: "pills.fill", title: "No Medications", message: "Tap + to add a medication")
+        } else {
+            List {
+                ForEach(vm.medications) { med in
+                    MedicationRow(med: med)
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button { doseTarget = med } label: {
+                                Label("Log Dose", systemImage: "checkmark.circle.fill")
+                            }
+                            .tint(.green)
+                        }
+                }
+                .onDelete { indexSet in
+                    Task { for index in indexSet { await vm.deleteMedication(id: vm.medications[index].id) } }
+                }
+            }
+        }
+    }
+
+    // MARK: - Intake-log tab (date + per-day history with pre-med vitals)
+
+    @ViewBuilder private var intakeLog: some View {
+        List {
+            Section {
+                DatePicker("Date", selection: $logDate, displayedComponents: .date)
+                Button { showLogSheet = true } label: {
+                    Label("Log New Intake", systemImage: "plus.circle.fill")
+                }
+            }
+            Section("Logged intake") {
+                if vm.loadingLogs {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                } else if vm.doseLogs.isEmpty {
+                    Text("No intake logged for this date.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                } else {
+                    ForEach(vm.doseLogs) { log in DoseLogRow(log: log) }
+                        .onDelete { idx in
+                            Task { for i in idx { await vm.deleteDoseLog(id: vm.doseLogs[i].id) } }
+                        }
+                }
+            }
+        }
+        .task(id: logDateISO) { await vm.fetchDoseLogs(date: logDateISO) }
+    }
+}
+
+/// One intake entry: medication, time, dose, and any pre-medication vitals.
+struct DoseLogRow: View {
+    let log: MedicationDoseLog
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(log.medicationName).font(.subheadline).fontWeight(.semibold)
+                Spacer()
+                if let t = log.timeDisplay {
+                    Text(t).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Text("\(doseText) \(log.doseUnit)")
+                .font(.caption).foregroundStyle(.secondary)
+            if log.hasVitals {
+                Text(vitalsSummary)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            if let notes = log.notes, !notes.isEmpty {
+                Text(notes).font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var doseText: String {
+        let a = log.doseAmount
+        return a == a.rounded() ? String(Int(a)) : String(a)
+    }
+
+    private var vitalsSummary: String {
+        var parts: [String] = []
+        if log.preSystolicBp != nil || log.preDiastolicBp != nil {
+            parts.append("BP \(log.preSystolicBp.map(String.init) ?? "–")/\(log.preDiastolicBp.map(String.init) ?? "–")")
+        }
+        if let hr = log.preHeartRate { parts.append("HR \(hr)") }
+        if let c = log.preTemperatureC { parts.append(TempConvert.fahrenheitString(fromCelsius: c)) }
+        return "Pre: " + parts.joined(separator: ", ")
     }
 }
 
@@ -290,19 +415,33 @@ struct AddMedicationSheet: View {
 }
 
 struct MedicationDoseSheet: View {
-    let medication: Medication
+    /// Preselected medication (from a registry row), or nil to log any medication
+    /// by name (matches the web "Select from profile or add new").
+    let medication: Medication?
     @Bindable var vm: MedicationsViewModel
+    var defaultDate: Date = Date()
     @Environment(\.dismiss) var dismiss
 
+    @State private var medName = ""
     @State private var amount = ""
     @State private var unit = "mg"
+    @State private var date = Date()
+    @State private var time = Date()
     @State private var notes = ""
+    // Pre-medication vitals (optional) — parity with the web intake form.
+    @State private var systolic = ""
+    @State private var diastolic = ""
+    @State private var heartRate = ""
+    @State private var tempF = ""
     @State private var saving = false
     @State private var errorText: String?
 
+    private var resolvedName: String {
+        (medication?.name ?? medName).trimmingCharacters(in: .whitespaces)
+    }
     private var units: [String] {
         var base = ["mg", "mcg", "mL", "units", "tablets", "IU", "g"]
-        if let u = medication.dosageUnit, !u.isEmpty, !base.contains(u) {
+        if let u = medication?.dosageUnit, !u.isEmpty, !base.contains(u) {
             base.insert(u, at: 0)
         }
         return base
@@ -312,10 +451,29 @@ struct MedicationDoseSheet: View {
         NavigationStack {
             Form {
                 Section("Medication") {
-                    Text(medication.name).font(.headline)
-                    if let freq = medication.frequency {
-                        Text(freq).font(.caption).foregroundStyle(.secondary)
+                    if let medication {
+                        Text(medication.name).font(.headline)
+                        if let freq = medication.frequency {
+                            Text(freq).font(.caption).foregroundStyle(.secondary)
+                        }
+                    } else {
+                        TextField("Medication name", text: $medName)
+                        if !vm.medications.isEmpty {
+                            Menu("Choose from your medications") {
+                                ForEach(vm.medications) { m in
+                                    Button(m.name) {
+                                        medName = m.name
+                                        if let u = m.dosageUnit, !u.isEmpty { unit = u }
+                                    }
+                                }
+                            }
+                            .font(.caption)
+                        }
                     }
+                }
+                Section("When") {
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                    DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
                 }
                 Section("Dose taken") {
                     HStack {
@@ -326,6 +484,12 @@ struct MedicationDoseSheet: View {
                         .pickerStyle(.menu)
                     }
                 }
+                Section("Pre-Medication Vitals (optional)") {
+                    LKNumberField(title: "Systolic BP", value: $systolic)
+                    LKNumberField(title: "Diastolic BP", value: $diastolic)
+                    LKNumberField(title: "Heart Rate", value: $heartRate)
+                    LKNumberField(title: "Temp (°F)", value: $tempF)
+                }
                 Section("Notes") {
                     TextField("Notes (optional)", text: $notes, axis: .vertical)
                         .lineLimit(2...4)
@@ -334,7 +498,7 @@ struct MedicationDoseSheet: View {
                     Text(errorText).font(.caption).foregroundStyle(.red)
                 }
             }
-            .navigationTitle("Log Dose")
+            .navigationTitle("Log Intake")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -342,29 +506,42 @@ struct MedicationDoseSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Log") { save() }
-                        .disabled(Double(amount) == nil || saving)
+                        .disabled(Double(amount) == nil || resolvedName.isEmpty || saving)
                         .fontWeight(.semibold)
                 }
             }
             .onAppear {
+                date = defaultDate
                 if amount.isEmpty {
-                    amount = (medication.dosage ?? "").filter { "0123456789.".contains($0) }
+                    amount = (medication?.dosage ?? "").filter { "0123456789.".contains($0) }
                 }
-                if let u = medication.dosageUnit, !u.isEmpty { unit = u }
+                if let u = medication?.dosageUnit, !u.isEmpty { unit = u }
             }
         }
     }
 
     private func save() {
-        guard let value = Double(amount) else { return }
+        guard let value = Double(amount), !resolvedName.isEmpty else { return }
         saving = true
         errorText = nil
+        let dateF = DateFormatter()
+        dateF.locale = Locale(identifier: "en_US_POSIX"); dateF.timeZone = .current
+        dateF.dateFormat = "yyyy-MM-dd"
+        let timeF = DateFormatter()
+        timeF.locale = Locale(identifier: "en_US_POSIX"); timeF.timeZone = .current
+        timeF.dateFormat = "HH:mm:ss"
+
         let dose = MedicationDoseLogCreate(
-            medicationName: medication.name,
-            logDate: .todayISO(),
+            medicationName: resolvedName,
+            logDate: dateF.string(from: date),
             doseAmount: value,
             doseUnit: unit,
-            medicationId: medication.id,
+            logTime: timeF.string(from: time),
+            medicationId: medication?.id,
+            preSystolicBp: Int(systolic),
+            preDiastolicBp: Int(diastolic),
+            preHeartRate: Int(heartRate),
+            preTemperatureC: Double(tempF).map(TempConvert.toCelsius),
             notes: notes.isEmpty ? nil : notes
         )
         Task {
