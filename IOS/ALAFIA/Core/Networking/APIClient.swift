@@ -25,21 +25,14 @@ actor APIClient {
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let dateStr = try container.decode(String.self)
-            
-            // Try ISO8601 with fractional seconds
-            let iso = ISO8601DateFormatter()
-            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = iso.date(from: dateStr) { return date }
-            
-            // Try without fractional seconds
-            iso.formatOptions = [.withInternetDateTime]
-            if let date = iso.date(from: dateStr) { return date }
-            
-            // Try date-only
-            let df = DateFormatter()
-            df.dateFormat = "yyyy-MM-dd"
-            if let date = df.date(from: dateStr) { return date }
-            
+            // Delegate to AppDate.parse, which handles ISO8601 (with/without
+            // fractional seconds and zone), NAIVE datetimes with no timezone
+            // (e.g. "2026-04-20T16:45:35.544021" — what the backend emits for
+            // created_at/updated_at), and date-only strings. The previous inline
+            // strategy only accepted zoned ISO8601, so naive timestamps threw
+            // dataCorrupted ("data couldn't be read because it isn't in the
+            // correct format") and broke every screen with a Date field.
+            if let date = AppDate.parse(dateStr) { return date }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateStr)")
         }
         
