@@ -92,3 +92,6 @@ deploy/gcp/keys/
 
 # Vendored at deploy time from ML/src (deploy.sh) — never commit the copy
 WEB/backend/alafia_model/
+
+# real API keys — never commit
+api_keys.md

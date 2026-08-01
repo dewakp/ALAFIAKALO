@@ -90,6 +90,39 @@ async def security_headers_middleware(request: Request, call_next):
     return response
 
 
+# ── Always-zoned ISO-8601 datetime normalizer ─────────────────────────────────
+# Some legacy rows/columns serialize as *naive* ISO strings (no zone) because they
+# were written with datetime.utcnow() into `DateTime` (not tz-aware) columns — e.g.
+# ChronicCondition.created_at (models/chronic_condition.py). A naive datetime broke
+# client decoders (iOS "Chronic Conditions … isn't in the correct format"). Rather
+# than chase every schema and column, we normalize once at the edge: any JSON string
+# that is a bare `YYYY-MM-DDTHH:MM:SS[.ffffff]` with no zone is treated as UTC and
+# gets a trailing 'Z'. Strings already zoned (…Z / …±hh:mm) and date-only values are
+# left untouched. This also repairs existing naive data on read.
+import re as _re
+
+_NAIVE_ISO_DT = _re.compile(rb'"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?)"')
+
+
+@app.middleware("http")
+async def normalize_datetimes_middleware(request: Request, call_next):
+    response: Response = await call_next(request)
+    if not response.headers.get("content-type", "").startswith("application/json"):
+        return response
+    body = b"".join([chunk async for chunk in response.body_iterator])
+    fixed = _NAIVE_ISO_DT.sub(rb'"\1Z"', body)
+    if fixed == body:
+        # No naive datetimes → still must re-emit the buffered body.
+        new = Response(content=body, status_code=response.status_code)
+    else:
+        new = Response(content=fixed, status_code=response.status_code)
+    # Preserve ALL original headers (incl. duplicate Set-Cookie on /auth/login);
+    # only content-length is recomputed for the possibly-longer body.
+    new.raw_headers = [(k, v) for (k, v) in response.raw_headers if k.lower() != b"content-length"]
+    new.raw_headers.append((b"content-length", str(len(new.body)).encode()))
+    return new
+
+
 # ── CSRF double-submit cookie middleware ──
 _CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
