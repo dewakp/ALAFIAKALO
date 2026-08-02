@@ -51,20 +51,35 @@ iOS, Android and web read data **only** through the backend API. If a client
 shows stale data, the DB or the API it points at is stale — do not add
 client-side data paths.
 
-| Client | API base |
-|---|---|
-| iOS (simulator) | `http://localhost:8005/api/v1` — **a local backend + local DB** |
-| iOS (device/release) | `https://api.alafia.app/api/v1` |
-| Web (dev) | `/api` → proxied to `http://localhost:8005` (`vite.config.js`) |
-| Android | see `ApiClient` |
+**Mobile points at PRODUCTION by default — simulator and emulator included.**
+There is no second database for mobile to drift from.
 
-**This is the usual regression:** running the simulator or `npm run dev` points
-at a *local* backend over a *local* DB. If that DB is behind prod, the app is
-behind prod. Run `verify_parity.sh` first, or point the client at prod.
+| Client | API base | |
+|---|---|---|
+| iOS — simulator *and* device | `https://api.alafia.app/api/v1` | `IOS/ALAFIA/App/AppConfig.swift` |
+| Android — debug *and* release | `https://api.alafia.app/api/v1/` | `Android/app/build.gradle` |
+| Web (dev) | `/api` → `http://localhost:8005` | `vite.config.js` — **still local** |
 
-Override the iOS base URL without editing code:
-`SIMCTL_CHILD_ALAFIA_API_URL=... xcrun simctl launch <sim> com.alafia.app`
-(simctl needs the `SIMCTL_CHILD_` prefix — `--setenv` is silently ignored.)
+> ⚠️ A simulator/emulator run on the default **writes to production**. Logging a
+> meal or deleting an entry changes real patient data.
+
+To run mobile against a local backend *on purpose*:
+
+```bash
+# iOS — simctl requires the SIMCTL_CHILD_ prefix; --setenv is silently ignored
+SIMCTL_CHILD_ALAFIA_API_URL=http://localhost:8005/api/v1 \
+  xcrun simctl launch <sim-id> com.alafia.app
+
+# Android — 10.0.2.2 is the emulator's route to the host
+./gradlew :app:assembleDebug -PapiBase=http://10.0.2.2:8005/api/v1/
+```
+
+`-PapiBase` is ignored by the release build on purpose: a shipped build can never
+carry a local URL.
+
+**The web dev server is still local** (`vite` proxies `/api` → `localhost:8005`),
+so it remains subject to dev-DB staleness. Run `verify_parity.sh` before trusting
+what the web app shows, or point it at prod in `vite.config.js`.
 
 ## 3. Mobile means iOS **and** Android, always
 

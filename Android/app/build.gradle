@@ -6,6 +6,23 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+// ── API endpoint ─────────────────────────────────────────────────────────
+// Production is the default for EVERY build type, emulator included.
+//
+// Debug used to default to http://10.0.2.2:8005/api/v1/ (the emulator's route to
+// the host), so an emulator run read from whatever local backend and local
+// database happened to be up. Once that local DB fell behind deployed the app
+// showed stale state while looking perfectly fine. Pointing at production
+// removes that class of drift: there is no second database to keep in sync.
+//
+// ⚠️ A debug build on this default writes to PRODUCTION.
+//
+// To run against a local backend on purpose:
+//   ./gradlew :app:assembleDebug -PapiBase=http://10.0.2.2:8005/api/v1/
+// Release ignores -PapiBase entirely — a shipped build can never carry a local URL.
+def prodApiBase = 'https://api.alafia.app/api/v1/'
+def apiBase = project.hasProperty('apiBase') ? project.property('apiBase') : prodApiBase
+
 android {
     namespace "com.alafia.android"
     compileSdk 36
@@ -26,8 +43,8 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary true
 
-        // Base URL — override per build type / flavor
-        buildConfigField "String", "API_BASE_URL", '"http://10.0.2.2:8005/api/v1/"'
+        // Base URL — production by default; see `apiBase` at the top of this file.
+        buildConfigField "String", "API_BASE_URL", "\"${apiBase}\""
     }
 
     signingConfigs {
@@ -51,12 +68,13 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
-            buildConfigField "String", "API_BASE_URL", '"https://api.alafia.app/api/v1/"'
+            // Hard-pinned: a release build never carries anything but production.
+            buildConfigField "String", "API_BASE_URL", "\"${prodApiBase}\""
         }
         debug {
             minifyEnabled false
             debuggable true
-            buildConfigField "String", "API_BASE_URL", '"http://10.0.2.2:8005/api/v1/"'
+            buildConfigField "String", "API_BASE_URL", "\"${apiBase}\""
         }
     }
 
