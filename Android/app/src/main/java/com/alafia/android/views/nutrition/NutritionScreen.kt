@@ -1,5 +1,7 @@
 package com.alafia.android.views.nutrition
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import kotlin.math.roundToInt
@@ -29,6 +32,10 @@ import androidx.compose.ui.window.Dialog
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import com.alafia.android.schemas.NutritionLogRequest
+import com.alafia.android.schemas.VisionItem
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -364,14 +371,30 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     var searchResults by remember { mutableStateOf<List<USDAFoodResult>>(emptyList()) }
     var searching by remember { mutableStateOf(false) }
 
-    // Image analysis (stub)
-    var imagePickerLaunched by remember { mutableStateOf(false) }
-    var selectedImageCount by remember { mutableIntStateOf(0) }
+    // Image analysis — ALAFIAModel VISION capability via /ai/vision
+    var selectedImages by remember { mutableStateOf<List<ByteArray>>(emptyList()) }
     var isAnalysingImages by remember { mutableStateOf(false) }
     var imageAnalysisResult by remember { mutableStateOf("") }
+    var visionItems by remember { mutableStateOf<List<VisionItem>>(emptyList()) }
 
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var searchJob by remember { mutableStateOf<Job?>(null) }
+
+    // Max 3 images, matching the backend cap on /ai/vision.
+    val imagePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNullOrEmpty()) return@rememberLauncherForActivityResult
+        val room = 3 - selectedImages.size
+        if (room <= 0) return@rememberLauncherForActivityResult
+        val loaded = uris.take(room).mapNotNull { uri ->
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }.getOrNull()?.takeIf { it.isNotEmpty() }
+        }
+        selectedImages = selectedImages + loaded
+    }
 
     val mealTypes = listOf("breakfast", "lunch", "dinner", "snack")
 
@@ -396,35 +419,74 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                             Text("Identify Food from Image (Optional – Max 3)",
                                 style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         }
-                        Text("Upload image(s) for Alafia analysis.",
+                        Text("Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { selectedImageCount = minOf(selectedImageCount + 1, 3) },
-                                modifier = Modifier.weight(1f), enabled = selectedImageCount < 3) {
+                            OutlinedButton(onClick = { imagePicker.launch("image/*") },
+                                modifier = Modifier.weight(1f), enabled = selectedImages.size < 3) {
                                 Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("Choose Files", fontSize = 12.sp)
                             }
+                            if (selectedImages.isNotEmpty()) {
+                                OutlinedButton(onClick = {
+                                    selectedImages = emptyList()
+                                    visionItems = emptyList()
+                                    imageAnalysisResult = ""
+                                }) {
+                                    Icon(Icons.Filled.Close, contentDescription = "Clear images",
+                                        modifier = Modifier.size(14.dp))
+                                }
+                            }
                         }
-                        if (selectedImageCount > 0) {
+                        if (selectedImages.isNotEmpty()) {
                             Spacer(Modifier.height(4.dp))
-                            Text("$selectedImageCount image(s) selected",
+                            Text("${selectedImages.size} image(s) selected",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                         }
                         Spacer(Modifier.height(8.dp))
                         Button(onClick = {
-                            // TODO(alafia-model): replace with ALAFIAModel.infer(.vision, images) — Phase 5
                             isAnalysingImages = true
+                            imageAnalysisResult = ""
+                            visionItems = emptyList()
                             scope.launch {
-                                delay(800)
+                                try {
+                                    val parts = selectedImages.mapIndexed { i, bytes ->
+                                        MultipartBody.Part.createFormData(
+                                            "files", "image$i.jpg",
+                                            bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                                        )
+                                    }
+                                    val res = ApiClient.getApiService().routeVisionMulti(
+                                        parts,
+                                        "food_photo_nutrition".toRequestBody("text/plain".toMediaTypeOrNull())
+                                    )
+                                    val items = res.items.orEmpty().filter { !it.name.isNullOrBlank() }
+                                    if (items.isEmpty()) {
+                                        imageAnalysisResult = res.notes?.takeIf { it.isNotBlank() }
+                                            ?: "No food recognised in that photo — enter the meal below."
+                                    } else {
+                                        // Prefill; everything stays editable. fdcId is cleared
+                                        // because a vision estimate is not a USDA-linked food.
+                                        visionItems = items
+                                        foodName = items.mapNotNull { it.name }.joinToString(", ")
+                                        fdcId = null
+                                        if (servingSize.isBlank()) {
+                                            servingSize = items.firstOrNull()?.estimatedPortion.orEmpty()
+                                        }
+                                        imageAnalysisResult = res.notes.orEmpty()
+                                    }
+                                } catch (_: Exception) {
+                                    // 503 = no vision backend configured; manual entry still works.
+                                    imageAnalysisResult = "Image analysis unavailable — enter the meal below."
+                                }
                                 isAnalysingImages = false
-                                imageAnalysisResult = "Image analysis coming soon (ALAFIAModel Phase 5)"
                             }
                         }, modifier = Modifier.fillMaxWidth(),
-                            enabled = selectedImageCount > 0 && !isAnalysingImages) {
+                            enabled = selectedImages.isNotEmpty() && !isAnalysingImages) {
                             if (isAnalysingImages) {
                                 CircularProgressIndicator(Modifier.size(14.dp), color = MaterialTheme.colorScheme.onPrimary)
                                 Spacer(Modifier.width(6.dp))
@@ -434,6 +496,27 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                 Spacer(Modifier.width(6.dp))
                                 Text("Analyse Image(s) with Alafia")
                             }
+                        }
+                        if (visionItems.isNotEmpty()) {
+                            Spacer(Modifier.height(6.dp))
+                            visionItems.forEach { item ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(item.name.orEmpty(), style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.weight(1f))
+                                    item.estimatedPortion?.let {
+                                        Text(it, style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                    }
+                                    item.confidence?.let {
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("${(it * 100).roundToInt()}%", style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                    }
+                                }
+                            }
+                            Text("Estimate only — check the food name and serving size before saving.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         }
                         if (imageAnalysisResult.isNotEmpty()) {
                             Spacer(Modifier.height(4.dp))

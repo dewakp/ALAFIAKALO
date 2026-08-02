@@ -116,6 +116,65 @@ final class NutritionViewModel {
             return nil
         }
     }
+
+    /// Identify the food in one or more meal photos via the ALAFIAModel VISION
+    /// capability. All shots go up in a single request so photos of the same
+    /// plate come back as ONE combined estimate, not one reading per photo.
+    ///
+    /// Returns nil when no vision backend is configured (the endpoint answers
+    /// 503) — the caller falls back to manual entry rather than surfacing an
+    /// error, since typing the meal in still works.
+    func analyzeFoodImages(_ images: [Data]) async -> FoodVisionResponse? {
+        guard !images.isEmpty else { return nil }
+        do {
+            return try await APIClient.shared.postImages(
+                "/ai/vision",
+                images: images,
+                fields: ["task": "food_photo_nutrition"]
+            )
+        } catch {
+            return nil
+        }
+    }
+}
+
+// MARK: - Food vision (ALAFIAModel VISION capability)
+
+struct FoodVisionItem: Decodable {
+    let name: String?
+    let estimatedPortion: String?
+    let confidence: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case name, confidence
+        case estimatedPortion = "estimated_portion"
+    }
+}
+
+struct FoodVisionNutrition: Decodable {
+    let calories: Double?
+    let proteinG: Double?
+    let carbsG: Double?
+    let fatG: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case calories
+        case proteinG = "protein_g"
+        case carbsG = "carbs_g"
+        case fatG = "fat_g"
+    }
+}
+
+struct FoodVisionResponse: Decodable {
+    let items: [FoodVisionItem]?
+    let estimatedNutrition: FoodVisionNutrition?
+    let notes: String?
+    let source: String?
+
+    enum CodingKeys: String, CodingKey {
+        case items, notes, source
+        case estimatedNutrition = "estimated_nutrition"
+    }
 }
 
 // MARK: - Main View
@@ -523,6 +582,7 @@ struct AddNutritionSheet: View {
     @State private var showCamera = false
     @State private var isAnalyzingImages = false
     @State private var imageAnalysisResult = ""
+    @State private var visionItems: [FoodVisionItem] = []
 
     let mealTypes = ["breakfast", "lunch", "dinner", "snack"]
 
@@ -589,6 +649,29 @@ struct AddNutritionSheet: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(isAnalyzingImages)
+                    }
+                    if !visionItems.isEmpty {
+                        ForEach(visionItems.indices, id: \.self) { i in
+                            let item = visionItems[i]
+                            HStack {
+                                Text(item.name ?? "")
+                                    .font(.caption)
+                                Spacer()
+                                if let portion = item.estimatedPortion {
+                                    Text(portion)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let c = item.confidence {
+                                    Text("\(Int((c * 100).rounded()))%")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                        }
+                        Text("Estimate only — check the food name and serving size before saving.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                     }
                     if !imageAnalysisResult.isEmpty {
                         Text(imageAnalysisResult)
@@ -701,11 +784,46 @@ struct AddNutritionSheet: View {
     }
 
     private func analyzeImages() {
-        // TODO(alafia-model): replace with ALAFIAModel.infer(.vision, images) for food recognition
+        let payloads = selectedImages.compactMap { $0.jpegData(compressionQuality: 0.8) }
+        guard !payloads.isEmpty else { return }
+
         isAnalyzingImages = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            isAnalyzingImages = false
-            imageAnalysisResult = "Image analysis coming soon (ALAFIAModel Phase 5)"
+        imageAnalysisResult = ""
+        visionItems = []
+
+        Task {
+            defer { isAnalyzingImages = false }
+
+            guard let result = await vm.analyzeFoodImages(payloads) else {
+                imageAnalysisResult = "Image analysis unavailable — enter the meal below."
+                return
+            }
+
+            let items = (result.items ?? []).filter { !($0.name ?? "").isEmpty }
+            guard !items.isEmpty else {
+                if let notes = result.notes, !notes.isEmpty {
+                    imageAnalysisResult = notes
+                } else {
+                    imageAnalysisResult = "No food recognised in that photo — enter the meal below."
+                }
+                return
+            }
+
+            // Prefill; every field stays editable before saving. fdcId is cleared
+            // because a vision estimate is not a USDA-linked food.
+            visionItems = items
+            foodName = items.compactMap(\.name).joined(separator: ", ")
+            fdcId = nil
+            if servingSize.isEmpty, let portion = items.first?.estimatedPortion {
+                servingSize = portion
+            }
+            if let n = result.estimatedNutrition {
+                if calories.isEmpty, let v = n.calories { calories = String(Int(v.rounded())) }
+                if proteinG.isEmpty, let v = n.proteinG { proteinG = String(Int(v.rounded())) }
+                if carbsG.isEmpty, let v = n.carbsG { carbsG = String(Int(v.rounded())) }
+                if fatG.isEmpty, let v = n.fatG { fatG = String(Int(v.rounded())) }
+            }
+            imageAnalysisResult = result.notes ?? ""
         }
     }
 

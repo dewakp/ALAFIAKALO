@@ -69,6 +69,7 @@ export default function Nutrition() {
   const [imageFiles, setImageFiles] = useState([]);
   const [imageAnalysisResult, setImageAnalysisResult] = useState('');
   const [isAnalyzingImages, setIsAnalyzingImages] = useState(false);
+  const [visionResult, setVisionResult] = useState(null);   // { items, estimated_nutrition, source }
   const imageInputRef = useRef(null);
   const formRef = useRef(null);   // edit/add form card — for scroll-into-view on Edit
   const [searchParams, setSearchParams] = useSearchParams();
@@ -188,6 +189,50 @@ export default function Nutrition() {
     } finally { setAnalyzingRecipe(false); }
   };
 
+  /* Send every selected photo to /ai/vision in ONE request. The backend analyses
+     them together, so shots of the same plate return one combined estimate
+     rather than one per photo. */
+  const analyzeImages = async () => {
+    if (!imageFiles.length) return;
+    setIsAnalyzingImages(true);
+    setImageAnalysisResult('');
+    setVisionResult(null);
+    try {
+      const body = new FormData();
+      imageFiles.forEach((f) => body.append('files', f));
+      body.append('task', 'food_photo_nutrition');
+
+      const { data } = await api.post('/ai/vision', body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 180000,
+      });
+
+      const items = Array.isArray(data.items) ? data.items.filter((i) => i?.name) : [];
+      if (!items.length) {
+        setImageAnalysisResult(data.notes || 'No food recognised in that photo — enter the meal manually.');
+        return;
+      }
+
+      setVisionResult({ ...data, items });
+      // Prefill the form; the user can still edit before saving. fdc_id is
+      // cleared because a vision estimate is not a USDA-linked food.
+      setForm((prev) => ({
+        ...prev,
+        food_name: items.map((i) => i.name).join(', '),
+        serving_size: prev.serving_size?.trim() || items[0].estimated_portion || '',
+        fdc_id: null,
+      }));
+      setEstimatePreview(null);
+      setEstimateError('');
+      setImageAnalysisResult(data.notes || '');
+    } catch (err) {
+      // 503 = no vision backend configured. Manual entry still works.
+      setImageAnalysisResult(apiErrorMessage(err, 'Image analysis unavailable — enter the meal manually.'));
+    } finally {
+      setIsAnalyzingImages(false);
+    }
+  };
+
   const estimateBeforeSave = async ({ silent = false } = {}) => {
     const foodName = form.food_name.trim();
     if (!foodName || form.fdc_id) return;
@@ -230,6 +275,7 @@ export default function Nutrition() {
     setEstimatePreview(null);
     setImageFiles([]);
     setImageAnalysisResult('');
+    setVisionResult(null);
     setEstimateError('');
   };
 
@@ -458,7 +504,8 @@ export default function Nutrition() {
               <Image size={14}/> Identify Food from Image (Optional – Max 3 images)
             </div>
             <div style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)', marginBottom: '.5rem' }}>
-              Upload image(s) or take a photo for Alafia analysis.
+              Upload image(s) or take a photo for Alafia analysis. Several shots of the
+              same meal are read together as one plate.
             </div>
             <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
               onChange={(e) => {
@@ -486,16 +533,40 @@ export default function Nutrition() {
             </div>
             <button type="button" className="btn btn-primary" style={{ width: '100%' }}
               disabled={imageFiles.length === 0 || isAnalyzingImages}
-              onClick={() => {
-                // TODO(alafia-model): replace with ALAFIAModel.infer(.vision, images) — Phase 5
-                setIsAnalyzingImages(true);
-                setTimeout(() => {
-                  setIsAnalyzingImages(false);
-                  setImageAnalysisResult('Image analysis coming soon (ALAFIAModel Phase 5)');
-                }, 800);
-              }}>
+              onClick={analyzeImages}>
               {isAnalyzingImages ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }}/> Analysing…</> : <><Sparkles size={14}/> Analyse Image(s) with Alafia</>}
             </button>
+
+            {visionResult && (
+              <div style={{ marginTop: '.5rem', fontSize: '.78rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.35rem', marginBottom: '.4rem' }}>
+                  {visionResult.items.map((item, i) => (
+                    <span key={i} style={{ background: 'var(--color-bg-secondary)', borderRadius: 4, padding: '.2rem .5rem' }}>
+                      {item.name}
+                      {item.estimated_portion ? ` · ${item.estimated_portion}` : ''}
+                      {typeof item.confidence === 'number' ? ` · ${Math.round(item.confidence * 100)}%` : ''}
+                    </span>
+                  ))}
+                </div>
+                {(() => {
+                  const n = visionResult.estimated_nutrition || {};
+                  const parts = [
+                    n.calories != null ? `${Math.round(n.calories)} kcal` : null,
+                    n.protein_g != null ? `${Math.round(n.protein_g)}g protein` : null,
+                    n.carbs_g != null ? `${Math.round(n.carbs_g)}g carbs` : null,
+                    n.fat_g != null ? `${Math.round(n.fat_g)}g fat` : null,
+                  ].filter(Boolean);
+                  return parts.length ? (
+                    <div style={{ color: 'var(--color-text-secondary)' }}>
+                      Rough estimate: {parts.join(' · ')}
+                    </div>
+                  ) : null;
+                })()}
+                <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.72rem', marginTop: '.3rem' }}>
+                  Estimate only — check the food name and serving size below before saving.
+                </div>
+              </div>
+            )}
             {imageAnalysisResult && (
               <div style={{ marginTop: '.5rem', fontSize: '.78rem', color: 'var(--color-text-secondary)' }}>{imageAnalysisResult}</div>
             )}

@@ -206,13 +206,17 @@ async def voice_to_clinical(
 
 
 # ── Vision → Food / Lab understanding (ALAFIAModel Vision Phase 5) ─────
+MAX_VISION_IMAGES = 3  # matches the "Max 3 images" cap the clients enforce
+
+
 @router.post("/vision")
 async def vision_understand(
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(None),
+    files: list[UploadFile] | None = File(None),
     task: str = Form("food_photo_nutrition"),
     current_user: User = Depends(get_current_user),
 ):
-    """Analyze a photo and return structured data (food nutrition estimate, etc).
+    """Analyze one or more photos and return structured data (nutrition estimate, etc).
 
     Routes through the ALAFIAModel VISION capability. Until the on-device food
     classifier ships (Phase 5), this uses a vision-capable LLM when configured.
@@ -220,11 +224,32 @@ async def vision_understand(
     to the manual Capture flow.
 
     Form fields:
-      file: the image (jpeg/png/webp ...)
-      task: "food_photo_nutrition" | "lab_report_ocr"
+      file:  a single image (jpeg/png/webp ...) — the original single-shot field
+      files: up to 3 images of the SAME subject (e.g. a plate from two angles).
+             They are analyzed in one model call and return ONE combined result,
+             so a dish photographed twice is not counted twice.
+      task:  "food_photo_nutrition" | "lab_report_ocr"
+
+    `file` and `files` may both be sent; the images are merged and capped at 3.
     """
-    image = await file.read()
-    if not image:
+    uploads = [u for u in ([file] if file is not None else []) + list(files or []) if u is not None]
+    if not uploads:
+        raise HTTPException(status_code=400, detail="No image file provided")
+    if len(uploads) > MAX_VISION_IMAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"At most {MAX_VISION_IMAGES} images per request (got {len(uploads)})",
+        )
+
+    images = []
+    for upload in uploads:
+        raw = await upload.read()
+        if raw:
+            images.append({
+                "image_bytes": raw,
+                "content_type": upload.content_type or "image/jpeg",
+            })
+    if not images:
         raise HTTPException(status_code=400, detail="Empty image file")
 
     valid_tasks = ("food_photo_nutrition", "lab_report_ocr")
@@ -237,8 +262,11 @@ async def vision_understand(
 
     from app.services.alafia_model_service import alafia_infer
     result = await alafia_infer("vision", {
-        "image_bytes": image,
-        "content_type": file.content_type or "image/jpeg",
+        "images": images,
+        # Also populate the single-image fields: the capability falls back to
+        # them, and other payload consumers still read image_bytes/content_type.
+        "image_bytes": images[0]["image_bytes"],
+        "content_type": images[0]["content_type"],
         "task": task,
     })
     if not result.get("success"):

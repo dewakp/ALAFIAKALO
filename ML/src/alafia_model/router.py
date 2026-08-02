@@ -73,6 +73,13 @@ class InferencePayload:
     video_bytes: bytes | None = None
     content_type: str = ""  # MIME type hint for media payloads (e.g. "image/jpeg")
 
+    # Multi-image input: several shots of the SAME subject (e.g. a plate from
+    # two angles), analysed in ONE model call so the result is a single combined
+    # reading rather than N independent ones. Each entry is
+    # {"image_bytes": bytes, "content_type": str}. When set, it supersedes the
+    # single `image_bytes` field above; that field stays for single-shot callers.
+    images: list[dict[str, Any]] = field(default_factory=list)
+
     # Options
     language: str = "en"
     temperature: float = 0.5
@@ -87,6 +94,7 @@ class InferencePayload:
             "task": self.task,
             "context": self.context,
             "image_bytes": self.image_bytes,
+            "images": self.images,
             "audio_bytes": self.audio_bytes,
             "video_bytes": self.video_bytes,
             "content_type": self.content_type,

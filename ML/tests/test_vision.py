@@ -48,7 +48,7 @@ def test_food_photo_success(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
     cap = VisionCapability()
 
-    async def fake_vision_chat(self, image_bytes, content_type, system_prompt):
+    async def fake_vision_chat(self, images, system_prompt):
         from alafia_model.capabilities.base import CapabilityResult
         return CapabilityResult(
             success=True,
@@ -63,13 +63,14 @@ def test_food_photo_success(monkeypatch):
     assert result.success
     assert result.data["items"][0]["name"] == "jollof rice"
     assert result.data["estimated_nutrition"]["calories"] == 330
+    assert result.data["image_count"] == 1
 
 
 def test_food_photo_unparseable(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
     cap = VisionCapability()
 
-    async def fake_vision_chat(self, image_bytes, content_type, system_prompt):
+    async def fake_vision_chat(self, images, system_prompt):
         from alafia_model.capabilities.base import CapabilityResult
         return CapabilityResult(success=True, data={"text": "sorry I cannot tell"}, source="x")
 
@@ -77,6 +78,83 @@ def test_food_photo_unparseable(monkeypatch):
     result = _run(cap.infer({"task": "food_photo_nutrition", "image_bytes": b"img"}))
     assert not result.success
     assert "unparseable" in (result.error or "")
+
+
+# ── Multi-image: several shots of ONE meal → ONE combined reading ──────
+
+
+def test_collect_images_prefers_multi_and_falls_back():
+    collect = VisionCapability._collect_images
+    # multi-image entries win, per-entry content_type honoured, default applied
+    assert collect({
+        "images": [
+            {"image_bytes": b"a", "content_type": "image/png"},
+            {"image_bytes": b"b"},
+        ],
+        "content_type": "image/jpeg",
+    }) == [(b"a", "image/png"), (b"b", "image/jpeg")]
+    # legacy single-image callers still work
+    assert collect({"image_bytes": b"z", "content_type": "image/webp"}) == [(b"z", "image/webp")]
+    # empty / malformed lists fall back to the single field
+    assert collect({"images": [], "image_bytes": b"z"}) == [(b"z", "image/jpeg")]
+    assert collect({"images": [{"nope": 1}], "image_bytes": b"z"}) == [(b"z", "image/jpeg")]
+    # nothing usable
+    assert collect({}) == []
+    assert collect({"images": [{"image_bytes": b""}]}) == []
+
+
+def test_multi_image_sends_one_call_with_all_images(monkeypatch):
+    """Three photos must produce ONE model call carrying all three — not three
+    calls whose results get summed (that triple-counts a single plate)."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    cap = VisionCapability()
+    calls = []
+
+    async def fake_vision_chat(self, images, system_prompt):
+        from alafia_model.capabilities.base import CapabilityResult
+        calls.append((images, system_prompt))
+        return CapabilityResult(
+            success=True,
+            data={"text": '{"items": [{"name": "jollof rice"}], '
+                          '"estimated_nutrition": {"calories": 330}, "notes": ""}'},
+            source="vision-ollama:llava",
+        )
+
+    monkeypatch.setattr(VisionCapability, "_vision_chat", fake_vision_chat)
+    result = _run(cap.infer({
+        "task": "food_photo_nutrition",
+        "images": [
+            {"image_bytes": b"one", "content_type": "image/jpeg"},
+            {"image_bytes": b"two", "content_type": "image/jpeg"},
+            {"image_bytes": b"three", "content_type": "image/png"},
+        ],
+    }))
+
+    assert result.success
+    assert len(calls) == 1, "multiple photos must be analysed in a single call"
+    sent_images, prompt = calls[0]
+    assert [raw for raw, _ in sent_images] == [b"one", b"two", b"three"]
+    # The anti-double-count instruction is attached only for multi-image input.
+    assert "3 photos of THE SAME meal" in prompt
+    assert "Do NOT count a dish more than once" in prompt
+    # One combined reading, not one per photo.
+    assert result.data["estimated_nutrition"]["calories"] == 330
+    assert result.data["image_count"] == 3
+
+
+def test_single_image_omits_multi_image_rule(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    cap = VisionCapability()
+    prompts = []
+
+    async def fake_vision_chat(self, images, system_prompt):
+        from alafia_model.capabilities.base import CapabilityResult
+        prompts.append(system_prompt)
+        return CapabilityResult(success=True, data={"text": '{"items": []}'}, source="x")
+
+    monkeypatch.setattr(VisionCapability, "_vision_chat", fake_vision_chat)
+    _run(cap.infer({"task": "food_photo_nutrition", "image_bytes": b"img"}))
+    assert "THE SAME meal" not in prompts[0]
 
 
 def test_parse_json_extracts_embedded():

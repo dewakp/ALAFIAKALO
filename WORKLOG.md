@@ -1849,3 +1849,48 @@ custom domain, deferred infra (GPU LLM / Redis / blockchain / email / media / Fi
 **iOS + Android app-store deployment checklists**. Surfaced two mobile blockers there: apps hardcode
 `https://api.alafia.com` (no domain yet), and iOS bundle `com.alafia.app` ≠ backend
 `APPLE_BUNDLE_ID=com.alafia.ios` (must match for Apple purchase verification).
+
+## Session 2026-08-01 — Meal-photo analysis goes live on web + iOS + Android
+
+**The gap.** `POST /ai/vision` has been real for a while (ALAFIAModel VISION capability → llava via
+Ollama, OpenAI vision as fallback), and PromptHub / PromptView / `routeVision` already called it. But
+the *Nutrition* screen's "Analyse Image(s) with Alafia" button was a fake on **all three clients** —
+a `setTimeout` / `DispatchQueue.asyncAfter` / `delay(800)` that printed *"Image analysis coming soon
+(ALAFIAModel Phase 5)"*. Users could attach up to 3 photos and got a canned string back. Android was
+worse: its "Choose Files" button incremented a counter (`selectedImageCount++`) with **no picker at
+all** — no image was ever selected, let alone uploaded.
+
+**One meal, one reading (the design call).** The UI accepts 3 photos, but they are normally the *same
+plate* from different angles. Looping the single-image endpoint per photo and merging client-side
+would have **double/triple-counted the calories** — and duplicated that merge logic across three
+platforms. So the multi-image handling went **backend-side**, matching the standing canon that model
+strategy is a backend concern:
+
+- `InferencePayload` gained `images: list[dict]`; `VisionCapability._collect_images` normalizes the
+  multi- and legacy single-image shapes into one list.
+- `_vision_chat` / `_ollama_vision` / `_openai_vision` now take N images and send them in **ONE**
+  model call (Ollama: N base64 in `images`; OpenAI: N `image_url` content blocks).
+- With >1 image the prompt appends `_MULTI_IMAGE_RULE`: *"You are being shown {n} photos of THE SAME
+  meal … Do NOT count a dish more than once because it appears in more than one photo."*
+- Capability `version` → `0.3.0-vision-llm-multi`; response carries `image_count`.
+
+**`/ai/vision` is now `file` OR `files` (or both), capped at 3.** The original single `file` field is
+untouched, so the existing PromptHub / iOS PromptView / Android `routeVision` callers keep working —
+verified against FastAPI across 7 request shapes (legacy single, multi, both, over-cap, none, empty
+bytes, task passthrough).
+
+**Clients (parity — web, iOS, Android all wired):** each sends every selected photo in one request,
+prefills the meal form from the result (food name joined from items, serving size from the top item's
+portion, `fdc_id`/`fdcId` cleared since a vision estimate is not USDA-linked), renders the detected
+items with portion + confidence, and degrades to manual entry on 503 rather than erroring. iOS also
+prefills the visible calorie/protein/carb/fat fields (they save, because `fdcId` is nil). Added a
+reusable `APIClient.postImages(...)` on iOS (multipart was previously copy-pasted per view) and
+`routeVisionMulti` on Android, plus a **real** `GetMultipleContents` image picker for Android.
+
+**Verified:** ML vision tests 9/9 (2 pre-existing tests updated for the new `_vision_chat` signature,
+4 new covering single-call-for-N-images, the anti-double-count prompt, and payload normalization);
+web `vite build` ✓; iOS `xcodebuild` ✓; Android `compileDebugKotlin` ✓. Two `test_hebcs.py` failures
+are pre-existing (feature-bridge coverage 71.4% < 75%), confirmed failing on a clean tree.
+**Not run here:** the backend pytest suite — no environment on this machine has the backend deps
+(`sqlalchemy`, `pytest_asyncio`); `app/api/ai.py` was compile-checked and its request handling probed
+against a real FastAPI app with the identical signature.

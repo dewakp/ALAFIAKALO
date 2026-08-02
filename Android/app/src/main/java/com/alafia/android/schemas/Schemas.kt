@@ -298,12 +298,24 @@ data class AIRouteResponse(
     @SerializedName("assistant_message") val assistantMessage: String
 )
 
-data class VisionItem(val name: String? = null)
+data class VisionItem(
+    val name: String? = null,
+    @SerializedName("estimated_portion") val estimatedPortion: String? = null,
+    val confidence: Double? = null
+)
+
+data class VisionNutrition(
+    val calories: Float? = null,
+    @SerializedName("protein_g") val proteinG: Float? = null,
+    @SerializedName("carbs_g") val carbsG: Float? = null,
+    @SerializedName("fat_g") val fatG: Float? = null
+)
 
 data class AIVisionResponse(
     val task: String? = null,
     val source: String? = null,
     val items: List<VisionItem>? = null,
+    @SerializedName("estimated_nutrition") val estimatedNutrition: VisionNutrition? = null,
     val notes: String? = null
 )
 

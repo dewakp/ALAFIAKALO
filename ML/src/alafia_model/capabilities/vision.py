@@ -52,6 +52,19 @@ Rules:
 - Do NOT invent foods that are not visible.
 """
 
+# Appended when the caller sends several photos. They are shots of ONE meal, so
+# the model must return one combined reading — the single most common failure
+# here is counting the same plate once per photo and tripling the calories.
+_MULTI_IMAGE_RULE = """\
+
+You are being shown {n} photos of THE SAME meal (different angles, lighting, or
+close-ups). Analyze them together and return ONE combined result:
+- Do NOT count a dish more than once because it appears in more than one photo.
+- Merge duplicates into a single item; use the clearest photo to judge portion.
+- Only list a food twice if there are genuinely two separate servings visible.
+- Use the extra angles to raise confidence, not to inflate the totals.
+"""
+
 
 class VisionCapability(BaseCapability):
     """Vision capability for food recognition, lab OCR, skin triage, and pill ID.
@@ -64,7 +77,7 @@ class VisionCapability(BaseCapability):
     """
 
     capability_id = "vision"
-    version = "0.2.0-vision-llm"
+    version = "0.3.0-vision-llm-multi"
     is_implemented = False  # No native model yet; relies on a vision LLM backend
 
     def is_available(self) -> bool:
@@ -91,11 +104,34 @@ class VisionCapability(BaseCapability):
             error=f"Unknown vision task: {task}",
         )
 
+    @staticmethod
+    def _collect_images(payload: dict) -> list[tuple[bytes, str]]:
+        """Normalize the single- and multi-image payload shapes into one list.
+
+        Accepts `images` (list of {"image_bytes", "content_type"}) and falls back
+        to the single `image_bytes` + `content_type` pair. Entries without bytes
+        are dropped so a half-filled payload cannot reach an adapter.
+        """
+        default_type = payload.get("content_type") or "image/jpeg"
+
+        entries = payload.get("images") or []
+        if entries:
+            collected = [
+                (e["image_bytes"], e.get("content_type") or default_type)
+                for e in entries
+                if isinstance(e, dict) and e.get("image_bytes")
+            ]
+            if collected:
+                return collected
+
+        single = payload.get("image_bytes")
+        return [(single, default_type)] if single else []
+
     async def _food_photo_nutrition(self, payload: dict) -> CapabilityResult:
         # TODO(alafia-model): Phase 5 — load fine-tuned MobileNetV3 food classifier.
         # Until then, use a vision-capable LLM (OpenAI gpt-4o family) when configured.
-        image_bytes: bytes | None = payload.get("image_bytes")
-        if image_bytes is None:
+        images = self._collect_images(payload)
+        if not images:
             return CapabilityResult(success=False, error="image_bytes required")
 
         if not self.is_available():
@@ -107,8 +143,11 @@ class VisionCapability(BaseCapability):
                 ),
             )
 
-        content_type = payload.get("content_type") or "image/jpeg"
-        result = await self._vision_chat(image_bytes, content_type, _FOOD_VISION_PROMPT)
+        prompt = _FOOD_VISION_PROMPT
+        if len(images) > 1:
+            prompt += _MULTI_IMAGE_RULE.format(n=len(images))
+
+        result = await self._vision_chat(images, prompt)
         if not result.success:
             return result
 
@@ -125,30 +164,34 @@ class VisionCapability(BaseCapability):
                 "items": items,
                 "estimated_nutrition": parsed.get("estimated_nutrition") or {},
                 "notes": parsed.get("notes") or "",
+                "image_count": len(images),
             },
             confidence=0.5,  # LLM estimate — deliberately modest until Ph5 model
             source=result.source,
         )
 
     async def _vision_chat(
-        self, image_bytes: bytes, content_type: str, system_prompt: str
+        self, images: list[tuple[bytes, str]], system_prompt: str
     ) -> CapabilityResult:
-        """Send an image + instruction to a vision LLM.
+        """Send one or more images + an instruction to a vision LLM in ONE call.
 
         Dev default is local Ollama (a llava-family model); OpenAI vision is the
         fallback. Returns the first successful response.
         """
-        b64 = base64.b64encode(image_bytes).decode("ascii")
+        encoded = [
+            (base64.b64encode(raw).decode("ascii"), content_type)
+            for raw, content_type in images
+        ]
         errors: list[str] = []
 
         if os.environ.get("OLLAMA_BASE_URL"):
-            result = await self._ollama_vision(b64, system_prompt)
+            result = await self._ollama_vision(encoded, system_prompt)
             if result.success:
                 return result
             errors.append(result.error or "ollama failed")
 
         if os.environ.get("OPENAI_API_KEY"):
-            result = await self._openai_vision(b64, content_type, system_prompt)
+            result = await self._openai_vision(encoded, system_prompt)
             if result.success:
                 return result
             errors.append(result.error or "openai failed")
@@ -158,19 +201,26 @@ class VisionCapability(BaseCapability):
             error="; ".join(errors) or "No vision backend configured",
         )
 
-    async def _ollama_vision(self, image_b64: str, system_prompt: str) -> CapabilityResult:
+    async def _ollama_vision(
+        self, encoded: list[tuple[str, str]], system_prompt: str
+    ) -> CapabilityResult:
         """Run image understanding through a local Ollama vision model (llava)."""
         from alafia_model.adapters.ollama_adapter import OllamaAdapter
 
         model = os.environ.get("OLLAMA_VISION_MODEL", _DEFAULT_OLLAMA_VISION_MODEL)
         adapter = OllamaAdapter(model=model, timeout=300.0)
+        noun = "this image" if len(encoded) == 1 else f"these {len(encoded)} images"
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": "Analyze this image."},
+            {"role": "user", "content": f"Analyze {noun}."},
         ]
         try:
             response = await adapter.chat(
-                messages, temperature=0.2, max_tokens=700, json_mode=True, images=[image_b64]
+                messages,
+                temperature=0.2,
+                max_tokens=700,
+                json_mode=True,
+                images=[b64 for b64, _ in encoded],
             )
         except Exception as exc:
             logger.warning("Ollama vision failed (%s); will try fallback if configured", exc)
@@ -182,7 +232,7 @@ class VisionCapability(BaseCapability):
         )
 
     async def _openai_vision(
-        self, image_b64: str, content_type: str, system_prompt: str
+        self, encoded: list[tuple[str, str]], system_prompt: str
     ) -> CapabilityResult:
         """Run image understanding through the OpenAI vision API (fallback)."""
         from alafia_model.adapters.openai_adapter import OpenAIAdapter
@@ -193,16 +243,18 @@ class VisionCapability(BaseCapability):
         if not getattr(adapter, "is_available", False):
             return CapabilityResult(success=False, error="OpenAI vision adapter unavailable")
 
-        data_uri = f"data:{content_type};base64,{image_b64}"
+        noun = "this image" if len(encoded) == 1 else f"these {len(encoded)} images"
+        content: list[dict[str, Any]] = [{"type": "text", "text": f"Analyze {noun}."}]
+        content.extend(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{content_type};base64,{b64}"},
+            }
+            for b64, content_type in encoded
+        )
         messages = [
             {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Analyze this image."},
-                    {"type": "image_url", "image_url": {"url": data_uri}},
-                ],
-            },
+            {"role": "user", "content": content},
         ]
         try:
             response = await adapter.chat(messages, temperature=0.2, max_tokens=700, json_mode=True)
