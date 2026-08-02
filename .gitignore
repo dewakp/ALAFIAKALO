@@ -95,3 +95,6 @@ WEB/backend/alafia_model/
 
 # real API keys — never commit
 api_keys.md
+
+# DB parity artifacts (fingerprints + prod dumps — may contain PHI)
+.db-parity/
