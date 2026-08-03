@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
@@ -143,6 +144,20 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
     return user
 
 
+async def _record_login(db, user) -> None:
+    """Stamp a successful authentication.
+
+    Called from every auth path, so the admin console's "last login" reflects
+    reality regardless of how the user signed in. Never raises: a bookkeeping
+    write must not turn a good login into a failed one.
+    """
+    try:
+        user.last_login = datetime.now(timezone.utc)
+        await db.flush()
+    except Exception:
+        logger.warning("Could not stamp last_login for user %s", getattr(user, "id", "?"), exc_info=True)
+
+
 @router.post("/login", response_model=Token)
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 async def login(
@@ -161,6 +176,14 @@ async def login(
     from app.services.identity_client import identity_login
     ident = await identity_login(form_data.username, form_data.password)
     if ident and ident.get("access_token"):
+        # Stamp here too. This branch returns before the local-password path
+        # below, and it is the branch most logins actually take (shared IdP →
+        # SSO), so skipping it left last_login NULL for everyone.
+        sso_user = (await db.execute(
+            select(User).where(User.email == form_data.username)
+        )).scalar_one_or_none()
+        if sso_user is not None:
+            await _record_login(db, sso_user)
         _set_refresh_cookie(response, ident.get("refresh_token", ""))
         return Token(access_token=ident["access_token"], refresh_token=ident.get("refresh_token", ""))
 
@@ -183,6 +206,7 @@ async def login(
             detail="Incorrect email or password",
         )
 
+    await _record_login(db, user)
     token = create_access_token(data={"sub": str(user.id)})
     refresh = create_refresh_token(data={"sub": str(user.id)})
     _set_refresh_cookie(response, refresh)
@@ -281,6 +305,7 @@ async def login_with_firebase(
             user.auth_provider = provider
         await db.flush()
 
+    await _record_login(db, user)
     token = create_access_token(data={"sub": str(user.id)})
     refresh = create_refresh_token(data={"sub": str(user.id)})
     _set_refresh_cookie(response, refresh)

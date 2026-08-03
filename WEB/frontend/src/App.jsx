@@ -7,6 +7,9 @@ import Layout from './components/Layout';
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Landing = lazy(() => import('./pages/Landing'));
+// Admin console (minister.alafia.com). Server-side require_admin is the
+// real gate; this route simply renders 'not authorised' for everyone else.
+const Admin = lazy(() => import('./pages/Admin'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -86,6 +89,7 @@ export default function App() {
         >
           <Route index element={<PromptHub />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="admin" element={<Admin />} />
           <Route path="nutrition" element={<Nutrition />} />
           <Route path="fitness" element={<Fitness />} />
           <Route path="labs" element={<Labs />} />

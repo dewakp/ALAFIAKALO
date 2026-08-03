@@ -186,7 +186,17 @@ class LLMCapability(BaseCapability):
                     success=True, messages=chat_msgs, response=resp.get("content"),
                 )
                 return CapabilityResult(
-                    success=True, data={"text": resp["content"]}, confidence=0.7,
+                    # tokens_used/model travel in `data`, not just telemetry: the
+                    # backend records per-user usage from here, and dropping them
+                    # is why AIInteraction.tokens_used was always 0.
+                    success=True,
+                    data={
+                        "text": resp["content"],
+                        "tokens_used": resp.get("tokens_used", 0),
+                        "model": resp.get("model", spec.resolved_model()),
+                        "provider": spec.name,
+                    },
+                    confidence=0.7,
                     source=f"{spec.name}:{resp.get('model', spec.resolved_model())}",
                 )
             except Exception as exc:
@@ -212,7 +222,14 @@ class LLMCapability(BaseCapability):
                 success=True, messages=chat_msgs, response=resp.get("content"),
             )
             return CapabilityResult(
-                success=True, data={"text": resp["content"]}, confidence=0.75,
+                success=True,
+                data={
+                    "text": resp["content"],
+                    "tokens_used": resp.get("tokens_used", 0),
+                    "model": resp.get("model", ollama.model_name),
+                    "provider": "ollama",
+                },
+                confidence=0.75,
                 source=f"ollama:{resp.get('model', ollama.model_name)}",
             )
         except Exception as exc:

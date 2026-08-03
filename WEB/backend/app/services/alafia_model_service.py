@@ -148,6 +148,48 @@ async def alafia_chat(
     return (result.get("data") or {}).get("text", "")
 
 
+async def alafia_chat_detailed(
+    messages: list[dict[str, str]],
+    *,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    json_mode: bool = False,
+    task: str = "chat",
+    model: str | None = None,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Same as `alafia_chat`, but returns the accounting alongside the text.
+
+    `alafia_chat` returns only a string, which is why per-user token usage was
+    never recorded — the count reached telemetry and was then thrown away. Use
+    this at any call site that persists an AIInteraction.
+
+    Returns: {"text", "tokens_used", "model", "provider", "source"}
+    """
+    result = await alafia_infer(
+        "llm",
+        {
+            "messages": messages,
+            "task": task,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "json_mode": json_mode,
+            "model": model or "",
+            "context": context or {},
+        },
+    )
+    if not result.get("success"):
+        raise ALAFIAModelError(result.get("error") or "ALAFIAModel LLM call failed")
+    data = result.get("data") or {}
+    return {
+        "text": data.get("text", ""),
+        "tokens_used": int(data.get("tokens_used") or 0),
+        "model": data.get("model") or "",
+        "provider": data.get("provider") or "",
+        "source": result.get("source") or "",
+    }
+
+
 async def alafia_complete(
     prompt: str,
     *,

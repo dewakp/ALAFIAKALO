@@ -150,7 +150,20 @@ class Settings(BaseSettings):
     # (dev / self-host); enable in production.
     SUBSCRIPTION_REQUIRED: bool = False
     # Emails that bypass the paywall entirely (owner / staff), comma-separated in env.
-    SUBSCRIPTION_EXEMPT_EMAILS: list[str] = ["developer@hntsolutions.com"]
+    # dew@6igma.com is included because the admin console lives under /api/v1 and
+    # would otherwise be 402'd by the paywall in production before reaching it.
+    SUBSCRIPTION_EXEMPT_EMAILS: list[str] = ["developer@hntsolutions.com", "dew@6igma.com"]
+
+    # ── Admin console ────────────────────────────────────────────────────
+    # Who may reach /api/v1/admin/*. Deliberately an explicit allowlist rather
+    # than the `is_superuser` flag alone: that flag is currently set on a leftover
+    # test account (crossapp_…@example.com), and one stray UPDATE should not be
+    # able to hand out console access. BOTH must hold — email on this list AND
+    # the account active.
+    ADMIN_EMAILS: list[str] = ["dew@6igma.com"]
+    # Host the admin console is served on. Used only for logging/link building;
+    # authorization never depends on the hostname.
+    ADMIN_HOST: str = "minister.alafia.com"
     # Public base URL of the web app; used to build Stripe/PayPal return URLs.
     PUBLIC_WEB_URL: str = "http://localhost:8080"
 

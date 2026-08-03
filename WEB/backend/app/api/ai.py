@@ -1803,9 +1803,13 @@ async def ai_chat(
 
     t0 = time.monotonic()
     # Routed through the ALAFIAModel facade (Ollama primary → OpenAI fallback).
-    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
+    from app.services.alafia_model_service import alafia_chat_detailed, ALAFIAModelError
     try:
-        response_text = (await alafia_chat(ollama_messages, model=model, temperature=0.7)).strip()
+        # _detailed so the token count survives to the AIInteraction row below.
+        # The plain alafia_chat returns only text, which is why per-user usage
+        # read as zero for every interaction ever recorded.
+        completion = await alafia_chat_detailed(ollama_messages, model=model, temperature=0.7)
+        response_text = (completion.get("text") or "").strip()
     except ALAFIAModelError as exc:
         raise HTTPException(503, f"AI model unavailable: {exc}")
 
@@ -1821,8 +1825,9 @@ async def ai_chat(
             user_request=request.query,
             ai_response=response_text,
             context_used={"persona": persona_key, "module": request.context_module},
-            llm_provider="ollama",
-            llm_model=model,
+            llm_provider=completion.get("provider") or "ollama",
+            llm_model=completion.get("model") or model,
+            tokens_used=completion.get("tokens_used") or 0,
             response_time_ms=elapsed_ms,
         )
         db.add(interaction)

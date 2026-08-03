@@ -113,6 +113,22 @@ Non-obvious points that have already caused bugs:
   `SAVEPOINT`, because a failed flush poisons the session and the later commit
   500s even when the exception was caught.
 
+## 3b. Admin console
+
+Single-operator console for dew@6igma.com at **minister.alafia.com**. Full detail
+in **`ADMIN_CONSOLE.md`** (access model, API, deployment).
+
+- Authorization is `require_admin` (`app/core/admin_auth.py`) on every
+  `/api/v1/admin/*` route. **The hostname is routing, not security** — never add
+  an nginx rule and assume it protects anything.
+- `is_superuser` alone does NOT grant access; the gate is the `ADMIN_EMAILS`
+  allowlist plus an active account. A leftover test account in this database has
+  `is_superuser=true`.
+- Non-admins get 404 (not 403) so the console's existence is not confirmed.
+- `/auth/login` early-returns on the shared-identity branch before the local
+  password path. Anything that must happen on every login (like the `last_login`
+  stamp) has to be wired into BOTH branches.
+
 ## 4. Running things locally
 
 ```bash
@@ -136,7 +152,7 @@ cd WEB/frontend && npm run dev          # needs node on PATH: ~/.nvm/versions/no
 ## 5. Known drift to fix (as of 2026-08-02)
 
 - **Dev DB is behind prod.** Dev is stamped `bb002_add_subscriptions`; the single
-  head is `dd001_food_training_samples`. Symptom seen in practice:
+  head is `dd002_user_last_login`. Symptom seen in practice:
   `media_assets.storage_url` exists in the model but not in the dev DB, because
   migration `u001_media_s3_storage` was never applied there.
 - **The migration graph has exactly ONE head** — verified with `alembic heads`,
