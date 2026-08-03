@@ -25,6 +25,10 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://localhost/health || exit 1
+# 127.0.0.1, not localhost: inside the container `localhost` resolves to ::1
+# first, and nginx.conf only has `listen 80;` (IPv4). The site was serving fine
+# while the healthcheck reported "connection refused" and the container sat
+# permanently `unhealthy` — which also blocks any depends_on: service_healthy.
+HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1/health || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

@@ -116,14 +116,20 @@ end is the one you meant:
 
 ## Migration hygiene (the other drift source)
 
-Data parity does not fix schema drift if migrations themselves have forked. As
-of 2026-08-02 the alembic graph has **5 heads**, so `alembic upgrade head` is
-ambiguous and will refuse to run:
+Data parity does not fix schema drift if the migration state differs. The dev DB
+is stamped `bb002_add_subscriptions` while the single head is
+`dd001_food_training_samples`, so dev is missing later columns — e.g.
+`media_assets.storage_url`, added by `u001_media_s3_storage`, is in the model but
+not in the dev database.
 
-```
-9c5e7b8c3d2a   c6d7e8f9a0b1   cc003_med_dose_logtime   b2c3d4e5f6a8   a3b4c5d6e7f8
+Always ask alembic for the graph state; never grep for it:
+
+```bash
+alembic heads      # authoritative
+alembic current    # what this database is stamped at
 ```
 
-Resolve with `alembic merge -m "merge heads" <rev> <rev> ...` so there is exactly
-one head, then confirm prod and dev report the same `alembic_version`. Until
-then, treat `pull_prod.sh` as the only way to get a correct dev schema.
+A hand-rolled scan of `down_revision` once reported five heads where there is
+exactly one: many revisions use the annotated form
+`down_revision: Union[str, None] = '…'`, which a `^down_revision\s*=` regex does
+not match, so real parents look unreferenced.

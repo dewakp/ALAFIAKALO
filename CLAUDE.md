@@ -135,11 +135,16 @@ cd WEB/frontend && npm run dev          # needs node on PATH: ~/.nvm/versions/no
 
 ## 5. Known drift to fix (as of 2026-08-02)
 
-- **Dev DB is behind prod.** Dev is stamped `bb002_add_subscriptions`; prod was
-  stamped `cc002_reconcile_drift` and `cc003_med_dose_logtime` exists.
-- **The alembic graph has 5 heads** (`9c5e7b8c3d2a`, `c6d7e8f9a0b1`,
-  `cc003_med_dose_logtime`, `b2c3d4e5f6a8`, `a3b4c5d6e7f8`). `alembic upgrade
-  head` is ambiguous until these are merged with `alembic merge`.
+- **Dev DB is behind prod.** Dev is stamped `bb002_add_subscriptions`; the single
+  head is `dd001_food_training_samples`. Symptom seen in practice:
+  `media_assets.storage_url` exists in the model but not in the dev DB, because
+  migration `u001_media_s3_storage` was never applied there.
+- **The migration graph has exactly ONE head** — verified with `alembic heads`,
+  which is the only trustworthy way to ask. A hand-rolled scan reported five
+  because many revisions use the annotated form
+  `down_revision: Union[str, None] = '…'`, which a naive `^down_revision\s*=`
+  regex misses, making real parents look like heads. Never grep for this; run
+  `alembic heads`.
 - `WORKLOG.md` still describes the DB as `europe-west1` / `alafia-db`;
   `deploy/gcp/config.env` (authoritative) says `us-east4` / `alafia-db-va`.
 
