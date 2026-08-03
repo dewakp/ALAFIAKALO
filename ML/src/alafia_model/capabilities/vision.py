@@ -151,12 +151,44 @@ class VisionCapability(BaseCapability):
         if not result.success:
             return result
 
-        parsed = self._parse_json(result.data.get("text", ""))
+        raw = result.data.get("text", "")
+        parsed = self._parse_json(raw)
+
+        # Log what the model actually said. Without this a parse failure is
+        # undiagnosable — you get "unparseable output" and no way to tell whether
+        # the model refused, rambled, or answered a different question entirely.
+        if parsed is None or "items" not in parsed:
+            logger.warning(
+                "Vision model %s returned unusable output (%d chars): %r",
+                result.source, len(raw), raw[:500],
+            )
+
         if parsed is None:
             return CapabilityResult(
                 success=False, source=result.source,
-                error="Vision model returned unparseable output",
+                error=(
+                    f"The vision model ({result.source}) did not return JSON. "
+                    "Configure a vision model that follows an output schema "
+                    "(e.g. OLLAMA_VISION_MODEL=llava)."
+                ),
             )
+
+        # A model can return perfectly valid JSON for a completely different task.
+        # moondream, for instance, answers with bounding boxes
+        # ({"top": [...], "middle": [...]}) and never emits `items` at all.
+        # Treating that as "no food recognised" would be a lie — the model failed,
+        # the photo was fine — so fail loudly and name the cause instead.
+        if "items" not in parsed:
+            return CapabilityResult(
+                success=False, source=result.source,
+                error=(
+                    f"The vision model ({result.source}) returned JSON in an "
+                    f"unexpected shape (keys: {sorted(parsed)[:6]}). It is likely "
+                    "not a schema-following vision model — try "
+                    "OLLAMA_VISION_MODEL=llava."
+                ),
+            )
+
         items = parsed.get("items") if isinstance(parsed.get("items"), list) else []
         return CapabilityResult(
             success=True,
@@ -269,15 +301,75 @@ class VisionCapability(BaseCapability):
 
     @staticmethod
     def _parse_json(raw: str) -> dict | None:
+        """Pull a JSON object out of a vision model's reply.
+
+        Models wrap JSON in prose and ```json fences, and sometimes get cut off
+        mid-object by the token limit. Each strategy below is a failure actually
+        seen from a local vision model, so they are tried in order rather than
+        assuming a clean response.
+        """
         if not raw:
             return None
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if not match:
-            return None
-        try:
-            return json.loads(match.group(0))
-        except (json.JSONDecodeError, ValueError):
-            return None
+
+        candidates: list[str] = []
+
+        # 1. Whole reply is JSON (what `format: json` is supposed to give).
+        candidates.append(raw.strip())
+
+        # 2. Fenced block: ```json { ... } ```
+        fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+        if fence:
+            candidates.append(fence.group(1))
+
+        # 3. Greedy first-brace-to-last-brace (prose on both sides).
+        greedy = re.search(r"\{.*\}", raw, re.DOTALL)
+        if greedy:
+            candidates.append(greedy.group(0))
+
+        for candidate in candidates:
+            try:
+                obj = json.loads(candidate)
+            except (json.JSONDecodeError, ValueError):
+                continue
+            if isinstance(obj, dict):
+                return obj
+
+        # 4. Truncated by the token limit — an object that opens but never
+        #    closes. Close the open brackets and retry once so a long food list
+        #    degrades to a partial result instead of a hard failure.
+        start = raw.find("{")
+        if start != -1:
+            fragment = raw[start:]
+            depth, in_str, esc, out = 0, False, False, []
+            for ch in fragment:
+                out.append(ch)
+                if esc:
+                    esc = False
+                elif ch == "\\" and in_str:
+                    esc = True
+                elif ch == '"':
+                    in_str = not in_str
+                elif not in_str:
+                    if ch in "{[":
+                        depth += 1
+                    elif ch in "}]":
+                        depth -= 1
+            if depth > 0:
+                repaired = "".join(out).rstrip().rstrip(",")
+                # Close whatever is still open, innermost first.
+                opens = [c for c in repaired if c in "{["]
+                closes = {"{": "}", "[": "]"}
+                for ch in reversed(opens[-depth:]):
+                    repaired += closes[ch]
+                try:
+                    obj = json.loads(repaired)
+                    if isinstance(obj, dict):
+                        logger.info("Recovered truncated JSON from vision model")
+                        return obj
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
+        return None
 
     async def _lab_report_ocr(self, payload: dict) -> CapabilityResult:
         # TODO(alafia-model): Phase 6 — integrate Tesseract + LayoutLM

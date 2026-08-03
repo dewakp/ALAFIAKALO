@@ -1894,3 +1894,66 @@ are pre-existing (feature-bridge coverage 71.4% < 75%), confirmed failing on a c
 **Not run here:** the backend pytest suite — no environment on this machine has the backend deps
 (`sqlalchemy`, `pytest_asyncio`); `app/api/ai.py` was compile-checked and its request handling probed
 against a real FastAPI app with the identical signature.
+
+## Session 2026-08-03 — Food vision: storing, labelling, identification, quantity
+
+**The blocker was the pipeline, not the model.** Phase 5 (on-device food
+classifier) had no training data and no way to get any: `LabeledFoodImage` stored
+a 64-bit dHash and *discarded the image*, and `/ai/vision` recorded nothing — so
+every user correction was thrown away when the meal was saved. Measured state
+before this session: **1 labelled row across 77 users, 0 images**.
+
+**Now collecting.** New append-only `food_training_samples` (photo + prediction +
+correction; one row per analysis) alongside the existing upserted recall index.
+Photos land in `media_assets(category='food_training')`, retained **only** with
+`PrivacySettings.allow_collective_insights` (default false; absent row = no
+consent). Without consent the sample is still written — accuracy stays measurable
+— with `media_asset_id` NULL. Both paths verified against the live stack.
+
+**Corrections are the point.** `POST /ai/vision/feedback` turns every edit into a
+supervised pair, classified `accepted|item|quantity|both` so the corpus is
+queryable ("every photo where the model named the wrong food"). Verified row:
+`predicted Carrots => corrected Jollof rice, kind=item`.
+
+**Quantity estimation** (`portion_estimator.py`): prose → grams with the rule and
+confidence surfaced. `1 cup / 150 g`→150 g (stated), `1 cup` jollof→158 g
+(volume × 0.66 g/ml — rice is not water), `1 cup` spinach→72 g, `1 medium
+carrot`→61 g. A user-corrected serving weight overrides every heuristic. When it
+cannot tell it returns **nothing** rather than inventing a calorie count.
+
+**Recall before inference.** `/ai/vision` now checks the user's own labels first
+and returns their corrected foods *and* grams: **~25 s model call → 76 ms**.
+
+**Parity: web + iOS + Android** all ship editable food/grams rows, a
+"Confirm / correct" action and the recall banner. (First pass was web-only — a
+canon violation, corrected in the same session.)
+
+**Bugs found and fixed en route:**
+- `OLLAMA_VISION_MODEL: moondream` in compose — a *grounding* model that answers
+  the food schema with bounding boxes and never emits `items`; every photo
+  failed with "unparseable output". Switched to llava, verified against both.
+- The JSON parser was one regex; it now handles markdown fences, prose-wrapped
+  JSON and token-limit truncation (closes unterminated brackets). Valid JSON in
+  the *wrong shape* now fails loudly naming the model instead of reporting "no
+  food recognised" and blaming the photo.
+- `record_prediction` caught its exception but a failed flush poisons the
+  session, so the caller's commit 500'd — training-data logging would have taken
+  down the feature it supports. Writes now run in a `SAVEPOINT`.
+- Correction classification compared grams **positionally**: a reorder counted as
+  a quantity change and a dropped item became `both`, which would have
+  mislabelled most of the corpus. Now keyed by food name.
+- `greenlet` missing from `backend/requirements.txt` (SQLAlchemy async needs it;
+  not auto-pulled on 3.13) — every DB route 500s in the container without it.
+- `public/fonts/inter.css` was mode 600, so `COPY` produced an image where nginx
+  could not read it → 403, Inter never loaded **in production either**. Fixed the
+  file and added `chmod -R a+rX` to the frontend Dockerfile.
+
+**Verified:** 36 backend tests (26 portion, 10 corpus) + 18 ML vision tests; web
+build; iOS `xcodebuild`; Android `assembleDebug`. Full loop driven in a real
+browser against the compose stack: analyse → correct → 76 ms recall with the
+corrected values.
+
+**Still blocking Phase 5** (documented in `VISION_TRAINING.md`): corpus size
+starts near zero, no `train_food_vision.py`, no torch/tensorflow (only
+`coremltools`), free-text labels with no 200-class vocabulary, no West African
+dataset, base64-in-Postgres storage, and no Core ML/TFLite export path.

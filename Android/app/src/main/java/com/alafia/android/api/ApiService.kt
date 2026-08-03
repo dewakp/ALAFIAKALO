@@ -217,6 +217,14 @@ interface ApiService {
         @Part("task") task: RequestBody
     ): AIVisionResponse
 
+    /**
+     * Send the corrected foods back as ground truth. Every submission is a
+     * supervised example for the Phase 5 on-device classifier, and it teaches
+     * the per-user recall index so the next photo of this meal skips the model.
+     */
+    @POST("ai/vision/feedback")
+    suspend fun submitVisionFeedback(@Body request: VisionFeedbackRequest): VisionFeedbackResponse
+
     // Privacy Endpoints
     @GET("privacy/settings")
     suspend fun getPrivacySettings(): PrivacySettings

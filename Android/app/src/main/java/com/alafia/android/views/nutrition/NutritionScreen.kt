@@ -33,6 +33,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import com.alafia.android.schemas.NutritionLogRequest
 import com.alafia.android.schemas.VisionItem
+import com.alafia.android.schemas.VisionFeedbackItem
+import com.alafia.android.schemas.VisionFeedbackRequest
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -376,6 +378,12 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     var isAnalysingImages by remember { mutableStateOf(false) }
     var imageAnalysisResult by remember { mutableStateOf("") }
     var visionItems by remember { mutableStateOf<List<VisionItem>>(emptyList()) }
+    // Editable correction rows (name, grams, basis) — editing these teaches ALAFIA.
+    var visionEdits by remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
+    var visionSampleId by remember { mutableStateOf<Int?>(null) }
+    var visionWasRecall by remember { mutableStateOf(false) }
+    var teachState by remember { mutableStateOf("") }
+    var teaching by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -452,6 +460,10 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                             isAnalysingImages = true
                             imageAnalysisResult = ""
                             visionItems = emptyList()
+                            visionEdits = emptyList()
+                            visionSampleId = null
+                            visionWasRecall = false
+                            teachState = ""
                             scope.launch {
                                 try {
                                     val parts = selectedImages.mapIndexed { i, bytes ->
@@ -472,6 +484,15 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                         // Prefill; everything stays editable. fdcId is cleared
                                         // because a vision estimate is not a USDA-linked food.
                                         visionItems = items
+                                        visionSampleId = res.sampleId
+                                        visionWasRecall = res.isRecall
+                                        visionEdits = items.map {
+                                            Triple(
+                                                it.name.orEmpty(),
+                                                it.estimatedGrams?.let { g -> g.roundToInt().toString() }.orEmpty(),
+                                                it.gramsBasis.orEmpty()
+                                            )
+                                        }
                                         foodName = items.mapNotNull { it.name }.joinToString(", ")
                                         fdcId = null
                                         if (servingSize.isBlank()) {
@@ -497,22 +518,86 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                 Text("Analyse Image(s) with Alafia")
                             }
                         }
-                        if (visionItems.isNotEmpty()) {
+                        if (visionEdits.isNotEmpty()) {
                             Spacer(Modifier.height(6.dp))
-                            visionItems.forEach { item ->
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Text(item.name.orEmpty(), style = MaterialTheme.typography.bodySmall,
+                            if (visionWasRecall) {
+                                Text("✓ Recognised from a meal you labelled before — no model needed.",
+                                    style = MaterialTheme.typography.bodySmall, color = Color(0xFF16A34A))
+                            }
+                            // Editable rows: correcting these is what teaches ALAFIA.
+                            visionEdits.forEachIndexed { i, row ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    OutlinedTextField(
+                                        value = row.first,
+                                        onValueChange = { v ->
+                                            visionEdits = visionEdits.toMutableList()
+                                                .also { it[i] = row.copy(first = v) }
+                                        },
+                                        label = { Text("Food", fontSize = 10.sp) },
+                                        singleLine = true,
+                                        textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
                                         modifier = Modifier.weight(1f))
-                                    item.estimatedPortion?.let {
-                                        Text(it, style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                                    }
-                                    item.confidence?.let {
-                                        Spacer(Modifier.width(6.dp))
-                                        Text("${(it * 100).roundToInt()}%", style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                                    }
+                                    OutlinedTextField(
+                                        value = row.second,
+                                        onValueChange = { v ->
+                                            visionEdits = visionEdits.toMutableList()
+                                                .also { it[i] = row.copy(second = v.filter(Char::isDigit)) }
+                                        },
+                                        label = { Text("g", fontSize = 10.sp) },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                                        modifier = Modifier.width(78.dp))
+                                    IconButton(onClick = {
+                                        visionEdits = visionEdits.toMutableList().also { it.removeAt(i) }
+                                    }) { Icon(Icons.Filled.Close, contentDescription = "Remove", Modifier.size(14.dp)) }
                                 }
+                                if (row.third.isNotEmpty()) {
+                                    Text(row.third, style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = {
+                                    visionEdits = visionEdits + Triple("", "", "")
+                                }) { Text("+ Add food", fontSize = 12.sp) }
+                                OutlinedButton(
+                                    enabled = visionSampleId != null && !teaching,
+                                    onClick = {
+                                        val sid = visionSampleId ?: return@OutlinedButton
+                                        teaching = true; teachState = ""
+                                        scope.launch {
+                                            try {
+                                                val payload = visionEdits
+                                                    .filter { it.first.isNotBlank() }
+                                                    .map { VisionFeedbackItem(it.first.trim(), it.second.toDoubleOrNull()) }
+                                                val res = ApiClient.getApiService()
+                                                    .submitVisionFeedback(VisionFeedbackRequest(sid, payload))
+                                                teachState = when (res.correctionKind) {
+                                                    "accepted" -> "Confirmed — thanks, that matched."
+                                                    "item" -> "Saved — ALAFIA learned the right foods."
+                                                    "quantity" -> "Saved — ALAFIA learned the right amounts."
+                                                    "both" -> "Saved — ALAFIA learned the foods and amounts."
+                                                    else -> "Saved."
+                                                }
+                                                val names = payload.map { it.name }
+                                                if (names.isNotEmpty()) foodName = names.joinToString(", ")
+                                            } catch (_: Exception) {
+                                                teachState = "Could not save your correction."
+                                            }
+                                            teaching = false
+                                        }
+                                    }) {
+                                    if (teaching) {
+                                        CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 2.dp)
+                                    } else Text("Confirm / correct", fontSize = 12.sp)
+                                }
+                            }
+                            if (teachState.isNotEmpty()) {
+                                Text(teachState, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                             }
                             Text("Estimate only — check the food name and serving size before saving.",
                                 style = MaterialTheme.typography.bodySmall,

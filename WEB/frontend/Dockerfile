@@ -12,8 +12,13 @@ RUN npm run build
 # ── Stage 2: Production ──
 FROM nginx:1.27-alpine
 
-# Copy built assets
+# Copy built assets.
+# `chmod -R a+rX` because COPY preserves the source file mode: a checked-in asset
+# that is mode 600 on the developer's machine lands in the image unreadable by
+# the `nginx` worker user and is served as 403. That is how /fonts/inter.css
+# silently stopped loading — in production as well as locally.
 COPY --from=builder /app/dist /usr/share/nginx/html
+RUN chmod -R a+rX /usr/share/nginx/html
 
 # SPA fallback + API proxy config
 COPY nginx.conf /etc/nginx/conf.d/default.conf

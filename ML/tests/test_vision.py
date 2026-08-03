@@ -77,7 +77,9 @@ def test_food_photo_unparseable(monkeypatch):
     monkeypatch.setattr(VisionCapability, "_vision_chat", fake_vision_chat)
     result = _run(cap.infer({"task": "food_photo_nutrition", "image_bytes": b"img"}))
     assert not result.success
-    assert "unparseable" in (result.error or "")
+    # Message names the offending model and the fix, rather than just "unparseable".
+    assert "did not return JSON" in (result.error or "")
+    assert "llava" in (result.error or "")
 
 
 # ── Multi-image: several shots of ONE meal → ONE combined reading ──────
@@ -160,3 +162,62 @@ def test_single_image_omits_multi_image_rule(monkeypatch):
 def test_parse_json_extracts_embedded():
     obj = VisionCapability._parse_json('text before {"items": []} text after')
     assert obj == {"items": []}
+
+
+# ── Parser robustness + wrong-schema detection ────────────────────────
+# Every case below is a real reply shape observed from a local vision model.
+
+
+@pytest.mark.parametrize("label,raw,expect_parsed", [
+    ("clean", '{"items":[{"name":"rice"}],"notes":"ok"}', True),
+    ("markdown fenced", '```json\n{"items":[{"name":"rice"}]}\n```', True),
+    ("prose around json", 'Sure!\n{"items":[]}\nHope that helps.', True),
+    # Cut off by the token limit — previously a hard failure.
+    ("truncated", '{"items":[{"name":"jollof rice","estimated_portion":"1 cup"', True),
+    ("truncated nested", '{"items":[{"name":"beans"}],"estimated_nutrition":{"calories":300', True),
+    ("pure prose", 'I see a plate of rice and beans.', False),
+    ("empty", '', False),
+])
+def test_parse_json_handles_real_model_replies(label, raw, expect_parsed):
+    assert (VisionCapability._parse_json(raw) is not None) is expect_parsed, label
+
+
+def test_wrong_schema_fails_loudly_instead_of_reporting_no_food(monkeypatch):
+    """moondream answers the food prompt with bounding boxes: valid JSON, wrong
+    task, no `items` key. Reporting that as "no food recognised" blames the
+    photo for a model misconfiguration — it must fail and name the cause."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    cap = VisionCapability()
+
+    async def fake_vision_chat(self, images, system_prompt):
+        from alafia_model.capabilities.base import CapabilityResult
+        return CapabilityResult(
+            success=True,
+            data={"text": '{"top":[0.44,0.32],"middle":[0.36,0.34],"size":0.25}'},
+            source="vision-ollama:moondream",
+        )
+
+    monkeypatch.setattr(VisionCapability, "_vision_chat", fake_vision_chat)
+    result = _run(cap.infer({"task": "food_photo_nutrition", "image_bytes": b"img"}))
+
+    assert not result.success
+    assert "unexpected shape" in (result.error or "")
+    assert "llava" in (result.error or "")      # tells the operator the fix
+
+
+def test_truncated_json_recovers_partial_items(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    cap = VisionCapability()
+
+    async def fake_vision_chat(self, images, system_prompt):
+        from alafia_model.capabilities.base import CapabilityResult
+        return CapabilityResult(
+            success=True,
+            data={"text": '{"items":[{"name":"jollof rice","estimated_portion":"1 cup"'},
+            source="vision-ollama:llava",
+        )
+
+    monkeypatch.setattr(VisionCapability, "_vision_chat", fake_vision_chat)
+    result = _run(cap.infer({"task": "food_photo_nutrition", "image_bytes": b"img"}))
+    assert result.success
+    assert result.data["items"][0]["name"] == "jollof rice"

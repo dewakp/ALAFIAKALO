@@ -87,6 +87,32 @@ A feature is not done until web, iOS, and Android all have it. Same for the AI
 router: clients call `/ai/*` and never name a model provider — provider strategy
 is a backend concern so it can change without shipping a new app.
 
+**This rule is not satisfied by disclosing that you broke it.** Shipping web-only
+and then listing "iOS and Android not wired" under *what I did not do* is still
+shipping a parity gap. Narrowing agreed scope is the user's call, not yours: if
+mobile is genuinely blocked, say what blocks it and stop — otherwise finish it.
+Verify each platform by building it, not by reasoning that the change should
+compile.
+
+## 3a. Food vision / training corpus
+
+Meal photos, model predictions and user corrections are retained as the Phase 5
+training corpus. Full detail — data model, consent, the portion→grams rules, the
+API, and what still blocks Phase 5 — is in **`VISION_TRAINING.md`**.
+
+Non-obvious points that have already caused bugs:
+
+- Use `OLLAMA_VISION_MODEL=llava`. **Not moondream** — it is a grounding model
+  and answers the food schema with bounding boxes, so every photo fails.
+- Images are retained **only** with `PrivacySettings.allow_collective_insights`
+  (default false; absent row = no consent). Without it the sample is still
+  recorded, minus the photo.
+- `correction_kind` is compared **by food name, not by list position**. Positional
+  comparison marks a reorder as a quantity change and a dropped item as `both`.
+- Writing training data must never break the user's analysis: the writes run in a
+  `SAVEPOINT`, because a failed flush poisons the session and the later commit
+  500s even when the exception was caught.
+
 ## 4. Running things locally
 
 ```bash

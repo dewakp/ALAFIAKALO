@@ -54,7 +54,11 @@ services:
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: gpt-oss:20b
       # Vision (food photos) routes through a local vision model on the host.
-      OLLAMA_VISION_MODEL: moondream
+      # llava, NOT moondream. moondream is a grounding/detection model: asked for
+      # the food schema it answers with bounding boxes ({"top": [...], "size": ...})
+      # and never emits `items`, so every photo failed. llava follows the schema
+      # with one image and with several. Verified against both.
+      OLLAMA_VISION_MODEL: llava
       OLLAMA_TIMEOUT: "300"
       FIREBASE_SERVICE_ACCOUNT: /run/secrets/firebase_sa
       # One-directional incremental Firebase→PostgreSQL sync (delta-only)
