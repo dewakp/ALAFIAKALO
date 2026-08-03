@@ -89,7 +89,10 @@ export default function App() {
         >
           <Route index element={<PromptHub />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="admin" element={<Admin />} />
+          {/* Console lives at /minister so the dev path matches the production
+              hostname (minister.alafia.com). /admin redirects for old links. */}
+          <Route path="minister" element={<Admin />} />
+          <Route path="admin" element={<Navigate to="/minister" replace />} />
           <Route path="nutrition" element={<Nutrition />} />
           <Route path="fitness" element={<Fitness />} />
           <Route path="labs" element={<Labs />} />

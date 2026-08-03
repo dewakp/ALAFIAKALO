@@ -91,23 +91,27 @@ access**, so it is not done:
 2. **Add the DNS record** the command prints (a `CNAME` to `ghs.googlehosted.com`
    for a subdomain), at whoever hosts `alafia.com`.
 3. Wait for the Google-managed certificate to issue (minutes to ~an hour), then
-   check `https://minister.alafia.com` → redirects to `/admin`.
+   check `https://minister.alafia.com` → redirects to `/minister`.
 
 No backend change is needed: the console calls the same `/api/v1` the app does.
 
 ### Verifying locally without DNS
 
 ```bash
-curl -H "Host: minister.alafia.com" http://localhost:8080/          # 302 → /admin
-open http://localhost:8080/admin                                    # same console
+open http://localhost:8080/minister                                 # the console in dev
+curl -H "Host: minister.alafia.com" http://localhost:8080/          # 302 → /minister
 ```
+
+The dev path is **`/minister`**, matching the production hostname. `/admin`
+still resolves — it redirects to `/minister` so older links keep working. Note
+the **API** namespace stays `/api/v1/admin/*`; only the UI route was renamed.
 
 ## Verified
 
 - **Access control, live:** admin `200` on all four endpoints; non-admin `404`;
   anonymous `401`. Confirmed in the browser: the admin sees the console, the
   non-admin sees "Not authorised".
-- **Host routing:** `Host: minister.alafia.com` → `302 /admin`; `/admin` → `200`;
+- **Host routing:** `Host: minister.alafia.com` → `302 /minister`; `/minister` → `200`;
   `/api/` proxy → `200`. The default host is unaffected.
 - **`last_login`:** registered a probe account, logged in, watched NULL → a
   timestamp, and saw it surface top of the console sorted by last login. Probe

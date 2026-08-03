@@ -115,8 +115,9 @@ Non-obvious points that have already caused bugs:
 
 ## 3b. Admin console
 
-Single-operator console for dew@6igma.com at **minister.alafia.com**. Full detail
-in **`ADMIN_CONSOLE.md`** (access model, API, deployment).
+Single-operator console for dew@6igma.com at **minister.alafia.com**, and at
+**`/minister`** in dev (`/admin` redirects there; the API namespace stays
+`/api/v1/admin/*`). Full detail in **`ADMIN_CONSOLE.md`**.
 
 - Authorization is `require_admin` (`app/core/admin_auth.py`) on every
   `/api/v1/admin/*` route. **The hostname is routing, not security** — never add

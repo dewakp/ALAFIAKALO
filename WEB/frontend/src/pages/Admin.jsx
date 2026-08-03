@@ -2,7 +2,7 @@
  * ALAFIA admin console — served at minister.alafia.com.
  *
  * Single operator (dew@6igma.com). Authorization is enforced server-side by
- * `require_admin` on every /admin/* endpoint; this page hiding itself is not
+ * `require_admin` on every /api/v1/admin/* endpoint; this page hiding itself is not
  * the security boundary. A non-admin who loads it simply gets 404s from the API
  * and the "not authorised" panel below.
  */
