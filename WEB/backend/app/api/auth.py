@@ -427,8 +427,36 @@ async def confirm_password_reset(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Update BOTH credential stores.
+    #
+    # Login consults the shared identity service FIRST and only falls back to
+    # this local hash. Writing only the local hash therefore does not revoke the
+    # old password: the user's previous credential still authenticates via the
+    # IdP, so a "successful" reset leaves TWO working passwords. Verified
+    # empirically — after a local-only reset, both old and new returned 200.
     user.hashed_password = hash_password(body.new_password)
     await db.flush()
+
+    # Identity-backed accounts (every migrated user) must be propagated, and a
+    # failure here has to surface. Reporting success while the old password
+    # still works is the dangerous outcome.
+    from app.services.identity_client import migrate_password_into_identity
+
+    if settings.IDENTITY_ENABLED:
+        propagated = await migrate_password_into_identity(user.email, body.new_password)
+        if not propagated and user.identity_uid:
+            logger.error(
+                "Password reset for user %s could not be propagated to the identity "
+                "service; the previous password may still be valid.", user.id,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Could not complete the password reset. Your previous password "
+                    "may still be active — please try again."
+                ),
+            )
+
     return {"message": "Password has been reset successfully."}
 
 
