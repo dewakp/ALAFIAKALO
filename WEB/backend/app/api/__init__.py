@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
 from app.api.admin import router as admin_router
+from app.api.signup import router as signup_router
 from app.api.nutrition import router as nutrition_router
 from app.api.fitness import router as fitness_router
 from app.api.labs import router as labs_router
@@ -61,6 +62,8 @@ router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 router.include_router(users_router, prefix="/users", tags=["Users"])
 # Admin console (minister.alafia.com). Every route is gated by require_admin.
 router.include_router(admin_router, prefix="/admin", tags=["Admin"])
+# Two-step signup: verify email -> pay -> account created.
+router.include_router(signup_router, prefix="/auth/signup", tags=["Signup"])
 router.include_router(nutrition_router, prefix="/nutrition", tags=["Nutrition"])
 router.include_router(fitness_router, prefix="/fitness", tags=["Fitness"])
 router.include_router(labs_router, prefix="/labs", tags=["Labs / EHR"])

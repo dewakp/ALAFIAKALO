@@ -154,6 +154,14 @@ class Settings(BaseSettings):
     # would otherwise be 402'd by the paywall in production before reaching it.
     SUBSCRIPTION_EXEMPT_EMAILS: list[str] = ["developer@hntsolutions.com", "dew@6igma.com"]
 
+    # ── Signup ───────────────────────────────────────────────────────────
+    # Direct registration created a `users` row on request, which is how 55 of
+    # 77 accounts in this database became `*@example.com` automation leftovers.
+    # With this on, /auth/register is closed and the only way to an account is
+    # /auth/signup/* — email verified AND subscription paid, in that order.
+    # Set false only to re-open the legacy path deliberately.
+    TWO_STEP_SIGNUP_REQUIRED: bool = True
+
     # ── Admin console ────────────────────────────────────────────────────
     # Who may reach /api/v1/admin/*. Deliberately an explicit allowlist rather
     # than the `is_superuser` flag alone: that flag is currently set on a leftover

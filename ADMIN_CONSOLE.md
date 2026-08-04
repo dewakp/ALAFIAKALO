@@ -131,3 +131,77 @@ ADMIN_EMAILS='["dew@6igma.com","someone.else@6igma.com"]'
 The account must also exist and be active. `dew@6igma.com` is additionally in
 `SUBSCRIPTION_EXEMPT_EMAILS`, or the paywall would 402 the console in production
 before `require_admin` ever ran.
+
+---
+
+# Signup: verify email → pay → account created
+
+Direct registration created a `users` row for one unauthenticated POST. That is
+how **55 of 77 accounts** in this database became `*@example.com` / `*@x.com`
+automation leftovers. `/auth/register` is now **410 Gone**
+(`TWO_STEP_SIGNUP_REQUIRED`, default on) and the only route to an account is:
+
+```
+POST /auth/signup/start          → pending row + verification token. NO user row.
+POST /auth/signup/verify-email   → gate 1. Single-use token.
+POST /auth/signup/checkout       → refuses until verified.
+POST /auth/signup/complete       → gate 2. Records payment, THEN creates the account.
+GET  /auth/signup/status?email=  → where a signup has got to.
+POST /auth/signup/resend         → fresh token, capped at 10 attempts.
+```
+
+**The invariant:** `materialise()` refuses unless *both* gates pass, so no code
+path produces a user for an unverified or unpaid signup. A robot that never
+reads mail and never pays leaves one row in `pending_registrations` that expires
+after 7 days.
+
+Only the **SHA-256** of a verification token is stored — a dump of that table
+does not let anyone verify an address they do not control. Signup responses are
+identical whether or not the address already has an account, so the endpoint
+cannot be used to enumerate users.
+
+Verified end-to-end against the running stack: `/auth/register` → 410 with a
+fully valid body; `start` → 202 with **0 users rows**; `complete` before
+verification → 400; `checkout` before verification → 403; token replay → 400;
+after verify + pay → account created and the pending row deleted.
+
+## Not done: email delivery
+
+SMTP is deferred in this project, so **nothing is actually sent**. In `DEBUG` the
+token is returned inline (same convention as password reset); in production it is
+not returned and no mail goes out — meaning **production signup cannot complete
+until email sending ships**. That is deliberate: refusing to finish is better
+than issuing accounts to unverified addresses. It is the next thing to build.
+
+Provider checkout for a not-yet-existing user is also unwired — `/signup/checkout`
+returns 503. The subscription rails already 503 without live provider keys, so
+wiring a pre-account checkout that cannot be tested would be inventing a flow.
+`/signup/complete` accepts a payment reference so the gate is exercisable today.
+
+# Robot account cleanup
+
+`scripts/db/deactivate_test_accounts.sql` — **deactivates, does not delete**.
+
+65 of the 101 foreign keys pointing at `users` are `NO ACTION`, so a delete would
+fail rather than cascade, and forcing it would mean tearing rows out of ~100
+clinical tables. Deactivating preserves referential integrity and the audit trail
+while removing the accounts from every active count.
+
+It records each original email in `deactivated_accounts`, sets `is_active=false`,
+scrambles the address to `deactivated.<id>@invalid` (RFC 2606 — can never
+resolve), and disables the matching `identity.users` rows. Reverse with
+`deactivate_test_accounts_rollback.sql`.
+
+```bash
+# dry run — prints the target list and rolls back
+psql … -v dry_run=1 -f scripts/db/deactivate_test_accounts.sql
+psql … -v dry_run=0 -f scripts/db/deactivate_test_accounts.sql
+```
+
+Applied to **dev**: 77 → **22 active users**, 55 deactivated (recoverable), plus
+**56 identity-only robot accounts** that had no ALAFIA user row at all. Those
+mattered: the login path provisions an ALAFIA user on first successful identity
+auth, so leaving them active meant 56 robots could still materialise real
+accounts.
+
+**Prod is untouched** — run the same script against Cloud SQL when you are ready.

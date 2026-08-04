@@ -78,6 +78,20 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
     SID → zero duplication). Falls back to a local-only SID if identity is
     unavailable or the identity username collides.
     """
+    # Direct registration is closed by default. It handed out a `users` row for
+    # one unauthenticated POST, which is how 55 of the 77 accounts in this
+    # database became automation leftovers. Leaving it open would make the
+    # two-step flow decorative — a robot would simply keep using this door.
+    if settings.TWO_STEP_SIGNUP_REQUIRED:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=(
+                "Direct registration is closed. Start at /auth/signup/start — "
+                "your email is verified and your subscription taken before the "
+                "account is created."
+            ),
+        )
+
     from app.services.identity_client import identity_register
 
     result = await db.execute(select(User).where(User.email == user_in.email))
