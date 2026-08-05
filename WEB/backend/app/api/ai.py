@@ -17,13 +17,18 @@ Architecture:
 """
 
 import asyncio
+import base64
 import json
+import logging
 import math
 import os
 import time
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
+from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 from app.services.ollama_auth import ollama_auth_headers
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -37,6 +42,7 @@ from app.core.security import get_current_user
 from app.services.hebcs_engine import compute_hebcs
 from app.models.ai_memory import AIInteraction, CollectiveInsight, GlobalKnowledge, HealthEmbedding, LearningEvent, UserMemory
 from app.models.chronic_conditions import ChronicCondition
+from app.models.media import MediaAsset
 from app.models.fitness import FitnessLog
 from app.models.labs import LabResult
 from app.models.lifestyle import LifestyleEntry
@@ -206,13 +212,18 @@ async def voice_to_clinical(
 
 
 # ── Vision → Food / Lab understanding (ALAFIAModel Vision Phase 5) ─────
+MAX_VISION_IMAGES = 3  # matches the "Max 3 images" cap the clients enforce
+
+
 @router.post("/vision")
 async def vision_understand(
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(None),
+    files: list[UploadFile] | None = File(None),
     task: str = Form("food_photo_nutrition"),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Analyze a photo and return structured data (food nutrition estimate, etc).
+    """Analyze one or more photos and return structured data (nutrition estimate, etc).
 
     Routes through the ALAFIAModel VISION capability. Until the on-device food
     classifier ships (Phase 5), this uses a vision-capable LLM when configured.
@@ -220,11 +231,32 @@ async def vision_understand(
     to the manual Capture flow.
 
     Form fields:
-      file: the image (jpeg/png/webp ...)
-      task: "food_photo_nutrition" | "lab_report_ocr"
+      file:  a single image (jpeg/png/webp ...) — the original single-shot field
+      files: up to 3 images of the SAME subject (e.g. a plate from two angles).
+             They are analyzed in one model call and return ONE combined result,
+             so a dish photographed twice is not counted twice.
+      task:  "food_photo_nutrition" | "lab_report_ocr"
+
+    `file` and `files` may both be sent; the images are merged and capped at 3.
     """
-    image = await file.read()
-    if not image:
+    uploads = [u for u in ([file] if file is not None else []) + list(files or []) if u is not None]
+    if not uploads:
+        raise HTTPException(status_code=400, detail="No image file provided")
+    if len(uploads) > MAX_VISION_IMAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"At most {MAX_VISION_IMAGES} images per request (got {len(uploads)})",
+        )
+
+    images = []
+    for upload in uploads:
+        raw = await upload.read()
+        if raw:
+            images.append({
+                "image_bytes": raw,
+                "content_type": upload.content_type or "image/jpeg",
+            })
+    if not images:
         raise HTTPException(status_code=400, detail="Empty image file")
 
     valid_tasks = ("food_photo_nutrition", "lab_report_ocr")
@@ -235,16 +267,181 @@ async def vision_understand(
     if settings.OPENAI_API_KEY:
         os.environ.setdefault("OPENAI_API_KEY", settings.OPENAI_API_KEY)
 
-    from app.services.alafia_model_service import alafia_infer
-    result = await alafia_infer("vision", {
-        "image_bytes": image,
-        "content_type": file.content_type or "image/jpeg",
-        "task": task,
-    })
-    if not result.get("success"):
-        raise HTTPException(status_code=503, detail=result.get("error") or "Vision processing unavailable")
+    from app.services import food_vision_store, image_learning
 
-    return {"task": task, "source": result.get("source"), **(result.get("data") or {})}
+    pairs = [(i["image_bytes"], i["content_type"]) for i in images]
+    first_bytes = images[0]["image_bytes"]
+    phash = str(image_learning.dhash(first_bytes))
+
+    # ── 1. Recall before inference ───────────────────────────────────────
+    # If this user already labelled this meal, their own ground truth beats
+    # anything the model would say — and costs nothing.
+    source = None
+    items: list[dict] = []
+    nutrition: dict = {}
+    notes = ""
+
+    if task == "food_photo_nutrition":
+        learned = await image_learning.find_learned_match(db, current_user.id, first_bytes)
+        if learned is not None:
+            # Prefer the corrected sample for this exact photo: it carries the
+            # grams the user typed. The text label only has names, so recalling
+            # from it alone would throw the quantities away.
+            from app.models.food_training_sample import FoodTrainingSample
+            prior = (await db.execute(
+                select(FoodTrainingSample)
+                .where(
+                    FoodTrainingSample.user_id == current_user.id,
+                    FoodTrainingSample.phash == phash,
+                    FoodTrainingSample.corrected_items.isnot(None),
+                )
+                .order_by(FoodTrainingSample.corrected_at.desc())
+                .limit(1)
+            )).scalar_one_or_none()
+
+            if prior and prior.corrected_items:
+                items = [dict(i) for i in prior.corrected_items]
+            else:
+                items = [{"name": part.strip(), "estimated_portion": None}
+                         for part in (learned.labels or "").split(";") if part.strip()]
+            for item in items:
+                item.setdefault("confidence", 0.99)
+            source = "learned-recall"
+            notes = "Recognised from a meal you labelled before."
+
+    # ── 2. Otherwise ask the vision model ────────────────────────────────
+    if not items:
+        from app.services.alafia_model_service import alafia_infer
+        result = await alafia_infer("vision", {
+            "images": images,
+            # Also populate the single-image fields: the capability falls back to
+            # them, and other payload consumers still read image_bytes/content_type.
+            "image_bytes": first_bytes,
+            "content_type": images[0]["content_type"],
+            "task": task,
+        })
+        if not result.get("success"):
+            raise HTTPException(status_code=503, detail=result.get("error") or "Vision processing unavailable")
+        data = result.get("data") or {}
+        source = result.get("source")
+        items = list(data.get("items") or [])
+        nutrition = data.get("estimated_nutrition") or {}
+        notes = data.get("notes") or ""
+
+        if task != "food_photo_nutrition":
+            return {"task": task, "source": source, **data}
+
+    # ── 3. Quantity: turn the portion prose into grams ───────────────────
+    # "1 medium sized slice" is unusable downstream; nutrients are per 100 g.
+    # A serving weight the user has already corrected outranks the heuristics.
+    from app.services.portion_estimator import estimate_grams
+    for item in items:
+        if item.get("estimated_grams") is not None:
+            # Recalled from the user's own correction — already ground truth.
+            item.setdefault("grams_confidence", 1.0)
+            item.setdefault("grams_basis", "your correction for this photo")
+            continue
+        learned_g = await _learned_serving_weight(db, item.get("name") or "")
+        est = estimate_grams(item.get("estimated_portion"), item.get("name") or "", learned_g)
+        item.update(est.as_dict())
+
+    # ── 4. Record the sample so Phase 5 has a corpus to train on ─────────
+    sample = await food_vision_store.record_prediction(
+        db, current_user.id, pairs,
+        source_model=source, items=items, nutrition=nutrition,
+        notes=notes or None, phash=phash,
+    )
+    await db.commit()
+
+    return {
+        "task": task,
+        "source": source,
+        "items": items,
+        "estimated_nutrition": nutrition,
+        "notes": notes,
+        "image_count": len(images),
+        # Echoed so the client can post the user's correction back against it.
+        "sample_id": sample.id if sample else None,
+    }
+
+
+async def _learned_serving_weight(db: AsyncSession, food_name: str) -> float | None:
+    """Grams-per-serving this user base has already corrected for this food."""
+    if not food_name:
+        return None
+    try:
+        from app.models.learned_nutrient import LearnedFoodNutrient
+        from app.services.learned_nutrient_service import _normalize
+        row = (await db.execute(
+            select(LearnedFoodNutrient).where(
+                LearnedFoodNutrient.food_name_normalized == _normalize(food_name))
+        )).scalar_one_or_none()
+        return float(row.serving_weight_g) if row and row.serving_weight_g else None
+    except Exception:
+        return None
+
+
+class VisionFeedbackItem(BaseModel):
+    name: str
+    estimated_portion: str | None = None
+    estimated_grams: float | None = None
+
+
+class VisionFeedbackRequest(BaseModel):
+    sample_id: int
+    items: list[VisionFeedbackItem]
+    notes: str | None = None
+
+
+@router.post("/vision/feedback")
+async def vision_feedback(
+    body: VisionFeedbackRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record what the meal actually was — the ground-truth half of the pair.
+
+    Every correction is a supervised example for the Phase 5 classifier: the
+    model said X, the human said Y. It also updates the user's own recall label,
+    so the next photo of this meal is recognised without a model call.
+    """
+    from app.services import food_vision_store, image_learning
+
+    sample = await food_vision_store.record_correction(
+        db, current_user.id, body.sample_id,
+        [i.model_dump() for i in body.items], notes=body.notes,
+    )
+    if sample is None:
+        raise HTTPException(status_code=404, detail="Unknown sample for this user")
+
+    # Feed the correction into per-user recall so the next shot short-circuits.
+    labels = "; ".join(i.name.strip() for i in body.items if i.name.strip())[:500]
+    if labels and sample.media_asset_id:
+        asset = await db.get(MediaAsset, sample.media_asset_id)
+        if asset and asset.image_base64:
+            try:
+                await image_learning.save_label(
+                    db, current_user.id, base64.b64decode(asset.image_base64), labels)
+            except Exception:
+                logger.warning("Could not update recall label from correction", exc_info=True)
+
+    await db.commit()
+    return {
+        "ok": True,
+        "sample_id": sample.id,
+        "correction_kind": sample.correction_kind,
+        "image_retained": sample.image_retained,
+    }
+
+
+@router.get("/vision/corpus-stats")
+async def vision_corpus_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Phase 5 readiness: how much labelled training data actually exists."""
+    from app.services import food_vision_store
+    return await food_vision_store.corpus_stats(db)
 
 
 # ── Persona definitions ───────────────────────────────────────────────
@@ -1606,9 +1803,13 @@ async def ai_chat(
 
     t0 = time.monotonic()
     # Routed through the ALAFIAModel facade (Ollama primary → OpenAI fallback).
-    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
+    from app.services.alafia_model_service import alafia_chat_detailed, ALAFIAModelError
     try:
-        response_text = (await alafia_chat(ollama_messages, model=model, temperature=0.7)).strip()
+        # _detailed so the token count survives to the AIInteraction row below.
+        # The plain alafia_chat returns only text, which is why per-user usage
+        # read as zero for every interaction ever recorded.
+        completion = await alafia_chat_detailed(ollama_messages, model=model, temperature=0.7)
+        response_text = (completion.get("text") or "").strip()
     except ALAFIAModelError as exc:
         raise HTTPException(503, f"AI model unavailable: {exc}")
 
@@ -1624,8 +1825,9 @@ async def ai_chat(
             user_request=request.query,
             ai_response=response_text,
             context_used={"persona": persona_key, "module": request.context_module},
-            llm_provider="ollama",
-            llm_model=model,
+            llm_provider=completion.get("provider") or "ollama",
+            llm_model=completion.get("model") or model,
+            tokens_used=completion.get("tokens_used") or 0,
             response_time_ms=elapsed_ms,
         )
         db.add(interaction)

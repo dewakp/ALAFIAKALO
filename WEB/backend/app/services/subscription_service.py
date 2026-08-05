@@ -760,3 +760,81 @@ async def cancel_subscription(db: AsyncSession, user: User, at_period_end: bool 
         if not at_period_end:
             sub.current_period_end = datetime.now(timezone.utc)
     return sub
+
+
+# ── Pre-account checkout (two-step signup) ──────────────────────────────
+# Signup takes payment BEFORE a user exists, so these cannot use user.id.
+# The pending signup's email is the correlation key, carried through Stripe as
+# client_reference_id and re-checked on the way back.
+
+_SIGNUP_REF_PREFIX = "signup:"
+
+
+def signup_client_reference(email: str) -> str:
+    return f"{_SIGNUP_REF_PREFIX}{email.strip().lower()}"
+
+
+async def signup_stripe_checkout(email: str, interval: str = "month") -> dict:
+    """Create a Checkout session for a signup that has no user row yet."""
+    _require_configured(settings.STRIPE_SECRET_KEY, "Stripe")
+    plan = plan_for_interval(interval)
+    price_id = settings.STRIPE_PRICE_ID_ANNUAL if plan == PLAN_PLUS_ANNUAL else settings.STRIPE_PRICE_ID
+    email = email.strip().lower()
+
+    success_url = (f"{settings.PUBLIC_WEB_URL}/signup/complete"
+                   f"?provider=stripe&session_id={{CHECKOUT_SESSION_ID}}")
+    cancel_url = f"{settings.PUBLIC_WEB_URL}/signup?status=cancel"
+
+    if _test_mode(settings.STRIPE_SECRET_KEY):
+        # Unconfigured AND DEBUG only — never a path in production.
+        return {"checkout_url": f"{success_url.replace('{CHECKOUT_SESSION_ID}', 'cs_test_signup')}",
+                "reference_id": "cs_test_signup", "test_mode": True}
+
+    session = await _stripe_request("POST", "/v1/checkout/sessions", {
+        "mode": "subscription",
+        "line_items[0][price]": price_id,
+        "line_items[0][quantity]": "1",
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "client_reference_id": signup_client_reference(email),
+        "customer_email": email,
+    })
+    return {"checkout_url": session.get("url"),
+            "reference_id": session.get("id"), "test_mode": False}
+
+
+async def signup_stripe_verify(email: str, session_id: str) -> dict:
+    """Confirm a signup's Checkout session with Stripe. Raises unless genuinely paid.
+
+    This is the security boundary for account creation. Without it, `complete`
+    would trust a client-supplied reference string — anyone could post an
+    arbitrary id and be handed an account. Two things are checked against
+    Stripe's own record:
+
+      1. the session is actually paid
+      2. its client_reference_id matches THIS signup, so a real session
+         belonging to somebody else cannot be replayed to create an account
+    """
+    email = email.strip().lower()
+
+    if _test_mode(settings.STRIPE_SECRET_KEY):
+        return {"paid": True, "test_mode": True, "customer_id": None,
+                "subscription_id": f"sub_test_signup", "session_id": session_id}
+
+    _require_configured(settings.STRIPE_SECRET_KEY, "Stripe")
+    session = await _stripe_request("GET", f"/v1/checkout/sessions/{session_id}")
+
+    expected = signup_client_reference(email)
+    if str(session.get("client_reference_id") or "") != expected:
+        logger.warning("Signup checkout session %s does not belong to %s", session_id, email)
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
+                            detail="Checkout session does not belong to this signup")
+
+    if session.get("payment_status") not in ("paid", "no_payment_required"):
+        raise HTTPException(status_code=http_status.HTTP_402_PAYMENT_REQUIRED,
+                            detail="Checkout not completed")
+
+    return {"paid": True, "test_mode": False,
+            "customer_id": session.get("customer"),
+            "subscription_id": session.get("subscription"),
+            "session_id": session_id}

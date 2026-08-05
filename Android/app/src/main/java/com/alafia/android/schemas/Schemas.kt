@@ -298,14 +298,52 @@ data class AIRouteResponse(
     @SerializedName("assistant_message") val assistantMessage: String
 )
 
-data class VisionItem(val name: String? = null)
+data class VisionItem(
+    val name: String? = null,
+    @SerializedName("estimated_portion") val estimatedPortion: String? = null,
+    val confidence: Double? = null,
+    // Grams derived from the portion phrase, with the rule that produced it.
+    // Nutrients are per 100 g, so the prose alone is unusable downstream.
+    @SerializedName("estimated_grams") val estimatedGrams: Double? = null,
+    @SerializedName("grams_basis") val gramsBasis: String? = null
+)
+
+/** One corrected food sent back as ground truth for the Phase 5 classifier. */
+data class VisionFeedbackItem(
+    val name: String,
+    @SerializedName("estimated_grams") val estimatedGrams: Double? = null
+)
+
+data class VisionFeedbackRequest(
+    @SerializedName("sample_id") val sampleId: Int,
+    val items: List<VisionFeedbackItem>
+)
+
+data class VisionFeedbackResponse(
+    val ok: Boolean? = null,
+    @SerializedName("sample_id") val sampleId: Int? = null,
+    @SerializedName("correction_kind") val correctionKind: String? = null
+)
+
+data class VisionNutrition(
+    val calories: Float? = null,
+    @SerializedName("protein_g") val proteinG: Float? = null,
+    @SerializedName("carbs_g") val carbsG: Float? = null,
+    @SerializedName("fat_g") val fatG: Float? = null
+)
 
 data class AIVisionResponse(
     val task: String? = null,
     val source: String? = null,
     val items: List<VisionItem>? = null,
-    val notes: String? = null
-)
+    @SerializedName("estimated_nutrition") val estimatedNutrition: VisionNutrition? = null,
+    val notes: String? = null,
+    // Identifies this analysis so a correction can be posted back against it.
+    @SerializedName("sample_id") val sampleId: Int? = null
+) {
+    /** Answered from the user's own earlier label — instant and already correct. */
+    val isRecall: Boolean get() = source == "learned-recall"
+}
 
 // Mental Health Schemas
 data class AssessmentRequest(

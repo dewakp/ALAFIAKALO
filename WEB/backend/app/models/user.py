@@ -95,6 +95,12 @@ class User(Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Last successful authentication, from any path (password, Firebase, SSO).
+    # NULL means the account has never signed in since this column shipped —
+    # which is different from "never signed in", and the admin console says so.
+    last_login: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

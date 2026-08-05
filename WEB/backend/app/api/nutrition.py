@@ -1,6 +1,9 @@
 """Nutrition CRUD endpoints with USDA FoodData Central + AI nutrient estimation."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import asyncio
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import date
@@ -37,13 +40,19 @@ from app.schemas.nutrition import (
     NutrientGoalProgress,
 )
 from app.services.nutrient_estimator import estimate_nutrients, estimate_meal_nutrients
+from app.services.nutrient_enrichment import enrich_log
 from app.services.nutrient_goals_service import compute_goals
 from app.services.learned_nutrient_service import (
     record_correction, per_100g_from_total, get_learned,
 )
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Ceiling for in-save nutrient estimation. The web client gives up at 30s, so the
+# server must finish well inside that and still have room to commit.
+NUTRIENT_ESTIMATE_BUDGET_SECONDS = 15.0
 
 
 # ── Nutrition learning model — user corrections ───────────────────────────────
@@ -453,6 +462,7 @@ async def list_nutrition_logs(
 @router.post("/", response_model=NutritionLogResponse, status_code=201)
 async def create_nutrition_log(
     log_in: NutritionLogCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -481,32 +491,30 @@ async def create_nutrition_log(
         except Exception:
             pass  # Non-critical — just skip auto-population
 
-    # Auto-estimate if no fdc_id AND no calories — use Cache → USDA → AI pipeline
-    elif not data.get("fdc_id") and data.get("calories") is None and data.get("food_name"):
-        try:
-            est = await estimate_nutrients(db, data["food_name"], data.get("serving_size"))
-            if est.get("nutrients"):
-                nutrients = est["nutrients"]
-                for key in DB_COLUMN_KEYS:
-                    if data.get(key) is None and key in nutrients:
-                        data[key] = nutrients[key]
-                # Fill extended nutrients
-                extended = data.get("extended_nutrients") or {}
-                for key, val in nutrients.items():
-                    if key not in DB_COLUMN_KEYS and key not in extended:
-                        extended[key] = val
-                if extended:
-                    data["extended_nutrients"] = extended
-                # Store fdc_id if from USDA
-                if est.get("fdc_id") and not data.get("fdc_id"):
-                    data["fdc_id"] = est["fdc_id"]
-        except Exception:
-            pass  # Non-critical — log without nutrients
+    # Nutrients are NOT looked up here.
+    #
+    # The lookup costs seconds (USDA per item, branded, then an LLM fallback).
+    # Doing it inline meant the user waited for all of it, and a 10-item meal
+    # exceeded the web client's 30s timeout — and because the request had not
+    # committed, the meal they had typed was LOST.
+    #
+    # The log is saved and returned immediately instead, and enrichment runs in
+    # the background. `nutrient_status` tells the client whether values are still
+    # coming, so it can poll or show a placeholder rather than a wrong zero.
+    needs_enrichment = bool(
+        not data.get("fdc_id") and data.get("calories") is None and data.get("food_name")
+    )
+    data["nutrient_status"] = "pending" if needs_enrichment else "skipped"
 
     log = NutritionLog(**data, user_id=current_user.id)
     db.add(log)
     await db.flush()
     await db.refresh(log)
+
+    if needs_enrichment:
+        # Queued AFTER the response is sent, with its own DB session — the
+        # request's session is closed by then.
+        background_tasks.add_task(enrich_log, log.id)
 
     # Notification: check key nutrients against common clinical limits
     _LIMITS = {

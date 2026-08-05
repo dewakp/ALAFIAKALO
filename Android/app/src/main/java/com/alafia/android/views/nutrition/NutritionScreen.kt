@@ -1,5 +1,7 @@
 package com.alafia.android.views.nutrition
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import kotlin.math.roundToInt
@@ -29,6 +32,12 @@ import androidx.compose.ui.window.Dialog
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import com.alafia.android.schemas.NutritionLogRequest
+import com.alafia.android.schemas.VisionItem
+import com.alafia.android.schemas.VisionFeedbackItem
+import com.alafia.android.schemas.VisionFeedbackRequest
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -222,9 +231,21 @@ private fun NutritionLogCard(
                         }
                     }
                 }
-                log.calories?.let {
-                    Text("${it.toInt()} kcal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF22C55E))
+                if (log.calories != null) {
+                    Text("${log.calories.toInt()} kcal", style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                } else if (log.nutrientStatus == "pending") {
+                    // Nutrients are computed after the meal is saved; say so
+                    // rather than showing nothing, which reads as zero calories.
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        CircularProgressIndicator(Modifier.size(10.dp), strokeWidth = 2.dp)
+                        Text("estimating…", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                } else if (log.nutrientStatus == "failed") {
+                    Text("unavailable", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error)
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp),
@@ -364,14 +385,36 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     var searchResults by remember { mutableStateOf<List<USDAFoodResult>>(emptyList()) }
     var searching by remember { mutableStateOf(false) }
 
-    // Image analysis (stub)
-    var imagePickerLaunched by remember { mutableStateOf(false) }
-    var selectedImageCount by remember { mutableIntStateOf(0) }
+    // Image analysis — ALAFIAModel VISION capability via /ai/vision
+    var selectedImages by remember { mutableStateOf<List<ByteArray>>(emptyList()) }
     var isAnalysingImages by remember { mutableStateOf(false) }
     var imageAnalysisResult by remember { mutableStateOf("") }
+    var visionItems by remember { mutableStateOf<List<VisionItem>>(emptyList()) }
+    // Editable correction rows (name, grams, basis) — editing these teaches ALAFIA.
+    var visionEdits by remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
+    var visionSampleId by remember { mutableStateOf<Int?>(null) }
+    var visionWasRecall by remember { mutableStateOf(false) }
+    var teachState by remember { mutableStateOf("") }
+    var teaching by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var searchJob by remember { mutableStateOf<Job?>(null) }
+
+    // Max 3 images, matching the backend cap on /ai/vision.
+    val imagePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNullOrEmpty()) return@rememberLauncherForActivityResult
+        val room = 3 - selectedImages.size
+        if (room <= 0) return@rememberLauncherForActivityResult
+        val loaded = uris.take(room).mapNotNull { uri ->
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }.getOrNull()?.takeIf { it.isNotEmpty() }
+        }
+        selectedImages = selectedImages + loaded
+    }
 
     val mealTypes = listOf("breakfast", "lunch", "dinner", "snack")
 
@@ -396,35 +439,87 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                             Text("Identify Food from Image (Optional – Max 3)",
                                 style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         }
-                        Text("Upload image(s) for Alafia analysis.",
+                        Text("Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { selectedImageCount = minOf(selectedImageCount + 1, 3) },
-                                modifier = Modifier.weight(1f), enabled = selectedImageCount < 3) {
+                            OutlinedButton(onClick = { imagePicker.launch("image/*") },
+                                modifier = Modifier.weight(1f), enabled = selectedImages.size < 3) {
                                 Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("Choose Files", fontSize = 12.sp)
                             }
+                            if (selectedImages.isNotEmpty()) {
+                                OutlinedButton(onClick = {
+                                    selectedImages = emptyList()
+                                    visionItems = emptyList()
+                                    imageAnalysisResult = ""
+                                }) {
+                                    Icon(Icons.Filled.Close, contentDescription = "Clear images",
+                                        modifier = Modifier.size(14.dp))
+                                }
+                            }
                         }
-                        if (selectedImageCount > 0) {
+                        if (selectedImages.isNotEmpty()) {
                             Spacer(Modifier.height(4.dp))
-                            Text("$selectedImageCount image(s) selected",
+                            Text("${selectedImages.size} image(s) selected",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                         }
                         Spacer(Modifier.height(8.dp))
                         Button(onClick = {
-                            // TODO(alafia-model): replace with ALAFIAModel.infer(.vision, images) — Phase 5
                             isAnalysingImages = true
+                            imageAnalysisResult = ""
+                            visionItems = emptyList()
+                            visionEdits = emptyList()
+                            visionSampleId = null
+                            visionWasRecall = false
+                            teachState = ""
                             scope.launch {
-                                delay(800)
+                                try {
+                                    val parts = selectedImages.mapIndexed { i, bytes ->
+                                        MultipartBody.Part.createFormData(
+                                            "files", "image$i.jpg",
+                                            bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                                        )
+                                    }
+                                    val res = ApiClient.getApiService().routeVisionMulti(
+                                        parts,
+                                        "food_photo_nutrition".toRequestBody("text/plain".toMediaTypeOrNull())
+                                    )
+                                    val items = res.items.orEmpty().filter { !it.name.isNullOrBlank() }
+                                    if (items.isEmpty()) {
+                                        imageAnalysisResult = res.notes?.takeIf { it.isNotBlank() }
+                                            ?: "No food recognised in that photo — enter the meal below."
+                                    } else {
+                                        // Prefill; everything stays editable. fdcId is cleared
+                                        // because a vision estimate is not a USDA-linked food.
+                                        visionItems = items
+                                        visionSampleId = res.sampleId
+                                        visionWasRecall = res.isRecall
+                                        visionEdits = items.map {
+                                            Triple(
+                                                it.name.orEmpty(),
+                                                it.estimatedGrams?.let { g -> g.roundToInt().toString() }.orEmpty(),
+                                                it.gramsBasis.orEmpty()
+                                            )
+                                        }
+                                        foodName = items.mapNotNull { it.name }.joinToString(", ")
+                                        fdcId = null
+                                        if (servingSize.isBlank()) {
+                                            servingSize = items.firstOrNull()?.estimatedPortion.orEmpty()
+                                        }
+                                        imageAnalysisResult = res.notes.orEmpty()
+                                    }
+                                } catch (_: Exception) {
+                                    // 503 = no vision backend configured; manual entry still works.
+                                    imageAnalysisResult = "Image analysis unavailable — enter the meal below."
+                                }
                                 isAnalysingImages = false
-                                imageAnalysisResult = "Image analysis coming soon (ALAFIAModel Phase 5)"
                             }
                         }, modifier = Modifier.fillMaxWidth(),
-                            enabled = selectedImageCount > 0 && !isAnalysingImages) {
+                            enabled = selectedImages.isNotEmpty() && !isAnalysingImages) {
                             if (isAnalysingImages) {
                                 CircularProgressIndicator(Modifier.size(14.dp), color = MaterialTheme.colorScheme.onPrimary)
                                 Spacer(Modifier.width(6.dp))
@@ -434,6 +529,91 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                 Spacer(Modifier.width(6.dp))
                                 Text("Analyse Image(s) with Alafia")
                             }
+                        }
+                        if (visionEdits.isNotEmpty()) {
+                            Spacer(Modifier.height(6.dp))
+                            if (visionWasRecall) {
+                                Text("✓ Recognised from a meal you labelled before — no model needed.",
+                                    style = MaterialTheme.typography.bodySmall, color = Color(0xFF16A34A))
+                            }
+                            // Editable rows: correcting these is what teaches ALAFIA.
+                            visionEdits.forEachIndexed { i, row ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    OutlinedTextField(
+                                        value = row.first,
+                                        onValueChange = { v ->
+                                            visionEdits = visionEdits.toMutableList()
+                                                .also { it[i] = row.copy(first = v) }
+                                        },
+                                        label = { Text("Food", fontSize = 10.sp) },
+                                        singleLine = true,
+                                        textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                                        modifier = Modifier.weight(1f))
+                                    OutlinedTextField(
+                                        value = row.second,
+                                        onValueChange = { v ->
+                                            visionEdits = visionEdits.toMutableList()
+                                                .also { it[i] = row.copy(second = v.filter(Char::isDigit)) }
+                                        },
+                                        label = { Text("g", fontSize = 10.sp) },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                                        modifier = Modifier.width(78.dp))
+                                    IconButton(onClick = {
+                                        visionEdits = visionEdits.toMutableList().also { it.removeAt(i) }
+                                    }) { Icon(Icons.Filled.Close, contentDescription = "Remove", Modifier.size(14.dp)) }
+                                }
+                                if (row.third.isNotEmpty()) {
+                                    Text(row.third, style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = {
+                                    visionEdits = visionEdits + Triple("", "", "")
+                                }) { Text("+ Add food", fontSize = 12.sp) }
+                                OutlinedButton(
+                                    enabled = visionSampleId != null && !teaching,
+                                    onClick = {
+                                        val sid = visionSampleId ?: return@OutlinedButton
+                                        teaching = true; teachState = ""
+                                        scope.launch {
+                                            try {
+                                                val payload = visionEdits
+                                                    .filter { it.first.isNotBlank() }
+                                                    .map { VisionFeedbackItem(it.first.trim(), it.second.toDoubleOrNull()) }
+                                                val res = ApiClient.getApiService()
+                                                    .submitVisionFeedback(VisionFeedbackRequest(sid, payload))
+                                                teachState = when (res.correctionKind) {
+                                                    "accepted" -> "Confirmed — thanks, that matched."
+                                                    "item" -> "Saved — ALAFIA learned the right foods."
+                                                    "quantity" -> "Saved — ALAFIA learned the right amounts."
+                                                    "both" -> "Saved — ALAFIA learned the foods and amounts."
+                                                    else -> "Saved."
+                                                }
+                                                val names = payload.map { it.name }
+                                                if (names.isNotEmpty()) foodName = names.joinToString(", ")
+                                            } catch (_: Exception) {
+                                                teachState = "Could not save your correction."
+                                            }
+                                            teaching = false
+                                        }
+                                    }) {
+                                    if (teaching) {
+                                        CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 2.dp)
+                                    } else Text("Confirm / correct", fontSize = 12.sp)
+                                }
+                            }
+                            if (teachState.isNotEmpty()) {
+                                Text(teachState, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                            }
+                            Text("Estimate only — check the food name and serving size before saving.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         }
                         if (imageAnalysisResult.isNotEmpty()) {
                             Spacer(Modifier.height(4.dp))

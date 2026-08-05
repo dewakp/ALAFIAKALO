@@ -1,3 +1,4 @@
+import PasswordInput from '../components/PasswordInput';
 import { useState } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import { Link } from 'react-router-dom';
@@ -69,13 +70,12 @@ export default function Register() {
           </div>
           <div className="form-group">
             <label className="form-label">Password</label>
-            <input
-              className="form-input"
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              autoComplete="new-password"
             />
           </div>
           <button className="btn btn-primary" style={{ width: '100%' }} type="submit">

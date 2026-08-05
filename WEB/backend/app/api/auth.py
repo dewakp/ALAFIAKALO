@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
@@ -77,6 +78,20 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
     SID → zero duplication). Falls back to a local-only SID if identity is
     unavailable or the identity username collides.
     """
+    # Direct registration is closed by default. It handed out a `users` row for
+    # one unauthenticated POST, which is how 55 of the 77 accounts in this
+    # database became automation leftovers. Leaving it open would make the
+    # two-step flow decorative — a robot would simply keep using this door.
+    if settings.TWO_STEP_SIGNUP_REQUIRED:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=(
+                "Direct registration is closed. Start at /auth/signup/start — "
+                "your email is verified and your subscription taken before the "
+                "account is created."
+            ),
+        )
+
     from app.services.identity_client import identity_register
 
     result = await db.execute(select(User).where(User.email == user_in.email))
@@ -143,6 +158,20 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
     return user
 
 
+async def _record_login(db, user) -> None:
+    """Stamp a successful authentication.
+
+    Called from every auth path, so the admin console's "last login" reflects
+    reality regardless of how the user signed in. Never raises: a bookkeeping
+    write must not turn a good login into a failed one.
+    """
+    try:
+        user.last_login = datetime.now(timezone.utc)
+        await db.flush()
+    except Exception:
+        logger.warning("Could not stamp last_login for user %s", getattr(user, "id", "?"), exc_info=True)
+
+
 @router.post("/login", response_model=Token)
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 async def login(
@@ -161,6 +190,14 @@ async def login(
     from app.services.identity_client import identity_login
     ident = await identity_login(form_data.username, form_data.password)
     if ident and ident.get("access_token"):
+        # Stamp here too. This branch returns before the local-password path
+        # below, and it is the branch most logins actually take (shared IdP →
+        # SSO), so skipping it left last_login NULL for everyone.
+        sso_user = (await db.execute(
+            select(User).where(User.email == form_data.username)
+        )).scalar_one_or_none()
+        if sso_user is not None:
+            await _record_login(db, sso_user)
         _set_refresh_cookie(response, ident.get("refresh_token", ""))
         return Token(access_token=ident["access_token"], refresh_token=ident.get("refresh_token", ""))
 
@@ -183,6 +220,7 @@ async def login(
             detail="Incorrect email or password",
         )
 
+    await _record_login(db, user)
     token = create_access_token(data={"sub": str(user.id)})
     refresh = create_refresh_token(data={"sub": str(user.id)})
     _set_refresh_cookie(response, refresh)
@@ -281,6 +319,7 @@ async def login_with_firebase(
             user.auth_provider = provider
         await db.flush()
 
+    await _record_login(db, user)
     token = create_access_token(data={"sub": str(user.id)})
     refresh = create_refresh_token(data={"sub": str(user.id)})
     _set_refresh_cookie(response, refresh)
@@ -402,8 +441,36 @@ async def confirm_password_reset(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Update BOTH credential stores.
+    #
+    # Login consults the shared identity service FIRST and only falls back to
+    # this local hash. Writing only the local hash therefore does not revoke the
+    # old password: the user's previous credential still authenticates via the
+    # IdP, so a "successful" reset leaves TWO working passwords. Verified
+    # empirically — after a local-only reset, both old and new returned 200.
     user.hashed_password = hash_password(body.new_password)
     await db.flush()
+
+    # Identity-backed accounts (every migrated user) must be propagated, and a
+    # failure here has to surface. Reporting success while the old password
+    # still works is the dangerous outcome.
+    from app.services.identity_client import migrate_password_into_identity
+
+    if settings.IDENTITY_ENABLED:
+        propagated = await migrate_password_into_identity(user.email, body.new_password)
+        if not propagated and user.identity_uid:
+            logger.error(
+                "Password reset for user %s could not be propagated to the identity "
+                "service; the previous password may still be valid.", user.id,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Could not complete the password reset. Your previous password "
+                    "may still be active — please try again."
+                ),
+            )
+
     return {"message": "Password has been reset successfully."}
 
 

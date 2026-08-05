@@ -222,6 +222,51 @@ actor APIClient {
         return try decoder.decode(T.self, from: data)
     }
     
+    /// POSTs one or more JPEGs as `multipart/form-data`, plus optional text fields.
+    ///
+    /// Every image is sent under the same field name in a single request, which is
+    /// what `/ai/vision` expects for "several shots of one subject": the backend
+    /// analyses them together and returns one combined result.
+    func postImages<T: Decodable>(
+        _ path: String,
+        images: [Data],
+        fieldName: String = "files",
+        fields: [String: String] = [:],
+        timeout: TimeInterval = 180
+    ) async throws -> T {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+
+        func append(_ string: String) {
+            body.append(string.data(using: .utf8)!)
+        }
+
+        for (key, value) in fields {
+            append("--\(boundary)\r\n")
+            append("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n")
+            append("\(value)\r\n")
+        }
+        for (index, image) in images.enumerated() {
+            append("--\(boundary)\r\n")
+            append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"image\(index).jpg\"\r\n")
+            append("Content-Type: image/jpeg\r\n\r\n")
+            body.append(image)
+            append("\r\n")
+        }
+        append("--\(boundary)--\r\n")
+
+        let request = buildRequest(
+            path: path,
+            method: "POST",
+            body: body,
+            contentType: "multipart/form-data; boundary=\(boundary)",
+            timeout: timeout
+        )
+        let (data, response) = try await send(request)
+        try validateResponse(response, data: data)
+        return try decoder.decode(T.self, from: data)
+    }
+
     func patch<T: Decodable, B: Encodable>(_ path: String, body: B) async throws -> T {
         let bodyData = try encoder.encode(body)
         let request = buildRequest(path: path, method: "PATCH", body: bodyData)

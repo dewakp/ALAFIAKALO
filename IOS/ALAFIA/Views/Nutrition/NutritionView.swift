@@ -116,6 +116,137 @@ final class NutritionViewModel {
             return nil
         }
     }
+
+    /// Identify the food in one or more meal photos via the ALAFIAModel VISION
+    /// capability. All shots go up in a single request so photos of the same
+    /// plate come back as ONE combined estimate, not one reading per photo.
+    ///
+    /// Returns nil when no vision backend is configured (the endpoint answers
+    /// 503) — the caller falls back to manual entry rather than surfacing an
+    /// error, since typing the meal in still works.
+    func analyzeFoodImages(_ images: [Data]) async -> FoodVisionResponse? {
+        guard !images.isEmpty else { return nil }
+        do {
+            return try await APIClient.shared.postImages(
+                "/ai/vision",
+                images: images,
+                fields: ["task": "food_photo_nutrition"]
+            )
+        } catch {
+            return nil
+        }
+    }
+
+    /// Send the corrected foods back as ground truth.
+    ///
+    /// Every submission is a supervised example for the Phase 5 on-device
+    /// classifier — the model said X, the user said Y — and it teaches the
+    /// per-user recall index so the next photo of this meal is recognised
+    /// without a model call at all.
+    func teachFoodPhoto(sampleId: Int, items: [FoodVisionEdit]) async -> String? {
+        let payload = items.compactMap { row -> VisionFeedbackItem? in
+            let name = row.name.trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty else { return nil }
+            return VisionFeedbackItem(name: name, estimated_grams: Double(row.grams))
+        }
+        guard !payload.isEmpty else { return nil }
+        do {
+            let res: VisionFeedbackResponse = try await APIClient.shared.post(
+                "/ai/vision/feedback",
+                body: VisionFeedbackRequest(sample_id: sampleId, items: payload)
+            )
+            switch res.correctionKind {
+            case "accepted":  return "Confirmed — thanks, that matched."
+            case "item":      return "Saved — ALAFIA learned the right foods."
+            case "quantity":  return "Saved — ALAFIA learned the right amounts."
+            case "both":      return "Saved — ALAFIA learned the foods and amounts."
+            default:          return "Saved."
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+}
+
+// MARK: - Food vision (ALAFIAModel VISION capability)
+
+struct FoodVisionItem: Decodable {
+    let name: String?
+    let estimatedPortion: String?
+    let confidence: Double?
+    /// Grams the backend derived from the portion phrase, with the rule that
+    /// produced it. Nutrients are per 100 g, so prose alone is unusable.
+    let estimatedGrams: Double?
+    let gramsBasis: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name, confidence
+        case estimatedPortion = "estimated_portion"
+        case estimatedGrams = "estimated_grams"
+        case gramsBasis = "grams_basis"
+    }
+}
+
+/// One editable row in the correction UI. The user's edits to these become the
+/// ground-truth half of a training pair for the Phase 5 on-device classifier.
+struct FoodVisionEdit: Identifiable {
+    let id = UUID()
+    var name: String
+    var grams: String
+    var basis: String
+}
+
+struct VisionFeedbackItem: Encodable {
+    let name: String
+    let estimated_grams: Double?
+}
+
+struct VisionFeedbackRequest: Encodable {
+    let sample_id: Int
+    let items: [VisionFeedbackItem]
+}
+
+struct VisionFeedbackResponse: Decodable {
+    let ok: Bool?
+    let correctionKind: String?
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case correctionKind = "correction_kind"
+    }
+}
+
+struct FoodVisionNutrition: Decodable {
+    let calories: Double?
+    let proteinG: Double?
+    let carbsG: Double?
+    let fatG: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case calories
+        case proteinG = "protein_g"
+        case carbsG = "carbs_g"
+        case fatG = "fat_g"
+    }
+}
+
+struct FoodVisionResponse: Decodable {
+    let items: [FoodVisionItem]?
+    let estimatedNutrition: FoodVisionNutrition?
+    let notes: String?
+    let source: String?
+    /// Identifies this analysis so a correction can be posted back against it.
+    let sampleId: Int?
+
+    /// True when the backend answered from the user's own earlier label instead
+    /// of running a model — instant, free, and already ground truth.
+    var isRecall: Bool { source == "learned-recall" }
+
+    enum CodingKeys: String, CodingKey {
+        case items, notes, source
+        case estimatedNutrition = "estimated_nutrition"
+        case sampleId = "sample_id"
+    }
 }
 
 // MARK: - Main View
@@ -352,6 +483,15 @@ struct NutritionRow: View {
                 if let cal = log.calories {
                     Text("\(Int(cal)) kcal")
                         .font(.subheadline).foregroundStyle(.green).fontWeight(.semibold)
+                } else if log.nutrientsPending {
+                    // Nutrients are computed after the meal is saved; say so
+                    // rather than showing nothing, which reads as "zero calories".
+                    HStack(spacing: 4) {
+                        ProgressView().controlSize(.mini)
+                        Text("estimating…").font(.caption2).foregroundStyle(.secondary)
+                    }
+                } else if log.nutrientStatus == "failed" {
+                    Text("unavailable").font(.caption2).foregroundStyle(.orange)
                 }
             }
             HStack(spacing: 12) {
@@ -523,6 +663,12 @@ struct AddNutritionSheet: View {
     @State private var showCamera = false
     @State private var isAnalyzingImages = false
     @State private var imageAnalysisResult = ""
+    @State private var visionItems: [FoodVisionItem] = []
+    @State private var visionEdits: [FoodVisionEdit] = []
+    @State private var visionSampleId: Int?
+    @State private var visionWasRecall = false
+    @State private var teachState = ""
+    @State private var teaching = false
 
     let mealTypes = ["breakfast", "lunch", "dinner", "snack"]
 
@@ -589,6 +735,59 @@ struct AddNutritionSheet: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(isAnalyzingImages)
+                    }
+                    if !visionEdits.isEmpty {
+                        if visionWasRecall {
+                            Label("Recognised from a meal you labelled before — no model needed.",
+                                  systemImage: "checkmark.seal.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.green)
+                        }
+                        // Editable rows: correcting these is what teaches ALAFIA.
+                        ForEach($visionEdits) { $row in
+                            HStack(spacing: 8) {
+                                TextField("Food", text: $row.name)
+                                    .font(.caption)
+                                    .textFieldStyle(.roundedBorder)
+                                TextField("g", text: $row.grams)
+                                    .font(.caption)
+                                    .keyboardType(.numberPad)
+                                    .frame(width: 62)
+                                    .textFieldStyle(.roundedBorder)
+                                Button {
+                                    visionEdits.removeAll { $0.id == row.id }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            if !row.basis.isEmpty {
+                                Text(row.basis).font(.caption2).foregroundStyle(.tertiary)
+                            }
+                        }
+
+                        HStack {
+                            Button {
+                                visionEdits.append(FoodVisionEdit(name: "", grams: "", basis: ""))
+                            } label: { Label("Add food", systemImage: "plus.circle") }
+                                .font(.caption)
+                                .buttonStyle(.plain)
+                            Spacer()
+                            Button {
+                                teachFromPhoto()
+                            } label: {
+                                if teaching { ProgressView() } else { Text("Confirm / correct") }
+                            }
+                            .font(.caption)
+                            .buttonStyle(.bordered)
+                            .disabled(visionSampleId == nil || teaching)
+                        }
+                        if !teachState.isEmpty {
+                            Text(teachState).font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Text("Estimate only — check the food name and serving size before saving.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                     }
                     if !imageAnalysisResult.isEmpty {
                         Text(imageAnalysisResult)
@@ -701,11 +900,79 @@ struct AddNutritionSheet: View {
     }
 
     private func analyzeImages() {
-        // TODO(alafia-model): replace with ALAFIAModel.infer(.vision, images) for food recognition
+        let payloads = selectedImages.compactMap { $0.jpegData(compressionQuality: 0.8) }
+        guard !payloads.isEmpty else { return }
+
         isAnalyzingImages = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            isAnalyzingImages = false
-            imageAnalysisResult = "Image analysis coming soon (ALAFIAModel Phase 5)"
+        imageAnalysisResult = ""
+        visionItems = []
+        visionEdits = []
+        visionSampleId = nil
+        visionWasRecall = false
+        teachState = ""
+
+        Task {
+            defer { isAnalyzingImages = false }
+
+            guard let result = await vm.analyzeFoodImages(payloads) else {
+                imageAnalysisResult = "Image analysis unavailable — enter the meal below."
+                return
+            }
+
+            let items = (result.items ?? []).filter { !($0.name ?? "").isEmpty }
+            guard !items.isEmpty else {
+                if let notes = result.notes, !notes.isEmpty {
+                    imageAnalysisResult = notes
+                } else {
+                    imageAnalysisResult = "No food recognised in that photo — enter the meal below."
+                }
+                return
+            }
+
+            // Prefill; every field stays editable before saving. fdcId is cleared
+            // because a vision estimate is not a USDA-linked food.
+            visionItems = items
+            visionSampleId = result.sampleId
+            visionWasRecall = result.isRecall
+            // Seed the correction rows — editing these is what teaches ALAFIA.
+            visionEdits = items.map { item in
+                FoodVisionEdit(
+                    name: item.name ?? "",
+                    grams: item.estimatedGrams.map { String(Int($0.rounded())) } ?? "",
+                    basis: item.gramsBasis ?? ""
+                )
+            }
+            foodName = items.compactMap(\.name).joined(separator: ", ")
+            fdcId = nil
+            if servingSize.isEmpty, let portion = items.first?.estimatedPortion {
+                servingSize = portion
+            }
+            if let n = result.estimatedNutrition {
+                if calories.isEmpty, let v = n.calories { calories = String(Int(v.rounded())) }
+                if proteinG.isEmpty, let v = n.proteinG { proteinG = String(Int(v.rounded())) }
+                if carbsG.isEmpty, let v = n.carbsG { carbsG = String(Int(v.rounded())) }
+                if fatG.isEmpty, let v = n.fatG { fatG = String(Int(v.rounded())) }
+            }
+            imageAnalysisResult = result.notes ?? ""
+        }
+    }
+
+    /// Post the corrected foods as ground truth, then mirror them into the form.
+    private func teachFromPhoto() {
+        guard let sampleId = visionSampleId, !teaching else { return }
+        teaching = true
+        teachState = ""
+        Task {
+            defer { teaching = false }
+            if let message = await vm.teachFoodPhoto(sampleId: sampleId, items: visionEdits) {
+                teachState = message
+                let corrected = visionEdits
+                    .map { $0.name.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }
+                if !corrected.isEmpty { foodName = corrected.joined(separator: ", ") }
+            } else {
+                teachState = "Could not save your correction."
+            }
         }
     }
 

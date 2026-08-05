@@ -69,6 +69,9 @@ export default function Nutrition() {
   const [imageFiles, setImageFiles] = useState([]);
   const [imageAnalysisResult, setImageAnalysisResult] = useState('');
   const [isAnalyzingImages, setIsAnalyzingImages] = useState(false);
+  const [visionResult, setVisionResult] = useState(null);   // { items, estimated_nutrition, source, sample_id }
+  const [visionEdits, setVisionEdits] = useState([]);       // editable [{name, estimated_grams}]
+  const [teachState, setTeachState] = useState('');         // '' | 'saving' | message
   const imageInputRef = useRef(null);
   const formRef = useRef(null);   // edit/add form card — for scroll-into-view on Edit
   const [searchParams, setSearchParams] = useSearchParams();
@@ -125,6 +128,15 @@ export default function Nutrition() {
   }, []);
 
   useEffect(() => { loadLogs(filterStart, filterEnd); }, [loadLogs, filterStart, filterEnd]);
+
+  /* Nutrients are filled in after the meal is saved, so a freshly logged entry
+     arrives with nutrient_status='pending'. Poll only while something is
+     actually pending, and stop as soon as nothing is — no idle timer. */
+  useEffect(() => {
+    if (!logs.some((l) => l.nutrient_status === 'pending')) return undefined;
+    const t = setTimeout(() => loadLogs(filterStart, filterEnd), 3000);
+    return () => clearTimeout(t);
+  }, [logs, loadLogs, filterStart, filterEnd]);
   useEffect(() => { if (tab === 'summary') loadSummary(summaryDate); }, [tab, summaryDate, loadSummary]);
 
   /* ── USDA search (debounced) ── */
@@ -188,6 +200,92 @@ export default function Nutrition() {
     } finally { setAnalyzingRecipe(false); }
   };
 
+  /* Send every selected photo to /ai/vision in ONE request. The backend analyses
+     them together, so shots of the same plate return one combined estimate
+     rather than one per photo. */
+  const analyzeImages = async () => {
+    if (!imageFiles.length) return;
+    setIsAnalyzingImages(true);
+    setImageAnalysisResult('');
+    setVisionResult(null);
+    setVisionEdits([]);
+    setTeachState('');
+    try {
+      const body = new FormData();
+      imageFiles.forEach((f) => body.append('files', f));
+      body.append('task', 'food_photo_nutrition');
+
+      const { data } = await api.post('/ai/vision', body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 180000,
+      });
+
+      const items = Array.isArray(data.items) ? data.items.filter((i) => i?.name) : [];
+      if (!items.length) {
+        setImageAnalysisResult(data.notes || 'No food recognised in that photo — enter the meal manually.');
+        return;
+      }
+
+      setVisionResult({ ...data, items });
+      // Seed the editable rows. Correcting these is what teaches ALAFIA — the
+      // model's guess plus the user's fix is one supervised training example.
+      setVisionEdits(items.map((i) => ({
+        name: i.name || '',
+        estimated_grams: i.estimated_grams ?? '',
+      })));
+      setTeachState('');
+      // Prefill the form; the user can still edit before saving. fdc_id is
+      // cleared because a vision estimate is not a USDA-linked food.
+      setForm((prev) => ({
+        ...prev,
+        food_name: items.map((i) => i.name).join(', '),
+        serving_size: prev.serving_size?.trim() || items[0].estimated_portion || '',
+        fdc_id: null,
+      }));
+      setEstimatePreview(null);
+      setEstimateError('');
+      setImageAnalysisResult(data.notes || '');
+    } catch (err) {
+      // 503 = no vision backend configured. Manual entry still works.
+      setImageAnalysisResult(apiErrorMessage(err, 'Image analysis unavailable — enter the meal manually.'));
+    } finally {
+      setIsAnalyzingImages(false);
+    }
+  };
+
+  /* Send the corrected foods back as ground truth. Every submission is a
+     supervised example for the on-device classifier (Phase 5), and it teaches
+     the per-user recall index so this photo is recognised instantly next time. */
+  const teachFromPhoto = async () => {
+    if (!visionResult?.sample_id) return;
+    const items = visionEdits
+      .map((r) => ({
+        name: (r.name || '').trim(),
+        estimated_grams: r.estimated_grams === '' || r.estimated_grams == null
+          ? null : Number(r.estimated_grams),
+      }))
+      .filter((r) => r.name && !Number.isNaN(r.estimated_grams));
+    if (!items.length) { setTeachState('Add at least one food first.'); return; }
+
+    setTeachState('saving');
+    try {
+      const { data } = await api.post('/ai/vision/feedback', {
+        sample_id: visionResult.sample_id, items,
+      });
+      const kind = {
+        accepted: 'Confirmed — thanks, that matched.',
+        item: 'Saved — ALAFIA learned the right foods.',
+        quantity: 'Saved — ALAFIA learned the right amounts.',
+        both: 'Saved — ALAFIA learned the foods and amounts.',
+      }[data.correction_kind] || 'Saved.';
+      setTeachState(kind);
+      // Reflect the correction in the meal form too.
+      setForm((prev) => ({ ...prev, food_name: items.map((i) => i.name).join(', ') }));
+    } catch (err) {
+      setTeachState(apiErrorMessage(err, 'Could not save your correction.'));
+    }
+  };
+
   const estimateBeforeSave = async ({ silent = false } = {}) => {
     const foodName = form.food_name.trim();
     if (!foodName || form.fdc_id) return;
@@ -230,6 +328,9 @@ export default function Nutrition() {
     setEstimatePreview(null);
     setImageFiles([]);
     setImageAnalysisResult('');
+    setVisionResult(null);
+    setVisionEdits([]);
+    setTeachState('');
     setEstimateError('');
   };
 
@@ -458,7 +559,8 @@ export default function Nutrition() {
               <Image size={14}/> Identify Food from Image (Optional – Max 3 images)
             </div>
             <div style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)', marginBottom: '.5rem' }}>
-              Upload image(s) or take a photo for Alafia analysis.
+              Upload image(s) or take a photo for Alafia analysis. Several shots of the
+              same meal are read together as one plate.
             </div>
             <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
               onChange={(e) => {
@@ -486,16 +588,75 @@ export default function Nutrition() {
             </div>
             <button type="button" className="btn btn-primary" style={{ width: '100%' }}
               disabled={imageFiles.length === 0 || isAnalyzingImages}
-              onClick={() => {
-                // TODO(alafia-model): replace with ALAFIAModel.infer(.vision, images) — Phase 5
-                setIsAnalyzingImages(true);
-                setTimeout(() => {
-                  setIsAnalyzingImages(false);
-                  setImageAnalysisResult('Image analysis coming soon (ALAFIAModel Phase 5)');
-                }, 800);
-              }}>
+              onClick={analyzeImages}>
               {isAnalyzingImages ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }}/> Analysing…</> : <><Sparkles size={14}/> Analyse Image(s) with Alafia</>}
             </button>
+
+            {visionResult && (
+              <div style={{ marginTop: '.5rem', fontSize: '.78rem' }}>
+                {visionResult.source === 'learned-recall' && (
+                  <div style={{ color: '#16a34a', marginBottom: '.4rem' }}>
+                    ✓ Recognised from a meal you labelled before — no model needed.
+                  </div>
+                )}
+
+                {/* Editable rows: correcting these is what teaches ALAFIA. */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '.3rem', marginBottom: '.45rem' }}>
+                  {visionEdits.map((row, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '.35rem', alignItems: 'center' }}>
+                      <input className="form-input" style={{ flex: 2, fontSize: '.78rem', padding: '.25rem .4rem' }}
+                        value={row.name} aria-label={`Food ${i + 1}`}
+                        onChange={(e) => setVisionEdits((prev) =>
+                          prev.map((r, j) => (j === i ? { ...r, name: e.target.value } : r)))}/>
+                      <input className="form-input" type="number" min="0" step="1" placeholder="grams"
+                        style={{ width: 82, fontSize: '.78rem', padding: '.25rem .4rem' }}
+                        value={row.estimated_grams} aria-label={`Grams ${i + 1}`}
+                        onChange={(e) => setVisionEdits((prev) =>
+                          prev.map((r, j) => (j === i ? { ...r, estimated_grams: e.target.value } : r)))}/>
+                      <span style={{ fontSize: '.68rem', color: 'var(--color-text-tertiary)', width: 96 }}>
+                        {visionResult.items[i]?.grams_basis || ''}
+                      </span>
+                      <button type="button" title="Remove"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)' }}
+                        onClick={() => setVisionEdits((prev) => prev.filter((_, j) => j !== i))}>
+                        <X size={12}/>
+                      </button>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center' }}>
+                    <button type="button" className="btn btn-secondary btn-sm"
+                      onClick={() => setVisionEdits((prev) => [...prev, { name: '', estimated_grams: '' }])}>
+                      + Add food
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm"
+                      disabled={!visionResult.sample_id || teachState === 'saving'}
+                      onClick={teachFromPhoto}>
+                      {teachState === 'saving' ? 'Saving…' : 'Confirm / correct — teach ALAFIA'}
+                    </button>
+                    {teachState && teachState !== 'saving' && (
+                      <span style={{ fontSize: '.72rem', color: 'var(--color-text-secondary)' }}>{teachState}</span>
+                    )}
+                  </div>
+                </div>
+                {(() => {
+                  const n = visionResult.estimated_nutrition || {};
+                  const parts = [
+                    n.calories != null ? `${Math.round(n.calories)} kcal` : null,
+                    n.protein_g != null ? `${Math.round(n.protein_g)}g protein` : null,
+                    n.carbs_g != null ? `${Math.round(n.carbs_g)}g carbs` : null,
+                    n.fat_g != null ? `${Math.round(n.fat_g)}g fat` : null,
+                  ].filter(Boolean);
+                  return parts.length ? (
+                    <div style={{ color: 'var(--color-text-secondary)' }}>
+                      Rough estimate: {parts.join(' · ')}
+                    </div>
+                  ) : null;
+                })()}
+                <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.72rem', marginTop: '.3rem' }}>
+                  Estimate only — check the food name and serving size below before saving.
+                </div>
+              </div>
+            )}
             {imageAnalysisResult && (
               <div style={{ marginTop: '.5rem', fontSize: '.78rem', color: 'var(--color-text-secondary)' }}>{imageAnalysisResult}</div>
             )}
@@ -720,7 +881,21 @@ export default function Nutrition() {
                       {log.end_time ? log.end_time.slice(0, 5) : ''}
                       {!log.start_time && !log.end_time ? '—' : ''}
                     </td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.calories != null ? Math.round(log.calories) : '—'}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                      {log.calories != null
+                        ? Math.round(log.calories)
+                        : log.nutrient_status === 'pending'
+                          ? <span title="Working out the nutrients for this meal"
+                              style={{ fontSize: '.7rem', color: 'var(--color-text-tertiary)', fontFamily: 'inherit' }}>
+                              estimating…
+                            </span>
+                          : log.nutrient_status === 'failed'
+                            ? <span title="Could not work out nutrients — edit the entry to retry"
+                                style={{ fontSize: '.7rem', color: '#b45309', fontFamily: 'inherit' }}>
+                                unavailable
+                              </span>
+                            : '—'}
+                    </td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.protein_g != null ? `${log.protein_g.toFixed(1)}g` : '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.carbs_g != null ? `${log.carbs_g.toFixed(1)}g` : '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.fat_g != null ? `${log.fat_g.toFixed(1)}g` : '—'}</td>

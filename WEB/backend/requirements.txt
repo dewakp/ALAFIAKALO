@@ -5,6 +5,10 @@ python-multipart==0.0.19
 
 # Database
 sqlalchemy==2.0.36
+# SQLAlchemy's asyncio engine requires greenlet. It is NOT pulled in
+# automatically on newer Pythons, and without it every DB-backed route fails
+# with "the greenlet library is required to use this function".
+greenlet==3.5.4
 asyncpg==0.30.0
 alembic==1.14.1
 psycopg2-binary==2.9.10

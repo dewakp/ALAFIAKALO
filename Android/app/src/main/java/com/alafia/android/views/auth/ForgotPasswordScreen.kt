@@ -8,7 +8,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.ImeAction
+import com.alafia.android.views.components.PasswordField
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.alafia.android.api.ApiClient
@@ -90,23 +91,20 @@ fun ForgotPasswordScreen(navController: NavHostController) {
                     enabled = !isLoading
                 )
 
-                OutlinedTextField(
+                PasswordField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
-                    label = { Text("New Password") },
+                    label = "New Password",
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    imeAction = ImeAction.Next,
                     enabled = !isLoading
                 )
 
-                OutlinedTextField(
+                PasswordField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm Password") },
+                    label = "Confirm Password",
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
                     enabled = !isLoading
                 )
 

@@ -1849,3 +1849,180 @@ custom domain, deferred infra (GPU LLM / Redis / blockchain / email / media / Fi
 **iOS + Android app-store deployment checklists**. Surfaced two mobile blockers there: apps hardcode
 `https://api.alafia.com` (no domain yet), and iOS bundle `com.alafia.app` ≠ backend
 `APPLE_BUNDLE_ID=com.alafia.ios` (must match for Apple purchase verification).
+
+## Session 2026-08-01 — Meal-photo analysis goes live on web + iOS + Android
+
+**The gap.** `POST /ai/vision` has been real for a while (ALAFIAModel VISION capability → llava via
+Ollama, OpenAI vision as fallback), and PromptHub / PromptView / `routeVision` already called it. But
+the *Nutrition* screen's "Analyse Image(s) with Alafia" button was a fake on **all three clients** —
+a `setTimeout` / `DispatchQueue.asyncAfter` / `delay(800)` that printed *"Image analysis coming soon
+(ALAFIAModel Phase 5)"*. Users could attach up to 3 photos and got a canned string back. Android was
+worse: its "Choose Files" button incremented a counter (`selectedImageCount++`) with **no picker at
+all** — no image was ever selected, let alone uploaded.
+
+**One meal, one reading (the design call).** The UI accepts 3 photos, but they are normally the *same
+plate* from different angles. Looping the single-image endpoint per photo and merging client-side
+would have **double/triple-counted the calories** — and duplicated that merge logic across three
+platforms. So the multi-image handling went **backend-side**, matching the standing canon that model
+strategy is a backend concern:
+
+- `InferencePayload` gained `images: list[dict]`; `VisionCapability._collect_images` normalizes the
+  multi- and legacy single-image shapes into one list.
+- `_vision_chat` / `_ollama_vision` / `_openai_vision` now take N images and send them in **ONE**
+  model call (Ollama: N base64 in `images`; OpenAI: N `image_url` content blocks).
+- With >1 image the prompt appends `_MULTI_IMAGE_RULE`: *"You are being shown {n} photos of THE SAME
+  meal … Do NOT count a dish more than once because it appears in more than one photo."*
+- Capability `version` → `0.3.0-vision-llm-multi`; response carries `image_count`.
+
+**`/ai/vision` is now `file` OR `files` (or both), capped at 3.** The original single `file` field is
+untouched, so the existing PromptHub / iOS PromptView / Android `routeVision` callers keep working —
+verified against FastAPI across 7 request shapes (legacy single, multi, both, over-cap, none, empty
+bytes, task passthrough).
+
+**Clients (parity — web, iOS, Android all wired):** each sends every selected photo in one request,
+prefills the meal form from the result (food name joined from items, serving size from the top item's
+portion, `fdc_id`/`fdcId` cleared since a vision estimate is not USDA-linked), renders the detected
+items with portion + confidence, and degrades to manual entry on 503 rather than erroring. iOS also
+prefills the visible calorie/protein/carb/fat fields (they save, because `fdcId` is nil). Added a
+reusable `APIClient.postImages(...)` on iOS (multipart was previously copy-pasted per view) and
+`routeVisionMulti` on Android, plus a **real** `GetMultipleContents` image picker for Android.
+
+**Verified:** ML vision tests 9/9 (2 pre-existing tests updated for the new `_vision_chat` signature,
+4 new covering single-call-for-N-images, the anti-double-count prompt, and payload normalization);
+web `vite build` ✓; iOS `xcodebuild` ✓; Android `compileDebugKotlin` ✓. Two `test_hebcs.py` failures
+are pre-existing (feature-bridge coverage 71.4% < 75%), confirmed failing on a clean tree.
+**Not run here:** the backend pytest suite — no environment on this machine has the backend deps
+(`sqlalchemy`, `pytest_asyncio`); `app/api/ai.py` was compile-checked and its request handling probed
+against a real FastAPI app with the identical signature.
+
+## Session 2026-08-03 — Food vision: storing, labelling, identification, quantity
+
+**The blocker was the pipeline, not the model.** Phase 5 (on-device food
+classifier) had no training data and no way to get any: `LabeledFoodImage` stored
+a 64-bit dHash and *discarded the image*, and `/ai/vision` recorded nothing — so
+every user correction was thrown away when the meal was saved. Measured state
+before this session: **1 labelled row across 77 users, 0 images**.
+
+**Now collecting.** New append-only `food_training_samples` (photo + prediction +
+correction; one row per analysis) alongside the existing upserted recall index.
+Photos land in `media_assets(category='food_training')`, retained **only** with
+`PrivacySettings.allow_collective_insights` (default false; absent row = no
+consent). Without consent the sample is still written — accuracy stays measurable
+— with `media_asset_id` NULL. Both paths verified against the live stack.
+
+**Corrections are the point.** `POST /ai/vision/feedback` turns every edit into a
+supervised pair, classified `accepted|item|quantity|both` so the corpus is
+queryable ("every photo where the model named the wrong food"). Verified row:
+`predicted Carrots => corrected Jollof rice, kind=item`.
+
+**Quantity estimation** (`portion_estimator.py`): prose → grams with the rule and
+confidence surfaced. `1 cup / 150 g`→150 g (stated), `1 cup` jollof→158 g
+(volume × 0.66 g/ml — rice is not water), `1 cup` spinach→72 g, `1 medium
+carrot`→61 g. A user-corrected serving weight overrides every heuristic. When it
+cannot tell it returns **nothing** rather than inventing a calorie count.
+
+**Recall before inference.** `/ai/vision` now checks the user's own labels first
+and returns their corrected foods *and* grams: **~25 s model call → 76 ms**.
+
+**Parity: web + iOS + Android** all ship editable food/grams rows, a
+"Confirm / correct" action and the recall banner. (First pass was web-only — a
+canon violation, corrected in the same session.)
+
+**Bugs found and fixed en route:**
+- `OLLAMA_VISION_MODEL: moondream` in compose — a *grounding* model that answers
+  the food schema with bounding boxes and never emits `items`; every photo
+  failed with "unparseable output". Switched to llava, verified against both.
+- The JSON parser was one regex; it now handles markdown fences, prose-wrapped
+  JSON and token-limit truncation (closes unterminated brackets). Valid JSON in
+  the *wrong shape* now fails loudly naming the model instead of reporting "no
+  food recognised" and blaming the photo.
+- `record_prediction` caught its exception but a failed flush poisons the
+  session, so the caller's commit 500'd — training-data logging would have taken
+  down the feature it supports. Writes now run in a `SAVEPOINT`.
+- Correction classification compared grams **positionally**: a reorder counted as
+  a quantity change and a dropped item became `both`, which would have
+  mislabelled most of the corpus. Now keyed by food name.
+- `greenlet` missing from `backend/requirements.txt` (SQLAlchemy async needs it;
+  not auto-pulled on 3.13) — every DB route 500s in the container without it.
+- `public/fonts/inter.css` was mode 600, so `COPY` produced an image where nginx
+  could not read it → 403, Inter never loaded **in production either**. Fixed the
+  file and added `chmod -R a+rX` to the frontend Dockerfile.
+
+**Verified:** 36 backend tests (26 portion, 10 corpus) + 18 ML vision tests; web
+build; iOS `xcodebuild`; Android `assembleDebug`. Full loop driven in a real
+browser against the compose stack: analyse → correct → 76 ms recall with the
+corrected values.
+
+**Still blocking Phase 5** (documented in `VISION_TRAINING.md`): corpus size
+starts near zero, no `train_food_vision.py`, no torch/tensorflow (only
+`coremltools`), free-text labels with no 200-class vocabulary, no West African
+dataset, base64-in-Postgres storage, and no Core ML/TFLite export path.
+
+## Session 2026-08-05 — Async nutrition saves, Resend email, password toggles, admin console
+
+**Nutrition saves are now asynchronous.** Estimation ran inside the save, so a
+10-item meal ("3 sardines, 4 pitted olives, …") exceeded the web client's 30s
+timeout — and because the request never committed, the user LOST the meal.
+
+Three causes, all fixed:
+1. `_try_usda` looked items up **sequentially** — 10 round trips (7.64s locally).
+   Now concurrent with a bounded semaphore: **2.24s**, same 9/10 matched.
+2. The real bug: for a list, the single-food path merges matches by **summing
+   per-100 g densities**. Densities don't add — the meal came back as **1978
+   kcal/100 g**, above pure fat (~900). The plausibility band correctly rejected
+   it, and the pipeline escalated to the slow AI fallback. Multi-item meals now
+   use `estimate_meal_nutrients()` (scales by gram weight, sums to a TOTAL):
+   **967 kcal, 30.9 g protein, believable**.
+3. Estimation no longer runs in the request at all. The log is saved and returned
+   immediately with `nutrient_status="pending"`, and a background task enriches
+   it. Measured: **save 30s-timeout → 1.5s**; in the browser the row appears in
+   **96 ms** showing "estimating…", nutrients auto-arrive with no reload.
+
+All three clients show `pending`/`failed` states rather than a blank, which reads
+as zero calories. New column `nutrition_logs.nutrient_status` (dd004).
+
+**Email implemented — Resend.** `app/services/email.py` gained a Resend HTTPS
+sender (preferred on Cloud Run: no outbound mail ports, no STARTTLS, real error
+bodies) with SMTP kept as the self-hosting fallback. A real verification email
+was delivered end-to-end. `deploy.sh` mounts `resend-api-key` AND grants the
+service account access — it previously mounted no email secret at all, so prod
+could never have sent mail regardless of code.
+
+⚠️ **No domain is verified on the Resend account**, so production can currently
+only mail the account owner. Verified against the live API; details in
+`ADMIN_CONSOLE.md`. `smtp.md` holds the key and is now **gitignored** — it was
+not, repeating the `api_keys.md` exposure.
+
+**Show/hide password across web, iOS and Android** — one component per platform
+(`PasswordInput.jsx`, `LKTextField(isSecure:)`, `PasswordField.kt`) covering all
+14 password fields. The web toggle is `type="button"` (a bare button inside a
+form submits it); iOS restores `@FocusState` after the SecureField⇄TextField swap
+or the keyboard dismisses mid-typing; revealed passwords keep
+no-autocapitalise/no-autocorrect on mobile.
+
+**Admin console** at `minister.alafia.com` (`/minister` in dev) for dew@6igma.com
+— users, last login, token usage, app health. Required fixing two things first:
+`last_login` did not exist (and the SSO branch of `/auth/login` early-returns, so
+stamping only the local path left it NULL for everyone), and `tokens_used` was
+never written because the LLM capability discarded the provider's count.
+
+**Robot accounts:** 55 `*@example.com`/`*@x.com` accounts deactivated (not
+deleted — 65 of 101 FKs are NO ACTION), plus **56 identity-only** robots that had
+no ALAFIA user row but could still have materialised one via SSO provisioning.
+Dev: 77 → **22 active users**. Reversible. Prod untouched.
+
+**Signup is now two-step** — verify email, pay, then the account is created.
+`/auth/register` is 410 Gone. `/signup/complete` verifies the Stripe session with
+Stripe (paid AND belonging to this signup) rather than trusting a client-supplied
+reference, which previously meant any string bought an account.
+
+**Also fixed:** password reset did not revoke the old password (login checks the
+IdP first, reset wrote only the local hash — two working passwords after a
+"successful" reset); the frontend container reported `unhealthy` forever because
+its healthcheck used `localhost`, which resolves to `::1` while nginx listens on
+IPv4 only; `/fonts/inter.css` was mode 600 so nginx served it 403 **in production
+too**; `greenlet` was missing from `requirements.txt`.
+
+**Correction:** an earlier claim of "5 alembic heads" was wrong. `alembic heads`
+reports exactly **one**. The hand-rolled scan that produced it missed the
+annotated form `down_revision: Union[str, None] = '…'`. Never grep for this.

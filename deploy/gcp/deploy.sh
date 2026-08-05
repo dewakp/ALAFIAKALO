@@ -50,7 +50,8 @@ for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
          paypal-client-id paypal-client-secret paypal-plan-id paypal-plan-id-annual paypal-webhook-id \
-         apple-shared-secret; do
+         apple-shared-secret \
+         resend-api-key smtp-host smtp-user smtp-password smtp-from-email; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
 done
@@ -116,6 +117,15 @@ BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_ENABLED=true,APPLE_ENVIRONMENT=producti
 # Hard paywall: every user needs an active subscription (owner email exempt via the
 # config default). Flip to false to open the app.
 BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_REQUIRED=true"
+# Two-step signup (verify email → pay → account) is CODE-READY but gated OFF
+# here, because turning it on closes registration until email actually works:
+#   /auth/register            -> 410 Gone
+#   /auth/signup/start        -> 503 without an email provider, and with Resend
+#                                configured but NO VERIFIED DOMAIN the send 403s,
+#                                so the verification link never arrives.
+# Either way no new account can be created. Flip to true ONLY after a domain is
+# verified at resend.com/domains and a test signup completes end to end.
+BACKEND_ENV="${BACKEND_ENV},TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:-false}"
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
 # Private GPU Ollama LLM + the deployed commit stamp (surfaced by /api/health).
@@ -140,6 +150,22 @@ add_secret_if_present PAYPAL_PLAN_ID          paypal-plan-id
 add_secret_if_present PAYPAL_PLAN_ID_ANNUAL   paypal-plan-id-annual
 add_secret_if_present PAYPAL_WEBHOOK_ID       paypal-webhook-id
 add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
+# Email — transactional (signup verification, password reset).
+# Resend (HTTPS API) is preferred over SMTP on Cloud Run: no outbound mail ports,
+# no STARTTLS negotiation, and real error bodies instead of socket failures.
+#   printf 're_xxx' | gcloud secrets create resend-api-key --data-file=-
+add_secret_if_present RESEND_API_KEY           resend-api-key
+# SMTP fallback (used only when RESEND_API_KEY is absent).
+# Without these mounted the backend silently skips every send, which now blocks
+# signup outright: an account is never created for an unverified address, so a
+# production signup cannot complete until these exist. Create them with:
+#   printf 'smtp.example.com' | gcloud secrets create smtp-host --data-file=-
+#   printf 'apikey'           | gcloud secrets create smtp-user --data-file=-
+#   printf '<password>'       | gcloud secrets create smtp-password --data-file=-
+add_secret_if_present SMTP_HOST               smtp-host
+add_secret_if_present SMTP_USER               smtp-user
+add_secret_if_present SMTP_PASSWORD           smtp-password
+add_secret_if_present SMTP_FROM_EMAIL         smtp-from-email
 # LLM round-robin provider keys — mount whichever exist (adds them to the pool).
 for pair in $LLM_PROVIDER_SECRETS; do
   add_secret_if_present "${pair%%:*}" "${pair##*:}"

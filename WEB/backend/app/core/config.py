@@ -50,7 +50,15 @@ class Settings(BaseSettings):
     RATE_LIMIT_AUTH: str = "5/minute"  # login / register / password-reset
     RATE_LIMIT_DEFAULT: str = "60/minute"
 
-    # Email / SMTP
+    # ── Email ────────────────────────────────────────────────────────────
+    # Resend is preferred over raw SMTP: it is an HTTPS call, so it is immune to
+    # the outbound-port and TLS-negotiation problems SMTP hits on serverless
+    # hosts, and it returns a message id and a real error body instead of a
+    # generic socket failure. SMTP stays as the fallback for self-hosting.
+    RESEND_API_KEY: str = ""
+    RESEND_API_BASE: str = "https://api.resend.com"
+
+    # Email / SMTP (fallback when RESEND_API_KEY is unset)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
@@ -150,7 +158,28 @@ class Settings(BaseSettings):
     # (dev / self-host); enable in production.
     SUBSCRIPTION_REQUIRED: bool = False
     # Emails that bypass the paywall entirely (owner / staff), comma-separated in env.
-    SUBSCRIPTION_EXEMPT_EMAILS: list[str] = ["developer@hntsolutions.com"]
+    # dew@6igma.com is included because the admin console lives under /api/v1 and
+    # would otherwise be 402'd by the paywall in production before reaching it.
+    SUBSCRIPTION_EXEMPT_EMAILS: list[str] = ["developer@hntsolutions.com", "dew@6igma.com"]
+
+    # ── Signup ───────────────────────────────────────────────────────────
+    # Direct registration created a `users` row on request, which is how 55 of
+    # 77 accounts in this database became `*@example.com` automation leftovers.
+    # With this on, /auth/register is closed and the only way to an account is
+    # /auth/signup/* — email verified AND subscription paid, in that order.
+    # Set false only to re-open the legacy path deliberately.
+    TWO_STEP_SIGNUP_REQUIRED: bool = True
+
+    # ── Admin console ────────────────────────────────────────────────────
+    # Who may reach /api/v1/admin/*. Deliberately an explicit allowlist rather
+    # than the `is_superuser` flag alone: that flag is currently set on a leftover
+    # test account (crossapp_…@example.com), and one stray UPDATE should not be
+    # able to hand out console access. BOTH must hold — email on this list AND
+    # the account active.
+    ADMIN_EMAILS: list[str] = ["dew@6igma.com"]
+    # Host the admin console is served on. Used only for logging/link building;
+    # authorization never depends on the hostname.
+    ADMIN_HOST: str = "minister.alafia.com"
     # Public base URL of the web app; used to build Stripe/PayPal return URLs.
     PUBLIC_WEB_URL: str = "http://localhost:8080"
 

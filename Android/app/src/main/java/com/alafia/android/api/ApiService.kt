@@ -3,6 +3,7 @@ package com.alafia.android.api
 import com.alafia.android.models.*
 import com.alafia.android.schemas.*
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.*
 
 interface ApiService {
@@ -203,6 +204,26 @@ interface ApiService {
     @Multipart
     @POST("ai/vision")
     suspend fun routeVision(@Part file: MultipartBody.Part): AIVisionResponse
+
+    /**
+     * Several shots of the SAME subject in one request — the backend analyses
+     * them together and returns one combined result (a plate photographed from
+     * two angles is not counted twice). Max 3 parts.
+     */
+    @Multipart
+    @POST("ai/vision")
+    suspend fun routeVisionMulti(
+        @Part files: List<MultipartBody.Part>,
+        @Part("task") task: RequestBody
+    ): AIVisionResponse
+
+    /**
+     * Send the corrected foods back as ground truth. Every submission is a
+     * supervised example for the Phase 5 on-device classifier, and it teaches
+     * the per-user recall index so the next photo of this meal skips the model.
+     */
+    @POST("ai/vision/feedback")
+    suspend fun submitVisionFeedback(@Body request: VisionFeedbackRequest): VisionFeedbackResponse
 
     // Privacy Endpoints
     @GET("privacy/settings")

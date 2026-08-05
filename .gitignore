@@ -95,3 +95,12 @@ WEB/backend/alafia_model/
 
 # real API keys — never commit
 api_keys.md
+
+# DB parity artifacts (fingerprints + prod dumps — may contain PHI)
+.db-parity/
+
+# SMTP / email provider credentials — never commit
+smtp.md
+
+# pytest sqlite artifact (created by tests/conftest.py on every run)
+WEB/backend/test.db
