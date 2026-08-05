@@ -200,6 +200,20 @@ cd WEB/frontend && npm run dev          # needs node on PATH: ~/.nvm/versions/no
 - `WORKLOG.md` still describes the DB as `europe-west1` / `alafia-db`;
   `deploy/gcp/config.env` (authoritative) says `us-east4` / `alafia-db-va`.
 
+## 5a. Deploying
+
+Runbook: **`DEPLOY.md`**. Two things that will bite:
+
+- **Two-step signup is gated OFF in production** (`TWO_STEP_SIGNUP_REQUIRED=false`
+  in `deploy.sh`). Turning it on closes registration until email works — see the
+  checklist in DEPLOY.md. Do not flip it because the code "looks ready".
+- **No sending domain is verified in Resend**, so production mail only reaches
+  the account owner. Delivery itself is proven; the domain is not.
+
+`deploy.sh` mounts a secret only if it exists AND grants the runtime service
+account access from a second list — both must name it, or the deploy fails at
+mount time.
+
 ## 6. Reporting
 
 State what was actually run and what wasn't. "Builds" ≠ "works". If a suite

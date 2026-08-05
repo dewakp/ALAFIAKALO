@@ -117,6 +117,15 @@ BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_ENABLED=true,APPLE_ENVIRONMENT=producti
 # Hard paywall: every user needs an active subscription (owner email exempt via the
 # config default). Flip to false to open the app.
 BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_REQUIRED=true"
+# Two-step signup (verify email → pay → account) is CODE-READY but gated OFF
+# here, because turning it on closes registration until email actually works:
+#   /auth/register            -> 410 Gone
+#   /auth/signup/start        -> 503 without an email provider, and with Resend
+#                                configured but NO VERIFIED DOMAIN the send 403s,
+#                                so the verification link never arrives.
+# Either way no new account can be created. Flip to true ONLY after a domain is
+# verified at resend.com/domains and a test signup completes end to end.
+BACKEND_ENV="${BACKEND_ENV},TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:-false}"
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
 # Private GPU Ollama LLM + the deployed commit stamp (surfaced by /api/health).

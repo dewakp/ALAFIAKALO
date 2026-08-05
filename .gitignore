@@ -101,3 +101,6 @@ api_keys.md
 
 # SMTP / email provider credentials — never commit
 smtp.md
+
+# pytest sqlite artifact (created by tests/conftest.py on every run)
+WEB/backend/test.db
