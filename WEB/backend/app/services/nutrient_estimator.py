@@ -7,6 +7,7 @@ Strategy:
   4. Cache AI results for app-wide reuse
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -33,6 +34,11 @@ from app.services.mcp_nutrition_server import (
 )
 
 logger = logging.getLogger(__name__)
+
+# How many USDA item lookups may run at once for one multi-item meal. Enough to
+# collapse a 10-item list into ~one round trip, low enough not to get this client
+# rate-limited by USDA.
+_USDA_ITEM_CONCURRENCY = 8
 
 # All known nutrient keys for validation
 _ALL_NUTRIENT_KEYS = {n["key"] for n in NUTRIENT_CATALOG + EXTENDED_NUTRIENTS}
@@ -418,11 +424,29 @@ async def _try_usda(food_name: str) -> dict | None:
     if len(items) <= 1:
         return None
 
-    item_results: list[dict] = []
-    for item in items:
-        match = await _try_usda_single(item)
-        if match:
-            item_results.append(match)
+    # Look the items up CONCURRENTLY.
+    #
+    # This loop used to be sequential: a 10-item meal ("3 sardines, 4 pitted
+    # olives, 4 cherry tomatoes, …") meant 10 round trips to USDA one after the
+    # other. Locally that alone took 7.6s; over production latency it pushed the
+    # whole save past the client's 30s timeout, and because estimation happens
+    # inside the save, the user LOST the meal they had typed.
+    #
+    # Bounded so a long list cannot open an unlimited number of sockets or get
+    # this client rate-limited by USDA.
+    semaphore = asyncio.Semaphore(_USDA_ITEM_CONCURRENCY)
+
+    async def _lookup(item: str) -> dict | None:
+        async with semaphore:
+            try:
+                return await _try_usda_single(item)
+            except Exception:
+                logger.debug("USDA item lookup failed for %r", item, exc_info=True)
+                return None
+
+    settled = await asyncio.gather(*(_lookup(i) for i in items))
+    # gather preserves order, so the merged result stays deterministic.
+    item_results: list[dict] = [r for r in settled if r]
 
     if not item_results:
         return None

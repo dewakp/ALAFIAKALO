@@ -1,5 +1,8 @@
 """Nutrition CRUD endpoints with USDA FoodData Central + AI nutrient estimation."""
 
+import asyncio
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -43,7 +46,12 @@ from app.services.learned_nutrient_service import (
 )
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Ceiling for in-save nutrient estimation. The web client gives up at 30s, so the
+# server must finish well inside that and still have room to commit.
+NUTRIENT_ESTIMATE_BUDGET_SECONDS = 15.0
 
 
 # ── Nutrition learning model — user corrections ───────────────────────────────
@@ -484,7 +492,42 @@ async def create_nutrition_log(
     # Auto-estimate if no fdc_id AND no calories — use Cache → USDA → AI pipeline
     elif not data.get("fdc_id") and data.get("calories") is None and data.get("food_name"):
         try:
-            est = await estimate_nutrients(db, data["food_name"], data.get("serving_size"))
+            # Bound the lookup. Estimation runs INSIDE the save, so a slow
+            # dependency (USDA, or the LLM fallback on a long multi-item meal)
+            # used to blow past the client's 30s timeout — and because the save
+            # had not committed, the user lost the meal they had just typed.
+            # Losing data is far worse than saving it without nutrients, which
+            # the user can correct or re-estimate afterwards.
+            # Route multi-item meals to the MEAL estimator.
+            #
+            # estimate_nutrients() treats the whole string as ONE food and, for a
+            # list, merges the matched items by SUMMING their per-100 g profiles.
+            # Adding densities is meaningless: "3 sardines, 4 olives, …" came back
+            # as 1978 kcal/100 g — above pure fat (~900), so impossible. The
+            # plausibility band then (correctly) rejected it and the pipeline
+            # escalated to the slow AI fallback, which is what pushed the save
+            # past the client's 30s timeout.
+            #
+            # estimate_meal_nutrients() parses quantities, scales each item by its
+            # gram weight and sums to a meal TOTAL — 967 kcal for the same input,
+            # in a third of the time. This matches how /estimate-meal already
+            # persists a log.
+            from app.services.nlm_food_extractor import extract_food_items_nlm
+
+            if len(extract_food_items_nlm(data["food_name"])) > 1:
+                meal = await asyncio.wait_for(
+                    estimate_meal_nutrients(db, data["food_name"]),
+                    timeout=NUTRIENT_ESTIMATE_BUDGET_SECONDS,
+                )
+                est = {
+                    "nutrients": meal.get("aggregate_nutrients") or {},
+                    "fdc_id": None,
+                }
+            else:
+                est = await asyncio.wait_for(
+                    estimate_nutrients(db, data["food_name"], data.get("serving_size")),
+                    timeout=NUTRIENT_ESTIMATE_BUDGET_SECONDS,
+                )
             if est.get("nutrients"):
                 nutrients = est["nutrients"]
                 for key in DB_COLUMN_KEYS:
@@ -500,8 +543,17 @@ async def create_nutrition_log(
                 # Store fdc_id if from USDA
                 if est.get("fdc_id") and not data.get("fdc_id"):
                     data["fdc_id"] = est["fdc_id"]
+        except asyncio.TimeoutError:
+            # Save the meal anyway. It is recoverable: the user can re-run the
+            # estimate from the entry, and the cache is warmed by the lookups
+            # that did finish.
+            logger.warning(
+                "Nutrient estimation exceeded %ss for %r — saving without nutrients",
+                NUTRIENT_ESTIMATE_BUDGET_SECONDS, data.get("food_name", "")[:80],
+            )
         except Exception:
-            pass  # Non-critical — log without nutrients
+            logger.warning("Nutrient estimation failed for %r — saving without nutrients",
+                           data.get("food_name", "")[:80], exc_info=True)
 
     log = NutritionLog(**data, user_id=current_user.id)
     db.add(log)
