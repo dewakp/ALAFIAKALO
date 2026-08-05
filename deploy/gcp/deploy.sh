@@ -140,6 +140,17 @@ add_secret_if_present PAYPAL_PLAN_ID          paypal-plan-id
 add_secret_if_present PAYPAL_PLAN_ID_ANNUAL   paypal-plan-id-annual
 add_secret_if_present PAYPAL_WEBHOOK_ID       paypal-webhook-id
 add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
+# SMTP — transactional email (signup verification, password reset).
+# Without these mounted the backend silently skips every send, which now blocks
+# signup outright: an account is never created for an unverified address, so a
+# production signup cannot complete until these exist. Create them with:
+#   printf 'smtp.example.com' | gcloud secrets create smtp-host --data-file=-
+#   printf 'apikey'           | gcloud secrets create smtp-user --data-file=-
+#   printf '<password>'       | gcloud secrets create smtp-password --data-file=-
+add_secret_if_present SMTP_HOST               smtp-host
+add_secret_if_present SMTP_USER               smtp-user
+add_secret_if_present SMTP_PASSWORD           smtp-password
+add_secret_if_present SMTP_FROM_EMAIL         smtp-from-email
 # LLM round-robin provider keys — mount whichever exist (adds them to the pool).
 for pair in $LLM_PROVIDER_SECRETS; do
   add_secret_if_present "${pair%%:*}" "${pair##*:}"

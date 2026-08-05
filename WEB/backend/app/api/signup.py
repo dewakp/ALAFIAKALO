@@ -24,13 +24,14 @@ A robot that never reads mail and never pays leaves one expiring row here.
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.rate_limit import limiter
+from app.services import email as email_service
 from app.services import signup_service as svc
 
 router = APIRouter()
@@ -69,10 +70,47 @@ def _sent_message() -> dict:
     return {"message": "If that address can receive mail, a verification link has been sent."}
 
 
+async def _deliver_verification(
+    background_tasks: BackgroundTasks, email: str, raw_token: str, pending_id: int | None = None,
+) -> dict:
+    """Send the verification link, or fail loudly when mail cannot be sent.
+
+    Three cases, deliberately distinct:
+
+      SMTP configured           → queue the mail, return NOTHING about the token.
+      not configured, DEBUG     → return the token inline so dev can proceed.
+      not configured, prod      → 503. Accepting a signup that can never be
+                                  verified would strand the user and quietly
+                                  reintroduce the unverified-account problem.
+    """
+    if email_service.smtp_configured():
+        background_tasks.add_task(email_service.send_verification_email, email, raw_token)
+        response = _sent_message()
+        if pending_id is not None:
+            response["pending_id"] = pending_id
+        return response
+
+    if settings.DEBUG:
+        logger.warning("SMTP not configured — returning verification token inline (DEBUG only)")
+        response = _sent_message()
+        if pending_id is not None:
+            response["pending_id"] = pending_id
+        response["verification_token"] = raw_token
+        response["warning"] = "SMTP is not configured; token returned inline for development."
+        return response
+
+    logger.error("Signup attempted for %s but SMTP is not configured — refusing", email)
+    raise HTTPException(
+        status_code=503,
+        detail="Account signup is temporarily unavailable. Please try again shortly.",
+    )
+
+
 @router.post("/start", status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 async def signup_start(
-    request: Request, body: SignupStart, db: AsyncSession = Depends(get_db),
+    request: Request, body: SignupStart, background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
 ):
     """Begin a signup. Creates NO account — only a pending record."""
     if await svc.email_taken(db, body.email):
@@ -81,17 +119,7 @@ async def signup_start(
 
     pending, raw_token = await svc.start(db, body.email, body.password, body.full_name)
     await db.commit()
-
-    # TODO(email): SMTP is deferred in this project, so nothing is delivered yet.
-    # Until it ships, DEBUG returns the token inline (same convention as the
-    # password-reset flow) and production returns none — meaning production
-    # signup CANNOT complete until email sending exists. That is deliberate: it
-    # is better than silently issuing accounts to unverified addresses.
-    response = _sent_message()
-    response["pending_id"] = pending.id
-    if settings.DEBUG:
-        response["verification_token"] = raw_token
-    return response
+    return await _deliver_verification(background_tasks, body.email, raw_token, pending.id)
 
 
 @router.post("/verify-email")
@@ -124,17 +152,23 @@ async def signup_checkout(
     if not pending.email_verified:
         raise HTTPException(status_code=403, detail="Verify your email address first")
 
-    # Provider checkout for a not-yet-existing user needs a customer reference
-    # that is not a user id. Not wired: the subscription rails 503 without live
-    # provider keys anyway (see DEPLOYMENT_TASKS.md), so pretending otherwise
-    # would be inventing a flow that cannot be tested.
-    raise HTTPException(
-        status_code=503,
-        detail=(
-            "Payment is not yet available for pre-account signup. "
-            "The account will be created once payment is recorded."
-        ),
-    )
+    if body.provider != "stripe":
+        # PayPal's pre-account flow needs a subscription created against a payer
+        # rather than a customer email; not wired, and saying so beats a stub
+        # that looks like it works.
+        raise HTTPException(
+            status_code=503,
+            detail="Only card checkout is available for new signups right now.",
+        )
+
+    from app.services import subscription_service as subs
+    result = await subs.signup_stripe_checkout(pending.email, body.interval)
+    return {
+        "provider": "stripe",
+        "checkout_url": result["checkout_url"],
+        "reference_id": result["reference_id"],
+        "test_mode": result.get("test_mode", False),
+    }
 
 
 @router.post("/complete")
@@ -147,6 +181,23 @@ async def signup_complete(
     Both gates are re-checked inside `materialise()`, so this endpoint cannot be
     used to create an account for an unverified address.
     """
+    pending = await svc.get(db, body.email)
+    if pending is None or pending.is_expired():
+        raise HTTPException(status_code=400, detail="No signup in progress for that address")
+    if not pending.email_verified:
+        raise HTTPException(status_code=403, detail="Verify your email address first")
+
+    # Confirm the payment WITH THE PROVIDER before recording it.
+    #
+    # Taking the caller's word for `reference_id` would mean any string bought
+    # an account — the exact hole the two-step flow exists to close. Stripe is
+    # asked whether this session is paid AND whether it belongs to this signup.
+    if body.provider != "stripe":
+        raise HTTPException(status_code=503, detail="Only card checkout is available right now.")
+
+    from app.services import subscription_service as subs
+    await subs.signup_stripe_verify(pending.email, body.reference_id)
+
     pending = await svc.mark_paid(db, body.email, body.provider, body.reference_id)
     if pending is None:
         raise HTTPException(
@@ -188,7 +239,8 @@ async def signup_status(email: str, db: AsyncSession = Depends(get_db)):
 @router.post("/resend")
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 async def signup_resend(
-    request: Request, body: ResendRequest, db: AsyncSession = Depends(get_db),
+    request: Request, body: ResendRequest, background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
 ):
     """Issue a fresh verification token for a pending signup."""
     pending = await svc.get(db, body.email)
@@ -203,8 +255,4 @@ async def signup_resend(
     pending.verification_sent_at = svc._now()
     pending.verification_attempts += 1
     await db.commit()
-
-    response = _sent_message()
-    if settings.DEBUG:
-        response["verification_token"] = raw
-    return response
+    return await _deliver_verification(background_tasks, pending.email, raw)

@@ -165,18 +165,60 @@ fully valid body; `start` → 202 with **0 users rows**; `complete` before
 verification → 400; `checkout` before verification → 403; token replay → 400;
 after verify + pay → account created and the pending row deleted.
 
-## Not done: email delivery
+## Email delivery
 
-SMTP is deferred in this project, so **nothing is actually sent**. In `DEBUG` the
-token is returned inline (same convention as password reset); in production it is
-not returned and no mail goes out — meaning **production signup cannot complete
-until email sending ships**. That is deliberate: refusing to finish is better
-than issuing accounts to unverified addresses. It is the next thing to build.
+`send_verification_email()` sends a real message with a one-click link to
+`/verify-email?token=…`, queued as a background task so signup does not block on
+SMTP. Behaviour is deliberately three-way:
 
-Provider checkout for a not-yet-existing user is also unwired — `/signup/checkout`
-returns 503. The subscription rails already 503 without live provider keys, so
-wiring a pre-account checkout that cannot be tested would be inventing a flow.
-`/signup/complete` accepts a payment reference so the gate is exercisable today.
+| SMTP | Env | Result |
+|---|---|---|
+| configured | any | mail queued; the token is **never** in the response |
+| not configured | DEBUG | token returned inline, with a `warning` field |
+| not configured | production | **503** — refuses rather than accept a signup that can never be verified |
+
+**Verified against a real SMTP conversation**, not mocks: a local sink captured
+the message, the response carried no token, verification succeeded using the
+token taken *from the email*, and `resend` produced a fresh distinct token.
+`resend` correctly declines for an already-verified address.
+
+Production needs the secrets mounted — `deploy.sh` previously mounted Stripe and
+PayPal but **no SMTP at all**, so prod could never send regardless of code:
+
+```bash
+printf 'smtp.example.com'  | gcloud secrets create smtp-host       --data-file=-
+printf 'apikey'            | gcloud secrets create smtp-user       --data-file=-
+printf '<password>'        | gcloud secrets create smtp-password   --data-file=-
+printf 'noreply@alafia.app'| gcloud secrets create smtp-from-email --data-file=-
+```
+
+Any standard provider works (SendGrid, Resend, SES, Postmark) — the service
+speaks plain SMTP with STARTTLS, or implicit TLS on port 465.
+
+## Payment verification
+
+`/signup/checkout` creates a real Stripe Checkout session for a signup that has
+no user row, correlating via `client_reference_id = signup:<email>`.
+
+`/signup/complete` **verifies the session with Stripe** before creating the
+account. This matters: trusting the caller's `reference_id` would mean any string
+bought an account — the exact hole the two-step flow exists to close. Two checks
+run against Stripe's own record: the session is paid, and its
+`client_reference_id` matches *this* signup, so a genuinely paid session
+belonging to someone else cannot be replayed into unlimited accounts.
+
+Pinned by 11 tests with Stripe's HTTP layer stubbed: wrong owner → 403, forged
+reference → 403, unpaid → 402, `no_payment_required` (100% coupon) → accepted,
+unconfigured outside DEBUG → 503.
+
+> With **no** Stripe key **and** `DEBUG`, `_test_mode` short-circuits
+> verification and accepts anything. That is dev-only — it requires both
+> conditions, and production sets neither — but it means a local
+> "forged reference accepted" result proves nothing. The tests above force the
+> production path.
+
+PayPal pre-account checkout is **not** wired (503): its flow needs a subscription
+created against a payer rather than a customer email.
 
 # Robot account cleanup
 
