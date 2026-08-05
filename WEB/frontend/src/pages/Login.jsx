@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Mail, Phone, Loader2 } from 'lucide-react';
+import PasswordInput from '../components/PasswordInput';
 import {
   signInWithGoogle,
   signInWithApple,
@@ -144,7 +145,7 @@ export default function Login() {
               </div>
               <div className="form-group">
                 <label className="form-label">Password</label>
-                <input className="form-input" type="password" placeholder="••••••••"
+                <PasswordInput
                   value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
               <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={!!busy}>
@@ -163,7 +164,7 @@ export default function Login() {
               </div>
               <div className="form-group">
                 <label className="form-label">Password</label>
-                <input className="form-input" type="password" placeholder="••••••••"
+                <PasswordInput
                   value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
               <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={!!busy}>

@@ -1,3 +1,4 @@
+import PasswordInput from '../components/PasswordInput';
 import { useState } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import { Link } from 'react-router-dom';
@@ -94,24 +95,22 @@ export default function ForgotPassword() {
               </div>
               <div className="form-group">
                 <label className="form-label">New Password</label>
-                <input
-                  className="form-input"
-                  type="password"
+                <PasswordInput
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
                   minLength={6}
+                  autoComplete="new-password"
                 />
               </div>
               <div className="form-group">
                 <label className="form-label">Confirm Password</label>
-                <input
-                  className="form-input"
-                  type="password"
+                <PasswordInput
                   value={confirmPw}
                   onChange={(e) => setConfirmPw(e.target.value)}
                   required
                   minLength={6}
+                  autoComplete="new-password"
                 />
               </div>
               <button className="btn btn-primary" style={{ width: '100%' }} type="submit">

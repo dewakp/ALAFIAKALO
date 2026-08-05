@@ -7,20 +7,51 @@ struct LKTextField: View {
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
     var isSecure: Bool = false
-    
+
+    /// Whether a secure field is currently showing its contents.
+    @State private var revealed = false
+    /// Swapping SecureField ⇄ TextField destroys the old view, so the keyboard
+    /// dismisses mid-typing unless focus is explicitly moved to the replacement.
+    @FocusState private var focused: Bool
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
-            
-            Group {
+
+            HStack(spacing: 8) {
+                Group {
+                    if isSecure && !revealed {
+                        SecureField(title, text: $text)
+                            .focused($focused)
+                    } else {
+                        TextField(title, text: $text)
+                            .focused($focused)
+                            .keyboardType(isSecure ? .default : keyboardType)
+                            // A revealed password must not be autocapitalised,
+                            // autocorrected or spell-checked — iOS would happily
+                            // "fix" it into something the user never typed.
+                            .textInputAutocapitalization(isSecure ? .never : .sentences)
+                            .autocorrectionDisabled(isSecure)
+                    }
+                }
+
                 if isSecure {
-                    SecureField(title, text: $text)
-                } else {
-                    TextField(title, text: $text)
-                        .keyboardType(keyboardType)
+                    Button {
+                        revealed.toggle()
+                        // Restore focus after the field is rebuilt, so toggling
+                        // does not close the keyboard mid-entry.
+                        DispatchQueue.main.async { focused = true }
+                    } label: {
+                        Image(systemName: revealed ? "eye.slash" : "eye")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24, height: 24)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(revealed ? "Hide password" : "Show password")
+                    .accessibilityAddTraits(revealed ? .isSelected : [])
                 }
             }
             .padding(12)
