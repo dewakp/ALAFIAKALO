@@ -130,6 +130,41 @@ Single-operator console for dew@6igma.com at **minister.alafia.com**, and at
   password path. Anything that must happen on every login (like the `last_login`
   stamp) has to be wired into BOTH branches.
 
+## 3c. Nutrition saves are asynchronous
+
+A meal is persisted and returned **immediately**; nutrients are filled in
+afterwards by a background task. Estimation costs seconds (USDA per item,
+branded lookup, LLM fallback) and used to run inside the save — a 10-item meal
+exceeded the web client's 30s timeout and, because the request never committed,
+**the user lost the meal they had typed**.
+
+- `nutrition_logs.nutrient_status`: `pending | done | failed | skipped`. All
+  three clients show "estimating…" for `pending` rather than a blank, which
+  reads as zero calories. Web polls only while something is pending.
+- Multi-item meals MUST go through `estimate_meal_nutrients()`, not
+  `estimate_nutrients()`. The single-food path merges matches by **summing
+  per-100 g densities**; for a list that yields an impossible number (1978
+  kcal/100 g, above pure fat) which the plausibility band then rejects, sending
+  the request to the slow AI fallback.
+- The background worker gets its **own DB session** — the request's session is
+  closed by the time it runs — and never raises: a failed lookup becomes
+  `nutrient_status="failed"`, never a broken save.
+
+## 3d. Email
+
+**Resend** (HTTPS API) is the provider; SMTP is the fallback for self-hosting.
+Credentials live in `smtp.md`, which is **gitignored** — like `api_keys.md`, it
+was one `git add .` from being committed.
+
+- `RESEND_API_KEY` set → Resend. Else SMTP. Else `smtp_configured()` is False and
+  **signup refuses in production** rather than issuing an account nobody can
+  verify.
+- The HTTPS API is preferred over SMTP on Cloud Run: no outbound mail ports, no
+  STARTTLS negotiation, and a real error body. That body is how we learned the
+  sending domain was unverified — SMTP would have given an opaque failure.
+- ⚠️ **No domain is verified on the Resend account yet**, so production email
+  cannot send to arbitrary recipients. See `ADMIN_CONSOLE.md`.
+
 ## 4. Running things locally
 
 ```bash
@@ -153,7 +188,7 @@ cd WEB/frontend && npm run dev          # needs node on PATH: ~/.nvm/versions/no
 ## 5. Known drift to fix (as of 2026-08-02)
 
 - **Dev DB is behind prod.** Dev is stamped `bb002_add_subscriptions`; the single
-  head is `dd002_user_last_login`. Symptom seen in practice:
+  head is `dd004_nutrient_status`. Symptom seen in practice:
   `media_assets.storage_url` exists in the model but not in the dev DB, because
   migration `u001_media_s3_storage` was never applied there.
 - **The migration graph has exactly ONE head** — verified with `alembic heads`,

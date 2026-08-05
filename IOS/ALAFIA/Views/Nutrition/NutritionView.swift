@@ -483,6 +483,15 @@ struct NutritionRow: View {
                 if let cal = log.calories {
                     Text("\(Int(cal)) kcal")
                         .font(.subheadline).foregroundStyle(.green).fontWeight(.semibold)
+                } else if log.nutrientsPending {
+                    // Nutrients are computed after the meal is saved; say so
+                    // rather than showing nothing, which reads as "zero calories".
+                    HStack(spacing: 4) {
+                        ProgressView().controlSize(.mini)
+                        Text("estimating…").font(.caption2).foregroundStyle(.secondary)
+                    }
+                } else if log.nutrientStatus == "failed" {
+                    Text("unavailable").font(.caption2).foregroundStyle(.orange)
                 }
             }
             HStack(spacing: 12) {

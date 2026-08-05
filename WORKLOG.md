@@ -1957,3 +1957,72 @@ corrected values.
 starts near zero, no `train_food_vision.py`, no torch/tensorflow (only
 `coremltools`), free-text labels with no 200-class vocabulary, no West African
 dataset, base64-in-Postgres storage, and no Core ML/TFLite export path.
+
+## Session 2026-08-05 — Async nutrition saves, Resend email, password toggles, admin console
+
+**Nutrition saves are now asynchronous.** Estimation ran inside the save, so a
+10-item meal ("3 sardines, 4 pitted olives, …") exceeded the web client's 30s
+timeout — and because the request never committed, the user LOST the meal.
+
+Three causes, all fixed:
+1. `_try_usda` looked items up **sequentially** — 10 round trips (7.64s locally).
+   Now concurrent with a bounded semaphore: **2.24s**, same 9/10 matched.
+2. The real bug: for a list, the single-food path merges matches by **summing
+   per-100 g densities**. Densities don't add — the meal came back as **1978
+   kcal/100 g**, above pure fat (~900). The plausibility band correctly rejected
+   it, and the pipeline escalated to the slow AI fallback. Multi-item meals now
+   use `estimate_meal_nutrients()` (scales by gram weight, sums to a TOTAL):
+   **967 kcal, 30.9 g protein, believable**.
+3. Estimation no longer runs in the request at all. The log is saved and returned
+   immediately with `nutrient_status="pending"`, and a background task enriches
+   it. Measured: **save 30s-timeout → 1.5s**; in the browser the row appears in
+   **96 ms** showing "estimating…", nutrients auto-arrive with no reload.
+
+All three clients show `pending`/`failed` states rather than a blank, which reads
+as zero calories. New column `nutrition_logs.nutrient_status` (dd004).
+
+**Email implemented — Resend.** `app/services/email.py` gained a Resend HTTPS
+sender (preferred on Cloud Run: no outbound mail ports, no STARTTLS, real error
+bodies) with SMTP kept as the self-hosting fallback. A real verification email
+was delivered end-to-end. `deploy.sh` mounts `resend-api-key` AND grants the
+service account access — it previously mounted no email secret at all, so prod
+could never have sent mail regardless of code.
+
+⚠️ **No domain is verified on the Resend account**, so production can currently
+only mail the account owner. Verified against the live API; details in
+`ADMIN_CONSOLE.md`. `smtp.md` holds the key and is now **gitignored** — it was
+not, repeating the `api_keys.md` exposure.
+
+**Show/hide password across web, iOS and Android** — one component per platform
+(`PasswordInput.jsx`, `LKTextField(isSecure:)`, `PasswordField.kt`) covering all
+14 password fields. The web toggle is `type="button"` (a bare button inside a
+form submits it); iOS restores `@FocusState` after the SecureField⇄TextField swap
+or the keyboard dismisses mid-typing; revealed passwords keep
+no-autocapitalise/no-autocorrect on mobile.
+
+**Admin console** at `minister.alafia.com` (`/minister` in dev) for dew@6igma.com
+— users, last login, token usage, app health. Required fixing two things first:
+`last_login` did not exist (and the SSO branch of `/auth/login` early-returns, so
+stamping only the local path left it NULL for everyone), and `tokens_used` was
+never written because the LLM capability discarded the provider's count.
+
+**Robot accounts:** 55 `*@example.com`/`*@x.com` accounts deactivated (not
+deleted — 65 of 101 FKs are NO ACTION), plus **56 identity-only** robots that had
+no ALAFIA user row but could still have materialised one via SSO provisioning.
+Dev: 77 → **22 active users**. Reversible. Prod untouched.
+
+**Signup is now two-step** — verify email, pay, then the account is created.
+`/auth/register` is 410 Gone. `/signup/complete` verifies the Stripe session with
+Stripe (paid AND belonging to this signup) rather than trusting a client-supplied
+reference, which previously meant any string bought an account.
+
+**Also fixed:** password reset did not revoke the old password (login checks the
+IdP first, reset wrote only the local hash — two working passwords after a
+"successful" reset); the frontend container reported `unhealthy` forever because
+its healthcheck used `localhost`, which resolves to `::1` while nginx listens on
+IPv4 only; `/fonts/inter.css` was mode 600 so nginx served it 403 **in production
+too**; `greenlet` was missing from `requirements.txt`.
+
+**Correction:** an earlier claim of "5 alembic heads" was wrong. `alembic heads`
+reports exactly **one**. The hand-rolled scan that produced it missed the
+annotated form `down_revision: Union[str, None] = '…'`. Never grep for this.

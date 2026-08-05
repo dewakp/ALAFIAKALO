@@ -8,6 +8,8 @@ All methods are async-safe (run SMTP in executor to avoid blocking the event loo
 
 import asyncio
 import smtplib
+
+import httpx
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -19,6 +21,44 @@ logger = get_logger(__name__)
 
 def _smtp_configured() -> bool:
     return bool(settings.SMTP_HOST and settings.SMTP_USER)
+
+
+def _resend_configured() -> bool:
+    return bool(settings.RESEND_API_KEY)
+
+
+async def _send_via_resend(to: str, subject: str, html_body: str) -> bool:
+    """Send through Resend's HTTPS API.
+
+    Preferred over SMTP: no outbound mail ports, no STARTTLS negotiation, and a
+    real error body when something is wrong (bad key, unverified sending domain)
+    instead of an opaque socket failure.
+    """
+    payload = {
+        "from": f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>",
+        "to": [to],
+        "subject": subject,
+        "html": html_body,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                f"{settings.RESEND_API_BASE}/emails",
+                headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                json=payload,
+            )
+        if resp.status_code in (200, 201):
+            logger.info("Email sent via Resend to %s: %s (id=%s)", to, subject,
+                        (resp.json() or {}).get("id"))
+            return True
+        # Body, not just the status: Resend explains WHY (e.g. the sending domain
+        # is not verified), and that is the difference between a five-minute fix
+        # and an afternoon.
+        logger.error("Resend rejected mail to %s: %s %s", to, resp.status_code, resp.text[:300])
+        return False
+    except Exception:
+        logger.exception("Resend request failed for %s", to)
+        return False
 
 
 def _build_message(to: str, subject: str, html_body: str) -> MIMEMultipart:
@@ -43,9 +83,12 @@ def _send_sync(to: str, subject: str, html_body: str) -> None:
 
 
 async def send_email(to: str, subject: str, html_body: str) -> bool:
-    """Send an email asynchronously. Returns True on success, False on failure."""
+    """Send an email. Resend if configured, else SMTP. False if neither works."""
+    if _resend_configured():
+        return await _send_via_resend(to, subject, html_body)
+
     if not _smtp_configured():
-        logger.warning("SMTP not configured — email to %s skipped", to)
+        logger.warning("No email provider configured — email to %s skipped", to)
         return False
     try:
         loop = asyncio.get_running_loop()
@@ -76,12 +119,22 @@ async def send_password_reset_email(to: str, reset_token: str) -> bool:
 
 
 def smtp_configured() -> bool:
-    """Public probe — callers decide how to behave when mail cannot be sent.
+    """True when ANY email provider is usable (Resend or SMTP).
 
-    Signup uses this to refuse rather than to silently issue an account that no
-    one can verify.
+    Kept under this name because callers ask one question — "can we send mail?" —
+    and signup uses it to refuse rather than silently issue an account nobody can
+    verify.
     """
-    return _smtp_configured()
+    return _resend_configured() or _smtp_configured()
+
+
+def email_provider() -> str:
+    """Which provider will actually be used — surfaced in admin health."""
+    if _resend_configured():
+        return "resend"
+    if _smtp_configured():
+        return f"smtp:{settings.SMTP_HOST}"
+    return "none"
 
 
 async def send_verification_email(to: str, token: str) -> bool:

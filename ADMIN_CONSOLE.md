@@ -182,18 +182,49 @@ the message, the response carried no token, verification succeeded using the
 token taken *from the email*, and `resend` produced a fresh distinct token.
 `resend` correctly declines for an already-verified address.
 
-Production needs the secrets mounted — `deploy.sh` previously mounted Stripe and
-PayPal but **no SMTP at all**, so prod could never send regardless of code:
+### Provider: Resend (HTTPS API), SMTP as fallback
+
+Credentials are in **`smtp.md`**, which is now **gitignored** — it was not, and
+was one `git add .` from being committed, exactly as `api_keys.md` had been.
+
+`RESEND_API_KEY` set → Resend's HTTPS API. Otherwise SMTP. Otherwise mail is
+unavailable and signup refuses in production.
+
+The HTTPS API is preferred on Cloud Run: no outbound mail ports, no STARTTLS
+negotiation, and a real error body instead of a socket failure. That body is
+what diagnosed the problem below in one request.
 
 ```bash
-printf 'smtp.example.com'  | gcloud secrets create smtp-host       --data-file=-
-printf 'apikey'            | gcloud secrets create smtp-user       --data-file=-
-printf '<password>'        | gcloud secrets create smtp-password   --data-file=-
-printf 'noreply@alafia.app'| gcloud secrets create smtp-from-email --data-file=-
+printf 're_xxx' | gcloud secrets create resend-api-key --data-file=-
+# SMTP fallback (self-hosting) — only used when RESEND_API_KEY is absent:
+printf 'smtp.example.com'   | gcloud secrets create smtp-host       --data-file=-
+printf 'apikey'             | gcloud secrets create smtp-user       --data-file=-
+printf '<password>'         | gcloud secrets create smtp-password   --data-file=-
+printf 'noreply@alafia.app' | gcloud secrets create smtp-from-email --data-file=-
 ```
 
-Any standard provider works (SendGrid, Resend, SES, Postmark) — the service
-speaks plain SMTP with STARTTLS, or implicit TLS on port 465.
+`deploy.sh` mounts these **and** grants the runtime service account access —
+mounting without the IAM binding fails the deploy.
+
+### ⚠️ Production email cannot send yet — no verified domain
+
+Verified with the real key against the live API:
+
+```
+403  The alafia.com domain is not verified.
+403  You can only send testing emails to your own email address
+     (developer@hntsolutions.com).
+GET /domains → verified domains: (none)
+```
+
+A real verification email WAS delivered to `developer@hntsolutions.com` via
+Resend's shared `onboarding@resend.dev` sender, so **the integration works**.
+But until a domain is verified, production can only mail the account owner.
+
+To fix: add the sending domain at <https://resend.com/domains>, publish the DKIM
+/ SPF records it prints, then set `SMTP_FROM_EMAIL` to an address on that domain
+(e.g. `noreply@alafia.app` — note the prod API is `api.alafia.app`, while the
+current default is `noreply@alafia.com`).
 
 ## Payment verification
 

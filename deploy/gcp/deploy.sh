@@ -50,7 +50,8 @@ for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
          paypal-client-id paypal-client-secret paypal-plan-id paypal-plan-id-annual paypal-webhook-id \
-         apple-shared-secret; do
+         apple-shared-secret \
+         resend-api-key smtp-host smtp-user smtp-password smtp-from-email; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
 done
@@ -140,7 +141,12 @@ add_secret_if_present PAYPAL_PLAN_ID          paypal-plan-id
 add_secret_if_present PAYPAL_PLAN_ID_ANNUAL   paypal-plan-id-annual
 add_secret_if_present PAYPAL_WEBHOOK_ID       paypal-webhook-id
 add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
-# SMTP — transactional email (signup verification, password reset).
+# Email — transactional (signup verification, password reset).
+# Resend (HTTPS API) is preferred over SMTP on Cloud Run: no outbound mail ports,
+# no STARTTLS negotiation, and real error bodies instead of socket failures.
+#   printf 're_xxx' | gcloud secrets create resend-api-key --data-file=-
+add_secret_if_present RESEND_API_KEY           resend-api-key
+# SMTP fallback (used only when RESEND_API_KEY is absent).
 # Without these mounted the backend silently skips every send, which now blocks
 # signup outright: an account is never created for an unverified address, so a
 # production signup cannot complete until these exist. Create them with:

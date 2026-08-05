@@ -70,6 +70,10 @@ data class NutritionLog(
     @SerializedName("food_name") val foodName: String,
     @SerializedName("serving_size") val servingSize: String?,
     @SerializedName("fdc_id") val fdcId: Int?,
+    // pending | done | failed | skipped. Nutrients are filled in AFTER the meal
+    // is saved, so a fresh entry arrives with no values and status "pending" —
+    // show that rather than a blank, which reads as "zero calories".
+    @SerializedName("nutrient_status") val nutrientStatus: String? = null,
     val calories: Float?,
     @SerializedName("protein_g") val proteinG: Float?,
     @SerializedName("carbs_g") val carbsG: Float?,

@@ -50,7 +50,15 @@ class Settings(BaseSettings):
     RATE_LIMIT_AUTH: str = "5/minute"  # login / register / password-reset
     RATE_LIMIT_DEFAULT: str = "60/minute"
 
-    # Email / SMTP
+    # ── Email ────────────────────────────────────────────────────────────
+    # Resend is preferred over raw SMTP: it is an HTTPS call, so it is immune to
+    # the outbound-port and TLS-negotiation problems SMTP hits on serverless
+    # hosts, and it returns a message id and a real error body instead of a
+    # generic socket failure. SMTP stays as the fallback for self-hosting.
+    RESEND_API_KEY: str = ""
+    RESEND_API_BASE: str = "https://api.resend.com"
+
+    # Email / SMTP (fallback when RESEND_API_KEY is unset)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

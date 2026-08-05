@@ -128,6 +128,15 @@ export default function Nutrition() {
   }, []);
 
   useEffect(() => { loadLogs(filterStart, filterEnd); }, [loadLogs, filterStart, filterEnd]);
+
+  /* Nutrients are filled in after the meal is saved, so a freshly logged entry
+     arrives with nutrient_status='pending'. Poll only while something is
+     actually pending, and stop as soon as nothing is — no idle timer. */
+  useEffect(() => {
+    if (!logs.some((l) => l.nutrient_status === 'pending')) return undefined;
+    const t = setTimeout(() => loadLogs(filterStart, filterEnd), 3000);
+    return () => clearTimeout(t);
+  }, [logs, loadLogs, filterStart, filterEnd]);
   useEffect(() => { if (tab === 'summary') loadSummary(summaryDate); }, [tab, summaryDate, loadSummary]);
 
   /* ── USDA search (debounced) ── */
@@ -872,7 +881,21 @@ export default function Nutrition() {
                       {log.end_time ? log.end_time.slice(0, 5) : ''}
                       {!log.start_time && !log.end_time ? '—' : ''}
                     </td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.calories != null ? Math.round(log.calories) : '—'}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                      {log.calories != null
+                        ? Math.round(log.calories)
+                        : log.nutrient_status === 'pending'
+                          ? <span title="Working out the nutrients for this meal"
+                              style={{ fontSize: '.7rem', color: 'var(--color-text-tertiary)', fontFamily: 'inherit' }}>
+                              estimating…
+                            </span>
+                          : log.nutrient_status === 'failed'
+                            ? <span title="Could not work out nutrients — edit the entry to retry"
+                                style={{ fontSize: '.7rem', color: '#b45309', fontFamily: 'inherit' }}>
+                                unavailable
+                              </span>
+                            : '—'}
+                    </td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.protein_g != null ? `${log.protein_g.toFixed(1)}g` : '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.carbs_g != null ? `${log.carbs_g.toFixed(1)}g` : '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{log.fat_g != null ? `${log.fat_g.toFixed(1)}g` : '—'}</td>

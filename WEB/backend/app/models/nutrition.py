@@ -82,6 +82,22 @@ class NutritionLog(Base):
     recipe_url: Mapped[str | None] = mapped_column(Text)
 
     notes: Mapped[str | None] = mapped_column(Text)
+
+    # Nutrient enrichment state.
+    #
+    # The log is saved and returned immediately; nutrient lookup (USDA per item,
+    # branded, AI fallback) runs afterwards in the background because it costs
+    # seconds, not milliseconds, and used to hold the whole request — a 10-item
+    # meal exceeded the client's 30s timeout and the entry was lost.
+    #
+    #   pending  — queued/running; values will appear shortly
+    #   done     — enrichment finished (values may still be partial)
+    #   failed   — lookup errored or timed out; the meal itself is intact
+    #   skipped  — nothing to do (nutrients supplied, or a USDA item was linked)
+    nutrient_status: Mapped[str] = mapped_column(
+        String(16), default="skipped", nullable=False, server_default="skipped"
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

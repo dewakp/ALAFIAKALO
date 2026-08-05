@@ -231,9 +231,21 @@ private fun NutritionLogCard(
                         }
                     }
                 }
-                log.calories?.let {
-                    Text("${it.toInt()} kcal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF22C55E))
+                if (log.calories != null) {
+                    Text("${log.calories.toInt()} kcal", style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                } else if (log.nutrientStatus == "pending") {
+                    // Nutrients are computed after the meal is saved; say so
+                    // rather than showing nothing, which reads as zero calories.
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        CircularProgressIndicator(Modifier.size(10.dp), strokeWidth = 2.dp)
+                        Text("estimating…", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                } else if (log.nutrientStatus == "failed") {
+                    Text("unavailable", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error)
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp),

@@ -179,6 +179,10 @@ class NutritionLogUpdate(BaseModel):
 class NutritionLogResponse(BaseModel):
     id: int
     user_id: int
+    # pending | done | failed | skipped — tells the client whether nutrient
+    # values are still arriving, so it shows a placeholder rather than a
+    # misleading zero.
+    nutrient_status: str = "skipped"
     log_date: date
     meal_type: str
     food_name: str

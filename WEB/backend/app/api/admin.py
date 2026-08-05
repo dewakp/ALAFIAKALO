@@ -296,6 +296,15 @@ async def admin_app_health(
         return ", ".join(configured)
     await probe("ai_backends", _ai)
 
+    # Email: signup cannot complete without it, so it belongs in health.
+    async def _email():
+        from app.services import email as email_service
+        provider = email_service.email_provider()
+        if provider == "none":
+            raise RuntimeError("no email provider configured — signup cannot complete")
+        return provider
+    await probe("email", _email)
+
     overall = "ok" if all(c["status"] == "ok" for c in checks) else "degraded"
     return {
         "status": overall,

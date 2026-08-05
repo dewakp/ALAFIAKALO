@@ -98,3 +98,6 @@ api_keys.md
 
 # DB parity artifacts (fingerprints + prod dumps — may contain PHI)
 .db-parity/
+
+# SMTP / email provider credentials — never commit
+smtp.md

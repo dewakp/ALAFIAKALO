@@ -11,6 +11,13 @@ struct NutritionLog: Codable, Identifiable {
     let servingSize: String?
     let fdcId: Int?
 
+    /// pending | done | failed | skipped. Nutrients are filled in AFTER the meal
+    /// is saved, so a fresh entry arrives with no values and status "pending" —
+    /// show that rather than a blank, which reads as "zero calories".
+    /// Optional so payloads from an older backend still decode.
+    let nutrientStatus: String?
+    var nutrientsPending: Bool { nutrientStatus == "pending" }
+
     // Macronutrients
     let calories: Double?
     let proteinG: Double?
@@ -80,6 +87,7 @@ struct NutritionLog: Codable, Identifiable {
         case foodName = "food_name"
         case servingSize = "serving_size"
         case fdcId = "fdc_id"
+        case nutrientStatus = "nutrient_status"
         case proteinG = "protein_g"
         case carbsG = "carbs_g"
         case fatG = "fat_g"
