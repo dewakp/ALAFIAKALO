@@ -136,17 +136,16 @@ These need your access and are **not done**:
    is `api.alafia.app` while the current default is `noreply@alafia.com` — pick
    the one you will verify.
 2. **Deactivate robot accounts in production.** Prod is untouched; dev went
-   77 → 25 active. Dry run is the default — read the printed list before applying:
+   77 → 22 active. Dry run is the default — read the printed list before applying:
    ```bash
    export PROD_DB_PASS='…'          # Cloud SQL password for role `alafia`
    gcloud auth application-default login
    scripts/db/deactivate_test_accounts_prod.sh            # dry run, changes nothing
    scripts/db/deactivate_test_accounts_prod.sh --apply    # asks for confirmation
    ```
-   Accounts holding a **subscription are skipped** and listed separately: the
-   patterns are heuristics (`x.com` is a real domain, `example.com` only
-   conventionally fake) and a paying account is certainly a real person. In dev
-   this held back 3 of 55. Reversible via
+   Targets that carry subscription rows are **printed first** (in dev: 3, all
+   named `sub_smoke_…`) but are still deactivated — `example.com` is RFC 2606
+   reserved and the `x.com` matches are seeded test accounts. Reversible via
    `deactivate_test_accounts_rollback.sql` — original emails are preserved.
 3. **Pull prod down to dev** once deployed, so the two match again:
    ```bash

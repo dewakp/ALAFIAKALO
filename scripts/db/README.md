@@ -148,10 +148,14 @@ What it does: records the original email in `deactivated_accounts`, sets
 including identity-only robots that have no ALAFIA user row (those matter: the
 login path provisions an ALAFIA user on first successful identity auth).
 
-**Accounts with a subscription are skipped** and printed for manual review. The
-patterns are heuristics — `x.com` is a live domain, `example.com` is only
-conventionally fake — and a subscription is the strongest available signal that
-an account belongs to a real person.
+Both domains are test-only in this deployment: **`example.com` is reserved by
+RFC 2606** and can never be a real mail domain, and every `x.com` match here is a
+seeded test account (owner-confirmed). Matches are deactivated including any that
+carry subscription rows — a test subscription belongs to a test account, and the
+ones in question are literally named `sub_smoke_…`.
+
+Targets holding subscriptions are still **printed** before the target list, so an
+operator sees which accounts carry billing rows. The dry run is the review step.
 
 ```bash
 # dev

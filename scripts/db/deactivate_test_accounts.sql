@@ -35,29 +35,28 @@ CREATE TABLE IF NOT EXISTS deactivated_accounts (
 );
 
 -- The target set, computed once so every step below agrees on it.
--- SAFETY: never touch an account that has ever held a subscription.
---
--- The patterns are heuristics, not proof. `@x.com` is a real, live domain
--- (Twitter/X) and `@example.com` is only conventionally fake — a production
--- database can contain a genuine person at either. A subscription is the
--- strongest available signal that an account belongs to someone real, so those
--- are excluded outright and reported below for manual review.
-CREATE TEMP TABLE _protected ON COMMIT DROP AS
-SELECT DISTINCT u.id, u.email
-FROM users u
-JOIN subscriptions s ON s.user_id = u.id
-WHERE (lower(u.email) LIKE '%@example.com' OR lower(u.email) LIKE '%@x.com');
-
+-- Both domains are test-only in this deployment:
+--   example.com — RESERVED by RFC 2606; it can never be a real mail domain.
+--   x.com       — a live domain generally, but every match here is a seeded
+--                 test account (owner-confirmed).
+-- So pattern matches are deactivated, subscriptions included: a test
+-- subscription belongs to a test account. The ones that hold subscriptions are
+-- named `sub_smoke_…` / `dbl_…` — subscription smoke tests.
 CREATE TEMP TABLE _targets ON COMMIT DROP AS
 SELECT id, email
 FROM users
 WHERE (lower(email) LIKE '%@example.com' OR lower(email) LIKE '%@x.com')
-  AND is_active = true
-  AND id NOT IN (SELECT id FROM _protected);
+  AND is_active = true;
 
-\echo '── SKIPPED: matched the pattern but hold a subscription (review by hand) ──'
-SELECT count(*) AS protected_count FROM _protected;
-SELECT id, email FROM _protected ORDER BY id;
+-- Reported, not withheld. The dry run is the review step, and an operator should
+-- still SEE which accounts carry billing rows before applying.
+\echo '── heads-up: these targets also have subscription rows ──'
+SELECT u.id, u.email, count(s.id) AS subscriptions
+FROM users u
+JOIN subscriptions s ON s.user_id = u.id
+JOIN _targets t ON t.id = u.id
+GROUP BY u.id, u.email
+ORDER BY u.id;
 
 \echo ''
 \echo '── accounts to deactivate ──'
