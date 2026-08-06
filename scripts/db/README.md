@@ -133,3 +133,36 @@ A hand-rolled scan of `down_revision` once reported five heads where there is
 exactly one: many revisions use the annotated form
 `down_revision: Union[str, None] = '…'`, which a `^down_revision\s*=` regex does
 not match, so real parents look unreferenced.
+
+
+## Robot-account cleanup
+
+`deactivate_test_accounts.sql` deactivates `%@example.com` / `%@x.com` accounts.
+It does **not** delete: 65 of the 101 foreign keys referencing `users` are
+NO ACTION, so a DELETE fails rather than cascades, and forcing it would mean
+tearing rows out of ~100 clinical tables.
+
+What it does: records the original email in `deactivated_accounts`, sets
+`is_active=false`, scrambles the address to `deactivated.<id>@invalid`
+(RFC 2606 — can never resolve), and disables the matching `identity.users` rows,
+including identity-only robots that have no ALAFIA user row (those matter: the
+login path provisions an ALAFIA user on first successful identity auth).
+
+**Accounts with a subscription are skipped** and printed for manual review. The
+patterns are heuristics — `x.com` is a live domain, `example.com` is only
+conventionally fake — and a subscription is the strongest available signal that
+an account belongs to a real person.
+
+```bash
+# dev
+psql … -v dry_run=1 -f scripts/db/deactivate_test_accounts.sql   # preview
+psql … -v dry_run=0 -f scripts/db/deactivate_test_accounts.sql   # apply
+
+# production (dry run is the default)
+export PROD_DB_PASS='…'
+scripts/db/deactivate_test_accounts_prod.sh
+scripts/db/deactivate_test_accounts_prod.sh --apply
+
+# undo, either environment
+psql … -f scripts/db/deactivate_test_accounts_rollback.sql
+```

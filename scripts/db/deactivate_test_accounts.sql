@@ -35,11 +35,29 @@ CREATE TABLE IF NOT EXISTS deactivated_accounts (
 );
 
 -- The target set, computed once so every step below agrees on it.
+-- SAFETY: never touch an account that has ever held a subscription.
+--
+-- The patterns are heuristics, not proof. `@x.com` is a real, live domain
+-- (Twitter/X) and `@example.com` is only conventionally fake — a production
+-- database can contain a genuine person at either. A subscription is the
+-- strongest available signal that an account belongs to someone real, so those
+-- are excluded outright and reported below for manual review.
+CREATE TEMP TABLE _protected ON COMMIT DROP AS
+SELECT DISTINCT u.id, u.email
+FROM users u
+JOIN subscriptions s ON s.user_id = u.id
+WHERE (lower(u.email) LIKE '%@example.com' OR lower(u.email) LIKE '%@x.com');
+
 CREATE TEMP TABLE _targets ON COMMIT DROP AS
 SELECT id, email
 FROM users
 WHERE (lower(email) LIKE '%@example.com' OR lower(email) LIKE '%@x.com')
-  AND is_active = true;
+  AND is_active = true
+  AND id NOT IN (SELECT id FROM _protected);
+
+\echo '── SKIPPED: matched the pattern but hold a subscription (review by hand) ──'
+SELECT count(*) AS protected_count FROM _protected;
+SELECT id, email FROM _protected ORDER BY id;
 
 \echo ''
 \echo '── accounts to deactivate ──'
