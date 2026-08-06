@@ -115,13 +115,14 @@ Non-obvious points that have already caused bugs:
 
 ## 3b. Admin console
 
-Single-operator console for dew@6igma.com at **minister.alafia.com**, and at
-**`/minister`** in dev (`/admin` redirects there; the API namespace stays
-`/api/v1/admin/*`). Full detail in **`ADMIN_CONSOLE.md`**.
+Single-operator console for dew@6igma.com at **`/minister`** on the app host
+(`/admin` redirects there; the API namespace stays `/api/v1/admin/*`). Full
+detail in **`ADMIN_CONSOLE.md`**.
 
 - Authorization is `require_admin` (`app/core/admin_auth.py`) on every
-  `/api/v1/admin/*` route. **The hostname is routing, not security** — never add
-  an nginx rule and assume it protects anything.
+  `/api/v1/admin/*` route. **Neither the path nor a hostname is security** —
+  never add a routing rule and assume it protects anything. A dedicated host was
+  built and removed: it needed DNS + a domain mapping and protected nothing.
 - `is_superuser` alone does NOT grant access; the gate is the `ADMIN_EMAILS`
   allowlist plus an active account. A leftover test account in this database has
   `is_superuser=true`.

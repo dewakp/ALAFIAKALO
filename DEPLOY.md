@@ -110,7 +110,7 @@ vision-corpus size, the configured AI backends and the email provider. If
 `migration_revision` is not `dd004_nutrient_status`, the migration job did not
 run — do not proceed.
 
-Also check `https://minister.alafia.com` once the domain mapping exists (§6).
+Then open `https://alafia.app/minister` and sign in as `dew@6igma.com`.
 
 ## 5. Rollback
 
@@ -135,19 +135,12 @@ These need your access and are **not done**:
    and SPF records, then set `SMTP_FROM_EMAIL` to an address on it. Note the API
    is `api.alafia.app` while the current default is `noreply@alafia.com` — pick
    the one you will verify.
-2. **Map the admin host**:
-   ```bash
-   gcloud beta run domain-mappings create --service=alafia-frontend \
-     --domain=minister.alafia.com --region=us-east4 --project=alafia-prod-6igma
-   ```
-   then add the CNAME it prints. Until then the console is reachable at
-   `/minister` on the main host.
-3. **Deactivate robot accounts in production.** Dev went 77 → 22 active users;
+2. **Deactivate robot accounts in production.** Dev went 77 → 22 active users;
    prod is untouched. Dry-run first:
    ```bash
    psql … -v dry_run=1 -f scripts/db/deactivate_test_accounts.sql
    ```
-4. **Pull prod down to dev** once deployed, so the two match again:
+3. **Pull prod down to dev** once deployed, so the two match again:
    ```bash
    scripts/db/verify_parity.sh    # expect drift until this is done
    scripts/db/pull_prod.sh
@@ -174,7 +167,7 @@ silently fails.
 | Nutrition | Saves return in ~1.5s instead of timing out; nutrients enrich in the background (`nutrient_status`) |
 | Nutrition | Multi-item meals no longer sum per-100 g densities (was 1978 kcal/100 g → now 967 kcal total) |
 | Vision | Meal-photo analysis on web/iOS/Android, correction capture, portion→grams, Phase 5 training corpus |
-| Admin | Console at `minister.alafia.com` — users, last login, token usage, app health |
+| Admin | Console at `/minister` — users, last login, token usage, app health |
 | Auth | Password reset now revokes the old password (it did not); `last_login` recorded; show/hide password on all frontends |
 | Email | Resend HTTPS provider with SMTP fallback |
 | Signup | Two-step flow built and tested, **gated off** |

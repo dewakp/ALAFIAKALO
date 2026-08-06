@@ -1,6 +1,7 @@
 # ALAFIA Admin Console
 
-Single-operator console for **dew@6igma.com**, served at **minister.alafia.com**.
+Single-operator console for **dew@6igma.com**, served at **`/minister`** on the
+main app host.
 
 Answers: who has registered, when they last signed in, how much LLM spend each
 account is generating, and whether the app is healthy.
@@ -21,10 +22,14 @@ console access should not follow from one stray `UPDATE`.
 Non-admins get **404, not 403** — a logged-in prober is not told the console
 exists.
 
-> **The hostname is routing, not security.** Anyone can send `Host:
-> minister.alafia.com` to the API. Authorization lives in `require_admin`
-> (`app/core/admin_auth.py`) and never inspects the host. Do not add nginx rules
-> and assume they protect anything.
+> **The path is not security either.** `/minister` is just where the page is
+> served; anyone can request `/api/v1/admin/*` directly. Authorization lives in
+> `require_admin` (`app/core/admin_auth.py`) and depends on nothing about the
+> URL. Do not add routing rules and assume they protect anything.
+>
+> A dedicated hostname was built and then removed: it required DNS and a Cloud
+> Run domain mapping, and bought no security, because the boundary was never the
+> host. A path is the same protection with none of the setup.
 
 Every allowed and refused call is logged with caller identity, path and IP, under
 logger `app.admin.access` — an admin console over patient-adjacent data needs an
@@ -77,42 +82,22 @@ saw it. The capability now returns `tokens_used`/`model`/`provider`, and
 > from now on. A provider that reports no usage still contributes 0 and would
 > understate the total; the endpoint says so in its `note`.
 
-## Deploying to minister.alafia.com
+## Where it lives
 
-The app is built and host routing is in place. **What remains needs your DNS
-access**, so it is not done:
+`/minister` on whatever host serves the app — `http://localhost:8080/minister` in
+dev, `https://alafia.app/minister` in production. `/admin` redirects there, so
+older links keep working.
 
-1. **Map the domain to the frontend Cloud Run service**
-   ```bash
-   gcloud beta run domain-mappings create \
-     --service=alafia-frontend --domain=minister.alafia.com \
-     --region=us-east4 --project=alafia-prod-6igma
-   ```
-2. **Add the DNS record** the command prints (a `CNAME` to `ghs.googlehosted.com`
-   for a subdomain), at whoever hosts `alafia.com`.
-3. Wait for the Google-managed certificate to issue (minutes to ~an hour), then
-   check `https://minister.alafia.com` → redirects to `/minister`.
-
-No backend change is needed: the console calls the same `/api/v1` the app does.
-
-### Verifying locally without DNS
-
-```bash
-open http://localhost:8080/minister                                 # the console in dev
-curl -H "Host: minister.alafia.com" http://localhost:8080/          # 302 → /minister
-```
-
-The dev path is **`/minister`**, matching the production hostname. `/admin`
-still resolves — it redirects to `/minister` so older links keep working. Note
-the **API** namespace stays `/api/v1/admin/*`; only the UI route was renamed.
+No DNS record, no Cloud Run domain mapping, no nginx server block. The API
+namespace is unchanged at `/api/v1/admin/*`.
 
 ## Verified
 
 - **Access control, live:** admin `200` on all four endpoints; non-admin `404`;
   anonymous `401`. Confirmed in the browser: the admin sees the console, the
   non-admin sees "Not authorised".
-- **Host routing:** `Host: minister.alafia.com` → `302 /minister`; `/minister` → `200`;
-  `/api/` proxy → `200`. The default host is unaffected.
+- **Routing:** `/minister` → `200` and renders the console; `/admin` → redirects
+  to `/minister`. The rest of the app is unaffected.
 - **`last_login`:** registered a probe account, logged in, watched NULL → a
   timestamp, and saw it surface top of the console sorted by last login. Probe
   account deleted afterwards.

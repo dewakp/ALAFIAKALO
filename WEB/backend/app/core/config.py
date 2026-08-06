@@ -177,9 +177,6 @@ class Settings(BaseSettings):
     # able to hand out console access. BOTH must hold — email on this list AND
     # the account active.
     ADMIN_EMAILS: list[str] = ["dew@6igma.com"]
-    # Host the admin console is served on. Used only for logging/link building;
-    # authorization never depends on the hostname.
-    ADMIN_HOST: str = "minister.alafia.com"
     # Public base URL of the web app; used to build Stripe/PayPal return URLs.
     PUBLIC_WEB_URL: str = "http://localhost:8080"
 
