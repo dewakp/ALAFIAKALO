@@ -34,6 +34,34 @@ shared `onboarding@resend.dev` sender. Only the sending domain is missing.
 
 ---
 
+## 0. What exists, and where
+
+```bash
+./scripts/gcp/inventory.sh      # read-only; prints everything with console links
+```
+
+| | |
+|---|---|
+| Project | `alafia-prod-6igma` (number `1087818475199`) — one of 22 this account can see |
+| Region | `us-east4` |
+| Cloud Run | `alafia-backend`, `alafia-frontend`, `alafia-identity` |
+| Cloud SQL | `alafia-db-va` — Postgres 16 |
+| Artifact Registry | `alafia`, `alafia-ml` |
+| Domain mappings | `alafia.app` + `www` → frontend · `api.alafia.app` → backend |
+
+**DNS lives in two different places — this is the thing that wastes an afternoon:**
+
+| Domain | Registrar | Records edited at |
+|---|---|---|
+| `alafia.app` | GoDaddy | **Cloud DNS zone `alafia-app`** in `alafia-prod-6igma` — *not GoDaddy* |
+| `alafia.com` | Namecheap | **Namecheap dashboard** |
+
+GoDaddy holds only the registration and the delegation to
+`ns-cloud-c1–c4.googledomains.com`. Adding an `alafia.app` subdomain is one
+record in that zone plus one Cloud Run domain mapping:
+
+<https://console.cloud.google.com/net-services/dns/zones?project=alafia-prod-6igma>
+
 ## 1. Preflight
 
 ```bash
