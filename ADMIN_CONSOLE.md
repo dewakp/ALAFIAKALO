@@ -191,25 +191,29 @@ printf 'noreply@alafia.app' | gcloud secrets create smtp-from-email --data-file=
 `deploy.sh` mounts these **and** grants the runtime service account access —
 mounting without the IAM binding fails the deploy.
 
-### ⚠️ Production email cannot send yet — no verified domain
+### Verified sending domain: alafia.app
 
-Verified with the real key against the live API:
+`alafia.app` is verified in Resend and sending works — confirmed by an actual
+delivered message from `noreply@alafia.app`.
 
-```
-403  The alafia.com domain is not verified.
-403  You can only send testing emails to your own email address
-     (developer@hntsolutions.com).
-GET /domains → verified domains: (none)
-```
+Three DNS records make that work, all in the Cloud DNS zone `alafia-app`
+(project `alafia-prod-6igma`) — **not** at GoDaddy, which holds only the
+registration and the NS delegation:
 
-A real verification email WAS delivered to `developer@hntsolutions.com` via
-Resend's shared `onboarding@resend.dev` sender, so **the integration works**.
-But until a domain is verified, production can only mail the account owner.
+| Name | Type | Value |
+|---|---|---|
+| `resend._domainkey.alafia.app` | TXT | `p=MIGfMA0GCSqG…` (DKIM) |
+| `send.alafia.app` | MX | `10 feedback-smtp.us-east-1.amazonses.com.` |
+| `send.alafia.app` | TXT | `v=spf1 include:amazonses.com ~all` |
 
-To fix: add the sending domain at <https://resend.com/domains>, publish the DKIM
-/ SPF records it prints, then set `SMTP_FROM_EMAIL` to an address on that domain
-(e.g. `noreply@alafia.app` — note the prod API is `api.alafia.app`, while the
-current default is `noreply@alafia.com`).
+The SPF sits on the **`send` subdomain**, which is Resend's Return-Path/bounce
+domain. It does not touch the apex record
+(`v=spf1 include:_spf.firebasemail.com ~all`), so Firebase and Google Workspace
+mail are unaffected — a domain may only carry one SPF record per name, and these
+are different names.
+
+> The sender is `noreply@alafia.app`, not `.com`. `alafia.com` is the Workspace
+> mail domain, its DNS is at Namecheap, and it is not verified for sending.
 
 ## Payment verification
 
