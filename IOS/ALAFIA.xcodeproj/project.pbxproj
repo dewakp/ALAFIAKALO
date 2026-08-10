@@ -39,6 +39,7 @@
 		4A0000000000000000000219 /* LifestyleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000119 /* LifestyleView.swift */; };
 		4A000000000000000000021A /* AIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011A /* AIChatView.swift */; };
 		4A000000000000000000021B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011B /* Assets.xcassets */; };
+		4A0000000000000000000FA2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000FA1 /* PrivacyInfo.xcprivacy */; };
 		4A000000000000000000021C /* MentalHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011D /* MentalHealth.swift */; };
 		4A000000000000000000021D /* MentalHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011E /* MentalHealthView.swift */; };
 		4A000000000000000000021E /* CommunityHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011F /* CommunityHealth.swift */; };
@@ -147,6 +148,7 @@
 		4A0000000000000000000119 /* LifestyleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifestyleView.swift; sourceTree = "<group>"; };
 		4A000000000000000000011A /* AIChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatView.swift; sourceTree = "<group>"; };
 		4A000000000000000000011B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4A0000000000000000000FA1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4A000000000000000000011C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4A000000000000000000011D /* MentalHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealth.swift; sourceTree = "<group>"; };
 		4A000000000000000000011E /* MentalHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthView.swift; sourceTree = "<group>"; };
@@ -499,6 +501,7 @@
 			isa = PBXGroup;
 			children = (
 				4A000000000000000000011B /* Assets.xcassets */,
+				4A0000000000000000000FA1 /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -850,6 +853,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A000000000000000000021B /* Assets.xcassets in Resources */,
+				4A0000000000000000000FA2 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
