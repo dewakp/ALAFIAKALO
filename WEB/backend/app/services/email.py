@@ -8,6 +8,7 @@ All methods are async-safe (run SMTP in executor to avoid blocking the event loo
 
 import asyncio
 import smtplib
+from urllib.parse import quote
 
 import httpx
 from email.mime.multipart import MIMEMultipart
@@ -99,18 +100,44 @@ async def send_email(to: str, subject: str, html_body: str) -> bool:
         return False
 
 
+def password_reset_url(reset_token: str) -> str:
+    """The one place the reset link is built, so email and debug logging agree.
+
+    quote() is belt-and-braces: a JWT is [A-Za-z0-9_-] plus dots, all of which are
+    query-safe, but the token format is not this function's to assume.
+    """
+    return (
+        f"{settings.PUBLIC_WEB_URL.rstrip('/')}/reset-password"
+        f"?token={quote(reset_token, safe='')}"
+    )
+
+
 async def send_password_reset_email(to: str, reset_token: str) -> bool:
-    """Send a password reset email with a secure token link."""
+    """Send a password reset email containing a one-click link.
+
+    The token travels in the link rather than being shown as a "code" to copy:
+    a reset JWT is ~200 characters, so asking a person to transcribe it between
+    two windows was the reason the flow needed a visible token field at all.
+    """
+    reset_url = password_reset_url(reset_token)
     subject = f"{settings.APP_NAME} — Password Reset"
     html_body = f"""
     <html><body style="font-family:sans-serif;max-width:480px;margin:auto;">
       <h2>{settings.APP_NAME}</h2>
-      <p>You requested a password reset. Use the code below to reset your password:</p>
-      <p style="font-size:18px;background:#f3f4f6;padding:12px;border-radius:8px;text-align:center;letter-spacing:2px;">
-        <strong>{reset_token}</strong>
+      <p>You requested a password reset. Click below to choose a new password:</p>
+      <p style="text-align:center;margin:28px 0;">
+        <a href="{reset_url}"
+           style="background:#ea580c;color:#fff;text-decoration:none;padding:12px 24px;
+                  border-radius:8px;display:inline-block;font-weight:600;">
+          Reset my password
+        </a>
       </p>
-      <p>This code expires in {settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES} minutes.</p>
-      <p>If you didn't request this, please ignore this email.</p>
+      <p style="color:#6b7280;font-size:13px;">
+        If the button doesn't work, paste this link into your browser:<br>
+        <span style="word-break:break-all;">{reset_url}</span>
+      </p>
+      <p>This link expires in {settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES} minutes.</p>
+      <p>If you didn't request this, please ignore this email — your password is unchanged.</p>
       <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
       <p style="color:#6b7280;font-size:12px;">{settings.APP_NAME} — Holistic Health Platform</p>
     </body></html>

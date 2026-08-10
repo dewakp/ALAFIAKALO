@@ -79,6 +79,9 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          {/* Destination of the emailed reset link (?token=…). Same component:
+              a token in the query string skips straight to the new-password form. */}
+          <Route path="/reset-password" element={<ForgotPassword />} />
         <Route
           path="/"
           element={

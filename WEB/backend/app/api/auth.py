@@ -34,7 +34,7 @@ from app.schemas.user import (
 from app.services.sid_service import generate_sid, get_segments_for_log, verify_sid, decode_sid, mask_sid
 from app.core.rate_limit import limiter
 from app.core.units import units_for_locale
-from app.services.email import send_password_reset_email
+from app.services.email import password_reset_url, send_password_reset_email
 
 logger = logging.getLogger(__name__)
 
@@ -408,7 +408,19 @@ async def request_password_reset(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    """Request a password reset. Returns reset token (in production, send via email)."""
+    """Request a password reset. The token is delivered ONLY by email.
+
+    The reset token is deliberately never part of this response, under any
+    setting. It used to be included when DEBUG was true, which meant a single
+    boolean stood between the deployment and trivial account takeover: POST any
+    address, read the token out of the JSON, own the account. The
+    "If the email exists" wording is meant to prevent enumeration, and returning
+    a working token in that same response made it theatre.
+
+    Dev convenience is preserved by logging the link server-side (below) — visible
+    to whoever runs the backend, which is the person who needs it, and to nobody
+    who merely sends it an HTTP request.
+    """
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     # Always return 200 to avoid email enumeration
@@ -417,11 +429,10 @@ async def request_password_reset(
 
     reset_token = create_password_reset_token(user.id)
     background_tasks.add_task(send_password_reset_email, user.email, reset_token)
-    response_body = {"message": "If the email exists, a reset link has been sent."}
-    # Expose token directly only in debug mode (for dev/test convenience)
     if settings.DEBUG:
-        response_body["reset_token"] = reset_token
-    return response_body
+        # Local development only: the console is not reachable over the network.
+        logger.info("DEBUG password reset link: %s", password_reset_url(reset_token))
+    return {"message": "If the email exists, a reset link has been sent."}
 
 
 @router.post("/password-reset/confirm", status_code=status.HTTP_200_OK)

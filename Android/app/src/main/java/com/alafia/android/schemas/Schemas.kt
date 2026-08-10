@@ -125,9 +125,11 @@ data class PasswordResetConfirm(
     val new_password: String
 )
 
+// Deliberately no `reset_token`. The API no longer returns one under any setting
+// — it is delivered only by the emailed link — and keeping a field that must
+// never be populated invites re-adding the server side to "make the client work".
 data class PasswordResetResponse(
-    val message: String,
-    val reset_token: String? = null
+    val message: String
 )
 
 // Fitness Schemas

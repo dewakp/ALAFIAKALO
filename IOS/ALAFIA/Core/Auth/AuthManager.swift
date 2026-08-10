@@ -259,10 +259,7 @@ struct PasswordResetConfirmBody: Encodable {
 
 struct PasswordResetResponse: Decodable {
     let message: String
-    let resetToken: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case message
-        case resetToken = "reset_token"
-    }
+    // Deliberately no `reset_token`. The API no longer returns one under any
+    // setting — it is delivered only by email — and decoding a field that must
+    // never exist invites re-adding the server side to "make the client work".
 }

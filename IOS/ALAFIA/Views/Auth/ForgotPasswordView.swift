@@ -5,15 +5,15 @@ struct ForgotPasswordView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var email = ""
-    @State private var resetToken = ""
-    @State private var newPassword = ""
-    @State private var confirmPassword = ""
     @State private var step: Step = .request
     @State private var isLoading = false
     @State private var error: String?
     @State private var message: String?
     
-    enum Step { case request, confirm, done }
+    /// No in-app confirm step: the reset link in the email opens the web reset
+    /// page. The app previously asked the user to paste a reset "code", which
+    /// only worked because the email printed a ~200-character JWT as text.
+    enum Step { case request, sent }
     
     var body: some View {
         ScrollView {
@@ -50,10 +50,8 @@ struct ForgotPasswordView: View {
                 switch step {
                 case .request:
                     requestView
-                case .confirm:
-                    confirmView
-                case .done:
-                    doneView
+                case .sent:
+                    sentView
                 }
             }
             .padding(.horizontal, 32)
@@ -79,32 +77,21 @@ struct ForgotPasswordView: View {
         }
     }
     
-    private var confirmView: some View {
+    private var sentView: some View {
         VStack(spacing: 16) {
-            LKTextField(title: "Reset Token", text: $resetToken)
-            
-            LKTextField(title: "New Password", text: $newPassword, isSecure: true)
-                .textContentType(.newPassword)
-            
-            LKTextField(title: "Confirm Password", text: $confirmPassword, isSecure: true)
-                .textContentType(.newPassword)
-            
-            LKButton(title: "Reset Password", isLoading: isLoading) {
-                Task { await confirmReset() }
-            }
-        }
-    }
-    
-    private var doneView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 48))
+            Image(systemName: "envelope.badge.fill")
+                .font(.system(size: 40))
                 .foregroundStyle(.green)
-            
-            Text("Password reset successfully!")
-                .font(.headline)
-                .foregroundStyle(.green)
-            
+
+            Text("Open the link in that email to choose a new password.")
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+
+            Text("Your current password keeps working until you do.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
             LKButton(title: "Back to Login") {
                 dismiss()
             }
@@ -117,28 +104,10 @@ struct ForgotPasswordView: View {
         do {
             let response = try await authManager.requestPasswordReset(email: email)
             message = response.message
-            if let token = response.resetToken {
-                resetToken = token
-            }
-            step = .confirm
+            step = .sent
         } catch {
             self.error = error.localizedDescription
         }
     }
     
-    private func confirmReset() async {
-        error = nil; message = nil
-        guard newPassword == confirmPassword else {
-            error = "Passwords do not match"
-            return
-        }
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            _ = try await authManager.confirmPasswordReset(token: resetToken, newPassword: newPassword)
-            step = .done
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
 }

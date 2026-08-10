@@ -20,11 +20,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun ForgotPasswordScreen(navController: NavHostController) {
     var email by remember { mutableStateOf("") }
-    var resetToken by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
-    var step by remember { mutableStateOf("request") } // request | confirm | done
+    // No in-app confirm step: the emailed link opens the web reset page. The app
+    // used to ask for a pasted reset "code", which only worked because the email
+    // printed a ~200-character JWT as text.
+    var step by remember { mutableStateOf("request") } // request | sent
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -62,8 +62,7 @@ fun ForgotPasswordScreen(navController: NavHostController) {
                                     val response = apiService.requestPasswordReset(
                                         PasswordResetRequest(email.trim())
                                     )
-                                    response.reset_token?.let { resetToken = it }
-                                    step = "confirm"
+                                    step = "sent"
                                     Toast.makeText(context, response.message, Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
@@ -81,67 +80,16 @@ fun ForgotPasswordScreen(navController: NavHostController) {
                 }
             }
 
-            "confirm" -> {
-                OutlinedTextField(
-                    value = resetToken,
-                    onValueChange = { resetToken = it },
-                    label = { Text("Reset Token") },
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    singleLine = true,
-                    enabled = !isLoading
-                )
-
-                PasswordField(
-                    value = newPassword,
-                    onValueChange = { newPassword = it },
-                    label = "New Password",
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    imeAction = ImeAction.Next,
-                    enabled = !isLoading
-                )
-
-                PasswordField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
-                    label = "Confirm Password",
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    enabled = !isLoading
-                )
-
-                Button(
-                    onClick = {
-                        if (newPassword != confirmPassword) {
-                            Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        isLoading = true
-                        scope.launch {
-                            try {
-                                val apiService = ApiClient.getApiService()
-                                apiService.confirmPasswordReset(
-                                    PasswordResetConfirm(resetToken, newPassword)
-                                )
-                                step = "done"
-                            } catch (e: Exception) {
-                                Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
-                            } finally {
-                                isLoading = false
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    enabled = !isLoading && resetToken.isNotEmpty() && newPassword.length >= 6 && confirmPassword.isNotEmpty()
-                ) {
-                    if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Reset Password")
-                }
-            }
-
-            "done" -> {
+            "sent" -> {
                 Text(
-                    text = "Password reset successfully!",
+                    text = "Open the link in that email to choose a new password.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "Your current password keeps working until you do.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
@@ -158,7 +106,7 @@ fun ForgotPasswordScreen(navController: NavHostController) {
             }
         }
 
-        if (step != "done") {
+        if (step != "sent") {
             TextButton(
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.padding(top = 16.dp)
