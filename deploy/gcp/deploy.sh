@@ -15,9 +15,31 @@ AR="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}"
 : "${OLLAMA_URL:=https://alafia-ollama-1087818475199.us-central1.run.app}"  # private GPU LLM
 GIT_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
 
-# Preflight: identity signing keys must exist (they need liboqs, so they can't be
+# Preflight 0: gcloud itself. The SDK is commonly installed outside PATH (e.g.
+# ~/google-cloud-sdk/bin), and every check below hides stderr — so a missing
+# binary used to surface as "secret 'identity-keys' is missing", sending you to
+# create a secret that already existed. Fail on the real cause instead.
+if ! command -v gcloud >/dev/null 2>&1; then
+  for c in "$HOME/google-cloud-sdk/bin" "/opt/homebrew/share/google-cloud-sdk/bin" \
+           "/usr/local/share/google-cloud-sdk/bin"; do
+    [ -x "$c/gcloud" ] && { PATH="$c:$PATH"; export PATH; break; }
+  done
+fi
+command -v gcloud >/dev/null 2>&1 || {
+  echo "ERROR: gcloud is not on PATH and was not found in the usual install locations." >&2
+  echo "  Add the SDK's bin/ to PATH, or set GCLOUD_BIN, then re-run." >&2
+  exit 1; }
+
+# Preflight 1: authenticated? Otherwise every describe below fails "not found".
+gcloud auth print-access-token >/dev/null 2>&1 || {
+  echo "ERROR: gcloud is not authenticated (or the token expired). Run:" >&2
+  echo "  gcloud auth login && gcloud auth application-default login" >&2
+  exit 1; }
+
+# Preflight 2: identity signing keys must exist (they need liboqs, so they can't be
 # auto-generated here — see runbook §"Generate identity keys" / IDENTITY_DEPLOYMENT.md).
-if ! gcloud secrets describe identity-keys >/dev/null 2>&1; then
+# --project is explicit: the ambient config project is not guaranteed to be ours.
+if ! gcloud secrets describe identity-keys --project "$PROJECT_ID" >/dev/null 2>&1; then
   echo "ERROR: secret 'identity-keys' is missing. Generate the hybrid signing keys and store them:" >&2
   echo "  docker compose -f \$REPO_ROOT/WEB/docker-compose.yml run --rm --no-deps \\" >&2
   echo "    -v \"\$PWD/keys:/out\" identity python -m scripts.generate_keys /out/identity_keys.json" >&2

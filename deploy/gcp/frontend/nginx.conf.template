@@ -50,6 +50,22 @@ server {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
+    # Deep-link manifests must be served verbatim as JSON. Without this block the
+    # SPA fallback below matches them: an existing file is still served, but the
+    # extensionless apple-app-site-association gets nginx's default type
+    # (application/octet-stream) instead of application/json, and a MISSING file
+    # returns index.html with HTTP 200. Both are rejected by Apple, and a plain
+    # status-code check reports 200 either way. `^~` wins over the regex block above.
+    #
+    # This mirrors WEB/frontend/nginx.conf — that file is the local/compose config
+    # and is NOT what ships. Production is built from deploy/gcp/frontend/Dockerfile
+    # using THIS template, so a change made only there never reaches prod.
+    location ^~ /.well-known/ {
+        default_type application/json;
+        add_header Cache-Control "public, max-age=300" always;
+        try_files $uri =404;
+    }
+
     location / {
         try_files $uri $uri/ /index.html;
     }
