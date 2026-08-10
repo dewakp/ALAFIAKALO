@@ -156,7 +156,7 @@ Use these for testing (adjust based on your backend):
 ```
 Username: demo
 Password: demo123
-Email: demo@alafia.com
+Email: demo@alafia.app
 ```
 
 ## 🎨 UI Framework Notes

@@ -62,14 +62,12 @@ done
   That means DNS is hosted OUTSIDE Google Cloud. Check the nameservers to find
   the real host — registrar and DNS host are usually different companies:
       dig +short NS alafia.app
-      dig +short NS alafia.com
   ns-cloud-*.googledomains.com  → Google Cloud DNS (find the owning project)
-  dns*.registrar-servers.com    → Namecheap dashboard
   *.domaincontrol.com           → GoDaddy dashboard
 EOS
 
 hdr "LIVE NAMESERVERS (authoritative answer, independent of any console)"
-for d in alafia.app alafia.com; do
+for d in alafia.app; do
   row "$d" "$(dig +short NS "$d" 2>/dev/null | tr '\n' ' ')"
 done
 

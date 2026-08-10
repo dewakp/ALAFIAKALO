@@ -7,7 +7,7 @@ import Layout from './components/Layout';
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Landing = lazy(() => import('./pages/Landing'));
-// Admin console (minister.alafia.com). Server-side require_admin is the
+// Admin console at /minister. Server-side require_admin is the
 // real gate; this route simply renders 'not authorised' for everyone else.
 const Admin = lazy(() => import('./pages/Admin'));
 const Login = lazy(() => import('./pages/Login'));
@@ -90,7 +90,7 @@ export default function App() {
           <Route index element={<PromptHub />} />
           <Route path="dashboard" element={<Dashboard />} />
           {/* Console lives at /minister so the dev path matches the production
-              hostname (minister.alafia.com). /admin redirects for old links. */}
+              app host. /admin redirects for old links. */}
           <Route path="minister" element={<Admin />} />
           <Route path="admin" element={<Navigate to="/minister" replace />} />
           <Route path="nutrition" element={<Nutrition />} />

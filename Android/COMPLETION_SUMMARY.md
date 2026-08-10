@@ -206,7 +206,7 @@ private const val BASE_URL = "http://10.0.2.2:8000/api/"
 private const val BASE_URL = "http://192.168.1.100:8000/api/"
 
 // For Remote Server
-private const val BASE_URL = "https://api.alafia.com/api/"
+private const val BASE_URL = "https://api.alafia.app/api/"
 ```
 
 ### Build Configuration

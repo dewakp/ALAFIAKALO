@@ -5,7 +5,7 @@ Import ALAFIA.APP Firestore data into ALAFIA PostgreSQL.
 Migration path: ALAFIA.APP (Firebase/Firestore) → ALAFIA (PostgreSQL)
 
 Source: Firestore user sKhP73PXMQXL7uVnWq28Sm0p0Ts2 (developer@hntsolutions.com)
-Target: ALAFIA user_id=1 (demo@alafia.com)
+Target: ALAFIA user_id=1 (demo@alafia.app)
 
 Collections imported:
   1. vitalsLog       → vitals_logs

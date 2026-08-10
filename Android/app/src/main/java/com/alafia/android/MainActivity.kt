@@ -152,7 +152,7 @@ fun AppNavigation(activity: MainActivity, intent: Intent?) {
 
 /** Parse a deep link URI into a Compose navigation route. */
 private fun parseDeepLink(uri: Uri): String? {
-    // Supports:  alafia://labs   or   https://alafia.com/app/labs
+    // Supports:  alafia://labs   or   https://alafia.app/app/labs
     val path = when (uri.scheme) {
         "alafia" -> uri.host ?: uri.path?.trimStart('/')
         else -> uri.path?.removePrefix("/app/")?.removePrefix("/app")?.trimStart('/')

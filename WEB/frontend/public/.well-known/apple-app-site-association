@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["E48V6Y372K.com.alafia.app"],
+        "components": [
+          {
+            "/": "/app/*",
+            "comment": "Deep links into the ALAFIA iOS app; matches the /app path prefix the Android intent filter uses."
+          }
+        ]
+      }
+    ]
+  }
+}

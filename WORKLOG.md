@@ -1847,7 +1847,8 @@ payments go live. Kill-switch: set `SUBSCRIPTION_REQUIRED=false`.
 **All outstanding work is now logged in `DEPLOYMENT_TASKS.md`** (master tracker): payments go-live,
 custom domain, deferred infra (GPU LLM / Redis / blockchain / email / media / Firebase sync), and full
 **iOS + Android app-store deployment checklists**. Surfaced two mobile blockers there: apps hardcode
-`https://api.alafia.com` (no domain yet), and iOS bundle `com.alafia.app` ≠ backend
+`https://api.alafia.com` — a domain we do NOT own; later repointed to
+`alafia.app` (2026-08) — and iOS bundle `com.alafia.app` ≠ backend
 `APPLE_BUNDLE_ID=com.alafia.ios` (must match for Apple purchase verification).
 
 ## Session 2026-08-01 — Meal-photo analysis goes live on web + iOS + Android
@@ -2000,7 +2001,7 @@ form submits it); iOS restores `@FocusState` after the SecureField⇄TextField s
 or the keyboard dismisses mid-typing; revealed passwords keep
 no-autocapitalise/no-autocorrect on mobile.
 
-**Admin console** at `minister.alafia.com` (`/minister` in dev) for dew@6igma.com
+**Admin console** at `/minister` for dew@6igma.com
 — users, last login, token usage, app health. Required fixing two things first:
 `last_login` did not exist (and the SSO branch of `/auth/login` early-returns, so
 stamping only the local path left it NULL for everyone), and `tokens_used` was

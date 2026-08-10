@@ -22,7 +22,7 @@ from datetime import date, datetime, timedelta
 import random
 
 BASE_URL = "http://localhost:8000/api/v1"
-DEMO_EMAIL = "demo@alafia.com"
+DEMO_EMAIL = "demo@alafia.app"
 DEMO_PASSWORD = "demo1234"
 DEMO_NAME = "Wole Akpose"
 

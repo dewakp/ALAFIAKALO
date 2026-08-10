@@ -1,5 +1,5 @@
 /**
- * ALAFIA admin console — served at minister.alafia.com.
+ * ALAFIA admin console — served at /minister on the app host.
  *
  * Single operator (dew@6igma.com). Authorization is enforced server-side by
  * `require_admin` on every /api/v1/admin/* endpoint; this page hiding itself is not

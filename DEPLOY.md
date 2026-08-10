@@ -24,7 +24,7 @@ does today. Turn it on only after the checklist in *Enabling two-step signup*.
 **No domain is verified on the Resend account.** Confirmed against the live API:
 
 ```
-403  The alafia.com domain is not verified.
+403  The alafia.app domain is not verified.
 403  You can only send testing emails to your own address (developer@hntsolutions.com)
 GET /domains → verified domains: (none)
 ```
@@ -54,7 +54,7 @@ shared `onboarding@resend.dev` sender. Only the sending domain is missing.
 | Domain | Registrar | Records edited at |
 |---|---|---|
 | `alafia.app` | GoDaddy | **Cloud DNS zone `alafia-app`** in `alafia-prod-6igma` — *not GoDaddy* |
-| `alafia.com` | Namecheap | **Namecheap dashboard** |
+| `alafia.app` | Namecheap | **Namecheap dashboard** |
 
 GoDaddy holds only the registration and the delegation to
 `ns-cloud-c1–c4.googledomains.com`. Adding an `alafia.app` subdomain is one
@@ -157,25 +157,25 @@ from an app problem.
 
 ## 6. Post-deploy, still outstanding
 
+Done since the last revision of this doc:
+
+- ✅ **Sending domain verified.** `alafia.app` is verified in Resend, its DKIM/SPF
+  records are published in Cloud DNS zone `alafia-app`, and real delivery to an
+  external inbox was confirmed. `SMTP_FROM_EMAIL=noreply@alafia.app`.
+- ✅ **Robot accounts deactivated in production** (78 → 23 active). Reversible via
+  `deactivate_test_accounts_rollback.sql` — original emails are preserved.
+
 These need your access and are **not done**:
 
-1. **Verify a sending domain** at <https://resend.com/domains>, publish the DKIM
-   and SPF records, then set `SMTP_FROM_EMAIL` to an address on it. Note the API
-   is `api.alafia.app` while the current default is `noreply@alafia.com` — pick
-   the one you will verify.
-2. **Deactivate robot accounts in production.** Prod is untouched; dev went
-   77 → 22 active. Dry run is the default — read the printed list before applying:
-   ```bash
-   export PROD_DB_PASS='…'          # Cloud SQL password for role `alafia`
-   gcloud auth application-default login
-   scripts/db/deactivate_test_accounts_prod.sh            # dry run, changes nothing
-   scripts/db/deactivate_test_accounts_prod.sh --apply    # asks for confirmation
-   ```
-   Targets that carry subscription rows are **printed first** (in dev: 3, all
-   named `sub_smoke_…`) but are still deactivated — `example.com` is RFC 2606
-   reserved and the `x.com` matches are seeded test accounts. Reversible via
-   `deactivate_test_accounts_rollback.sql` — original emails are preserved.
-3. **Pull prod down to dev** once deployed, so the two match again:
+1. **Replace the Android App Links fingerprint after the first Play upload.**
+   `WEB/frontend/public/.well-known/assetlinks.json` currently carries the
+   **upload key** SHA-256 (`B0:6D:6E:58…`, from `Android/alafia-upload.jks`). If
+   Play App Signing is enabled — it is the default — Google re-signs the app with
+   a *different* key, and App Links will silently fail to verify until the **app
+   signing** SHA-256 from Play Console → Setup → App signing is added here. The
+   file takes a list; add the new fingerprint rather than replacing, so builds
+   signed with either key keep working.
+2. **Pull prod down to dev** once deployed, so the two match again:
    ```bash
    scripts/db/verify_parity.sh    # expect drift until this is done
    scripts/db/pull_prod.sh

@@ -25,7 +25,7 @@ DB_PORT = 5432
 DB_NAME = "alafia"
 DB_USER = "alafia"
 DB_PASS = "alafia"
-USER_ID = 1  # demo@alafia.com
+USER_ID = 1  # demo@alafia.app
 
 # Lab test name normalization map (DaVita abbreviations → standard names)
 NAME_MAP = {

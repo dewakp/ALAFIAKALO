@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.alafia.android",
+      "sha256_cert_fingerprints": [
+        "B0:6D:6E:58:BD:D8:3B:F7:21:02:FE:70:3F:F7:C2:12:F2:08:33:AC:B5:BA:77:6B:66:42:C5:92:57:8C:34:DA"
+      ]
+    }
+  }
+]

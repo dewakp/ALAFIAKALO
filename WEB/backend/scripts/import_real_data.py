@@ -30,7 +30,7 @@ DB_CONFIG = {
     "user": "alafia",
     "password": "alafia",
 }
-USER_ID = 1  # demo@alafia.com
+USER_ID = 1  # demo@alafia.app
 
 # Lab test → category mapping
 LAB_CATEGORIES = {

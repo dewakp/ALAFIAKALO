@@ -212,7 +212,7 @@ domain. It does not touch the apex record
 mail are unaffected — a domain may only carry one SPF record per name, and these
 are different names.
 
-> The sender is `noreply@alafia.app`, not `.com`. `alafia.com` is the Workspace
+> The sender is `noreply@alafia.app`, not `.com`. `alafia.app` is the Workspace
 > mail domain, its DNS is at Namecheap, and it is not verified for sending.
 
 ## Payment verification

@@ -54,12 +54,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="alafia" />
             </intent-filter>
-            <!-- Universal Links: https://alafia.com/app/* -->
+            <!-- App Links: https://alafia.app/app/*  (alafia.app is ours and serves
+                 /.well-known/assetlinks.json; alafia.com is NOT ours) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="alafia.com" android:pathPrefix="/app" />
+                <data android:scheme="https" android:host="alafia.app" android:pathPrefix="/app" />
             </intent-filter>
             <!-- Health Connect permission rationale -->
             <intent-filter>

@@ -94,7 +94,7 @@ store test-track builds (D/E).
 
 Current: `applicationId com.alafia.android`, `versionCode 1`, `versionName 1.0.0`,
 minSdk 26 / targetSdk 36, release `minifyEnabled true`, release signing reads `keystore.properties`
-(**absent**), release `API_BASE_URL = https://api.alafia.com/api/v1/`.
+(**absent**), release `API_BASE_URL = https://api.alafia.app/api/v1/`.
 
 **Accounts & signing**
 - [ ] 🔴👤 **Google Play Developer account** ($25 one-time).
@@ -135,7 +135,7 @@ minSdk 26 / targetSdk 36, release `minifyEnabled true`, release signing reads `k
 ## 🍎 E. APPLE APP STORE (iOS) DEPLOYMENT TASKS
 
 Current: Xcode bundle **`com.alafia.app`**, `MARKETING_VERSION 1.0`, `CURRENT_PROJECT_VERSION 1`,
-automatic signing, release `baseURL = https://api.alafia.com/api/v1`.
+automatic signing, release `baseURL = https://api.alafia.app/api/v1`.
 
 **Bundle ID = `com.alafia.app`** (matches the alafia.app domain).
 - [x] ✅ Backend `APPLE_BUNDLE_ID=com.alafia.app` (config default fixed; applies on next backend deploy).
@@ -145,6 +145,9 @@ automatic signing, release `baseURL = https://api.alafia.com/api/v1`.
 - [ ] 🔴👤 **Apple Developer Program** membership ($99/yr).
 - [ ] 🔴👤 Register App ID `com.alafia.app`; set the **DEVELOPMENT_TEAM** in the Xcode project; create
       distribution certificate + App Store provisioning profile (or automatic signing with the team).
+      The team is **`E48V6Y372K`** (keychain: "Apple Distribution: 6igma"). This MUST match the
+      `appIDs` prefix already published in `/.well-known/apple-app-site-association` — signing the
+      app under a different team silently breaks every Universal Link.
 
 **Backend / config wiring**
 - [x] ✅ `baseURL` = `https://api.alafia.app/api/v1` (AppConfig). Goes live once the domain mapping (B) is up.

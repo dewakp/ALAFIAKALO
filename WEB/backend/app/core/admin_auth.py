@@ -1,7 +1,7 @@
 """Authorization for the admin console.
 
 The boundary is here, in the API. Serving the console on its own hostname
-(minister.alafia.com) is routing, not security: anyone can send a request to
+(/minister) is routing, not security: anyone can send a request to
 `/api/v1/admin/*` with any Host header they like, so every admin endpoint
 depends on `require_admin` and none of them trust the hostname.
 

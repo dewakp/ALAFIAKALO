@@ -1,6 +1,6 @@
 """Admin console API.
 
-Single-operator console for ALAFIA, served at `minister.alafia.com`. Every
+Single-operator console for ALAFIA, served at `/minister`. Every
 endpoint is gated by `require_admin` — the hostname is routing, never
 authorization, because a Host header proves nothing.
 

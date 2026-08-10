@@ -804,7 +804,7 @@ Response:
 2. **Create Localizable.strings**
    ```swift
    // Fetch from API
-   let url = "https://api.alafia.com/api/v1/privacy/translations/en?platform=ios"
+   let url = "https://api.alafia.app/api/v1/privacy/translations/en?platform=ios"
    // Store locally
    ```
 
@@ -908,9 +908,9 @@ curl http://localhost:8000/api/v1/privacy/languages \
 ## Support
 
 For questions about privacy, compliance, or i18n:
-- Email: privacy@alafia.com
-- DPO (Data Protection Officer): dpo@alafia.com
-- Security: security@alafia.com
+- Email: privacy@alafia.app
+- DPO (Data Protection Officer): dpo@alafia.app
+- Security: security@alafia.app
 
 **Last Updated**: February 13, 2026  
 **Version**: 1.0

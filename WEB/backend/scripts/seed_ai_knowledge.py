@@ -9,7 +9,7 @@ BASE_URL = "http://localhost:8000/api/v1"
 # Login as demo user
 def login():
     response = requests.post(f"{BASE_URL}/auth/login", data={
-        "username": "demo@alafia.com",
+        "username": "demo@alafia.app",
         "password": "demo1234"
     })
     return response.json()["access_token"]

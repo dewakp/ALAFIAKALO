@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Shared login helper
-async function loginAs(page, email = 'test@alafia.com', password = 'TestPassword1!') {
+async function loginAs(page, email = 'test@alafia.app', password = 'TestPassword1!') {
   await page.goto('/login');
   await page.getByRole('textbox', { name: /email/i }).fill(email);
   await page.getByRole('textbox', { name: /password/i }).fill(password);

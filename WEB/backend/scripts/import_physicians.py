@@ -10,7 +10,7 @@ API = 'http://localhost:8000/api/v1'
 
 # Authenticate
 resp = requests.post(f'{API}/auth/login', data={
-    'username': 'demo@alafia.com', 'password': 'demo1234'
+    'username': 'demo@alafia.app', 'password': 'demo1234'
 })
 if resp.status_code != 200:
     print(f"Auth failed: {resp.text}")

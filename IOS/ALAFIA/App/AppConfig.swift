@@ -37,5 +37,8 @@ enum AppConfig {
     /// Deep link URL scheme
     static let urlScheme = "alafia"
     /// Universal Links domain
-    static let universalLinkDomain = "alafia.com"
+    /// Universal Links domain. MUST be a domain we control and that serves
+    /// /.well-known/apple-app-site-association — alafia.app does; alafia.com is
+    /// NOT ours, so trusting it would let whoever owns it claim our links.
+    static let universalLinkDomain = "alafia.app"
 }

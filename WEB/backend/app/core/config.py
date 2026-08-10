@@ -63,10 +63,10 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    # alafia.app, NOT alafia.com: the .app domain is the product domain, its DNS is
-    # in Cloud DNS (zone `alafia-app`, project alafia-prod-6igma) where we manage
-    # it, and it is the domain verified in Resend. alafia.com is the Google
-    # Workspace mail domain, hosted at Namecheap, and is NOT verified for sending.
+    # alafia.app is the ONLY domain we own. Its DNS is in Cloud DNS (zone
+    # `alafia-app`, project alafia-prod-6igma) and it is the domain verified in
+    # Resend, so it is the only domain we can send from. Do not reintroduce
+    # alafia.com anywhere — it belongs to someone else.
     SMTP_FROM_EMAIL: str = "noreply@alafia.app"
     SMTP_FROM_NAME: str = "ALAFIA"
     SMTP_TLS: bool = True

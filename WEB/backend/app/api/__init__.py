@@ -60,7 +60,7 @@ router = APIRouter()
 
 router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 router.include_router(users_router, prefix="/users", tags=["Users"])
-# Admin console (minister.alafia.com). Every route is gated by require_admin.
+# Admin console (/minister). Every route is gated by require_admin.
 router.include_router(admin_router, prefix="/admin", tags=["Admin"])
 # Two-step signup: verify email -> pay -> account created.
 router.include_router(signup_router, prefix="/auth/signup", tags=["Signup"])

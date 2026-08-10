@@ -270,7 +270,7 @@ async def get_rtc_config(
             ICEServerConfig(urls=["stun:stun1.l.google.com:19302"]),
             # In production, add TURN server with ephemeral credentials:
             # ICEServerConfig(
-            #     urls=["turn:turn.alafia.com:3478"],
+            #     urls=["turn:turn.alafia.app:3478"],
             #     username="generated-username",
             #     credential="generated-credential",
             # ),

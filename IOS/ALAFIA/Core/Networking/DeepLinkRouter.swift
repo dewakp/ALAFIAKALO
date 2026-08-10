@@ -36,7 +36,7 @@ final class DeepLinkRouter: ObservableObject {
     func handle(url: URL) {
         // Support both custom scheme and universal links:
         //   alafia://labs
-        //   https://alafia.com/app/labs
+        //   https://alafia.app/app/labs
         let path: String
         if url.scheme == AppConfig.urlScheme {
             // alafia://labs/...  → host is the first segment
