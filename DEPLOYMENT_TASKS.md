@@ -145,9 +145,17 @@ automatic signing, release `baseURL = https://api.alafia.app/api/v1`.
 - [ ] 🔴👤 **Apple Developer Program** membership ($99/yr).
 - [ ] 🔴👤 Register App ID `com.alafia.app`; set the **DEVELOPMENT_TEAM** in the Xcode project; create
       distribution certificate + App Store provisioning profile (or automatic signing with the team).
-      The team is **`E48V6Y372K`** (keychain: "Apple Distribution: 6igma"). This MUST match the
-      `appIDs` prefix already published in `/.well-known/apple-app-site-association` — signing the
-      app under a different team silently breaks every Universal Link.
+      The team is **`E48V6Y372K`** (keychain: "Apple Distribution: 6igma") and is now set in the
+      Xcode project. It MUST match the `appIDs` prefix published in
+      `/.well-known/apple-app-site-association` — signing under a different team silently breaks
+      every Universal Link.
+      Register an **explicit** App ID `com.alafia.app` (not the wildcard) and enable these three
+      capabilities, or a signed Release build fails. Verified by attempting one — the wildcard
+      "iOS Team Provisioning Profile: *" is rejected for each:
+        - Associated Domains   (`com.apple.developer.associated-domains`)
+        - HealthKit            (`com.apple.developer.healthkit`, `.access`, `.background-delivery`)
+        - Push Notifications   (`aps-environment`)
+      Debug/simulator builds are unaffected and still succeed.
 
 **Backend / config wiring**
 - [x] ✅ `baseURL` = `https://api.alafia.app/api/v1` (AppConfig). Goes live once the domain mapping (B) is up.
