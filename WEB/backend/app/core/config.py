@@ -164,7 +164,21 @@ class Settings(BaseSettings):
     # Emails that bypass the paywall entirely (owner / staff), comma-separated in env.
     # dew@6igma.com is included because the admin console lives under /api/v1 and
     # would otherwise be 402'd by the paywall in production before reaching it.
-    SUBSCRIPTION_EXEMPT_EMAILS: list[str] = ["developer@hntsolutions.com", "dew@6igma.com"]
+    # ios_reviewr@alafia.app is Apple's App Review demo account. It must reach the
+    # app's actual functionality or review fails: with the hard paywall on, every
+    # gated endpoint 402s an unsubscribed user, so a reviewer signing in with the
+    # demo credentials would see nothing but "membership required" and reject the
+    # build. Exempting it is deliberate and preferable to writing a fake
+    # subscription row, which would make a non-paying account indistinguishable
+    # from a real subscriber in billing and admin reporting.
+    # NOTE: set here rather than in deploy.sh because this field is a list[str] and
+    # pydantic-settings parses complex types from env as JSON — a comma-separated
+    # value would fail at startup.
+    SUBSCRIPTION_EXEMPT_EMAILS: list[str] = [
+        "developer@hntsolutions.com",
+        "dew@6igma.com",
+        "ios_reviewr@alafia.app",
+    ]
 
     # ── Signup ───────────────────────────────────────────────────────────
     # Direct registration created a `users` row on request, which is how 55 of
