@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -51,6 +51,8 @@ import {
   Radar,
   Building,
   Sparkles,
+  HelpCircle,
+  Mail,
 } from 'lucide-react';
 
 // Roles that can see the Clinician Dashboard
@@ -155,6 +157,14 @@ const navGroups = [
   },
 ];
 
+// Sidebar footer. These are the public marketing pages, which render outside
+// <Layout> — following one leaves the app shell, and its navbar links back in.
+const FOOTER_LINKS = [
+  { to: '/help', icon: HelpCircle, label: 'Help' },
+  { to: '/contact', icon: Mail, label: 'Contact Us' },
+  { to: '/investors', icon: Briefcase, label: 'Investors' },
+];
+
 function SidebarGroup({ group, user }) {
   const [open, setOpen] = useState(false);
   const GroupIcon = group.icon;
@@ -255,6 +265,13 @@ export default function Layout() {
           )}
         </nav>
         <div className="sidebar-footer">
+          <div className="sidebar-footer-links">
+            {FOOTER_LINKS.map(({ to, icon: Icon, label }) => (
+              <Link key={to} to={to}>
+                <Icon size={13} /> {label}
+              </Link>
+            ))}
+          </div>
           <div style={{ fontSize: '0.9rem', marginBottom: '0.25rem', fontWeight: 600 }}>
             {user?.full_name}
           </div>

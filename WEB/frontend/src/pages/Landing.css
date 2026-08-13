@@ -775,6 +775,200 @@
   font-size: 0.8rem;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   Marketing sub-pages — Help · Contact · Investors
+   Same shell as the landing page, minus the hero.
+   ════════════════════════════════════════════════════════════════════════════ */
+.marketing-page {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keeps the footer at the bottom on pages shorter than the viewport. */
+.marketing-main {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+}
+
+/* First section on a sub-page sits under the fixed navbar. */
+.section-wrap--top { padding-top: 8.5rem; }
+
+/* Card call-to-action, e.g. the address on a contact card. */
+.card-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #F97316;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(249, 115, 22, 0.3);
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.card-link:hover { color: #fdba74; border-color: #fdba74; }
+
+/* ── FAQ ─────────────────────────────────────────────────────────────────── */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.faq-item {
+  background: rgba(255, 255, 255, 0.026);
+  border: 1px solid rgba(249, 115, 22, 0.1);
+  border-radius: 14px;
+  padding: 0 1.35rem;
+  transition: border-color 0.25s, background 0.25s;
+}
+
+.faq-item[open],
+.faq-item:hover { border-color: rgba(249, 115, 22, 0.26); }
+
+.faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.05rem 0;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #eaf0ff;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker { display: none; }
+
+.faq-item summary::after {
+  content: '+';
+  flex: none;
+  color: #F97316;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.faq-item[open] summary::after { content: '–'; }
+
+.faq-answer {
+  padding-bottom: 1.15rem;
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: rgba(165, 195, 235, 0.66);
+}
+
+.faq-answer a { color: #F97316; text-decoration: none; }
+.faq-answer a:hover { text-decoration: underline; }
+
+/* ── Prose ───────────────────────────────────────────────────────────────── */
+.prose {
+  font-size: 1rem;
+  line-height: 1.85;
+  color: rgba(172, 202, 240, 0.7);
+}
+
+.prose h3 {
+  margin: 2.2rem 0 0.6rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #eaf0ff;
+}
+
+.prose p { margin-bottom: 1rem; }
+.prose a { color: #F97316; text-decoration: none; }
+.prose a:hover { text-decoration: underline; }
+
+/* ── Numbered segment list (Investors) ───────────────────────────────────── */
+.segment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.segment-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.25rem 1.4rem;
+  background: rgba(255, 255, 255, 0.026);
+  border: 1px solid rgba(249, 115, 22, 0.1);
+  border-radius: 14px;
+}
+
+.segment-num {
+  flex: none;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #F97316;
+  letter-spacing: 0.05em;
+}
+
+.segment-row h3 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #eaf0ff;
+  margin-bottom: 0.25rem;
+}
+
+.segment-row p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: rgba(165, 195, 235, 0.62);
+}
+
+/* ── Callout ─────────────────────────────────────────────────────────────── */
+.callout {
+  margin-top: 2.5rem;
+  padding: 1.1rem 1.4rem;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  background: rgba(249, 115, 22, 0.06);
+  color: rgba(210, 225, 250, 0.8);
+}
+
+.callout--danger {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.07);
+}
+
+.callout--danger strong { color: #fca5a5; }
+
+/* ── Closing CTA ─────────────────────────────────────────────────────────── */
+.mk-cta {
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.mk-cta-note {
+  margin-bottom: 1.4rem;
+  font-size: 0.92rem;
+  color: rgba(165, 195, 235, 0.62);
+}
+
+.mk-cta-note a { color: #F97316; text-decoration: none; }
+.mk-cta-note a:hover { text-decoration: underline; }
+
+/* Prose lists on the marketing sub-pages (Privacy). Matches .mk-cta-note's
+   muted body colour so the copy reads as one voice across the page. */
+.mk-list {
+  margin: 0 0 1.6rem;
+  padding-left: 1.15rem;
+  list-style: disc;
+  color: rgba(165, 195, 235, 0.72);
+  line-height: 1.75;
+}
+.mk-list li { margin-bottom: 0.55rem; }
+.mk-list li strong { color: rgba(214, 232, 255, 0.95); }
+.mk-list a { color: #F97316; text-decoration: none; }
+.mk-list a:hover { text-decoration: underline; }
+
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 .landing::-webkit-scrollbar { width: 5px; }
 .landing::-webkit-scrollbar-track { background: #010b1f; }

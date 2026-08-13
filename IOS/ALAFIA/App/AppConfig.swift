@@ -28,6 +28,16 @@ enum AppConfig {
         return productionBaseURL
     }()
     
+    /// Public web pages — Help, Contact Us, Investors. These are the marketing
+    /// site, not the API, so they are pinned to the app host rather than
+    /// `baseURL`: an `ALAFIA_API_URL` override points a local backend at the
+    /// simulator, and there is no local copy of the marketing site to open.
+    static let webBaseURL = "https://alafia.app"
+
+    static func webURL(_ path: String) -> URL? {
+        URL(string: webBaseURL + path)
+    }
+
     static let tokenKey = "alafia_jwt_token"
     static let userKey = "alafia_user"
 

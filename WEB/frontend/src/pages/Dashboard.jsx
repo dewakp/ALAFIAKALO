@@ -548,8 +548,14 @@ function DashboardFooter() {
       color: 'var(--color-text-secondary)', fontSize: '.85rem' }}>
       <span>Alafia is a 6igma Health App.</span>
       <span style={{ display: 'flex', gap: '1.25rem' }}>
-        {['About Us', 'Contact Us', 'Investors', 'Legal'].map(l => (
-          <Link key={l} to="/landing" style={{ color: 'inherit' }}>{l}</Link>
+        {[
+          ['About Us', '/landing'],
+          ['Help', '/help'],
+          ['Contact Us', '/contact'],
+          ['Investors', '/investors'],
+          ['Legal', '/landing'],
+        ].map(([label, to]) => (
+          <Link key={label} to={to} style={{ color: 'inherit' }}>{label}</Link>
         ))}
       </span>
     </footer>

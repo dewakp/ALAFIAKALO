@@ -1,5 +1,7 @@
 package com.alafia.android.views.main
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -330,6 +332,20 @@ data class MoreGridSection(
     val items: List<MoreGridItem>
 )
 
+/**
+ * Public web pages, pinned to the app host. These are the marketing site, not
+ * the API, so a `-PapiBase` override must not move them — there is no local
+ * copy of the marketing site to open.
+ */
+private const val WEB_BASE_URL = "https://alafia.app"
+
+private val SUPPORT_LINKS = listOf(
+    "Help" to "/help",
+    "Contact Us" to "/contact",
+    "Investors" to "/investors",
+    "Privacy" to "/privacy",
+)
+
 @Composable
 fun MoreScreen(
     innerNavController: NavHostController,
@@ -452,6 +468,30 @@ fun MoreScreen(
 
         item(span = { GridItemSpan(4) }) {
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Footer — the same public pages the web footer carries. They are
+        // web pages, so they open in a browser rather than an in-app route.
+        item(span = { GridItemSpan(4) }) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                SUPPORT_LINKS.forEach { (label, path) ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable {
+                            activity.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(WEB_BASE_URL + path))
+                            )
+                        }
+                    )
+                }
+            }
         }
 
         item(span = { GridItemSpan(4) }) {

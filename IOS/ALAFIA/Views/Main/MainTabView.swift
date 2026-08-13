@@ -107,6 +107,19 @@ private func tabIndexForRoute(_ route: String) -> Int {
 struct HealthHubView: View {
     @EnvironmentObject var authManager: AuthManager
 
+    private struct SupportLink {
+        let title: String
+        let icon: String
+        let path: String
+    }
+
+    private static let supportLinks = [
+        SupportLink(title: "Help", icon: "questionmark.circle", path: "/help"),
+        SupportLink(title: "Contact Us", icon: "envelope", path: "/contact"),
+        SupportLink(title: "Investors", icon: "chart.line.uptrend.xyaxis", path: "/investors"),
+        SupportLink(title: "Privacy", icon: "lock.shield", path: "/privacy"),
+    ]
+
     private var isClinician: Bool {
         let clinicianRoles: Set<String> = [
             "physician", "surgeon", "nurse_practitioner",
@@ -398,6 +411,23 @@ struct HealthHubView: View {
                         Label("Privacy Settings", systemImage: "lock.shield")
                             .foregroundStyle(.gray)
                     }
+                }
+
+                // Footer of the hub — the same public pages the web
+                // footer carries. They are web pages, so they open in Safari.
+                Section {
+                    ForEach(Self.supportLinks, id: \.path) { link in
+                        if let url = AppConfig.webURL(link.path) {
+                            Link(destination: url) {
+                                Label(link.title, systemImage: link.icon)
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Support")
+                } footer: {
+                    Text("Opens alafia.app in your browser.")
                 }
             }
             .navigationTitle("Health Hub")

@@ -104,3 +104,13 @@ smtp.md
 
 # pytest sqlite artifact (created by tests/conftest.py on every run)
 WEB/backend/test.db
+
+# ── Investor / strategy material — deliberately NOT in the repo ───────────
+# These carry positioning that is fine in a deck shown under NDA but not on a
+# public page: data licensing as a revenue line, roadmap, market sizing. The
+# public /investors page is deliberately a generic overview and is NOT the deck.
+# Ignored rather than merely untracked because `api_keys.md` and `smtp.md` were
+# each one `git add .` away from being committed.
+pitch/
+marketing.md
+subscription_tiers.md

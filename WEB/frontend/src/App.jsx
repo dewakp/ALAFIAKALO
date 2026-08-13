@@ -7,6 +7,14 @@ import Layout from './components/Layout';
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Landing = lazy(() => import('./pages/Landing'));
+// Public marketing pages — reachable from both the landing nav and, for signed
+// in users, the sidebar. They deliberately live outside <Layout> so a logged
+// out visitor can read them.
+const Contact = lazy(() => import('./pages/Contact'));
+const Help = lazy(() => import('./pages/Help'));
+const Investors = lazy(() => import('./pages/Investors'));
+// Also the Privacy Policy URL required by App Store Connect and Google Play.
+const Privacy = lazy(() => import('./pages/Privacy'));
 // Admin console at /minister. Server-side require_admin is the
 // real gate; this route simply renders 'not authorised' for everyone else.
 const Admin = lazy(() => import('./pages/Admin'));
@@ -76,6 +84,10 @@ export default function App() {
       <Suspense fallback={<div className="loading">Loading...</div>}>
         <Routes>
           <Route path="/landing" element={<Landing />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/investors" element={<Investors />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
