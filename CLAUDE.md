@@ -113,6 +113,89 @@ Non-obvious points that have already caused bugs:
   `SAVEPOINT`, because a failed flush poisons the session and the later commit
   500s even when the exception was caught.
 
+## 3aa. Clinical domains split across TWO tables
+
+Board mechanics, the four ways this surface showed "empty" when data existed, and
+how to verify it: **`CLINICIAN_BOARD.md`**.
+
+> **Reading one table and calling it the answer silently hides clinical facts.**
+> Go through **`app/services/clinical_sources.py`** — never query these models
+> directly.
+
+| Domain | Live table | The other one |
+|---|---|---|
+| **Conditions** | `chronic_conditions` — Conditions screen, EHR import, dialysis/chemo flowsheets | `health_conditions` — **LEGACY: zero writers anywhere in the app.** Any query against it alone returns nothing, forever. |
+| **Medications** | `medication_dose_logs` — what the patient actually TOOK, written by the Medications screen | `medications` — prescriptions/profile, written by the **EHR/FHIR import** (`api/ehr.py`) and manual entry |
+
+This is not theoretical. On one production record:
+
+- `health_conditions` 0 rows vs `chronic_conditions` 4 — including **End-Stage
+  Renal Disease, severe, active**, on a patient with 730 dialysis sessions. The
+  clinician board said *"No active conditions."*
+- `medications` 2 rows, both **stopped in 2017** (SMART-sandbox EHR test data)
+  vs **921 dose logs**. The physician saw two stopped drugs while the patient's
+  own screen showed Calcitriol and Calcium Carbonate taken that morning.
+- `ai_engine` read only the legacy table, so the **AI coach believed every
+  patient had zero conditions**.
+
+Non-obvious points:
+
+- **The EHR import writes `medications` and `chronic_conditions`** (`api/ehr.py`),
+  so a connected sandbox seeds decade-old prescriptions that look current in a
+  naive query. Prescribed ≠ taken; show both, labelled.
+- Group dose logs **case-insensitively** — the same drug arrives as both
+  "Calcium Carbonate" and "Calcium carbonate", and two rows misstate the regimen.
+- Never let a query `LIMIT` become a count. The Therapies card reported "200
+  sessions" on a patient with 730 because `len()` counted the limit.
+- `tests/test_clinical_sources.py` **fails the build** if anyone queries these
+  models outside the canonical module. To add a legitimate direct reader, put the
+  file in its `ALLOWED` set with a comment saying why.
+
+
+### Naive vs. aware datetimes at the API boundary
+
+Some clinical columns are `DateTime` **without** timezone — notably
+`therapy_sessions.scheduled_date` and `condition_metrics.measured_date`. Browsers
+send an instant: `new Date().toISOString()` ends in `Z`, and FastAPI parses that
+into a tz-**aware** datetime. Comparing aware to naive makes asyncpg raise
+`DataError`, the endpoint 500s, and — because the page catches the error into an
+empty list — it renders as **"No hemodialysis sessions found for this period"**
+on a patient with 730 sessions.
+
+`_naive_utc()` in `api/chronic_conditions.py` normalises on the way in. If you add
+a datetime query parameter, check the column: `psql \d <table>` shows
+`timestamp without time zone` vs `with time zone`.
+
+### An error is not an empty state
+
+This is the recurring failure of this whole surface, in four different disguises:
+
+| Symptom shown | Actual cause |
+|---|---|
+| "No active medications" | reading `medications` instead of `medication_dose_logs` |
+| "No active conditions" | reading `health_conditions`, which has no writer |
+| "No hemodialysis sessions" | a 500 swallowed by `catch (e) { console.error(e) }` |
+| "Nothing logged in the last 7 days" | a hard window on a patient who logs monthly |
+
+**Never let a failed fetch fall through to the empty-state copy.** Keep a separate
+`loadError` and say so. Where a card is windowed, report *when* the patient last
+logged instead of showing a blank — "last logged 60 days ago" is a clinical
+finding; a blank card is a dead end.
+
+### Verify against the population, not one record
+
+`scripts/board_sweep.py` runs every board category against **every user holding
+data** and prints which paths never executed:
+
+```bash
+docker compose --profile test run --rm backend-test python scripts/board_sweep.py
+```
+
+Checking a single well-populated patient proved almost nothing: on this database
+it left `fitness` (no rows for ANY user), `lifestyle` (data belongs to a
+different user) and `pd_sessions` (empty everywhere) unexercised, and hid that
+six of the seven users with nutrition data fell outside the 7-day summary window.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

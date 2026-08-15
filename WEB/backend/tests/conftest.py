@@ -1,6 +1,7 @@
 """Shared pytest fixtures for the ALAFIA backend test suite."""
 
 import asyncio
+import os
 import sys
 import types
 from typing import AsyncGenerator
@@ -92,8 +93,21 @@ from app.core.config import settings as _settings  # noqa: E402
 
 _settings.TWO_STEP_SIGNUP_REQUIRED = False
 
-# Use an in-memory SQLite database for tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+# SQLite on the CONTAINER's own disk, not `./test.db`.
+#
+# The path used to be relative, so the database landed in /app — which is the
+# bind-mounted `WEB/backend` directory, shared with the `backend` service whose
+# uvicorn --reload watches that same tree. Two runs of the identical suite gave
+# 322 passed and then 269 passed / 65 errors: SQLite over a macOS bind mount,
+# with another container touching the directory, loses writes and then every
+# create_all/drop_all cycle after the first fails ("table users already exists",
+# "no such table: …"). /tmp is container-local and unshared, so a run cannot
+# contend with the app container or with a stale file from a previous run.
+#
+# A unique filename per process keeps two concurrent runs (foreground plus a
+# backgrounded one) from sharing a database.
+TEST_DB_PATH = f"/tmp/alafia-test-{os.getpid()}.db"
+TEST_DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_PATH}"
 
 engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 TestSession = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

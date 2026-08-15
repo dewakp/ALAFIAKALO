@@ -194,7 +194,7 @@ def _detect_diet_pattern(conditions: list, user_requested: str) -> str:
     if user_requested and user_requested not in ("balanced",):
         return user_requested  # explicit user choice takes precedence
     for cond in conditions:
-        name_lc = (cond.condition_name or "").lower()
+        name_lc = (cond.name or "").lower()
         for pattern, kws in _DIET_KEYWORDS.items():
             if any(kw in name_lc for kw in kws):
                 return pattern
@@ -203,11 +203,12 @@ def _detect_diet_pattern(conditions: list, user_requested: str) -> str:
 
 async def _gather_planner_context(user_id: int, db: AsyncSession) -> dict:
     """Query the DB for data needed to personalise a plan."""
-    cond_rows = (await db.execute(
-        select(ChronicCondition)
-        .where(ChronicCondition.user_id == user_id, ChronicCondition.is_active == True)  # noqa: E712
-        .limit(10)
-    )).scalars().all()
+    # Conditions live in TWO tables — see app/services/clinical_sources.py.
+    # A meal or exercise plan built without the patient's renal diagnosis is
+    # not a safe plan, so this reads both.
+    from app.services import clinical_sources
+
+    cond_rows = (await clinical_sources.conditions(db, user_id, active_only=True))[:10]
 
     med_rows = (await db.execute(
         select(Medication)
@@ -267,7 +268,7 @@ async def _ollama_generate_meal_plan(
     pattern: str,
 ) -> "list[DayMeals] | None":
     """Ask Ollama to generate a personalised 7-day meal plan. Returns None on any failure."""
-    conditions_str = "; ".join(c.condition_name for c in ctx["conditions"]) or "None reported"
+    conditions_str = "; ".join(c.name for c in ctx["conditions"]) or "None reported"
     meds_str = (
         "; ".join(
             f"{m.name} {m.dosage or ''} {m.dosage_unit or ''} {m.frequency or ''}".strip()
@@ -368,7 +369,7 @@ async def _ollama_generate_exercise_plan(
     level: str,
 ) -> "list[DayWorkout] | None":
     """Ask Ollama to generate a personalised 7-day exercise plan. Returns None on any failure."""
-    conditions_str = "; ".join(c.condition_name for c in ctx["conditions"]) or "None reported"
+    conditions_str = "; ".join(c.name for c in ctx["conditions"]) or "None reported"
 
     dialysis_days: list[str] = []
     for ts in ctx["therapy_sessions"]:
@@ -502,7 +503,7 @@ async def _generate_meal_suggestions(
     user: "User", ctx: dict, req: MealSuggestionRequest, pantry_names: list[str],
 ) -> list[MealSuggestion]:
     """Ask the LLM for N pantry- and condition-aware meal suggestions."""
-    conditions_str = "; ".join(c.condition_name for c in ctx["conditions"]) or "None reported"
+    conditions_str = "; ".join(c.name for c in ctx["conditions"]) or "None reported"
     meds_str = "; ".join(
         f"{m.name} {m.dosage or ''} {m.dosage_unit or ''}".strip() for m in ctx["medications"]
     ) or "None"
@@ -754,7 +755,7 @@ async def generate_exercise_plan(
 
     # Safety cap: ESRD/dialysis patients should not do advanced exercise
     has_renal = any(
-        any(kw in (c.condition_name or "").lower() for kw in _DIET_KEYWORDS["renal"])
+        any(kw in (c.name or "").lower() for kw in _DIET_KEYWORDS["renal"])
         for c in ctx["conditions"]
     )
     if has_renal and level == "advanced":

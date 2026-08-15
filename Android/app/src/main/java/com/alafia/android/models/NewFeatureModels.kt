@@ -883,3 +883,72 @@ data class GoogleVerifyRequest(
     @SerializedName("product_id") val productId: String,
     @SerializedName("order_id") val orderId: String? = null
 )
+
+// ── Clinician patient board ──────────────────────────────
+// Mirrors app/services/patient_board.py. Summary items and table cells are
+// deliberately heterogeneous (a lab value is "4.2" or "NEG", a count is an Int,
+// `danger` is a Bool), so values arrive as Any? and are formatted for display
+// rather than forced into one concrete type.
+
+data class BoardItem(
+    val label: String = "",
+    val value: Any? = null,
+    val unit: String? = null,
+    val danger: Boolean = false,
+    val note: String? = null
+) {
+    /** Trailing ".0" on whole numbers is Gson's doing, not the API's. */
+    fun displayValue(): String? {
+        val v = value ?: return null
+        val s = when (v) {
+            is Double -> if (v == Math.floor(v) && !v.isInfinite()) v.toLong().toString()
+                         else String.format("%.2f", v).trimEnd('0').trimEnd('.')
+            else -> v.toString()
+        }
+        return if (unit.isNullOrEmpty()) s else "$s $unit"
+    }
+}
+
+data class BoardCard(
+    val key: String = "",
+    val label: String = "",
+    val icon: String = "",
+    val shared: Boolean = false,
+    val items: List<BoardItem> = emptyList(),
+    val count: Int? = null,
+    @SerializedName("last_updated") val lastUpdated: String? = null,
+    @SerializedName("empty_reason") val emptyReason: String? = null
+)
+
+data class BoardPatient(
+    @SerializedName("user_id") val userId: Int = 0,
+    @SerializedName("full_name") val fullName: String? = null,
+    val email: String? = null
+)
+
+data class PatientBoardResponse(
+    val patient: BoardPatient = BoardPatient(),
+    val permissions: List<String> = emptyList(),
+    val cards: List<BoardCard> = emptyList()
+)
+
+data class TrendPoint(val date: String = "", val value: Double? = null)
+
+data class TrendSeries(
+    val label: String = "",
+    val unit: String? = null,
+    val points: List<TrendPoint> = emptyList()
+)
+
+data class BoardColumn(val key: String = "", val label: String = "")
+
+data class PatientCategoryResponse(
+    val patient: BoardPatient = BoardPatient(),
+    val key: String = "",
+    val label: String = "",
+    val icon: String = "",
+    val days: Int = 90,
+    val series: List<TrendSeries> = emptyList(),
+    val columns: List<BoardColumn> = emptyList(),
+    val rows: List<Map<String, Any?>> = emptyList()
+)

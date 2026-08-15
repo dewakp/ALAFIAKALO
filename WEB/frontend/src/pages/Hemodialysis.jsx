@@ -132,6 +132,10 @@ export default function Hemodialysis() {
     temp.toggle();
   }
   const [summary, setSummary] = useState(null);
+  // A failed load is NOT "no sessions". Swallowing the error into an empty list
+  // is how a 500 on this endpoint rendered as "No hemodialysis sessions found
+  // for this period" to a patient with 730 sessions.
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => { loadSessions(); loadSummary(); }, [filter.days]);
 
@@ -145,7 +149,15 @@ export default function Hemodialysis() {
         params: { therapy_type: 'HEMODIALYSIS', start_date: cutoff.toISOString(), limit: 500 }
       });
       setSessions(res.data);
-    } catch (e) { console.error(e); }
+      setLoadError(null);
+    } catch (e) {
+      console.error(e);
+      setSessions([]);
+      setLoadError(
+        e.response?.data?.detail
+        || 'Could not load your sessions. This is an error, not an empty record — please retry.'
+      );
+    }
     setLoading(false);
   };
 
@@ -225,6 +237,12 @@ export default function Hemodialysis() {
         if (payload[k] != null) payload[k] = temp.toCelsius(payload[k]);
       });
 
+      // Clinical notes are their own append-only rows, NOT a field on the
+      // session — the model maps `clinical_notes` to a relationship, so sending
+      // it here 500'd every submission. Pull it out and post it below.
+      const clinicalNote = (payload.clinical_notes || '').trim();
+      delete payload.clinical_notes;
+
       let sessionId;
       if (editing) {
         await api.put(`/chronic/therapy-sessions/${editing.id}`, payload);
@@ -232,6 +250,13 @@ export default function Hemodialysis() {
       } else {
         const res = await api.post('/chronic/therapy-sessions', payload);
         sessionId = res.data.id;
+      }
+
+      if (clinicalNote) {
+        await api.post(`/chronic/therapy-sessions/${sessionId}/notes`, {
+          note_type: 'clinical',
+          note_text: clinicalNote,
+        });
       }
 
       // Save readings
@@ -555,7 +580,7 @@ export default function Hemodialysis() {
       {/* Session List */}
       {loading ? <p>Loading sessions...</p> : paged.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
-          <p>No hemodialysis sessions found for this period.</p>
+          <p>{loadError || 'No hemodialysis sessions found for this period.'}</p>
         </div>
       ) : (
         <>
@@ -657,7 +682,12 @@ export default function Hemodialysis() {
                       </div>
                     )}
                     {session.side_effects && <p style={{ marginTop: 10, fontSize: 13, color: '#d32f2f' }}><b>Side Effects:</b> {session.side_effects}</p>}
-                    {session.clinical_notes && <p style={{ marginTop: 6, fontSize: 13 }}><b>Clinical Notes:</b> {session.clinical_notes}</p>}
+                    {session.clinical_notes?.length > 0 && (
+                      <p style={{ marginTop: 6, fontSize: 13 }}>
+                        <b>Clinical Notes:</b>{' '}
+                        {session.clinical_notes.map(n => n.note_text).join(' · ')}
+                      </p>
+                    )}
                     {session.patient_notes && <p style={{ marginTop: 6, fontSize: 13, background: '#f5f5f5', padding: 10, borderRadius: 4 }}><b>Patient Notes:</b> {session.patient_notes}</p>}
 
                     {/* Actions */}

@@ -176,18 +176,23 @@ class AIPersonalizationEngine:
         return round(weight_kg / (height_m ** 2), 1)
     
     def _get_active_conditions(self, user: User, db: Session) -> List[Dict[str, Any]]:
-        """Get active health conditions."""
-        conditions = db.query(HealthCondition).filter(
-            HealthCondition.user_id == user.id,
-            HealthCondition.status.in_(["active", "managed"])
-        ).all()
-        
+        """Get active health conditions.
+
+        Goes through clinical_sources because conditions live in TWO tables and
+        this used to read only `health_conditions` — which has no writer, so the
+        AI believed every patient had zero conditions. An ESRD patient's coach
+        did not know they had ESRD.
+        """
+        from app.services import clinical_sources
+
+        conditions = clinical_sources.conditions_sync(db, user.id, active_only=True)
+
         return [
             {
-                "name": c.condition_name,
+                "name": c.name,
                 "category": c.category,
                 "severity": c.severity,
-                "since": c.diagnosis_date.isoformat() if c.diagnosis_date else None
+                "since": c.diagnosed,
             }
             for c in conditions
         ]

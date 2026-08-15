@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from typing import List
 
 import alafia_crypto as _rc  # Rust crypto backend
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -30,6 +30,25 @@ from app.schemas.chronic_conditions import (
     FlowsheetSignRequest,
     FlowsheetActionResponse,
 )
+
+
+def _naive_utc(value: datetime | None) -> datetime | None:
+    """Drop the timezone from a client-supplied datetime, converting to UTC.
+
+    `therapy_sessions.scheduled_date` and `condition_metrics.measured_date` are
+    `DateTime` WITHOUT timezone. Clients send an ISO-8601 instant — the web
+    Hemodialysis page sends `new Date().toISOString()`, which ends in `Z` — and
+    FastAPI parses that into a tz-AWARE datetime. Comparing aware to naive makes
+    asyncpg raise DataError, the endpoint 500s, and the page's catch block
+    renders the failure as "No hemodialysis sessions found for this period."
+
+    That is how a patient with 730 dialysis sessions saw zero. Normalising here
+    keeps the fix on the boundary, where the ambiguity actually enters.
+    """
+    if value is None or value.tzinfo is None:
+        return value
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
+
 
 router = APIRouter()
 
@@ -167,7 +186,8 @@ async def get_therapy_sessions(
     """Get all therapy sessions for the current user."""
     query = (
         select(TherapySession)
-        .options(selectinload(TherapySession.intradialytic_readings))
+        .options(selectinload(TherapySession.intradialytic_readings),
+                 selectinload(TherapySession.clinical_notes))
         .where(TherapySession.user_id == current_user.id)
     )
     
@@ -178,9 +198,9 @@ async def get_therapy_sessions(
     if status:
         query = query.where(TherapySession.status == status)
     if start_date:
-        query = query.where(TherapySession.scheduled_date >= start_date)
+        query = query.where(TherapySession.scheduled_date >= _naive_utc(start_date))
     if end_date:
-        query = query.where(TherapySession.scheduled_date <= end_date)
+        query = query.where(TherapySession.scheduled_date <= _naive_utc(end_date))
     
     query = query.offset(skip).limit(limit).order_by(TherapySession.scheduled_date.desc())
     result = await db.execute(query)
@@ -197,7 +217,8 @@ async def get_therapy_session(
     """Get a specific therapy session by ID with intradialytic readings."""
     query = (
         select(TherapySession)
-        .options(selectinload(TherapySession.intradialytic_readings))
+        .options(selectinload(TherapySession.intradialytic_readings),
+                 selectinload(TherapySession.clinical_notes))
         .where(
             and_(
                 TherapySession.id == session_id,
@@ -244,7 +265,8 @@ async def create_therapy_session(
     # Re-query with relationships eagerly loaded to avoid async lazy-load errors
     result = await db.execute(
         select(TherapySession)
-        .options(selectinload(TherapySession.intradialytic_readings))
+        .options(selectinload(TherapySession.intradialytic_readings),
+                 selectinload(TherapySession.clinical_notes))
         .where(TherapySession.id == db_session.id)
     )
     db_session = result.scalar_one()
@@ -298,7 +320,8 @@ async def update_therapy_session(
     # Re-query with relationships eagerly loaded
     result = await db.execute(
         select(TherapySession)
-        .options(selectinload(TherapySession.intradialytic_readings))
+        .options(selectinload(TherapySession.intradialytic_readings),
+                 selectinload(TherapySession.clinical_notes))
         .where(TherapySession.id == db_session.id)
     )
     db_session = result.scalar_one()
@@ -359,9 +382,9 @@ async def get_condition_metrics(
     if metric_name:
         query = query.where(ConditionMetric.metric_name == metric_name)
     if start_date:
-        query = query.where(ConditionMetric.measured_date >= start_date)
+        query = query.where(ConditionMetric.measured_date >= _naive_utc(start_date))
     if end_date:
-        query = query.where(ConditionMetric.measured_date <= end_date)
+        query = query.where(ConditionMetric.measured_date <= _naive_utc(end_date))
     
     query = query.offset(skip).limit(limit).order_by(ConditionMetric.measured_date.desc())
     result = await db.execute(query)
@@ -554,7 +577,8 @@ async def get_hd_summary(
     cutoff = datetime.utcnow() - __import__('datetime').timedelta(days=days)
     query = (
         select(TherapySession)
-        .options(selectinload(TherapySession.intradialytic_readings))
+        .options(selectinload(TherapySession.intradialytic_readings),
+                 selectinload(TherapySession.clinical_notes))
         .where(
             and_(
                 TherapySession.user_id == current_user.id,

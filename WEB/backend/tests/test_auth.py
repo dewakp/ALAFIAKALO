@@ -13,6 +13,8 @@ async def test_register_success(client: AsyncClient):
         "email": "test@example.com",
         "password": "SecureP@ss123",
         "full_name": "Test User",
+        # Registration enforces an adult date of birth (app/core/age_policy.py).
+        "date_of_birth": "1990-01-01",
     }
     response = await client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 201
@@ -29,6 +31,7 @@ async def test_register_duplicate_email(client: AsyncClient):
         "email": "dup@example.com",
         "password": "SecureP@ss123",
         "full_name": "First User",
+        "date_of_birth": "1990-01-01",
     }
     await client.post("/api/v1/auth/register", json=payload)
     response = await client.post("/api/v1/auth/register", json=payload)
@@ -42,7 +45,7 @@ async def test_login_success(client: AsyncClient):
     # Register first
     await client.post(
         "/api/v1/auth/register",
-        json={"email": "login@example.com", "password": "SecureP@ss123", "full_name": "Login User"},
+        json={"email": "login@example.com", "password": "SecureP@ss123", "full_name": "Login User", "date_of_birth": "1990-01-01"},
     )
     # Login with form data
     response = await client.post(
@@ -63,7 +66,7 @@ async def test_login_invalid_credentials(client: AsyncClient):
     """Login with wrong password returns 401."""
     await client.post(
         "/api/v1/auth/register",
-        json={"email": "bad@example.com", "password": "SecureP@ss123", "full_name": "Bad User"},
+        json={"email": "bad@example.com", "password": "SecureP@ss123", "full_name": "Bad User", "date_of_birth": "1990-01-01"},
     )
     response = await client.post(
         "/api/v1/auth/login",
@@ -77,7 +80,7 @@ async def test_refresh_token(client: AsyncClient):
     """POST /api/v1/auth/refresh rotates tokens."""
     await client.post(
         "/api/v1/auth/register",
-        json={"email": "refresh@example.com", "password": "SecureP@ss123", "full_name": "Refresh User"},
+        json={"email": "refresh@example.com", "password": "SecureP@ss123", "full_name": "Refresh User", "date_of_birth": "1990-01-01"},
     )
     login = await client.post(
         "/api/v1/auth/login",
@@ -111,7 +114,7 @@ async def test_password_reset_flow(client: AsyncClient):
     """Full password reset: request → confirm → login with new password."""
     register = await client.post(
         "/api/v1/auth/register",
-        json={"email": "reset@example.com", "password": "OldPass123", "full_name": "Reset User"},
+        json={"email": "reset@example.com", "password": "OldPass123", "full_name": "Reset User", "date_of_birth": "1990-01-01"},
     )
     user_id = register.json()["id"]
 
@@ -159,7 +162,7 @@ async def test_direct_registration_is_closed_when_two_step_is_required(client: A
     try:
         resp = await client.post(
             "/api/v1/auth/register",
-            json={"email": "gated@example.com", "password": "SecureP@ss123", "full_name": "Gated User"},
+            json={"email": "gated@example.com", "password": "SecureP@ss123", "full_name": "Gated User", "date_of_birth": "1990-01-01"},
         )
         assert resp.status_code == 410
         assert "/auth/signup/start" in resp.json()["detail"]
@@ -169,6 +172,6 @@ async def test_direct_registration_is_closed_when_two_step_is_required(client: A
     # And with the gate off, the same request succeeds.
     resp = await client.post(
         "/api/v1/auth/register",
-        json={"email": "ungated@example.com", "password": "SecureP@ss123", "full_name": "Ungated User"},
+        json={"email": "ungated@example.com", "password": "SecureP@ss123", "full_name": "Ungated User", "date_of_birth": "1990-01-01"},
     )
     assert resp.status_code == 201

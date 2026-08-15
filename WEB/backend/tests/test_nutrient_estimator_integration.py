@@ -15,7 +15,7 @@ async def _auth_headers(client: AsyncClient) -> dict[str, str]:
 
     register = await client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": password, "full_name": "Nutrient Tester"},
+        json={"email": email, "password": password, "full_name": "Nutrient Tester", "date_of_birth": "1990-01-01"},
     )
     assert register.status_code == 201
 

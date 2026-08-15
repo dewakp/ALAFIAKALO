@@ -19,7 +19,24 @@ class SharableDataType(str, enum.Enum):
     SYMPTOMS = "symptoms"
     CONDITIONS = "conditions"
     JOURNAL = "journal"
+    ELIMINATION = "elimination"
+    CONNECTED_RECORDS = "connected_records"
     ALL = "all"
+
+
+# Every category ALL expands to. `all` is meant literally — all of the
+# patient's data — so a category added here is covered by every existing
+# `all` grant without the patient having to re-share anything.
+ALL_DATA_TYPES = [
+    "vitals", "labs", "medications", "nutrition", "fitness", "mood",
+    "lifestyle", "dialysis", "symptoms", "conditions", "journal",
+    "elimination", "connected_records",
+]
+
+
+def grant_covers(permissions: list[str], category: str) -> bool:
+    """True when a grant list covers a category, expanding `all`."""
+    return "all" in permissions or category in permissions
 
 
 class DataGrant(Base):

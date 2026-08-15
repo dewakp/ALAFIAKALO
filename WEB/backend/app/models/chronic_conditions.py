@@ -255,7 +255,12 @@ class TherapySession(Base):
     
     # Assessment and Notes
     patient_tolerance = Column(String(50), nullable=True)  # Good, Fair, Poor
-    clinical_notes = Column(Text, nullable=True)
+    # NOTE: there is no `clinical_notes` COLUMN. Notes are rows in the
+    # `clinical_notes` table (relationship below) — this class previously
+    # declared both, and the relationship silently shadowed the column, so
+    # passing a string for it raised "Incompatible collection type: None is not
+    # list-like" and 500'd every session create. The column was never migrated;
+    # the free-text field that does exist on this table is `patient_notes`.
     patient_notes = Column(Text, nullable=True)
     
     # Next Session

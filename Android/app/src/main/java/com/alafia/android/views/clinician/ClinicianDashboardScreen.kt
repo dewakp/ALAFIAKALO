@@ -69,7 +69,11 @@ fun ClinicianDashboardScreen(
 
     val patient = selected
     if (patient != null) {
-        PatientDetailScreen(patient = patient, onBack = { selected = null })
+        PatientBoardScreen(
+            patientId = patient.userId,
+            patientName = patient.fullName.ifEmpty { "Patient #${patient.userId}" },
+            onBack = { selected = null },
+        )
         return
     }
 
@@ -304,143 +308,6 @@ private fun Metric(label: String, value: String) {
     }
 }
 
-/**
- * One patient's shared record. Loads the detail endpoint, which returns more
- * labs than the grid summary and only the categories the patient permitted.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PatientDetailScreen(patient: PatientSummary, onBack: () -> Unit) {
-    var detail by remember(patient.userId) { mutableStateOf<PatientSummary?>(null) }
-    var loading by remember(patient.userId) { mutableStateOf(true) }
-    var error by remember(patient.userId) { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(patient.userId) {
-        scope.launch {
-            loading = true
-            try {
-                detail = ApiClient.getApiService().getClinicianPatient(patient.userId)
-            } catch (e: retrofit2.HttpException) {
-                error = if (e.code() == 403) "This patient has revoked access." else "Error: ${e.message()}"
-            } catch (e: Exception) {
-                error = ErrorUtil.userMessage(e)
-            }
-            loading = false
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(patient.fullName.ifEmpty { "Patient #${patient.userId}" }) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "All patients")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        val d = detail ?: patient
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (loading) {
-                CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
-            }
-            error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
-            }
-
-            d.latestVitals?.let { v ->
-                DetailCard("Latest Vitals", Icons.Default.MonitorHeart) {
-                    v.bp?.let { DetailRow("Blood pressure", it) }
-                    v.hr?.let { DetailRow("Heart rate", "$it bpm") }
-                    v.weightKg?.let { DetailRow("Weight", "$it kg") }
-                    v.date?.let { DetailRow("As of", it) }
-                }
-            }
-
-            if (d.latestLabs.isNotEmpty()) {
-                DetailCard("Recent Labs", Icons.Default.Science) {
-                    d.latestLabs.forEach { lab ->
-                        DetailRow(
-                            lab.name ?: "—",
-                            "${lab.value ?: "—"} ${lab.unit ?: ""}".trim(),
-                            danger = lab.isAbnormal
-                        )
-                    }
-                }
-            }
-
-            if (d.medications.isNotEmpty()) {
-                DetailCard("Active Medications", Icons.Default.LocalPharmacy) {
-                    d.medications.forEach { DetailRow(it, "") }
-                }
-            }
-
-            if (d.conditions.isNotEmpty()) {
-                DetailCard("Conditions", Icons.Default.MedicalServices) {
-                    d.conditions.forEach { DetailRow(it, "") }
-                }
-            }
-
-            d.latestMood?.let { m ->
-                DetailCard("Latest Mood", Icons.Default.SentimentSatisfied) {
-                    m.score?.let { DetailRow("Score", "$it/10") }
-                    m.date?.let { DetailRow("As of", it) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DetailCard(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(2.dp))
-            content()
-        }
-    }
-}
-
-@Composable
-private fun DetailRow(label: String, value: String, danger: Boolean = false) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            if (danger) "$label ⚠" else label,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-        )
-        if (value.isNotEmpty()) {
-            Text(
-                value,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                color = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
 @Composable
 private fun dataTypeIcon(type: String) = when (type.lowercase()) {
     "labs" -> Icons.Default.Science
@@ -451,8 +318,11 @@ private fun dataTypeIcon(type: String) = when (type.lowercase()) {
     "mood" -> Icons.Default.SentimentSatisfied
     "sleep" -> Icons.Default.Bedtime
     "conditions" -> Icons.Default.MedicalServices
+    "elimination" -> Icons.Default.WaterDrop
+    "journal" -> Icons.Default.Book
+    "connected_records" -> Icons.Default.Link
     "dialysis" -> Icons.Default.WaterDrop
     "lifestyle" -> Icons.Default.Spa
-    "appointments" -> Icons.Default.CalendarToday
+    "all" -> Icons.Default.SelectAll
     else -> Icons.Default.Folder
 }

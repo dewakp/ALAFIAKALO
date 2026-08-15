@@ -4,10 +4,9 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-SHARABLE_DATA_TYPES = [
-    "vitals", "labs", "medications", "nutrition", "fitness",
-    "mood", "lifestyle", "dialysis", "symptoms", "conditions", "journal", "all",
-]
+from app.models.data_sharing import ALL_DATA_TYPES
+
+SHARABLE_DATA_TYPES = ALL_DATA_TYPES + ["all"]
 
 
 class DataGrantCreate(BaseModel):

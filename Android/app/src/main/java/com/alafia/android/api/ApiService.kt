@@ -819,6 +819,16 @@ interface ApiService {
     @GET("clinician-dashboard/patient/{patientId}")
     suspend fun getClinicianPatient(@Path("patientId") patientId: Int): PatientSummary
 
+    @GET("clinician-dashboard/patient/{patientId}/board")
+    suspend fun getPatientBoard(@Path("patientId") patientId: Int): PatientBoardResponse
+
+    @GET("clinician-dashboard/patient/{patientId}/category/{categoryKey}")
+    suspend fun getPatientCategory(
+        @Path("patientId") patientId: Int,
+        @Path("categoryKey") categoryKey: String,
+        @Query("days") days: Int = 90
+    ): PatientCategoryResponse
+
     // ── Chart Dashboard ──────────────────────────────
     @GET("chart-dashboard/datasets")
     suspend fun getChartDatasets(): Map<String, List<ChartDatasetInfo>>

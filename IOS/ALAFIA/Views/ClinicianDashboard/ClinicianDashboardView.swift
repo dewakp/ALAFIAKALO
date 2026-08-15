@@ -58,10 +58,13 @@ final class ClinicianDashboardViewModel {
     func loadNotes(patientId: Int) async {
         loadingNotes.insert(patientId)
         do {
-            let notes: [ClinicalNote] = try await APIClient.shared.get("/chronic/therapy-sessions/0/clinical-notes?patient_id=\(patientId)")
+            let notes: [ClinicalNote] = try await APIClient.shared.get("/chronic/therapy-sessions/0/notes")
             patientNotes[patientId] = notes
         } catch {
-            // Notes may not exist yet — that's ok
+            // The route is /notes, not /clinical-notes — this called a path that
+            // never existed, so the catch below made it look like "no notes yet"
+            // forever. Session 0 is a placeholder: notes hang off a therapy
+            // session, so this needs a real session id to return anything.
             patientNotes[patientId] = []
         }
         loadingNotes.remove(patientId)
@@ -141,7 +144,10 @@ struct ClinicianDashboardView: View {
             ) {
                 ForEach(vm.patients) { patient in
                     NavigationLink {
-                        ClinicianPatientDetailView(vm: vm, patient: patient)
+                        // The board replaces the old flat detail screen: a
+                        // clinician picks a category first, then drills in.
+                        PatientBoardView(patientId: patient.userId,
+                                         patientName: patient.fullName)
                     } label: {
                         patientCard(patient)
                     }
@@ -232,177 +238,4 @@ struct ClinicianDashboardView: View {
         return s.isEmpty ? "?" : s
     }
 
-}
-
-// MARK: - Patient Detail
-//
-// Pushed from a card on the grid. The grid is the clinician's home screen, so
-// the detail is a separate destination rather than an inline expansion — a row
-// that grows in place pushes every other patient off the screen.
-
-struct ClinicianPatientDetailView: View {
-    @Bindable var vm: ClinicianDashboardViewModel
-    let patient: PatientSummary
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if vm.loadingDetails.contains(patient.userId) {
-                    ProgressView().frame(maxWidth: .infinity)
-                } else {
-                    patientDetailSection(vm.patientDetails[patient.userId] ?? patient)
-                }
-            }
-            .padding(16)
-        }
-        .navigationTitle(patient.fullName)
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await vm.loadPatientDetail(id: patient.userId) }
-    }
-
-    // MARK: - Patient Detail
-
-    @ViewBuilder
-    private func patientDetailSection(_ detail: PatientSummary) -> some View {
-        // Recent Labs
-        if let labs = detail.latestLabs, !labs.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Recent Labs", systemImage: "flask.fill")
-                    .font(.caption).fontWeight(.semibold).foregroundStyle(.purple)
-                ForEach(labs) { lab in
-                    HStack {
-                        Text(lab.name ?? "–")
-                            .font(.caption)
-                        Spacer()
-                        Text("\(lab.value ?? "–") \(lab.unit ?? "")")
-                            .font(.caption).fontWeight(.medium)
-                        if let date = lab.date {
-                            Text(date).font(.caption2).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-        }
-
-        // Vitals
-        if let vitals = detail.latestVitals {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Vitals", systemImage: "heart.fill")
-                    .font(.caption).fontWeight(.semibold).foregroundStyle(.red)
-                HStack(spacing: 16) {
-                    if let bp = vitals.bp { vitalBadge("BP", value: bp) }
-                    if let hr = vitals.hr { vitalBadge("HR", value: "\(hr) bpm") }
-                    if let wt = vitals.weightKg { vitalBadge("Wt", value: String(format: "%.1f kg", wt)) }
-                }
-                if let date = vitals.date {
-                    Text("Updated: \(date)").font(.caption2).foregroundStyle(.secondary)
-                }
-            }
-            .padding(.vertical, 4)
-        }
-
-        // Mood
-        if let mood = detail.latestMood {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Mood", systemImage: "face.smiling")
-                    .font(.caption).fontWeight(.semibold).foregroundStyle(.green)
-                HStack(spacing: 16) {
-                    if let score = mood.score { scoreBadge("Score", value: Double(score)) }
-                }
-                if let date = mood.date {
-                    Text("Recorded: \(date)").font(.caption2).foregroundStyle(.secondary)
-                }
-            }
-            .padding(.vertical, 4)
-        }
-
-        // Medications
-        if let meds = detail.medications, !meds.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Medications", systemImage: "pills.fill")
-                    .font(.caption).fontWeight(.semibold).foregroundStyle(.orange)
-                ForEach(meds, id: \.self) { med in
-                    Text(med).font(.caption)
-                }
-            }
-            .padding(.vertical, 4)
-        }
-        
-        // Clinical Notes
-        clinicalNotesSection(patientId: detail.userId)
-    }
-
-    private func vitalBadge(_ label: String, value: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value).font(.caption).fontWeight(.medium)
-            Text(label).font(.caption2).foregroundStyle(.secondary)
-        }
-    }
-
-    private func scoreBadge(_ label: String, value: Double) -> some View {
-        VStack(spacing: 2) {
-            Text(String(format: "%.0f", value)).font(.caption).fontWeight(.semibold)
-            Text(label).font(.caption2).foregroundStyle(.secondary)
-        }
-    }
-    
-    // MARK: - Clinical Notes Section
-    
-    @ViewBuilder
-    private func clinicalNotesSection(patientId: Int) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Clinical Notes", systemImage: "note.text")
-                .font(.caption).fontWeight(.semibold).foregroundStyle(.indigo)
-            
-            if vm.loadingNotes.contains(patientId) {
-                ProgressView().frame(maxWidth: .infinity)
-            } else if let notes = vm.patientNotes[patientId], !notes.isEmpty {
-                ForEach(notes) { note in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(note.noteType.capitalized)
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.indigo.opacity(0.12))
-                                .foregroundStyle(.indigo)
-                                .cornerRadius(4)
-                            Spacer()
-                            Text(note.createdAt).font(.caption2).foregroundStyle(.secondary)
-                        }
-                        Text(note.noteText)
-                            .font(.caption)
-                    }
-                    .padding(8)
-                    .background(Color(.tertiarySystemGroupedBackground))
-                    .cornerRadius(8)
-                }
-            } else {
-                Text("No clinical notes yet.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            // Add note row
-            HStack {
-                TextField("Add a note…", text: $vm.newNoteText, axis: .vertical)
-                    .font(.caption)
-                    .lineLimit(1...3)
-                    .textFieldStyle(.roundedBorder)
-                
-                Button {
-                    Task { await vm.addNote(patientId: patientId) }
-                } label: {
-                    if vm.savingNote {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "paperplane.fill")
-                    }
-                }
-                .disabled(vm.newNoteText.trimmingCharacters(in: .whitespaces).isEmpty || vm.savingNote)
-            }
-        }
-        .padding(.vertical, 4)
-    }
 }

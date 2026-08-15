@@ -33,7 +33,13 @@ services:
 
   backend:
     build: ./backend
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    # Source is mounted and --reload is on, so edits take effect immediately.
+    # Without the mount this container serves whatever `COPY . .` baked at build
+    # time: a `docker compose restart` looks like it picked up your change and
+    # silently did not (new routes 404). The image is still the source of the
+    # installed dependencies, including the Rust alafia_crypto wheel, which
+    # lives in site-packages and is not shadowed by this mount.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     ports:
       - "8005:8000"
     env_file:
@@ -70,6 +76,7 @@ services:
       # alafia_model_service.py adds /ML/src to sys.path → mount it there so the
       # LLM/AI routing actually loads instead of falling back to "unavailable".
       - /Users/woleakpose/Developer/LAFIAKALO/ML/src:/ML/src:ro
+      - ./backend:/app
     depends_on:
       db:
         condition: service_healthy

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import {
   Users, Activity, Pill, FlaskConical, Apple, Dumbbell, Brain, Heart,
-  Eye, ArrowLeft, HeartPulse, Stethoscope,
+  Eye, Stethoscope,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { useClinicianMode } from '../context/ClinicianModeContext';
+import PatientBoard from './clinician/PatientBoard';
+import CategoryDetail from './clinician/CategoryDetail';
 
 const categoryIcons = {
   vitals: Activity, medications: Pill, labs: FlaskConical,
@@ -25,9 +27,8 @@ export default function ClinicianDashboard() {
   const { canBeClinician, clinicianMode, enterClinicianMode } = useClinicianMode();
   const [patients, setPatients] = useState([]);
   const [role, setRole] = useState(null);
-  const [selected, setSelected] = useState(null);      // patient summary from the grid
-  const [detail, setDetail] = useState(null);          // full detail for that patient
-  const [detailError, setDetailError] = useState(null);
+  const [selected, setSelected] = useState(null);      // patient opened from the grid
+  const [category, setCategory] = useState(null);      // category opened from the board
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -53,19 +54,6 @@ export default function ClinicianDashboard() {
     }
   }
 
-  async function openPatient(patient) {
-    setSelected(patient);
-    setDetail(null);
-    setDetailError(null);
-    try {
-      const { data } = await api.get(`/clinician-dashboard/patient/${patient.user_id}`);
-      setDetail(data);
-    } catch (err) {
-      setDetailError(err.response?.status === 403
-        ? 'This patient has revoked access.'
-        : 'Could not load this patient.');
-    }
-  }
 
   if (loading) return <div className="loading">Loading...</div>;
 
@@ -78,13 +66,22 @@ export default function ClinicianDashboard() {
     </div>
   );
 
+  if (selected && category) {
+    return (
+      <CategoryDetail
+        patientId={selected.user_id}
+        categoryKey={category}
+        onBack={() => setCategory(null)}
+      />
+    );
+  }
+
   if (selected) {
     return (
-      <PatientDetail
-        patient={selected}
-        detail={detail}
-        error={detailError}
-        onBack={() => { setSelected(null); setDetail(null); setDetailError(null); }}
+      <PatientBoard
+        patientId={selected.user_id}
+        onBack={() => setSelected(null)}
+        onOpenCategory={setCategory}
       />
     );
   }
@@ -122,7 +119,7 @@ export default function ClinicianDashboard() {
           gap: '1rem',
         }}>
           {patients.map(p => (
-            <PatientCard key={p.user_id} patient={p} onOpen={() => openPatient(p)} />
+            <PatientCard key={p.user_id} patient={p} onOpen={() => { setSelected(p); setCategory(null); }} />
           ))}
         </div>
       )}
@@ -210,111 +207,5 @@ function Metric({ label, value }) {
       </div>
       <div style={{ fontWeight: 600 }}>{value || '—'}</div>
     </div>
-  );
-}
-
-function PatientDetail({ patient, detail, error, onBack }) {
-  const d = detail || patient;
-  const vitals = d.latest_vitals || null;
-
-  return (
-    <div>
-      <div className="page-header">
-        <div className="page-header-left">
-          <button className="btn btn-secondary btn-sm" onClick={onBack}>
-            <ArrowLeft size={16} /> All patients
-          </button>
-          <h1 className="page-title">{d.full_name || `Patient #${d.user_id}`}</h1>
-        </div>
-        <span style={{ color: 'var(--color-text-secondary)' }}>{d.email}</span>
-      </div>
-
-      {error && (
-        <div className="card" style={{ padding: '1.25rem', color: 'var(--color-danger)', marginBottom: '1rem' }}>
-          {error}
-        </div>
-      )}
-
-      {!detail && !error && <div className="loading">Loading patient…</div>}
-
-      {detail && (
-        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-          <StatCard title="Latest Vitals" icon={HeartPulse} color="var(--color-primary)">
-            {vitals ? (
-              <>
-                {vitals.bp && <Row label="Blood pressure" value={vitals.bp} />}
-                {vitals.hr && <Row label="Heart rate" value={`${vitals.hr} bpm`} />}
-                {vitals.weight_kg && <Row label="Weight" value={`${vitals.weight_kg} kg`} />}
-                {vitals.date && <Muted>as of {vitals.date}</Muted>}
-              </>
-            ) : <Muted>No vitals shared.</Muted>}
-          </StatCard>
-
-          <StatCard title="Recent Labs" icon={FlaskConical} color="var(--color-info)">
-            {(detail.latest_labs || []).length ? detail.latest_labs.slice(0, 10).map((l, i) => (
-              <Row
-                key={i}
-                label={l.name}
-                value={`${l.value ?? '—'}${l.unit ? ` ${l.unit}` : ''}`}
-                danger={l.is_abnormal}
-              />
-            )) : <Muted>No labs shared.</Muted>}
-          </StatCard>
-
-          <StatCard title="Active Medications" icon={Pill} color="var(--color-warning)">
-            {(detail.medications || []).length
-              ? detail.medications.map((m, i) => <Row key={i} label={m} />)
-              : <Muted>No medications shared.</Muted>}
-          </StatCard>
-
-          <StatCard title="Conditions" icon={Activity} color="var(--color-danger)">
-            {(detail.conditions || []).length
-              ? detail.conditions.map((c, i) => <Row key={i} label={c} />)
-              : <Muted>No conditions shared.</Muted>}
-          </StatCard>
-
-          {detail.latest_mood && (
-            <StatCard title="Latest Mood" icon={Brain} color="var(--color-primary)">
-              <Row label="Score" value={`${detail.latest_mood.score}/10`} />
-              {detail.latest_mood.date && <Muted>as of {detail.latest_mood.date}</Muted>}
-            </StatCard>
-          )}
-
-          <StatCard title="Shared With You" icon={Eye} color="var(--color-text-secondary)">
-            {(detail.permissions || []).map(t => <Row key={t} label={t} />)}
-          </StatCard>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatCard({ title, icon: Icon, color, children }) {
-  return (
-    <div className="card" style={{ padding: '1rem' }}>
-      <h4 style={{ marginBottom: '0.65rem', color, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-        {Icon && <Icon size={15} />} {title}
-      </h4>
-      {children}
-    </div>
-  );
-}
-
-function Row({ label, value, danger }) {
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', gap: '1rem',
-      fontSize: '0.85rem', marginBottom: '0.3rem',
-      color: danger ? 'var(--color-danger)' : 'inherit',
-    }}>
-      <span>{label}{danger && ' ⚠'}</span>
-      {value != null && <strong>{value}</strong>}
-    </div>
-  );
-}
-
-function Muted({ children }) {
-  return (
-    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{children}</div>
   );
 }

@@ -1092,16 +1092,14 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
     if diet_pref:
         lines.append(f"Diet Prefs    : {', '.join(diet_pref)}")
 
-    # chronic_conditions shares its name with a relationship on User →
-    # query directly to avoid async lazy-load error
-    cc_q = await db.execute(
-        select(ChronicCondition)
-        .where(ChronicCondition.user_id == uid, ChronicCondition.is_active == True)
-        .order_by(ChronicCondition.diagnosis_date)
-    )
-    cc_list = cc_q.scalars().all()
+    # Conditions live in TWO tables — see app/services/clinical_sources.py. This
+    # is the clinical context the model reasons from, so reading one table would
+    # hand the LLM a patient with no diagnoses.
+    from app.services import clinical_sources
+
+    cc_list = await clinical_sources.conditions(db, uid, active_only=True)
     if cc_list:
-        lines.append(f"Chronic Cond. : {', '.join(c.condition_name for c in cc_list)}")
+        lines.append(f"Chronic Cond. : {', '.join(c.name for c in cc_list)}")
 
     fam_hist = _json_list(user.family_history)
     if fam_hist:

@@ -182,7 +182,9 @@ class TherapySessionBase(BaseModel):
     adverse_reactions: Optional[str] = None
     complications: Optional[str] = None
     patient_tolerance: Optional[str] = Field(None, max_length=50)
-    clinical_notes: Optional[str] = None
+    # `clinical_notes` is NOT a field on the session — notes are their own rows
+    # (POST /therapy-sessions/{id}/clinical-notes). Accepting it here fed a
+    # string into a relationship and 500'd the create.
     patient_notes: Optional[str] = None
     next_session_scheduled: Optional[datetime] = None
 
@@ -280,7 +282,9 @@ class TherapySessionUpdate(BaseModel):
     adverse_reactions: Optional[str] = None
     complications: Optional[str] = None
     patient_tolerance: Optional[str] = Field(None, max_length=50)
-    clinical_notes: Optional[str] = None
+    # `clinical_notes` is NOT a field on the session — notes are their own rows
+    # (POST /therapy-sessions/{id}/clinical-notes). Accepting it here fed a
+    # string into a relationship and 500'd the create.
     patient_notes: Optional[str] = None
     next_session_scheduled: Optional[datetime] = None
 
