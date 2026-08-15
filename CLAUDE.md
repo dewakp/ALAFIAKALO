@@ -246,8 +246,13 @@ was one `git add .` from being committed.
 - The HTTPS API is preferred over SMTP on Cloud Run: no outbound mail ports, no
   STARTTLS negotiation, and a real error body. That body is how we learned the
   sending domain was unverified — SMTP would have given an opaque failure.
-- ⚠️ **No domain is verified on the Resend account yet**, so production email
-  cannot send to arbitrary recipients. See `ADMIN_CONSOLE.md`.
+- ✅ **`alafia.app` is verified in Resend** — DKIM and SPF are published in Cloud
+  DNS zone `alafia-app`, and delivery to an external inbox is confirmed.
+  Production sends as `noreply@alafia.app`.
+- ⚠️ Check that from **DNS**, not the API: the production key is send-only, so
+  `GET /domains` returns `401 restricted_api_key` — an error that reads exactly
+  like "no domains verified" if you do not look at the status code.
+  `dig +short TXT resend._domainkey.alafia.app`
 
 ## 4. Running things locally — **in Docker**
 
@@ -323,8 +328,9 @@ Runbook: **`DEPLOY.md`**. Two things that will bite:
 - **Two-step signup is gated OFF in production** (`TWO_STEP_SIGNUP_REQUIRED=false`
   in `deploy.sh`). Turning it on closes registration until email works — see the
   checklist in DEPLOY.md. Do not flip it because the code "looks ready".
-- **No sending domain is verified in Resend**, so production mail only reaches
-  the account owner. Delivery itself is proven; the domain is not.
+- **The sending domain is verified** (`alafia.app`, DKIM+SPF in Cloud DNS), so
+  production mail reaches arbitrary recipients. Two-step signup is still gated
+  off for the separate reasons in DEPLOY.md.
 
 `deploy.sh` mounts a secret only if it exists AND grants the runtime service
 account access from a second list — both must name it, or the deploy fails at

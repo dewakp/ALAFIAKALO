@@ -43,17 +43,30 @@ import os
 import re
 import traceback
 
-# Database connection
+# Database connection.
+#
+# Port 5435, not 5432: the dev database is published on 5435, and a postgres on
+# 5432 on this machine belongs to a DIFFERENT project (sigma_db). Pointing at it
+# looks like it works and writes to the wrong database. Every value here is
+# overridable from the command line so the same script can target dev or, via
+# the Cloud SQL Auth Proxy, production.
 DB_PARAMS = {
     'host': 'localhost',
-    'port': 5432,
+    'port': 5435,
     'dbname': 'alafia',
     'user': 'alafia',
-    'password': 'alafia'
+    'password': 'alafia',
 }
 
-USER_ID = 1
-CONDITION_ID = 14  # ESRD
+# Deliberately None: these were hardcoded to 1 and 14, neither of which exists
+# in this database. Writing clinical rows against a wrong or absent user id is
+# not a mistake that announces itself, so they must be passed explicitly.
+USER_ID = None
+CONDITION_ID = None
+
+# (sheet_name, date_from_tab, date_from_H4) for every disagreement — reported
+# at the end of the run so a bad cell is visible instead of silently applied.
+DATE_CONFLICTS = []
 
 # Skip these sheet names — they aren't sessions
 SKIP_SHEETS = {
@@ -152,12 +165,27 @@ def parse_session_date(sheet_name, ws):
         session_number = 2
         name = name[:-2]  # Strip .2 for date parsing
 
-    # First try the H4 cell (most reliable)
+    # The TAB NAME wins over the H4 cell.
+    #
+    # H4 was previously trusted as "most reliable" and it is not: these sheets
+    # are copied from the previous session, and H4 frequently keeps the old
+    # date. In the 2026 workbook five sheets (02-26, 02-27, 03-04, 03-05,
+    # 03-07) all carry H4 = 2026-03-26 — and because this importer de-duplicates
+    # on scheduled_date, trusting H4 silently DROPS four real dialysis sessions.
+    # Another (06-24-2026) carries H4 = 2026-08-24, a future date that then
+    # presents as the patient's most recent treatment.
+    #
+    # Tab names are unique per session and are what the patient actually names
+    # the sheet, so they are the primary source. H4 remains the fallback for
+    # workbooks whose tabs are not dates, and every disagreement is reported
+    # rather than silently resolved.
     h4 = cell(ws, 4, 'H')
-    if isinstance(h4, datetime):
-        return h4.date(), session_number
-    if isinstance(h4, date):
-        return h4, session_number
+    h4_date = h4.date() if isinstance(h4, datetime) else (h4 if isinstance(h4, date) else None)
+
+    def _resolve(name_date):
+        if name_date and h4_date and name_date != h4_date:
+            DATE_CONFLICTS.append((sheet_name, name_date, h4_date))
+        return name_date or h4_date
 
     # Try parsing sheet name in various formats
 
@@ -165,7 +193,7 @@ def parse_session_date(sheet_name, ws):
     m = re.match(r'(\d{1,2})-(\d{1,2})-(\d{4})', name)
     if m:
         try:
-            return date(int(m.group(3)), int(m.group(1)), int(m.group(2))), session_number
+            return _resolve(date(int(m.group(3)), int(m.group(1)), int(m.group(2)))), session_number
         except ValueError:
             pass
 
@@ -182,7 +210,7 @@ def parse_session_date(sheet_name, ws):
         month_str = m.group(1).lower()
         if month_str in months:
             try:
-                return date(int(m.group(3)), months[month_str], int(m.group(2))), session_number
+                return _resolve(date(int(m.group(3)), months[month_str], int(m.group(2)))), session_number
             except ValueError:
                 pass
 
@@ -194,11 +222,12 @@ def parse_session_date(sheet_name, ws):
             yr = int(m.group(3))
             yr = yr + 2000 if yr < 100 else yr
             try:
-                return date(yr, months[month_str], int(m.group(2))), session_number
+                return _resolve(date(yr, months[month_str], int(m.group(2)))), session_number
             except ValueError:
                 pass
 
-    return None, session_number
+    # No parseable tab name — fall back to the H4 cell.
+    return h4_date, session_number
 
 
 def parse_time_value(val):
@@ -458,7 +487,12 @@ def extract_session_data(ws, sheet_name):
         'alarm_test_completed': alarm_test,
         'lab_tubes_drawn': lab_tubes,
         'drugs_administered': drugs_str,
-        'clinical_notes': notes,
+        # `patient_notes` is the session's free-text column. There is no
+        # `clinical_notes` COLUMN — clinical notes are rows in their own
+        # append-only table (author, SHA-512 hash, blockchain anchor), reached
+        # via POST /chronic/therapy-sessions/{id}/notes. Writing the sheet's
+        # note here kept it rather than dropping it on the floor.
+        'patient_notes': notes,
         'created_at': datetime.utcnow(),
         'updated_at': datetime.utcnow(),
     }
@@ -595,11 +629,22 @@ def import_workbook(conn, wb_info):
         print(f"  SKIP: File not found: {path}")
         return 0, 0, 0
 
-    # Check if it's a valid xlsx
-    import subprocess
-    result = subprocess.run(['file', path], capture_output=True, text=True)
-    if 'Microsoft Excel' not in result.stdout and 'Zip' not in result.stdout and 'zip' not in result.stdout.lower():
-        print(f"  SKIP: Not a valid xlsx file (OneDrive stub?): {path}")
+    # Is this a real xlsx, or a dehydrated OneDrive placeholder?
+    #
+    # An .xlsx is a ZIP, so it starts with "PK". A Files-On-Demand placeholder
+    # reports its full size in a directory listing but occupies zero blocks and
+    # reads as nul bytes — which is why this check matters rather than trusting
+    # os.path.exists. Read the magic bytes instead of shelling out to `file`,
+    # which is absent from slim container images.
+    try:
+        with open(path, "rb") as fh:
+            magic = fh.read(2)
+    except OSError as exc:
+        print(f"  SKIP: cannot read {path}: {exc}")
+        return 0, 0, 0
+    if magic != b"PK":
+        print(f"  SKIP: not a readable xlsx — dehydrated OneDrive placeholder? {path}")
+        print("        In Finder: right-click the file → Always Keep on This Device.")
         return 0, 0, 0
 
     print(f"\n{'='*60}")
@@ -745,12 +790,71 @@ def import_workbook(conn, wb_info):
     return sessions_imported, readings_imported, vomits_imported
 
 
+def _parse_args():
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--user-id", type=int, required=True,
+                    help="patient the sessions belong to (e.g. 63)")
+    ap.add_argument("--condition-id", type=int, required=True,
+                    help="chronic_conditions.id to attach sessions to (the ESRD row)")
+    ap.add_argument("--host", default=DB_PARAMS["host"])
+    ap.add_argument("--port", type=int, default=DB_PARAMS["port"],
+                    help="5435 = local dev; 5436 = Cloud SQL proxy to production")
+    ap.add_argument("--dbname", default=DB_PARAMS["dbname"])
+    ap.add_argument("--db-user", default=DB_PARAMS["user"])
+    ap.add_argument("--password", default=DB_PARAMS["password"],
+                    help="or set PGPASSWORD")
+    ap.add_argument("--workbook", action="append", metavar="PATH",
+                    help="override the built-in workbook list; repeatable")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="parse and report, write nothing")
+    return ap.parse_args()
+
+
 def main():
+    global USER_ID, CONDITION_ID, WORKBOOKS
+
+    args = _parse_args()
+    USER_ID = args.user_id
+    CONDITION_ID = args.condition_id
+    DB_PARAMS.update(host=args.host, port=args.port, dbname=args.dbname,
+                     user=args.db_user,
+                     password=os.environ.get("PGPASSWORD") or args.password)
+    if args.workbook:
+        WORKBOOKS = [{"path": w, "label": os.path.basename(w)} for w in args.workbook]
+
     print("=" * 60)
     print("ALAFIA Hemodialysis Flowsheet Import")
     print("=" * 60)
+    print(f"  target : {DB_PARAMS['host']}:{DB_PARAMS['port']}/{DB_PARAMS['dbname']}")
+    print(f"  user_id: {USER_ID}   condition_id: {CONDITION_ID}"
+          f"{'   [DRY RUN]' if args.dry_run else ''}")
 
     conn = psycopg2.connect(**DB_PARAMS)
+
+    # Refuse to write clinical rows against a user or condition that is not there.
+    _c = conn.cursor()
+    _c.execute("SELECT 1 FROM users WHERE id = %s", (USER_ID,))
+    if not _c.fetchone():
+        raise SystemExit(f"user_id {USER_ID} does not exist in this database — aborting")
+    _c.execute("SELECT condition_name FROM chronic_conditions WHERE id = %s AND user_id = %s",
+               (CONDITION_ID, USER_ID))
+    _row = _c.fetchone()
+    if not _row:
+        raise SystemExit(
+            f"condition_id {CONDITION_ID} does not exist for user {USER_ID} — aborting")
+    print(f"  condition: {_row[0]}")
+    if args.dry_run:
+        # The import loop commits as it goes, so gating a rollback at the end
+        # would persist everything regardless. psycopg2's `commit` is read-only
+        # and cannot be patched, so wrap the connection: every write stays inside
+        # one open transaction and is discarded below.
+        class _NoCommit:
+            def __init__(self, c): self._c = c
+            def commit(self): pass
+            def __getattr__(self, name): return getattr(self._c, name)
+        conn = _NoCommit(conn)
 
     # Check current state
     cur = conn.cursor()
@@ -798,10 +902,18 @@ def main():
     """, (USER_ID,))
     date_range = cur.fetchone()
 
+    if args.dry_run:
+        conn.rollback()
     conn.close()
 
+    if DATE_CONFLICTS:
+        print(f"\n  ⚠ {len(DATE_CONFLICTS)} sheet(s) where the tab name and the H4 cell disagree.")
+        print("     The TAB NAME was used. Correct H4 in the workbook if the tab is wrong:")
+        for sheet, tab_d, h4_d in DATE_CONFLICTS:
+            print(f"       {sheet:<18} used {tab_d}   (H4 said {h4_d})")
+
     print(f"\n{'='*60}")
-    print(f"IMPORT COMPLETE")
+    print("DRY RUN — nothing was written" if args.dry_run else "IMPORT COMPLETE")
     print(f"{'='*60}")
     print(f"  New sessions imported: {total_sessions}")
     print(f"  New readings imported: {total_readings}")

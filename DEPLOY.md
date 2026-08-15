@@ -15,22 +15,24 @@ production until email actually works:
 | | With `TWO_STEP_SIGNUP_REQUIRED=true` |
 |---|---|
 | `POST /auth/register` | **410 Gone** |
-| `POST /auth/signup/start` | 503 with no email provider; **202 but the mail 403s** if Resend is configured without a verified domain |
+| `POST /auth/signup/start` | 503 if no email provider is configured. With Resend + the now-verified `alafia.app`, mail does send — so this row is no longer the blocker it was. |
 
-Either way **no new account can be created**. `deploy.sh` therefore sets
+`deploy.sh` therefore sets
 `TWO_STEP_SIGNUP_REQUIRED=false`, so `/auth/register` keeps working exactly as it
 does today. Turn it on only after the checklist in *Enabling two-step signup*.
 
-**No domain is verified on the Resend account.** Confirmed against the live API:
+**The sending domain IS verified.** `alafia.app` is verified in Resend, its
+DKIM and SPF records are published in Cloud DNS zone `alafia-app`, and delivery
+to an external inbox has been confirmed. `SMTP_FROM_EMAIL=noreply@alafia.app`.
 
-```
-403  The alafia.app domain is not verified.
-403  You can only send testing emails to your own address (developer@hntsolutions.com)
-GET /domains → verified domains: (none)
-```
+Verify it yourself from DNS rather than from the API — the production Resend key
+is **send-only**, so `GET /domains` returns `401 restricted_api_key`, which is
+easy to misread as "no domains":
 
-Email delivery itself is proven — a real verification email arrived via Resend's
-shared `onboarding@resend.dev` sender. Only the sending domain is missing.
+```bash
+dig +short TXT resend._domainkey.alafia.app   # DKIM
+dig +short TXT send.alafia.app                # SPF
+```
 
 ---
 
