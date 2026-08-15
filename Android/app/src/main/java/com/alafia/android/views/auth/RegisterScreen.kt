@@ -6,6 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,6 +33,10 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
+    // Required by the backend: an account holder must be an adult by their own
+    // jurisdiction's standard (app/core/age_policy.py). This screen previously
+    // sent date_of_birth = null, which the age gate rejects with a 422.
+    var dateOfBirth by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -63,6 +69,22 @@ fun RegisterScreen(
             value = lastName,
             onValueChange = { lastName = it },
             label = { Text("Last Name") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            enabled = !isLoading
+        )
+
+        OutlinedTextField(
+            value = dateOfBirth,
+            onValueChange = { dateOfBirth = it },
+            label = { Text("Date of Birth (YYYY-MM-DD)") },
+            placeholder = { Text("1990-01-31") },
+            supportingText = {
+                Text("An account holder must be an adult. A child is tracked as a " +
+                     "dependent profile under a parent or guardian's account.")
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
@@ -107,7 +129,8 @@ fun RegisterScreen(
                 }
                 
                 if (email.isNotEmpty() && password.isNotEmpty() &&
-                    firstName.isNotEmpty() && lastName.isNotEmpty()
+                    firstName.isNotEmpty() && lastName.isNotEmpty() &&
+                    DOB_PATTERN.matches(dateOfBirth)
                 ) {
                     isLoading = true
                     scope.launch {
@@ -119,7 +142,7 @@ fun RegisterScreen(
                                     email = email,
                                     password = password,
                                     full_name = "$firstName $lastName",
-                                    date_of_birth = null,
+                                    date_of_birth = dateOfBirth,
                                     gender = null
                                 )
                             )
@@ -167,3 +190,6 @@ fun RegisterScreen(
         }
     }
 }
+
+/** ISO `YYYY-MM-DD`, which is what the API's age gate parses. */
+private val DOB_PATTERN = Regex("""\d{4}-\d{2}-\d{2}""")

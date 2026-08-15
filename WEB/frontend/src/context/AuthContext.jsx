@@ -52,12 +52,17 @@ export function AuthProvider({ children }) {
     await loadUser();
   }
 
-  async function register(email, password, fullName, phone) {
+  async function register(email, password, fullName, phone, dateOfBirth, country) {
+    // date_of_birth is REQUIRED by the backend: an account holder must be an
+    // adult by their own jurisdiction's standard (app/core/age_policy.py), and
+    // `country` selects that threshold — absent, the strictest (16) applies.
     await api.post('/auth/register', {
       email,
       password,
       full_name: fullName,
       phone: phone || null,
+      date_of_birth: dateOfBirth,
+      country: country || null,
     });
     await login(email, password);
   }

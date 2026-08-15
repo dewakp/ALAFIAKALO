@@ -20,6 +20,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
+from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
 from app.models.pending_registration import PendingRegistration
 from app.models.user import User
 
@@ -56,6 +57,7 @@ async def email_taken(db: AsyncSession, email: str) -> bool:
 
 async def start(
     db: AsyncSession, email: str, password: str, full_name: str | None,
+    date_of_birth: str | None = None, country: str | None = None,
 ) -> tuple[PendingRegistration, str]:
     """Begin a signup. Returns the pending row and the raw verification token.
 
@@ -75,6 +77,8 @@ async def start(
         # re-requesting the verification email.
         existing.password_hash = hash_password(password)
         existing.full_name = full_name or existing.full_name
+        existing.date_of_birth = date_of_birth or existing.date_of_birth
+        existing.country = country or existing.country
         existing.verification_token_hash = token_hash
         existing.verification_sent_at = _now()
         existing.verification_attempts = 0
@@ -85,6 +89,8 @@ async def start(
     pending = PendingRegistration(
         email=email,
         full_name=full_name,
+        date_of_birth=date_of_birth,
+        country=country,
         password_hash=hash_password(password),
         verification_token_hash=token_hash,
         verification_sent_at=_now(),
@@ -171,9 +177,23 @@ async def materialise(db: AsyncSession, pending: PendingRegistration) -> User | 
             select(User).where(User.email == pending.email)
         )).scalar_one_or_none()
 
+    # Re-assert the age rule at the moment of creation. /signup/start already
+    # checked, but a row could have been created before that gate existed, and
+    # this is the ONLY place a signup becomes a user — the check belongs on the
+    # same side of the door as the creation.
+    try:
+        assert_adult(pending.date_of_birth, pending.country)
+    except (AgeRestricted, InvalidDateOfBirth):
+        logger.warning(
+            "Refusing to materialise %s: fails the account-holder age rule", pending.email
+        )
+        return None
+
     user = User(
         email=pending.email,
         full_name=pending.full_name,
+        date_of_birth=pending.date_of_birth,
+        country=pending.country,
         hashed_password=pending.password_hash,   # already hashed at start()
         is_active=True,
     )

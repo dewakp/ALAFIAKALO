@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
 from app.core.rate_limit import limiter
 from app.services import email as email_service
 from app.services import signup_service as svc
@@ -42,6 +43,11 @@ class SignupStart(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=255)
+    # Required: an account holder must be an adult by their jurisdiction's
+    # standard, and we cannot evaluate that rule without a date of birth.
+    # `country` selects the threshold — absent, the strictest (16) applies.
+    date_of_birth: str = Field(description="ISO YYYY-MM-DD")
+    country: str | None = Field(default=None, max_length=2)
 
 
 class VerifyEmail(BaseModel):
@@ -113,11 +119,34 @@ async def signup_start(
     db: AsyncSession = Depends(get_db),
 ):
     """Begin a signup. Creates NO account — only a pending record."""
+    # Age is gate 0, checked before the verification email and before payment.
+    # Refusing someone after they have paid means a refund and a bad first
+    # impression; refusing before anything happens costs nothing.
+    try:
+        assert_adult(body.date_of_birth, body.country)
+    except InvalidDateOfBirth as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Date of birth is required to create an account ({exc}).",
+        ) from exc
+    except AgeRestricted as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"You must be at least {exc.minimum_age} to hold an ALAFIA account "
+                "in your country. A parent or guardian can create an account and "
+                "add you as a dependent."
+            ),
+        ) from exc
+
     if await svc.email_taken(db, body.email):
         # Same response as success, so the endpoint cannot enumerate accounts.
         return _sent_message()
 
-    pending, raw_token = await svc.start(db, body.email, body.password, body.full_name)
+    pending, raw_token = await svc.start(
+        db, body.email, body.password, body.full_name,
+        date_of_birth=body.date_of_birth, country=body.country,
+    )
     await db.commit()
     return await _deliver_verification(background_tasks, body.email, raw_token, pending.id)
 

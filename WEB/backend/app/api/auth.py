@@ -34,6 +34,7 @@ from app.schemas.user import (
 from app.services.sid_service import generate_sid, get_segments_for_log, verify_sid, decode_sid, mask_sid
 from app.core.rate_limit import limiter
 from app.core.units import units_for_locale
+from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
 from app.services.email import password_reset_url, send_password_reset_email
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,30 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
                 "account is created."
             ),
         )
+
+    # An account holder must be an adult by their own jurisdiction's standard.
+    # A child is never an account holder — they are a dependent profile under a
+    # consenting adult. Enforced HERE, not in the clients: web, iOS and Android
+    # all post to this endpoint, and anyone can post to it directly, so a
+    # client-side birthday picker is UX and this is the actual gate.
+    try:
+        assert_adult(user_in.date_of_birth, user_in.country)
+    except InvalidDateOfBirth as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Date of birth is required to create an account ({exc}).",
+        ) from exc
+    except AgeRestricted as exc:
+        # Say what the rule is. A bare refusal reads as a bug, and the adult who
+        # should be creating this account needs to know they can.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"You must be at least {exc.minimum_age} to hold an ALAFIA account "
+                "in your country. A parent or guardian can create an account and "
+                "add you as a dependent."
+            ),
+        ) from exc
 
     from app.services.identity_client import identity_register
 

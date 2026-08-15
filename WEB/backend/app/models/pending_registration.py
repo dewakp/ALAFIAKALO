@@ -49,6 +49,15 @@ class PendingRegistration(Base):
     payment_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # ── Gate 0: age ──────────────────────────────────────────────────────
+    # Captured at /signup/start and validated there, BEFORE the verification
+    # email is sent or any payment is taken — refusing someone after they have
+    # paid is both a bad experience and a refund to process. Carried through to
+    # the user row by materialise(), because the date of birth is the evidence
+    # the age check was performed against.
+    date_of_birth: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(2), nullable=True)
+
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(

@@ -6,7 +6,21 @@ struct RegisterView: View {
     @State private var fullName = ""
     @State private var email = ""
     @State private var password = ""
+    // Defaults to 30 years ago rather than today, so the wheel does not open on
+    // a date that can never be valid.
+    @State private var dateOfBirth = Calendar.current.date(
+        byAdding: .year, value: -30, to: Date()) ?? Date()
     @State private var isLoading = false
+
+    /// The API parses `YYYY-MM-DD`; a locale-formatted date would not parse.
+    private static let isoDate: DateFormatter = {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "UTC")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
     
     var body: some View {
         ScrollView {
@@ -42,6 +56,14 @@ struct RegisterView: View {
                     
                     LKTextField(title: "Email", text: $email, keyboardType: .emailAddress)
                         .textContentType(.emailAddress)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        DatePicker("Date of Birth", selection: $dateOfBirth,
+                                   in: ...Date(), displayedComponents: .date)
+                        Text("An account holder must be an adult. A child is tracked as a dependent profile under a parent or guardian's account.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                         .autocapitalization(.none)
                     
                     LKTextField(title: "Password", text: $password, isSecure: true)
@@ -50,7 +72,9 @@ struct RegisterView: View {
                     LKButton(title: "Create Account", isLoading: isLoading) {
                         isLoading = true
                         Task {
-                            await authManager.register(email: email, password: password, fullName: fullName)
+                            await authManager.register(
+                                email: email, password: password, fullName: fullName,
+                                dateOfBirth: Self.isoDate.string(from: dateOfBirth))
                             isLoading = false
                         }
                     }

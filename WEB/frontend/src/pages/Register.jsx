@@ -9,6 +9,7 @@ export default function Register() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -20,8 +21,13 @@ export default function Register() {
     if (!email.trim()) { setError('Email is required'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Please enter a valid email address'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    // Checked here for a fast, kind error; the API enforces it regardless —
+    // clients are UX, not enforcement.
+    if (!dateOfBirth) { setError('Date of birth is required'); return; }
+    if (new Date(dateOfBirth) > new Date()) { setError('Date of birth cannot be in the future'); return; }
     try {
-      await register(email, password, fullName, phone);
+      await register(email, password, fullName, phone, dateOfBirth,
+                     Intl.DateTimeFormat().resolvedOptions().locale?.split('-')[1] || null);
     } catch (err) {
       setError(apiErrorMessage(err, 'Registration failed'));
     }
@@ -58,6 +64,22 @@ export default function Register() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="register-dob">Date of Birth</label>
+            <input
+              id="register-dob"
+              className="form-input"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              max={new Date().toISOString().slice(0, 10)}
+              required
+            />
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 4 }}>
+              An account holder must be an adult. A child is tracked as a
+              dependent profile under a parent or guardian's account.
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Phone Number <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional — enables phone login)</span></label>

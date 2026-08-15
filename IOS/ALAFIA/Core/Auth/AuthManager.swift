@@ -154,10 +154,13 @@ class AuthManager: ObservableObject {
 
     // MARK: - Register
 
-    func register(email: String, password: String, fullName: String) async {
+    func register(email: String, password: String, fullName: String,
+                  dateOfBirth: String,
+                  country: String? = Locale.current.region?.identifier) async {
         error = nil
         do {
-            let body = RegisterRequest(email: email, password: password, fullName: fullName)
+            let body = RegisterRequest(email: email, password: password, fullName: fullName,
+                                       dateOfBirth: dateOfBirth, country: country)
             let _: User = try await APIClient.shared.post("/auth/register", body: body)
             await login(email: email, password: password)
         } catch {
@@ -228,10 +231,16 @@ struct RegisterRequest: Encodable {
     let email: String
     let password: String
     let fullName: String
-    
+    /// REQUIRED by the API: an account holder must be an adult by their own
+    /// jurisdiction's standard (app/core/age_policy.py). Omitting it 422s.
+    let dateOfBirth: String
+    /// Selects the age threshold; absent, the strictest (16) applies.
+    let country: String?
+
     enum CodingKeys: String, CodingKey {
-        case email, password
+        case email, password, country
         case fullName = "full_name"
+        case dateOfBirth = "date_of_birth"
     }
 }
 
