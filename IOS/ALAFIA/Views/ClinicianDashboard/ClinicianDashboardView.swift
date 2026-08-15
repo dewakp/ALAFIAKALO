@@ -58,8 +58,13 @@ final class ClinicianDashboardViewModel {
     func loadNotes(patientId: Int) async {
         loadingNotes.insert(patientId)
         do {
-            let notes: [ClinicalNote] = try await APIClient.shared.get("/chronic/therapy-sessions/0/notes")
-            patientNotes[patientId] = notes
+            // Session id 0 is a placeholder that matches no session, so this
+            // always 404s and the catch below renders it as "no notes yet".
+            // Notes hang off a specific therapy session — this needs a real
+            // session id, which this screen does not yet carry. Leaving the
+            // list empty is honest; pretending to call an endpoint is not.
+            patientNotes[patientId] = []
+            return
         } catch {
             // The route is /notes, not /clinical-notes — this called a path that
             // never existed, so the catch below made it look like "no notes yet"

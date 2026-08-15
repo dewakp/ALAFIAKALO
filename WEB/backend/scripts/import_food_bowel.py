@@ -17,6 +17,10 @@ Maps to:
 """
 
 import psycopg2
+
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _target import resolve_user, resolve_condition  # noqa: E402
 import openpyxl
 from datetime import datetime, date, time
 import re
@@ -30,7 +34,16 @@ DB_PARAMS = {
     'password': 'alafia'
 }
 
-USER_ID = 1
+# ── Target ────────────────────────────────────────────────────────────────
+# USER_ID was hardcoded to a literal row id that exists in no database here.
+# Resolve the patient by EMAIL instead — see scripts/_target.py. Test data
+# belongs to developer@hntsolutions.com by convention.
+#
+#   USER_ID = resolve_user(conn, "developer@hntsolutions.com")
+#
+# Left as None so an accidental run fails loudly instead of writing clinical
+# rows against the wrong patient.
+USER_ID = None
 EXCEL_PATH = '/Users/woleakpose/Library/Mobile Documents/com~apple~CloudDocs/Records.xlsx'
 
 

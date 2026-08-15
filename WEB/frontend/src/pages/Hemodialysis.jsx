@@ -19,7 +19,11 @@ const emptyReading = () => ({
 });
 
 const emptyForm = () => ({
-  condition_id: 14,
+  // Resolved from the patient's own chronic conditions at load — see
+  // loadCondition(). It was hardcoded to 14, an id that exists for nobody, so
+  // the API's ownership check rejected every save with "Chronic condition not
+  // found". null is valid: the endpoint only verifies the id when one is sent.
+  condition_id: null,
   therapy_type: 'HEMODIALYSIS',
   scheduled_date: localToday(),
   status: 'COMPLETED',
@@ -132,12 +136,31 @@ export default function Hemodialysis() {
     temp.toggle();
   }
   const [summary, setSummary] = useState(null);
+  const [conditionId, setConditionId] = useState(null);
   // A failed load is NOT "no sessions". Swallowing the error into an empty list
   // is how a 500 on this endpoint rendered as "No hemodialysis sessions found
   // for this period" to a patient with 730 sessions.
   const [loadError, setLoadError] = useState(null);
 
   useEffect(() => { loadSessions(); loadSummary(); }, [filter.days]);
+  useEffect(() => { loadCondition(); }, []);
+
+  /* Attach sessions to THIS patient's renal condition. A hardcoded id belongs
+     to no one, and the API rejects an id the user does not own. */
+  const loadCondition = async () => {
+    try {
+      const { data } = await api.get('/chronic/conditions', { params: { is_active: true } });
+      const renal = data.find(c => (c.category || '').toLowerCase() === 'renal')
+                 || data.find(c => /renal|kidney|esrd|dialysis/i.test(c.condition_name || ''));
+      if (renal) {
+        setConditionId(renal.id);
+        setFormData(prev => ({ ...prev, condition_id: renal.id }));
+      }
+    } catch (e) {
+      // Leave it null — a session without a condition still saves.
+      console.error(e);
+    }
+  };
 
   /* ── API calls ── */
   const loadSessions = async () => {
@@ -278,7 +301,7 @@ export default function Hemodialysis() {
 
       setTab('reports');
       setEditing(null);
-      setFormData(emptyForm());
+      setFormData({ ...emptyForm(), condition_id: conditionId });
       setReadings([]);
       loadSessions();
       loadSummary();
@@ -309,7 +332,7 @@ export default function Hemodialysis() {
 
   const startNew = () => {
     setEditing(null);
-    setFormData(emptyForm());
+    setFormData({ ...emptyForm(), condition_id: conditionId });
     setReadings([emptyReading()]);
     setTab('form');
   };
@@ -535,7 +558,7 @@ export default function Hemodialysis() {
         <button type="submit" style={btnPrimary} disabled={saving}>
           {saving ? 'Saving...' : editing ? 'Update Session' : 'Save Session'}
         </button>
-        <button type="button" style={btnSecondary} onClick={() => { setTab('reports'); setEditing(null); setFormData(emptyForm()); setReadings([]); }}>
+        <button type="button" style={btnSecondary} onClick={() => { setTab('reports'); setEditing(null); setFormData({ ...emptyForm(), condition_id: conditionId }); setReadings([]); }}>
           Cancel
         </button>
       </div>

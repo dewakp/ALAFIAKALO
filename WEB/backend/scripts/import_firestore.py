@@ -22,6 +22,10 @@ Collections imported:
 import firebase_admin
 from firebase_admin import credentials, firestore
 import psycopg2
+
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _target import resolve_user, resolve_condition  # noqa: E402
 from datetime import datetime, date, time, timedelta
 import re
 import traceback
@@ -37,7 +41,16 @@ DB_PARAMS = {
     'password': 'alafia'
 }
 ALAFIA_USER_ID = 1
-CONDITION_ID = 14  # ESRD
+# ── Target ────────────────────────────────────────────────────────────────
+# USER_ID was hardcoded to a literal row id that exists in no database here.
+# Resolve the patient by EMAIL instead — see scripts/_target.py. Test data
+# belongs to developer@hntsolutions.com by convention.
+#
+#   USER_ID = resolve_user(conn, "developer@hntsolutions.com")
+#
+# Left as None so an accidental run fails loudly instead of writing clinical
+# rows against the wrong patient.
+CONDITION_ID = None
 
 
 def parse_firestore_date(val):

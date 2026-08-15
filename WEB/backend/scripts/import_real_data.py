@@ -17,6 +17,10 @@ from pathlib import Path
 
 import openpyxl
 import psycopg2
+
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _target import resolve_user, resolve_condition  # noqa: E402
 from psycopg2.extras import execute_values
 
 # ── Configuration ──────────────────────────────────────────────────────────
@@ -30,7 +34,16 @@ DB_CONFIG = {
     "user": "alafia",
     "password": "alafia",
 }
-USER_ID = 1  # demo@alafia.app
+# ── Target ────────────────────────────────────────────────────────────────
+# USER_ID was hardcoded to a literal row id that exists in no database here.
+# Resolve the patient by EMAIL instead — see scripts/_target.py. Test data
+# belongs to developer@hntsolutions.com by convention.
+#
+#   USER_ID = resolve_user(conn, "developer@hntsolutions.com")
+#
+# Left as None so an accidental run fails loudly instead of writing clinical
+# rows against the wrong patient.
+USER_ID = None
 
 # Lab test → category mapping
 LAB_CATEGORIES = {
