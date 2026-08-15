@@ -122,10 +122,14 @@ export default function Privacy() {
           explicitly turn on collective insights in Privacy Settings, and turning it off stops it.
         </p>
 
-        <h3>Children</h3>
+        <h3>Children and families</h3>
         <p>
-          ALAFIA is not intended for children under 13, and we do not knowingly collect their data.
-          If you believe a child has created an account, contact us and we will remove it.
+          ALAFIA has no age limit. Health is a lifelong concern, and a parent tracking a child's
+          condition is a case we build for deliberately rather than one we exclude.
+        </p>
+        <p>
+          An account for a child should be created and managed by a parent or legal guardian, who
+          is responsible for what is added to it and can export or delete it at any time.
         </p>
 
         <h3>How long we keep it</h3>

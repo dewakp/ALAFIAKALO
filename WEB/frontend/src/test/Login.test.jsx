@@ -15,6 +15,14 @@ vi.mock('../services/api', () => ({
   },
 }));
 
+// Login calls useAuth(), which throws without a provider. Mocking the context
+// is preferable to wrapping in the real AuthProvider here: the provider fetches
+// a CSRF cookie and a session on mount, none of which this render is testing.
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({ login: vi.fn(), loginWithFirebase: vi.fn(), user: null, loading: false }),
+  AuthProvider: ({ children }) => children,
+}));
+
 import Login from '../pages/Login';
 
 describe('Login Page', () => {

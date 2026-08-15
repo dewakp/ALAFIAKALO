@@ -873,6 +873,13 @@ struct ClinicianLabItem: Codable, Identifiable {
     let value: String?
     let unit: String?
     let date: String?
+    /// Optional so a backend that predates the flag still decodes.
+    let isAbnormal: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case name, value, unit, date
+        case isAbnormal = "is_abnormal"
+    }
 }
 
 struct PatientSummary: Codable, Identifiable {

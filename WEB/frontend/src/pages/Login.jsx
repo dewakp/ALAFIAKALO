@@ -139,13 +139,13 @@ export default function Login() {
           {mode === 'email' && (
             <form onSubmit={handleEmailSubmit}>
               <div className="form-group">
-                <label className="form-label">Email Address</label>
-                <input className="form-input" type="email" placeholder="your@email.com"
+                <label className="form-label" htmlFor="login-email">Email Address</label>
+                <input id="login-email" className="form-input" type="email" placeholder="your@email.com"
                   value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Password</label>
-                <PasswordInput
+                <label className="form-label" htmlFor="login-password">Password</label>
+                <PasswordInput id="login-password"
                   value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
               <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={!!busy}>

@@ -5,14 +5,17 @@ import { MemoryRouter } from 'react-router-dom';
 
 // ── Mock api ──────────────────────────────────────────────────────────────────
 
-const mockApi = {
+// vi.mock is hoisted above every import, so its factory cannot close over a
+// plain top-level const — that threw "Cannot access 'mockApi' before
+// initialization". vi.hoisted lifts the definition with it.
+const mockApi = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   put: vi.fn(),
   delete: vi.fn(),
   defaults: { headers: { common: {} } },
   interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
-};
+}));
 vi.mock('../services/api', () => ({ default: mockApi }));
 
 // Lucide icons — thin stubs so we don't need a canvas environment
@@ -63,9 +66,11 @@ describe('Nutrition page', () => {
       return Promise.resolve({ data: [] });
     });
     render(<MemoryRouter><Nutrition /></MemoryRouter>);
+    // The date range is built into the query string, not passed as a second
+    // axios config argument — asserting on `expect.anything()` as the second
+    // arg never matched, it just never ran while the suite failed to import.
     await waitFor(() => expect(mockApi.get).toHaveBeenCalledWith(
-      expect.stringContaining('/nutrition/'),
-      expect.anything(),
+      expect.stringMatching(/^\/nutrition\/\?start_date=\d{4}-\d{2}-\d{2}&end_date=\d{4}-\d{2}-\d{2}$/),
     ));
   });
 

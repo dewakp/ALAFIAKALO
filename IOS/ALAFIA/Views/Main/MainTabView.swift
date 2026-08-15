@@ -3,9 +3,29 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var deepLinkRouter: DeepLinkRouter
+    @EnvironmentObject var clinicianMode: ClinicianMode
     @State private var selectedTab = 1   // Home by default
 
     var body: some View {
+        Group {
+            if clinicianMode.isActive {
+                ClinicianTabView()
+            } else {
+                patientTabs
+            }
+        }
+        // A patient account signing in after a clinician must not inherit the
+        // previous session's mode, and a revoked role must drop out of it.
+        .onChange(of: authManager.currentUser?.id) { _, _ in
+            clinicianMode.reconcile(with: authManager.currentUser)
+        }
+    }
+
+    // Exactly five tabs. iOS collapses anything past five into a system "More"
+    // list, which is where the Health hub — and with it every clinical feature —
+    // used to end up. Fitness and AI Chat moved into the Health hub instead so
+    // Share Records could take a permanent, visible slot.
+    private var patientTabs: some View {
         TabView(selection: $selectedTab) {
             PromptView()
                 .tabItem {
@@ -25,9 +45,9 @@ struct MainTabView: View {
                 }
                 .tag(2)
 
-            FitnessView()
+            NavigationStack { DataSharingView() }
                 .tabItem {
-                    Label("Fitness", systemImage: "figure.run")
+                    Label("Share", systemImage: "square.and.arrow.up")
                 }
                 .tag(3)
 
@@ -36,12 +56,6 @@ struct MainTabView: View {
                     Label("Health", systemImage: "heart.text.clipboard")
                 }
                 .tag(4)
-
-            AIChatView()
-                .tabItem {
-                    Label("AI", systemImage: "brain.head.profile")
-                }
-                .tag(5)
         }
         .tint(.green)
         // Consume deep-link routes (push-notification taps, alafia:// URLs).
@@ -52,9 +66,11 @@ struct MainTabView: View {
             switch route {
             case .dashboard: selectedTab = 1
             case .nutrition: selectedTab = 2
-            case .fitness:   selectedTab = 3
-            case .aiChat:    selectedTab = 5
-            case .labs, .medications, .mood, .wellness, .telehealth,
+            // Fitness and AI Chat are no longer tabs of their own — they live in
+            // the Health hub now, so route there rather than at a tag that
+            // stopped existing.
+            case .fitness, .aiChat,
+                 .labs, .medications, .mood, .wellness, .telehealth,
                  .messaging, .insurance, .calendar, .profile:
                 selectedTab = 4
             case .passwordReset, .unknown:
@@ -95,9 +111,10 @@ private func tabIndexForRoute(_ route: String) -> Int {
     case "ask":               return 0
     case "home", "dashboard": return 1
     case "nutrition":         return 2
-    case "fitness":           return 3
-    case "health":            return 4
-    case "ai":                return 5
+    case "share":             return 3
+    // fitness / ai are Health-hub rows now, not tabs; point them at the hub so
+    // existing screenshot and app-preview scripts keep working.
+    case "health", "fitness", "ai": return 4
     default:                  return 1
     }
 }
@@ -106,6 +123,7 @@ private func tabIndexForRoute(_ route: String) -> Int {
 /// Health Hub groups all features into sections
 struct HealthHubView: View {
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var clinicianMode: ClinicianMode
 
     private struct SupportLink {
         let title: String
@@ -121,21 +139,7 @@ struct HealthHubView: View {
     ]
 
     private var isClinician: Bool {
-        let clinicianRoles: Set<String> = [
-            "physician", "surgeon", "nurse_practitioner",
-            "physician_assistant", "resident", "fellow", "attending_physician",
-            "cardiologist", "dermatologist", "endocrinologist", "gastroenterologist",
-            "neurologist", "oncologist", "pediatrician", "radiologist",
-            "general_surgeon", "orthopedic_surgeon", "neurosurgeon",
-            "cardiothoracic_surgeon", "plastic_surgeon", "vascular_surgeon",
-            "oral_surgeon", "clinical_nurse_specialist", "nurse_anesthetist",
-            "nurse_midwife", "charge_nurse", "nurse_administrator",
-            "medical_director", "chief_medical_officer"
-        ]
-        guard let user = authManager.currentUser else { return false }
-        var roles = user.activeRoles ?? []
-        if let primary = user.primaryRole { roles.append(primary) }
-        return !roles.filter { clinicianRoles.contains($0) }.isEmpty
+        ClinicianRoles.contains(user: authManager.currentUser)
     }
 
     var body: some View {
@@ -151,6 +155,16 @@ struct HealthHubView: View {
                 }
 
                 Section("Health Tracking") {
+                    // Fitness lives here rather than in the tab bar: five tabs is
+                    // the most iOS shows before collapsing the rest into a system
+                    // "More" list, and Share Records took the fifth slot.
+                    NavigationLink {
+                        FitnessView()
+                    } label: {
+                        Label("Fitness", systemImage: "figure.run")
+                            .foregroundStyle(.green)
+                    }
+
                     NavigationLink {
                         LabsView()
                     } label: {
@@ -313,11 +327,15 @@ struct HealthHubView: View {
                             .foregroundStyle(.teal)
                     }
 
+                    // Switching persona rather than pushing a screen: the
+                    // clinical view gets its own tab bar, so opening it inside
+                    // the patient hub would leave a physician navigating their
+                    // own meal diary to reach their patients.
                     if isClinician {
-                        NavigationLink {
-                            ClinicianDashboardView()
+                        Button {
+                            clinicianMode.enter(as: authManager.currentUser)
                         } label: {
-                            Label("Clinician Dashboard", systemImage: "list.clipboard")
+                            Label("Switch to Clinician View", systemImage: "stethoscope")
                                 .foregroundStyle(.blue)
                         }
                     }
@@ -347,6 +365,16 @@ struct HealthHubView: View {
                 }
 
                 Section("Tools") {
+                    // AI Chat lives here rather than in the tab bar. "Ask" is
+                    // already the AI entry point (Basis.md), and the AI tab was
+                    // being collapsed into the system More list anyway.
+                    NavigationLink {
+                        AIChatView()
+                    } label: {
+                        Label("AI Chat", systemImage: "brain.head.profile")
+                            .foregroundStyle(.blue)
+                    }
+
                     NavigationLink {
                         ImageAIView()
                     } label: {

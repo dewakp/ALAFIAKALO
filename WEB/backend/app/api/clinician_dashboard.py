@@ -13,9 +13,26 @@ from app.models.mood import MoodEntry
 from app.models.labs import LabResult
 from app.models.medications import Medication
 from app.models.user_roles import UserRoleAssignment
+from app.models.conditions import HealthCondition
 from app.schemas.wellness import ClinicianDashboardResponse, PatientSummary
 
 router = APIRouter()
+
+
+def _lab_dict(lab: LabResult) -> dict:
+    """One lab result as the clients render it.
+
+    `is_abnormal` is included because it is the whole point of scanning a list
+    of results — without it the dashboard shows numbers a clinician has to
+    range-check by eye, and the patient cards cannot flag anything.
+    """
+    return {
+        "name": lab.test_name,
+        "value": lab.value_string or (str(lab.value) if lab.value is not None else None),
+        "unit": lab.unit,
+        "date": str(lab.test_date),
+        "is_abnormal": bool(lab.is_abnormal),
+    }
 
 CLINICIAN_ROLES = {
     "physician", "surgeon", "nurse_practitioner", "physician_assistant",
@@ -95,10 +112,7 @@ async def _get_patients_for_clinician(clinician_id: int, db: AsyncSession) -> li
                 select(LabResult).where(LabResult.user_id == patient_id).order_by(desc(LabResult.test_date)).limit(5)
             )
             labs = result.scalars().all()
-            summary.latest_labs = [
-                {"name": l.test_name, "value": l.value_string or (str(l.value) if l.value is not None else None), "unit": l.unit, "date": str(l.test_date)}
-                for l in labs
-            ]
+            summary.latest_labs = [_lab_dict(l) for l in labs]
 
         # Get active medications if permitted
         if "medications" in permissions or "all" in permissions:
@@ -107,6 +121,18 @@ async def _get_patients_for_clinician(clinician_id: int, db: AsyncSession) -> li
             )
             meds = result.scalars().all()
             summary.medications = [m.name for m in meds]
+
+        # Get the active problem list if permitted. `conditions` is a sharable
+        # data type and was in the response schema, but nothing ever filled it —
+        # so a patient who shared their conditions showed the clinician nothing.
+        if "conditions" in permissions or "all" in permissions:
+            result = await db.execute(
+                select(HealthCondition).where(
+                    HealthCondition.user_id == patient_id,
+                    HealthCondition.status == "active",
+                )
+            )
+            summary.conditions = [c.condition_name for c in result.scalars().all()]
 
         patients.append(summary)
 
@@ -181,14 +207,26 @@ async def get_patient_detail(
         result = await db.execute(
             select(LabResult).where(LabResult.user_id == patient_id).order_by(desc(LabResult.test_date)).limit(10)
         )
-        summary.latest_labs = [
-            {"name": l.test_name, "value": l.value_string or (str(l.value) if l.value is not None else None), "unit": l.unit, "date": str(l.test_date)}
-            for l in result.scalars().all()
-        ]
+        summary.latest_labs = [_lab_dict(l) for l in result.scalars().all()]
     if "medications" in permissions or "all" in permissions:
         result = await db.execute(
             select(Medication).where(Medication.user_id == patient_id, Medication.is_active == True)
         )
         summary.medications = [m.name for m in result.scalars().all()]
+    if "conditions" in permissions or "all" in permissions:
+        result = await db.execute(
+            select(HealthCondition).where(
+                HealthCondition.user_id == patient_id,
+                HealthCondition.status == "active",
+            )
+        )
+        summary.conditions = [c.condition_name for c in result.scalars().all()]
+    if "mood" in permissions or "all" in permissions:
+        result = await db.execute(
+            select(MoodEntry).where(MoodEntry.user_id == patient_id).order_by(desc(MoodEntry.created_at)).limit(1)
+        )
+        mood = result.scalar_one_or_none()
+        if mood:
+            summary.latest_mood = {"date": str(mood.entry_date), "score": mood.mood_score}
 
     return summary

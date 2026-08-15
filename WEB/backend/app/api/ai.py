@@ -22,6 +22,7 @@ import json
 import logging
 import math
 import os
+import re
 import time
 from datetime import date, datetime, timedelta, timezone
 
@@ -82,6 +83,31 @@ INTENT_ROUTE_MAP: dict[str, dict[str, str]] = {
     "vision_capture":  {"route": "/capture",       "action": "create"},
     "ask_question":    {"route": "/ai",            "action": "chat"},
 }
+
+# High-precision phrasings for logging intents.
+#
+# classify_intent runs on a small local model, and it is least reliable on
+# exactly the wording the product tells people to use: the prompt hub's
+# "Log a meal" button seeds the text "I ate ". Measured against the running dev
+# backend, "I ate 2 chicken wings, 1 potato wedge" came back as ask_question at
+# confidence 0.3, so tapping Log a meal and describing food routed the user into
+# the chat — which then answered as though they had asked about a meal they had
+# not logged, and told them to go log it. "I took my 10mg lisinopril" classified
+# correctly at 0.95, so this is phrasing-specific, not a broken model.
+#
+# These patterns are deliberately narrow, because the neighbouring intents are
+# easy to steal from. Bare "I had" is left to the model — "I had a headache" is
+# a symptom — and only qualifies as a meal when an explicit meal word follows.
+_INTENT_PATTERNS: list[tuple[str, "re.Pattern[str]"]] = [
+    ("log_meal", re.compile(
+        r"^\s*(?:"
+        r"i\s+(?:ate|eat|drank|snacked\s+on)\b"
+        r"|i\s+(?:had|have)\b(?=.*\bfor\s+(?:breakfast|lunch|dinner|brunch|a\s+snack)\b)"
+        r"|for\s+(?:breakfast|lunch|dinner|brunch)\s*,?\s*i\b"
+        r")", re.I)),
+    ("log_medication", re.compile(r"^\s*i\s+(?:took|take)\b", re.I)),
+]
+
 
 _INTENT_MESSAGES: dict[str, str] = {
     "log_meal":        "Got it — let's log what you ate.",
@@ -151,6 +177,16 @@ async def route_prompt(
     # as log_meal — a trailing "?" is a high-precision signal it's a question.
     if intent.startswith("log_") and text.rstrip().endswith("?"):
         intent = "ask_question"
+
+    # The symmetric guard. ask_question is the fallback sink — everything the
+    # model is unsure about lands there — so an unambiguous "I ate …" statement
+    # that ended up as ask_question is a misroute, not a question. Only rescues
+    # the fallback case; a confident classification is left alone.
+    if intent == "ask_question" and not text.rstrip().endswith("?"):
+        for candidate, pattern in _INTENT_PATTERNS:
+            if pattern.search(text):
+                intent, confidence = candidate, max(confidence, 0.9)
+                break
 
     target = INTENT_ROUTE_MAP[intent]
     prefill: dict = {"text": text, **entities}

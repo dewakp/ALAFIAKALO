@@ -6,7 +6,10 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 
 // ── Mock api module ──────────────────────────────────────────────────────────
 
-const mockApi = {
+// vi.mock is hoisted above every import, so its factory cannot close over a
+// plain top-level const — that threw "Cannot access 'mockApi' before
+// initialization". vi.hoisted lifts the definition with it.
+const mockApi = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   defaults: { headers: { common: {} } },
@@ -14,7 +17,7 @@ const mockApi = {
     request: { use: vi.fn() },
     response: { use: vi.fn() },
   },
-};
+}));
 
 vi.mock('../services/api', () => ({ default: mockApi }));
 

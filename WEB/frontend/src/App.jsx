@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UnitsProvider } from './context/UnitsContext';
+import { ClinicianModeProvider } from './context/ClinicianModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
 
@@ -79,6 +80,7 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <ClinicianModeProvider>
       <UnitsProvider>
       <ErrorBoundary>
       <Suspense fallback={<div className="loading">Loading...</div>}>
@@ -159,6 +161,7 @@ export default function App() {
       </Suspense>
       </ErrorBoundary>
       </UnitsProvider>
+      </ClinicianModeProvider>
     </AuthProvider>
   );
 }

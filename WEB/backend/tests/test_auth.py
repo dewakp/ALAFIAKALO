@@ -3,6 +3,8 @@
 import pytest
 from httpx import AsyncClient
 
+from app.core.security import create_password_reset_token
+
 
 @pytest.mark.asyncio
 async def test_register_success(client: AsyncClient):
@@ -107,17 +109,26 @@ async def test_password_reset_request(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_password_reset_flow(client: AsyncClient):
     """Full password reset: request → confirm → login with new password."""
-    await client.post(
+    register = await client.post(
         "/api/v1/auth/register",
         json={"email": "reset@example.com", "password": "OldPass123", "full_name": "Reset User"},
     )
-    # Request reset (debug mode exposes token)
+    user_id = register.json()["id"]
+
+    # Requesting a reset must NOT hand the token back. It used to be returned
+    # when DEBUG was set, which put one boolean between the deployment and
+    # trivial account takeover; the token is now delivered only by email.
     reset_resp = await client.post(
         "/api/v1/auth/password-reset/request",
         json={"email": "reset@example.com"},
     )
-    token = reset_resp.json().get("reset_token")
-    assert token
+    assert reset_resp.status_code == 200
+    assert "reset_token" not in reset_resp.json()
+    assert "token" not in reset_resp.json()
+
+    # Stand in for the emailed link by minting the token the same way the
+    # endpoint does, so the rest of the flow is still covered end to end.
+    token = create_password_reset_token(user_id)
 
     # Confirm reset
     confirm = await client.post(
@@ -132,3 +143,32 @@ async def test_password_reset_flow(client: AsyncClient):
         data={"username": "reset@example.com", "password": "NewPass456"},
     )
     assert login.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_direct_registration_is_closed_when_two_step_is_required(client: AsyncClient):
+    """The signup gate itself, which conftest turns off for every other test.
+
+    Nothing covered this, so the default flipping to True was invisible here
+    while it silently broke ~28 tests that build their fixture user by
+    registering. Assert the gate directly instead.
+    """
+    from app.core.config import settings
+
+    settings.TWO_STEP_SIGNUP_REQUIRED = True
+    try:
+        resp = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "gated@example.com", "password": "SecureP@ss123", "full_name": "Gated User"},
+        )
+        assert resp.status_code == 410
+        assert "/auth/signup/start" in resp.json()["detail"]
+    finally:
+        settings.TWO_STEP_SIGNUP_REQUIRED = False
+
+    # And with the gate off, the same request succeeds.
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "ungated@example.com", "password": "SecureP@ss123", "full_name": "Ungated User"},
+    )
+    assert resp.status_code == 201

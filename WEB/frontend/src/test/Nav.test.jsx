@@ -12,6 +12,7 @@ vi.mock('../context/AuthContext', () => ({
 }));
 
 import Layout from '../components/Layout';
+import { ClinicianModeProvider } from '../context/ClinicianModeContext';
 import { MarketingNav, MarketingFooter } from '../components/MarketingChrome';
 
 const SUPPORT_LINKS = [
@@ -51,7 +52,11 @@ describe('marketing nav', () => {
 
 describe('in-app sidebar footer', () => {
   it('links to Help, Contact Us and Investors', () => {
-    render(<MemoryRouter><Layout /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <ClinicianModeProvider><Layout /></ClinicianModeProvider>
+      </MemoryRouter>
+    );
 
     const footer = document.querySelector('.sidebar-footer-links');
     for (const [label, href] of SUPPORT_LINKS) {

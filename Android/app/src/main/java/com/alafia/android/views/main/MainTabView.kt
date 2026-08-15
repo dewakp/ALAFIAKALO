@@ -73,6 +73,12 @@ fun MainTabView(
     navController: NavHostController,
     activity: MainActivity
 ) {
+    // Clinician mode replaces the shell entirely; see ClinicianTabView.
+    if (ClinicianModeState.isActive) {
+        ClinicianTabView(navController = navController, activity = activity)
+        return
+    }
+
     val innerNavController = rememberNavController()
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -103,14 +109,17 @@ fun MainTabView(
                     }
                 )
 
+                // Sharing is a core feature, so it holds a permanent slot here
+                // rather than sitting in the More grid where nobody found it.
+                // Mood moved into More → Mental Health.
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Face, contentDescription = "Mood") },
-                    label = { Text("Mood") },
+                    icon = { Icon(Icons.Default.Share, contentDescription = "Share Records") },
+                    label = { Text("Share") },
                     selected = selectedTab == 2,
                     onClick = {
                         selectedTab = 2
-                        innerNavController.navigate("mood") {
-                            popUpTo("mood") { inclusive = true }
+                        innerNavController.navigate("data-sharing") {
+                            popUpTo("data-sharing") { inclusive = true }
                         }
                     }
                 )
@@ -352,23 +361,15 @@ fun MoreScreen(
     outerNavController: NavHostController,
     activity: MainActivity
 ) {
-    val clinicianRoles = setOf(
-        "physician", "surgeon", "nurse_practitioner",
-        "physician_assistant", "resident", "fellow", "attending_physician",
-        "cardiologist", "dermatologist", "endocrinologist", "gastroenterologist",
-        "neurologist", "oncologist", "pediatrician", "radiologist",
-        "general_surgeon", "orthopedic_surgeon", "neurosurgeon",
-        "cardiothoracic_surgeon", "plastic_surgeon", "vascular_surgeon",
-        "oral_surgeon", "clinical_nurse_specialist", "nurse_anesthetist",
-        "nurse_midwife", "charge_nurse", "nurse_administrator",
-        "medical_director", "chief_medical_officer"
-    )
     var isClinician by remember { mutableStateOf(false) }
+    var myRoles by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(Unit) {
         try {
             val user = com.alafia.android.api.ApiClient.getApiService().getCurrentUser()
             val roles = (user.active_roles ?: emptyList()) + listOfNotNull(user.primary_role)
-            isClinician = roles.any { it in clinicianRoles }
+            myRoles = roles
+            isClinician = roles.any { it in CLINICIAN_ROLES }
+            ClinicianModeState.reconcile(roles)
         } catch (_: Exception) { }
     }
 
@@ -385,6 +386,7 @@ fun MoreScreen(
             MoreGridItem("Elimination", Icons.Default.WaterDrop, "elimination"),
         )),
         MoreGridSection("Mental Health", listOf(
+            MoreGridItem("Mood", Icons.Default.Face, "mood"),
             MoreGridItem("Mental Health", Icons.Default.Psychology, "mental-health"),
         )),
         MoreGridSection("Community", listOf(
@@ -404,7 +406,7 @@ fun MoreScreen(
             MoreGridItem("Messages", Icons.Default.Chat, "messaging"),
             MoreGridItem("Physicians", Icons.Default.LocalHospital, "physicians"),
             MoreGridItem("Pharmacy", Icons.Default.LocalPharmacy, "pharmacy"),
-            MoreGridItem("Clinician", Icons.Default.Dashboard, "clinician-dashboard", clinicianOnly = true),
+            MoreGridItem("Clinician View", Icons.Default.Dashboard, CLINICIAN_MODE_ROUTE, clinicianOnly = true),
         )),
         MoreGridSection("Therapies", listOf(
             MoreGridItem("Hemodialysis", Icons.Default.MonitorHeart, "hemodialysis"),
@@ -460,7 +462,13 @@ fun MoreScreen(
                     MoreGridTile(
                         label = gridItem.label,
                         icon = gridItem.icon,
-                        onClick = { innerNavController.navigate(gridItem.route) }
+                        onClick = {
+                            if (gridItem.route == CLINICIAN_MODE_ROUTE) {
+                                ClinicianModeState.enter(myRoles)
+                            } else {
+                                innerNavController.navigate(gridItem.route)
+                            }
+                        }
                     )
                 }
             }

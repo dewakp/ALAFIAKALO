@@ -113,89 +113,151 @@ struct ClinicianDashboardView: View {
                 } else if let error = vm.errorMessage {
                     ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else if vm.patients.isEmpty {
-                    EmptyStateView(icon: "list.clipboard", title: "No Patients", message: "No patients are currently sharing data with you.")
+                    EmptyStateView(
+                        icon: "person.2",
+                        title: "No patients yet",
+                        message: "Patients appear here as soon as they share their records with you, from Share Records, using your account email."
+                    )
                 } else {
-                    patientList
+                    patientGrid
                 }
             }
-            .navigationTitle("Clinician Dashboard")
+            .navigationTitle("My Patients")
             .task { await vm.load() }
             .refreshable { await vm.load() }
     }
 
-    // MARK: - Patient List
+    // MARK: - Patient Grid
+    //
+    // A grid of cards rather than a list of expanding rows: the first thing a
+    // clinician sees is every patient at once, each card carrying enough signal
+    // (latest vitals, abnormal-lab count) to decide who to open first.
 
-    private var patientList: some View {
-        List {
-            ForEach(vm.patients) { patient in
-                Section {
-                    Button {
-                        vm.toggleExpand(patientId: patient.userId)
+    private var patientGrid: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 160), spacing: 12)],
+                spacing: 12
+            ) {
+                ForEach(vm.patients) { patient in
+                    NavigationLink {
+                        ClinicianPatientDetailView(vm: vm, patient: patient)
                     } label: {
-                        patientRow(patient)
+                        patientCard(patient)
                     }
                     .buttonStyle(.plain)
-
-                    if vm.expandedPatientId == patient.userId {
-                        if vm.loadingDetails.contains(patient.userId) {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
-                        } else if let detail = vm.patientDetails[patient.userId] {
-                            patientDetailSection(detail)
-                        }
-                    }
                 }
             }
+            .padding(12)
         }
-        .listStyle(.insetGrouped)
     }
 
-    private func patientRow(_ patient: PatientSummary) -> some View {
-        HStack(spacing: 12) {
-            // Avatar initial
-            let initial = String(patient.fullName.prefix(1)).uppercased()
-            Text(initial)
-                .font(.headline)
-                .foregroundStyle(.white)
-                .frame(width: 40, height: 40)
-                .background(Color.blue.gradient)
-                .clipShape(Circle())
+    private func patientCard(_ patient: PatientSummary) -> some View {
+        let abnormal = (patient.latestLabs ?? []).filter { $0.isAbnormal == true }.count
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(patient.fullName)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text(Self.initials(patient.fullName))
+                    .font(.subheadline).fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Self.tint(for: patient.userId).gradient)
+                    .clipShape(Circle())
 
-                if let types = patient.permissions, !types.isEmpty {
-                    HStack(spacing: 4) {
-                        ForEach(types.prefix(4), id: \.self) { type in
-                            Text(type)
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.blue.opacity(0.12))
-                                .foregroundStyle(.blue)
-                                .cornerRadius(4)
-                        }
-                        if types.count > 4 {
-                            Text("+\(types.count - 4)")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(patient.fullName)
+                        .font(.subheadline).fontWeight(.semibold)
+                        .lineLimit(1)
+                    if let email = patient.email {
+                        Text(email).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
                 }
             }
 
-            Spacer()
+            if let vitals = patient.latestVitals {
+                HStack(spacing: 12) {
+                    if let bp = vitals.bp { cardMetric("BP", bp) }
+                    if let hr = vitals.hr { cardMetric("HR", "\(hr)") }
+                }
+            }
 
-            Image(systemName: vm.expandedPatientId == patient.userId ? "chevron.up" : "chevron.down")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Text("\((patient.latestLabs ?? []).count) labs")
+                Text("\((patient.medications ?? []).count) meds")
+                if abnormal > 0 {
+                    Label("\(abnormal)", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+
+            if let types = patient.permissions, !types.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(types.prefix(3), id: \.self) { type in
+                        Text(type)
+                            .font(.caption2)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.12))
+                            .foregroundStyle(.blue)
+                            .cornerRadius(4)
+                    }
+                    if types.count > 3 {
+                        Text("+\(types.count - 3)").font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func cardMetric(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(value).font(.caption).fontWeight(.semibold)
+        }
+    }
+
+    /// Deterministic tint per patient, so a card keeps its colour between loads.
+    static func tint(for id: Int) -> Color {
+        [.blue, .purple, .orange, .green, .pink, .indigo][abs(id) % 6]
+    }
+
+    static func initials(_ name: String) -> String {
+        let parts = name.split(separator: " ").prefix(2)
+        let s = parts.compactMap { $0.first }.map(String.init).joined().uppercased()
+        return s.isEmpty ? "?" : s
+    }
+
+}
+
+// MARK: - Patient Detail
+//
+// Pushed from a card on the grid. The grid is the clinician's home screen, so
+// the detail is a separate destination rather than an inline expansion — a row
+// that grows in place pushes every other patient off the screen.
+
+struct ClinicianPatientDetailView: View {
+    @Bindable var vm: ClinicianDashboardViewModel
+    let patient: PatientSummary
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if vm.loadingDetails.contains(patient.userId) {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else {
+                    patientDetailSection(vm.patientDetails[patient.userId] ?? patient)
+                }
+            }
+            .padding(16)
+        }
+        .navigationTitle(patient.fullName)
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await vm.loadPatientDetail(id: patient.userId) }
     }
 
     // MARK: - Patient Detail

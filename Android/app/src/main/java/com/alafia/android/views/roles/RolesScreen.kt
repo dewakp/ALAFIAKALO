@@ -448,6 +448,20 @@ private fun RoleCard(
 
             // Actions
             Spacer(Modifier.height(8.dp))
+            // Acting on a clinical role switches the whole app into clinician
+            // mode and lands on the patient grid, rather than pushing a screen
+            // inside the patient tab bar.
+            if (rd.isActive && rd.role in com.alafia.android.views.main.CLINICIAN_ROLES) {
+                Button(
+                    onClick = { com.alafia.android.views.main.ClinicianModeState.enter(listOf(rd.role)) },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Icon(Icons.Default.MedicalServices, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Open Clinician View", fontSize = 12.sp)
+                }
+                Spacer(Modifier.height(8.dp))
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!rd.isPrimary) {
                     OutlinedButton(onClick = onSetPrimary, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {

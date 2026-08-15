@@ -1,35 +1,32 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import axios from 'axios';
 
-// Mock axios to test API client configuration
+// Mock axios to test how the API client configures it.
 vi.mock('axios', () => {
-  const interceptors = {
-    request: { use: vi.fn() },
-    response: { use: vi.fn() },
-  };
   const instance = {
-    interceptors,
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
     defaults: { headers: { common: {} } },
     get: vi.fn(),
     post: vi.fn(),
   };
-  return {
-    default: {
-      create: vi.fn(() => instance),
-    },
-  };
+  return { default: { create: vi.fn(() => instance) } };
 });
 
-describe('API Client', () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
+// Importing the module IS the behaviour under test: it creates the instance and
+// registers the interceptors at import time. This used to be done with
+// `require('axios')` inside each test, which resolved the real axios rather than
+// the mock above — so the assertions ran against a function that was never a
+// spy, and both tests failed. There is also no vi.resetModules() here on
+// purpose: resetting the registry re-runs the mock factory and hands the module
+// a *different* instance than the one this file's `axios` binding refers to.
+import '../services/api';
 
-  it('creates axios instance with correct baseURL', () => {
-    // Re-import to trigger axios.create
-    const axiosImport = require('axios').default;
-    require('../services/api');
-    expect(axiosImport.create).toHaveBeenCalledWith(
+describe('API Client', () => {
+  it('creates the axios instance with the app defaults', () => {
+    expect(axios.create).toHaveBeenCalledWith(
       expect.objectContaining({
         baseURL: '/api/v1',
         timeout: 30000,
@@ -39,10 +36,8 @@ describe('API Client', () => {
   });
 
   it('registers request and response interceptors', () => {
-    const axiosImport = require('axios').default;
-    const api = axiosImport.create();
-    require('../services/api');
-    expect(api.interceptors.request.use).toHaveBeenCalled();
-    expect(api.interceptors.response.use).toHaveBeenCalled();
+    const instance = axios.create.mock.results[0].value;
+    expect(instance.interceptors.request.use).toHaveBeenCalled();
+    expect(instance.interceptors.response.use).toHaveBeenCalled();
   });
 });

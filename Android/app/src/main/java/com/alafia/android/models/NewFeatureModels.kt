@@ -502,13 +502,45 @@ data class DataShareInvitationCreate(
 
 // ── Clinician Dashboard ─────────────────────────────────────────────────────
 
+// Mirrors app/schemas/wellness.py::PatientSummary. The previous shape here
+// (patient_id / display_name / shared_data_types) matched no field the API has
+// ever returned, so every patient decoded as an empty row.
+data class ClinicianVitals(
+    val date: String? = null,
+    val bp: String? = null,
+    val hr: Int? = null,
+    @SerializedName("weight_kg") val weightKg: Double? = null
+)
+
+data class ClinicianMood(
+    val date: String? = null,
+    val score: Int? = null
+)
+
+data class ClinicianLabItem(
+    val name: String? = null,
+    val value: String? = null,
+    val unit: String? = null,
+    val date: String? = null,
+    @SerializedName("is_abnormal") val isAbnormal: Boolean = false
+)
+
 data class PatientSummary(
-    @SerializedName("patient_id") val patientId: Int,
-    @SerializedName("display_name") val displayName: String? = null,
-    @SerializedName("shared_data_types") val sharedDataTypes: List<String>? = null
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("full_name") val fullName: String = "",
+    val email: String? = null,
+    @SerializedName("latest_vitals") val latestVitals: ClinicianVitals? = null,
+    @SerializedName("latest_mood") val latestMood: ClinicianMood? = null,
+    @SerializedName("latest_labs") val latestLabs: List<ClinicianLabItem> = emptyList(),
+    val conditions: List<String> = emptyList(),
+    val medications: List<String> = emptyList(),
+    val permissions: List<String> = emptyList(),
+    @SerializedName("last_activity") val lastActivity: String? = null
 )
 
 data class ClinicianDashboardResponse(
+    val role: String? = null,
+    @SerializedName("patient_count") val patientCount: Int = 0,
     val patients: List<PatientSummary> = emptyList()
 )
 

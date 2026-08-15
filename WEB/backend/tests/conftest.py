@@ -80,6 +80,18 @@ _identity_client.verify_identity_token = _identity_unavailable
 _identity_client.identity_register = _identity_register_unavailable
 _identity_client.migrate_password_into_identity = _identity_false
 
+# Open direct registration for tests.
+#
+# `TWO_STEP_SIGNUP_REQUIRED` defaults to True, which is the correct production
+# posture — but almost every test in this suite builds its fixture user by
+# POSTing /auth/register. With the gate on, each of those got a 410, then logged
+# in as a user that was never created and read `access_token` off an error body:
+# one KeyError repeated across ~28 tests, none of which are about signup policy.
+# The gate itself is covered directly by test_auth.py.
+from app.core.config import settings as _settings  # noqa: E402
+
+_settings.TWO_STEP_SIGNUP_REQUIRED = False
+
 # Use an in-memory SQLite database for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 

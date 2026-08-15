@@ -18,6 +18,8 @@
 		4A0000000000000000000204 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000104 /* APIClient.swift */; };
 		4A0000000000000000000205 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000105 /* KeychainHelper.swift */; };
 		4A0000000000000000000206 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000106 /* AuthManager.swift */; };
+		CD0000000000000000000202 /* ClinicianTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0000000000000000000102 /* ClinicianTabView.swift */; };
+		CD0000000000000000000201 /* ClinicianMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0000000000000000000101 /* ClinicianMode.swift */; };
 		4A0000000000000000000207 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000107 /* User.swift */; };
 		4A0000000000000000000208 /* NutritionLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000108 /* NutritionLog.swift */; };
 		4A0000000000000000000209 /* FitnessLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000109 /* FitnessLog.swift */; };
@@ -127,6 +129,8 @@
 		4A0000000000000000000104 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		4A0000000000000000000105 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		4A0000000000000000000106 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		CD0000000000000000000102 /* ClinicianTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicianTabView.swift; sourceTree = "<group>"; };
+		CD0000000000000000000101 /* ClinicianMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicianMode.swift; sourceTree = "<group>"; };
 		4A0000000000000000000107 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		4A0000000000000000000108 /* NutritionLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLog.swift; sourceTree = "<group>"; };
 		4A0000000000000000000109 /* FitnessLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessLog.swift; sourceTree = "<group>"; };
@@ -335,6 +339,7 @@
 			isa = PBXGroup;
 			children = (
 				4A0000000000000000000106 /* AuthManager.swift */,
+				CD0000000000000000000101 /* ClinicianMode.swift */,
 				EE0000000000000000000001 /* BiometricAuthManager.swift */,
 			);
 			path = Auth;
@@ -428,6 +433,7 @@
 			isa = PBXGroup;
 			children = (
 				4A0000000000000000000112 /* MainTabView.swift */,
+				CD0000000000000000000102 /* ClinicianTabView.swift */,
 				4A0000000000000000000113 /* DashboardView.swift */,
 			);
 			path = Main;
@@ -887,6 +893,7 @@
 				4A0000000000000000000204 /* APIClient.swift in Sources */,
 				4A0000000000000000000205 /* KeychainHelper.swift in Sources */,
 				4A0000000000000000000206 /* AuthManager.swift in Sources */,
+				CD0000000000000000000201 /* ClinicianMode.swift in Sources */,
 				4A0000000000000000000207 /* User.swift in Sources */,
 				4A0000000000000000000208 /* NutritionLog.swift in Sources */,
 				4A0000000000000000000209 /* FitnessLog.swift in Sources */,
@@ -899,6 +906,7 @@
 				4A0000000000000000000210 /* LoginView.swift in Sources */,
 				4A0000000000000000000211 /* RegisterView.swift in Sources */,
 				4A0000000000000000000212 /* MainTabView.swift in Sources */,
+				CD0000000000000000000202 /* ClinicianTabView.swift in Sources */,
 				4A0000000000000000000213 /* DashboardView.swift in Sources */,
 				4A0000000000000000000214 /* NutritionView.swift in Sources */,
 				4A0000000000000000000215 /* FitnessView.swift in Sources */,

@@ -128,7 +128,18 @@ services:
       DATABASE_URL: postgresql+asyncpg://alafia:alafia@db:5432/sigma_health
       SECRET_KEY: flowsheet-dev-secret-change-me
       ENVIRONMENT: development
-      MAIL_FROM: noreply@6igmahealth.com
+      # Resend SMTP, same provider and same verified domain as ALAFIA.
+      # alafia.app is the only domain verified in Resend, so it is the only
+      # address we can send FROM — 6igmahealth.com would be rejected at send
+      # time. The API key comes from WEB/.env (gitignored); never inline it
+      # here, this file is tracked.
+      MAIL_SERVER: smtp.resend.com
+      MAIL_PORT: "587"
+      MAIL_USERNAME: resend
+      MAIL_PASSWORD: ${RESEND_API_KEY:?set RESEND_API_KEY in WEB/.env}
+      MAIL_USE_TLS: "true"
+      MAIL_FROM: noreply@alafia.app
+      MAIL_FROM_NAME: 6IGMA Health Portal
       IDENTITY_ENABLED: "true"
       IDENTITY_BASE_URL: http://identity:8000
       IDENTITY_ISSUER: 6igma-identity
@@ -140,12 +151,123 @@ services:
       identity:
         condition: service_started
 
+  # Production image: node builds dist/, nginx serves it. There is NO source
+  # mounted and NO HMR — it serves whatever was baked at `docker compose build`
+  # time, so it is stale until you rebuild it. For day-to-day work use
+  # `frontend-dev` below.
   frontend:
     build: ./frontend
     ports:
       - "8080:80"
     depends_on:
       - backend
+
+  # ── Development / CI services ─────────────────────────────────────────────
+  # All of these run under the `dev` and `test` profiles so a plain
+  # `docker compose up` still brings up only the app.
+  #
+  # Node is pinned here (node:20-alpine, matching frontend/Dockerfile's builder
+  # stage) so the toolchain cannot drift between machines the way a host nvm
+  # install does.
+  #
+  # Each service keeps node_modules in its OWN anonymous volume — deliberately
+  # not shared, because the alpine (musl) and Playwright (glibc) images cannot
+  # use each other's native modules. `npm ci` runs only when that volume is
+  # empty or package-lock.json is newer than the last install, so a restart is
+  # seconds rather than a full reinstall.
+
+  # Vite dev server with HMR. This is the one to use for frontend work.
+  #   docker compose --profile dev up frontend-dev     → http://localhost:5173
+  frontend-dev:
+    image: node:20-alpine
+    profiles: ["dev"]
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume so the image's installed node_modules is not shadowed
+      # by the host directory (whose modules are built for a different platform).
+      - /app/node_modules
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+      VITE_POLL: "1"          # macOS bind mounts deliver no inotify events
+    command: sh -c '[ -f node_modules/.install-stamp ] && [ node_modules/.install-stamp -nt package-lock.json ] || { npm ci && touch node_modules/.install-stamp; }; npm run dev'
+    depends_on:
+      - backend
+
+  # Unit tests (vitest).
+  #   docker compose --profile test run --rm frontend-test
+  frontend-test:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c '[ -f node_modules/.install-stamp ] && [ node_modules/.install-stamp -nt package-lock.json ] || { npm ci && touch node_modules/.install-stamp; }; npx vitest run'
+
+  # Built bundle served by `vite preview` — the target for the e2e suite.
+  # Nothing compiles while tests run, which is what makes the suite deterministic.
+  frontend-preview:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c '[ -f node_modules/.install-stamp ] && [ node_modules/.install-stamp -nt package-lock.json ] || { npm ci && touch node_modules/.install-stamp; }; npm run build && npm run preview'
+    healthcheck:
+      # e2e waits on this rather than racing the ~15s install-and-build.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173/ >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 20s
+
+  # End-to-end tests (Playwright). Uses Microsoft's image because the browsers
+  # and their system libraries are already installed in it — `npx playwright
+  # install` inside a bare node image pulls ~400 MB on every run.
+  #
+  # It runs against `frontend-preview` (a real build), NOT the dev server: vite
+  # compiles each lazy route chunk on first request, and with parallel workers
+  # that compile lands inside whichever spec got there first — a different test
+  # failed on every cold run. Setting PLAYWRIGHT_BASE_URL also disables the
+  # config's own webServer block, so no second server starts in here.
+  #   docker compose --profile test run --rm e2e
+  e2e:
+    # The tag MUST match the @playwright/test version npm ci installs, or the
+    # browser build the runner looks for is not in the image
+    # ("Executable doesn't exist at /ms-playwright/chromium_headless_shell-...").
+    # package.json pins @playwright/test to 1.59.1 for exactly this reason.
+    image: mcr.microsoft.com/playwright:v1.59.1-noble
+    profiles: ["test"]
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      PLAYWRIGHT_BASE_URL: http://frontend-preview:5173
+    command: sh -c '[ -f node_modules/.install-stamp ] && [ node_modules/.install-stamp -nt package-lock.json ] || { npm ci && touch node_modules/.install-stamp; }; npx playwright test'
+    depends_on:
+      frontend-preview:
+        condition: service_healthy
+
+  # Backend tests. The backend image already carries pytest, pytest-asyncio and
+  # aiosqlite (requirements.txt), so this reuses it rather than building a
+  # second one. The suite uses its own SQLite database and never touches `db`.
+  backend-test:
+    build: ./backend
+    profiles: ["test"]
+    working_dir: /app
+    env_file:
+      - ./backend/.env
+    environment:
+      PYTHONPATH: /app:/ml/src
+    volumes:
+      - ./backend:/app
+      - ../ML:/ml:ro
+    command: ["pytest", "-q"]
 
 volumes:
   pgdata:

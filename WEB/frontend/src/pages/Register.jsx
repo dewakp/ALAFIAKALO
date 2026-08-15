@@ -49,8 +49,9 @@ export default function Register() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label" htmlFor="register-email">Email</label>
             <input
+              id="register-email"
               className="form-input"
               type="email"
               value={email}
@@ -69,8 +70,9 @@ export default function Register() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label" htmlFor="register-password">Password</label>
             <PasswordInput
+              id="register-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

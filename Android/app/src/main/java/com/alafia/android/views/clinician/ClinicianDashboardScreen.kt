@@ -1,20 +1,24 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.alafia.android.views.clinician
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.ClinicianDashboardResponse
@@ -22,12 +26,21 @@ import com.alafia.android.models.PatientSummary
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
 
+/**
+ * The clinician's home screen: every patient who shares with them, as a grid of
+ * cards. Each card carries enough signal — latest vitals, how many labs are
+ * abnormal — to decide who to open first, and tapping one opens the full record.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ClinicianDashboardScreen(navController: NavHostController) {
+fun ClinicianDashboardScreen(
+    navController: NavHostController,
+    showBack: Boolean = true,
+) {
     var dashboard by remember { mutableStateOf<ClinicianDashboardResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var selected by remember { mutableStateOf<PatientSummary?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -38,10 +51,10 @@ fun ClinicianDashboardScreen(navController: NavHostController) {
             try {
                 dashboard = ApiClient.getApiService().getClinicianDashboard()
             } catch (e: retrofit2.HttpException) {
-                if (e.code() == 403) {
-                    errorMessage = "Access denied. This feature is only available to clinicians."
+                errorMessage = if (e.code() == 403) {
+                    "Access denied. This view is only available to clinician accounts."
                 } else {
-                    errorMessage = "Error: ${e.message()}"
+                    "Error: ${e.message()}"
                 }
                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -54,26 +67,39 @@ fun ClinicianDashboardScreen(navController: NavHostController) {
 
     LaunchedEffect(Unit) { loadDashboard() }
 
+    val patient = selected
+    if (patient != null) {
+        PatientDetailScreen(patient = patient, onBack = { selected = null })
+        return
+    }
+
     Scaffold(
-        topBar = { TopAppBar(
-                title = { Text("Clinician Dashboard") },
+        topBar = {
+            TopAppBar(
+                title = { Text("My Patients") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    if (showBack) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 }
-            ) }
+            )
+        }
     ) { padding ->
-        if (isLoading) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (errorMessage != null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+        when {
+            isLoading -> Box(
+                Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
+
+            errorMessage != null -> Box(
+                Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Default.Lock,
-                        "Access restricted",
+                        Icons.Default.Lock, "Access restricted",
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.error
                     )
@@ -84,114 +110,158 @@ fun ClinicianDashboardScreen(navController: NavHostController) {
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = { loadDashboard() }) {
-                        Text("Retry")
-                    }
+                    Button(onClick = { loadDashboard() }) { Text("Retry") }
                 }
             }
-        } else if (dashboard == null || dashboard!!.patients.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+            dashboard == null || dashboard!!.patients.isEmpty() -> Box(
+                Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp)
+                ) {
                     Icon(
-                        Icons.Default.People,
-                        "No patients",
+                        Icons.Default.People, "No patients",
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "No patients have shared data with you yet",
+                        "No patients yet",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Patients can share their health data from their Data Sharing settings",
+                        "Patients appear here as soon as they share their records with you, from Share, using your account email.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-        } else {
-            LazyColumn(
+
+            else -> LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 168.dp),
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                item {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
                         "${dashboard!!.patients.size} patient${if (dashboard!!.patients.size != 1) "s" else ""}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                items(dashboard!!.patients, key = { it.patientId }) { patient ->
-                    PatientCard(patient)
+                items(dashboard!!.patients, key = { it.userId }) { p ->
+                    PatientCard(p) { selected = p }
                 }
             }
         }
     }
 }
 
+/** Deterministic tint per patient, so a card keeps its colour between loads. */
+private val avatarTints = listOf(
+    Color(0xFF0EA5E9), Color(0xFF8B5CF6), Color(0xFFF59E0B),
+    Color(0xFF10B981), Color(0xFFEF4444), Color(0xFF6366F1),
+)
+
+private fun tintFor(id: Int) = avatarTints[kotlin.math.abs(id) % avatarTints.size]
+
+private fun initialsOf(name: String): String {
+    val parts = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.take(2)
+    val s = parts.mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("")
+    return s.ifEmpty { "?" }
+}
+
 @Composable
-private fun PatientCard(patient: PatientSummary) {
-    var expanded by remember { mutableStateOf(false) }
+private fun PatientCard(patient: PatientSummary, onOpen: () -> Unit) {
+    val abnormal = patient.latestLabs.count { it.isAbnormal }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        onClick = { expanded = !expanded }
+        onClick = onOpen
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        color = tintFor(patient.userId),
+                        shape = MaterialTheme.shapes.extraLarge,
                         modifier = Modifier.size(40.dp)
+                    ) {}
+                    Text(
+                        initialsOf(patient.fullName),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        patient.fullName.ifEmpty { "Patient #${patient.userId}" },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    patient.email?.let {
                         Text(
-                            text = patient.displayName ?: "Patient #${patient.patientId}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "ID: ${patient.patientId}",
+                            it,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
-                Icon(
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
-            // Shared data type chips
-            if (!patient.sharedDataTypes.isNullOrEmpty()) {
-                Spacer(Modifier.height(12.dp))
+            patient.latestVitals?.let { v ->
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    v.bp?.let { Metric("BP", it) }
+                    v.hr?.let { Metric("HR", "$it") }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Shared Data Types",
+                    "${patient.latestLabs.size} labs",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(4.dp))
+                Text(
+                    "${patient.medications.size} meds",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (abnormal > 0) {
+                    Text(
+                        "⚠ $abnormal abnormal",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            if (patient.permissions.isNotEmpty()) {
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val typesToShow = if (expanded) patient.sharedDataTypes else patient.sharedDataTypes.take(4)
-                    typesToShow.forEach { dataType ->
+                    patient.permissions.take(3).forEach { dataType ->
                         SuggestionChip(
                             onClick = {},
                             label = {
@@ -204,19 +274,169 @@ private fun PatientCard(patient: PatientSummary) {
                                 Icon(
                                     imageVector = dataTypeIcon(dataType),
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         )
                     }
-                    if (!expanded && patient.sharedDataTypes.size > 4) {
-                        SuggestionChip(
-                            onClick = { },
-                            label = { Text("+${patient.sharedDataTypes.size - 4} more") }
+                    if (patient.permissions.size > 3) {
+                        Text(
+                            "+${patient.permissions.size - 3}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun Metric(label: String, value: String) {
+    Column {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/**
+ * One patient's shared record. Loads the detail endpoint, which returns more
+ * labs than the grid summary and only the categories the patient permitted.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PatientDetailScreen(patient: PatientSummary, onBack: () -> Unit) {
+    var detail by remember(patient.userId) { mutableStateOf<PatientSummary?>(null) }
+    var loading by remember(patient.userId) { mutableStateOf(true) }
+    var error by remember(patient.userId) { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(patient.userId) {
+        scope.launch {
+            loading = true
+            try {
+                detail = ApiClient.getApiService().getClinicianPatient(patient.userId)
+            } catch (e: retrofit2.HttpException) {
+                error = if (e.code() == 403) "This patient has revoked access." else "Error: ${e.message()}"
+            } catch (e: Exception) {
+                error = ErrorUtil.userMessage(e)
+            }
+            loading = false
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(patient.fullName.ifEmpty { "Patient #${patient.userId}" }) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "All patients")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        val d = detail ?: patient
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (loading) {
+                CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+            }
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
+
+            d.latestVitals?.let { v ->
+                DetailCard("Latest Vitals", Icons.Default.MonitorHeart) {
+                    v.bp?.let { DetailRow("Blood pressure", it) }
+                    v.hr?.let { DetailRow("Heart rate", "$it bpm") }
+                    v.weightKg?.let { DetailRow("Weight", "$it kg") }
+                    v.date?.let { DetailRow("As of", it) }
+                }
+            }
+
+            if (d.latestLabs.isNotEmpty()) {
+                DetailCard("Recent Labs", Icons.Default.Science) {
+                    d.latestLabs.forEach { lab ->
+                        DetailRow(
+                            lab.name ?: "—",
+                            "${lab.value ?: "—"} ${lab.unit ?: ""}".trim(),
+                            danger = lab.isAbnormal
+                        )
+                    }
+                }
+            }
+
+            if (d.medications.isNotEmpty()) {
+                DetailCard("Active Medications", Icons.Default.LocalPharmacy) {
+                    d.medications.forEach { DetailRow(it, "") }
+                }
+            }
+
+            if (d.conditions.isNotEmpty()) {
+                DetailCard("Conditions", Icons.Default.MedicalServices) {
+                    d.conditions.forEach { DetailRow(it, "") }
+                }
+            }
+
+            d.latestMood?.let { m ->
+                DetailCard("Latest Mood", Icons.Default.SentimentSatisfied) {
+                    m.score?.let { DetailRow("Score", "$it/10") }
+                    m.date?.let { DetailRow("As of", it) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailCard(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(2.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, value: String, danger: Boolean = false) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            if (danger) "$label ⚠" else label,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+        )
+        if (value.isNotEmpty()) {
+            Text(
+                value,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

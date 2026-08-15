@@ -3,6 +3,8 @@ import SwiftUI
 // MARK: - Main Roles View
 
 struct RolesView: View {
+    @EnvironmentObject private var authManager: AuthManager
+    @EnvironmentObject private var clinicianMode: ClinicianMode
     @State private var persona: UserPersonaSummary?
     @State private var catalog: [RoleCategoryInfo] = []
     @State private var loading = true
@@ -264,6 +266,19 @@ struct RolesView: View {
             
             // Actions
             HStack(spacing: 10) {
+                // Acting on a clinical role switches the whole app into
+                // clinician mode and lands on the patient grid, rather than
+                // pushing a screen inside the patient tab bar.
+                if rd.isActive && ClinicianRoles.all.contains(rd.role) {
+                    Button {
+                        clinicianMode.enter(as: authManager.currentUser)
+                    } label: {
+                        Label("Open Clinician View", systemImage: "stethoscope")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderedProminent).tint(.blue).controlSize(.small)
+                }
+
                 if !rd.isPrimary {
                     Button {
                         Task { await setPrimary(rd.id) }

@@ -3,9 +3,9 @@ import { test, expect } from '@playwright/test';
 // Shared login helper
 async function loginAs(page, email = 'test@alafia.app', password = 'TestPassword1!') {
   await page.goto('/login');
-  await page.getByRole('textbox', { name: /email/i }).fill(email);
-  await page.getByRole('textbox', { name: /password/i }).fill(password);
-  await page.getByRole('button', { name: /login|sign in/i }).click();
+  await page.getByLabel('Email Address').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Login with Email' }).click();
   // Wait for redirect away from login
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10_000 });
 }
@@ -27,9 +27,18 @@ test.describe('Navigation', () => {
 test.describe('Accessibility', () => {
   test('login page has no missing aria labels on interactive elements', async ({ page }) => {
     await page.goto('/login');
-    const buttons = page.getByRole('button');
-    const count = await buttons.count();
-    expect(count).toBeGreaterThan(0);
+    // count() does not auto-wait, and the route is lazy-loaded — this counted
+    // the buttons of an empty page and got 0. Wait for the form first.
+    await expect(page.getByRole('button', { name: 'Login with Email' })).toBeVisible();
+
+    // And actually assert what the test is named for: every interactive element
+    // needs an accessible name, not merely to exist.
+    const buttons = await page.getByRole('button').all();
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+      const label = (await button.getAttribute('aria-label')) || (await button.textContent()) || '';
+      expect(label.trim()).not.toBe('');
+    }
   });
 
   test('page has lang attribute', async ({ page }) => {

@@ -816,6 +816,9 @@ interface ApiService {
     @GET("clinician-dashboard/")
     suspend fun getClinicianDashboard(): ClinicianDashboardResponse
 
+    @GET("clinician-dashboard/patient/{patientId}")
+    suspend fun getClinicianPatient(@Path("patientId") patientId: Int): PatientSummary
+
     // ── Chart Dashboard ──────────────────────────────
     @GET("chart-dashboard/datasets")
     suspend fun getChartDatasets(): Map<String, List<ChartDatasetInfo>>

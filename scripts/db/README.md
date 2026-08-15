@@ -170,3 +170,94 @@ scripts/db/deactivate_test_accounts_prod.sh --apply
 # undo, either environment
 psql … -f scripts/db/deactivate_test_accounts_rollback.sql
 ```
+
+
+## Complimentary memberships and role grants
+
+`grant_comp.sh` gives named accounts an active membership at no charge, and
+optionally assigns a professional role (`physician`, `nurse_practitioner`, …).
+
+It is SQL because there is no admin write surface to do it through: the admin
+console (`/api/v1/admin/*`) is deliberately read-only, `/subscription` only
+accepts *verified provider purchases*, and `POST /users/roles` needs the target
+user's own bearer token — which you do not have for a user you are comping.
+
+```bash
+# production — DRY RUN is the default; it runs every statement then rolls back
+export PROD_DB_PASS='…'
+scripts/db/grant_comp.sh --emails someone@example.org --role physician --primary
+scripts/db/grant_comp.sh --emails someone@example.org --role physician --primary --apply
+
+# local dev database
+scripts/db/grant_comp.sh --target dev --emails someone@example.org --apply
+```
+
+Behaviour worth knowing:
+
+- **An email that matches no user aborts the whole run.** A comp that silently
+  reached nobody is the failure worth being loud about.
+- The role name is checked against the real `UserRole` enum before anything
+  runs. The column is a plain `VARCHAR`, so a typo would otherwise be stored
+  happily and then matched by nothing in the app.
+- It **refuses to overwrite a subscription on a real billing rail**
+  (stripe/paypal/google_play/apple) unless `--allow-overwrite` is passed:
+  replacing one drops the provider reconciliation ids, leaving the next webhook
+  with nothing to match.
+- The row is written `status='active'`, `provider='none'`, `price_usd=0`,
+  `cancel_at_period_end=true`. Nothing renews a `provider='none'` row, so that
+  flag is the truth — and the web UI reads it to print "Access ends on <date>"
+  instead of the wrong "Renews on <date>".
+- Every grant also writes a `subscription_events` audit row
+  (`event_type='complimentary_grant'`), so comps sit on the same record as real
+  provider events.
+- Re-running is safe: the subscription upserts on `user_id` and the role
+  assignment upserts on `(user_id, role)`, reactivating a revoked one.
+
+### Creating the account in the first place
+
+Do **not** hand-write a `users` row. `POST /auth/register` also provisions the
+account in the shared 6IGMA Identity service, mints the canonical System
+Identifier and writes its `SystemIdLog` row; an account made with INSERTs has
+none of that and diverges from every real account exactly where the login path
+looks. `scripts/provision_account.py` drives that API end to end — register,
+log in, claim roles, professional profile, optional sample clinical data — and
+is idempotent.
+
+```bash
+export ALAFIA_NEW_PASSWORD='…'          # not on argv: it is visible in `ps`
+scripts/provision_account.py --api https://api.alafia.app/api/v1 \
+    --email someone@example.org --name 'Some One' \
+    --role physician --primary --seed
+```
+
+On a paywalled deployment (`SUBSCRIPTION_REQUIRED=true`, which is production)
+run `grant_comp.sh` **before** `--seed`: every clinical endpoint is behind the
+paywall, so seeding 402s without a membership. The script says so when it hits
+one.
+
+### Professional profiles
+
+`set_pro_profile.sh` attaches (or fills in) the `ProfessionalProfile` on a role
+assignment — the credentials/practice card the Roles page renders. Same reason
+it is SQL: `PUT /users/roles/{id}/profile` needs the target user's own token.
+
+```bash
+scripts/db/set_pro_profile.sh --emails someone@example.org --role physician \
+    --license '000-XXXX-0000-XX'            # DRY RUN
+scripts/db/set_pro_profile.sh --emails someone@example.org --role physician \
+    --license '000-XXXX-0000-XX' --apply
+```
+
+- It **only writes the fields you pass.** Omitted ones keep whatever is already
+  stored, so seeding a placeholder cannot wipe details the user later fills in
+  themselves.
+- Aborts if a target does not actually hold an active assignment for that role —
+  otherwise the profile would have nothing to attach to and the run would
+  silently do nothing.
+- `verification_status` is written as `unverified` on insert and never touched
+  on update. Credential verification is a real review step; a provisioning
+  script does not get to skip it.
+
+Note that the `verification_status` in `clinician_directory.py` is a **different
+table** — it lives on the `Physician` model (the ingested public directory), not
+on `ProfessionalProfile`. Nothing in the app gates a feature on either one.

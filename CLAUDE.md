@@ -166,19 +166,51 @@ was one `git add .` from being committed.
 - ⚠️ **No domain is verified on the Resend account yet**, so production email
   cannot send to arbitrary recipients. See `ADMIN_CONSOLE.md`.
 
-## 4. Running things locally
+## 4. Running things locally — **in Docker**
+
+> **All dev runs in containers.** Not host `npm`, not host `python`. The DB
+> tooling already worked this way (pinned images, nothing installed on the host);
+> the app and its test runners now do too, so the toolchain cannot drift between
+> machines or between you and CI.
 
 ```bash
-# Python env (backend, ML, tooling) — NOT a repo venv
-/Users/woleakpose/Developer/dev_env/bin/python
+cd WEB
 
-# Backend (needs the dev DB up: cd WEB && docker compose up -d db)
-cd WEB/backend && PYTHONPATH=$PWD/../../ML/src \
-  /Users/woleakpose/Developer/dev_env/bin/python -m uvicorn app.main:app --port 8005
+# App (backend :8005, identity :8100, db :5435, prod-build frontend :8080)
+docker compose up -d
 
-# Web
-cd WEB/frontend && npm run dev          # needs node on PATH: ~/.nvm/versions/node/v24.12.0/bin
+# Frontend dev server with HMR — THIS is the one for frontend work
+docker compose --profile dev up frontend-dev        # → http://localhost:5173
+
+# Tests
+docker compose --profile test run --rm frontend-test   # vitest      → 30
+docker compose --profile test run --rm e2e             # playwright  → 18
+docker compose --profile test run --rm backend-test    # pytest      → 292
 ```
+
+- **`frontend` on :8080 is not a dev server.** It is nginx serving a `dist/`
+  baked at image-build time, so it shows stale code until
+  `docker compose build frontend`. Use `frontend-dev` on :5173.
+- `frontend-dev` proxies `/api` → `http://backend:8000` via
+  `VITE_API_PROXY_TARGET`. Inside a container `localhost` is that container, so
+  the service name is required.
+- Vite's host check rejects unknown `Host` headers with a 403 "Blocked request",
+  which renders as a blank page and an empty `<title>`. Service names reached
+  across the compose network must be in `server.allowedHosts` /
+  `preview.allowedHosts` (`vite.config.js`).
+- macOS bind mounts deliver no inotify events, so HMR needs polling —
+  `VITE_POLL=1` in the compose service.
+- The e2e suite runs against `frontend-preview` (a real build), never the dev
+  server: vite compiles lazy route chunks on first request, and with parallel
+  workers that compile lands inside whichever spec got there first, failing a
+  different one each cold run.
+- **The Playwright image tag must equal the `@playwright/test` version**
+  (`1.59.1` in both `package.json` and `docker-compose.yml`), or the runner looks
+  for a browser build the image does not contain.
+- iOS builds cannot be containerised (Xcode is macOS-only) and Android/gradle is
+  still on the host — those two are the only sanctioned exceptions.
+
+Other notes:
 
 - `greenlet` is required by SQLAlchemy's async engine and is **not** pulled in
   automatically on Python 3.13. Without it every DB route 500s.

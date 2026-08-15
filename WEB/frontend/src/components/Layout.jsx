@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useClinicianMode } from '../context/ClinicianModeContext';
 import api from '../services/api';
 import MembershipNudge from './MembershipNudge';
 import {
@@ -30,7 +31,6 @@ import {
   FileText,
   Droplets,
   FileHeart,
-  ClipboardList,
   Share2,
   ChevronDown,
   Activity,
@@ -53,27 +53,8 @@ import {
   Sparkles,
   HelpCircle,
   Mail,
+  Users,
 } from 'lucide-react';
-
-// Roles that can see the Clinician Dashboard
-const CLINICIAN_ROLES = [
-  'physician', 'surgeon', 'nurse_practitioner',
-  'physician_assistant', 'resident', 'fellow', 'attending_physician',
-  'cardiologist', 'dermatologist', 'endocrinologist', 'gastroenterologist',
-  'neurologist', 'oncologist', 'pediatrician', 'radiologist',
-  'general_surgeon', 'orthopedic_surgeon', 'neurosurgeon',
-  'cardiothoracic_surgeon', 'plastic_surgeon', 'vascular_surgeon',
-  'oral_surgeon', 'clinical_nurse_specialist', 'nurse_anesthetist',
-  'nurse_midwife', 'charge_nurse', 'nurse_administrator',
-  'medical_director', 'chief_medical_officer',
-];
-
-function isClinician(user) {
-  if (!user) return false;
-  const roles = user.active_roles || [];
-  if (user.primary_role) roles.push(user.primary_role);
-  return roles.some(r => CLINICIAN_ROLES.includes(r));
-}
 
 const navGroups = [
   // Prompt Hub — the modality-aware entry point (Basis.md)
@@ -111,9 +92,12 @@ const navGroups = [
     label: 'Labs & Records', icon: FlaskConical, children: [
       { to: '/labs', icon: FlaskConical, label: 'Lab Tests' },
       { to: '/lab-charts', icon: BarChart3, label: 'Charts' },
-      { to: '/data-sharing', icon: Share2, label: 'Connect Records' },
     ],
   },
+  // Sharing is core, so it sits at the top level rather than inside a collapsed
+  // group. It used to be "Connect Records" three clicks deep under
+  // Labs & Records, where nobody could find it.
+  { to: '/data-sharing', icon: Share2, label: 'Share Records' },
   {
     label: 'Therapies', icon: Cross, children: [
       { to: '/hemodialysis', icon: Activity, label: 'HD Flowsheet' },
@@ -152,10 +136,72 @@ const navGroups = [
       { to: '/roles', icon: UserCog, label: 'Role' },
       { to: '/advanced-directives', icon: FileHeart, label: 'Advanced Directives' },
       { to: '/insurance', icon: Shield, label: 'Insurance' },
-      { to: '/clinician-dashboard', icon: ClipboardList, label: 'Clinician Dashboard', clinicianOnly: true },
     ],
   },
 ];
+
+// Clinician mode replaces the nav entirely rather than adding to it. A
+// physician reviewing patients does not want their own meal diary in the way,
+// and mixing the two is what made the clinical features hard to find.
+const clinicianNavGroups = [
+  { to: '/clinician-dashboard', icon: Users, label: 'My Patients' },
+  { to: '/data-sharing', icon: Share2, label: 'Share Records' },
+  { to: '/messaging', icon: MessageSquare, label: 'Messaging' },
+  { to: '/telehealth', icon: Video, label: 'Telehealth' },
+  { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
+  { to: '/physicians', icon: Stethoscope, label: 'Physician Directory' },
+  { to: '/facilities', icon: Building, label: 'Facilities' },
+  {
+    label: 'Account', icon: User, children: [
+      { to: '/profile', icon: User, label: 'My Profile' },
+      { to: '/roles', icon: UserCog, label: 'Role' },
+      { to: '/subscription', icon: Sparkles, label: 'ALAFIA Membership' },
+    ],
+  },
+];
+
+/** Patient ⇄ Clinician switch. Only rendered for users who hold a clinical role. */
+function PersonaSwitcher() {
+  const { clinicianMode, canBeClinician, enterClinicianMode, exitClinicianMode } =
+    useClinicianMode();
+  const navigate = useNavigate();
+
+  if (!canBeClinician) return null;
+
+  const select = (toClinician) => {
+    if (toClinician) {
+      enterClinicianMode();
+      navigate('/clinician-dashboard');
+    } else {
+      exitClinicianMode();
+      navigate('/');
+    }
+  };
+
+  return (
+    <div style={{ margin: '0 12px 12px', display: 'flex', gap: 4, padding: 3, background: 'var(--color-bg)', borderRadius: 10 }}>
+      {[
+        { label: 'Patient', icon: User, active: !clinicianMode, to: false },
+        { label: 'Clinician', icon: Stethoscope, active: clinicianMode, to: true },
+      ].map(({ label, icon: Icon, active, to }) => (
+        <button
+          key={label}
+          onClick={() => select(to)}
+          aria-pressed={active}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 6, padding: '7px 8px', border: 'none', borderRadius: 8,
+            cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            background: active ? 'var(--color-primary)' : 'transparent',
+            color: active ? '#fff' : 'var(--color-text-secondary)',
+          }}
+        >
+          <Icon size={15} /> {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // Sidebar footer. These are the public marketing pages, which render outside
 // <Layout> — following one leaves the app shell, and its navbar links back in.
@@ -165,11 +211,10 @@ const FOOTER_LINKS = [
   { to: '/investors', icon: Briefcase, label: 'Investors' },
 ];
 
-function SidebarGroup({ group, user }) {
+function SidebarGroup({ group }) {
   const [open, setOpen] = useState(false);
   const GroupIcon = group.icon;
-  const showClinician = isClinician(user);
-  const visibleChildren = group.children.filter(c => !c.clinicianOnly || showClinician);
+  const visibleChildren = group.children;
 
   return (
     <div className="sidebar-group">
@@ -203,8 +248,10 @@ function SidebarGroup({ group, user }) {
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { clinicianMode } = useClinicianMode();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
+  const nav = clinicianMode ? clinicianNavGroups : navGroups;
 
   useEffect(() => {
     let cancelled = false;
@@ -245,8 +292,9 @@ export default function Layout() {
             </span>
           )}
         </button>
+        <PersonaSwitcher />
         <nav className="sidebar-nav">
-          {navGroups.map((item, idx) =>
+          {nav.map((item, idx) =>
             item.to ? (
               <NavLink
                 key={item.to}
@@ -260,7 +308,7 @@ export default function Layout() {
                 {item.label}
               </NavLink>
             ) : (
-              <SidebarGroup key={item.label} group={item} user={user} />
+              <SidebarGroup key={item.label} group={item} />
             )
           )}
         </nav>

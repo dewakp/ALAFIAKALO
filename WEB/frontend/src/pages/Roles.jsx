@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import { useClinicianMode, CLINICIAN_ROLES } from '../context/ClinicianModeContext';
 
 /* ── helpers ──────────────────────────────────────────────────────── */
 
@@ -35,10 +37,20 @@ function Badge({ label, color = 'var(--color-primary)', outline = false }) {
 /* ── main component ───────────────────────────────────────────────── */
 
 export default function Roles() {
+  const navigate = useNavigate();
+  const { enterClinicianMode } = useClinicianMode();
   const [persona, setPersona] = useState(null);
   const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overview');  // overview | add | profile
+
+  // Acting on a clinical role switches the whole app into clinician mode and
+  // lands on the patient grid, rather than just linking to a page that would
+  // otherwise sit inside the patient navigation.
+  const openClinicianView = () => {
+    enterClinicianMode();
+    navigate('/clinician-dashboard');
+  };
 
   // Add-role state
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -339,6 +351,11 @@ export default function Roles() {
                 )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                {rd.is_active && CLINICIAN_ROLES.includes(rd.role) && (
+                  <button className="btn btn-sm btn-primary" onClick={openClinicianView}>
+                    Open Clinician View
+                  </button>
+                )}
                 {!rd.is_primary && (
                   <button className="btn btn-sm btn-secondary" onClick={() => handleSetPrimary(rd.id)}>
                     Set Primary
