@@ -18,6 +18,22 @@ const emptyReading = () => ({
   access_state: '', saline_amount: '', remarks: '',
 });
 
+
+/**
+ * Text for a NEW clinical note, from whatever the form field holds.
+ *
+ * A session's `clinical_notes` is a LIST of note records (their own
+ * append-only rows), while the form field is a box for typing one new note.
+ * Loading a session for edit put the list where a string was expected and the
+ * submit handler called .trim() on an array — the save failed with
+ * "(l.clinical_notes||\"\").trim is not a function" on a completed flowsheet.
+ *
+ * Exported so the shapes are pinned by a test rather than by hope.
+ */
+export function newClinicalNote(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 const emptyForm = () => ({
   // Resolved from the patient's own chronic conditions at load — see
   // loadCondition(). It was hardcoded to 14, an id that exists for nobody, so
@@ -263,7 +279,7 @@ export default function Hemodialysis() {
       // Clinical notes are their own append-only rows, NOT a field on the
       // session — the model maps `clinical_notes` to a relationship, so sending
       // it here 500'd every submission. Pull it out and post it below.
-      const clinicalNote = (payload.clinical_notes || '').trim();
+      const clinicalNote = newClinicalNote(payload.clinical_notes);
       delete payload.clinical_notes;
 
       let sessionId;
@@ -315,6 +331,11 @@ export default function Hemodialysis() {
   const startEdit = (session) => {
     const f = emptyForm();
     Object.keys(f).forEach(k => {
+      // `clinical_notes` on a session is a LIST of note records; the form field
+      // is a box for typing a NEW one. Copying the list in made the submit
+      // handler call .trim() on an array — "(...).trim is not a function".
+      // Existing notes are rendered with the session in the reports list.
+      if (k === 'clinical_notes') return;
       if (session[k] != null) f[k] = session[k];
     });
     if (session.scheduled_date) f.scheduled_date = session.scheduled_date.split('T')[0];
@@ -544,7 +565,9 @@ export default function Hemodialysis() {
           <textarea value={formData.side_effects || ''} onChange={set('side_effects')} style={{ ...input, minHeight: 60 }} placeholder="Cramping, nausea, dizziness..." />
         </Field>
         <Field lbl="Clinical Notes">
-          <textarea value={formData.clinical_notes || ''} onChange={set('clinical_notes')} style={{ ...input, minHeight: 60 }} />
+          {/* Not newClinicalNote() here: it trims, which would stop the user
+              typing a space. Only guard the shape. */}
+          <textarea value={typeof formData.clinical_notes === 'string' ? formData.clinical_notes : ''} onChange={set('clinical_notes')} style={{ ...input, minHeight: 60 }} />
         </Field>
       </div>
       <div style={{ marginTop: 12 }}>
