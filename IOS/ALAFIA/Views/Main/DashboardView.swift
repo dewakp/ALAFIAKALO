@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var clinicianMode: ClinicianMode
     @State private var showProfile = false
     
     var body: some View {
@@ -73,6 +74,30 @@ struct DashboardView: View {
             .navigationTitle("ALAFIA")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // Clinician mode, one tap from the patient's own home screen.
+                //
+                // It used to live at the BOTTOM of the Health tab, under a
+                // "Profile" section that is the ninth and last on that screen —
+                // below Membership, Health Tracking, Mental Health, Community,
+                // Planning, Care, Therapies and Tools. Nobody discovers that by
+                // exploring, and an App Store reviewer would have concluded the
+                // clinician half of the app does not exist. Web has always had
+                // this as a persistent Patient/Clinician control at the top.
+                //
+                // Only rendered for a user who actually holds a clinical role;
+                // `enter` re-checks that, so the gate is not the button.
+                if ClinicianRoles.contains(user: authManager.currentUser) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            clinicianMode.enter(as: authManager.currentUser)
+                        } label: {
+                            Label("Clinician View", systemImage: "stethoscope")
+                                .font(.title3)
+                        }
+                        .accessibilityLabel("Switch to clinician view")
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showProfile = true
@@ -80,6 +105,7 @@ struct DashboardView: View {
                         Image(systemName: "person.circle")
                             .font(.title3)
                     }
+                    .accessibilityLabel("Profile")
                 }
             }
             .sheet(isPresented: $showProfile) {
