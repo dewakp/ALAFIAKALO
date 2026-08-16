@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
+
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from typing import List
@@ -49,6 +51,8 @@ def _naive_utc(value: datetime | None) -> datetime | None:
         return value
     return value.astimezone(timezone.utc).replace(tzinfo=None)
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -255,11 +259,73 @@ async def create_therapy_session(
         if not condition:
             raise HTTPException(status_code=404, detail="Chronic condition not found")
     
-    db_session = TherapySession(
-        **session.model_dump(),
-        user_id=current_user.id
-    )
-    db.add(db_session)
+    # Two treatments on one day are legitimate and are told apart by their
+    # start and finish times. So a same-day session is a DUPLICATE only when it
+    # starts and finishes at the same moment; otherwise it is a second
+    # treatment, and of 150 same-day rows here 133 are populated and carry
+    # readings. A blanket one-per-day rule would have rejected all of them.
+    #
+    # Separately, a save that creates the session and then fails on its readings
+    # leaves an empty row behind and the user retries — 2026-08-15, id 2739
+    # (23:20, every clinical field NULL, no readings) beside id 2740 (00:49, the
+    # real data). That shell is recycled because it holds nothing to lose.
+    #
+    # NOTE the times are frequently absent in imported history: only 16 of those
+    # 150 same-day rows carry a start time at all, because the flowsheet import
+    # dropped them. The match below therefore requires a non-NULL start — two
+    # NULL starts are unknown, not equal.
+    existing_shell = None
+    existing_same_slot = None
+    if session.scheduled_date is not None:
+        same_day = (await db.execute(
+            select(TherapySession).where(
+                and_(
+                    TherapySession.user_id == current_user.id,
+                    TherapySession.therapy_type == session.therapy_type,
+                    func.date(TherapySession.scheduled_date)
+                        == _naive_utc(session.scheduled_date).date(),
+                )
+            )
+        )).scalars().all()
+        incoming_start = _naive_utc(session.actual_start_time)
+        incoming_end = _naive_utc(session.actual_end_time)
+        for candidate in same_day:
+            # Same day AND same start/finish is the same treatment, resubmitted.
+            if (incoming_start is not None
+                    and candidate.actual_start_time == incoming_start
+                    and candidate.actual_end_time == incoming_end):
+                existing_same_slot = candidate
+                break
+            if not _is_empty_session(candidate) or candidate.flowsheet_status:
+                continue
+            # A shell with readings attached is not safe to recycle: the new
+            # save's timepoints would merge into the old row's.
+            has_readings = (await db.execute(
+                select(func.count(IntradialyticReading.id))
+                .where(IntradialyticReading.session_id == candidate.id)
+            )).scalar() or 0
+            if has_readings == 0:
+                existing_shell = candidate
+                break
+
+    reuse = existing_same_slot or existing_shell
+    if reuse is not None:
+        logger.info(
+            "Reusing therapy session %s for user %s (%s) instead of creating a "
+            "duplicate for %s",
+            reuse.id, current_user.id,
+            "same start/finish" if existing_same_slot else "empty shell",
+            session.scheduled_date,
+        )
+        for key, value in session.model_dump().items():
+            setattr(reuse, key, value)
+        db_session = reuse
+    else:
+        db_session = TherapySession(
+            **session.model_dump(),
+            user_id=current_user.id
+        )
+        db.add(db_session)
     await db.commit()
 
     # Re-query with relationships eagerly loaded to avoid async lazy-load errors
@@ -528,7 +594,20 @@ async def create_intradialytic_reading(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Add an intradialytic reading to a therapy session."""
+    """Add an intradialytic reading to a therapy session.
+
+    **`reading_time` is NOT a key.** An earlier version of this function treated
+    it as one and upserted on (session_id, reading_time). That would have
+    silently merged 1816 rows across 1267 sessions, because the flowsheet import
+    never captured the clock time: 3664 readings — 22.6% of the table — carry
+    `00:00:00`, and 1263 of the 1271 same-time collisions are at exactly that
+    value. Session 757 holds two midnight rows reading 144/95 p102 and 140/88
+    p111. Those are two observations with one lost timestamp, not one observation
+    written twice, and collapsing them destroys a vital sign.
+
+    Genuine duplication is a row that matches another in EVERY clinical column —
+    2 rows in the whole database. That is the only signal safe to act on.
+    """
     session_query = select(TherapySession).where(
         and_(TherapySession.id == session_id, TherapySession.user_id == current_user.id)
     )
@@ -536,8 +615,21 @@ async def create_intradialytic_reading(
     if not session_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Therapy session not found")
 
+    fields = reading.model_dump(exclude={"session_id"})
+
+    # An exact re-send — every clinical column equal — is a double submit or a
+    # retry, and returning the existing row makes both harmless. Anything that
+    # differs by even one value is a different observation and is inserted.
+    siblings = (await db.execute(
+        select(IntradialyticReading).where(IntradialyticReading.session_id == session_id)
+    )).scalars().all()
+    for existing in siblings:
+        if all(getattr(existing, key, None) == value
+               for key, value in fields.items() if key in _READING_CONTENT_FIELDS):
+            return existing
+
     db_reading = IntradialyticReading(
-        **reading.model_dump(exclude={"session_id"}),
+        **fields,
         session_id=session_id,
         user_id=current_user.id,
     )
@@ -545,6 +637,37 @@ async def create_intradialytic_reading(
     await db.commit()
     await db.refresh(db_reading)
     return db_reading
+
+
+@router.put("/readings/{reading_id}", response_model=IntradialyticReadingResponse)
+async def update_intradialytic_reading(
+    reading_id: int,
+    reading: IntradialyticReadingUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Edit a reading in place.
+
+    Without this there was no way to change one: the editor loaded the grid,
+    the user corrected a value, and saving POSTed it back as a NEW row — so
+    every edit grew the flowsheet. The rows could not be deduplicated afterwards
+    either, because `reading_time` is 00:00:00 on 22.6% of the table and cannot
+    identify anything.
+    """
+    existing = (await db.execute(
+        select(IntradialyticReading).where(
+            and_(IntradialyticReading.id == reading_id,
+                 IntradialyticReading.user_id == current_user.id)
+        )
+    )).scalar_one_or_none()
+    if not existing:
+        raise HTTPException(status_code=404, detail="Reading not found")
+
+    for field, value in reading.model_dump(exclude_unset=True, exclude={"session_id"}).items():
+        setattr(existing, field, value)
+    await db.commit()
+    await db.refresh(existing)
+    return existing
 
 
 @router.delete("/readings/{reading_id}", status_code=204)
@@ -629,6 +752,32 @@ async def _get_session_for_flowsheet(session_id: int, user_id: int, db: AsyncSes
     if not session:
         raise HTTPException(status_code=404, detail="Therapy session not found")
     return session
+
+
+#: Clinical columns of an intradialytic reading. Two rows are the same reading
+#: only when ALL of these match — never on `reading_time` alone, which the
+#: flowsheet import left as 00:00:00 on 22.6% of the table.
+_READING_CONTENT_FIELDS = (
+    "reading_time", "reading_number", "systolic_bp", "diastolic_bp", "pulse",
+    "mean_arterial_pressure", "dialysate_rate", "dialysate_volume_remaining",
+    "uf_rate", "uf_volume_removed", "blood_flow_rate", "arterial_pressure",
+    "venous_pressure", "effluent_pressure", "access_state", "saline_amount",
+    "remarks",
+)
+
+#: The fields that make a therapy session a record of a treatment. A row with
+#: none of them is a shell left by a save that died before it finished.
+_SESSION_CONTENT_FIELDS = (
+    "pre_dialysis_weight_kg", "post_dialysis_weight_kg", "fluid_removed_ml",
+    "duration_minutes", "actual_start_time", "actual_end_time",
+    "pre_systolic_bp", "post_systolic_bp", "pre_heart_rate", "post_heart_rate",
+    "blood_flow_rate", "total_uf_liters", "patient_notes", "complications",
+)
+
+
+def _is_empty_session(session: TherapySession) -> bool:
+    """True when a session carries no clinical content at all."""
+    return all(getattr(session, f, None) in (None, "") for f in _SESSION_CONTENT_FIELDS)
 
 
 def _compute_payload_hash(session: TherapySession) -> str:

@@ -319,13 +319,27 @@ export default function Hemodialysis() {
         });
       }
 
+      // Rows the session HAD before this save. Anything the user deleted from
+      // the grid has to be removed server-side too: the loop below only writes,
+      // so without this a deleted reading silently comes back on reload.
+      const previousIds = editing
+        ? (editing.intradialytic_readings || []).map(r => r.id).filter(Boolean)
+        : [];
+      const keptIds = new Set(readings.map(r => r.id).filter(Boolean));
+
       // Save readings
       for (const r of readings) {
         // Not just truthiness: '—' is truthy and unparseable, and "14:30 "
         // looks valid while being rejected for its trailing space.
         const cleanTime = normalizeTime(r.reading_time);
         if (!cleanTime) continue;
-        const readingPayload = { ...r, reading_time: cleanTime, session_id: sessionId };
+        // A row that already exists is UPDATED, never re-posted. Re-posting was
+        // how editing a session grew its flowsheet: the corrected row differs
+        // from the stored one, so it landed as an extra reading. It cannot be
+        // cleaned up afterwards either — `reading_time` is 00:00:00 on 22.6% of
+        // this table, so it identifies nothing.
+        const { id: readingId, ...fields } = r;
+        const readingPayload = { ...fields, reading_time: cleanTime, session_id: sessionId };
         Object.keys(readingPayload).forEach(k => {
           if (readingPayload[k] === '') readingPayload[k] = null;
           if (readingPayload[k] && typeof readingPayload[k] === 'string' && /^\d+\.?\d*$/.test(readingPayload[k])) {
@@ -336,7 +350,15 @@ export default function Hemodialysis() {
         ['systolic_bp', 'diastolic_bp', 'pulse', 'reading_number'].forEach(k => {
           if (readingPayload[k] != null) readingPayload[k] = parseInt(readingPayload[k]);
         });
-        await api.post(`/chronic/therapy-sessions/${sessionId}/readings`, readingPayload);
+        if (readingId) {
+          await api.put(`/chronic/readings/${readingId}`, readingPayload);
+        } else {
+          await api.post(`/chronic/therapy-sessions/${sessionId}/readings`, readingPayload);
+        }
+      }
+
+      for (const staleId of previousIds.filter(id => !keptIds.has(id))) {
+        await api.delete(`/chronic/readings/${staleId}`);
       }
 
       setTab('reports');
