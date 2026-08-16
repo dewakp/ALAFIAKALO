@@ -307,6 +307,9 @@ fun PatientCategoryScreen(
                             }
                         }
                     }
+                    // Cards above the plots: the finding first, the line as its
+                    // evidence.
+                    items(d.cards) { card -> DetailCard(card) }
                     items(groups) { g -> TrendCard(g) }
                     if (groups.isEmpty()) {
                         item {
@@ -447,6 +450,39 @@ private fun RecordRow(columns: List<BoardColumn>, row: Map<String, Any?>) {
                          color = if (danger) MaterialTheme.colorScheme.error
                                  else MaterialTheme.colorScheme.onSurface)
                 }
+            }
+        }
+    }
+}
+
+
+/** A category's own summary card. Values are rendered exactly as the backend
+ *  computed them. */
+@Composable
+private fun DetailCard(card: BoardDetailCard) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(card.label, style = MaterialTheme.typography.titleSmall,
+                 fontWeight = FontWeight.Bold)
+            card.items.forEach { item ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(item.label, style = MaterialTheme.typography.labelMedium,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                         modifier = Modifier.weight(1f))
+                    Text((if (item.danger == true) "⚠ " else "") + item.valueWithUnit,
+                         style = MaterialTheme.typography.labelLarge,
+                         fontWeight = FontWeight.SemiBold,
+                         color = if (item.danger == true) MaterialTheme.colorScheme.error
+                                 else MaterialTheme.colorScheme.onSurface)
+                }
+                item.note?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            card.note?.takeIf { it.isNotBlank() }?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall,
+                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

@@ -942,6 +942,34 @@ data class TrendSeries(
 
 data class BoardColumn(val key: String = "", val label: String = "")
 
+/** One item on a category card. `danger` is advisory — the note says why, so the
+ *  flag is never carried by colour alone. */
+data class CardItem(
+    val label: String,
+    val value: Any? = null,
+    val unit: String? = null,
+    val danger: Boolean? = null,
+    val note: String? = null
+) {
+    val valueWithUnit: String
+        get() {
+            val v = when (value) {
+                null -> "—"
+                is Double -> if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
+                else -> value.toString()
+            }
+            return if (unit.isNullOrEmpty()) v else "$v $unit"
+        }
+}
+
+/** A category's own summary card, computed server-side. The client never
+ *  re-derives a clinical number. */
+data class BoardDetailCard(
+    val label: String,
+    val items: List<CardItem> = emptyList(),
+    val note: String? = null
+)
+
 data class PatientCategoryResponse(
     val patient: BoardPatient = BoardPatient(),
     val key: String = "",
@@ -950,7 +978,8 @@ data class PatientCategoryResponse(
     val days: Int = 90,
     val series: List<TrendSeries> = emptyList(),
     val columns: List<BoardColumn> = emptyList(),
-    val rows: List<Map<String, Any?>> = emptyList()
+    val rows: List<Map<String, Any?>> = emptyList(),
+    val cards: List<BoardDetailCard> = emptyList()
 )
 
 // ── Physician view of one therapy session ───────────────────────────────────

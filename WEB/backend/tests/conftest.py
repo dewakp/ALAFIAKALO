@@ -93,21 +93,58 @@ from app.core.config import settings as _settings  # noqa: E402
 
 _settings.TWO_STEP_SIGNUP_REQUIRED = False
 
-# SQLite on the CONTAINER's own disk, not `./test.db`.
+# The suite runs on the SAME PostgreSQL major version as production.
 #
-# The path used to be relative, so the database landed in /app — which is the
-# bind-mounted `WEB/backend` directory, shared with the `backend` service whose
-# uvicorn --reload watches that same tree. Two runs of the identical suite gave
-# 322 passed and then 269 passed / 65 errors: SQLite over a macOS bind mount,
-# with another container touching the directory, loses writes and then every
-# create_all/drop_all cycle after the first fails ("table users already exists",
-# "no such table: …"). /tmp is container-local and unshared, so a run cannot
-# contend with the app container or with a stale file from a previous run.
+# It used to run on SQLite. That is fast and it is not the database this code
+# talks to: SQLite has no `timestamp with/without time zone` distinction and no
+# asyncpg, so it cannot reproduce the class of bug that once hid 730 dialysis
+# sessions from a clinician — an aware/naive comparison raising asyncpg
+# DataError, the endpoint 500ing, and the page rendering that as "no sessions
+# found". A suite that cannot fail on that is not evidence about production.
 #
-# A unique filename per process keeps two concurrent runs (foreground plus a
-# backgrounded one) from sharing a database.
-TEST_DB_PATH = f"/tmp/alafia-test-{os.getpid()}.db"
-TEST_DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_PATH}"
+# It also silently accepted Postgres-only SQL in the other direction, and
+# rejected it in ways that looked like application bugs (`no such function:
+# date_trunc`).
+#
+# A SEPARATE database on the same server, never `alafia`: this fixture runs
+# drop_all after every test, and pointing that at the dev database would delete
+# a byte-exact copy of production.
+TEST_DB_NAME = os.getenv("TEST_DB_NAME", "alafia_test")
+TEST_DB_HOST = os.getenv("TEST_DB_HOST", "db")
+TEST_DB_PORT = os.getenv("TEST_DB_PORT", "5432")
+TEST_DB_USER = os.getenv("TEST_DB_USER", "alafia")
+TEST_DB_PASS = os.getenv("TEST_DB_PASS", "alafia")
+_BASE = f"{TEST_DB_USER}:{TEST_DB_PASS}@{TEST_DB_HOST}:{TEST_DB_PORT}"
+TEST_DATABASE_URL = f"postgresql+asyncpg://{_BASE}/{TEST_DB_NAME}"
+
+assert TEST_DB_NAME != "alafia", (
+    "The test database must not be the dev database — this suite drops every "
+    "table after each test."
+)
+
+
+def _ensure_test_database() -> None:
+    """CREATE DATABASE if absent. Runs once, before the engine is built."""
+    import asyncio as _asyncio
+
+    import asyncpg as _asyncpg
+
+    async def _create() -> None:
+        conn = await _asyncpg.connect(
+            f"postgresql://{_BASE}/postgres"
+        )
+        try:
+            exists = await conn.fetchval(
+                "SELECT 1 FROM pg_database WHERE datname = $1", TEST_DB_NAME)
+            if not exists:
+                await conn.execute(f'CREATE DATABASE "{TEST_DB_NAME}"')
+        finally:
+            await conn.close()
+
+    _asyncio.new_event_loop().run_until_complete(_create())
+
+
+_ensure_test_database()
 
 engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 TestSession = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

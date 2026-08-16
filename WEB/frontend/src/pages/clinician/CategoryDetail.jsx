@@ -175,6 +175,10 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
         </div>
       )}
 
+      {/* Domain cards sit ABOVE the plots: "potassium 1012 mg/day, ceiling
+          2500" is the finding, and a line is the evidence for it. */}
+      <BoardCards cards={data.cards} />
+
       {groups.map((g, gi) => (
         // Key on the series names: in small-multiples mode several charts share
         // a unit, so the unit alone collides.
@@ -193,6 +197,53 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
       {categoryKey === 'dialysis'
         ? <TherapyReport patientId={patientId} rows={data.rows} days={days} />
         : <DataTable columns={data.columns} rows={data.rows} label={data.label} />}
+    </div>
+  );
+}
+
+/**
+ * The category's own summary cards. Values are rendered exactly as the backend
+ * computed them — the client never re-derives a clinical number, because two
+ * implementations of "average potassium" is one too many.
+ */
+function BoardCards({ cards }) {
+  if (!cards?.length) return null;
+  return (
+    <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+      {cards.map((card) => (
+        <div key={card.label} className="card" style={{ padding: '0.9rem 1rem' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: '0.9rem' }}>{card.label}</h3>
+          <dl style={{ margin: 0, display: 'grid', gap: 4 }}>
+            {card.items.map((it, i) => (
+              <div key={`${it.label}-${i}`}
+                   style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <dt style={{ flex: '1 1 auto', color: 'var(--color-text-secondary)',
+                             fontSize: '0.82rem' }}>
+                  {it.label}
+                </dt>
+                <dd style={{ margin: 0, fontWeight: 600,
+                             /* Colour is never the only signal — the note spells
+                                out why a value is flagged. */
+                             color: it.danger ? 'var(--color-danger)' : 'inherit' }}>
+                  {it.danger && <span aria-hidden="true">⚠ </span>}
+                  {it.value}{it.unit ? ` ${it.unit}` : ''}
+                </dd>
+                {it.note && (
+                  <div style={{ flexBasis: '100%', fontSize: '0.72rem',
+                                color: 'var(--color-text-secondary)' }}>
+                    {it.note}
+                  </div>
+                )}
+              </div>
+            ))}
+          </dl>
+          {card.note && (
+            <p style={{ margin: '8px 0 0', fontSize: '0.72rem',
+                        color: 'var(--color-text-secondary)' }}>{card.note}</p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

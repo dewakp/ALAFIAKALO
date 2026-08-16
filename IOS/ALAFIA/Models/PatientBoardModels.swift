@@ -114,6 +114,32 @@ struct BoardColumn: Codable, Hashable, Identifiable {
     let label: String
 }
 
+/// One item on a category card. `danger` is advisory — the note says why, so
+/// the flag is never carried by colour alone.
+struct CardItem: Codable, Hashable {
+    let label: String
+    let value: FlexValue?
+    let unit: String?
+    let danger: Bool?
+    let note: String?
+
+    var valueWithUnit: String {
+        let v = value?.display ?? "—"
+        guard let unit, !unit.isEmpty else { return v }
+        return "\(v) \(unit)"
+    }
+}
+
+/// A category's own summary card, computed server-side. The client never
+/// re-derives a clinical number — two implementations of "average potassium" is
+/// one too many.
+struct BoardDetailCard: Codable, Hashable, Identifiable {
+    var id: String { label }
+    let label: String
+    let items: [CardItem]
+    let note: String?
+}
+
 struct PatientCategoryResponse: Codable {
     let patient: BoardPatient
     let key: String
@@ -123,4 +149,5 @@ struct PatientCategoryResponse: Codable {
     let series: [TrendSeries]
     let columns: [BoardColumn]
     let rows: [[String: FlexValue]]
+    let cards: [BoardDetailCard]?
 }

@@ -67,11 +67,19 @@ class Summary:
 
 @dataclass
 class Detail:
-    """What opening a card shows: trends plus the rows behind them."""
+    """What opening a card shows: trends plus the rows behind them.
+
+    `cards` is the domain layer between the two. A trend line and a raw table
+    are both true and neither answers "is this patient's potassium safe this
+    week" — that needs the measure named, rolled up over a clinically meaningful
+    window, and flagged. Each card is
+    `{label, items: [{label, value, unit, danger?, note?}], note?}`.
+    """
 
     series: list[dict] = field(default_factory=list)  # [{label, unit, points:[{date,value}]}]
     rows: list[dict] = field(default_factory=list)
     columns: list[dict] = field(default_factory=list)  # [{key, label}] — render order
+    cards: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -85,6 +93,84 @@ class Category:
 
 def _window(days: int) -> date:
     return date.today() - timedelta(days=days)
+
+
+def default_cards(detail: "Detail", days: int) -> list[dict]:
+    """Latest value and in-period range for every measure a category trends.
+
+    Applied to any category that did not build its own cards, so the board is
+    consistent rather than "Therapies and nutrition are rich, everything else is
+    a table". A line shows shape; these answer the two questions asked of every
+    measure — where is it now, and how far has it moved.
+
+    Nothing is invented: both cards are computed from the series the category
+    already returned, and a measure with no points contributes nothing.
+    """
+    if not detail.series:
+        # Categories that are lists rather than measurements — conditions,
+        # journal, connected records — still get a card. A count and a date
+        # answer "is there anything here, and how old is it", which a bare table
+        # makes the reader work out for themselves.
+        return _row_cards(detail, days)
+
+    latest, ranges = [], []
+    for s in detail.series:
+        pts = [p for p in (s.get("points") or []) if p.get("value") is not None]
+        if not pts:
+            continue
+        unit = s.get("unit") or ""
+        last = pts[-1]
+        latest.append({"label": s["label"], "value": last["value"], "unit": unit,
+                       "note": f"on {last['date']}"})
+        values = [float(p["value"]) for p in pts]
+        lo, hi = min(values), max(values)
+        mean = sum(values) / len(values)
+        ranges.append({
+            "label": s["label"],
+            "value": f"{_fmt_num(lo)} – {_fmt_num(hi)}",
+            "unit": unit,
+            "note": f"mean {_fmt_num(mean)} over {len(values)} reading"
+                    f"{'' if len(values) == 1 else 's'}",
+        })
+
+    cards = []
+    if latest:
+        cards.append({"label": "Most recent", "items": latest})
+    if ranges:
+        cards.append({"label": f"Range over {days} days", "items": ranges})
+    return cards
+
+
+def _row_cards(detail: "Detail", days: int) -> list[dict]:
+    """A count and the most recent few, for categories with no numeric series."""
+    rows = detail.rows or []
+    if not rows:
+        return []
+    cols = [c for c in (detail.columns or []) if c.get("key") != "date"]
+    label_key = cols[0]["key"] if cols else None
+    value_key = cols[1]["key"] if len(cols) > 1 else None
+
+    items = []
+    for row in rows[:6]:
+        label = row.get(label_key) if label_key else None
+        value = row.get(value_key) if value_key else None
+        items.append({
+            "label": str(label) if label not in (None, "") else "—",
+            "value": value if value not in (None, "") else "—",
+            "note": str(row.get("date")) if row.get("date") else None,
+            "danger": bool(row.get("danger")),
+        })
+    more = len(rows) - len(items)
+    return [{
+        "label": "Most recent",
+        "items": items,
+        "note": (f"{len(rows)} record{'' if len(rows) == 1 else 's'} in the last {days} days"
+                 + (f" · {more} more below" if more > 0 else "")),
+    }]
+
+
+def _fmt_num(value: float) -> str:
+    return f"{value:.0f}" if abs(value) >= 100 or float(value).is_integer() else f"{value:.1f}"
 
 
 # ── Recency helper ───────────────────────────────────────────────────────
@@ -342,14 +428,210 @@ async def _nutrition_detail(db: AsyncSession, uid: int, days: int) -> Detail:
             NutritionLog.user_id == uid, NutritionLog.log_date >= _window(days))
         .order_by(NutritionLog.log_date.desc(), NutritionLog.id.desc()).limit(200)
     )).scalars().all()
+
+    cards = await _nutrition_cards(db, uid, days, daily)
+
     return Detail(
         series=series,
+        cards=cards,
         columns=[{"key": "date", "label": "Date"}, {"key": "meal", "label": "Meal"},
                  {"key": "food", "label": "Food"}, {"key": "calories", "label": "kcal"},
                  {"key": "protein", "label": "Protein"}],
         rows=[{"date": str(r.log_date), "meal": r.meal_type, "food": r.food_name,
                "calories": _round(r.calories, 0), "protein": _round(r.protein_g)} for r in rows],
     )
+
+
+#: Daily reference intakes used only to say how far a mean sits from typical.
+#: NOT a prescription: a dialysis patient's potassium and phosphorus targets are
+#: set by their nephrologist and are usually well below the general-population
+#: figure, which is why the renal four are flagged on their own thresholds below.
+_MICRONUTRIENTS: tuple[tuple[str, str, str, float | None], ...] = (
+    ("calcium_mg", "Calcium", "mg", 1000),
+    ("iron_mg", "Iron", "mg", 18),
+    ("magnesium_mg", "Magnesium", "mg", 420),
+    ("zinc_mg", "Zinc", "mg", 11),
+    ("copper_mg", "Copper", "mg", 0.9),
+    ("manganese_mg", "Manganese", "mg", 2.3),
+    ("selenium_mcg", "Selenium", "mcg", 55),
+    ("iodine_mcg", "Iodine", "mcg", 150),
+    ("vitamin_a_iu", "Vitamin A", "IU", 3000),
+    ("vitamin_c_mg", "Vitamin C", "mg", 90),
+    ("vitamin_d_iu", "Vitamin D", "IU", 600),
+    ("vitamin_e_mg", "Vitamin E", "mg", 15),
+    ("vitamin_k_mcg", "Vitamin K", "mcg", 120),
+    ("vitamin_b1_thiamine_mg", "Thiamine (B1)", "mg", 1.2),
+    ("vitamin_b2_riboflavin_mg", "Riboflavin (B2)", "mg", 1.3),
+    ("vitamin_b3_niacin_mg", "Niacin (B3)", "mg", 16),
+    ("vitamin_b6_mg", "Vitamin B6", "mg", 1.7),
+    ("vitamin_b9_folate_mcg", "Folate (B9)", "mcg", 400),
+    ("vitamin_b12_mcg", "Vitamin B12", "mcg", 2.4),
+    ("choline_mg", "Choline", "mg", 550),
+)
+
+#: The four a nephrologist reads first, with the daily ceilings usually applied
+#: on dialysis. Flagged rather than scored — the number is the finding.
+_RENAL_LIMITS = (
+    ("potassium_mg", "Potassium", "mg", 2500),
+    ("phosphorus_mg", "Phosphorus", "mg", 1000),
+    ("sodium_mg", "Sodium", "mg", 2000),
+    ("water_ml", "Fluid", "mL", 1500),
+)
+
+
+async def _nutrition_cards(db: AsyncSession, uid: int, days: int, daily) -> list[dict]:
+    """Daily and weekly rollups plus the micronutrient panel.
+
+    Per-DAY sums first, then a mean across days that were actually logged. A
+    mean over rows would be a mean per meal, and a mean over calendar days would
+    read a gap as a fast — both understate intake on a patient who logs
+    sporadically. `days_logged` is reported so the denominator is visible.
+    """
+    since = _window(days)
+
+    # A meal whose nutrients were never worked out is stored with calories = 0,
+    # and 69 of this patient's 953 logs are like that — 6 of the 7 that failed
+    # estimation outright, plus 63 skipped. Averaging those in reads as "ate
+    # nothing" and drags every intake figure down. A real meal has calories, so
+    # logs without them are excluded from the rollups and counted separately.
+    estimated = NutritionLog.calories > 0
+
+    def _avg_of_daily_sums(column):
+        per_day = (
+            select(NutritionLog.log_date.label("d"),
+                   func.sum(column).label("total"))
+            .where(NutritionLog.user_id == uid, NutritionLog.log_date >= since,
+                   estimated, column.isnot(None))
+            .group_by(NutritionLog.log_date)
+            .subquery()
+        )
+        return select(func.avg(per_day.c.total), func.count(per_day.c.d)).select_from(per_day)
+
+    unestimated = (await db.execute(
+        select(func.count(NutritionLog.id)).where(
+            NutritionLog.user_id == uid, NutritionLog.log_date >= since,
+            func.coalesce(NutritionLog.calories, 0) <= 0)
+    )).scalar() or 0
+
+    cards: list[dict] = []
+
+    # ── Renal panel: the numbers that decide a dialysis diet ──
+    renal_items = []
+    for col, label, unit, ceiling in _RENAL_LIMITS:
+        column = getattr(NutritionLog, col, None)
+        if column is None:
+            continue
+        mean, n_days = (await db.execute(_avg_of_daily_sums(column))).one()
+        if mean is None:
+            continue
+        value = _round(float(mean), 0)
+        renal_items.append({
+            "label": label, "value": value, "unit": f"{unit}/day",
+            "danger": bool(ceiling and value > ceiling),
+            "note": f"typical ceiling {ceiling:g} {unit}" if ceiling else None,
+        })
+    if renal_items:
+        cards.append({"label": "Renal panel — daily average", "items": renal_items})
+
+    # ── Macros, same daily-mean basis ──
+    macro_items = []
+    for col, label, unit, places in (("calories", "Energy", "kcal", 0),
+                                     ("protein_g", "Protein", "g", 1),
+                                     ("carbs_g", "Carbohydrate", "g", 1),
+                                     ("fat_g", "Fat", "g", 1),
+                                     ("fiber_g", "Fibre", "g", 1),
+                                     ("sugar_g", "Sugar", "g", 1)):
+        column = getattr(NutritionLog, col, None)
+        if column is None:
+            continue
+        mean, n_days = (await db.execute(_avg_of_daily_sums(column))).one()
+        if mean is None:
+            continue
+        macro_items.append({"label": label, "value": _round(float(mean), places),
+                            "unit": f"{unit}/day"})
+    if macro_items:
+        days_logged = (await db.execute(
+            select(func.count(func.distinct(NutritionLog.log_date)))
+            .where(NutritionLog.user_id == uid, NutritionLog.log_date >= since)
+        )).scalar() or 0
+        cards.append({
+            "label": "Macronutrients — daily average",
+            "items": macro_items,
+            # The denominator, stated: 6 logged days inside a 90-day window is a
+            # different clinical picture from 88, and the averages look alike.
+            "note": (
+                f"averaged over {days_logged} logged day"
+                f"{'' if days_logged == 1 else 's'} in the last {days} days"
+                + (f" · {unestimated} log{'' if unestimated == 1 else 's'} excluded, "
+                   "nutrients never estimated" if unestimated else "")
+            ),
+        })
+
+    # ── Weekly: the same measures, per ISO week, so a trend is readable ──
+    #
+    # Bucketed in Python, not with date_trunc(): that is a PostgreSQL function
+    # and the test suite runs on SQLite, so the query 500'd the whole category
+    # for any patient with nutrition data. Grouping a few hundred day-rows here
+    # costs nothing and works on both engines.
+    per_day_rows = (await db.execute(
+        select(NutritionLog.log_date,
+               func.sum(NutritionLog.calories), func.sum(NutritionLog.protein_g),
+               func.sum(NutritionLog.potassium_mg), func.sum(NutritionLog.phosphorus_mg))
+        .where(NutritionLog.user_id == uid, NutritionLog.log_date >= since, estimated)
+        .group_by(NutritionLog.log_date)
+    )).all()
+
+    weeks: OrderedDict[date, list] = OrderedDict()
+    for log_date, kcal, prot, k, phos in per_day_rows:
+        d = log_date.date() if isinstance(log_date, datetime) else log_date
+        if d is None:
+            continue
+        monday = d - timedelta(days=d.weekday())
+        bucket = weeks.setdefault(monday, [0.0, 0.0, 0.0, 0.0, 0])
+        for i, v in enumerate((kcal, prot, k, phos)):
+            if v is not None:
+                bucket[i] += float(v)
+        bucket[4] += 1
+
+    if weeks:
+        items = []
+        for monday in sorted(weeks, reverse=True)[:6]:
+            kcal, prot, k, phos, n_days = weeks[monday]
+            parts = []
+            if n_days:
+                parts = [f"{kcal / n_days:.0f} kcal", f"{prot / n_days:.0f} g protein",
+                         f"{k / n_days:.0f} mg K", f"{phos / n_days:.0f} mg PO4"]
+            items.append({"label": f"Week of {monday}", "value": " · ".join(parts) or "—",
+                          "note": f"{n_days} day{'' if n_days == 1 else 's'} logged"})
+        cards.append({"label": "Weekly average per logged day", "items": items})
+
+    # ── Micronutrients ──
+    micro_items = []
+    for col, label, unit, rdi in _MICRONUTRIENTS:
+        column = getattr(NutritionLog, col, None)
+        if column is None:
+            continue
+        mean, n_days = (await db.execute(_avg_of_daily_sums(column))).one()
+        if mean is None or not n_days:
+            continue
+        value = _round(float(mean), 1)
+        pct = round(100.0 * value / rdi) if rdi else None
+        micro_items.append({
+            "label": label, "value": value, "unit": f"{unit}/day",
+            # Low intake is the finding worth surfacing; "high" on a single
+            # nutrient is rarely actionable without a level to compare against.
+            "danger": bool(pct is not None and pct < 50),
+            "note": f"{pct}% of {rdi:g} {unit} reference" if pct is not None else None,
+        })
+    if micro_items:
+        cards.append({
+            "label": "Micronutrients — daily average",
+            "items": micro_items,
+            "note": "Reference intakes are general-population figures, not a "
+                    "renal prescription. Flagged below 50%.",
+        })
+
+    return cards
 
 
 # ── Fitness ──────────────────────────────────────────────────────────────
@@ -558,8 +840,66 @@ async def _medications_detail(db: AsyncSession, uid: int, days: int) -> Detail:
               "source": m.source, "status": "active" if m.active else "stopped"}
              for m in await sources.medications_prescribed(db, uid)]
 
+    taken = await sources.medications_taken(db, uid, since=since)
+    prescribed = await sources.medications_prescribed(db, uid)
+
+    cards: list[dict] = []
+
+    # What the patient actually TOOK. Grouped case-insensitively: the same drug
+    # arrives as "Calcium Carbonate" and "Calcium carbonate", and two rows
+    # misstate the regimen (canon §3aa).
+    if taken:
+        by_name: OrderedDict[str, dict] = OrderedDict()
+        for m in taken:
+            key = (m.name or "").strip().lower()
+            entry = by_name.setdefault(key, {"name": m.name, "last": m.last, "detail": m.detail})
+            if m.last and (not entry["last"] or str(m.last) > str(entry["last"])):
+                entry["last"] = m.last
+        cards.append({
+            "label": f"Taken in the last {days} days",
+            "items": [{"label": e["name"], "value": e["detail"] or "—",
+                       "note": f"last {e['last']}" if e["last"] else None}
+                      for e in by_name.values()],
+            "note": "From dose logs — what the patient recorded taking.",
+        })
+
+    # What is on the PROFILE. An EHR import seeds prescriptions that can be years
+    # stale: this record carried two drugs stopped in 2017 beside 921 dose logs,
+    # and a naive read showed the physician the 2017 pair.
+    if prescribed:
+        active = [m for m in prescribed if m.active]
+        stopped = [m for m in prescribed if not m.active]
+        items = [{"label": m.name, "value": m.detail or "—",
+                  "note": f"since {m.last}" if m.last else None} for m in active]
+        items += [{"label": m.name, "value": m.detail or "—", "danger": True,
+                   "note": f"STOPPED{f' — {m.last}' if m.last else ''}"} for m in stopped]
+        cards.append({
+            "label": "Prescribed on file",
+            "items": items,
+            "note": "From the medication profile and EHR import. Prescribed is not "
+                    "the same as taken — compare against the doses above.",
+        })
+
+    # The gap between the two lists is the clinically interesting part.
+    taken_names = {(m.name or "").strip().lower() for m in taken}
+    presc_active = {(m.name or "").strip().lower() for m in prescribed if m.active}
+    only_taken = sorted(n for n in taken_names - presc_active if n)
+    only_prescribed = sorted(n for n in presc_active - taken_names if n)
+    if only_taken or only_prescribed:
+        items = [{"label": n.title(), "value": "taken, not on the profile"}
+                 for n in only_taken]
+        items += [{"label": n.title(), "value": "prescribed, no doses logged",
+                   "danger": True} for n in only_prescribed]
+        cards.append({
+            "label": "Discrepancies",
+            "items": items,
+            "note": "Matched on name, case-insensitively. A drug prescribed with "
+                    "no logged doses may be unfilled, stopped, or simply untracked.",
+        })
+
     return Detail(
         series=series,
+        cards=cards,
         columns=[{"key": "name", "label": "Medication"}, {"key": "detail", "label": "Detail"},
                  {"key": "source", "label": "Source"}, {"key": "last", "label": "Last / start"},
                  {"key": "status", "label": "Status"}],

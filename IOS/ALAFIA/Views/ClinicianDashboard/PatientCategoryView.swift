@@ -73,6 +73,9 @@ struct PatientCategoryView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         windowPicker
                         if manySeries { seriesPicker(data) }
+                        // Cards above the plots: the finding first, the line as
+                        // its evidence.
+                        ForEach(data.cards ?? []) { detailCard($0) }
                         ForEach(Array(groups.enumerated()), id: \.offset) { _, g in
                             chartCard(g)
                         }
@@ -97,6 +100,31 @@ struct PatientCategoryView: View {
         .navigationTitle(categoryLabel)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: days) { await load() }
+    }
+
+    private func detailCard(_ card: BoardDetailCard) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(card.label).font(.subheadline.bold())
+            ForEach(Array(card.items.enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .firstTextBaseline) {
+                    Text(item.label).font(.caption).foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                    Text((item.danger == true ? "⚠ " : "") + item.valueWithUnit)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(item.danger == true ? .red : .primary)
+                }
+                if let note = item.note, !note.isEmpty {
+                    Text(note).font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            if let note = card.note, !note.isEmpty {
+                Text(note).font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var windowPicker: some View {

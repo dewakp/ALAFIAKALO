@@ -52,6 +52,29 @@ def _naive_utc(value: datetime | None) -> datetime | None:
     return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
+#: therapy_sessions columns declared `DateTime` WITHOUT timezone. A client that
+#: sends an instant ("...Z", or any offset) gives FastAPI a tz-AWARE datetime,
+#: and asyncpg refuses to bind one to a naive column — DataError, 500, and on
+#: this surface the page renders that as an empty state.
+_NAIVE_SESSION_DATETIMES = (
+    "scheduled_date", "actual_start_time", "actual_end_time",
+    "next_session_scheduled",
+)
+
+
+def _naive_session_payload(data: dict) -> dict:
+    """Normalise every naive-column datetime in a session payload.
+
+    `_naive_utc` was already applied to the query FILTERS and not to the body,
+    so reading a date range worked and writing one 500'd. The test suite could
+    not see it: it ran on SQLite, which has no aware/naive distinction at all.
+    """
+    for key in _NAIVE_SESSION_DATETIMES:
+        if key in data:
+            data[key] = _naive_utc(data[key])
+    return data
+
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -274,6 +297,8 @@ async def create_therapy_session(
     # 150 same-day rows carry a start time at all, because the flowsheet import
     # dropped them. The match below therefore requires a non-NULL start — two
     # NULL starts are unknown, not equal.
+    payload = _naive_session_payload(session.model_dump())
+
     existing_shell = None
     existing_same_slot = None
     if session.scheduled_date is not None:
@@ -317,12 +342,12 @@ async def create_therapy_session(
             "same start/finish" if existing_same_slot else "empty shell",
             session.scheduled_date,
         )
-        for key, value in session.model_dump().items():
+        for key, value in payload.items():
             setattr(reuse, key, value)
         db_session = reuse
     else:
         db_session = TherapySession(
-            **session.model_dump(),
+            **payload,
             user_id=current_user.id
         )
         db.add(db_session)
@@ -376,7 +401,7 @@ async def update_therapy_session(
     if not db_session:
         raise HTTPException(status_code=404, detail="Therapy session not found")
     
-    update_data = session_update.model_dump(exclude_unset=True)
+    update_data = _naive_session_payload(session_update.model_dump(exclude_unset=True))
     old_status = db_session.status
     for field, value in update_data.items():
         setattr(db_session, field, value)

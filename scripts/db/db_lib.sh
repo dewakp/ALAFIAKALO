@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # ── Pinned tooling ───────────────────────────────────────────────────────
-PG_IMAGE="postgres:16-alpine"                              # matches prod (PG16)
+PG_IMAGE="postgres:18-alpine"                              # matches prod (PG18)
 PROXY_IMAGE="gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.3"
 
 # ── Topology (single source of truth; deploy/gcp/config.env is authoritative) ──

@@ -30,7 +30,7 @@ if ! gcloud sql instances describe "$SQL_INSTANCE" >/dev/null 2>&1; then
   # --edition=ENTERPRISE is required for shared-core/small tiers (db-g1-small);
   # ENTERPRISE_PLUS (the new default) only accepts db-perf-optimized-* tiers.
   gcloud sql instances create "$SQL_INSTANCE" \
-    --database-version=POSTGRES_16 --edition=ENTERPRISE --tier="$SQL_TIER" --region="$REGION" \
+    --database-version=POSTGRES_18 --edition=ENTERPRISE --tier="$SQL_TIER" --region="$REGION" \
     --storage-auto-increase --backup --enable-point-in-time-recovery
 fi
 gcloud sql databases describe "$DB_NAME" --instance="$SQL_INSTANCE" >/dev/null 2>&1 || \

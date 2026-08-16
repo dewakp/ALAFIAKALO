@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: alafia
       POSTGRES_PASSWORD: alafia
@@ -8,7 +8,14 @@ services:
     ports:
       - "5435:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # Mounted at /var/lib/postgresql, NOT /var/lib/postgresql/data. The 18+
+      # images store the cluster in a major-version subdirectory so
+      # `pg_upgrade --link` is not blocked by a mount-point boundary, and they
+      # refuse to start if they find data at the old path — the container exits
+      # with "these Docker images are configured to store database data in a
+      # format which is compatible with pg_ctlcluster" and compose reports only
+      # `service "db" is not running`.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U alafia"]
       interval: 5s
