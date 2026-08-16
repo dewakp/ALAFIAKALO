@@ -76,7 +76,13 @@ struct PatientCategoryView: View {
                             Text("No trend to plot for this period — the records are below.")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
-                        recordsTable(data)
+                        // A dialysis session is a document a clinician opens,
+                        // reads a curve from and signs — not a table row.
+                        if categoryKey == "dialysis" {
+                            TherapyReportView(patientId: patientId, rows: data.rows, days: days)
+                        } else {
+                            recordsTable(data)
+                        }
                     }
                     .padding(12)
                 }

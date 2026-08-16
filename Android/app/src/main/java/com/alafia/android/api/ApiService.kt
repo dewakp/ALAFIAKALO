@@ -829,6 +829,20 @@ interface ApiService {
         @Query("days") days: Int = 90
     ): PatientCategoryResponse
 
+    /** One dialysis session in full, for the physician who was granted it. */
+    @GET("clinician-dashboard/patient/{patientId}/therapy-sessions/{sessionId}")
+    suspend fun getPatientTherapySession(
+        @Path("patientId") patientId: Int,
+        @Path("sessionId") sessionId: Int
+    ): TherapySessionReport
+
+    /** Physician sign-off: the session becomes `reviewed`, hashed and anchored. */
+    @POST("clinician-dashboard/patient/{patientId}/therapy-sessions/{sessionId}/review")
+    suspend fun reviewPatientTherapySession(
+        @Path("patientId") patientId: Int,
+        @Path("sessionId") sessionId: Int
+    ): SessionReviewResponse
+
     // ── Chart Dashboard ──────────────────────────────
     @GET("chart-dashboard/datasets")
     suspend fun getChartDatasets(): Map<String, List<ChartDatasetInfo>>

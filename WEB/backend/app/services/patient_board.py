@@ -24,7 +24,7 @@ from typing import Any, Awaitable, Callable
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.chronic_conditions import TherapySession
+from app.models.chronic_conditions import IntradialyticReading, TherapySession
 from app.models.conditions import SymptomLog
 from app.models.ehr import EHRConnection
 from app.models.elimination import BowelMovement, UrinationLog, VomitingLog
@@ -776,36 +776,94 @@ async def _therapies_summary(db: AsyncSession, uid: int) -> Summary:
 
 
 async def _therapies_detail(db: AsyncSession, uid: int, days: int) -> Detail:
+    """Hemodialysis and PD sessions in the window, with the numbers a nephrologist trends.
+
+    Three defects lived here, and each rendered as an absence rather than an error:
+
+    - `days` was accepted and never used, so the period buttons did nothing and the
+      card always showed the same list.
+    - `series` was built ONLY from `PDSession`, so a haemodialysis patient — 2005
+      sessions, 1770 ultrafiltration values — got "No trend to plot for this period".
+      Peritoneal is the modality this database has none of.
+    - A `.limit(200)` stood in for a window, the same shape as the bug that once
+      reported "200 sessions" for a patient with 730.
+
+    Weight/UF/duration/BP carry different units, which is what splits them into
+    small multiples downstream instead of one unreadable dual-axis plot.
+    """
+    since = _window(days)
     sessions = (await db.execute(
-        select(TherapySession).where(TherapySession.user_id == uid)
-        .order_by(TherapySession.scheduled_date.desc()).limit(200)
+        select(TherapySession)
+        .where(TherapySession.user_id == uid, TherapySession.scheduled_date >= since)
+        .order_by(TherapySession.scheduled_date.desc())
     )).scalars().all()
     pd_rows = (await db.execute(
-        select(PDSession).where(PDSession.user_id == uid)
-        .order_by(PDSession.session_date.desc()).limit(200)
+        select(PDSession)
+        .where(PDSession.user_id == uid, PDSession.session_date >= since)
+        .order_by(PDSession.session_date.desc())
     )).scalars().all()
 
+    # Readings per session, so the row can say "6 readings" without N+1 queries.
+    reading_counts = dict((await db.execute(
+        select(IntradialyticReading.session_id, func.count(IntradialyticReading.id))
+        .where(IntradialyticReading.user_id == uid)
+        .group_by(IntradialyticReading.session_id)
+    )).all())
+
     rows = [{
+        "session_id": s.id,                       # the row is a link, not just text
         "date": str(s.scheduled_date)[:10],
         "therapy": getattr(s.therapy_type, "value", str(s.therapy_type)).replace("_", " ").title(),
         "name": s.therapy_name,
         "session": (f"{s.session_number} of {s.total_sessions_planned}"
                     if s.session_number and s.total_sessions_planned else s.session_number),
         "status": getattr(s.status, "value", str(s.status)),
+        "pre_weight_kg": _round(s.pre_dialysis_weight_kg),
+        "post_weight_kg": _round(s.post_dialysis_weight_kg),
+        "fluid_removed_ml": _round(s.fluid_removed_ml, 0),
+        "duration_minutes": s.duration_minutes,
+        "pre_bp": (f"{s.pre_systolic_bp}/{s.pre_diastolic_bp}"
+                   if s.pre_systolic_bp and s.pre_diastolic_bp else None),
+        "post_bp": (f"{s.post_systolic_bp}/{s.post_diastolic_bp}"
+                    if s.post_systolic_bp and s.post_diastolic_bp else None),
+        "pre_heart_rate": s.pre_heart_rate,
+        "post_heart_rate": s.post_heart_rate,
+        "readings": reading_counts.get(s.id, 0),
+        "flowsheet_status": getattr(s.flowsheet_status, "value", s.flowsheet_status),
+        "reviewed_at": _iso(s.reviewed_at),
     } for s in sessions]
     rows += [{
+        "session_id": None,                       # PD sessions have their own screen
         "date": str(p.session_date),
         "therapy": "Peritoneal Dialysis",
         "name": (p.modality or "").upper() or None,
-        "session": (f"UF {p.total_uf_ml:.0f} mL" if p.total_uf_ml is not None else None),
+        "session": None,
         "status": "completed",
+        "fluid_removed_ml": _round(p.total_uf_ml, 0),
+        "readings": 0,
     } for p in pd_rows]
     rows.sort(key=lambda r: r["date"], reverse=True)
 
-    # Ultrafiltration is the number a dialysis clinician actually trends.
-    uf = [{"date": str(p.session_date), "value": _round(p.total_uf_ml, 0)}
-          for p in reversed(pd_rows) if p.total_uf_ml is not None]
-    series = [{"label": "Ultrafiltration", "unit": "mL", "points": uf}] if len(uf) >= 2 else []
+    def _points(items, date_attr, value_attr, places=1):
+        out = []
+        for it in reversed(items):
+            value = getattr(it, value_attr, None)
+            if value is not None:
+                out.append({"date": str(getattr(it, date_attr))[:10],
+                            "value": _round(value, places)})
+        return out
+
+    candidates = [
+        ("Pre-dialysis weight", "kg", _points(sessions, "scheduled_date", "pre_dialysis_weight_kg")),
+        ("Post-dialysis weight", "kg", _points(sessions, "scheduled_date", "post_dialysis_weight_kg")),
+        ("Fluid removed", "mL", _points(sessions, "scheduled_date", "fluid_removed_ml", 0)),
+        ("Session duration", "min", _points(sessions, "scheduled_date", "duration_minutes", 0)),
+        ("Pre systolic BP", "mmHg", _points(sessions, "scheduled_date", "pre_systolic_bp", 0)),
+        ("Post systolic BP", "mmHg", _points(sessions, "scheduled_date", "post_systolic_bp", 0)),
+        ("Peritoneal UF", "mL", _points(pd_rows, "session_date", "total_uf_ml", 0)),
+    ]
+    series = [{"label": label, "unit": unit, "points": pts}
+              for label, unit, pts in candidates if len(pts) >= 2]
 
     return Detail(
         series=series,

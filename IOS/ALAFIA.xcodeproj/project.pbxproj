@@ -65,6 +65,8 @@
 		AA11BB22CC330002 /* Insurance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC330001 /* Insurance.swift */; };
 		AA11BB22CC330004 /* InsuranceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC330003 /* InsuranceView.swift */; };
 		BB0000000000000000000302 /* NewFeatureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000301 /* NewFeatureModels.swift */; };
+		CE0000000000000000000204 /* TherapySessionReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000104 /* TherapySessionReport.swift */; };
+		CE0000000000000000000205 /* TherapyReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000105 /* TherapyReportView.swift */; };
 		CE0000000000000000000203 /* PatientCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000103 /* PatientCategoryView.swift */; };
 		CE0000000000000000000202 /* PatientBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000102 /* PatientBoardView.swift */; };
 		CE0000000000000000000201 /* PatientBoardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000101 /* PatientBoardModels.swift */; };
@@ -183,6 +185,8 @@
 		AA11BB22CC330003 /* InsuranceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsuranceView.swift; sourceTree = "<group>"; };
 		AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HemodialysisView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000301 /* NewFeatureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewFeatureModels.swift; sourceTree = "<group>"; };
+		CE0000000000000000000104 /* TherapySessionReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapySessionReport.swift; sourceTree = "<group>"; };
+		CE0000000000000000000105 /* TherapyReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapyReportView.swift; sourceTree = "<group>"; };
 		CE0000000000000000000103 /* PatientCategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientCategoryView.swift; sourceTree = "<group>"; };
 		CE0000000000000000000102 /* PatientBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientBoardView.swift; sourceTree = "<group>"; };
 		CE0000000000000000000101 /* PatientBoardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientBoardModels.swift; sourceTree = "<group>"; };
@@ -372,6 +376,7 @@
 				AA11BB22CC330001 /* Insurance.swift */,
 				BB0000000000000000000301 /* NewFeatureModels.swift */,
 				CE0000000000000000000101 /* PatientBoardModels.swift */,
+				CE0000000000000000000104 /* TherapySessionReport.swift */,
 				BB0000000000000000000303 /* Physician.swift */,
 				CC0000000000000000000601 /* PharmacyModels.swift */,
 				DD0000000000000000000701 /* PantryItem.swift */,
@@ -706,6 +711,7 @@
 			children = (
 				BB0000000000000000000415 /* ClinicianDashboardView.swift */,
 				CE0000000000000000000103 /* PatientCategoryView.swift */,
+				CE0000000000000000000105 /* TherapyReportView.swift */,
 				CE0000000000000000000102 /* PatientBoardView.swift */,
 			);
 			path = ClinicianDashboard;
@@ -946,6 +952,8 @@
 				AA11BB22CC330004 /* InsuranceView.swift in Sources */,
 				DD10000000000000000000A2 /* SubscriptionView.swift in Sources */,
 				BB0000000000000000000302 /* NewFeatureModels.swift in Sources */,
+				CE0000000000000000000204 /* TherapySessionReport.swift in Sources */,
+				CE0000000000000000000205 /* TherapyReportView.swift in Sources */,
 				CE0000000000000000000203 /* PatientCategoryView.swift in Sources */,
 				CE0000000000000000000202 /* PatientBoardView.swift in Sources */,
 				CE0000000000000000000201 /* PatientBoardModels.swift in Sources */,

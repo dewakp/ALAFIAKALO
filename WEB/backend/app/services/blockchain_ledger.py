@@ -613,22 +613,44 @@ class BlockchainLedger:
         self.db.add(record)
         await self.db.flush()
 
-        # Best-effort on-chain anchoring (non-blocking)
-        asyncio.ensure_future(self._anchor_on_chain(record))
+        # Best-effort on-chain anchoring (non-blocking). Only the id and hash
+        # cross into the task: the ORM instance belongs to a session that is
+        # closed by the time the anchor returns.
+        asyncio.ensure_future(
+            self._anchor_on_chain(record.id, record.hash, record.block_uid))
 
         return record
 
     @staticmethod
-    async def _anchor_on_chain(record: "BlockRecord") -> None:
-        """Fire-and-forget: anchor block hash to private Ethereum chain."""
+    async def _anchor_on_chain(record_id: int, block_hash: str, block_uid: str) -> None:
+        """Anchor a block hash on the private chain and PERSIST the receipt.
+
+        This used to take the ORM instance and assign `record.blockchain_tx_hash`
+        on it. The assignment happened after the request's session had closed, so
+        nothing ever wrote it: the transaction was mined — anvil's block height
+        rose — and the tx hash was discarded. `verify_on_chain_anchor` then had no
+        hash to check, which made every anchored block look unanchored.
+
+        Same rule as the nutrition background worker (canon §3c): a task that
+        outlives the request gets its OWN session, and never raises into the
+        caller.
+        """
         try:
             from app.services.chain_anchor import anchor_block_on_chain
-            tx_hash, block_num = await anchor_block_on_chain(record.hash)
-            if tx_hash:
-                record.blockchain_tx_hash = tx_hash
-                record.blockchain_block_num = block_num
+            tx_hash, block_num = await anchor_block_on_chain(block_hash)
+            if not tx_hash:
+                return
+            from app.core.database import async_session
+            from app.models.blockchain import BlockRecord
+
+            async with async_session() as db:
+                row = await db.get(BlockRecord, record_id)
+                if row is not None:
+                    row.blockchain_tx_hash = tx_hash
+                    row.blockchain_block_num = block_num
+                    await db.commit()
         except Exception as exc:
-            logger.debug("On-chain anchor skipped for block %s: %s", record.block_uid, exc)
+            logger.debug("On-chain anchor skipped for block %s: %s", block_uid, exc)
 
     @staticmethod
     def _record_to_block(record: "BlockRecord") -> Block:

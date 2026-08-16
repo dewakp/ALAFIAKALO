@@ -952,3 +952,74 @@ data class PatientCategoryResponse(
     val columns: List<BoardColumn> = emptyList(),
     val rows: List<Map<String, Any?>> = emptyList()
 )
+
+// ── Physician view of one therapy session ───────────────────────────────────
+//
+// Served by the clinician-scoped route. `/chronic/therapy-sessions/*` filters by
+// the CALLER's user id, so a physician opening a patient's session got a 404 from
+// it — including from /review, the endpoint written for physicians.
+
+data class TherapySessionDetailDto(
+    val id: Int,
+    val date: String?,
+    val therapy: String?,
+    val name: String?,
+    val status: String?,
+    @SerializedName("facility_name") val facilityName: String?,
+    @SerializedName("attending_physician") val attendingPhysician: String?,
+    @SerializedName("attending_nurse") val attendingNurse: String?,
+    @SerializedName("dialysis_access_type") val dialysisAccessType: String?,
+    @SerializedName("duration_minutes") val durationMinutes: Int?,
+    @SerializedName("pre_dialysis_weight_kg") val preDialysisWeightKg: Double?,
+    @SerializedName("post_dialysis_weight_kg") val postDialysisWeightKg: Double?,
+    @SerializedName("dry_weight_kg") val dryWeightKg: Double?,
+    @SerializedName("fluid_removed_ml") val fluidRemovedMl: Double?,
+    @SerializedName("blood_flow_rate") val bloodFlowRate: Double?,
+    @SerializedName("pre_systolic_bp") val preSystolicBp: Int?,
+    @SerializedName("pre_diastolic_bp") val preDiastolicBp: Int?,
+    @SerializedName("post_systolic_bp") val postSystolicBp: Int?,
+    @SerializedName("post_diastolic_bp") val postDiastolicBp: Int?,
+    @SerializedName("pre_heart_rate") val preHeartRate: Int?,
+    @SerializedName("post_heart_rate") val postHeartRate: Int?,
+    val complications: String?,
+    @SerializedName("adverse_reactions") val adverseReactions: String?,
+    @SerializedName("patient_tolerance") val patientTolerance: String?,
+    @SerializedName("patient_notes") val patientNotes: String?
+)
+
+data class TherapySessionNote(
+    val id: Int,
+    @SerializedName("author_role") val authorRole: String?,
+    @SerializedName("note_type") val noteType: String?,
+    @SerializedName("note_text") val noteText: String,
+    @SerializedName("created_at") val createdAt: String?
+)
+
+/** Who has attested to this record — reported even when empty, so the physician
+ *  can see they are signing on top of an unsigned flowsheet. */
+data class SessionSignoff(
+    @SerializedName("flowsheet_status") val flowsheetStatus: String?,
+    @SerializedName("signed_at") val signedAt: String?,
+    @SerializedName("signed_by") val signedBy: Int?,
+    @SerializedName("countersigned_at") val countersignedAt: String?,
+    @SerializedName("countersigned_by") val countersignedBy: Int?,
+    @SerializedName("reviewed_at") val reviewedAt: String?,
+    @SerializedName("reviewed_by") val reviewedBy: Int?,
+    @SerializedName("payload_hash") val payloadHash: String?
+) {
+    val isReviewed: Boolean get() = flowsheetStatus == "reviewed" || reviewedAt != null
+}
+
+data class TherapySessionReport(
+    val patient: BoardPatient,
+    val session: TherapySessionDetailDto,
+    val readings: List<com.alafia.android.models.IntradialyticReading> = emptyList(),
+    val notes: List<TherapySessionNote> = emptyList(),
+    val signoff: SessionSignoff
+)
+
+data class SessionReviewResponse(
+    val id: Int,
+    val signoff: SessionSignoff,
+    val message: String?
+)

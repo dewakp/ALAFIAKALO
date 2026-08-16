@@ -1,11 +1,21 @@
 """Clinician & Social Worker Dashboard endpoints — role-gated patient views."""
 
+import logging
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
+from app.api.chronic_conditions import _compute_payload_hash
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.models.chronic_conditions import (
+    ClinicalNote,
+    FlowsheetStatus,
+    IntradialyticReading,
+    TherapySession,
+)
 from app.models.user import User
 from app.models.data_sharing import DataGrant, grant_covers
 from app.models.vitals import VitalsLog
@@ -16,6 +26,8 @@ from app.models.user_roles import UserRoleAssignment
 from app.schemas.wellness import ClinicianDashboardResponse, PatientSummary
 from app.services import clinical_sources as sources
 from app.services import patient_board as board
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -316,3 +328,186 @@ async def get_patient_category(
         "key": cat.key, "label": cat.label, "icon": cat.icon, "days": days,
         "series": detail.series, "columns": detail.columns, "rows": detail.rows,
     }
+
+
+# ── Therapy sessions: the physician's read of a patient's flowsheet ──────────
+#
+# `/chronic/therapy-sessions/*` scopes every lookup to `current_user.id`, so a
+# physician opening a patient's session got a 404 — including from `/review`,
+# the endpoint written FOR physicians. These routes are the clinician-side
+# equivalent: same models, same ledger, but the owner is the patient and the
+# gate is an active DataGrant covering `dialysis`.
+
+def _reading_dict(r: IntradialyticReading) -> dict:
+    """One intradialytic reading — the points behind the session charts.
+
+    The full column set, not a subset: iOS already models this row
+    (`NewFeatureModels.IntradialyticReading`) with `session_id`, `user_id` and a
+    non-optional `reading_time`, so a trimmed payload fails to decode on the
+    device while working fine in the browser. One shape, both clients.
+    `reading_time` is emitted as "" rather than null for the same reason.
+    """
+    return {
+        "id": r.id,
+        "session_id": r.session_id, "user_id": r.user_id,
+        "reading_time": str(r.reading_time)[:5] if r.reading_time else "",
+        "reading_number": r.reading_number,
+        "systolic_bp": r.systolic_bp, "diastolic_bp": r.diastolic_bp,
+        "pulse": r.pulse, "mean_arterial_pressure": r.mean_arterial_pressure,
+        "dialysate_rate": r.dialysate_rate,
+        "dialysate_volume_remaining": r.dialysate_volume_remaining,
+        "uf_rate": r.uf_rate, "uf_volume_removed": r.uf_volume_removed,
+        "blood_flow_rate": r.blood_flow_rate,
+        "arterial_pressure": r.arterial_pressure, "venous_pressure": r.venous_pressure,
+        "effluent_pressure": r.effluent_pressure,
+        "access_state": r.access_state, "saline_amount": r.saline_amount,
+        "remarks": r.remarks, "created_at": _iso_dt(r.created_at),
+    }
+
+
+async def _therapy_session_for_patient(
+    session_id: int, patient_id: int, db: AsyncSession
+) -> TherapySession:
+    """A session that belongs to THIS patient — never to the caller."""
+    session = (await db.execute(
+        select(TherapySession).where(
+            TherapySession.id == session_id,
+            TherapySession.user_id == patient_id,
+        )
+    )).scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=404, detail="Therapy session not found for this patient")
+    return session
+
+
+async def _require_dialysis_access(clinician_id: int, patient_id: int, db: AsyncSession) -> None:
+    permissions = await _permissions_for(clinician_id, patient_id, db)
+    if not grant_covers(permissions, "dialysis"):
+        raise HTTPException(status_code=403, detail="This patient has not shared therapies")
+
+
+@router.get("/patient/{patient_id}/therapy-sessions/{session_id}")
+async def get_patient_therapy_session(
+    patient_id: int,
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """One session in full: the flowsheet, its readings, its notes, its integrity."""
+    await _require_dialysis_access(current_user.id, patient_id, db)
+    patient = await _patient_or_404(patient_id, db)
+    session = await _therapy_session_for_patient(session_id, patient_id, db)
+
+    readings = (await db.execute(
+        select(IntradialyticReading)
+        .where(IntradialyticReading.session_id == session_id)
+        .order_by(IntradialyticReading.reading_time)
+    )).scalars().all()
+    notes = (await db.execute(
+        select(ClinicalNote).where(ClinicalNote.session_id == session_id)
+        .order_by(ClinicalNote.created_at)
+    )).scalars().all()
+
+    return {
+        "patient": {"user_id": patient.id, "full_name": patient.full_name},
+        "session": {
+            "id": session.id,
+            "date": str(session.scheduled_date)[:10],
+            "therapy": getattr(session.therapy_type, "value", str(session.therapy_type)),
+            "name": session.therapy_name,
+            "status": getattr(session.status, "value", str(session.status)),
+            "facility_name": session.facility_name,
+            "attending_physician": session.attending_physician,
+            "attending_nurse": session.attending_nurse,
+            "dialysis_access_type": session.dialysis_access_type,
+            "duration_minutes": session.duration_minutes,
+            "pre_dialysis_weight_kg": session.pre_dialysis_weight_kg,
+            "post_dialysis_weight_kg": session.post_dialysis_weight_kg,
+            "dry_weight_kg": session.dry_weight_kg,
+            "fluid_removed_ml": session.fluid_removed_ml,
+            "blood_flow_rate": session.blood_flow_rate,
+            "dialysate_flow_rate": session.dialysate_flow_rate,
+            "pre_systolic_bp": session.pre_systolic_bp, "pre_diastolic_bp": session.pre_diastolic_bp,
+            "post_systolic_bp": session.post_systolic_bp, "post_diastolic_bp": session.post_diastolic_bp,
+            "pre_heart_rate": session.pre_heart_rate, "post_heart_rate": session.post_heart_rate,
+            "pre_temperature": session.pre_temperature, "post_temperature": session.post_temperature,
+            "complications": session.complications,
+            "adverse_reactions": session.adverse_reactions,
+            "patient_tolerance": session.patient_tolerance,
+            "patient_notes": session.patient_notes,
+        },
+        "readings": [_reading_dict(r) for r in readings],
+        "notes": [{"id": n.id, "author_role": n.author_role, "note_type": n.note_type,
+                   "note_text": n.note_text, "created_at": _iso_dt(n.created_at)} for n in notes],
+        "signoff": _signoff_dict(session),
+    }
+
+
+def _iso_dt(value) -> str | None:
+    return value.isoformat() if value is not None else None
+
+
+def _signoff_dict(session: TherapySession) -> dict:
+    """Who has attested to this record, and whether it is still tamper-checkable."""
+    return {
+        "flowsheet_status": getattr(session.flowsheet_status, "value", session.flowsheet_status),
+        "signed_at": _iso_dt(session.signed_at), "signed_by": session.signed_by,
+        "countersigned_at": _iso_dt(session.countersigned_at),
+        "countersigned_by": session.countersigned_by,
+        "reviewed_at": _iso_dt(session.reviewed_at), "reviewed_by": session.reviewed_by,
+        "payload_hash": session.payload_hash,
+    }
+
+
+@router.post("/patient/{patient_id}/therapy-sessions/{session_id}/review")
+async def review_patient_therapy_session(
+    patient_id: int,
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Physician sign-off: the session becomes `reviewed`, hashed and anchored.
+
+    The patient-side `/review` demands the flowsheet already be signed or
+    countersigned. Every therapy_session in this database has
+    `flowsheet_status = NULL` — 2005 of them — because the lifecycle post-dates
+    the imported history, so that precondition would reject all of them. A
+    physician attesting "I have read this record" is meaningful whether or not
+    the patient ever e-signed it, so the gate here is only that the record is
+    not already reviewed or locked. What the patient did sign is reported back
+    in `signoff`, so the physician can see what they are attesting on top of.
+    """
+    await _require_dialysis_access(current_user.id, patient_id, db)
+    session = await _therapy_session_for_patient(session_id, patient_id, db)
+
+    current = getattr(session.flowsheet_status, "value", session.flowsheet_status)
+    if current == FlowsheetStatus.LOCKED.value:
+        raise HTTPException(status_code=409, detail="This flowsheet is locked")
+    if current == FlowsheetStatus.REVIEWED.value:
+        raise HTTPException(status_code=409, detail="This session has already been reviewed")
+
+    session.flowsheet_status = FlowsheetStatus.REVIEWED
+    session.reviewed_at = datetime.utcnow()
+    session.reviewed_by = current_user.id
+    if not session.payload_hash:
+        session.payload_hash = _compute_payload_hash(session)
+
+    # Anchor to the ledger. Best-effort by design: an unreachable chain node must
+    # not cost a physician their sign-off, and the row itself is the record.
+    try:
+        from app.services.blockchain_ledger import BlockchainLedger
+        from app.services.blockchain_engine import EventAction
+        await BlockchainLedger(db).record_therapy_event(
+            action=EventAction.therapy_session_completed,
+            data={"event": "FLOWSHEET_REVIEWED", "payload_hash": session.payload_hash,
+                  "patient_id": patient_id},
+            actor_id=current_user.id,
+            entity_id=session.id,
+        )
+    except Exception:
+        logger.warning("Ledger anchoring failed for session %s review", session_id, exc_info=True)
+
+    await db.commit()
+    await db.refresh(session)
+    return {"id": session.id, "signoff": _signoff_dict(session),
+            "message": "Session reviewed"}

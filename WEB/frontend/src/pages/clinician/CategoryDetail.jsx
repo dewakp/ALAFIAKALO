@@ -5,6 +5,7 @@ import {
 import api from '../../services/api';
 import { ArrowLeft } from 'lucide-react';
 import { colorAt, CHART_INK } from './chartPalette';
+import TherapyReport from './TherapyReport';
 
 const WINDOWS = [
   { days: 30, label: '30 days' },
@@ -181,7 +182,12 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
         </div>
       )}
 
-      <DataTable columns={data.columns} rows={data.rows} label={data.label} />
+      {/* Therapies is not a generic table: a dialysis session is a document a
+          clinician opens, reads a curve from, and signs. The flat renderer
+          showed its Detail and Session columns as em-dashes. */}
+      {categoryKey === 'dialysis'
+        ? <TherapyReport patientId={patientId} rows={data.rows} days={days} />
+        : <DataTable columns={data.columns} rows={data.rows} label={data.label} />}
     </div>
   );
 }

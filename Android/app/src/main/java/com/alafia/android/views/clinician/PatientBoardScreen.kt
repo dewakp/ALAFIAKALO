@@ -208,7 +208,18 @@ fun PatientCategoryScreen(
     var error by remember(categoryKey) { mutableStateOf<String?>(null) }
     var days by remember(categoryKey) { mutableStateOf(90) }
     var picked by remember(categoryKey) { mutableStateOf<Set<String>>(emptySet()) }
+    var openSession by remember(categoryKey) { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
+
+    val sessionId = openSession
+    if (sessionId != null) {
+        TherapySessionScreen(
+            patientId = patientId,
+            sessionId = sessionId,
+            onBack = { openSession = null },
+        )
+        return
+    }
 
     LaunchedEffect(categoryKey, days) {
         scope.launch {
@@ -301,12 +312,25 @@ fun PatientCategoryScreen(
                                  color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    items(d.rows) { row -> RecordRow(d.columns, row) }
-                    if (d.rows.isEmpty()) {
+                    // A dialysis session is a document a clinician opens, reads
+                    // a curve from and signs — not a table row.
+                    if (categoryKey == "dialysis") {
                         item {
-                            Text("No ${d.label.lowercase()} records in this period.",
-                                 style = MaterialTheme.typography.bodySmall,
-                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            TherapyReportSection(
+                                patientId = patientId,
+                                rows = d.rows,
+                                days = days,
+                                onOpenSession = { openSession = it },
+                            )
+                        }
+                    } else {
+                        items(d.rows) { row -> RecordRow(d.columns, row) }
+                        if (d.rows.isEmpty()) {
+                            item {
+                                Text("No ${d.label.lowercase()} records in this period.",
+                                     style = MaterialTheme.typography.bodySmall,
+                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }

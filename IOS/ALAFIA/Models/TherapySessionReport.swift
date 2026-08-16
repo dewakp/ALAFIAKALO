@@ -1,0 +1,129 @@
+import Foundation
+
+/// The physician's read of one dialysis session.
+///
+/// Served by `/clinician-dashboard/patient/{id}/therapy-sessions/{sid}` — the
+/// clinician-scoped route. The patient-side `/chronic/therapy-sessions/*`
+/// endpoints filter by the CALLER's user id, so a physician opening a patient's
+/// session got a 404 from them, including from `/review`.
+struct TherapySessionDetail: Codable, Hashable {
+    let id: Int
+    let date: String
+    let therapy: String?
+    let name: String?
+    let status: String?
+    let facilityName: String?
+    let attendingPhysician: String?
+    let attendingNurse: String?
+    let dialysisAccessType: String?
+    let durationMinutes: Int?
+    let preDialysisWeightKg: Double?
+    let postDialysisWeightKg: Double?
+    let dryWeightKg: Double?
+    let fluidRemovedMl: Double?
+    let bloodFlowRate: Double?
+    let dialysateFlowRate: Double?
+    let preSystolicBp: Int?
+    let preDiastolicBp: Int?
+    let postSystolicBp: Int?
+    let postDiastolicBp: Int?
+    let preHeartRate: Int?
+    let postHeartRate: Int?
+    let preTemperature: Double?
+    let postTemperature: Double?
+    let complications: String?
+    let adverseReactions: String?
+    let patientTolerance: String?
+    let patientNotes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, date, therapy, name, status, complications
+        case facilityName = "facility_name"
+        case attendingPhysician = "attending_physician"
+        case attendingNurse = "attending_nurse"
+        case dialysisAccessType = "dialysis_access_type"
+        case durationMinutes = "duration_minutes"
+        case preDialysisWeightKg = "pre_dialysis_weight_kg"
+        case postDialysisWeightKg = "post_dialysis_weight_kg"
+        case dryWeightKg = "dry_weight_kg"
+        case fluidRemovedMl = "fluid_removed_ml"
+        case bloodFlowRate = "blood_flow_rate"
+        case dialysateFlowRate = "dialysate_flow_rate"
+        case preSystolicBp = "pre_systolic_bp"
+        case preDiastolicBp = "pre_diastolic_bp"
+        case postSystolicBp = "post_systolic_bp"
+        case postDiastolicBp = "post_diastolic_bp"
+        case preHeartRate = "pre_heart_rate"
+        case postHeartRate = "post_heart_rate"
+        case preTemperature = "pre_temperature"
+        case postTemperature = "post_temperature"
+        case adverseReactions = "adverse_reactions"
+        case patientTolerance = "patient_tolerance"
+        case patientNotes = "patient_notes"
+    }
+}
+
+// `IntradialyticReading` already exists in NewFeatureModels.swift with the full
+// column set — it is reused here rather than redeclared. The clinician endpoint
+// therefore returns every column that model expects; a trimmed payload compiled
+// fine and failed to decode only on the device.
+
+/// A clinical note on a therapy session. Named for its domain because
+/// `SessionNote` is already taken by the telehealth models, which are a
+/// different row entirely (content/diagnosis codes, not note_text).
+struct TherapySessionNote: Codable, Hashable, Identifiable {
+    let id: Int
+    let authorRole: String?
+    let noteType: String?
+    let noteText: String
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case authorRole = "author_role"
+        case noteType = "note_type"
+        case noteText = "note_text"
+        case createdAt = "created_at"
+    }
+}
+
+/// Who has attested to this record. Reported even when empty, so the physician
+/// can see they are signing on top of an unsigned flowsheet rather than
+/// countersigning a signed one.
+struct SessionSignoff: Codable, Hashable {
+    let flowsheetStatus: String?
+    let signedAt: String?
+    let signedBy: Int?
+    let countersignedAt: String?
+    let countersignedBy: Int?
+    let reviewedAt: String?
+    let reviewedBy: Int?
+    let payloadHash: String?
+
+    var isReviewed: Bool { flowsheetStatus == "reviewed" || reviewedAt != nil }
+
+    enum CodingKeys: String, CodingKey {
+        case flowsheetStatus = "flowsheet_status"
+        case signedAt = "signed_at"
+        case signedBy = "signed_by"
+        case countersignedAt = "countersigned_at"
+        case countersignedBy = "countersigned_by"
+        case reviewedAt = "reviewed_at"
+        case reviewedBy = "reviewed_by"
+        case payloadHash = "payload_hash"
+    }
+}
+
+struct TherapySessionReport: Codable {
+    let patient: BoardPatient
+    let session: TherapySessionDetail
+    let readings: [IntradialyticReading]
+    let notes: [TherapySessionNote]
+    let signoff: SessionSignoff
+}
+
+struct SessionReviewResponse: Codable {
+    let id: Int
+    let signoff: SessionSignoff
+    let message: String?
+}
