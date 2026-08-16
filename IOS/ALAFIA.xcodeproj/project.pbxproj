@@ -11,6 +11,7 @@
 		0CB072E3037F41A3B1EB0550 /* HemodialysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */; };
 		1B84B817D8E548B6F2F47A39 /* OfflineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54A4453102DA1889F93494A /* OfflineCacheTests.swift */; };
 		2B735102C7EC4AB9A6F0E89A /* ChemotherapyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFE2B9BDF0D4F4296E0DBC1 /* ChemotherapyView.swift */; };
+		CE0000000000000000000207 /* FormEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000107 /* FormEncodingTests.swift */; };
 		3DAAAEF13A8E66CE33AEFD04 /* UserModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 540417D020944D206CCD54B5 /* UserModelTests.swift */; };
 		42F5BB87C87D050F55ABC18E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F545AF4D419DF7BF4039B01 /* Foundation.framework */; };
 		4A0000000000000000000201 /* ALAFIAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000101 /* ALAFIAApp.swift */; };
@@ -176,6 +177,7 @@
 		4A000000000000000000012A /* ChronicConditionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronicConditionsView.swift; sourceTree = "<group>"; };
 		4A000000000000000000012B /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
 		4A000000000000000000012C /* PrivacySettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsViewModel.swift; sourceTree = "<group>"; };
+		CE0000000000000000000107 /* FormEncodingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FormEncodingTests.swift; path = Tests/ALAFIATests/FormEncodingTests.swift; sourceTree = "<group>"; };
 		540417D020944D206CCD54B5 /* UserModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = UserModelTests.swift; path = Tests/ALAFIATests/UserModelTests.swift; sourceTree = "<group>"; };
 		7C8FBA971CE4F9702EC7A090 /* HealthModelsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HealthModelsTests.swift; path = Tests/ALAFIATests/HealthModelsTests.swift; sourceTree = "<group>"; };
 		7FFE2B9BDF0D4F4296E0DBC1 /* ChemotherapyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChemotherapyView.swift; sourceTree = "<group>"; };
@@ -276,6 +278,7 @@
 				7C8FBA971CE4F9702EC7A090 /* HealthModelsTests.swift */,
 				C54A4453102DA1889F93494A /* OfflineCacheTests.swift */,
 				540417D020944D206CCD54B5 /* UserModelTests.swift */,
+				CE0000000000000000000107 /* FormEncodingTests.swift */,
 			);
 			name = ALAFIATests;
 			sourceTree = SOURCE_ROOT;
@@ -897,6 +900,7 @@
 			files = (
 				847351E7B1F1540D01FBB1BE /* HealthModelsTests.swift in Sources */,
 				1B84B817D8E548B6F2F47A39 /* OfflineCacheTests.swift in Sources */,
+				CE0000000000000000000207 /* FormEncodingTests.swift in Sources */,
 				3DAAAEF13A8E66CE33AEFD04 /* UserModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

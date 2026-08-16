@@ -14,6 +14,22 @@ struct LKTextField: View {
     /// dismisses mid-typing unless focus is explicitly moved to the replacement.
     @FocusState private var focused: Bool
 
+    /// Fields whose content is never a sentence. Derived from the keyboard type
+    /// so every caller gets it right without remembering to ask.
+    private var neverCapitalise: Bool {
+        keyboardType == .emailAddress || keyboardType == .URL
+    }
+
+    /// This used to be hard-coded to `.sentences` for anything not secure, and
+    /// because it is applied INSIDE this wrapper it overrode the caller's own
+    /// `.autocapitalization(.none)`. The result shipped: typing an address into
+    /// the login form produced "Deji.adesida@alafia.app" and the API answered
+    /// 401, which the app showed as "Please log in again". Signup and password
+    /// reset use the same field, so both were affected too.
+    private var capitalisation: TextInputAutocapitalization {
+        (isSecure || neverCapitalise) ? .never : .sentences
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
@@ -26,6 +42,11 @@ struct LKTextField: View {
                     if isSecure && !revealed {
                         SecureField(title, text: $text)
                             .focused($focused)
+                            // Stated explicitly rather than relied upon: the
+                            // first character of a password must never be
+                            // capitalised for the user.
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
                     } else {
                         TextField(title, text: $text)
                             .focused($focused)
@@ -33,8 +54,8 @@ struct LKTextField: View {
                             // A revealed password must not be autocapitalised,
                             // autocorrected or spell-checked — iOS would happily
                             // "fix" it into something the user never typed.
-                            .textInputAutocapitalization(isSecure ? .never : .sentences)
-                            .autocorrectionDisabled(isSecure)
+                            .textInputAutocapitalization(capitalisation)
+                            .autocorrectionDisabled(isSecure || neverCapitalise)
                     }
                 }
 

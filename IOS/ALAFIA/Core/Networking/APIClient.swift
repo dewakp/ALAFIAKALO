@@ -189,9 +189,32 @@ actor APIClient {
         return try decoder.decode(T.self, from: data)
     }
     
+    /// Encode a form body for `application/x-www-form-urlencoded`.
+    ///
+    /// This used `.urlQueryAllowed`, which is a set for query STRINGS and
+    /// therefore leaves `& = + ; $` untouched — they are legal there. In a form
+    /// BODY `&` separates fields, so a password containing one was cut short at
+    /// it. `f8&$dfUHa%fg9R_SA@qK` reached the server as `f8`, the API answered
+    /// 401 "Incorrect email or password", and the app rendered that as
+    /// "Please log in again" — with the correct password on screen.
+    ///
+    /// `+` was worse: it survives the trip and decodes server-side to a SPACE,
+    /// so the password is wrong in a way nothing on either end reports.
+    ///
+    /// Only RFC 3986 unreserved characters are left as-is; everything else is
+    /// percent-encoded.
+    static func formURLEncoded(_ fields: [String: String]) -> String {
+        var unreserved = CharacterSet.alphanumerics
+        unreserved.insert(charactersIn: "-._~")
+        return fields.map { key, value in
+            let k = key.addingPercentEncoding(withAllowedCharacters: unreserved) ?? key
+            let v = value.addingPercentEncoding(withAllowedCharacters: unreserved) ?? value
+            return "\(k)=\(v)"
+        }.joined(separator: "&")
+    }
+
     func postForm<T: Decodable>(_ path: String, formData: [String: String]) async throws -> T {
-        let body = formData.map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value)" }
-            .joined(separator: "&")
+        let body = Self.formURLEncoded(formData)
         let request = buildRequest(
             path: path,
             method: "POST",
@@ -205,8 +228,7 @@ actor APIClient {
 
     func postFormWithCSRF<T: Decodable>(_ path: String, formData: [String: String]) async throws -> T {
         let csrfToken = try await fetchCsrfToken()
-        let body = formData.map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value)" }
-            .joined(separator: "&")
+        let body = Self.formURLEncoded(formData)
 
         var request = buildRequest(
             path: path,

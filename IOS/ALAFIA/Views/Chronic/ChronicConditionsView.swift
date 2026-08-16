@@ -6,7 +6,7 @@ struct ChronicConditionsView: View {
     @State private var selectedCondition: ChronicCondition?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 if viewModel.isLoading {
                     ProgressView("Loading...")
@@ -167,7 +167,7 @@ struct ConditionFormView: View {
     let severities = ["mild", "moderate", "severe", "critical", "remission"]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Basic Information") {
                     TextField("Condition Name", text: $formData.conditionName)
