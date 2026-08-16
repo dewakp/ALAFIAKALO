@@ -37,9 +37,21 @@ export default function TherapyReport({ patientId, rows, days }) {
   const [openId, setOpenId] = useState(null);       // expanded inline summary
   const [reportId, setReportId] = useState(null);   // full-page session report
   const [reviewed, setReviewed] = useState({});     // id → signoff, after sign-off
+  const [summary, setSummary] = useState(null);     // server-computed tiles
 
   // Only haemodialysis rows carry a session_id; PD rows have their own screen.
   const sessions = useMemo(() => (rows || []).filter(r => r.session_id), [rows]);
+
+  // Count in SQL, not over "whatever rows arrived" — a tile computed from the
+  // page is a function of the page size, which is how "200 sessions" was once
+  // reported for a patient with 730.
+  useEffect(() => {
+    let cancelled = false;
+    api.get(`/clinician-dashboard/patient/${patientId}/therapy-summary`, { params: { days } })
+      .then(({ data }) => { if (!cancelled) setSummary(data); })
+      .catch(() => { if (!cancelled) setSummary(null); });
+    return () => { cancelled = true; };
+  }, [patientId, days]);
 
   if (reportId) {
     return (
@@ -60,12 +72,14 @@ export default function TherapyReport({ patientId, rows, days }) {
     );
   }
 
+  // Server numbers when available; the client mean is the fallback, never the
+  // preferred source.
   const tiles = [
-    { label: 'Sessions', value: String(sessions.length), tone: '#2a78d6' },
-    { label: 'Avg Pre Wt', value: fmtTile(mean(sessions, 'pre_weight_kg'), 1, 'kg'), tone: '#1baf7a' },
-    { label: 'Avg Post Wt', value: fmtTile(mean(sessions, 'post_weight_kg'), 1, 'kg'), tone: '#1baf7a' },
-    { label: 'Avg UF', value: fmtTile(mean(sessions, 'fluid_removed_ml'), 0, 'mL'), tone: '#eb6834' },
-    { label: 'Avg Duration', value: fmtTile(mean(sessions, 'duration_minutes'), 0, 'min'), tone: '#7c3aed' },
+    { label: 'Sessions', value: String(summary?.total_sessions ?? sessions.length), tone: '#2a78d6' },
+    { label: 'Avg Pre Wt', value: fmtTile(summary?.avg_pre_weight_kg ?? mean(sessions, 'pre_weight_kg'), 1, 'kg'), tone: '#1baf7a' },
+    { label: 'Avg Post Wt', value: fmtTile(summary?.avg_post_weight_kg ?? mean(sessions, 'post_weight_kg'), 1, 'kg'), tone: '#1baf7a' },
+    { label: 'Avg UF', value: fmtTile(summary?.avg_fluid_removed_ml ?? mean(sessions, 'fluid_removed_ml'), 0, 'mL'), tone: '#eb6834' },
+    { label: 'Avg Duration', value: fmtTile(summary?.avg_duration_min ?? mean(sessions, 'duration_minutes'), 0, 'min'), tone: '#7c3aed' },
   ];
 
   return (
@@ -75,7 +89,10 @@ export default function TherapyReport({ patientId, rows, days }) {
       </div>
 
       <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>
-        {sessions.length} session{sessions.length === 1 ? '' : 's'} in the last {days} days
+        {sessions.length} session{sessions.length === 1 ? '' : 's'} in this period
+        {summary?.total_sessions_all_time > (summary?.total_sessions ?? 0) && (
+          <> — {summary.total_sessions_all_time} on record since {summary.earliest_session}</>
+        )}
       </div>
 
       {sessions.map((s) => {
@@ -130,15 +147,101 @@ export default function TherapyReport({ patientId, rows, days }) {
             )}
 
             {openId === s.session_id && (
-              <div style={{ marginTop: 10 }}>
-                <button className="btn btn-sm btn-primary" onClick={() => setReportId(s.session_id)}>
-                  Open full session report
-                </button>
-              </div>
+              <InlineSessionDetail
+                patientId={patientId}
+                sessionId={s.session_id}
+                onOpenReport={() => setReportId(s.session_id)}
+              />
             )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * The intradialytic readings as a TABLE — the same eleven columns the patient's
+ * own expanded card shows. Charts without the numbers underneath are a summary,
+ * not a record: a clinician checking a single 12:12 reading cannot read it off
+ * a line, and the dataviz rules require a table view beside every chart.
+ */
+export function ReadingsTable({ readings }) {
+  if (!readings?.length) return null;
+  const cols = [
+    ['reading_time', 'Time'], ['bp', 'BP'], ['pulse', 'Pulse'],
+    ['mean_arterial_pressure', 'MAP'], ['blood_flow_rate', 'BFR'],
+    ['dialysate_rate', 'DR'], ['uf_rate', 'UFR'], ['uf_volume_removed', 'UF Vol'],
+    ['arterial_pressure', 'Art P'], ['venous_pressure', 'Ven P'], ['remarks', 'Remarks'],
+  ];
+  return (
+    <div style={{ marginTop: 12 }}>
+      <h4 style={{ margin: '0 0 6px', fontSize: '0.85rem', color: 'var(--color-primary)' }}>
+        Intradialytic Readings ({readings.length})
+      </h4>
+      {/* Wide content scrolls inside its own container, never the page. */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
+          <thead>
+            <tr>
+              {cols.map(([, label]) => (
+                <th key={label} style={{ padding: '5px 8px', textAlign: 'left', whiteSpace: 'nowrap',
+                                         borderBottom: '2px solid var(--color-primary)' }}>{label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {readings.map((r, i) => (
+              <tr key={r.id ?? i} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                {cols.map(([key]) => (
+                  <td key={key} style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}>
+                    {key === 'bp'
+                      ? (r.systolic_bp && r.diastolic_bp ? `${r.systolic_bp}/${r.diastolic_bp}` : '—')
+                      : (r[key] ?? (key === 'remarks' ? '' : '—'))}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/** The chevron expansion, matching the patient's card: the four facts they see
+ *  plus standing vitals and the readings table — without leaving the list. */
+function InlineSessionDetail({ patientId, sessionId, onOpenReport }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    api.get(`/clinician-dashboard/patient/${patientId}/therapy-sessions/${sessionId}`)
+      .then(({ data: d }) => { if (!cancelled) setData(d); })
+      .catch(e => { if (!cancelled) setError(e?.response?.data?.detail || 'Could not load this session.'); });
+    return () => { cancelled = true; };
+  }, [patientId, sessionId]);
+
+  if (error) return <div style={{ marginTop: 10, color: 'var(--color-danger)' }}>{error}</div>;
+  if (!data) return <div style={{ marginTop: 10, color: 'var(--color-text-secondary)' }}>Loading…</div>;
+  const s = data.session;
+  return (
+    <div style={{ marginTop: 12, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+        {[['Facility', s.facility_name], ['Access', s.dialysis_access_type],
+          ['Dry Weight', s.dry_weight_kg != null ? `${num(s.dry_weight_kg)} kg` : null],
+          ['Blood Flow', s.blood_flow_rate != null ? `${num(s.blood_flow_rate, 0)} mL/min` : null]
+        ].map(([k, v]) => (
+          <div key={k}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>{k}</div>
+            <div>{v || '—'}</div>
+          </div>
+        ))}
+      </div>
+      <ReadingsTable readings={data.readings} />
+      <button className="btn btn-sm btn-primary" style={{ marginTop: 10 }} onClick={onOpenReport}>
+        Open full report, comment and sign off
+      </button>
     </div>
   );
 }
@@ -254,19 +357,18 @@ function SessionReport({ patientId, sessionId, onBack, onReviewed }) {
 
       <IntradialyticCharts readings={data.readings} isDark={isDark} />
 
-      {data.notes?.length > 0 && (
+      {data.readings?.length > 0 && (
         <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
-          <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>Clinical notes</h3>
-          {data.notes.map(n => (
-            <div key={n.id} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 8, marginTop: 8 }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                {n.author_role || 'clinician'} · {n.note_type} · {new Date(n.created_at).toLocaleString()}
-              </div>
-              <div>{n.note_text}</div>
-            </div>
-          ))}
+          <ReadingsTable readings={data.readings} />
         </div>
       )}
+
+      <NotesPanel
+        patientId={patientId} sessionId={sessionId} notes={data.notes || []}
+        onAdded={(n) => setData(d => ({ ...d, notes: [...(d.notes || []), n] }))}
+      />
+
+      <IntegrityPanel patientId={patientId} sessionId={sessionId} />
 
       <SignOffPanel
         signoff={so} reviewed={reviewed} busy={busy}
@@ -390,6 +492,159 @@ function SignOffPanel({ signoff, reviewed, busy, error, onSignOff }) {
         <button className="btn btn-primary" onClick={onSignOff} disabled={busy}>
           {busy ? 'Signing…' : 'Sign off on this session'}
         </button>
+      )}
+    </div>
+  );
+}
+
+
+/**
+ * Comment. A physician signing a record they cannot annotate can attest that
+ * they read it and nothing about what they concluded — so the note comes before
+ * the signature in the layout, not after it.
+ *
+ * Notes are append-only and hashed server-side; there is deliberately no edit.
+ */
+function NotesPanel({ patientId, sessionId, notes, onAdded }) {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const submit = async () => {
+    if (!text.trim()) return;
+    setBusy(true); setError(null);
+    try {
+      const { data } = await api.post(
+        `/clinician-dashboard/patient/${patientId}/therapy-sessions/${sessionId}/notes`,
+        { note_text: text.trim(), note_type: 'clinical' });
+      onAdded(data);
+      setText('');
+    } catch (e) {
+      setError(e?.response?.data?.detail || 'Could not save the note.');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
+      <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>Clinical notes</h3>
+      {notes.length === 0 && (
+        <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+          No notes on this session yet.
+        </div>
+      )}
+      {notes.map(n => (
+        <div key={n.id} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 8, marginTop: 8 }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+            {n.author_role || 'clinician'} · {n.note_type}
+            {n.created_at && <> · {new Date(n.created_at).toLocaleString()}</>}
+          </div>
+          <div>{n.note_text}</div>
+        </div>
+      ))}
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Add a clinical note…"
+        aria-label="Add a clinical note"
+        rows={3}
+        style={{ width: '100%', marginTop: 10, padding: 8, borderRadius: 6,
+                 border: '1px solid var(--color-border)', background: 'transparent',
+                 color: 'inherit', font: 'inherit' }}
+      />
+      {error && <div style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>{error}</div>}
+      <button className="btn btn-sm btn-primary" onClick={submit} disabled={busy || !text.trim()}>
+        {busy ? 'Saving…' : 'Add note'}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Tamper-evidence, recomputed rather than displayed.
+ *
+ * Printing `payload_hash.slice(0,32)` proves nothing — it is a string the page
+ * was handed. The backend re-derives the hash from the row as it stands and
+ * re-walks the block chain, so this panel can state whether the record still
+ * matches what was signed, and whether each block reached the chain node.
+ */
+function IntegrityPanel({ patientId, sessionId }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  const check = async () => {
+    setError(null);
+    try {
+      const { data: d } = await api.get(
+        `/clinician-dashboard/patient/${patientId}/therapy-sessions/${sessionId}/integrity`);
+      setData(d); setOpen(true);
+    } catch (e) {
+      setError(e?.response?.data?.detail || 'Could not verify this record.');
+    }
+  };
+
+  return (
+    <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
+      <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <ShieldCheck size={16} /> Record integrity
+      </h3>
+      {!open && (
+        <button className="btn btn-sm" style={{ border: '1px solid var(--color-border)', background: 'transparent' }}
+                onClick={check}>
+          Verify this record
+        </button>
+      )}
+      {error && <div style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>{error}</div>}
+      {data && (
+        <div style={{ fontSize: '0.83rem' }}>
+          <div>
+            Signed content:{' '}
+            {data.payload_matches === null
+              ? <em style={{ color: 'var(--color-text-secondary)' }}>never signed — nothing to check</em>
+              : data.payload_matches
+                ? <strong style={{ color: '#1baf7a' }}>unchanged since sign-off</strong>
+                : <strong style={{ color: 'var(--color-danger)' }}>DOES NOT MATCH the signed hash</strong>}
+          </div>
+          <div>
+            Ledger chain:{' '}
+            {data.chain_intact === null
+              ? <em style={{ color: 'var(--color-text-secondary)' }}>no ledger entries</em>
+              : data.chain_intact
+                ? <strong style={{ color: '#1baf7a' }}>intact</strong>
+                : <strong style={{ color: 'var(--color-danger)' }}>BROKEN</strong>}
+            {' · '}{data.anchored_count} of {data.trail.length} anchored on-chain
+          </div>
+          {data.trail.length > 0 && (
+            <div style={{ overflowX: 'auto', marginTop: 8 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
+                <thead>
+                  <tr>
+                    {['#', 'Event', 'Actor', 'Recorded', 'Hash', 'On-chain'].map(h => (
+                      <th key={h} style={{ textAlign: 'left', padding: '4px 8px', whiteSpace: 'nowrap',
+                                           borderBottom: '2px solid var(--color-border)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.trail.map(t => (
+                    <tr key={t.block_uid} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '4px 8px' }}>{t.index}</td>
+                      <td style={{ padding: '4px 8px' }}>{t.event || t.action}</td>
+                      <td style={{ padding: '4px 8px' }}>{t.actor_id ?? '—'}</td>
+                      <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}>
+                        {t.recorded_at ? new Date(t.recorded_at).toLocaleString() : '—'}
+                      </td>
+                      <td style={{ padding: '4px 8px' }}><code>{t.hash?.slice(0, 12)}…</code></td>
+                      <td style={{ padding: '4px 8px' }}>
+                        {t.anchored ? `block ${t.block_number}` : 'not anchored'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

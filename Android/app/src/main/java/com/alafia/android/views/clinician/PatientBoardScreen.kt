@@ -274,8 +274,11 @@ fun PatientCategoryScreen(
                 ) {
                     item {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf(30 to "30 days", 90 to "90 days",
-                                   365 to "1 year", 1825 to "All").forEach { (dv, lbl) ->
+                            // "All" was 1825 days, which on the reference record
+                            // returned 1048 of 2005 sessions — history starts
+                            // 2013-05-21. A window labelled All has no horizon.
+                            listOf(30 to "30 days", 90 to "90 days", 180 to "180 days",
+                                   365 to "1 year", 36500 to "All").forEach { (dv, lbl) ->
                                 FilterChip(selected = days == dv, onClick = { days = dv },
                                            label = { Text(lbl) })
                             }

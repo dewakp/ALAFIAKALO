@@ -34,7 +34,23 @@ const rows = [
   { session_id: null, date: '2026-08-01', therapy: 'Peritoneal Dialysis', readings: 0 },
 ];
 
-beforeEach(() => { get.mockReset(); post.mockReset(); });
+// The list now also asks for server-computed tiles, so every test needs a
+// default: an unmocked call returns undefined and blows up on `.then`.
+const SUMMARY = {
+  period_days: 90, total_sessions: 2, total_sessions_all_time: 2005,
+  avg_pre_weight_kg: 54.4, avg_post_weight_kg: 54.65,
+  avg_fluid_removed_ml: -250, avg_duration_min: 165,
+  earliest_session: '2013-05-21', latest_session: '2026-08-15',
+};
+const routeGet = (url) => {
+  if (url.includes('therapy-summary')) return Promise.resolve({ data: SUMMARY });
+  return Promise.resolve({ data: {} });
+};
+
+beforeEach(() => {
+  get.mockReset(); post.mockReset();
+  get.mockImplementation(routeGet);
+});
 
 describe('TherapyReport — the list the physician lands on', () => {
   it('summarises the window in stat tiles instead of a bare table', () => {
@@ -43,13 +59,15 @@ describe('TherapyReport — the list the physician lands on', () => {
     expect(screen.getByText('Sessions')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('Avg Pre Wt')).toBeInTheDocument();
-    expect(screen.getByText('54.4 kg')).toBeInTheDocument();   // (55.1+53.7)/2
+    expect(screen.getByText('54.4 kg')).toBeInTheDocument();   // from the server, not the page
     // "165 min" also appears on the session card, so assert the TILE's own
     // value rather than any occurrence of the string.
     expect(screen.getByText('Avg Duration').previousSibling).toHaveTextContent('165 min');
   });
 
   it('does not treat a missing duration as zero', () => {
+    get.mockImplementation((url) =>
+      url.includes('therapy-summary') ? Promise.reject(new Error('down')) : Promise.resolve({ data: {} }));
     render(<TherapyReport patientId={63} rows={rows} days={90} />);
     // One of the two sessions has duration null. Averaging it as 0 would give
     // 82.5 — a plausible-looking number that is simply wrong.
@@ -76,20 +94,21 @@ describe('TherapyReport — the list the physician lands on', () => {
 
 describe('TherapyReport — opening one session', () => {
   it('loads the session report and plots the intradialytic readings', async () => {
-    get.mockResolvedValue({
-      data: {
-        patient: { user_id: 63, full_name: 'Test Patient' },
-        session: { id: 2740, date: '2026-08-15', therapy: 'hemodialysis',
-                   pre_dialysis_weight_kg: 55.1, post_dialysis_weight_kg: 55.3,
-                   fluid_removed_ml: -200, duration_minutes: null },
-        readings: [
-          { id: 1, reading_time: '12:08', systolic_bp: 99, diastolic_bp: 62, pulse: 94 },
-          { id: 2, reading_time: '12:12', systolic_bp: 90, diastolic_bp: 75, pulse: 95 },
-        ],
-        notes: [],
-        signoff: { flowsheet_status: null, signed_at: null, reviewed_at: null, payload_hash: null },
-      },
-    });
+    const report = {
+      patient: { user_id: 63, full_name: 'Test Patient' },
+      session: { id: 2740, date: '2026-08-15', therapy: 'hemodialysis',
+                 pre_dialysis_weight_kg: 55.1, post_dialysis_weight_kg: 55.3,
+                 fluid_removed_ml: -200, duration_minutes: null },
+      readings: [
+        { id: 1, reading_time: '12:08', systolic_bp: 99, diastolic_bp: 62, pulse: 94 },
+        { id: 2, reading_time: '12:12', systolic_bp: 90, diastolic_bp: 75, pulse: 95 },
+      ],
+      notes: [],
+      signoff: { flowsheet_status: null, signed_at: null, reviewed_at: null, payload_hash: null },
+    };
+    get.mockImplementation((url) =>
+      url.includes('therapy-summary') ? Promise.resolve({ data: SUMMARY })
+                                      : Promise.resolve({ data: report }));
     render(<TherapyReport patientId={63} rows={rows} days={90} />);
     fireEvent.click(screen.getByText(new Date('2026-08-15T00:00:00').toLocaleDateString()));
 
@@ -102,7 +121,10 @@ describe('TherapyReport — opening one session', () => {
   });
 
   it('surfaces a failed load as an error, never as "no sessions"', async () => {
-    get.mockRejectedValue({ response: { data: { detail: 'This patient has not shared therapies' } } });
+    get.mockImplementation((url) =>
+      url.includes('therapy-summary')
+        ? Promise.resolve({ data: SUMMARY })
+        : Promise.reject({ response: { data: { detail: 'This patient has not shared therapies' } } }));
     render(<TherapyReport patientId={63} rows={rows} days={90} />);
     fireEvent.click(screen.getByText(new Date('2026-08-15T00:00:00').toLocaleDateString()));
     await waitFor(() =>
@@ -110,16 +132,53 @@ describe('TherapyReport — opening one session', () => {
   });
 
   it('says so when a session has too few readings to draw a curve', async () => {
-    get.mockResolvedValue({
-      data: {
-        patient: { user_id: 63, full_name: 'Test Patient' },
-        session: { id: 2740, date: '2026-08-15', therapy: 'hemodialysis' },
-        readings: [], notes: [], signoff: {},
-      },
-    });
+    get.mockImplementation((url) =>
+      url.includes('therapy-summary')
+        ? Promise.resolve({ data: SUMMARY })
+        : Promise.resolve({ data: {
+            patient: { user_id: 63, full_name: 'Test Patient' },
+            session: { id: 2740, date: '2026-08-15', therapy: 'hemodialysis' },
+            readings: [], notes: [], signoff: {},
+          } }));
     render(<TherapyReport patientId={63} rows={rows} days={90} />);
     fireEvent.click(screen.getByText(new Date('2026-08-15T00:00:00').toLocaleDateString()));
     await waitFor(() =>
       expect(screen.getByText(/No intradialytic readings were recorded/i)).toBeInTheDocument());
+  });
+});
+
+describe('TherapyReport — gaps the physician would otherwise never see', () => {
+  it('says how much history sits outside the window', async () => {
+    render(<TherapyReport patientId={63} rows={rows} days={90} />);
+    // 2 shown, 2005 on record: the window must announce what it is hiding
+    // rather than let the physician read it as the whole chart.
+    await waitFor(() =>
+      expect(screen.getByText(/2005 on record since 2013-05-21/)).toBeInTheDocument());
+  });
+
+  it('prefers the server count over the length of the page', async () => {
+    get.mockImplementation((url) =>
+      url.includes('therapy-summary')
+        ? Promise.resolve({ data: { ...SUMMARY, total_sessions: 36 } })
+        : Promise.resolve({ data: {} }));
+    render(<TherapyReport patientId={63} rows={rows} days={90} />);
+    // Two rows on the page, 36 in the window — the tile must not say "2".
+    await waitFor(() => expect(screen.getByText('36')).toBeInTheDocument());
+  });
+});
+
+describe('ReadingsTable', () => {
+  it('renders every intradialytic column the patient card shows', async () => {
+    const { ReadingsTable } = await import('../pages/clinician/TherapyReport');
+    render(<ReadingsTable readings={[{
+      id: 1, reading_time: '12:08', systolic_bp: 99, diastolic_bp: 62, pulse: 94,
+      mean_arterial_pressure: 74, blood_flow_rate: 300, dialysate_rate: 500,
+      uf_rate: 400, uf_volume_removed: 120, arterial_pressure: -120,
+      venous_pressure: 140, remarks: 'stable',
+    }]} />);
+    ['Time', 'BP', 'Pulse', 'MAP', 'BFR', 'DR', 'UFR', 'UF Vol', 'Art P', 'Ven P', 'Remarks']
+      .forEach(h => expect(screen.getByText(h)).toBeInTheDocument());
+    expect(screen.getByText('99/62')).toBeInTheDocument();
+    expect(screen.getByText('stable')).toBeInTheDocument();
   });
 });

@@ -21,7 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.IntradialyticReading
+import com.alafia.android.models.SessionIntegrity
 import com.alafia.android.models.SessionSignoff
+import com.alafia.android.models.TherapySessionNote
+import com.alafia.android.models.TherapySummary
 import com.alafia.android.models.TherapySessionReport
 import com.alafia.android.util.ErrorUtil
 import kotlinx.coroutines.launch
@@ -44,6 +47,15 @@ fun TherapyReportSection(
 ) {
     // Only haemodialysis rows carry a session_id; peritoneal has its own screen.
     val sessions = remember(rows) { rows.filter { num(it["session_id"]) != null } }
+    var summary by remember(patientId, days) { mutableStateOf<TherapySummary?>(null) }
+
+    // Count in SQL, not over "whatever rows arrived" — a tile computed from the
+    // page is a function of the page size.
+    LaunchedEffect(patientId, days) {
+        summary = try {
+            ApiClient.getApiService().getPatientTherapySummary(patientId, days)
+        } catch (e: Exception) { null }
+    }
 
     if (sessions.isEmpty()) {
         Text("No therapy sessions in this period.",
@@ -55,15 +67,19 @@ fun TherapyReportSection(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatTile("Sessions", sessions.size.toString(), Color(0xFF2A78D6))
-            StatTile("Avg Pre Wt", fmt(avg(sessions, "pre_weight_kg"), 1, "kg"), Color(0xFF1BAF7A))
-            StatTile("Avg Post Wt", fmt(avg(sessions, "post_weight_kg"), 1, "kg"), Color(0xFF1BAF7A))
-            StatTile("Avg UF", fmt(avg(sessions, "fluid_removed_ml"), 0, "mL"), Color(0xFFEB6834))
-            StatTile("Avg Duration", fmt(avg(sessions, "duration_minutes"), 0, "min"), Color(0xFF7C3AED))
+            StatTile("Sessions", (summary?.totalSessions ?: sessions.size).toString(), Color(0xFF2A78D6))
+            StatTile("Avg Pre Wt", fmt(summary?.avgPreWeightKg ?: avg(sessions, "pre_weight_kg"), 1, "kg"), Color(0xFF1BAF7A))
+            StatTile("Avg Post Wt", fmt(summary?.avgPostWeightKg ?: avg(sessions, "post_weight_kg"), 1, "kg"), Color(0xFF1BAF7A))
+            StatTile("Avg UF", fmt(summary?.avgFluidRemovedMl ?: avg(sessions, "fluid_removed_ml"), 0, "mL"), Color(0xFFEB6834))
+            StatTile("Avg Duration", fmt(summary?.avgDurationMin ?: avg(sessions, "duration_minutes"), 0, "min"), Color(0xFF7C3AED))
         }
-        Text("${sessions.size} sessions in the last $days days",
-             style = MaterialTheme.typography.labelSmall,
-             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val allTime = summary?.totalSessionsAllTime ?: 0
+        Text(
+            if (allTime > (summary?.totalSessions ?: sessions.size))
+                "${sessions.size} sessions in this period — $allTime on record since ${summary?.earliestSession}"
+            else "${sessions.size} sessions in this period",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         sessions.forEach { row -> SessionCard(row) { onOpenSession(num(row["session_id"])!!.toInt()) } }
     }
 }
@@ -164,6 +180,11 @@ fun TherapySessionScreen(patientId: Int, sessionId: Int, onBack: () -> Unit) {
     var actionError by remember(sessionId) { mutableStateOf<String?>(null) }
     var signoff by remember(sessionId) { mutableStateOf<SessionSignoff?>(null) }
     var busy by remember(sessionId) { mutableStateOf(false) }
+    var addedNotes by remember(sessionId) { mutableStateOf<List<TherapySessionNote>>(emptyList()) }
+    var noteText by remember(sessionId) { mutableStateOf("") }
+    var noteBusy by remember(sessionId) { mutableStateOf(false) }
+    var integrity by remember(sessionId) { mutableStateOf<SessionIntegrity?>(null) }
+    var integrityError by remember(sessionId) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(sessionId) {
@@ -197,19 +218,31 @@ fun TherapySessionScreen(patientId: Int, sessionId: Int, onBack: () -> Unit) {
             ) {
                 item { FactsCard(r) }
                 item { ReadingCharts(r.readings) }
-                if (r.notes.isNotEmpty()) {
-                    item {
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text("Clinical notes", style = MaterialTheme.typography.titleSmall,
-                                     fontWeight = FontWeight.Bold)
-                                r.notes.forEach { n ->
-                                    Spacer(Modifier.height(6.dp))
-                                    Text("${n.authorRole ?: "clinician"} · ${n.noteType ?: "general"}",
-                                         style = MaterialTheme.typography.labelSmall,
-                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(n.noteText, style = MaterialTheme.typography.bodyMedium)
-                                }
+                item { ReadingsTable(r.readings) }
+                item {
+                    NotesCard(r.notes + addedNotes, noteText, { noteText = it }, noteBusy) {
+                        scope.launch {
+                            noteBusy = true
+                            try {
+                                val n = ApiClient.getApiService().addPatientTherapyNote(
+                                    patientId, sessionId,
+                                    mapOf("note_text" to noteText.trim(), "note_type" to "clinical"))
+                                addedNotes = addedNotes + n
+                                noteText = ""
+                            } catch (e: Exception) {
+                                actionError = "Could not save the note."
+                            } finally { noteBusy = false }
+                        }
+                    }
+                }
+                item {
+                    IntegrityCard(integrity, integrityError) {
+                        scope.launch {
+                            try {
+                                integrity = ApiClient.getApiService()
+                                    .getPatientTherapyIntegrity(patientId, sessionId)
+                            } catch (e: Exception) {
+                                integrityError = "Could not verify this record."
                             }
                         }
                     }
@@ -398,6 +431,129 @@ private fun SignOffCard(
             } else {
                 Button(onClick = onSignOff, enabled = !busy) {
                     Text(if (busy) "Signing…" else "Sign off on this session")
+                }
+            }
+        }
+    }
+}
+
+
+/**
+ * The intradialytic readings as a TABLE — the columns the patient's own expanded
+ * card shows. Charts without the numbers underneath are a summary, not a record.
+ */
+@Composable
+private fun ReadingsTable(readings: List<IntradialyticReading>) {
+    val usable = readings.filter { it.readingTime.isNotBlank() }
+    if (usable.isEmpty()) return
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp)) {
+            Text("Intradialytic Readings (${usable.size})",
+                 style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            // Wide content scrolls inside its own container, never the page.
+            Column(Modifier.horizontalScroll(rememberScrollState())) {
+                Row {
+                    listOf("Time", "BP", "Pulse", "BFR", "UFR", "UF Vol", "Art P", "Ven P")
+                        .forEach { h ->
+                            Text(h, style = MaterialTheme.typography.labelSmall,
+                                 fontWeight = FontWeight.Bold, modifier = Modifier.width(58.dp))
+                        }
+                }
+                HorizontalDivider()
+                usable.forEach { r ->
+                    Row {
+                        Cell(r.readingTime)
+                        Cell(if (r.systolicBp != null && r.diastolicBp != null)
+                                 "${r.systolicBp}/${r.diastolicBp}" else "—")
+                        Cell(r.pulse?.toString() ?: "—")
+                        Cell(r.bloodFlowRate?.let { String.format("%.0f", it) } ?: "—")
+                        Cell(r.ufRate?.let { String.format("%.0f", it) } ?: "—")
+                        Cell(r.ufVolumeRemoved?.let { String.format("%.0f", it) } ?: "—")
+                        Cell(r.arterialPressure?.let { String.format("%.0f", it) } ?: "—")
+                        Cell(r.venousPressure?.let { String.format("%.0f", it) } ?: "—")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Cell(text: String) {
+    Text(text, style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(58.dp))
+}
+
+/** Comment. Signing a record you cannot annotate attests that you read it and
+ *  nothing about what you concluded — so the note sits above the signature. */
+@Composable
+private fun NotesCard(
+    notes: List<TherapySessionNote>, text: String, onText: (String) -> Unit,
+    busy: Boolean, onAdd: () -> Unit,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Clinical notes", style = MaterialTheme.typography.titleSmall,
+                 fontWeight = FontWeight.Bold)
+            if (notes.isEmpty()) {
+                Text("No notes on this session yet.",
+                     style = MaterialTheme.typography.bodySmall,
+                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            notes.forEach { n ->
+                Column {
+                    Text("${n.authorRole ?: "clinician"} · ${n.noteType ?: "general"}",
+                         style = MaterialTheme.typography.labelSmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(n.noteText, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            OutlinedTextField(
+                value = text, onValueChange = onText,
+                label = { Text("Add a clinical note…") },
+                modifier = Modifier.fillMaxWidth(), minLines = 2,
+            )
+            Button(onClick = onAdd, enabled = !busy && text.isNotBlank()) {
+                Text(if (busy) "Saving…" else "Add note")
+            }
+        }
+    }
+}
+
+/** Tamper-evidence, recomputed rather than displayed. */
+@Composable
+private fun IntegrityCard(i: SessionIntegrity?, error: String?, onVerify: () -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Record integrity", style = MaterialTheme.typography.titleSmall,
+                 fontWeight = FontWeight.Bold)
+            error?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium,
+                     color = MaterialTheme.colorScheme.error)
+            }
+            if (i == null) {
+                Button(onClick = onVerify) { Text("Verify this record") }
+            } else {
+                Text(
+                    when (i.payloadMatches) {
+                        null -> "Signed content: never signed — nothing to check"
+                        true -> "Signed content: unchanged since sign-off"
+                        false -> "Signed content: DOES NOT MATCH the signed hash"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (i.payloadMatches == false) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Ledger: ${when (i.chainIntact) {
+                        true -> "intact"; false -> "BROKEN"; null -> "no entries" }} · " +
+                     "${i.anchoredCount} of ${i.trail.size} anchored",
+                     style = MaterialTheme.typography.labelSmall,
+                     color = if (i.chainIntact == false) MaterialTheme.colorScheme.error
+                             else MaterialTheme.colorScheme.onSurfaceVariant)
+                i.trail.forEach { t ->
+                    Text("#${t.index} ${t.event ?: t.action} · " +
+                         (if (t.anchored) "block ${t.blockNumber}" else "not anchored"),
+                         style = MaterialTheme.typography.labelSmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

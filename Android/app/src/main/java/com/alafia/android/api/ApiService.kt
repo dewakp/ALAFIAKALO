@@ -843,6 +843,28 @@ interface ApiService {
         @Path("sessionId") sessionId: Int
     ): SessionReviewResponse
 
+    /** Server-computed session tiles — counted in SQL, not over the page. */
+    @GET("clinician-dashboard/patient/{patientId}/therapy-summary")
+    suspend fun getPatientTherapySummary(
+        @Path("patientId") patientId: Int,
+        @Query("days") days: Int = 90
+    ): TherapySummary
+
+    /** A physician's note on a session. Append-only, hashed server-side. */
+    @POST("clinician-dashboard/patient/{patientId}/therapy-sessions/{sessionId}/notes")
+    suspend fun addPatientTherapyNote(
+        @Path("patientId") patientId: Int,
+        @Path("sessionId") sessionId: Int,
+        @Body body: Map<String, String>
+    ): TherapySessionNote
+
+    /** Recomputed tamper-evidence: payload hash + ledger trail. */
+    @GET("clinician-dashboard/patient/{patientId}/therapy-sessions/{sessionId}/integrity")
+    suspend fun getPatientTherapyIntegrity(
+        @Path("patientId") patientId: Int,
+        @Path("sessionId") sessionId: Int
+    ): SessionIntegrity
+
     // ── Chart Dashboard ──────────────────────────────
     @GET("chart-dashboard/datasets")
     suspend fun getChartDatasets(): Map<String, List<ChartDatasetInfo>>

@@ -1023,3 +1023,40 @@ data class SessionReviewResponse(
     val signoff: SessionSignoff,
     val message: String?
 )
+
+data class TherapySummary(
+    @SerializedName("period_days") val periodDays: Int,
+    @SerializedName("total_sessions") val totalSessions: Int,
+    @SerializedName("total_sessions_all_time") val totalSessionsAllTime: Int,
+    @SerializedName("avg_pre_weight_kg") val avgPreWeightKg: Double?,
+    @SerializedName("avg_post_weight_kg") val avgPostWeightKg: Double?,
+    @SerializedName("avg_fluid_removed_ml") val avgFluidRemovedMl: Double?,
+    @SerializedName("avg_duration_min") val avgDurationMin: Double?,
+    @SerializedName("earliest_session") val earliestSession: String?,
+    @SerializedName("latest_session") val latestSession: String?
+)
+
+data class IntegrityBlock(
+    @SerializedName("block_uid") val blockUid: String,
+    val index: Int,
+    val action: String,
+    val event: String?,
+    @SerializedName("actor_id") val actorId: Int?,
+    @SerializedName("recorded_at") val recordedAt: String?,
+    val hash: String?,
+    @SerializedName("previous_hash") val previousHash: String?,
+    val anchored: Boolean,
+    @SerializedName("tx_hash") val txHash: String?,
+    @SerializedName("block_number") val blockNumber: Int?
+)
+
+/** payloadMatches is null when the record was never signed — a different fact
+ *  from "does not match". */
+data class SessionIntegrity(
+    @SerializedName("session_id") val sessionId: Int,
+    @SerializedName("payload_hash") val payloadHash: String?,
+    @SerializedName("payload_matches") val payloadMatches: Boolean?,
+    @SerializedName("chain_intact") val chainIntact: Boolean?,
+    @SerializedName("anchored_count") val anchoredCount: Int,
+    val trail: List<IntegrityBlock> = emptyList()
+)

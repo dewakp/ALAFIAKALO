@@ -1,15 +1,17 @@
 """Clinician & Social Worker Dashboard endpoints — role-gated patient views."""
 
+import hashlib
 import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import func, select, desc
 
 from app.api.chronic_conditions import _compute_payload_hash
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.models.blockchain import BlockRecord
 from app.models.chronic_conditions import (
     ClinicalNote,
     FlowsheetStatus,
@@ -307,7 +309,11 @@ async def get_patient_board(
 async def get_patient_category(
     patient_id: int,
     category_key: str,
-    days: int = Query(board.DEFAULT_WINDOW_DAYS, ge=1, le=1825),
+    # 1825 was a five-year cap on a control labelled "All". On the reference
+    # record it returned 1048 of 2005 sessions — the history starts 2013-05-21 —
+    # so a physician pressing "All" was shown half the chart and told it was
+    # everything. The ceiling is now a century: "All" has to mean all.
+    days: int = Query(board.DEFAULT_WINDOW_DAYS, ge=1, le=36500),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -511,3 +517,147 @@ async def review_patient_therapy_session(
     await db.refresh(session)
     return {"id": session.id, "signoff": _signoff_dict(session),
             "message": "Session reviewed"}
+
+
+@router.get("/patient/{patient_id}/therapy-summary")
+async def get_patient_therapy_summary(
+    patient_id: int,
+    days: int = Query(90, ge=1, le=36500),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Server-computed session tiles — the same numbers the patient's own screen shows.
+
+    The patient's Session Reports tab reads `/chronic/hd-summary`, which counts
+    with SQL. Averaging client-side over "whatever rows arrived" makes the tile
+    a function of the page size rather than of the record — the shape that once
+    reported "200 sessions" for a patient with 730. Counting here keeps the
+    physician's tiles and the board card telling the same story.
+    """
+    await _require_dialysis_access(current_user.id, patient_id, db)
+    since = board._window(days)
+
+    agg = (await db.execute(
+        select(
+            func.count(TherapySession.id),
+            func.avg(TherapySession.pre_dialysis_weight_kg),
+            func.avg(TherapySession.post_dialysis_weight_kg),
+            func.avg(TherapySession.fluid_removed_ml),
+            func.avg(TherapySession.duration_minutes),
+            func.min(TherapySession.scheduled_date),
+            func.max(TherapySession.scheduled_date),
+        ).where(
+            TherapySession.user_id == patient_id,
+            TherapySession.scheduled_date >= since,
+        )
+    )).one()
+    total_all_time = (await db.execute(
+        select(func.count(TherapySession.id))
+        .where(TherapySession.user_id == patient_id))).scalar() or 0
+
+    def _r(v, places=1):
+        return None if v is None else round(float(v), places)
+
+    return {
+        "period_days": days,
+        "total_sessions": int(agg[0] or 0),
+        # Stated separately so a windowed count is never mistaken for the record.
+        "total_sessions_all_time": int(total_all_time),
+        "avg_pre_weight_kg": _r(agg[1]),
+        "avg_post_weight_kg": _r(agg[2]),
+        "avg_fluid_removed_ml": _r(agg[3], 0),
+        "avg_duration_min": _r(agg[4], 0),
+        "earliest_session": str(agg[5])[:10] if agg[5] else None,
+        "latest_session": str(agg[6])[:10] if agg[6] else None,
+    }
+
+
+@router.post("/patient/{patient_id}/therapy-sessions/{session_id}/notes")
+async def add_patient_therapy_note(
+    patient_id: int,
+    session_id: int,
+    body: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """A physician's note on a session. Append-only, hashed like the patient's.
+
+    `/chronic/therapy-sessions/{id}/notes` is scoped to the caller's own rows, so
+    a physician posting to it 404s. Sign-off without the ability to say WHY is
+    an attestation with no clinical content.
+    """
+    await _require_dialysis_access(current_user.id, patient_id, db)
+    await _therapy_session_for_patient(session_id, patient_id, db)
+
+    text = (body or {}).get("note_text", "")
+    if not isinstance(text, str) or not text.strip():
+        raise HTTPException(status_code=422, detail="note_text is required")
+    text = text.strip()
+
+    note = ClinicalNote(
+        session_id=session_id,
+        author_id=current_user.id,
+        author_role="physician",
+        note_type=(body or {}).get("note_type") or "clinical",
+        note_text=text,
+        note_hash=hashlib.sha512(text.encode("utf-8")).hexdigest(),
+    )
+    db.add(note)
+    await db.commit()
+    await db.refresh(note)
+    return {"id": note.id, "author_role": note.author_role, "note_type": note.note_type,
+            "note_text": note.note_text, "created_at": _iso_dt(note.created_at)}
+
+
+@router.get("/patient/{patient_id}/therapy-sessions/{session_id}/integrity")
+async def get_patient_therapy_integrity(
+    patient_id: int,
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """The tamper-evidence behind a session: ledger trail + recomputed hashes.
+
+    A truncated hash printed on screen proves nothing — it is a string the page
+    was handed. This re-derives each block's hash from its payload and its
+    predecessor, exactly as `verify_chain_integrity` does, and reports whether
+    the chain still holds and whether each block reached the chain node.
+    """
+    await _require_dialysis_access(current_user.id, patient_id, db)
+    session = await _therapy_session_for_patient(session_id, patient_id, db)
+
+    blocks = (await db.execute(
+        select(BlockRecord)
+        .where(BlockRecord.entity_id == session_id,
+               BlockRecord.chain_type == "therapy")
+        .order_by(BlockRecord.index)
+    )).scalars().all()
+
+    trail = []
+    for b in blocks:
+        payload = (b.data or {})
+        trail.append({
+            "block_uid": b.block_uid, "index": b.index, "action": b.action,
+            "event": payload.get("event"),
+            "actor_id": b.actor_id,
+            "recorded_at": _iso_dt(b.created_at),
+            "hash": b.hash, "previous_hash": b.previous_hash,
+            "anchored": b.blockchain_tx_hash is not None,
+            "tx_hash": b.blockchain_tx_hash,
+            "block_number": b.blockchain_block_num,
+        })
+
+    # The stored payload hash must still describe the row as it stands now:
+    # if a value changed after sign-off, this is where it shows.
+    recomputed = _compute_payload_hash(session)
+    return {
+        "session_id": session_id,
+        "payload_hash": session.payload_hash,
+        "payload_hash_recomputed": recomputed,
+        "payload_matches": (session.payload_hash == recomputed) if session.payload_hash else None,
+        "chain_intact": all(
+            trail[i]["previous_hash"] == trail[i - 1]["hash"] for i in range(1, len(trail))
+        ) if len(trail) > 1 else (len(trail) == 1 or None),
+        "anchored_count": sum(1 for t in trail if t["anchored"]),
+        "trail": trail,
+    }

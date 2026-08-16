@@ -7,11 +7,16 @@ import { ArrowLeft } from 'lucide-react';
 import { colorAt, CHART_INK } from './chartPalette';
 import TherapyReport from './TherapyReport';
 
+// Mirrors the patient's own period control. "All" was 1825 days, which on the
+// reference record returned 1048 of 2005 sessions — history starts 2013-05-21 —
+// so the physician pressed "All" and was shown half the chart with nothing
+// saying so. A window labelled All must not have a horizon.
 const WINDOWS = [
   { days: 30, label: '30 days' },
   { days: 90, label: '90 days' },
+  { days: 180, label: '180 days' },
   { days: 365, label: '1 year' },
-  { days: 1825, label: 'All' },
+  { days: 36500, label: 'All' },
 ];
 
 const fmtDate = (s) => {

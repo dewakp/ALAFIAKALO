@@ -595,10 +595,16 @@ async def get_hd_summary(
     if total == 0:
         return {"total_sessions": 0, "period_days": days}
 
-    weights_pre = [s.pre_dialysis_weight_kg for s in sessions if s.pre_dialysis_weight_kg]
-    weights_post = [s.post_dialysis_weight_kg for s in sessions if s.post_dialysis_weight_kg]
-    fluids = [s.fluid_removed_ml for s in sessions if s.fluid_removed_ml]
-    durations = [s.duration_minutes for s in sessions if s.duration_minutes]
+    # `if s.value` drops 0 as well as NULL, and 0 mL removed is a real
+    # measurement, not a missing one. On the reference record exactly one
+    # session in the 90-day window has fluid_removed_ml = 0, and excluding it
+    # reported 876 mL where the true mean is 850 — a 3% overstatement of
+    # ultrafiltration, on the number a nephrologist dries a patient to. It also
+    # made this screen disagree with the clinician's view of the same window.
+    weights_pre = [s.pre_dialysis_weight_kg for s in sessions if s.pre_dialysis_weight_kg is not None]
+    weights_post = [s.post_dialysis_weight_kg for s in sessions if s.post_dialysis_weight_kg is not None]
+    fluids = [s.fluid_removed_ml for s in sessions if s.fluid_removed_ml is not None]
+    durations = [s.duration_minutes for s in sessions if s.duration_minutes is not None]
 
     return {
         "total_sessions": total,

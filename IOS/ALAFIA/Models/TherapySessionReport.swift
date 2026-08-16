@@ -127,3 +127,50 @@ struct SessionReviewResponse: Codable {
     let signoff: SessionSignoff
     let message: String?
 }
+
+/// One ledger block behind a session, as the integrity check reports it.
+struct IntegrityBlock: Codable, Hashable {
+    let blockUid: String
+    let index: Int
+    let action: String
+    let event: String?
+    let actorId: Int?
+    let recordedAt: String?
+    let hash: String?
+    let previousHash: String?
+    let anchored: Bool
+    let txHash: String?
+    let blockNumber: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case index, action, event, hash, anchored
+        case blockUid = "block_uid"
+        case actorId = "actor_id"
+        case recordedAt = "recorded_at"
+        case previousHash = "previous_hash"
+        case txHash = "tx_hash"
+        case blockNumber = "block_number"
+    }
+}
+
+/// Recomputed tamper-evidence for one session. `payloadMatches` is nil when the
+/// record was never signed — which is a different fact from "does not match".
+struct SessionIntegrity: Codable {
+    let sessionId: Int
+    let payloadHash: String?
+    let payloadHashRecomputed: String?
+    let payloadMatches: Bool?
+    let chainIntact: Bool?
+    let anchoredCount: Int
+    let trail: [IntegrityBlock]
+
+    enum CodingKeys: String, CodingKey {
+        case trail
+        case sessionId = "session_id"
+        case payloadHash = "payload_hash"
+        case payloadHashRecomputed = "payload_hash_recomputed"
+        case payloadMatches = "payload_matches"
+        case chainIntact = "chain_intact"
+        case anchoredCount = "anchored_count"
+    }
+}

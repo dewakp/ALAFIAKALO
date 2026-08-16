@@ -20,8 +20,12 @@ struct PatientCategoryView: View {
     @State private var picked: Set<String> = []
 
     private static let maxSeriesPerChart = 6
+    /// Mirrors the patient's own period control. "All" was 1825 days, which on
+    /// the reference record returned 1048 of 2005 sessions — history starts
+    /// 2013-05-21 — so "All" showed half the chart and said nothing.
     private static let windows: [(Int, String)] = [(30, "30 days"), (90, "90 days"),
-                                                   (365, "1 year"), (1825, "All")]
+                                                   (180, "180 days"), (365, "1 year"),
+                                                   (36500, "All")]
 
     /// Validated categorical palette — the same six slots, in the same fixed
     /// order, as the web charts. Assigned by index and never cycled.

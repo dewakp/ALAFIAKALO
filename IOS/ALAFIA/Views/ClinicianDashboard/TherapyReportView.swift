@@ -139,6 +139,11 @@ struct SessionReportView: View {
     @State private var actionError: String?
     @State private var busy = false
     @State private var signoff: SessionSignoff?
+    @State private var addedNotes: [TherapySessionNote] = []
+    @State private var noteText = ""
+    @State private var noteBusy = false
+    @State private var integrity: SessionIntegrity?
+    @State private var integrityError: String?
 
     /// Same fixed-order palette as the web charts and PatientCategoryView.
     private static let palette: [Color] = [
@@ -158,7 +163,9 @@ struct SessionReportView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         facts(report.session)
                         charts(report.readings)
-                        if !report.notes.isEmpty { notesCard(report.notes) }
+                        readingsTable(report.readings)
+                        notesCard(report.notes + addedNotes)
+                        integrityCard()
                         signOffCard(signoff ?? report.signoff)
                     }
                     .padding(12)
@@ -301,9 +308,60 @@ struct SessionReportView: View {
         }
     }
 
+    /// The intradialytic readings as a TABLE — the same columns the patient's own
+    /// expanded card shows. Charts without the numbers underneath are a summary,
+    /// not a record: a clinician checking one 12:12 reading cannot read it off a
+    /// line.
+    @ViewBuilder
+    private func readingsTable(_ readings: [IntradialyticReading]) -> some View {
+        let usable = readings.filter { !$0.readingTime.isEmpty }
+        if !usable.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Intradialytic Readings (\(usable.count))")
+                    .font(.subheadline.bold())
+                ScrollView(.horizontal, showsIndicators: true) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 12) {
+                            ForEach(["Time", "BP", "Pulse", "MAP", "BFR", "UFR", "UF Vol", "Art P", "Ven P"], id: \.self) {
+                                Text($0).font(.caption2.bold()).frame(width: 54, alignment: .leading)
+                            }
+                        }
+                        Divider()
+                        ForEach(usable) { r in
+                            HStack(spacing: 12) {
+                                cell(r.readingTime)
+                                cell(r.systolicBp != nil && r.diastolicBp != nil
+                                     ? "\(r.systolicBp!)/\(r.diastolicBp!)" : "—")
+                                cell(r.pulse.map(String.init) ?? "—")
+                                cell(r.meanArterialPressure.map { String(format: "%.0f", $0) } ?? "—")
+                                cell(r.bloodFlowRate.map { String(format: "%.0f", $0) } ?? "—")
+                                cell(r.ufRate.map { String(format: "%.0f", $0) } ?? "—")
+                                cell(r.ufVolumeRemoved.map { String(format: "%.0f", $0) } ?? "—")
+                                cell(r.arterialPressure.map { String(format: "%.0f", $0) } ?? "—")
+                                cell(r.venousPressure.map { String(format: "%.0f", $0) } ?? "—")
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private func cell(_ text: String) -> some View {
+        Text(text).font(.caption2).frame(width: 54, alignment: .leading)
+    }
+
+    /// Comment. Signing a record you cannot annotate attests that you read it and
+    /// nothing about what you concluded — so the note sits above the signature.
     private func notesCard(_ notes: [TherapySessionNote]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Clinical notes").font(.subheadline.bold())
+            if notes.isEmpty {
+                Text("No notes on this session yet.").font(.caption).foregroundStyle(.secondary)
+            }
             ForEach(notes) { n in
                 VStack(alignment: .leading, spacing: 2) {
                     Text([n.authorRole ?? "clinician", n.noteType ?? "general"].joined(separator: " · "))
@@ -311,10 +369,78 @@ struct SessionReportView: View {
                     Text(n.noteText).font(.callout)
                 }
             }
+            TextField("Add a clinical note…", text: $noteText, axis: .vertical)
+                .lineLimit(2...5)
+                .textFieldStyle(.roundedBorder)
+            Button {
+                Task { await addNote() }
+            } label: {
+                if noteBusy { ProgressView() } else { Text("Add note") }
+            }
+            .buttonStyle(.bordered)
+            .disabled(noteBusy || noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func addNote() async {
+        let text = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        noteBusy = true
+        defer { noteBusy = false }
+        do {
+            let n: TherapySessionNote = try await APIClient.shared.post(
+                "/clinician-dashboard/patient/\(patientId)/therapy-sessions/\(sessionId)/notes",
+                body: NoteBody(note_text: text, note_type: "clinical"))
+            addedNotes.append(n)
+            noteText = ""
+        } catch {
+            actionError = "Could not save the note."
+        }
+    }
+
+    private struct NoteBody: Encodable { let note_text: String; let note_type: String }
+
+    /// Tamper-evidence, recomputed rather than displayed. A truncated hash on
+    /// screen proves nothing — it is a string the view was handed.
+    @ViewBuilder
+    private func integrityCard() -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Record integrity", systemImage: "checkmark.shield").font(.subheadline.bold())
+            if let integrityError {
+                Text(integrityError).font(.caption).foregroundStyle(.red)
+            }
+            if let i = integrity {
+                Text(i.payloadMatches == nil ? "Signed content: never signed — nothing to check"
+                     : (i.payloadMatches! ? "Signed content: unchanged since sign-off"
+                                          : "Signed content: DOES NOT MATCH the signed hash"))
+                    .font(.caption)
+                    .foregroundStyle(i.payloadMatches == false ? .red : .secondary)
+                Text("Ledger: \(i.chainIntact == true ? "intact" : (i.chainIntact == false ? "BROKEN" : "no entries")) · \(i.anchoredCount) of \(i.trail.count) anchored")
+                    .font(.caption).foregroundStyle(i.chainIntact == false ? .red : .secondary)
+                ForEach(i.trail, id: \.blockUid) { t in
+                    Text("#\(t.index) \(t.event ?? t.action) · \(t.anchored ? "block \(t.blockNumber ?? 0)" : "not anchored")")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            } else {
+                Button("Verify this record") { Task { await verify() } }
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func verify() async {
+        do {
+            integrity = try await APIClient.shared.get(
+                "/clinician-dashboard/patient/\(patientId)/therapy-sessions/\(sessionId)/integrity")
+        } catch {
+            integrityError = "Could not verify this record."
+        }
     }
 
     private func signOffCard(_ so: SessionSignoff) -> some View {
