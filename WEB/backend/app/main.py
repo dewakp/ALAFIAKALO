@@ -13,7 +13,11 @@ from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 import logging as _logging
 
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response, status
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import DBAPIError, OperationalError
+
+from app.core.database import get_db
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -381,7 +385,101 @@ async def shutdown_event():
 
 @app.get("/api/health", tags=["Health"])
 async def health_check():
-    return {"status": "healthy", "app": settings.APP_NAME, "version": settings.GIT_SHA}
+    """LIVENESS: is this process up. Deliberately does not touch the database.
+
+    `database: "not checked"` is stated outright because this endpoint returned a
+    bare `{"status": "healthy"}` right through a total outage. During the
+    PostgreSQL 16 → 18 upgrade on 2026-08-16 it answered 200 for eleven minutes
+    while every data-backed request 500'd; Cloud Run saw a healthy service and so
+    would any uptime monitor pointed here. Point monitoring at /api/ready.
+    """
+    return {"status": "healthy", "app": settings.APP_NAME, "version": settings.GIT_SHA,
+            "database": "not checked — use /api/ready"}
+
+
+@app.get("/api/ready", tags=["Health"])
+async def readiness_check(response: Response, session=Depends(get_db)):
+    """READINESS: can this process actually serve a request that needs data.
+
+    Runs `SELECT 1` and returns 503 when it cannot. Separate from liveness on
+    purpose — a database blip should take the service out of the load balancer,
+    not kill and restart every container, which is what a failing liveness probe
+    does and which makes an outage worse.
+    """
+    from sqlalchemy import text as _text
+
+    # Injected through get_db rather than built here, so readiness exercises the
+    # SAME path a real request takes — including the pool. Calling get_db()
+    # directly also bypasses dependency_overrides, which made this endpoint dial
+    # the configured host from inside a test that had overridden the database.
+    #
+    # When the connection cannot be opened at all, get_db itself raises 503
+    # before this body runs, which is the correct answer. What is caught below is
+    # a session that opened and then failed to query.
+    started = time.perf_counter()
+    try:
+        await session.execute(_text("SELECT 1"))
+    except Exception as exc:
+        logger.error("Readiness check failed: %s", exc, exc_info=True)
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {"status": "unavailable", "database": "unreachable",
+                "app": settings.APP_NAME, "version": settings.GIT_SHA}
+    return {"status": "ready", "database": "ok",
+            "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+            "app": settings.APP_NAME, "version": settings.GIT_SHA}
+
+
+@app.exception_handler(DBAPIError)
+@app.exception_handler(OperationalError)
+async def _database_unavailable_handler(request: Request, exc: Exception):
+    """A database that cannot be reached is 503, not 500.
+
+    During the upgrade a login attempt returned `500 Internal Server Error` with
+    no body worth reading. 500 tells a client "this request was wrong or the app
+    is broken"; 503 with Retry-After tells it "the service is down, come back" —
+    which is the true statement, is retryable, and is what a client can act on.
+
+    Only connection-level failures are translated. A constraint violation or a
+    bad query is a real 500 and must keep saying so.
+    """
+    if not _is_connection_failure(exc):
+        raise exc
+    logger.error("Database unavailable on %s %s: %s",
+                 request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": "The service is temporarily unavailable. Please try again."},
+        headers={"Retry-After": "15"},
+    )
+
+
+def _is_connection_failure(exc: Exception) -> bool:
+    """True when the driver could not reach or talk to the server.
+
+    Matched on the driver's own exception types rather than on message text:
+    asyncpg raises these for a server that is down, restarting, or has closed the
+    connection — exactly the states an upgrade passes through.
+    """
+    causes = []
+    current: BaseException | None = exc
+    while current is not None and len(causes) < 8:
+        causes.append(current)
+        current = current.__cause__
+    for err in causes:
+        if isinstance(err, OperationalError):
+            return True
+        if err.__class__.__module__.startswith("asyncpg") and isinstance(
+            err, (ConnectionError, OSError)
+        ):
+            return True
+        if err.__class__.__name__ in {
+            "ConnectionDoesNotExistError", "ConnectionFailureError",
+            "CannotConnectNowError", "TooManyConnectionsError",
+            "PostgresConnectionError", "InterfaceError", "ConnectionRefusedError",
+            "ServerNotRunningError",
+        }:
+            return True
+    return False
 
 
 # Mount all API routes. The paywall dependency runs first on every /api/v1 request:
