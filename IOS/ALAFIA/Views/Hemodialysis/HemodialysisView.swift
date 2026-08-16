@@ -37,6 +37,10 @@ final class HemodialysisViewModel {
     // identifiable rather than a suspected duplicate.
     var startClock = ""
     var endClock = ""
+    /// The intradialytic grid. Rows that came from the server keep their id, so
+    /// saving updates them in place instead of appending duplicates.
+    var readingRows: [EditableReading] = []
+    var removedReadingIds: [Int] = []
 
     /// The clock part of a stored session timestamp.
     static func clock(of value: String?) -> String {
@@ -218,6 +222,7 @@ final class HemodialysisViewModel {
         postDialysisWeightKg = ""; fluidRemovedMl = ""; fluidToRemoveKg = ""
         bloodFlowRate = ""; dialysateFlowRate = ""; durationMinutes = ""
         startClock = ""; endClock = ""
+        readingRows = []; removedReadingIds = []
         dialysateVolumeLiters = ""; dialysateLactateMeq = ""; dialysatePotassiumMeq = ""
         sakNumber = ""; needleGauge = "15G"; needleLength = ""; buttonholeTechnique = false
         preSystolicBp = ""; preDiastolicBp = ""; preHeartRate = ""; preTemperature = ""
@@ -259,6 +264,8 @@ final class HemodialysisViewModel {
         durationMinutes = s.durationMinutes.map { String($0) } ?? ""
         startClock = Self.clock(of: s.actualStartTime)
         endClock = Self.clock(of: s.actualEndTime)
+        readingRows = (s.intradialyticReadings ?? []).map(EditableReading.init(from:))
+        removedReadingIds = []
         dialysateVolumeLiters = s.dialysateVolumeLiters.map { String($0) } ?? ""
         dialysateLactateMeq = s.dialysateLactateMeq.map { String($0) } ?? ""
         dialysatePotassiumMeq = s.dialysatePotassiumMeq.map { String($0) } ?? ""
@@ -307,6 +314,31 @@ final class HemodialysisViewModel {
         labTubesDrawn = s.labTubesDrawn ?? ""
         sideEffects = s.sideEffects ?? ""; clinicalNotes = s.clinicalNotes ?? ""
         patientNotes = s.patientNotes ?? ""
+    }
+
+    /// Writes the grid: existing rows are UPDATED, new rows created, rows the
+    /// user deleted removed.
+    ///
+    /// Re-POSTing an existing row is what made editing a session grow its
+    /// flowsheet on web — the corrected row differs from the stored one, so it
+    /// landed as an extra reading. And a deleted row that is never DELETEd
+    /// simply reappears on the next load.
+    private func saveReadings(sessionId: Int) async throws {
+        for id in removedReadingIds {
+            try await APIClient.shared.delete("/chronic/readings/\(id)")
+        }
+        removedReadingIds = []
+
+        for row in readingRows where !row.isBlank {
+            let payload = row.payload(sessionId: sessionId)
+            if let serverId = row.serverId {
+                let _: IntradialyticReading = try await APIClient.shared.put(
+                    "/chronic/readings/\(serverId)", body: payload)
+            } else {
+                let _: IntradialyticReading = try await APIClient.shared.post(
+                    "/chronic/therapy-sessions/\(sessionId)/readings", body: payload)
+            }
+        }
     }
 
     func submit() async {
@@ -383,11 +415,15 @@ final class HemodialysisViewModel {
         if !patientNotes.isEmpty { body.patientNotes = patientNotes }
 
         do {
+            let sessionId: Int
             if let editing = editingSession {
                 let _: TherapySession = try await APIClient.shared.put("/chronic/therapy-sessions/\(editing.id)", body: body)
+                sessionId = editing.id
             } else {
-                let _: TherapySession = try await APIClient.shared.post("/chronic/therapy-sessions", body: body)
+                let created: TherapySession = try await APIClient.shared.post("/chronic/therapy-sessions", body: body)
+                sessionId = created.id
             }
+            try await saveReadings(sessionId: sessionId)
             resetForm(); showAddSheet = false
             await load(); await loadSummary()
         } catch { errorMessage = error.localizedDescription }
@@ -682,6 +718,13 @@ struct HemodialysisView: View {
                         }
                         VStack(alignment: .leading) { Text("Duration (min)").font(.caption); TextField("240", text: $vm.durationMinutes).keyboardType(.numberPad) }
                     }
+                }
+
+                // The grid a patient records DURING treatment. iOS could show
+                // these and never capture one — the model existed and nothing
+                // called the endpoint.
+                Section("Intradialytic Readings") {
+                    IntradialyticEditor(rows: $vm.readingRows, removedIds: $vm.removedReadingIds)
                 }
 
                 Section("Vascular Access") {

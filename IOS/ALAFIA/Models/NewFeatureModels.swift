@@ -970,8 +970,11 @@ struct IntradialyticReading: Codable, Identifiable {
 
 struct IntradialyticReadingCreate: Codable {
     let sessionId: Int
-    let readingTime: String
-    let readingNumber: Int?
+    /// Optional: a blank time is sent as null so "not stated" survives as not
+    /// stated. Defaulting it to 00:00 is how 3664 rows (22.6% of the table) came
+    /// to look like measured midnight readings.
+    let readingTime: String?
+    var readingNumber: Int? = nil
     let systolicBp: Int?
     let diastolicBp: Int?
     let pulse: Int?

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CE0000000000000000000206 /* IntradialyticEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000106 /* IntradialyticEditor.swift */; };
 		0CB072E3037F41A3B1EB0550 /* HemodialysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */; };
 		1B84B817D8E548B6F2F47A39 /* OfflineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54A4453102DA1889F93494A /* OfflineCacheTests.swift */; };
 		2B735102C7EC4AB9A6F0E89A /* ChemotherapyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFE2B9BDF0D4F4296E0DBC1 /* ChemotherapyView.swift */; };
@@ -183,6 +184,7 @@
 		9E4B84BB60767246D18C1EFE /* ALAFIATests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ALAFIATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA11BB22CC330001 /* Insurance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Insurance.swift; sourceTree = "<group>"; };
 		AA11BB22CC330003 /* InsuranceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsuranceView.swift; sourceTree = "<group>"; };
+		CE0000000000000000000106 /* IntradialyticEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradialyticEditor.swift; sourceTree = "<group>"; };
 		AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HemodialysisView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000301 /* NewFeatureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewFeatureModels.swift; sourceTree = "<group>"; };
 		CE0000000000000000000104 /* TherapySessionReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapySessionReport.swift; sourceTree = "<group>"; };
@@ -603,6 +605,7 @@
 			isa = PBXGroup;
 			children = (
 				AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */,
+				CE0000000000000000000106 /* IntradialyticEditor.swift */,
 			);
 			path = Hemodialysis;
 			sourceTree = "<group>";
@@ -971,6 +974,7 @@
 				BB0000000000000000000414 /* FDARecallsView.swift in Sources */,
 				BB0000000000000000000416 /* ClinicianDashboardView.swift in Sources */,
 				BB0000000000000000000418 /* DataSharingView.swift in Sources */,
+				CE0000000000000000000206 /* IntradialyticEditor.swift in Sources */,
 				0CB072E3037F41A3B1EB0550 /* HemodialysisView.swift in Sources */,
 				2B735102C7EC4AB9A6F0E89A /* ChemotherapyView.swift in Sources */,
 				CC0000000000000000000602 /* PharmacyModels.swift in Sources */,
