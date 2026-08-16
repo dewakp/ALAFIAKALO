@@ -429,6 +429,11 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
     var bfr by remember { mutableStateOf(editing?.bloodFlowRate?.toInt()?.toString() ?: "") }
     var dfr by remember { mutableStateOf(editing?.dialysateFlowRate?.toInt()?.toString() ?: "") }
     var duration by remember { mutableStateOf(editing?.durationMinutes?.toString() ?: "") }
+    // Wall clocks in the form, datetimes on the wire. Two treatments in one day
+    // are told apart by these, so they are what makes a same-day session
+    // identifiable rather than a suspected duplicate.
+    var startTime by remember { mutableStateOf(clockOf(editing?.actualStartTime)) }
+    var endTime by remember { mutableStateOf(clockOf(editing?.actualEndTime)) }
     var dialVol by remember { mutableStateOf(editing?.dialysateVolumeLiters?.toString() ?: "") }
     var dialLact by remember { mutableStateOf(editing?.dialysateLactateMeq?.toString() ?: "") }
     var dialK by remember { mutableStateOf(editing?.dialysatePotassiumMeq?.toString() ?: "") }
@@ -524,6 +529,20 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 days.drop(4).forEach { d -> FilterChip(dayOfWeek == d, { dayOfWeek = d }, label = { Text(d.take(3), fontSize = 11.sp) }) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    F(startTime, {
+                        startTime = it
+                        minutesBetween(it, endTime)?.let { m -> duration = m.toString() }
+                    }, "Start Time (HH:MM)")
+                }
+                Box(Modifier.weight(1f)) {
+                    F(endTime, {
+                        endTime = it
+                        minutesBetween(startTime, it)?.let { m -> duration = m.toString() }
+                    }, "End Time (HH:MM)")
+                }
             }
             F(duration, { duration = it }, "Duration (min)")
 
@@ -672,7 +691,12 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                         saving = true
                         try {
                             val body = mutableMapOf<String, Any?>(
-                                "therapy_type" to "HEMODIALYSIS", "condition_id" to 14,
+                                // NOT a hardcoded condition id. 14 exists for no
+                                // user in these databases; the web form shipped it
+                                // and the API's ownership check rejected every save
+                                // with "Chronic condition not found". Omitting it is
+                                // valid — the endpoint only verifies an id when sent.
+                                "therapy_type" to "HEMODIALYSIS",
                                 "scheduled_date" to date, "status" to status,
                                 "dialysis_access_type" to accessType,
                             )
@@ -688,6 +712,8 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                             d("fluid_removed_ml", fluidRemoved); d("fluid_to_remove_kg", fluidToRemove)
                             d("blood_flow_rate", bfr); d("dialysate_flow_rate", dfr)
                             i("duration_minutes", duration)
+                            isoAt(date, startTime)?.let { body["actual_start_time"] = it }
+                            isoAt(date, endTime)?.let { body["actual_end_time"] = it }
                             d("dialysate_volume_liters", dialVol); d("dialysate_lactate_meq", dialLact)
                             d("dialysate_potassium_meq", dialK); i("sak_number", sakNum)
                             i("oxygen_saturation", o2)
@@ -814,3 +840,31 @@ private fun Pill(label: String, value: String) {
 
 private fun fmtBP(sys: Int?, dia: Int?): String? =
     if (sys != null && dia != null) "$sys/$dia" else null
+
+
+/** The clock part of a stored session timestamp, for the HH:MM form field. */
+internal fun clockOf(value: String?): String {
+    if (value.isNullOrBlank()) return ""
+    val m = Regex("""T([01]\d|2[0-3]):([0-5]\d)""").find(value)
+    return if (m != null) "${m.groupValues[1]}:${m.groupValues[2]}" else ""
+}
+
+/** "HH:MM" combined with the SESSION's date — editing a 2013 flowsheet must not
+ *  restamp it with today. Returns null when the clock is not a valid time. */
+internal fun isoAt(date: String, clock: String): String? {
+    val m = Regex("""^([01]\d|2[0-3]):([0-5]\d)$""").find(clock.trim()) ?: return null
+    return "${date.take(10)}T${m.groupValues[1]}:${m.groupValues[2]}:00"
+}
+
+/** Minutes between two wall clocks, crossing midnight: 21:00 → 01:00 is four
+ *  hours, not minus twenty. */
+internal fun minutesBetween(start: String, end: String): Int? {
+    val re = Regex("""^([01]\d|2[0-3]):([0-5]\d)$""")
+    val a = re.find(start.trim()) ?: return null
+    val b = re.find(end.trim()) ?: return null
+    val from = a.groupValues[1].toInt() * 60 + a.groupValues[2].toInt()
+    val to = b.groupValues[1].toInt() * 60 + b.groupValues[2].toInt()
+    var mins = to - from
+    if (mins < 0) mins += 24 * 60
+    return mins
+}

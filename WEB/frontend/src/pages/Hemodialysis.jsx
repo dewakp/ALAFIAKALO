@@ -119,6 +119,33 @@ export function normalizeTime(t) {
   return m ? `${m[1]}:${m[2]}` : null;
 }
 
+/**
+ * The clock part of a stored session timestamp, for an <input type="time">.
+ * `actual_start_time` is a full datetime on the wire but a wall clock in the UI.
+ */
+export function timeOnly(value) {
+  if (typeof value !== 'string' || !value) return '';
+  const m = /T([01]\d|2[0-3]):([0-5]\d)/.exec(value);
+  if (m) return `${m[1]}:${m[2]}`;
+  return normalizeTime(value) ?? '';
+}
+
+/**
+ * Minutes between two wall-clock times on the session's date, crossing midnight
+ * when the end is earlier than the start — a treatment that starts 21:00 and
+ * ends 01:00 runs four hours, not minus twenty.
+ */
+export function minutesBetween(startClock, endClock) {
+  const a = normalizeTime(startClock);
+  const b = normalizeTime(endClock);
+  if (!a || !b) return null;
+  const [ah, am] = a.split(':').map(Number);
+  const [bh, bm] = b.split(':').map(Number);
+  let mins = (bh * 60 + bm) - (ah * 60 + am);
+  if (mins < 0) mins += 24 * 60;
+  return mins;
+}
+
 /* ───────── styles ───────── */
 const card = { background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
 const sectionHead = { margin: '24px 0 12px', fontSize: 15, fontWeight: 700, color: '#1565c0', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '2px solid #1565c0', paddingBottom: 4 };
@@ -226,6 +253,27 @@ export default function Hemodialysis() {
       const res = await api.get('/chronic/hd-summary', { params: { days: filter.days } });
       setSummary(res.data);
     } catch (e) { console.error(e); }
+  };
+
+  /**
+   * Start / End are wall clocks in the form and datetimes on the wire, so they
+   * combine with the SESSION's date, not today's — editing a 2013 flowsheet must
+   * not restamp it with this morning.
+   *
+   * Duration is derived from them. Two treatments on one day are told apart by
+   * their start and finish times, so these are the fields that make a same-day
+   * session identifiable rather than a suspected duplicate.
+   */
+  const setSessionTime = (field) => (e) => {
+    const clock = normalizeTime(e.target.value);
+    setFormData(prev => {
+      const day = String(prev.scheduled_date || localToday()).slice(0, 10);
+      const next = { ...prev, [field]: clock ? `${day}T${clock}:00` : '' };
+      const mins = minutesBetween(timeOnly(next.actual_start_time),
+                                  timeOnly(next.actual_end_time));
+      if (mins != null) next.duration_minutes = String(mins);
+      return next;
+    });
   };
 
   const set = (field) => (e) => {
@@ -433,6 +481,10 @@ export default function Hemodialysis() {
             <option value="CANCELLED">Cancelled</option>
           </select>
         </Field>
+        <Input lbl="Start Time" value={timeOnly(formData.actual_start_time)}
+               onChange={setSessionTime('actual_start_time')} type="time" />
+        <Input lbl="End Time" value={timeOnly(formData.actual_end_time)}
+               onChange={setSessionTime('actual_end_time')} type="time" />
         <Input lbl="Duration (min)" value={formData.duration_minutes} onChange={set('duration_minutes')} type="number" />
       </div>
       <div style={{ ...grid3, marginTop: 12 }}>

@@ -32,6 +32,49 @@ final class HemodialysisViewModel {
     var bloodFlowRate = ""
     var dialysateFlowRate = ""
     var durationMinutes = ""
+    // Wall clocks in the form, datetimes on the wire. Two treatments in one day
+    // are told apart by these, so they are what makes a same-day session
+    // identifiable rather than a suspected duplicate.
+    var startClock = ""
+    var endClock = ""
+
+    /// The clock part of a stored session timestamp.
+    static func clock(of value: String?) -> String {
+        guard let value, !value.isEmpty else { return "" }
+        guard let r = value.range(of: #"T([01]\d|2[0-3]):([0-5]\d)"#, options: .regularExpression)
+        else { return "" }
+        return String(value[r].dropFirst())
+    }
+
+    /// "HH:MM" combined with the SESSION's date — editing a 2013 flowsheet must
+    /// not restamp it with today. nil when the clock is not a valid time.
+    static func iso(day: String, clock: String) -> String? {
+        let t = clock.trimmingCharacters(in: .whitespaces)
+        guard t.range(of: #"^([01]\d|2[0-3]):([0-5]\d)$"#, options: .regularExpression) != nil
+        else { return nil }
+        return "\(day)T\(t):00"
+    }
+
+    /// Minutes between two wall clocks, crossing midnight: 21:00 → 01:00 is four
+    /// hours, not minus twenty.
+    static func minutes(from start: String, to end: String) -> Int? {
+        func mins(_ s: String) -> Int? {
+            let parts = s.trimmingCharacters(in: .whitespaces).split(separator: ":")
+            guard parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]),
+                  (0...23).contains(h), (0...59).contains(m) else { return nil }
+            return h * 60 + m
+        }
+        guard let a = mins(start), let b = mins(end) else { return nil }
+        var d = b - a
+        if d < 0 { d += 24 * 60 }
+        return d
+    }
+
+    func deriveDuration() {
+        if let m = Self.minutes(from: startClock, to: endClock) {
+            durationMinutes = String(m)
+        }
+    }
     // Dialysate prescription
     var dialysateVolumeLiters = ""
     var dialysateLactateMeq = ""
@@ -174,6 +217,7 @@ final class HemodialysisViewModel {
         dryWeightKg = ""; previousPostWeightKg = ""; preDialysisWeightKg = ""
         postDialysisWeightKg = ""; fluidRemovedMl = ""; fluidToRemoveKg = ""
         bloodFlowRate = ""; dialysateFlowRate = ""; durationMinutes = ""
+        startClock = ""; endClock = ""
         dialysateVolumeLiters = ""; dialysateLactateMeq = ""; dialysatePotassiumMeq = ""
         sakNumber = ""; needleGauge = "15G"; needleLength = ""; buttonholeTechnique = false
         preSystolicBp = ""; preDiastolicBp = ""; preHeartRate = ""; preTemperature = ""
@@ -213,6 +257,8 @@ final class HemodialysisViewModel {
         bloodFlowRate = s.bloodFlowRate.map { String(Int($0)) } ?? ""
         dialysateFlowRate = s.dialysateFlowRate.map { String(Int($0)) } ?? ""
         durationMinutes = s.durationMinutes.map { String($0) } ?? ""
+        startClock = Self.clock(of: s.actualStartTime)
+        endClock = Self.clock(of: s.actualEndTime)
         dialysateVolumeLiters = s.dialysateVolumeLiters.map { String($0) } ?? ""
         dialysateLactateMeq = s.dialysateLactateMeq.map { String($0) } ?? ""
         dialysatePotassiumMeq = s.dialysatePotassiumMeq.map { String($0) } ?? ""
@@ -286,6 +332,9 @@ final class HemodialysisViewModel {
         body.bloodFlowRate = Double(bloodFlowRate)
         body.dialysateFlowRate = Double(dialysateFlowRate)
         body.durationMinutes = Int(durationMinutes)
+        let day = df.string(from: scheduledDate).prefix(10)
+        body.actualStartTime = Self.iso(day: String(day), clock: startClock)
+        body.actualEndTime = Self.iso(day: String(day), clock: endClock)
         body.dialysateVolumeLiters = Double(dialysateVolumeLiters)
         body.dialysateLactateMeq = Double(dialysateLactateMeq)
         body.dialysatePotassiumMeq = Double(dialysatePotassiumMeq)
@@ -621,6 +670,16 @@ struct HemodialysisView: View {
                         ForEach(HemodialysisViewModel.daysOfWeek, id: \.self) { Text($0) }
                     }
                     HStack {
+                        VStack(alignment: .leading) {
+                            Text("Start Time").font(.caption)
+                            TextField("08:00", text: $vm.startClock)
+                                .onChange(of: vm.startClock) { _, _ in vm.deriveDuration() }
+                        }
+                        VStack(alignment: .leading) {
+                            Text("End Time").font(.caption)
+                            TextField("11:30", text: $vm.endClock)
+                                .onChange(of: vm.endClock) { _, _ in vm.deriveDuration() }
+                        }
                         VStack(alignment: .leading) { Text("Duration (min)").font(.caption); TextField("240", text: $vm.durationMinutes).keyboardType(.numberPad) }
                     }
                 }

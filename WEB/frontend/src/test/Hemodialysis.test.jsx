@@ -75,3 +75,21 @@ describe('normalizeTime', () => {
     }
   });
 });
+
+describe('session start / end times', () => {
+  it('reads the clock out of a stored datetime', async () => {
+    const { timeOnly } = await import('../pages/Hemodialysis');
+    expect(timeOnly('2026-08-15T08:05:00')).toBe('08:05');
+    expect(timeOnly('2026-08-15T08:05:00Z')).toBe('08:05');
+    expect(timeOnly('08:05')).toBe('08:05');
+    for (const v of [null, undefined, '', '—', 0]) expect(timeOnly(v)).toBe('');
+  });
+
+  it('measures a treatment that runs past midnight as four hours, not minus twenty', async () => {
+    const { minutesBetween } = await import('../pages/Hemodialysis');
+    expect(minutesBetween('08:00', '11:30')).toBe(210);
+    expect(minutesBetween('21:00', '01:00')).toBe(240);
+    expect(minutesBetween('08:00', null)).toBeNull();
+    expect(minutesBetween('', '11:30')).toBeNull();
+  });
+});
