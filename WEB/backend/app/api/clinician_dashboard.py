@@ -348,15 +348,19 @@ def _reading_dict(r: IntradialyticReading) -> dict:
     """One intradialytic reading — the points behind the session charts.
 
     The full column set, not a subset: iOS already models this row
-    (`NewFeatureModels.IntradialyticReading`) with `session_id`, `user_id` and a
-    non-optional `reading_time`, so a trimmed payload fails to decode on the
-    device while working fine in the browser. One shape, both clients.
-    `reading_time` is emitted as "" rather than null for the same reason.
+    (`NewFeatureModels.IntradialyticReading`) with `session_id` and `user_id`, so
+    a trimmed payload fails to decode on the device while working fine in the
+    browser. One shape, both clients.
+
+    `reading_time` is emitted as null when it is null. It briefly went out as ""
+    to satisfy a non-optional Swift field — which is the same instinct that made
+    the importer write 00:00:00: pick a value so the type is happy, and lose the
+    fact that nothing was recorded. The clients model it as optional instead.
     """
     return {
         "id": r.id,
         "session_id": r.session_id, "user_id": r.user_id,
-        "reading_time": str(r.reading_time)[:5] if r.reading_time else "",
+        "reading_time": str(r.reading_time)[:5] if r.reading_time else None,
         "reading_number": r.reading_number,
         "systolic_bp": r.systolic_bp, "diastolic_bp": r.diastolic_bp,
         "pulse": r.pulse, "mean_arterial_pressure": r.mean_arterial_pressure,

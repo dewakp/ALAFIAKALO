@@ -246,3 +246,27 @@ async def test_a_reading_cannot_be_edited_across_accounts(client: AsyncClient):
                          json={"session_id": sid, "systolic_bp": 999},
                          headers=_auth(theirs))
     assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_a_reading_without_a_time_is_stored_without_one(client: AsyncClient):
+    """"Not stated" must survive as not stated, not become a measured midnight.
+
+    reading_time was NOT NULL, so the importer filled blanks with 00:00:00 —
+    3664 rows, 22.6% of the table — and those fabricated values then looked like
+    duplicate timepoints.
+    """
+    _, token = await _account(client, "dup-no-time@example.com")
+    sid = (await _create_session(client, token, pre_dialysis_weight_kg=55.1))["id"]
+
+    r = await client.post(f"/api/v1/chronic/therapy-sessions/{sid}/readings",
+                          json={"session_id": sid, "systolic_bp": 120,
+                                "diastolic_bp": 80, "pulse": 70},
+                          headers=_auth(token))
+    assert r.status_code == 201, r.text
+    assert r.json()["reading_time"] is None, "a blank time was given a value"
+
+    rows = (await client.get(f"/api/v1/chronic/therapy-sessions/{sid}/readings",
+                             headers=_auth(token))).json()
+    assert len(rows) == 1
+    assert rows[0]["reading_time"] is None

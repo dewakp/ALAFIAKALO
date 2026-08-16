@@ -555,16 +555,18 @@ def extract_session_data(ws, sheet_name):
 
         if has_data:
             reading_num += 1
+            # A blank time cell stays blank. This used to synthesise one —
+            # `start_time + reading_num hours`, falling back to time(0, 0) when
+            # the start time was unknown, which it always was because it was
+            # being read off the label row. That wrote 3664 readings (22.6% of
+            # the table) at 00:00:00: a fabricated value that plots on the
+            # intradialytic curve, sorts to the front of the flowsheet, and
+            # makes distinct observations look like the same row saved twice.
+            #
+            # An hourly offset is not a measurement either. The column is
+            # nullable (kk001_reading_time_nullable) so "not stated" survives
+            # the import as not stated.
             t = parse_time_value(reading_time)
-            if t is None:
-                # Use session start time offset if no time recorded
-                if start_time:
-                    t = time(
-                        (start_time.hour + reading_num) % 24,
-                        start_time.minute
-                    )
-                else:
-                    t = time(0, 0)
 
             readings.append({
                 'user_id': USER_ID,

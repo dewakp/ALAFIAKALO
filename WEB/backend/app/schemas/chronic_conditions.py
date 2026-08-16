@@ -315,7 +315,7 @@ class TherapySessionResponse(TherapySessionBase):
 # Intradialytic Reading Schemas
 
 class IntradialyticReadingBase(BaseModel):
-    reading_time: time
+    reading_time: Optional[time] = None
     reading_number: Optional[int] = None
     systolic_bp: Optional[int] = None
     diastolic_bp: Optional[int] = None

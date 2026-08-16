@@ -923,7 +923,10 @@ struct IntradialyticReading: Codable, Identifiable {
     let id: Int
     let sessionId: Int
     let userId: Int
-    let readingTime: String
+    /// Optional: a source flowsheet often leaves the time blank. It used to be
+    /// non-optional, which is why the API padded nulls with "" and the importer
+    /// wrote 00:00:00 — both inventing a value so a type would be satisfied.
+    let readingTime: String?
     let readingNumber: Int?
     let systolicBp: Int?
     let diastolicBp: Int?

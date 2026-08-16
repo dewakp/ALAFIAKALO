@@ -284,7 +284,7 @@ private fun HDSessionCard(
                             Column(Modifier.padding(8.dp)) {
                                 readings.forEachIndexed { idx, r ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Text(r.readingTime.take(5), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(40.dp))
+                                        Text(r.readingTime?.take(5) ?: "—", fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(40.dp))
                                         fmtBP(r.systolicBp, r.diastolicBp)?.let { Text("BP $it", fontSize = 11.sp, modifier = Modifier.width(64.dp)) }
                                         r.pulse?.let { Text("P $it", fontSize = 11.sp, modifier = Modifier.width(32.dp)) }
                                         r.bloodFlowRate?.let { Text("BFR ${it.toInt()}", fontSize = 11.sp) }

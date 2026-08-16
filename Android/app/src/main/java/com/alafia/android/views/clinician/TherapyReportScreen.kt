@@ -322,7 +322,7 @@ private fun FactsCard(r: TherapySessionReport) {
  */
 @Composable
 private fun ReadingCharts(readings: List<IntradialyticReading>) {
-    val usable = readings.filter { it.readingTime.isNotBlank() }
+    val usable = readings.filter { !it.readingTime.isNullOrBlank() }
     if (usable.size < 2) {
         Card(Modifier.fillMaxWidth()) {
             Text(
@@ -444,7 +444,7 @@ private fun SignOffCard(
  */
 @Composable
 private fun ReadingsTable(readings: List<IntradialyticReading>) {
-    val usable = readings.filter { it.readingTime.isNotBlank() }
+    val usable = readings.filter { !it.readingTime.isNullOrBlank() }
     if (usable.isEmpty()) return
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
@@ -463,7 +463,7 @@ private fun ReadingsTable(readings: List<IntradialyticReading>) {
                 HorizontalDivider()
                 usable.forEach { r ->
                     Row {
-                        Cell(r.readingTime)
+                        Cell(r.readingTime ?: "—")
                         Cell(if (r.systolicBp != null && r.diastolicBp != null)
                                  "${r.systolicBp}/${r.diastolicBp}" else "—")
                         Cell(r.pulse?.toString() ?: "—")

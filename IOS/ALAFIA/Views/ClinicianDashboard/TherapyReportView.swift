@@ -257,7 +257,7 @@ struct SessionReportView: View {
     /// an axis, and there is never a second y-axis.
     @ViewBuilder
     private func charts(_ readings: [IntradialyticReading]) -> some View {
-        let usable = readings.filter { !$0.readingTime.isEmpty }
+        let usable = readings.filter { !($0.readingTime ?? "").isEmpty }
         if usable.count < 2 {
             Text(usable.isEmpty
                  ? "No intradialytic readings were recorded for this session."
@@ -289,7 +289,7 @@ struct SessionReportView: View {
                     ForEach(Array(present.enumerated()), id: \.offset) { idx, m in
                         ForEach(readings) { r in
                             if let v = m.1(r) {
-                                let t = r.readingTime
+                                let t = r.readingTime ?? "—"
                                 LineMark(x: .value("Time", t), y: .value(m.0, v))
                                     .foregroundStyle(by: .value("Measure", m.0))
                                 PointMark(x: .value("Time", t), y: .value(m.0, v))
@@ -314,7 +314,7 @@ struct SessionReportView: View {
     /// line.
     @ViewBuilder
     private func readingsTable(_ readings: [IntradialyticReading]) -> some View {
-        let usable = readings.filter { !$0.readingTime.isEmpty }
+        let usable = readings.filter { !($0.readingTime ?? "").isEmpty }
         if !usable.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Intradialytic Readings (\(usable.count))")
@@ -329,7 +329,7 @@ struct SessionReportView: View {
                         Divider()
                         ForEach(usable) { r in
                             HStack(spacing: 12) {
-                                cell(r.readingTime)
+                                cell(r.readingTime ?? "—")
                                 cell(r.systolicBp != nil && r.diastolicBp != nil
                                      ? "\(r.systolicBp!)/\(r.diastolicBp!)" : "—")
                                 cell(r.pulse.map(String.init) ?? "—")

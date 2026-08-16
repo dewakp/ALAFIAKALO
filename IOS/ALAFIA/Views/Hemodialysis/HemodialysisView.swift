@@ -565,7 +565,7 @@ struct HemodialysisView: View {
                         Text("Intradialytic Readings").font(.caption).bold().foregroundStyle(.blue)
                         ForEach(Array(readings.enumerated()), id: \.offset) { idx, r in
                             HStack(spacing: 8) {
-                                Text(fmtTime(r.readingTime)).font(.caption2).bold().frame(width: 44, alignment: .leading)
+                                Text(fmtTime(r.readingTime ?? "")).font(.caption2).bold().frame(width: 44, alignment: .leading)
                                 Text("BP \(fmtBP(r.systolicBp, r.diastolicBp))").font(.caption2).frame(width: 70, alignment: .leading)
                                 if let p = r.pulse { Text("P \(p)").font(.caption2).frame(width: 30, alignment: .leading) }
                                 if let bfr = r.bloodFlowRate { Text("BFR \(Int(bfr))").font(.caption2) }

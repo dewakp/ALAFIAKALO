@@ -290,7 +290,10 @@ data class ChronicCondition(
 data class IntradialyticReading(
     val id: Int,
     @SerializedName("session_id") val sessionId: Int,
-    @SerializedName("reading_time") val readingTime: String,
+    // Nullable: a source flowsheet often leaves the time blank. A non-null type
+    // here is the same instinct that made the importer write 00:00:00 — pick a
+    // value so the type is satisfied, and lose the fact that nothing was recorded.
+    @SerializedName("reading_time") val readingTime: String?,
     @SerializedName("reading_number") val readingNumber: Int?,
     @SerializedName("systolic_bp") val systolicBp: Int?,
     @SerializedName("diastolic_bp") val diastolicBp: Int?,

@@ -304,7 +304,12 @@ class IntradialyticReading(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Timestamp
-    reading_time = Column(Time, nullable=False)  # Time of reading during session
+    # Nullable on purpose: a source flowsheet often leaves the time blank, and
+    # a NOT NULL column forced the importer to invent one. It filled 3664 rows
+    # (22.6%) with 00:00:00, which reads as a measured midnight observation and
+    # made distinct readings look like duplicates. "Not stated" must be
+    # recordable as not stated.
+    reading_time = Column(Time, nullable=True)  # Time of reading during session
     reading_number = Column(Integer, nullable=True)  # Sequential reading number
     
     # Blood Pressure & Heart Rate
