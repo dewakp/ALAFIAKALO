@@ -159,8 +159,15 @@ struct StatCard: View {
                 Text(title)
                     .font(.subheadline)
                     .fontWeight(.semibold)
+                    // "Medications" was hyphenated across two lines as
+                    // "Medica-tions" on a 6.9-inch iPhone, in a screenshot bound
+                    // for the App Store. Keep a card title on one line and let
+                    // it shrink a little rather than break a word.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Text(subtitle)
                     .font(.caption)
+                    .lineLimit(2)
                     .foregroundStyle(.secondary)
             }
             
