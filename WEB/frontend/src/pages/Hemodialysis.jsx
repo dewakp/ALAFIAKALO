@@ -92,11 +92,32 @@ const emptyForm = () => ({
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
 const fmtWeight = (w) => w != null ? `${w} kg` : '—';
 const fmtBP = (s, d) => s && d ? `${s}/${d}` : '—';
+/** For DISPLAY only — returns an em-dash when empty. Never feed this to an
+ *  <input>: the form value is POSTed verbatim, and "—" reached the API as
+ *  reading_time, which Pydantic parsed as a timezone sign and rejected with
+ *  "invalid time format, invalid timezone sign" — on a completed flowsheet. */
 const fmtTime = (t) => {
   if (!t) return '—';
   if (typeof t === 'string' && t.includes(':')) return t.substring(0, 5);
   return t;
 };
+
+/**
+ * Canonical "HH:MM" for the API and for form values, or null when the value
+ * cannot be one. ONE parser — display formatting stays in fmtTime above.
+ *
+ * NORMALISE, do not merely validate. An earlier fix checked
+ * `regex.test(t.trim())` and then posted `t`, so "14:30 " passed the guard and
+ * went out with its trailing space. Confirmed against the live endpoint:
+ * "14:30" → 201, "14:30 " → 422 "invalid time format, invalid timezone sign".
+ * Whitespace is invisible in the field, so the value looks well-formed while
+ * being rejected.
+ */
+export function normalizeTime(t) {
+  if (typeof t !== 'string') return null;
+  const m = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?(?:\.\d+)?$/.exec(t.trim());
+  return m ? `${m[1]}:${m[2]}` : null;
+}
 
 /* ───────── styles ───────── */
 const card = { background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
@@ -300,8 +321,11 @@ export default function Hemodialysis() {
 
       // Save readings
       for (const r of readings) {
-        if (!r.reading_time) continue;
-        const readingPayload = { ...r, session_id: sessionId };
+        // Not just truthiness: '—' is truthy and unparseable, and "14:30 "
+        // looks valid while being rejected for its trailing space.
+        const cleanTime = normalizeTime(r.reading_time);
+        if (!cleanTime) continue;
+        const readingPayload = { ...r, reading_time: cleanTime, session_id: sessionId };
         Object.keys(readingPayload).forEach(k => {
           if (readingPayload[k] === '') readingPayload[k] = null;
           if (readingPayload[k] && typeof readingPayload[k] === 'string' && /^\d+\.?\d*$/.test(readingPayload[k])) {
@@ -345,7 +369,7 @@ export default function Hemodialysis() {
     setFormData(f);
     setReadings((session.intradialytic_readings || []).map(r => ({
       ...r,
-      reading_time: fmtTime(r.reading_time),
+      reading_time: normalizeTime(r.reading_time) ?? '',
     })));
     setEditing(session);
     setTab('form');

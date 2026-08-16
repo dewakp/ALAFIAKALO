@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newClinicalNote } from '../pages/Hemodialysis';
+import { newClinicalNote, normalizeTime } from '../pages/Hemodialysis';
 
 /**
  * A session's `clinical_notes` is a LIST of note records; the form field is a
@@ -31,5 +31,47 @@ describe('newClinicalNote', () => {
 
   it('returns empty for whitespace, so no blank note is posted', () => {
     expect(newClinicalNote('   ')).toBe('');
+  });
+});
+
+/**
+ * The em-dash bug: fmtTime() is a DISPLAY formatter that returns "—" when a
+ * value is absent. startEdit used it to populate the form, so a reading with no
+ * time became "—", which was POSTed and rejected by the API:
+ *
+ *   Failed to save session: reading_time: Input should be in a valid time
+ *   format, invalid timezone sign
+ *
+ * Display formatting and form values are not the same job.
+ */
+describe('normalizeTime', () => {
+  it('strips the trailing space that produced "invalid timezone sign"', () => {
+    expect(normalizeTime('14:30 ')).toBe('14:30');
+    expect(normalizeTime(' 14:30')).toBe('14:30');
+    expect(normalizeTime('  14:30  ')).toBe('14:30');
+  });
+
+  it('drops seconds and fractions the field may carry', () => {
+    expect(normalizeTime('14:30:00')).toBe('14:30');
+    expect(normalizeTime('14:30:00.000')).toBe('14:30');
+  });
+
+  it('returns null for values the API rejects', () => {
+    for (const v of ['14:30 AM', '2:30 PM', '14-30', '1430', '14:30-', '—', '', null, undefined]) {
+      expect(normalizeTime(v)).toBeNull();
+    }
+  });
+
+  it('accepts the 24h range and rejects outside it', () => {
+    expect(normalizeTime('00:00')).toBe('00:00');
+    expect(normalizeTime('23:59')).toBe('23:59');
+    expect(normalizeTime('24:00')).toBeNull();
+    expect(normalizeTime('12:60')).toBeNull();
+  });
+
+  it('never returns the display em-dash, for any input', () => {
+    for (const v of [null, undefined, '', '—', 0, [], {}]) {
+      expect(normalizeTime(v)).toBeNull();
+    }
   });
 });

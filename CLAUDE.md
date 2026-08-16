@@ -5,6 +5,26 @@ re-derived from scratch each session, and each re-derivation drifted.
 
 ---
 
+## 0. NEVER GUESS
+
+**Observe, then act.** Do not infer a cause from plausibility, from a similar
+bug you just fixed, or from reading code that looks like it explains the
+symptom. Capture the actual value — the request body, the row, the served
+asset, the log line — and let it name the cause.
+
+A guess that happens to be right still teaches the wrong habit, and a guess that
+is wrong costs a deploy cycle and lands the next failure on the user. On this
+codebase, three production save failures in a row were each "fixed" by reasoning
+about the code path rather than looking at what was actually sent:
+
+- `condition_id: 14` — a hardcoded literal. Verified by querying the table.
+- `clinical_notes` as an array — verified by reading the API response shape.
+- `reading_time` — an em-dash theory that the DATA disproved: zero NULL times,
+  every value a valid `HH:MM:SS`. The theory was tidy and false.
+
+If reproducing takes a browser, a container and a network capture, that is the
+cheap option. The expensive option is shipping and finding out.
+
 ## 1. The database canon (non-negotiable)
 
 > **Deployed (Cloud SQL) is the GOSPEL. Dev must be an exact copy of it.**
