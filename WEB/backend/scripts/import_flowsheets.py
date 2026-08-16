@@ -230,6 +230,24 @@ def parse_session_date(sheet_name, ws):
     return h4_date, session_number
 
 
+def value_under_label(ws, label, search_rows=range(1, 60), max_col=30):
+    """The cell directly beneath a label cell, located by the label's text.
+
+    The flowsheet template puts a caption in one row and its value in the next
+    ("Start Time" in S24, 23:49 in S25). Addressing the caption row returns the
+    caption — a truthy string that then defeats any `or` fallback and parses as
+    nothing. Anchoring on the text survives a template that shifts by a row,
+    which this one has already done once.
+    """
+    target = label.strip().lower()
+    for r in search_rows:
+        for c in range(1, max_col + 1):
+            v = ws.cell(row=r, column=c).value
+            if isinstance(v, str) and v.strip().lower() == target:
+                return ws.cell(row=r + 1, column=c).value
+    return None
+
+
 def parse_time_value(val):
     """Parse a time value from cell."""
     if isinstance(val, time):
@@ -338,9 +356,19 @@ def extract_session_data(ws, sheet_name):
             drugs.append(f"{drug} ({dose})" if dose else drug)
     drugs_str = '; '.join(drugs) if drugs else None
 
-    # Start/Stop times
-    start_time_val = cell(ws, 24, 'S') or cell(ws, 24, 'T')
-    stop_time_val = cell(ws, 24, 'U') or cell(ws, 24, 'V')
+    # Start/Stop times.
+    #
+    # These were read from row 24 — which holds the LABELS, not the values. S24
+    # is the string "Start Time", and a non-empty string is truthy, so the
+    # `or cell(ws, 24, 'T')` fallback never fired and parse_time_value() was
+    # handed "Start Time" and returned None. Every session imported without one:
+    # 22 of 2005 rows had a start time, 21 of them from a single year.
+    #
+    # The values sit one row BELOW their label (S25 = 23:49, U25 = 03:40), so
+    # find the label and read underneath it rather than trusting a row number
+    # that has already been wrong once.
+    start_time_val = value_under_label(ws, 'Start Time', search_rows=range(20, 30))
+    stop_time_val = value_under_label(ws, 'Stop Time', search_rows=range(20, 30))
 
     start_time = parse_time_value(start_time_val)
     stop_time = parse_time_value(stop_time_val)
