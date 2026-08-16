@@ -79,3 +79,41 @@ def test_row_cards_say_how_many_are_not_shown():
     )
     note = board.default_cards(detail, 90)[0]["note"]
     assert "10 records" in note and "4 more below" in note
+
+
+class _Lab:
+    """Just the fields lab_is_abnormal reads."""
+
+    def __init__(self, value=None, low=None, high=None, is_abnormal=None):
+        self.value = value
+        self.reference_range_low = low
+        self.reference_range_high = high
+        self.is_abnormal = is_abnormal
+
+
+def test_the_labs_own_flag_always_wins():
+    """Deriving is a fallback. A lab that says 'normal' is not overruled."""
+    assert board.lab_is_abnormal(_Lab(618, 46, 116, is_abnormal=False)) is False
+    assert board.lab_is_abnormal(_Lab(4.2, 3.4, 4.8, is_abnormal=True)) is True
+
+
+def test_out_of_range_is_derived_when_the_lab_did_not_flag_it():
+    """is_abnormal is NULL on all 422 results in the reference record, and 136
+    of them sit outside their own reference range."""
+    assert board.lab_is_abnormal(_Lab(618, 46, 116)) is True      # Alk Phos
+    assert board.lab_is_abnormal(_Lab(6.0, 3.5, 5.5)) is True     # K+, hyperkalaemia
+    assert board.lab_is_abnormal(_Lab(85, 140, 450)) is True      # platelets, low
+    assert board.lab_is_abnormal(_Lab(4.2, 3.4, 4.8)) is False    # albumin, normal
+
+
+def test_a_one_sided_range_still_flags():
+    assert board.lab_is_abnormal(_Lab(50, None, 33)) is True
+    assert board.lab_is_abnormal(_Lab(20, None, 33)) is False
+    assert board.lab_is_abnormal(_Lab(1, 4.6, None)) is True
+
+
+def test_unknowable_stays_unknown_rather_than_normal():
+    """No range or no value must not read as 'fine' — that is a false negative
+    on a screen a clinician scans for exactly these."""
+    assert board.lab_is_abnormal(_Lab(1.62, None, None)) is None   # BSA Dubois
+    assert board.lab_is_abnormal(_Lab(None, 3.4, 4.8)) is None

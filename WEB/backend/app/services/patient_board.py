@@ -332,6 +332,33 @@ async def _labs_summary(db: AsyncSession, uid: int) -> Summary:
     return Summary(items=items, count=total, last_updated=str(rows[0].test_date))
 
 
+def lab_is_abnormal(result: LabResult) -> bool | None:
+    """Whether a result is out of range — from the lab if it said, else derived.
+
+    `is_abnormal` is NULL on all 422 results in this record, so every consumer
+    that trusted it flagged nothing: 136 of those results fall outside their own
+    reference range, including an alkaline phosphatase of 618 U/L against a
+    46–116 reference. The column is in the schema and the dashboard reads it
+    precisely because scanning a panel unaided is what a clinician should not
+    have to do.
+
+    The source's own flag always wins. Deriving is only a fallback, and callers
+    label it as derived so nobody mistakes it for the lab's assessment.
+    """
+    if result.is_abnormal is not None:
+        return bool(result.is_abnormal)
+    if result.value is None:
+        return None
+    low, high = result.reference_range_low, result.reference_range_high
+    if low is None and high is None:
+        return None
+    if low is not None and result.value < low:
+        return True
+    if high is not None and result.value > high:
+        return True
+    return False
+
+
 async def _labs_detail(db: AsyncSession, uid: int, days: int) -> Detail:
     # Labs deliberately ignore the day window that the daily categories use.
     # They are episodic — a panel drawn every few months, not a daily log — so
@@ -358,8 +385,51 @@ async def _labs_detail(db: AsyncSession, uid: int, days: int) -> Detail:
     # Most-moved tests first: a clinician wants the panel that is changing.
     series.sort(key=lambda s: len(s["points"]), reverse=True)
 
+    # The generic latest/range pair produced 66 items per card here — a panel
+    # dump, not a finding. What a clinician reads first is what is OUT of range,
+    # then the newest draw. Everything else is in the table below.
+    latest_by_test: OrderedDict[str, LabResult] = OrderedDict()
+    for r in reversed(rows):                 # newest first
+        latest_by_test.setdefault(r.test_name, r)
+
+    def _display(r: LabResult) -> str:
+        value = r.value_string or _round(r.value, 2)
+        return f"{value if value is not None else '—'} {r.unit or ''}".strip()
+
+    def _range(r: LabResult) -> str | None:
+        if r.reference_range_low is None and r.reference_range_high is None:
+            return None
+        return f"ref {r.reference_range_low}–{r.reference_range_high}"
+
+    cards: list[dict] = []
+
+    abnormal = [r for r in latest_by_test.values() if lab_is_abnormal(r)]
+    if abnormal:
+        abnormal.sort(key=lambda r: r.test_date, reverse=True)
+        cards.append({
+            "label": f"Out of range ({len(abnormal)})",
+            "items": [{"label": r.test_name, "value": _display(r), "danger": True,
+                       "note": " · ".join(x for x in (_range(r), str(r.test_date)) if x)}
+                      for r in abnormal],
+            "note": "Most recent result per test. Where the lab did not flag it, "
+                    "the value was compared against its own reference range.",
+        })
+
+    newest_date = max((r.test_date for r in latest_by_test.values()), default=None)
+    same_draw = [r for r in latest_by_test.values() if r.test_date == newest_date]
+    if same_draw:
+        cards.append({
+            "label": f"Most recent draw — {newest_date}",
+            "items": [{"label": r.test_name, "value": _display(r),
+                       "danger": bool(lab_is_abnormal(r)), "note": _range(r)}
+                      for r in sorted(same_draw, key=lambda r: r.test_name)],
+            "note": (f"{len(latest_by_test)} tests on file; the rest are in the "
+                     "table below."),
+        })
+
     return Detail(
         series=series,
+        cards=cards,
         columns=[{"key": "date", "label": "Date"}, {"key": "name", "label": "Test"},
                  {"key": "value", "label": "Value"}, {"key": "range", "label": "Reference"}],
         rows=[{
@@ -367,7 +437,7 @@ async def _labs_detail(db: AsyncSession, uid: int, days: int) -> Detail:
             "value": f"{r.value_string or _round(r.value, 2) or '—'} {r.unit or ''}".strip(),
             "range": (f"{r.reference_range_low}–{r.reference_range_high}"
                       if r.reference_range_low is not None else None),
-            "danger": bool(r.is_abnormal),
+            "danger": bool(lab_is_abnormal(r)),
         } for r in reversed(rows)],
     )
 
@@ -1025,7 +1095,51 @@ async def _conditions_summary(db: AsyncSession, uid: int) -> Summary:
 
 async def _conditions_detail(db: AsyncSession, uid: int, days: int) -> Detail:
     rows = await sources.conditions(db, uid)
+
+    # Active first and severity called out. This is the surface that once read
+    # "No active conditions" on a patient carrying End-Stage Renal Disease,
+    # severe and active, with 730 dialysis sessions — because it queried the
+    # table with no writers. The problem list is the first thing a clinician
+    # reads, so it does not get to be a generic row dump.
+    active = [c for c in rows if c.active]
+    resolved = [c for c in rows if not c.active]
+
+    def _item(c) -> dict:
+        bits = [b for b in ((c.severity or "").replace("_", " ").title(),
+                            (c.category or "").replace("_", " ").title()) if b]
+        return {
+            "label": c.name,
+            "value": " · ".join(bits) or "—",
+            "danger": bool(c.is_severe),
+            "note": f"diagnosed {c.diagnosed}" if c.diagnosed else None,
+        }
+
+    cards: list[dict] = []
+    if active:
+        severe = sum(1 for c in active if c.is_severe)
+        cards.append({
+            "label": f"Active problem list ({len(active)})",
+            # Severe first: the ordering is the triage.
+            "items": [_item(c) for c in sorted(active, key=lambda c: not c.is_severe)],
+            "note": (f"{severe} marked severe" if severe else None),
+        })
+    if resolved:
+        cards.append({
+            "label": f"Resolved ({len(resolved)})",
+            "items": [_item(c) for c in resolved],
+        })
+    if not rows:
+        # Not the same statement as "this patient has no conditions".
+        cards.append({
+            "label": "Problem list",
+            "items": [{"label": "No conditions recorded",
+                       "value": "—",
+                       "note": "Nothing on file from either the app or a "
+                               "connected record."}],
+        })
+
     return Detail(
+        cards=cards,
         columns=[{"key": "name", "label": "Condition"}, {"key": "category", "label": "Category"},
                  {"key": "severity", "label": "Severity"},
                  {"key": "diagnosed", "label": "Diagnosed"}, {"key": "status", "label": "Status"}],

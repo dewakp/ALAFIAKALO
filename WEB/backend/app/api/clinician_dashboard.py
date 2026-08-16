@@ -46,7 +46,9 @@ def _lab_dict(lab: LabResult) -> dict:
         "value": lab.value_string or (str(lab.value) if lab.value is not None else None),
         "unit": lab.unit,
         "date": str(lab.test_date),
-        "is_abnormal": bool(lab.is_abnormal),
+        # Derived when the lab did not flag it — see board.lab_is_abnormal.
+        # This column is NULL on every result in this database.
+        "is_abnormal": bool(board.lab_is_abnormal(lab)),
     }
 
 CLINICIAN_ROLES = {
