@@ -18,6 +18,10 @@ struct TherapyReportView: View {
         rows.filter { ($0["session_id"]?.number) != nil }
     }
 
+    /// Counted in SQL. The client mean below is only a fallback — averaging the
+    /// page makes the tile a function of the page size.
+    @State private var summary: TherapySummary?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if sessions.isEmpty {
@@ -25,7 +29,7 @@ struct TherapyReportView: View {
                     .font(.callout).foregroundStyle(.secondary)
             } else {
                 statTiles
-                Text("^[\(sessions.count) session](inflect: true) in the last \(days) days")
+                Text(windowNote)
                     .font(.caption).foregroundStyle(.secondary)
                 ForEach(Array(sessions.enumerated()), id: \.offset) { _, row in
                     NavigationLink {
@@ -38,6 +42,23 @@ struct TherapyReportView: View {
                 }
             }
         }
+        .task(id: days) { await loadSummary() }
+    }
+
+    /// Says what the window is HIDING. 36 of 2005 sessions is a different
+    /// clinical picture from 36 of 36, and the list looks identical.
+    private var windowNote: String {
+        let shown = sessions.count
+        guard let s = summary, s.totalSessionsAllTime > s.totalSessions else {
+            return "^[\(shown) session](inflect: true) in this period"
+        }
+        return "^[\(shown) session](inflect: true) in this period — "
+             + "\(s.totalSessionsAllTime) on record since \(s.earliestSession ?? "—")"
+    }
+
+    private func loadSummary() async {
+        summary = try? await APIClient.shared.get(
+            "/clinician-dashboard/patient/\(patientId)/therapy-summary?days=\(days)")
     }
 
     // MARK: - Tiles
@@ -51,11 +72,11 @@ struct TherapyReportView: View {
     private var statTiles: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                tile("Sessions", "\(sessions.count)", .blue)
-                tile("Avg Pre Wt", fmt(avg("pre_weight_kg"), 1, "kg"), .green)
-                tile("Avg Post Wt", fmt(avg("post_weight_kg"), 1, "kg"), .green)
-                tile("Avg UF", fmt(avg("fluid_removed_ml"), 0, "mL"), .orange)
-                tile("Avg Duration", fmt(avg("duration_minutes"), 0, "min"), .purple)
+                tile("Sessions", "\(summary?.totalSessions ?? sessions.count)", .blue)
+                tile("Avg Pre Wt", fmt(summary?.avgPreWeightKg ?? avg("pre_weight_kg"), 1, "kg"), .green)
+                tile("Avg Post Wt", fmt(summary?.avgPostWeightKg ?? avg("post_weight_kg"), 1, "kg"), .green)
+                tile("Avg UF", fmt(summary?.avgFluidRemovedMl ?? avg("fluid_removed_ml"), 0, "mL"), .orange)
+                tile("Avg Duration", fmt(summary?.avgDurationMin ?? avg("duration_minutes"), 0, "min"), .purple)
             }
         }
     }

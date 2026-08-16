@@ -174,3 +174,32 @@ struct SessionIntegrity: Codable {
         case anchoredCount = "anchored_count"
     }
 }
+
+
+/// Server-computed session tiles — counted in SQL, not averaged over whatever
+/// rows the page happened to return. A tile derived from the page is a function
+/// of the page size, which is how "200 sessions" was once reported for a patient
+/// with 730.
+struct TherapySummary: Codable {
+    let periodDays: Int
+    let totalSessions: Int
+    let totalSessionsAllTime: Int
+    let avgPreWeightKg: Double?
+    let avgPostWeightKg: Double?
+    let avgFluidRemovedMl: Double?
+    let avgDurationMin: Double?
+    let earliestSession: String?
+    let latestSession: String?
+
+    enum CodingKeys: String, CodingKey {
+        case periodDays = "period_days"
+        case totalSessions = "total_sessions"
+        case totalSessionsAllTime = "total_sessions_all_time"
+        case avgPreWeightKg = "avg_pre_weight_kg"
+        case avgPostWeightKg = "avg_post_weight_kg"
+        case avgFluidRemovedMl = "avg_fluid_removed_ml"
+        case avgDurationMin = "avg_duration_min"
+        case earliestSession = "earliest_session"
+        case latestSession = "latest_session"
+    }
+}
