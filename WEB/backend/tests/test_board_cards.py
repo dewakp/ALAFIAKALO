@@ -117,3 +117,43 @@ def test_unknowable_stays_unknown_rather_than_normal():
     on a screen a clinician scans for exactly these."""
     assert board.lab_is_abnormal(_Lab(1.62, None, None)) is None   # BSA Dubois
     assert board.lab_is_abnormal(_Lab(None, 3.4, 4.8)) is None
+
+
+class TestZeroBaseline:
+    """Which measures may start their y-axis at zero.
+
+    Swift Charts includes zero by default. On the reference record that drew
+    pre/post dialysis weights of 71.8-75.2 kg on a 0-80 axis: both lines sat in
+    the top 5% of the plot and read as flat, when the ~2.5 kg interdialytic gain
+    they encode is the entire reason a nephrologist looks at that chart.
+
+    The decision belongs on the server because only the server knows what the
+    measure is; the clients just render what they are told.
+    """
+
+    def test_counts_volumes_and_durations_keep_the_zero_baseline(self):
+        for label, unit in (("Fluid removed", "mL"), ("Session duration", "min"),
+                            ("Calories", "kcal"), ("Protein", "g"),
+                            ("Doses taken", "per day"), ("Water", "mL/day")):
+            assert board.zero_baseline_for(label, unit) is True, f"{label} ({unit})"
+
+    def test_bounded_physiological_measures_do_not(self):
+        for label, unit in (("Pre-dialysis weight", "kg"), ("Post systolic BP", "mmHg"),
+                            ("Pulse", "bpm"), ("Body temperature", "°C"),
+                            ("Overall score", "/100")):
+            assert board.zero_baseline_for(label, unit) is False, f"{label} ({unit})"
+
+    def test_lab_concentrations_do_not(self):
+        """A reference interval nowhere near zero — potassium runs 3.5-5.5."""
+        for label, unit in (("Potassium", "mEq/L"), ("Creatinine", "mg/dL"),
+                            ("Hemoglobin", "g/dL"), ("Ferritin", "ng/mL"),
+                            ("Hematocrit", "%"), ("PTH, Intact", "pg/mL"),
+                            ("Alk Phos", "U/L")):
+            assert board.zero_baseline_for(label, unit) is False, f"{label} ({unit})"
+
+    def test_an_unknown_measure_defaults_to_the_conservative_choice(self):
+        """A zero-based axis is cramped but honest; a fitted one can exaggerate
+        a trend. An unrecognised measure must not silently get the flattering
+        treatment."""
+        assert board.zero_baseline_for("Some New Metric", "widgets") is True
+        assert board.zero_baseline_for("Unlabelled", None) is True

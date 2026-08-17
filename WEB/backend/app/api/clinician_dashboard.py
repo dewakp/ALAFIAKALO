@@ -334,11 +334,19 @@ async def get_patient_category(
     # Categories that build their own cards keep them; everything else gets the
     # same latest/range pair, so no category is left as a bare table.
     cards = detail.cards or board.default_cards(detail, days)
+    # Whether each measure's chart should start at zero is a property of the
+    # MEASURE, and only the server knows what the measure is. Clients used to
+    # guess, and Swift Charts' default put a 71.8-75.2 kg weight range on a 0-80
+    # axis, where it read as a flat line.
+    series = [
+        {**s, "zero_baseline": board.zero_baseline_for(s.get("label", ""), s.get("unit"))}
+        for s in detail.series
+    ]
     return {
         "patient": {"user_id": patient.id, "full_name": patient.full_name},
         "key": cat.key, "label": cat.label, "icon": cat.icon, "days": days,
         "cards": cards,
-        "series": detail.series, "columns": detail.columns, "rows": detail.rows,
+        "series": series, "columns": detail.columns, "rows": detail.rows,
     }
 
 

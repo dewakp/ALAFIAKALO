@@ -386,8 +386,18 @@ private fun TrendCard(g: SeriesGroup) {
             Canvas(Modifier.fillMaxWidth().height(180.dp)) {
                 val values = g.series.flatMap { s -> s.points.mapNotNull { it.value } }
                 if (values.isEmpty()) return@Canvas
-                val yMin = values.min()
-                val yMax = values.max()
+                // Zero belongs on a count or a volume. On a bounded measure it
+                // destroys the signal: 71.8-75.2 kg drawn from 0 is a flat line,
+                // and the ~2.5 kg interdialytic gain is why the chart exists.
+                // A group shares a unit, so one member needing a fitted axis
+                // fits the whole plot.
+                val zeroBased = g.series.all { it.zeroBaseline ?: true }
+                val dataMin = values.min()
+                val dataMax = values.max()
+                val span = dataMax - dataMin
+                val pad = if (span > 0) span * 0.15 else maxOf(kotlin.math.abs(dataMax) * 0.05, 1.0)
+                val yMin = if (zeroBased) 0.0 else dataMin - pad
+                val yMax = if (zeroBased) (if (dataMax > 0) dataMax * 1.05 else 1.0) else dataMax + pad
                 val range = if (yMax - yMin > 0.0001) yMax - yMin else 1.0
 
                 for (i in 0..4) {

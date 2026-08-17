@@ -934,10 +934,13 @@ data class PatientBoardResponse(
 
 data class TrendPoint(val date: String = "", val value: Double? = null)
 
+/** `zeroBaseline` is decided server-side: only the server knows what the
+ *  measure is. Absent = true, the conservative default. */
 data class TrendSeries(
     val label: String = "",
     val unit: String? = null,
-    val points: List<TrendPoint> = emptyList()
+    val points: List<TrendPoint> = emptyList(),
+    @SerializedName("zero_baseline") val zeroBaseline: Boolean? = null
 )
 
 data class BoardColumn(val key: String = "", val label: String = "")

@@ -95,6 +95,54 @@ def _window(days: int) -> date:
     return date.today() - timedelta(days=days)
 
 
+#: Units where zero is a real quantity, so an axis starting anywhere else
+#: misleads: none of it, twice as much, half as much all mean something.
+_ZERO_MEANINGFUL_UNITS = {
+    "mL", "L", "mg", "mcg", "g", "kcal", "IU", "min", "minutes", "steps",
+    "per day", "count", "sessions", "mL/min", "mg/day", "mcg/day", "g/day",
+    "kcal/day", "mL/day", "IU/day",
+}
+
+
+#: Concentrations and ratios. A lab result lives inside a reference interval
+#: that is nowhere near zero — potassium runs 3.5-5.5 mEq/L — so a zero-based
+#: axis compresses the entire clinically meaningful range into a sliver.
+_CONCENTRATION_UNITS = {
+    "mEq/L", "mmol/L", "mg/dL", "g/dL", "ng/mL", "pg/mL", "mcg/dL", "µg/dL",
+    "U/L", "IU/L", "%", "ratio", "mg/L", "ng/dL", "mIU/L", "sq m", "Calc",
+}
+
+
+def zero_baseline_for(label: str, unit: str | None) -> bool:
+    """Whether this measure's chart should start its y-axis at zero.
+
+    A zero-based axis is right for counts, volumes and durations — fluid
+    removed, calories, minutes — where zero is a real value and the ratio
+    between points is the point.
+
+    It is WRONG for a bounded physiological measure. Body weight plotted 0-80
+    put a 71.8-75.2 kg range in the top 5% of the plot: the two lines looked
+    flat, when the 2.5 kg interdialytic gain they encode is exactly what a
+    nephrologist reads that chart for. Same for blood pressure, temperature,
+    pulse and most lab values — nobody's sodium is near zero, and pretending
+    the axis should reach it throws away the whole signal.
+    """
+    u = (unit or "").strip()
+    if u in _CONCENTRATION_UNITS:
+        return False
+    if u in _ZERO_MEANINGFUL_UNITS:
+        return True
+    text = f"{label} {u}".lower()
+    if any(w in text for w in ("weight", "bp", "pressure", "mmhg", "temperature",
+                               "°c", "°f", "pulse", "bpm", "heart rate", "spo2",
+                               "saturation", "ph", "score", "/100")):
+        return False
+    # Anything not recognised keeps the zero baseline: a chart that starts at
+    # zero is honest but cramped, whereas one that does not can exaggerate a
+    # trend. Default to the conservative error.
+    return True
+
+
 def default_cards(detail: "Detail", days: int) -> list[dict]:
     """Latest value and in-period range for every measure a category trends.
 

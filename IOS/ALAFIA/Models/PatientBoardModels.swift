@@ -106,6 +106,16 @@ struct TrendSeries: Codable, Hashable, Identifiable {
     let label: String
     let unit: String?
     let points: [TrendPoint]
+    /// Whether this measure's axis should start at zero. Decided server-side,
+    /// because only the server knows what the measure IS. Absent = true, which
+    /// is the conservative default: a zero-based axis is cramped but honest,
+    /// while a fitted one can exaggerate a trend.
+    let zeroBaseline: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case label, unit, points
+        case zeroBaseline = "zero_baseline"
+    }
 }
 
 struct BoardColumn: Codable, Hashable, Identifiable {

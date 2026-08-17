@@ -86,7 +86,8 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
     if (manySeries) {
       const chosen = new Set(picked || []);
       return data.series.filter(s => chosen.has(s.label))
-        .map(s => ({ unit: s.unit || '', series: [s] }));
+        .map(s => ({ unit: s.unit || '', series: [s],
+                     zeroBaseline: s.zero_baseline !== false }));
     }
 
     const byUnit = new Map();
@@ -99,7 +100,12 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
     const out = [];
     byUnit.forEach((series, unit) => {
       for (let i = 0; i < series.length; i += MAX_SERIES_PER_CHART) {
-        out.push({ unit, series: series.slice(i, i + MAX_SERIES_PER_CHART) });
+        const slice = series.slice(i, i + MAX_SERIES_PER_CHART);
+        // A group shares a unit, so its members agree on this; if any member
+        // says the axis must not start at zero, the whole plot honours that —
+        // mixing the two on one axis would misrepresent whichever lost.
+        out.push({ unit, series: slice,
+                   zeroBaseline: slice.every(x => x.zero_baseline !== false) });
       }
     });
     return out;
@@ -295,6 +301,12 @@ function TrendChart({ group, isDark }) {
             <YAxis
               tick={{ fontSize: 11, fill: CHART_INK.axis }}
               stroke={CHART_INK.grid} width={48}
+              // Zero belongs on a count or a volume, where it is a real value.
+              // On a bounded measure it destroys the signal: a 71.8-75.2 kg
+              // weight range drawn from 0 looks like a flat line, and the 2.5 kg
+              // interdialytic gain it encodes is the whole reason to plot it.
+              domain={group.zeroBaseline ? [0, 'auto'] : ['auto', 'auto']}
+              allowDataOverflow={false}
             />
             <Tooltip
               labelFormatter={fmtDate}

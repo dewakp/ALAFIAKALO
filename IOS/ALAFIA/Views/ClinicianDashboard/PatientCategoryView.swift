@@ -159,6 +159,28 @@ struct PatientCategoryView: View {
         }
     }
 
+    /// The y-range for a plot.
+    ///
+    /// Swift Charts includes zero by default, which is right for a count or a
+    /// volume and wrong for a bounded measure: pre/post dialysis weights of
+    /// 71.8-75.2 kg were drawn on a 0-80 axis, squashed into the top 5% of the
+    /// plot and reading as flat — when the ~2.5 kg interdialytic gain is exactly
+    /// what the chart exists to show.
+    ///
+    /// A group shares a unit, so if ANY member needs a fitted axis the whole
+    /// plot gets one; mixing the two on one axis misrepresents whichever lost.
+    private static func yDomain(for series: [TrendSeries]) -> ClosedRange<Double> {
+        let values = series.flatMap { $0.points.compactMap(\.value) }
+        guard let lo = values.min(), let hi = values.max() else { return 0...1 }
+        let zeroBased = series.allSatisfy { $0.zeroBaseline ?? true }
+        if zeroBased { return 0...(hi > 0 ? hi * 1.05 : 1) }
+        // A flat series still needs a visible band, or it collapses to a line
+        // on the axis and the reader cannot tell stable from missing.
+        let span = hi - lo
+        let pad = span > 0 ? span * 0.15 : max(abs(hi) * 0.05, 1)
+        return (lo - pad)...(hi + pad)
+    }
+
     private func chartCard(_ g: (unit: String, series: [TrendSeries])) -> some View {
         let single = g.series.count == 1
         let unitSuffix = g.unit.isEmpty ? "" : " (\(g.unit))"
@@ -186,6 +208,7 @@ struct PatientCategoryView: View {
             }
             .chartForegroundStyleScale(range: Array(Self.palette.prefix(max(g.series.count, 1))))
             .chartLegend(single ? .hidden : .visible)
+            .chartYScale(domain: Self.yDomain(for: g.series))
             .frame(height: 200)
         }
         .padding(12)

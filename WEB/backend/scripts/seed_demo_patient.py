@@ -310,7 +310,12 @@ def seed_medications(cur, uid: int) -> tuple[int, int]:
             """INSERT INTO medications
                  (user_id, name, dosage, frequency, is_active, start_date,
                   route, source, created_at)
-               VALUES (%s,%s,%s,%s,TRUE,%s,'oral','demo',NOW())""",
+               -- source is USER-VISIBLE: the medications screen renders it as
+               -- "⤵ Imported · <source>". Writing 'demo' there put "Imported ·
+               -- demo" on every drug in an App Store screenshot. NULL renders
+               -- as a plain entry, which is what a patient-entered medication
+               -- looks like.
+               VALUES (%s,%s,%s,%s,TRUE,%s,'oral',NULL,NOW())""",
             (uid, name, dose, freq, date.today() - timedelta(days=400)))
         per_day = 3 if "Three" in freq else 1
         for d in range(60):
