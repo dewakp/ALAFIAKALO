@@ -496,6 +496,28 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
     var clinicalNotes by remember { mutableStateOf(editing?.clinicalNotes ?: "") }
     var patientNotes by remember { mutableStateOf(editing?.patientNotes ?: "") }
 
+    // Intradialytic readings. Kept as their own list rather than folded into the
+    // session body: they are separate rows with their own ids, and it is those
+    // ids that decide PUT vs POST when the grid is saved.
+    val readings = remember { mutableStateListOf<EditableReading>() }
+    val removedReadingIds = remember { mutableStateListOf<Int>() }
+    var readingsError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(editing?.id) {
+        readings.clear(); removedReadingIds.clear(); readingsError = null
+        val id = editing?.id ?: return@LaunchedEffect
+        try {
+            ApiClient.getApiService().getIntradialyticReadings(id)
+                .sortedBy { it.readingTime ?: "" }
+                .forEach { readings.add(EditableReading.from(it)) }
+        } catch (e: Exception) {
+            // An error is not an empty state: showing a blank grid here would
+            // invite the user to re-enter readings that already exist, and the
+            // save would then duplicate the whole flowsheet.
+            readingsError = ErrorUtil.userMessage(e)
+        }
+    }
+
     val accessTypes = listOf("AV Fistula", "AV Graft", "Central Catheter", "Buttonhole")
     val statuses = listOf("SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED")
     val gauges = listOf("15G", "16G", "17G")
@@ -683,6 +705,19 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             Spacer(Modifier.height(4.dp))
             OutlinedTextField(patientNotes, { patientNotes = it }, label = { Text("Patient Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
 
+            // Intradialytic readings
+            SectionHeader("Intradialytic Readings")
+            val loadFailed = readingsError
+            if (loadFailed != null) {
+                Text(
+                    "Could not load existing readings: $loadFailed. " +
+                        "Editing them here is disabled so the saved ones are not duplicated.",
+                    fontSize = 12.sp, color = MaterialTheme.colorScheme.error,
+                )
+            } else {
+                IntradialyticEditor(readings, removedReadingIds)
+            }
+
             Spacer(Modifier.height(16.dp))
 
             Button(
@@ -746,10 +781,20 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                             s("side_effects", sideEffects); s("clinical_notes", clinicalNotes)
                             s("patient_notes", patientNotes)
 
-                            if (editing != null) {
+                            val saved = if (editing != null) {
                                 ApiClient.getApiService().updateTherapySession(editing.id, body)
                             } else {
+                                // The id comes back from the server — a new session
+                                // has none until then, and the readings need it.
                                 ApiClient.getApiService().createTherapySession(body)
+                            }
+                            // Only when the grid is trustworthy. If the existing
+                            // readings failed to load, the list on screen is not
+                            // the session's readings and writing it would append a
+                            // second copy of the flowsheet.
+                            if (readingsError == null) {
+                                persistReadings(saved.id, readings.toList(),
+                                                removedReadingIds.toList())
                             }
                             onSaved()
                         } catch (e: Exception) {

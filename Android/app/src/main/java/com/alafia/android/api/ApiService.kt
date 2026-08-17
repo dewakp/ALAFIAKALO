@@ -295,6 +295,15 @@ interface ApiService {
         @Body reading: Map<String, Any?>
     ): IntradialyticReading
 
+    // A row that already exists is PUT, never re-POSTed. Re-posting an edited row
+    // is how a corrected flowsheet GREW: the amended values differ from the stored
+    // ones, so the server had no way to see it as the same reading and kept both.
+    @PUT("chronic/readings/{id}")
+    suspend fun updateIntradialyticReading(
+        @Path("id") id: Int,
+        @Body reading: Map<String, Any?>
+    ): IntradialyticReading
+
     @DELETE("chronic/readings/{id}")
     suspend fun deleteIntradialyticReading(@Path("id") id: Int)
 
