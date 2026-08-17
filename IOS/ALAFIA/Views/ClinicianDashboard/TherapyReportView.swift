@@ -298,6 +298,22 @@ struct SessionReportView: View {
         }
     }
 
+    /// Zero belongs on a volume, not on a blood pressure.
+    private static func readingDomain(
+        _ measures: [(String, (IntradialyticReading) -> Double?)],
+        _ readings: [IntradialyticReading],
+        unit title: String
+    ) -> ClosedRange<Double> {
+        let values = readings.flatMap { r in measures.compactMap { $0.1(r) } }
+        guard let lo = values.min(), let hi = values.max() else { return 0...1 }
+        // UF removed is a cumulative volume: zero is where the session started.
+        let zeroBased = title.contains("mL") || title.lowercased().contains("uf")
+        if zeroBased { return 0...(hi > 0 ? hi * 1.05 : 1) }
+        let span = hi - lo
+        let pad = span > 0 ? span * 0.15 : max(abs(hi) * 0.05, 1)
+        return (lo - pad)...(hi + pad)
+    }
+
     @ViewBuilder
     private func chartCard(_ title: String,
                            _ readings: [IntradialyticReading],
@@ -321,6 +337,12 @@ struct SessionReportView: View {
                     }
                 }
                 .chartLegend(.visible)
+                // Same rule as the category charts: BP and pulse are bounded
+                // measures whose variation IS the finding — an intradialytic
+                // systolic falling 158 -> 105 is the hypotension a nephrologist
+                // is looking for, and a 0-based axis flattens it. UF volume is a
+                // real quantity, so zero belongs there.
+                .chartYScale(domain: Self.readingDomain(present, readings, unit: title))
                 .frame(height: 190)
             }
             .padding(12)

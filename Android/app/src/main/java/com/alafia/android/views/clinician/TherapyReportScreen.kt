@@ -360,7 +360,13 @@ private fun ReadingChart(title: String, series: List<Pair<String, List<Double?>>
             Canvas(Modifier.fillMaxWidth().height(170.dp)) {
                 val all = present.flatMap { it.second.filterNotNull() }
                 if (all.isEmpty()) return@Canvas
-                val yMin = all.min(); val yMax = all.max()
+                // Zero belongs on a cumulative volume, not on a blood pressure.
+                val zeroBased = title.contains("mL")
+                val dataMin = all.min(); val dataMax = all.max()
+                val span = dataMax - dataMin
+                val pad = if (span > 0) span * 0.15 else maxOf(kotlin.math.abs(dataMax) * 0.05, 1.0)
+                val yMin = if (zeroBased) 0.0 else dataMin - pad
+                val yMax = if (zeroBased) (if (dataMax > 0) dataMax * 1.05 else 1.0) else dataMax + pad
                 val range = if (yMax - yMin > 0.0001) yMax - yMin else 1.0
                 for (i in 0..4) {
                     val y = size.height * i / 4f

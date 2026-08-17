@@ -444,7 +444,12 @@ function IntradialyticCharts({ readings, isDark }) {
               <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
                 <CartesianGrid stroke={CHART_INK.grid} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="reading_time" stroke={CHART_INK.axis} fontSize={12} />
-                <YAxis stroke={CHART_INK.axis} fontSize={12} width={48} />
+                {/* Zero belongs on a cumulative volume, not on a blood
+                    pressure: an intradialytic systolic falling 158 -> 105 is
+                    the hypotension being looked for, and a 0-based axis
+                    flattens it. */}
+                <YAxis stroke={CHART_INK.axis} fontSize={12} width={48}
+                       domain={g.unit === 'mL' ? [0, 'auto'] : ['auto', 'auto']} />
                 <Tooltip />
                 <Legend />
                 {present.map(([k, label], i) => (
