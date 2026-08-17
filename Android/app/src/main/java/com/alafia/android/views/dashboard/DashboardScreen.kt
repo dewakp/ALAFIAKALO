@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.alafia.android.api.ApiClient
+import com.alafia.android.views.main.CLINICIAN_ROLES
+import com.alafia.android.views.main.ClinicianModeState
 import com.alafia.android.schemas.UserSchema
 import com.alafia.android.schemas.UserUpdateRequest
 import kotlinx.coroutines.launch
@@ -50,6 +52,18 @@ fun DashboardScreen(navController: NavController? = null) {
             TopAppBar(
                 title = { Text("Dashboard") },
                 actions = {
+                    // Clinician mode belongs where a clinician starts their day.
+                    // It used to exist only as one tile among thirty in the More
+                    // grid, which meant a physician had to know it was there to
+                    // find it. Gated on the roles the account actually holds, so
+                    // it is absent — not disabled — for everyone else.
+                    val roles = (user?.active_roles ?: emptyList()) +
+                        listOfNotNull(user?.primary_role)
+                    if (roles.any { it in CLINICIAN_ROLES }) {
+                        IconButton(onClick = { ClinicianModeState.enter(roles) }) {
+                            Icon(Icons.Default.MedicalServices, "Clinician mode")
+                        }
+                    }
                     IconButton(onClick = { showProfile = true }) {
                         Icon(Icons.Default.Person, "Profile")
                     }
