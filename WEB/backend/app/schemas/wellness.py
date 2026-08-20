@@ -334,21 +334,106 @@ class DosageVerificationResponse(BaseModel):
     precautions: list[str] = []
 
 
-# ── PDF Tools ────────────────────────────────────────────────
+# ── PDF Tools / document import ──────────────────────────────
+#
+# Field names here are the ones web, iOS and Android already decode. They were
+# previously served under different names (doctor_name, raw_text, items[].name),
+# so every client rendered blanks even when a parse succeeded.
+
+class LabReportItem(BaseModel):
+    test_name: str
+    value: str | None = None          # string: carries "< 9" and "Error" intact
+    unit: str | None = None
+    reference_range: str | None = None
+    is_abnormal: bool | None = None
+    category: str | None = None
+    test_date: str | None = None
+    confidence: float | None = None
+    source_label: str | None = None   # what the document literally said
+    dedupe_status: str | None = None  # new | duplicate | conflict
+    item_id: int | None = None
+    accepted: bool | None = None
+    note: str | None = None
+
+
 class LabReportParseResponse(BaseModel):
-    panel_name: str | None = None
-    lab_name: str | None = None
-    doctor_name: str | None = None
+    patient_name: str | None = None
     report_date: str | None = None
-    items: list[dict] = []
-    raw_text: str | None = None
+    lab_name: str | None = None
+    ordering_physician: str | None = None
+    items: list[LabReportItem] = []
+    raw_text_preview: str | None = None
     parsing_notes: list[str] = []
+
+    # Import + classification context.
+    import_id: int | None = None
+    doc_type: str | None = None
+    doc_type_confidence: float | None = None
+    confidence: float | None = None
+    target_table: str | None = None
+    page_count: int | None = None
+    #: Set when nothing could be read. Clients must show this rather than an
+    #: empty table — an error and an empty result mean opposite things.
+    error: str | None = None
+    already_imported: bool = False
+
+
+class DocumentImportSummary(BaseModel):
+    id: int
+    filename: str | None = None
+    doc_type: str | None = None
+    status: str
+    page_count: int | None = None
+    parse_confidence: float | None = None
+    report_date: str | None = None
+    lab_name: str | None = None
+    item_count: int = 0
+    new_count: int = 0
+    duplicate_count: int = 0
+    conflict_count: int = 0
+    created_at: str | None = None
+    error_detail: str | None = None
+
+
+class DocumentImportDetail(DocumentImportSummary):
+    patient_name: str | None = None
+    ordering_provider: str | None = None
+    target_table: str | None = None
+    layout_kind: str | None = None
+    extraction_method: str | None = None
+    notes: list[str] = []
+    items: list[LabReportItem] = []
+
+
+class ConfirmImportRequest(BaseModel):
+    #: Item ids to write. Omit to use the staged decisions, which already
+    #: exclude duplicates.
+    accepted_item_ids: list[int] | None = None
+
+
+class ConfirmImportResponse(BaseModel):
+    import_id: int
+    status: str
+    imported: dict[str, int] = {}
+    total_imported: int = 0
+    message: str | None = None
 
 
 class FlowsheetPDFRequest(BaseModel):
-    session_id: int
-    session_type: str = "hemodialysis"  # hemodialysis, peritoneal_dialysis
+    session_type: str = "hemodialysis"   # hemodialysis, peritoneal_dialysis
+    days: int = 30
+    #: Optional: render one session instead of a date range.
+    session_id: int | None = None
     include_vitals_chart: bool = True
+
+
+class FlowsheetResponse(BaseModel):
+    title: str
+    generated_at: str
+    content: str
+    session_count: int
+    #: Where to fetch the same report as a PDF.
+    pdf_url: str | None = None
 
 
 # ── FDA Recalls ──────────────────────────────────────────────

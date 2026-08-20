@@ -5,23 +5,29 @@ import UniformTypeIdentifiers
 
 @Observable
 final class PdfToolsViewModel {
-    enum Tab: String, CaseIterable { case parse = "Parse Report"; case flowsheet = "Flowsheet" }
+    enum Tab: String, CaseIterable { case parse = "Import"; case flowsheet = "Flowsheet" }
 
     var selectedTab: Tab = .parse
 
-    // Parse
+    // Import
     var showDocPicker = false
     var selectedFileName: String?
     var selectedFileData: Data?
     var parseResult: LabReportParseResponse?
     var isParsing = false
     var showRawText = false
+    /// Item ids the patient has chosen to import.
+    var selectedItemIds: Set<Int> = []
+    var isImporting = false
+    var importMessage: String?
 
     // Flowsheet
     var sessionType = "hemodialysis"
     var flowsheetDays: Int = 7
     var flowsheetResult: FlowsheetResponse?
     var isGenerating = false
+    var isDownloading = false
+    var sharePdfURL: URL?
 
     var errorMessage: String?
 
@@ -29,19 +35,108 @@ final class PdfToolsViewModel {
 
     // MARK: - Parse Upload
 
+    /// Reads the document and stages what it found. Writes nothing — the
+    /// clinical tables are only touched by `confirmImport`.
     func parseLabReport() async {
         guard let data = selectedFileData, let name = selectedFileName else { return }
-        isParsing = true; errorMessage = nil
+        isParsing = true; errorMessage = nil; importMessage = nil
         do {
-            parseResult = try await uploadFile(data, fileName: name, to: "/pdf/parse-lab-report")
+            let result: LabReportParseResponse = try await uploadFile(
+                data, fileName: name, to: "/pdf/parse-document"
+            )
+            parseResult = result
+            // Pre-tick what the server judged safe; duplicates stay off so
+            // confirming never silently writes a second copy of a reading.
+            selectedItemIds = Set((result.items ?? []).compactMap { $0.accepted == true ? $0.itemId : nil })
         } catch { errorMessage = error.localizedDescription }
         isParsing = false
+    }
+
+    func toggle(_ itemId: Int) {
+        if selectedItemIds.contains(itemId) { selectedItemIds.remove(itemId) }
+        else { selectedItemIds.insert(itemId) }
+    }
+
+    func confirmImport() async {
+        guard let importId = parseResult?.importId, !selectedItemIds.isEmpty else { return }
+        isImporting = true; errorMessage = nil
+        do {
+            let body: [String: Any] = ["accepted_item_ids": Array(selectedItemIds).sorted()]
+            let response: ConfirmImportResponse = try await postJSON(
+                body, to: "/pdf/imports/\(importId)/confirm"
+            )
+            importMessage = response.message
+        } catch { errorMessage = error.localizedDescription }
+        isImporting = false
+    }
+
+    func discardImport() async {
+        guard let importId = parseResult?.importId else { return }
+        _ = try? await postJSON([:], to: "/pdf/imports/\(importId)/reject") as ConfirmImportResponse
+        parseResult = nil
+        selectedItemIds = []
+        importMessage = nil
+        selectedFileData = nil
+        selectedFileName = nil
+    }
+
+    // MARK: - PDF download
+
+    /// Fetches the report as a PDF and writes it to a temporary file so it can
+    /// go through the share sheet.
+    func downloadFlowsheetPdf() async {
+        isDownloading = true; errorMessage = nil
+        do {
+            var components = URLComponents(string: "\(AppConfig.baseURL)/pdf/reports/flowsheet.pdf")!
+            components.queryItems = [
+                URLQueryItem(name: "session_type", value: sessionType),
+                URLQueryItem(name: "days", value: String(flowsheetDays)),
+            ]
+            var request = URLRequest(url: components.url!)
+            if let token = KeychainHelper.get(key: AppConfig.tokenKey) {
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                throw APIError.invalidResponse
+            }
+            let name = "flowsheet_\(sessionType)_\(Int(Date().timeIntervalSince1970)).pdf"
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+            try data.write(to: url)
+            sharePdfURL = url
+        } catch { errorMessage = error.localizedDescription }
+        isDownloading = false
+    }
+
+    // MARK: - JSON POST
+
+    private func postJSON<T: Decodable>(_ body: [String: Any], to path: String) async throws -> T {
+        let url = URL(string: "\(AppConfig.baseURL)\(path)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = KeychainHelper.get(key: AppConfig.tokenKey) {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            if let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
+                throw APIError.clientError(detail.detail)
+            }
+            throw APIError.invalidResponse
+        }
+        return try JSONDecoder().decode(T.self, from: data)
     }
 
     // MARK: - Generate Flowsheet
 
     func generateFlowsheet() async {
         isGenerating = true; errorMessage = nil
+        // Drop any PDF from a previous run — it was built for different
+        // parameters and sharing it would hand over the wrong report.
+        sharePdfURL = nil
         do {
             let body: [String: Any] = ["session_type": sessionType, "days": flowsheetDays]
             let jsonData = try JSONSerialization.data(withJSONObject: body)
@@ -172,6 +267,11 @@ struct PdfToolsView: View {
 
     private var parseTab: some View {
         VStack(spacing: 16) {
+            Text("Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             Button {
                 vm.showDocPicker = true
             } label: {
@@ -183,62 +283,97 @@ struct PdfToolsView: View {
                     .cornerRadius(10)
             }
 
-            LKButton(title: "Parse Lab Report", isLoading: vm.isParsing) {
+            LKButton(title: "Read Document", isLoading: vm.isParsing) {
                 Task { await vm.parseLabReport() }
             }
             .disabled(vm.selectedFileData == nil)
 
+            if let message = vm.importMessage {
+                banner(message, systemImage: "checkmark.circle.fill", tint: .green)
+            }
+
             if let result = vm.parseResult {
+                // A document that could not be read must say so. An empty list
+                // here would read as "the document contained no results".
+                if let error = result.error {
+                    banner(error, systemImage: "exclamationmark.triangle.fill", tint: .orange)
+                }
+                if result.alreadyImported == true {
+                    banner("You have uploaded this file before — showing what was read then.",
+                           systemImage: "info.circle.fill", tint: .blue)
+                }
                 parseResultCard(result)
             }
         }
         .padding()
     }
 
+    private func banner(_ text: String, systemImage: String, tint: Color) -> some View {
+        Label(text, systemImage: systemImage)
+            .font(.caption)
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(tint.opacity(0.12))
+            .cornerRadius(8)
+    }
+
     private func parseResultCard(_ result: LabReportParseResponse) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Parsed Results").font(.headline)
+            Text(docTypeLabel(result.docType)).font(.headline)
 
-            // Patient info
             Group {
                 if let name = result.patientName { infoRow("Patient", value: name) }
                 if let date = result.reportDate { infoRow("Date", value: date) }
                 if let lab = result.labName { infoRow("Lab", value: lab) }
                 if let doc = result.orderingPhysician { infoRow("Physician", value: doc) }
+                if let confidence = result.confidence {
+                    infoRow("Confidence", value: "\(Int(confidence * 100))%")
+                }
+            }
+
+            if let notes = result.parsingNotes, !notes.isEmpty {
+                ForEach(notes, id: \.self) { note in
+                    Text("• \(note)").font(.caption2).foregroundStyle(.secondary)
+                }
             }
 
             if let items = result.items, !items.isEmpty {
                 Divider()
-                Text("Lab Results").font(.subheadline).fontWeight(.semibold)
-
-                ForEach(items.indices, id: \.self) { idx in
-                    let item = items[idx]
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(item.testName ?? "Unknown")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(item.isAbnormal == true ? .red : .primary)
-                            if let ref = item.referenceRange {
-                                Text("Ref: \(ref)")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing) {
-                            Text("\(item.value ?? "–") \(item.unit ?? "")")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(item.isAbnormal == true ? .red : .primary)
-                        }
+                HStack {
+                    Text("\(items.count) reading\(items.count == 1 ? "" : "s") found")
+                        .font(.subheadline).fontWeight(.semibold)
+                    Spacer()
+                    if result.canImport && vm.importMessage == nil {
+                        Text("\(vm.selectedItemIds.count) selected")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 2)
-                    if idx < items.count - 1 { Divider() }
+                }
+
+                ForEach(items) { item in
+                    itemRow(item, selectable: result.canImport && vm.importMessage == nil)
+                    Divider()
+                }
+
+                if result.canImport && vm.importMessage == nil {
+                    HStack(spacing: 10) {
+                        LKButton(title: "Import \(vm.selectedItemIds.count) selected",
+                                 isLoading: vm.isImporting) {
+                            Task { await vm.confirmImport() }
+                        }
+                        .disabled(vm.selectedItemIds.isEmpty)
+
+                        Button("Discard") { Task { await vm.discardImport() } }
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 4)
+                } else if !result.canImport {
+                    Text("This document type can be read but not imported yet — the values above are shown for reference only.")
+                        .font(.caption2).foregroundStyle(.secondary)
                 }
             }
 
-            // Raw text toggle
             if let raw = result.rawTextPreview, !raw.isEmpty {
                 Divider()
                 DisclosureGroup(isExpanded: $vm.showRawText) {
@@ -249,14 +384,65 @@ struct PdfToolsView: View {
                         .background(Color(.systemGray6))
                         .cornerRadius(8)
                 } label: {
-                    Text("Raw Text Preview")
-                        .font(.subheadline).fontWeight(.medium)
+                    Text("Extracted text").font(.subheadline).fontWeight(.medium)
                 }
             }
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+    }
+
+    private func itemRow(_ item: LabReportItem, selectable: Bool) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            if selectable, let id = item.itemId {
+                Button {
+                    vm.toggle(id)
+                } label: {
+                    Image(systemName: vm.selectedItemIds.contains(id) ? "checkmark.square.fill" : "square")
+                        .foregroundStyle(vm.selectedItemIds.contains(id) ? Color.accentColor : .secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.testName ?? "Unknown")
+                    .font(.subheadline).fontWeight(.medium)
+                    .foregroundStyle(item.isAbnormal == true ? .red : .primary)
+                if let ref = item.referenceRange {
+                    Text("Ref: \(ref)").font(.caption2).foregroundStyle(.secondary)
+                }
+                if let label = item.sourceLabel, label != item.testName {
+                    Text("document: “\(label)”").font(.caption2).foregroundStyle(.tertiary)
+                }
+                if let note = item.note {
+                    Text(note).font(.caption2).foregroundStyle(.orange)
+                }
+                if item.isDuplicate {
+                    Text("Already recorded").font(.caption2).foregroundStyle(.secondary)
+                } else if item.isConflict {
+                    Text("Differs from existing").font(.caption2).foregroundStyle(.orange)
+                }
+            }
+
+            Spacer()
+
+            Text("\(item.value ?? "–") \(item.unit ?? "")")
+                .font(.subheadline).fontWeight(.semibold)
+                .foregroundStyle(item.isAbnormal == true ? .red : .primary)
+        }
+        .padding(.vertical, 3)
+    }
+
+    private func docTypeLabel(_ type: String?) -> String {
+        switch type {
+        case "lab_report":         return "Lab report"
+        case "medication_list":    return "Medication list"
+        case "discharge_summary":  return "Discharge summary"
+        case "dialysis_flowsheet": return "Dialysis flowsheet"
+        case "imaging_report":     return "Imaging report"
+        default:                   return "Document"
+        }
     }
 
     private func infoRow(_ label: String, value: String) -> some View {
@@ -309,10 +495,23 @@ struct PdfToolsView: View {
                     }
                 }
                 Spacer()
-                if let content = result.content {
-                    ShareLink(item: content) {
-                        Image(systemName: "square.and.arrow.up")
+                // The real PDF, not the text preview — the same ReportSpec on
+                // the server renders both, so they cannot disagree.
+                if let url = vm.sharePdfURL {
+                    ShareLink(item: url) {
+                        Label("Share PDF", systemImage: "square.and.arrow.up").font(.caption)
                     }
+                } else {
+                    Button {
+                        Task { await vm.downloadFlowsheetPdf() }
+                    } label: {
+                        if vm.isDownloading {
+                            ProgressView()
+                        } else {
+                            Label("PDF", systemImage: "arrow.down.doc").font(.caption)
+                        }
+                    }
+                    .disabled(vm.isDownloading)
                 }
             }
 

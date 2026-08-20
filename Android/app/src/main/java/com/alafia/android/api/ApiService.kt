@@ -4,6 +4,7 @@ import com.alafia.android.models.*
 import com.alafia.android.schemas.*
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.http.*
 
 interface ApiService {
@@ -269,6 +270,10 @@ interface ApiService {
         @Query("condition_id") conditionId: Int? = null,
         @Query("therapy_type") therapyType: String? = null
     ): List<TherapySession>
+
+    /** Pre-fill for a new treatment: target weight, carried settings, access. */
+    @GET("chronic/therapy-sessions/defaults")
+    suspend fun getFlowsheetDefaults(): FlowsheetDefaults
 
     @GET("chronic/therapy-sessions/{id}")
     suspend fun getTherapySession(@Path("id") id: Int): TherapySession
@@ -724,13 +729,33 @@ interface ApiService {
     @POST("image-ai/verify-dosage")
     suspend fun verifyDosage(@Body request: DosageVerificationRequest): DosageVerificationResponse
 
-    // ── PDF Tools ────────────────────────────────────
+    // ── PDF Tools / document import ──────────────────
+    /**
+     * Reads a document and stages what it found. Writes nothing to the clinical
+     * tables — that only happens in [confirmDocumentImport].
+     */
     @Multipart
-    @POST("pdf/parse-lab-report")
-    suspend fun parseLabReport(@Part file: MultipartBody.Part): LabReportParseResponse
+    @POST("pdf/parse-document")
+    suspend fun parseDocument(@Part file: MultipartBody.Part): LabReportParseResponse
+
+    @POST("pdf/imports/{importId}/confirm")
+    suspend fun confirmDocumentImport(
+        @Path("importId") importId: Int,
+        @Body request: ConfirmImportRequest
+    ): ConfirmImportResponse
+
+    @POST("pdf/imports/{importId}/reject")
+    suspend fun rejectDocumentImport(@Path("importId") importId: Int): ConfirmImportResponse
 
     @POST("pdf/generate-flowsheet")
     suspend fun generateFlowsheet(@Body request: FlowsheetRequest): FlowsheetResponse
+
+    @GET("pdf/reports/flowsheet.pdf")
+    @Streaming
+    suspend fun downloadFlowsheetPdf(
+        @Query("session_type") sessionType: String,
+        @Query("days") days: Int
+    ): ResponseBody
 
     // ── Peritoneal Dialysis ──────────────────────────
     @GET("pd/sessions")

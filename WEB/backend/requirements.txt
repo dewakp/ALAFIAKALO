@@ -44,6 +44,13 @@ aiosqlite==0.20.0
 # PDF generation
 reportlab==4.2.5
 
+# PDF reading. Document parsing works from word coordinates, not reflowed text,
+# so pdfplumber's per-word bounding boxes are required rather than convenient.
+# Pinned to the same version as ML/requirements.txt so the corpus harness on the
+# host and the API in the container agree.
+# Without this the upload endpoint fell through to decoding PDF bytes as UTF-8.
+pdfplumber==0.11.9
+
 # Utilities
 python-dateutil==2.9.0
 

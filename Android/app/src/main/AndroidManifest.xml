@@ -100,6 +100,22 @@
             </intent-filter>
         </service>
 
+        <!--
+          Lets a generated report be handed to another app (mail, Drive, a
+          viewer) without exposing the whole cache directory. Sharing a raw
+          file:// URI throws FileUriExposedException on API 24+, so a
+          FileProvider is required, not optional.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

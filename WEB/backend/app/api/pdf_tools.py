@@ -1,349 +1,432 @@
-"""PDF Tools — Lab Report Parsing & Flowsheet PDF Generation."""
+"""PDF tools — document import and clinical report generation.
 
-import io
-import re
-from datetime import datetime
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+Upload is a two-step flow. `parse-document` reads a file and stages what it
+found; nothing reaches a clinical table until `confirm`. A parser is sometimes
+wrong, and `lab_results` is the wrong place to discover that.
+
+Report generation goes through `app/services/docreport.py`: one spec renders as
+both the text the clients preview and the PDF they download, so the two cannot
+drift apart.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import date, datetime, timedelta
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.user import User
 from app.models.chronic_conditions import TherapySession
+from app.models.document_import import (
+    STATUS_CONFIRMED,
+    STATUS_PARSED,
+    DocumentImport,
+    DocumentImportItem,
+)
 from app.models.peritoneal_dialysis import PDSession
-from app.schemas.wellness import LabReportParseResponse, FlowsheetPDFRequest
+from app.models.user import User
+from app.schemas.wellness import (
+    ConfirmImportRequest,
+    ConfirmImportResponse,
+    DocumentImportDetail,
+    DocumentImportSummary,
+    FlowsheetPDFRequest,
+    FlowsheetResponse,
+    LabReportItem,
+    LabReportParseResponse,
+)
+from app.services import document_import_service as importer
+from app.services import docreport
+from app.services.docparse import pipeline
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
+#: Uploads are read fully into memory to be parsed; keep that bounded.
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
-def _parse_lab_text(text: str) -> dict:
-    """Regex-based lab report parser — extracts test items, dates, provider info."""
-    items = []
-    parsing_notes = []
-    panel_name = None
-    lab_name = None
-    doctor_name = None
-    report_date = None
 
-    lines = text.strip().split("\n")
+# ── Document import ──────────────────────────────────────────────────────────
 
-    # Try to find date  (various formats)
-    date_patterns = [
-        r"(\d{1,2}/\d{1,2}/\d{2,4})",
-        r"(\d{4}-\d{2}-\d{2})",
-        r"(\w+ \d{1,2},?\s*\d{4})",
-    ]
-    for pattern in date_patterns:
-        m = re.search(pattern, text)
-        if m:
-            report_date = m.group(1)
-            break
+async def _load_import(db: AsyncSession, user_id: int, import_id: int) -> DocumentImport:
+    result = await db.execute(
+        select(DocumentImport)
+        .options(selectinload(DocumentImport.items))
+        .where(DocumentImport.id == import_id, DocumentImport.user_id == user_id)
+    )
+    record = result.scalar_one_or_none()
+    if record is None:
+        raise HTTPException(status_code=404, detail="Import not found")
+    return record
 
-    # Try to find doctor / ordering provider
-    doc_patterns = [
-        r"(?:Dr\.?|Doctor|Physician|Ordering|Provider)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+)",
-        r"(?:Ordered by|Referred by)[:\s]+(.+?)(?:\n|$)",
-    ]
-    for pattern in doc_patterns:
-        m = re.search(pattern, text, re.IGNORECASE)
-        if m:
-            doctor_name = m.group(1).strip()
-            break
 
-    # Try to find lab name
-    lab_patterns_hdr = [
-        r"(?:Lab|Laboratory|Performed at|Facility)[:\s]+(.+?)(?:\n|$)",
-    ]
-    for pattern in lab_patterns_hdr:
-        m = re.search(pattern, text, re.IGNORECASE)
-        if m:
-            lab_name = m.group(1).strip()
-            break
+def _item_view(item: DocumentImportItem) -> LabReportItem:
+    payload = item.payload or {}
+    low, high = payload.get("reference_range_low"), payload.get("reference_range_high")
+    if low is not None and high is not None:
+        reference = f"{low:g} – {high:g}"
+    elif high is not None:
+        reference = f"≤ {high:g}"
+    elif low is not None:
+        reference = f"≥ {low:g}"
+    else:
+        reference = None
 
-    # Parse individual lab values — "Test Name   Value   Unit   Reference Range"
-    value_patterns = [
-        # "Glucose  105  mg/dL  70-100"
-        r"([A-Za-z\s/\(\)]+?)\s+(\d+\.?\d*)\s+([a-zA-Z/%]+)\s+(\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)",
-        # "Glucose  105  mg/dL"
-        r"([A-Za-z\s/\(\)]+?)\s+(\d+\.?\d*)\s+([a-zA-Z/%]+)",
-        # "Glucose: 105"
-        r"([A-Za-z\s/\(\)]+?):\s*(\d+\.?\d*)",
-    ]
+    value = payload.get("value_string")
+    if value is None and payload.get("value") is not None:
+        raw = payload["value"]
+        value = f"{raw:g}" if isinstance(raw, (int, float)) else str(raw)
 
-    seen_tests: set[str] = set()
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
+    return LabReportItem(
+        test_name=item.canonical_name or payload.get("test_name") or payload.get("name") or "—",
+        value=value,
+        unit=payload.get("unit") or payload.get("dosage_unit"),
+        reference_range=reference,
+        is_abnormal=payload.get("is_abnormal"),
+        category=payload.get("category"),
+        test_date=payload.get("test_date") or payload.get("start_date") or payload.get("diagnosis_date"),
+        confidence=item.confidence,
+        source_label=item.source_label,
+        dedupe_status=item.dedupe_status,
+        item_id=item.id,
+        accepted=item.accepted,
+        note=item.error,
+    )
 
-        # Check for panel name (all caps line or specific keywords)
-        if line.upper() == line and len(line) > 3 and not any(c.isdigit() for c in line):
-            if not panel_name:
-                panel_name = line.title()
-            continue
 
-        for pattern in value_patterns:
-            m = re.match(pattern, line)
-            if m:
-                groups = m.groups()
-                test_name = groups[0].strip()
-                if test_name.lower() in seen_tests or len(test_name) < 2:
-                    continue
-                seen_tests.add(test_name.lower())
-
-                item: dict = {"name": test_name, "value": float(groups[1])}
-                if len(groups) >= 3:
-                    item["unit"] = groups[2]
-                if len(groups) >= 5:
-                    item["reference_range"] = f"{groups[3]}-{groups[4]}"
-                items.append(item)
-                break
-
-    if not items:
-        parsing_notes.append("No structured lab values detected. The text may need manual review.")
-
+def _summary(record: DocumentImport) -> dict:
+    items = record.items or []
     return {
-        "panel_name": panel_name,
-        "lab_name": lab_name,
-        "doctor_name": doctor_name,
-        "report_date": report_date,
-        "items": items,
-        "raw_text": text[:2000],
-        "parsing_notes": parsing_notes,
+        "id": record.id,
+        "filename": record.filename,
+        "doc_type": record.doc_type,
+        "status": record.status,
+        "page_count": record.page_count,
+        "parse_confidence": record.parse_confidence,
+        "report_date": record.report_date,
+        "lab_name": record.lab_name,
+        "item_count": len(items),
+        "new_count": sum(1 for i in items if i.dedupe_status == "new"),
+        "duplicate_count": sum(1 for i in items if i.dedupe_status == "duplicate"),
+        "conflict_count": sum(1 for i in items if i.dedupe_status == "conflict"),
+        "created_at": record.created_at.isoformat() if record.created_at else None,
+        "error_detail": record.error_detail,
     }
 
 
+@router.post("/parse-document", response_model=LabReportParseResponse)
 @router.post("/parse-lab-report", response_model=LabReportParseResponse)
-async def parse_lab_report(
+async def parse_document(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Extract structured lab data from uploaded PDF or text file."""
+    """Read a clinical document and stage what it contains for review.
+
+    `parse-lab-report` is kept as an alias so existing clients keep working; the
+    pipeline is source- and layout-agnostic, so the name is now only historical.
+    """
     content = await file.read()
-    text = ""
-
-    if file.content_type == "application/pdf" or (file.filename or "").endswith(".pdf"):
-        try:
-            import pdfplumber
-            with pdfplumber.open(io.BytesIO(content)) as pdf:
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text += page_text + "\n"
-        except ImportError:
-            try:
-                from PyPDF2 import PdfReader
-                reader = PdfReader(io.BytesIO(content))
-                for page in reader.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text += page_text + "\n"
-            except ImportError:
-                text = content.decode("utf-8", errors="ignore")
-    else:
-        text = content.decode("utf-8", errors="ignore")
-
-    if not text.strip():
-        return LabReportParseResponse(
-            parsing_notes=["Could not extract text from the uploaded file. Try a text-based PDF or plain text file."]
+    if not content:
+        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File is too large (limit {MAX_UPLOAD_BYTES // (1024 * 1024)} MB).",
         )
 
-    result = _parse_lab_text(text)
-    return LabReportParseResponse(**result)
+    parsed = await pipeline.parse(content, file.filename, file.content_type)
+
+    # The same file twice is the same readings twice. Return what was staged
+    # before rather than creating a second import.
+    existing = await importer.find_existing_import(db, current_user.id, parsed.content_hash)
+    if existing is not None:
+        await db.refresh(existing, ["items"])
+        return _response_for(existing, parsed, already_imported=True)
+
+    record = await importer.stage(db, current_user.id, parsed)
+    await db.commit()
+    await db.refresh(record, ["items"])
+    return _response_for(record, parsed)
 
 
-# ── PDF generation helpers ────────────────────────────────────────────────────
-
-def _build_flowsheet_pdf(title: str, sections: list[tuple[str, list[tuple[str, str]]]]) -> bytes:
-    """Render a clinical flowsheet as a proper PDF using reportlab."""
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.lib import colors
-    from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable,
+def _response_for(
+    record: DocumentImport, parsed: pipeline.ParseResult, already_imported: bool = False
+) -> LabReportParseResponse:
+    return LabReportParseResponse(
+        patient_name=record.patient_name,
+        report_date=record.report_date,
+        lab_name=record.lab_name,
+        ordering_physician=record.ordering_provider,
+        items=[_item_view(i) for i in (record.items or [])],
+        raw_text_preview=parsed.raw_text[:2000] or None,
+        parsing_notes=list(record.notes or []),
+        import_id=record.id,
+        doc_type=record.doc_type,
+        doc_type_confidence=record.doc_type_confidence,
+        confidence=record.parse_confidence,
+        target_table=importer.TARGET_FOR_DOC_TYPE.get(record.doc_type or ""),
+        page_count=record.page_count,
+        error=record.error_detail,
+        already_imported=already_imported,
     )
 
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=letter,
-        leftMargin=0.75 * inch,
-        rightMargin=0.75 * inch,
-        topMargin=0.75 * inch,
-        bottomMargin=0.75 * inch,
+
+@router.get("/imports", response_model=list[DocumentImportSummary])
+async def list_imports(
+    limit: int = Query(25, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DocumentImport)
+        .options(selectinload(DocumentImport.items))
+        .where(DocumentImport.user_id == current_user.id)
+        .order_by(DocumentImport.id.desc())
+        .limit(limit)
+    )
+    return [DocumentImportSummary(**_summary(r)) for r in result.scalars().all()]
+
+
+@router.get("/imports/{import_id}", response_model=DocumentImportDetail)
+async def get_import(
+    import_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    record = await _load_import(db, current_user.id, import_id)
+    return DocumentImportDetail(
+        **_summary(record),
+        patient_name=record.patient_name,
+        ordering_provider=record.ordering_provider,
+        target_table=importer.TARGET_FOR_DOC_TYPE.get(record.doc_type or ""),
+        layout_kind=record.layout_kind,
+        extraction_method=record.extraction_method,
+        notes=list(record.notes or []),
+        items=[_item_view(i) for i in record.items],
     )
 
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        "FlowTitle",
-        parent=styles["Title"],
-        fontSize=16,
-        textColor=colors.HexColor("#1a3c5e"),
-        spaceAfter=6,
+
+@router.post("/imports/{import_id}/confirm", response_model=ConfirmImportResponse)
+async def confirm_import(
+    import_id: int,
+    request: ConfirmImportRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Write the accepted rows into their clinical tables."""
+    record = await _load_import(db, current_user.id, import_id)
+    if record.status == STATUS_CONFIRMED:
+        raise HTTPException(status_code=409, detail="This import was already confirmed.")
+    if record.status != STATUS_PARSED:
+        raise HTTPException(
+            status_code=409,
+            detail=f"This import cannot be confirmed (status: {record.status}).",
+        )
+
+    counts = await importer.confirm(db, current_user.id, record, request.accepted_item_ids)
+    await db.commit()
+
+    total = sum(counts.values())
+    written = ", ".join(f"{n} → {table}" for table, n in counts.items() if n)
+    return ConfirmImportResponse(
+        import_id=record.id,
+        status=record.status,
+        imported={k: v for k, v in counts.items() if v},
+        total_imported=total,
+        message=f"Imported {total} record(s): {written}" if total else "Nothing was imported.",
     )
-    section_style = ParagraphStyle(
-        "SectionHead",
-        parent=styles["Heading2"],
-        fontSize=11,
-        textColor=colors.HexColor("#2d6a9f"),
-        spaceBefore=12,
-        spaceAfter=4,
+
+
+@router.post("/imports/{import_id}/reject", response_model=ConfirmImportResponse)
+async def reject_import(
+    import_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    record = await _load_import(db, current_user.id, import_id)
+    await importer.reject(db, record)
+    await db.commit()
+    return ConfirmImportResponse(
+        import_id=record.id, status=record.status,
+        message="Import discarded. Nothing was written to your records.",
     )
-    normal = styles["Normal"]
-    footer_style = ParagraphStyle(
-        "Footer",
-        parent=normal,
-        fontSize=8,
-        textColor=colors.grey,
-    )
-
-    story = [
-        Paragraph(title, title_style),
-        Paragraph(
-            f"Generated: {datetime.now().strftime('%B %d, %Y %I:%M %p')}",
-            ParagraphStyle("sub", parent=normal, fontSize=9, textColor=colors.grey),
-        ),
-        HRFlowable(width="100%", thickness=1, color=colors.HexColor("#2d6a9f"), spaceAfter=12),
-    ]
-
-    for section_title, rows in sections:
-        if section_title:
-            story.append(Paragraph(section_title, section_style))
-        if rows:
-            table_data = [[Paragraph(f"<b>{k}</b>", normal), Paragraph(str(v), normal)] for k, v in rows]
-            tbl = Table(table_data, colWidths=[2.5 * inch, 4.5 * inch])
-            tbl.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eaf2fb")),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#c8daea")),
-                ("ROWBACKGROUNDS", (0, 0), (-1, -1), [colors.white, colors.HexColor("#f7fbff")]),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("LEFTPADDING", (0, 0), (-1, -1), 6),
-            ]))
-            story.append(tbl)
-        story.append(Spacer(1, 8))
-
-    # Exchange table for PD (passed as raw Table already if needed)
-    story.append(Spacer(1, 20))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.grey))
-    story.append(Paragraph("Generated by ALAFIA Health Platform — Confidential Medical Record", footer_style))
-
-    doc.build(story)
-    return buf.getvalue()
 
 
-def _build_pd_exchange_table_rows(exchanges: list) -> list[tuple[str, str]]:
-    """Convert PD exchange objects into label→value rows for the PDF table."""
-    rows = []
-    for ex in exchanges:
-        rows.append((
-            f"Exchange #{ex.exchange_number}",
-            (
-                f"Solution: {ex.solution_type or '-'}  |  "
-                f"Inflow: {ex.inflow_volume_ml or '-'} mL  |  "
-                f"Outflow: {ex.outflow_volume_ml or '-'} mL  |  "
-                f"UF: {ex.uf_ml or '-'} mL  |  "
-                f"Dwell: {ex.dwell_time_minutes or '-'} min  |  "
-                f"Clarity: {ex.effluent_clarity or '-'}"
+# ── Flowsheet reports ────────────────────────────────────────────────────────
+
+async def _flowsheet_spec(
+    db: AsyncSession, user: User, request: FlowsheetPDFRequest
+) -> tuple[docreport.ReportSpec, int]:
+    """Build the report spec and report how many sessions it covers."""
+    peritoneal = request.session_type == "peritoneal_dialysis"
+    model = PDSession if peritoneal else TherapySession
+    label = "Peritoneal Dialysis" if peritoneal else "Hemodialysis"
+
+    # The two models name their date differently, and `scheduled_date` is a
+    # DateTime *without* timezone — comparing it to an aware value makes asyncpg
+    # raise, the endpoint 500s, and the page renders the empty-state copy on a
+    # patient with hundreds of sessions. A naive datetime keeps that honest.
+    date_column = model.session_date if peritoneal else model.scheduled_date
+
+    query = select(model).where(model.user_id == user.id)
+    if request.session_id is not None:
+        query = query.where(model.id == request.session_id)
+        window = None
+    else:
+        window = date.today() - timedelta(days=max(request.days, 1))
+        cutoff = window if peritoneal else datetime(window.year, window.month, window.day)
+        query = query.where(date_column >= cutoff)
+
+    sessions = (await db.execute(query.order_by(date_column.desc()))).scalars().all()
+
+    meta = [("Patient", user.full_name or user.email or "—")]
+    if window is not None:
+        meta.append(("Period", f"{window} to {date.today()} ({request.days} days)"))
+    meta.append(("Sessions", str(len(sessions))))
+
+    sections: list[docreport.Section] = []
+    if not sessions:
+        # Say the window was empty. A report with no rows and no explanation
+        # reads as "no treatment", which is a different clinical claim.
+        sections.append(docreport.TextSection(
+            heading="No sessions found",
+            body=(
+                f"No {label.lower()} sessions are recorded"
+                + (f" in the last {request.days} days." if window else " for this id.")
+                + " This reflects what is on file, not necessarily what took place."
             ),
         ))
-    return rows
+    elif peritoneal:
+        sections.append(docreport.TableSection(
+            heading="Sessions",
+            columns=["Date", "Modality", "Pre wt", "Post wt", "Total UF", "Pre BP", "Post BP"],
+            rows=[[
+                str(s.session_date), (s.modality or "—").upper(),
+                _fmt(s.pre_weight_kg, "kg"), _fmt(s.post_weight_kg, "kg"),
+                _fmt(s.total_uf_ml, "mL"),
+                _bp(s.pre_bp_systolic, s.pre_bp_diastolic),
+                _bp(s.post_bp_systolic, s.post_bp_diastolic),
+            ] for s in sessions],
+            widths=[1.1, 1.0, 0.9, 0.9, 1.0, 1.0, 1.0],
+        ))
+        for session in sessions:
+            if getattr(session, "exchanges", None):
+                sections.append(docreport.TableSection(
+                    heading=f"Exchanges — {session.session_date}",
+                    columns=["#", "Solution", "Inflow", "Outflow", "UF", "Dwell", "Clarity"],
+                    rows=[[
+                        str(e.exchange_number), e.solution_type or "—",
+                        _fmt(e.inflow_volume_ml, "mL"), _fmt(e.outflow_volume_ml, "mL"),
+                        _fmt(e.uf_ml, "mL"), _fmt(e.dwell_time_minutes, "min"),
+                        e.effluent_clarity or "—",
+                    ] for e in session.exchanges],
+                ))
+    else:
+        sections.append(docreport.TableSection(
+            heading="Sessions",
+            columns=["Date", "Type", "Duration", "Pre wt", "Post wt", "UF", "Pre BP", "Post BP"],
+            rows=[[
+                str(s.scheduled_date)[:10],
+                _enum(s.therapy_type),
+                _fmt(s.duration_minutes, "min"),
+                _fmt(s.pre_dialysis_weight_kg, "kg"),
+                _fmt(s.post_dialysis_weight_kg, "kg"),
+                _fmt(s.fluid_removed_ml, "mL"),
+                _bp(s.pre_standing_systolic_bp, s.pre_standing_diastolic_bp),
+                _bp(s.post_standing_systolic_bp, s.post_standing_diastolic_bp),
+            ] for s in sessions],
+            widths=[1.1, 1.1, 0.9, 0.9, 0.9, 0.9, 1.0, 1.0],
+        ))
+        notes = [s for s in sessions if getattr(s, "notes", None)]
+        if notes:
+            sections.append(docreport.TextSection(
+                heading="Notes",
+                body="\n\n".join(f"{s.session_date}: {s.notes}" for s in notes),
+            ))
+
+    spec = docreport.ReportSpec(
+        title=f"{label} Flowsheet",
+        subtitle=user.full_name or None,
+        meta=meta,
+        sections=sections,
+    )
+    return spec, len(sessions)
 
 
-@router.post("/generate-flowsheet")
-async def generate_flowsheet_pdf(
+def _fmt(value, unit: str) -> str:
+    return f"{value:g} {unit}" if value is not None else "—"
+
+
+def _enum(value) -> str:
+    """Enum members print as `TherapyType.HEMODIALYSIS` otherwise."""
+    if value is None:
+        return "—"
+    return str(getattr(value, "value", value)).replace("_", " ").title()
+
+
+def _bp(systolic, diastolic) -> str:
+    if systolic is None and diastolic is None:
+        return "—"
+    return f"{systolic or '—'}/{diastolic or '—'}"
+
+
+@router.post("/generate-flowsheet", response_model=FlowsheetResponse)
+async def generate_flowsheet(
     request: FlowsheetPDFRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a properly formatted PDF flowsheet for a dialysis session."""
-    if request.session_type == "peritoneal_dialysis":
-        result = await db.execute(
-            select(PDSession).where(
-                PDSession.id == request.session_id,
-                PDSession.user_id == current_user.id,
-            )
-        )
-        session = result.scalar_one_or_none()
-        if not session:
-            raise HTTPException(status_code=404, detail="PD session not found")
+    """Flowsheet as JSON — the text preview plus a link to the PDF.
 
-        title = f"Peritoneal Dialysis Flowsheet — {session.session_date}"
-        sections = [
-            ("Patient Info", [
-                ("Patient", current_user.full_name or "—"),
-                ("Date", str(session.session_date)),
-                ("Modality", (session.modality or "").upper()),
-            ]),
-            ("Weights & Ultrafiltration", [
-                ("Pre-Weight", f"{session.pre_weight_kg or '—'} kg"),
-                ("Post-Weight", f"{session.post_weight_kg or '—'} kg"),
-                ("Total UF", f"{session.total_uf_ml or '—'} mL"),
-            ]),
-            ("Blood Pressure", [
-                ("Pre-BP", f"{session.pre_bp_systolic or '—'}/{session.pre_bp_diastolic or '—'} mmHg"),
-                ("Post-BP", f"{session.post_bp_systolic or '—'}/{session.post_bp_diastolic or '—'} mmHg"),
-            ]),
-        ]
-        if session.exchanges:
-            sections.append(("Exchanges", _build_pd_exchange_table_rows(session.exchanges)))
+    Takes `{session_type, days}`, which is what web, iOS and Android already
+    send. The previous handler required a `session_id` and returned raw PDF
+    bytes, so every client got a 422.
+    """
+    spec, count = await _flowsheet_spec(db, current_user, request)
+    query = f"session_type={request.session_type}&days={request.days}"
+    if request.session_id is not None:
+        query += f"&session_id={request.session_id}"
 
-    else:
-        result = await db.execute(
-            select(TherapySession).where(
-                TherapySession.id == request.session_id,
-                TherapySession.user_id == current_user.id,
-            )
-        )
-        session = result.scalar_one_or_none()
-        if not session:
-            raise HTTPException(status_code=404, detail="Therapy session not found")
+    return FlowsheetResponse(
+        title=spec.title,
+        generated_at=spec.stamp,
+        content=docreport.render_text(spec),
+        session_count=count,
+        pdf_url=f"/api/v1/pdf/reports/flowsheet.pdf?{query}",
+    )
 
-        title = f"Hemodialysis Flowsheet — {session.session_date}"
-        sections = [
-            ("Patient Info", [
-                ("Patient", current_user.full_name or "—"),
-                ("Date", str(session.session_date)),
-                ("Therapy Type", str(session.therapy_type)),
-                ("Duration", f"{session.duration_minutes or '—'} min"),
-            ]),
-            ("Weights", [
-                ("Pre-Weight", f"{session.pre_weight_kg or '—'} kg"),
-                ("Post-Weight", f"{session.post_weight_kg or '—'} kg"),
-            ]),
-            ("Blood Pressure", [
-                ("Pre-BP", f"{session.pre_bp_systolic or '—'}/{session.pre_bp_diastolic or '—'} mmHg"),
-                ("Post-BP", f"{session.post_bp_systolic or '—'}/{session.post_bp_diastolic or '—'} mmHg"),
-            ]),
-        ]
-        if session.notes:
-            sections.append(("Notes", [("", session.notes)]))
+
+@router.get("/reports/flowsheet.pdf")
+async def flowsheet_pdf(
+    session_type: str = Query("hemodialysis"),
+    days: int = Query(30, ge=1, le=365),
+    session_id: int | None = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """The same report as a real PDF."""
+    request = FlowsheetPDFRequest(session_type=session_type, days=days, session_id=session_id)
+    spec, _ = await _flowsheet_spec(db, current_user, request)
 
     try:
-        pdf_bytes = _build_flowsheet_pdf(title, sections)
-        media_type = "application/pdf"
-        filename = f"flowsheet_{request.session_id}.pdf"
-    except Exception:
-        # Fallback to plain text if reportlab unexpectedly fails
-        lines = [title, "=" * len(title), ""]
-        for sec_title, rows in sections:
-            if sec_title:
-                lines.append(f"[{sec_title}]")
-            for k, v in rows:
-                lines.append(f"  {k}: {v}" if k else f"  {v}")
-            lines.append("")
-        lines.append("--- Generated by ALAFIA ---")
-        pdf_bytes = "\n".join(lines).encode("utf-8")
-        media_type = "text/plain"
-        filename = f"flowsheet_{request.session_id}.txt"
+        payload = docreport.render_pdf(spec)
+        media_type, suffix = "application/pdf", "pdf"
+    except Exception:  # noqa: BLE001 - still hand back the report, as text
+        logger.exception("PDF rendering failed; falling back to text")
+        payload = docreport.render_text(spec).encode("utf-8")
+        media_type, suffix = "text/plain", "txt"
 
+    stamp = datetime.now().strftime("%Y%m%d")
+    filename = f"flowsheet_{session_type}_{stamp}.{suffix}"
     return StreamingResponse(
-        io.BytesIO(pdf_bytes),
+        __import__("io").BytesIO(payload),
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
-

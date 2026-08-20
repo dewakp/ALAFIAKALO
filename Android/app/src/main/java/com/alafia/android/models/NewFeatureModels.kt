@@ -198,13 +198,27 @@ data class DosageVerificationResponse(
 
 // ── PDF Tools ───────────────────────────────────────────────────────────────
 
+/** One staged reading. [itemId] is what the confirm call selects on. */
 data class LabReportItem(
     @SerializedName("test_name") val testName: String? = null,
     val value: String? = null,
     val unit: String? = null,
     @SerializedName("reference_range") val referenceRange: String? = null,
-    @SerializedName("is_abnormal") val isAbnormal: Boolean? = null
-)
+    @SerializedName("is_abnormal") val isAbnormal: Boolean? = null,
+    val category: String? = null,
+    @SerializedName("test_date") val testDate: String? = null,
+    val confidence: Double? = null,
+    /** What the document literally said, so a wrong normalization is visible. */
+    @SerializedName("source_label") val sourceLabel: String? = null,
+    /** "new" | "duplicate" | "conflict" */
+    @SerializedName("dedupe_status") val dedupeStatus: String? = null,
+    @SerializedName("item_id") val itemId: Int? = null,
+    val accepted: Boolean? = null,
+    val note: String? = null
+) {
+    val isDuplicate: Boolean get() = dedupeStatus == "duplicate"
+    val isConflict: Boolean get() = dedupeStatus == "conflict"
+}
 
 data class LabReportParseResponse(
     @SerializedName("patient_name") val patientName: String? = null,
@@ -212,7 +226,37 @@ data class LabReportParseResponse(
     @SerializedName("lab_name") val labName: String? = null,
     @SerializedName("ordering_physician") val orderingPhysician: String? = null,
     val items: List<LabReportItem>? = null,
-    @SerializedName("raw_text_preview") val rawTextPreview: String? = null
+    @SerializedName("raw_text_preview") val rawTextPreview: String? = null,
+    @SerializedName("parsing_notes") val parsingNotes: List<String>? = null,
+
+    // Import + classification context.
+    @SerializedName("import_id") val importId: Int? = null,
+    @SerializedName("doc_type") val docType: String? = null,
+    @SerializedName("doc_type_confidence") val docTypeConfidence: Double? = null,
+    val confidence: Double? = null,
+    /** null when this document type can be read but not imported yet. */
+    @SerializedName("target_table") val targetTable: String? = null,
+    @SerializedName("page_count") val pageCount: Int? = null,
+    /**
+     * Set when nothing could be read. Must be shown — an empty item list and a
+     * failed parse mean opposite things to a reader.
+     */
+    val error: String? = null,
+    @SerializedName("already_imported") val alreadyImported: Boolean = false
+) {
+    val canImport: Boolean get() = targetTable != null && importId != null
+}
+
+data class ConfirmImportRequest(
+    @SerializedName("accepted_item_ids") val acceptedItemIds: List<Int>? = null
+)
+
+data class ConfirmImportResponse(
+    @SerializedName("import_id") val importId: Int? = null,
+    val status: String? = null,
+    val imported: Map<String, Int>? = null,
+    @SerializedName("total_imported") val totalImported: Int = 0,
+    val message: String? = null
 )
 
 data class FlowsheetRequest(
@@ -224,7 +268,8 @@ data class FlowsheetResponse(
     val title: String? = null,
     @SerializedName("generated_at") val generatedAt: String? = null,
     val content: String? = null,
-    @SerializedName("session_count") val sessionCount: Int? = null
+    @SerializedName("session_count") val sessionCount: Int? = null,
+    @SerializedName("pdf_url") val pdfUrl: String? = null
 )
 
 // ── Peritoneal Dialysis ─────────────────────────────────────────────────────
@@ -1091,4 +1136,43 @@ data class SessionIntegrity(
     @SerializedName("chain_intact") val chainIntact: Boolean?,
     @SerializedName("anchored_count") val anchoredCount: Int,
     val trail: List<IntegrityBlock> = emptyList()
+)
+
+// ── New-treatment defaults (/chronic/therapy-sessions/defaults) ─────────────
+
+/**
+ * Settings carried from the last completed treatment. Every value is a
+ * *default* the patient can change — nothing is submitted on their behalf.
+ */
+data class FlowsheetCarriedForward(
+    @SerializedName("attending_physician") val attendingPhysician: String? = null,
+    @SerializedName("attending_nurse") val attendingNurse: String? = null,
+    @SerializedName("dialysis_access_type") val dialysisAccessType: String? = null,
+    @SerializedName("dialysate_volume_liters") val dialysateVolumeLiters: Float? = null,
+    @SerializedName("dialysate_lactate_meq") val dialysateLactateMeq: Float? = null,
+    @SerializedName("dialysate_potassium_meq") val dialysatePotassiumMeq: Float? = null,
+    @SerializedName("blood_flow_rate") val bloodFlowRate: Float? = null,
+    @SerializedName("dialysate_flow_rate") val dialysateFlowRate: Float? = null,
+    @SerializedName("flow_fraction") val flowFraction: Float? = null,
+    @SerializedName("cartridge_lot") val cartridgeLot: String? = null,
+    @SerializedName("sak_lot") val sakLot: String? = null,
+    @SerializedName("sak_number") val sakNumber: Int? = null,
+    @SerializedName("cycler_number") val cyclerNumber: String? = null,
+    @SerializedName("warmer_serial") val warmerSerial: String? = null,
+    @SerializedName("control_panel_serial") val controlPanelSerial: String? = null
+)
+
+data class FlowsheetDefaults(
+    /** Mean of recent post-treatment weights; null until some are on file. */
+    @SerializedName("target_weight_kg") val targetWeightKg: Float? = null,
+    @SerializedName("target_weight_basis") val targetWeightBasis: String? = null,
+    @SerializedName("target_weight_sample_size") val targetWeightSampleSize: Int = 0,
+    @SerializedName("access_type") val accessType: String? = null,
+    /** "catheter" | "needled" | "unknown" */
+    @SerializedName("access_kind") val accessKind: String = "unknown",
+    /** Fields the client should DISABLE (not hide) for this access. */
+    @SerializedName("disabled_fields") val disabledFields: List<String> = emptyList(),
+    @SerializedName("carried_forward") val carriedForward: FlowsheetCarriedForward? = null,
+    @SerializedName("carried_from_date") val carriedFromDate: String? = null,
+    val notes: List<String> = emptyList()
 )
