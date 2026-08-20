@@ -283,6 +283,55 @@ struct NutrientGoalProgress: Codable, Identifiable {
     let status: String    // low | ok | warning | over
     let priority: Int
     let rationale: String
+
+    /// Present only on a day with a completed dialysis session.
+    ///
+    /// The LIMIT never moves for a treatment — the guideline figures already
+    /// assume the patient is on dialysis, so raising them would count that
+    /// clearance twice. `current` stays dietary intake; the balance is shown
+    /// beside it.
+    let dialysisBalance: DialysisBalance?
+
+    enum CodingKeys: String, CodingKey {
+        case key, name, unit, current, goal, kind, pct, status, priority, rationale
+        case dialysisBalance = "dialysis_balance"
+    }
+}
+
+/// What a session did to one nutrient's day.
+struct DialysisBalance: Codable {
+    let intake: Double
+    /// Signed: negative removed by treatment, positive gained from the bath.
+    let delta: Double
+    let net: Double
+    let modelledMg: Double
+    let direction: String      // "removed" | "gained" | "none"
+    /// Fitted against this patient's own bloods, or a literature estimate?
+    let calibrated: Bool
+    let reasons: [String]?
+    /// Set when removal was modelled but deliberately not counted — a high
+    /// serum value, or no recent draw to confirm it.
+    let withheld: String?
+
+    var isGain: Bool { direction == "gained" }
+    var hasEffect: Bool { withheld != nil || abs(delta) >= 0.005 }
+
+    enum CodingKeys: String, CodingKey {
+        case intake, delta, net, direction, calibrated, reasons, withheld
+        case modelledMg = "modelled_mg"
+    }
+}
+
+struct DialysisDaySummary: Codable {
+    let hadDialysis: Bool
+    let sessionCount: Int
+    let notes: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case notes
+        case hadDialysis = "had_dialysis"
+        case sessionCount = "session_count"
+    }
 }
 
 struct GoalProgressResponse: Codable {
@@ -291,9 +340,10 @@ struct GoalProgressResponse: Codable {
     let energyKcal: Double
     let conditions: [String]
     let goals: [NutrientGoalProgress]
+    let dialysis: DialysisDaySummary?
 
     enum CodingKeys: String, CodingKey {
-        case date, conditions, goals
+        case date, conditions, goals, dialysis
         case profileComplete = "profile_complete"
         case energyKcal = "energy_kcal"
     }

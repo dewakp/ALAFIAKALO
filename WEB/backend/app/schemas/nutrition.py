@@ -301,6 +301,26 @@ class DailySummary(BaseModel):
 # ── Personalized daily nutrient goals ──
 
 
+class DialysisBalance(BaseModel):
+    intake: float           # what was eaten, in the goal's own unit
+    delta: float            # signed: negative removed by treatment, positive gained
+    net: float              # intake + delta — the body's actual balance
+    modelled_mg: float      # raw model output, before any gating
+    direction: str          # "removed" | "gained" | "none"
+    calibrated: bool        # fitted against this patient's own bloods?
+    reasons: list[str] = []
+    #: Set when removal was modelled but deliberately not counted — a high
+    #: serum value or no recent draw to confirm it.
+    withheld: str | None = None
+
+
+class DialysisDaySummary(BaseModel):
+    had_dialysis: bool
+    session_count: int
+    modelled_mg: dict[str, float] = {}
+    notes: list[str] = []
+
+
 class NutrientGoalProgress(BaseModel):
     key: str
     name: str
@@ -313,6 +333,18 @@ class NutrientGoalProgress(BaseModel):
     priority: int           # lower = show first (condition-driven)
     rationale: str
 
+    # Present only on a day with a completed dialysis session.
+    #
+    # The LIMIT never moves for a treatment — KDOQI's figures already assume the
+    # patient is on dialysis, so raising them would count that clearance twice.
+    # What a session changes is the day's balance: potassium eaten in the
+    # morning may be gone by the afternoon, and calcium the patient never ate
+    # crosses in from the dialysate and is retained.
+    #
+    # `current` stays dietary intake so the intake-versus-limit comparison is
+    # unchanged; `net` is reported beside it, never in place of it.
+    dialysis_balance: DialysisBalance | None = None
+
 
 class GoalProgressResponse(BaseModel):
     date: date
@@ -320,6 +352,7 @@ class GoalProgressResponse(BaseModel):
     energy_kcal: float
     conditions: list[str]   # condition flags considered, e.g. ["ckd", "dialysis"]
     goals: list[NutrientGoalProgress]
+    dialysis: DialysisDaySummary | None = None
 
 
 # ── Nutrient estimation schemas ──

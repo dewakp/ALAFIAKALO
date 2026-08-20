@@ -429,6 +429,27 @@ struct DailyTargetsCard: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
+            // A treatment changes the day's balance, never the dietary limit —
+            // the guideline figures already assume the patient is on dialysis.
+            if let dialysis = data.dialysis, dialysis.hadDialysis {
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(
+                        "Dialysis today — \(dialysis.sessionCount) session\(dialysis.sessionCount == 1 ? "" : "s")",
+                        systemImage: "drop.fill"
+                    )
+                    .font(.caption).fontWeight(.semibold).foregroundStyle(Color.accentColor)
+                    Text("Your limits are unchanged — they already assume your usual treatment. What changes is the day's balance.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                    ForEach(dialysis.notes ?? [], id: \.self) { note in
+                        Text(note).font(.caption2).foregroundStyle(.orange)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .background(Color.accentColor.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
             ForEach(data.goals) { g in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
@@ -447,6 +468,10 @@ struct DailyTargetsCard: View {
                         }
                     }
                     .frame(height: 6)
+
+                    if let balance = g.dialysisBalance, balance.hasEffect {
+                        dialysisBalanceLine(balance, unit: g.unit)
+                    }
                 }
             }
 
@@ -456,6 +481,27 @@ struct DailyTargetsCard: View {
         .padding()
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// Treatment effect on one nutrient, shown beside the intake figure and
+    /// never folded into it — a potassium total driven near zero by dialysis
+    /// must not read as licence to eat more.
+    @ViewBuilder
+    private func dialysisBalanceLine(_ balance: DialysisBalance, unit: String) -> some View {
+        if let withheld = balance.withheld {
+            Text(withheld).font(.caption2).foregroundStyle(.orange)
+        } else {
+            HStack(spacing: 4) {
+                Text("\(balance.isGain ? "+" : "")\(fmt(balance.delta)) \(unit) from dialysis")
+                    .font(.caption2).fontWeight(.semibold)
+                    .foregroundStyle(balance.isGain ? Color.orange : Color.accentColor)
+                Text("· net \(fmt(balance.net)) \(unit) retained")
+                    .font(.caption2).foregroundStyle(.tertiary)
+                if !balance.calibrated {
+                    Text("· estimated").font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
+        }
     }
 }
 
