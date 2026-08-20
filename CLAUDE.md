@@ -317,6 +317,35 @@ was one `git add .` from being committed.
   like "no domains verified" if you do not look at the status code.
   `dig +short TXT resend._domainkey.alafia.app`
 
+## 3e. Finding people is not browsing people
+
+`GET /messaging/recipients` backs the compose form. It exists because the form
+used to ask for **"Member IDs (comma-separated)"** — an internal handle nobody
+knows about their own nephrologist.
+
+> **A complete identifier resolves anyone. A partial name resolves only a shared
+> contact.** Relaxing the second half turns a compose box into a browsable
+> directory of every patient on the platform.
+
+- **Shared contact** means an active `DataGrant` in either direction, a
+  conversation you are both still in, or a follow edge. Sharing labs with
+  someone is the strongest form of it and is the reason the rule is not just
+  "people you already message".
+- Contact details come back **masked** (`d•••@6igma.com`) unless the caller
+  typed the identifier — so scraping your own contact list yields no addresses.
+  The mask is fixed-width on purpose; padding to the real length leaks it.
+- The route is rate limited (`RATE_LIMIT_LOOKUP`) because exact-email matching
+  is inherently an account-existence oracle. That is true of every "invite by
+  email" feature; the limit is what keeps it from being a bulk one.
+- Phone matching compares against a small set of stored forms rather than
+  `regexp_replace`, so it does not silently become Postgres-only.
+- `tests/test_messaging_recipients.py` pins the boundary — a stranger's name
+  returns nothing, a near-miss email returns nothing.
+
+`member_ids` are resolved to active users before any `conversation_members` row
+is written. Without that a typo produced a conversation with a member pointing
+at nobody: it looked created, and the recipient never heard about it.
+
 ## 4. Running things locally — **in Docker**
 
 > **All dev runs in containers.** Not host `npm`, not host `python`. The DB
@@ -334,14 +363,26 @@ docker compose up -d
 docker compose --profile dev up frontend-dev        # → http://localhost:5173
 
 # Tests
-docker compose --profile test run --rm frontend-test   # vitest      → 76
+docker compose --profile test run --rm frontend-test   # vitest      → 105
 docker compose --profile test run --rm e2e             # playwright  → 18
-docker compose --profile test run --rm backend-test    # pytest      → 528
+docker compose --profile test run --rm backend-test    # pytest      → 571
 ```
 
 - **`frontend` on :8080 is not a dev server.** It is nginx serving a `dist/`
-  baked at image-build time, so it shows stale code until
-  `docker compose build frontend`. Use `frontend-dev` on :5173.
+  baked at image-build time. Use `frontend-dev` on :5173 for frontend work.
+
+  Refreshing it takes **two** steps, and the build alone is the trap:
+
+  ```bash
+  docker compose build frontend     # bakes a new dist/ into the image
+  docker compose up -d frontend     # recreates the container from that image
+  ```
+
+  A running container keeps serving the image it started with, so after only the
+  build, `docker compose ps` says `Up`, the build says it succeeded, and :8080
+  still serves the old bundle — for days. Verify by asking the served asset, not
+  the build log: `curl -s localhost:8080/ | grep -oE '/assets/index-[^"]+\.js'`
+  and grep that chunk for a string your change added.
 - `frontend-dev` proxies `/api` → `http://backend:8000` via
   `VITE_API_PROXY_TARGET`. Inside a container `localhost` is that container, so
   the service name is required.
