@@ -53,10 +53,16 @@ def _is_male(sex: str | None) -> bool:
 def detect_condition_flags(conditions: Iterable[Any]) -> dict[str, bool]:
     """Derive dietary-relevant flags from a user's active conditions.
 
-    Accepts any objects/dicts exposing ``category``, ``condition_name`` and
-    ``stage`` (e.g. ChronicCondition rows or HealthCondition rows). Matching is
-    by category enum value *and* free-text keywords so it works whether the
-    diagnosis was structured or typed in.
+    Accepts any objects/dicts exposing ``category``, ``condition_name``/``name``
+    and ``stage`` (e.g. ChronicCondition rows, HealthCondition rows, or the
+    canonical ``clinical_sources.ConditionView``). Matching is by category enum
+    value *and* free-text keywords so it works whether the diagnosis was
+    structured or typed in.
+
+    The ``name`` alias matters: ConditionView — the only sanctioned way to read
+    conditions (canon §3aa) — calls the field ``name``. Without the alias a
+    caller using the canonical reader detects ``ckd`` from the category but
+    never ``dialysis``, which lives in the diagnosis text.
     """
     flags = {
         "ckd": False,        # chronic kidney disease (any stage)
@@ -75,7 +81,7 @@ def detect_condition_flags(conditions: Iterable[Any]) -> dict[str, bool]:
         return str(getattr(val, "value", val)).lower()
 
     for c in conditions or []:
-        name = _txt(c, "condition_name")
+        name = _txt(c, "condition_name") or _txt(c, "name")
         category = _txt(c, "category")
         stage = _txt(c, "stage")
         notes = _txt(c, "notes")

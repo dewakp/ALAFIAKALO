@@ -587,14 +587,54 @@ _MICRONUTRIENTS: tuple[tuple[str, str, str, float | None], ...] = (
     ("choline_mg", "Choline", "mg", 550),
 )
 
-#: The four a nephrologist reads first, with the daily ceilings usually applied
-#: on dialysis. Flagged rather than scored — the number is the finding.
-_RENAL_LIMITS = (
-    ("potassium_mg", "Potassium", "mg", 2500),
-    ("phosphorus_mg", "Phosphorus", "mg", 1000),
-    ("sodium_mg", "Sodium", "mg", 2000),
-    ("water_ml", "Fluid", "mL", 1500),
-)
+#: Fluid is not part of `compute_goals` — 1500 mL/day is the usual allowance for
+#: an anuric patient on dialysis, and it is not weight-derived.
+_FLUID_CEILING_ML = 1500
+
+
+async def _renal_limits(db: AsyncSession, uid: int) -> list[tuple[str, str, str, float | None]] | None:
+    """Per-patient renal ceilings, or None when this patient is not renal.
+
+    Two bugs lived in the constant this replaced. It applied dialysis ceilings
+    to *every* patient, so a patient with healthy kidneys was flagged in danger
+    for a potassium intake that is a normal target for them. And it capped
+    potassium at a flat 2500 mg — the very number NUTRITION_INTELLIGENCE.md
+    records as wrong and replaced with a weight-based ~40 mg/kg — so the board a
+    clinician reads disagreed with the target shown to the patient.
+
+    Conditions come through `clinical_sources` because reading the tables
+    directly here would both miss half the data and fail the canon §3aa guard.
+    """
+    from app.models.user import User
+    from app.services.nutrient_goals_service import compute_goals, detect_condition_flags
+
+    conditions = await sources.conditions(db, uid, active_only=True)
+    flags = detect_condition_flags(conditions)
+    if not (flags.get("ckd") or flags.get("dialysis")):
+        return None
+
+    user = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+    goals = compute_goals(
+        date_of_birth=getattr(user, "date_of_birth", None),
+        sex=getattr(user, "gender_at_birth", None) or getattr(user, "gender", None),
+        height_cm=getattr(user, "height_cm", None),
+        current_weight_kg=getattr(user, "current_weight_kg", None),
+        target_weight_kg=getattr(user, "target_weight_kg", None),
+        activity_level=getattr(user, "activity_level", None),
+        conditions=conditions,
+    )
+    by_key = {g["key"]: g for g in goals["goals"] if g["kind"] == "limit"}
+
+    limits: list[tuple[str, str, str, float | None]] = []
+    for key, label, unit in (
+        ("potassium_mg", "Potassium", "mg"),
+        ("phosphorus_mg", "Phosphorus", "mg"),
+        ("sodium_mg", "Sodium", "mg"),
+    ):
+        goal = by_key.get(key)
+        limits.append((key, label, unit, float(goal["goal"]) if goal else None))
+    limits.append(("water_ml", "Fluid", "mL", float(_FLUID_CEILING_ML)))
+    return limits
 
 
 async def _nutrition_cards(db: AsyncSession, uid: int, days: int, daily) -> list[dict]:
@@ -634,8 +674,11 @@ async def _nutrition_cards(db: AsyncSession, uid: int, days: int, daily) -> list
     cards: list[dict] = []
 
     # ── Renal panel: the numbers that decide a dialysis diet ──
+    # Shown only for a patient who actually has kidney disease, against that
+    # patient's own computed ceilings.
+    renal_limits = await _renal_limits(db, uid)
     renal_items = []
-    for col, label, unit, ceiling in _RENAL_LIMITS:
+    for col, label, unit, ceiling in (renal_limits or ()):
         column = getattr(NutritionLog, col, None)
         if column is None:
             continue
@@ -646,7 +689,7 @@ async def _nutrition_cards(db: AsyncSession, uid: int, days: int, daily) -> list
         renal_items.append({
             "label": label, "value": value, "unit": f"{unit}/day",
             "danger": bool(ceiling and value > ceiling),
-            "note": f"typical ceiling {ceiling:g} {unit}" if ceiling else None,
+            "note": f"ceiling {ceiling:g} {unit}" if ceiling else None,
         })
     if renal_items:
         cards.append({"label": "Renal panel — daily average", "items": renal_items})
