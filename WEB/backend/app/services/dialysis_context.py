@@ -34,9 +34,14 @@ COMPLETED_STATUSES = {"completed", "COMPLETED", "finished", "complete"}
 #: spans 0–4660 mL/min; 4660 is not physically possible through a dialyser.
 BLOOD_FLOW_PLAUSIBLE = (50.0, 600.0)
 
-#: How far back to look for a serum value. Older than this and the staleness
-#: gate in `dialysis_day_adjustment` will discard it anyway.
-SERUM_LOOKBACK_DAYS = 180
+#: How far back to look for a serum value.
+#:
+#: Dialysis bloods are drawn monthly, so 30 days means "the most recent routine
+#: draw" and nothing staler. A serum potassium is a snapshot of a fast-moving
+#: quantity — it can move a full mmol/L between treatments — so an older value
+#: is not evidence about today, and this gate governs whether the model may
+#: deduct treatment removal from a nutrient total.
+SERUM_LOOKBACK_DAYS = 30
 
 #: Lab names, as they arrive from the document importer and the EHR feed.
 _SERUM_TESTS = {

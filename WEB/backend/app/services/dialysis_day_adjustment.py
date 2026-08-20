@@ -57,8 +57,14 @@ SERUM_BLOCK_ABOVE = {
 
 #: Serum older than this stops counting as confirmation; between the two the
 #: removal credit tapers to zero. Gains are never tapered.
-FRESH_DAYS = 45
-STALE_DAYS = 120
+#:
+#: Scaled to a monthly draw cadence: a result from the last fortnight counts in
+#: full, one from the back half of the month counts partially, and beyond 30
+#: days it does not count at all — `dialysis_context.SERUM_LOOKBACK_DAYS` will
+#: not even load it. Tapering rather than cliff-edging avoids a lab going from
+#: fully trusted to worthless overnight.
+FRESH_DAYS = 14
+STALE_DAYS = 30
 
 #: An uncalibrated analyte's removal is discounted — the transfer is real, but
 #: its size is a literature figure rather than this patient's measured one.

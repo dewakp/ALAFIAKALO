@@ -252,9 +252,10 @@ from the bath. Full detail: **`DIALYSIS_BALANCE.md`**.
   treatment day is the post. Same-day only — a next-morning K has re-equilibrated.
 - `nutrition_backfilled.csv` needs deduping on `row_hash`: 26,400 rows,
   1,600 unique. Read raw it reports 26,600 mg of dietary potassium a day.
-- Only **removals** are gated (completed session, serum below threshold, recent
-  draw, calibration). Gains are always applied — a guard that only relaxes is
-  not a guard.
+- Only **removals** are gated (completed session, serum below threshold, a draw
+  within **30 days** — full credit ≤14, tapering to zero at 30 — and
+  calibration). Gains are always applied — a guard that only relaxes is not a
+  guard.
 - Coefficients are per-patient and only adopted if they beat
   predict-the-previous-value on a **chronological** hold-out.
 

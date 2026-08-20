@@ -143,8 +143,8 @@ A removal is credited only if all of:
 1. the session is recorded **completed** — not scheduled, not in progress;
 2. the most recent serum is **below** the block threshold (K 5.5 mmol/L, PO₄ 5.5,
    Mg 2.6, Ca 10.5 mg/dL);
-3. a draw exists within the staleness window — full credit ≤45 days, tapering to
-   zero at 120;
+3. a draw exists within the staleness window — full credit ≤14 days, tapering to
+   zero at 30, and nothing older than 30 days is loaded at all;
 4. uncalibrated analytes get **40%** of the modelled amount.
 
 Gains are applied unconditionally. A guard that only ever relaxes is not a guard.

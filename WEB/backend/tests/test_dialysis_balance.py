@@ -264,12 +264,31 @@ class TestRemovalLowersTheDaysBalance:
         assert "No recent blood test" in goals[0]["dialysis_balance"]["withheld"]
 
     def test_ageing_bloods_shrink_the_removal_credit(self):
+        """Bloods are drawn monthly, so the taper runs across the back half."""
         fresh = apply_to_totals([a_goal()], [a_session()], a_serum(measured_on=TODAY),
                                 CALIBRATED, TODAY)[0][0]
         ageing = apply_to_totals([a_goal()], [a_session()],
-                                 a_serum(measured_on=TODAY - timedelta(days=90)),
+                                 a_serum(measured_on=TODAY - timedelta(days=22)),
                                  CALIBRATED, TODAY)[0][0]
         assert 0 > ageing["dialysis_balance"]["delta"] > fresh["dialysis_balance"]["delta"]
+
+    def test_a_month_old_result_counts_for_nothing(self):
+        """A serum potassium can move a full mmol/L between treatments, so a
+        month-old value is not evidence about today."""
+        goals, _ = apply_to_totals(
+            [a_goal()], [a_session()],
+            a_serum(measured_on=TODAY - timedelta(days=31)), CALIBRATED, TODAY,
+        )
+        assert goals[0]["dialysis_balance"]["delta"] == 0
+        assert goals[0]["dialysis_balance"]["withheld"]
+
+    def test_a_fortnight_old_result_still_counts_in_full(self):
+        recent = apply_to_totals([a_goal()], [a_session()],
+                                 a_serum(measured_on=TODAY - timedelta(days=13)),
+                                 CALIBRATED, TODAY)[0][0]
+        today = apply_to_totals([a_goal()], [a_session()], a_serum(measured_on=TODAY),
+                                CALIBRATED, TODAY)[0][0]
+        assert recent["dialysis_balance"]["delta"] == today["dialysis_balance"]["delta"]
 
     def test_an_uncalibrated_analyte_is_discounted(self):
         goals, _ = apply_to_totals(
