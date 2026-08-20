@@ -341,6 +341,12 @@ knows about their own nephrologist.
   `regexp_replace`, so it does not silently become Postgres-only.
 - `tests/test_messaging_recipients.py` pins the boundary — a stranger's name
   returns nothing, a near-miss email returns nothing.
+- **Not indexed yet, deliberately.** `lower(email)` cannot use `ix_users_email`,
+  and `conversation_members.user_id` has no index of its own (the unique
+  constraint indexes `conversation_id` first). At 81 users and 2 member rows
+  that is a sub-millisecond scan. If `users` reaches the low thousands, add
+  `lower(email)` as a functional index — `ws_messaging.py` and
+  `ws_telehealth.py` already filter the same way and would benefit too.
 
 `member_ids` are resolved to active users before any `conversation_members` row
 is written. Without that a typo produced a conversation with a member pointing
