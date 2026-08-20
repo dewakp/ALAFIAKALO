@@ -559,6 +559,10 @@ interface ApiService {
     @POST("messaging/conversations")
     suspend fun createConversation(@Body request: CreateConversationRequest): Conversation
 
+    /** People matching [q] by name, email or phone — see RecipientMatch. */
+    @GET("messaging/recipients")
+    suspend fun findRecipients(@Query("q") q: String): List<RecipientMatch>
+
     @GET("messaging/conversations/{id}")
     suspend fun getConversation(@Path("id") id: Int): Conversation
 

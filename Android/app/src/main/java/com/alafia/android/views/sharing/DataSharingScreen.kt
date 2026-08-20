@@ -27,10 +27,36 @@ import com.alafia.android.models.DataShareInvitationCreate
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
 
-private val DATA_TYPES = listOf(
-    "all", "labs", "medications", "vitals", "nutrition", "fitness",
-    "mood", "sleep", "conditions", "dialysis", "lifestyle", "appointments"
+/**
+ * Fallback only — the live list comes from `GET /data-sharing/types`.
+ *
+ * This constant used to BE the list, and had drifted: it offered "sleep" and
+ * "appointments", which the backend rejects, while omitting symptoms, journal,
+ * elimination and connected records, so those could not be shared from Android
+ * at all. Fetching means a category added server-side reaches every client
+ * without an app release.
+ */
+private val DATA_TYPES_FALLBACK = listOf(
+    "all", "vitals", "labs", "medications", "nutrition", "fitness", "mood",
+    "lifestyle", "dialysis", "symptoms", "conditions", "journal",
+    "elimination", "connected_records", "messages"
 )
+
+/** The sharable categories, fetched once and shared by both dialogs. */
+@Composable
+private fun rememberDataTypes(): List<String> {
+    var types by remember { mutableStateOf(DATA_TYPES_FALLBACK) }
+    LaunchedEffect(Unit) {
+        try {
+            val fetched = ApiClient.getApiService().getDataSharingTypes()
+            if (fetched.isNotEmpty()) types = fetched
+        } catch (_: Exception) {
+            // Keep the fallback: an empty picker would read as "nothing is
+            // shareable", which is not what a failed fetch means.
+        }
+    }
+    return types
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -313,8 +339,9 @@ private fun DataGrantCard(grant: DataGrant, onDelete: () -> Unit) {
 
 @Composable
 private fun AddGrantDialog(onDismiss: () -> Unit, onSave: (DataGrantCreate) -> Unit) {
+    val dataTypes = rememberDataTypes()
     var granteeEmail by remember { mutableStateOf("") }
-    var selectedDataType by remember { mutableStateOf(DATA_TYPES.first()) }
+    var selectedDataType by remember { mutableStateOf(dataTypes.first()) }
     var canRead by remember { mutableStateOf(true) }
     var canWrite by remember { mutableStateOf(false) }
     var dropdownExpanded by remember { mutableStateOf(false) }
@@ -351,7 +378,7 @@ private fun AddGrantDialog(onDismiss: () -> Unit, onSave: (DataGrantCreate) -> U
                         expanded = dropdownExpanded,
                         onDismissRequest = { dropdownExpanded = false }
                     ) {
-                        DATA_TYPES.forEach { type ->
+                        dataTypes.forEach { type ->
                             DropdownMenuItem(
                                 text = { Text(type.replaceFirstChar { it.uppercase() }) },
                                 onClick = {
@@ -644,6 +671,7 @@ private fun SendInvitationDialog(
     onDismiss: () -> Unit,
     onSend: (DataShareInvitationCreate) -> Unit
 ) {
+    val dataTypes = rememberDataTypes()
     var recipientEmail by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     val selectedTypes = remember { mutableStateMapOf<String, Boolean>() }
@@ -670,7 +698,7 @@ private fun SendInvitationDialog(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                DATA_TYPES.forEach { type ->
+                dataTypes.forEach { type ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()

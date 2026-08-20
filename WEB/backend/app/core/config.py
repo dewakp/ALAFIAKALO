@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_AUTH: str = "5/minute"  # login / register / password-reset
     RATE_LIMIT_DEFAULT: str = "60/minute"
+    RATE_LIMIT_LOOKUP: str = "30/minute"  # recipient search — enumeration-sensitive
 
     # ── Email ────────────────────────────────────────────────────────────
     # Resend is preferred over raw SMTP: it is an HTTPS call, so it is immune to

@@ -543,6 +543,36 @@ data class TelehealthNoteRequest(
 
 // ── Messaging Schemas ──
 
+/**
+ * Someone the current user may start a conversation with.
+ *
+ * Returned by `/messaging/recipients`, which replaced asking for raw member
+ * ids. `email`/`phoneNumber` are populated only when the caller typed the full
+ * identifier; otherwise only the masked hints come back, which is enough to
+ * tell two people with the same name apart.
+ */
+data class RecipientMatch(
+    val id: Int,
+    @SerializedName("full_name") val fullName: String,
+    val email: String? = null,
+    @SerializedName("phone_number") val phoneNumber: String? = null,
+    @SerializedName("email_hint") val emailHint: String? = null,
+    @SerializedName("phone_hint") val phoneHint: String? = null,
+    @SerializedName("matched_on") val matchedOn: String = "name",
+    val connected: Boolean = false
+) {
+    /** What to show under the name in a result row. */
+    val subtitle: String
+        get() {
+            val identity = email ?: emailHint ?: phoneNumber ?: phoneHint ?: ""
+            return when {
+                !connected -> identity
+                identity.isBlank() -> "Shared contact"
+                else -> "$identity · shared contact"
+            }
+        }
+}
+
 data class CreateConversationRequest(
     @SerializedName("conversation_type") val conversationType: String,
     val title: String? = null,

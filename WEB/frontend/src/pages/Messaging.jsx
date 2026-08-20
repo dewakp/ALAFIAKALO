@@ -140,6 +140,7 @@ export default function Messaging() {
         {showCreate === 'conv' && (
           <CreateConversationModal
             defaultType={convFilter !== 'all' ? convFilter : 'direct'}
+            typeLocked={convFilter !== 'all'}
             onClose={() => setShowCreate(false)}
             onCreated={(c) => { setShowCreate(false); setSelectedConv(c); setView('chat'); }}
           />
@@ -286,7 +287,143 @@ function ConversationRow({ conv, onClick }) {
    CREATE CONVERSATION MODAL
    ═══════════════════════════════════════════════ */
 
-function CreateConversationModal({ defaultType, onClose, onCreated }) {
+const CONVERSATION_TYPES = [
+  { value: 'direct',    label: 'Direct Message' },
+  { value: 'clinical',  label: 'Clinical' },
+  { value: 'group',     label: 'Group Chat' },
+  { value: 'care_team', label: 'Care Team' },
+];
+
+const typeLabel = (v) => CONVERSATION_TYPES.find(t => t.value === v)?.label || v;
+
+/* Recipient picker — replaces "Member IDs (comma-separated)".
+ *
+ * A member id is an internal handle. Nobody knows their nephrologist's primary
+ * key, so the old field could only be used by someone reading the database.
+ * This searches `/messaging/recipients` by name, email or phone.
+ *
+ * That endpoint only matches a partial name among people you already share
+ * something with; reaching anyone else needs their full email or phone. So an
+ * empty result for a name is a normal outcome, not an error, and the empty copy
+ * says how to reach someone who is not a contact yet.
+ */
+export function RecipientPicker({ selected, onChange, max }) {
+  const [term, setTerm] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [touched, setTouched] = useState(false);
+  const full = max != null && selected.length >= max;
+
+  useEffect(() => {
+    const q = term.trim();
+    if (q.length < 2) { setResults([]); setSearchError(''); return; }
+    let cancelled = false;
+    setSearching(true);
+    // Debounced: one request per pause in typing, not one per keystroke.
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await api.get('/messaging/recipients', { params: { q } });
+        if (!cancelled) { setResults(data); setSearchError(''); }
+      } catch (e) {
+        // A failed search is not "no matches" — saying so would send the user
+        // hunting for a person who is in fact right there.
+        if (!cancelled) {
+          setResults([]);
+          setSearchError(e?.response?.status === 429
+            ? 'Too many searches just now — pause a moment and try again.'
+            : 'Could not search right now.');
+        }
+      } finally {
+        if (!cancelled) { setSearching(false); setTouched(true); }
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [term]);
+
+  const add = (person) => {
+    if (full || selected.some(p => p.id === person.id)) return;
+    onChange([...selected, person]);
+    setTerm(''); setResults([]); setTouched(false);
+  };
+
+  return (
+    <div>
+      <label className="form-label">
+        {max === 1 ? 'Recipient' : 'Recipients'}
+      </label>
+
+      {selected.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          {selected.map(p => (
+            <span key={p.id} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'var(--color-primary-light)', color: 'var(--color-primary)',
+              borderRadius: 999, padding: '4px 8px 4px 12px', fontSize: '0.85rem', fontWeight: 600,
+            }}>
+              {p.full_name}
+              <button type="button" aria-label={`Remove ${p.full_name}`}
+                onClick={() => onChange(selected.filter(x => x.id !== p.id))}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit', display: 'flex', padding: 0 }}>
+                <X size={14} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {!full && (
+        <div style={{ position: 'relative' }}>
+          <input className="form-control" value={term} autoComplete="off"
+            onChange={e => { setTerm(e.target.value); setTouched(false); }}
+            placeholder="Search by name, email or phone" />
+          {searching && (
+            <Loader2 size={16} className="spin"
+              style={{ position: 'absolute', right: 10, top: 11, color: '#888' }} />
+          )}
+
+          {results.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 5, marginTop: 4,
+              background: 'var(--color-surface, #fff)', border: '1px solid var(--color-border)',
+              borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 240, overflowY: 'auto',
+            }}>
+              {results.map(p => (
+                <button key={p.id} type="button" onClick={() => add(p)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', border: 'none',
+                    background: 'none', padding: '8px 12px', cursor: 'pointer', fontSize: '0.9rem',
+                  }}>
+                  <div style={{ fontWeight: 600 }}>{p.full_name}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#888' }}>
+                    {p.email || p.email_hint || p.phone_hint || ''}
+                    {p.connected && <span style={{ marginLeft: 6 }}>· shared contact</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {searchError
+        ? <div style={{ fontSize: '0.78rem', color: '#d32f2f', marginTop: 6 }}>{searchError}</div>
+        : touched && term.trim().length >= 2 && results.length === 0 && (
+            <div style={{ fontSize: '0.78rem', color: '#888', marginTop: 6 }}>
+              Nobody found. You can find your own contacts by name — to reach
+              anyone else, enter their full email address or phone number.
+            </div>
+          )}
+      {full && (
+        <div style={{ fontSize: '0.78rem', color: '#888', marginTop: 6 }}>
+          A direct message goes to one person. Remove them to pick someone else.
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CreateConversationModal({ defaultType, typeLocked, onClose, onCreated }) {
   const [form, setForm] = useState({
     conversation_type: defaultType,
     title: '',
@@ -294,55 +431,88 @@ function CreateConversationModal({ defaultType, onClose, onCreated }) {
     specialty: '',
     priority: 'routine',
     is_urgent: false,
-    member_ids: '',
   });
+  // People, not ids. The id is still what goes over the wire — it is just no
+  // longer what the user is asked to supply.
+  const [recipients, setRecipients] = useState([]);
+  // The tab already chose the type; the dropdown only appears if it did not,
+  // or if the user asks to change it.
+  const [editingType, setEditingType] = useState(!typeLocked);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const isDirect = form.conversation_type === 'direct';
+  const isClinical = form.conversation_type === 'clinical' || form.conversation_type === 'care_team';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (recipients.length === 0) {
+      setError(isDirect ? 'Choose who to message.' : 'Add at least one person.');
+      return;
+    }
     setSubmitting(true);
+    setError('');
     try {
-      const payload = {
+      const { data } = await api.post('/messaging/conversations', {
         ...form,
-        member_ids: form.member_ids ? form.member_ids.split(',').map(s => parseInt(s.trim())).filter(Boolean) : [],
-      };
-      const { data } = await api.post('/messaging/conversations', payload);
+        member_ids: recipients.map(p => p.id),
+      });
       onCreated(data);
-    } catch (err) { console.error(err); }
-    setSubmitting(false);
+    } catch (err) {
+      // This used to be `catch (e) { console.error(e) }`: the button stopped
+      // spinning, the dialog stayed open, and nothing said why.
+      setError(err?.response?.data?.detail || 'Could not create the conversation.');
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="card modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className="card modal-content" onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <h3 style={{ margin: 0 }}>New Conversation</h3>
-          <button className="btn btn-secondary btn-sm" onClick={onClose}><X size={16} /></button>
+          <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <label className="form-label">Type</label>
-            <select className="form-control" value={form.conversation_type}
-              onChange={e => setForm({ ...form, conversation_type: e.target.value })}>
-              <option value="direct">Direct Message</option>
-              <option value="clinical">Clinical</option>
-              <option value="group">Group Chat</option>
-              <option value="care_team">Care Team</option>
-            </select>
+
+        {!editingType ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, color: '#888', fontSize: '0.9rem' }}>
+            <span>{typeLabel(form.conversation_type)}</span>
+            <button type="button" onClick={() => setEditingType(true)}
+              style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+                       color: 'var(--color-primary)', fontSize: '0.85rem', fontWeight: 600 }}>
+              Change
+            </button>
           </div>
-          <div>
-            <label className="form-label">Title</label>
-            <input className="form-control" value={form.title}
-              onChange={e => setForm({ ...form, title: e.target.value })}
-              placeholder={form.conversation_type === 'direct' ? 'Optional' : 'Channel name'} />
-          </div>
-          <div>
-            <label className="form-label">Member IDs (comma-separated)</label>
-            <input className="form-control" value={form.member_ids}
-              onChange={e => setForm({ ...form, member_ids: e.target.value })}
-              placeholder="e.g. 14, 15" />
-          </div>
-          {(form.conversation_type === 'clinical' || form.conversation_type === 'care_team') && (
+        ) : <div style={{ marginBottom: 12 }} />}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {editingType && (
+            <div>
+              <label className="form-label">Type</label>
+              <select className="form-control" value={form.conversation_type}
+                onChange={e => setForm({ ...form, conversation_type: e.target.value })}>
+                {CONVERSATION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+          )}
+
+          <RecipientPicker
+            selected={recipients}
+            onChange={(next) => { setRecipients(next); setError(''); }}
+            max={isDirect ? 1 : undefined}
+          />
+
+          {/* A direct message is named by whoever is in it. */}
+          {!isDirect && (
+            <div>
+              <label className="form-label">Name</label>
+              <input className="form-control" value={form.title}
+                onChange={e => setForm({ ...form, title: e.target.value })}
+                placeholder="Channel name" />
+            </div>
+          )}
+
+          {isClinical && (
             <>
               <div>
                 <label className="form-label">Specialty</label>
@@ -365,12 +535,23 @@ function CreateConversationModal({ defaultType, onClose, onCreated }) {
               </label>
             </>
           )}
+
           <div>
             <label className="form-label">Description</label>
             <textarea className="form-control" rows={2} value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="Optional description..." />
+              placeholder="Optional" />
           </div>
+
+          {error && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, color: '#d32f2f',
+              background: 'rgba(211,47,47,0.08)', borderRadius: 8, padding: '8px 12px', fontSize: '0.85rem',
+            }}>
+              <AlertCircle size={16} /> {error}
+            </div>
+          )}
+
           <button className="btn btn-primary" type="submit" disabled={submitting}>
             {submitting ? <Loader2 size={16} className="spin" /> : 'Create'}
           </button>

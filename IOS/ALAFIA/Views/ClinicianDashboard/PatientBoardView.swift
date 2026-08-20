@@ -96,6 +96,7 @@ struct CategoryCardView: View {
         case "thermometer": return "thermometer.medium"
         case "cross": return "cross.case.fill"
         case "heart": return "heart.text.square"
+        case "message-square": return "message.fill"
         default: return "square.grid.2x2"
         }
     }
@@ -114,6 +115,7 @@ struct CategoryCardView: View {
         case "journal": return .indigo
         case "symptoms": return .orange
         case "dialysis": return .teal
+        case "messages": return .cyan
         case "lifestyle": return .mint
         default: return .blue
         }

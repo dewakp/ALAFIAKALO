@@ -321,6 +321,7 @@ private fun dataTypeIcon(type: String) = when (type.lowercase()) {
     "elimination" -> Icons.Default.WaterDrop
     "journal" -> Icons.Default.Book
     "connected_records" -> Icons.Default.Link
+    "messages" -> Icons.Default.Forum
     "dialysis" -> Icons.Default.WaterDrop
     "lifestyle" -> Icons.Default.Spa
     "all" -> Icons.Default.SelectAll
