@@ -6,13 +6,33 @@
 // clock. So we normalize: strings without a timezone are treated as UTC, and every
 // formatter uses the browser locale (toLocale*), never a hardcoded zone.
 
-/** Parse a server value to a Date, interpreting naive (no-offset) strings as UTC. */
+/** A naive datetime at exactly midnight — a calendar date in a datetime column. */
+const NAIVE_MIDNIGHT = /^(\d{4}-\d{2}-\d{2})T00:00(?::00(?:\.0+)?)?$/;
+
+/** Parse a server value to a Date, interpreting naive (no-offset) strings as UTC.
+ *
+ * With one exception, and it is the reason a treatment entered on the 19th was
+ * reported as the 18th:
+ *
+ * Some columns are *calendar dates* stored in a DATETIME column —
+ * `therapy_sessions.scheduled_date`, `condition_metrics.measured_date`. They
+ * serialize as `2026-08-19T00:00:00`, look exactly like a naive instant, and so
+ * were parsed as midnight UTC. Rendered anywhere west of UTC that is the
+ * *previous day*: 8/18 in New York, and worse the further west you go.
+ *
+ * A real instant landing on exactly 00:00:00.000 is vanishingly rare; a date
+ * stored as midnight is routine. So exact midnight is read as a calendar date
+ * and kept as written, while anything carrying a real time of day is still
+ * treated as UTC.
+ */
 export function parseServer(v) {
   if (v == null || v === '') return null;
   if (v instanceof Date) return v;
   const s = String(v);
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(`${s}T00:00:00`); // date-only → local midnight
   if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s);           // already has a timezone
+  const calendarDate = NAIVE_MIDNIGHT.exec(s);
+  if (calendarDate) return new Date(`${calendarDate[1]}T00:00:00`);    // date, not an instant
   return new Date(`${s}Z`);                                           // naive datetime → assume UTC
 }
 
