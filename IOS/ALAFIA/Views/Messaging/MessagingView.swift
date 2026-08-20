@@ -34,6 +34,19 @@ final class MessagingViewModel {
         } catch { errorMessage = error.localizedDescription; return nil }
     }
 
+    /// Look up people by name, email or phone for the compose sheet.
+    ///
+    /// Throws rather than swallowing: the sheet has to tell a failed search
+    /// apart from a genuinely empty one, or it reports "nobody found" for a
+    /// contact who is right there.
+    func findRecipients(_ query: String) async throws -> [RecipientMatch] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else { return [] }
+        let encoded = trimmed.addingPercentEncoding(
+            withAllowedCharacters: .urlQueryAllowed) ?? trimmed
+        return try await APIClient.shared.get("/messaging/recipients?q=\(encoded)")
+    }
+
     // Messages
     func loadMessages(convId: Int) async {
         do {
@@ -635,37 +648,181 @@ private struct MessageBubble: View {
 
 // MARK: - Create Conversation Sheet
 
+/// Search field + chips that replaced "Member IDs (comma-separated)".
+///
+/// The lookup only matches a partial name among shared contacts; anyone else
+/// needs their full email or phone. So an empty result is a normal outcome and
+/// the empty copy says how to reach someone who is not a contact yet.
+private struct RecipientPicker: View {
+    let vm: MessagingViewModel
+    @Binding var selected: [RecipientMatch]
+    let max: Int?
+
+    @State private var term = ""
+    @State private var results: [RecipientMatch] = []
+    @State private var searching = false
+    @State private var searchError: String?
+    @State private var searched = false
+    @State private var searchTask: Task<Void, Never>?
+
+    private var isFull: Bool { max.map { selected.count >= $0 } ?? false }
+
+    var body: some View {
+        Section(max == 1 ? "Recipient" : "Recipients") {
+            ForEach(selected) { person in
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(person.fullName)
+                        if !person.subtitle.isEmpty {
+                            Text(person.subtitle).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    Button {
+                        selected.removeAll { $0.id == person.id }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Remove \(person.fullName)")
+                }
+            }
+
+            if !isFull {
+                HStack {
+                    TextField("Search by name, email or phone", text: $term)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: term) { _, value in scheduleSearch(value) }
+                    if searching { ProgressView().controlSize(.small) }
+                }
+
+                ForEach(results) { person in
+                    Button {
+                        add(person)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(person.fullName).foregroundStyle(.primary)
+                            if !person.subtitle.isEmpty {
+                                Text(person.subtitle).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+
+                if let searchError {
+                    // An error is not an empty state.
+                    Text(searchError).font(.caption).foregroundStyle(.red)
+                } else if searched, term.trimmingCharacters(in: .whitespaces).count >= 2, results.isEmpty {
+                    Text("Nobody found. You can find your own contacts by name — to reach anyone else, enter their full email address or phone number.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
+                Text("A direct message goes to one person. Remove them to pick someone else.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func add(_ person: RecipientMatch) {
+        guard !isFull, !selected.contains(where: { $0.id == person.id }) else { return }
+        selected.append(person)
+        term = ""; results = []; searched = false
+    }
+
+    /// Debounced: one request per pause in typing, not one per keystroke.
+    private func scheduleSearch(_ value: String) {
+        searchTask?.cancel()
+        searched = false
+        let trimmed = value.trimmingCharacters(in: .whitespaces)
+        guard trimmed.count >= 2 else { results = []; searchError = nil; return }
+        searchTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            searching = true
+            defer { searching = false }
+            do {
+                let found = try await vm.findRecipients(trimmed)
+                guard !Task.isCancelled else { return }
+                results = found; searchError = nil
+            } catch {
+                guard !Task.isCancelled else { return }
+                results = []
+                searchError = "Could not search right now."
+            }
+            searched = true
+        }
+    }
+}
+
 private struct CreateConversationSheet: View {
     let vm: MessagingViewModel
     let onCreated: (Conversation) -> Void
     @Environment(\.dismiss) private var dismiss
 
-    @State private var convType = "direct"
+    @State private var convType: String
     @State private var title = ""
     @State private var description = ""
-    @State private var memberIds = ""
+    @State private var recipients: [RecipientMatch] = []
     @State private var specialty = ""
     @State private var priority = "routine"
     @State private var isUrgent = false
     @State private var submitting = false
+    @State private var editingType: Bool
+    @State private var errorMessage: String?
+
+    init(vm: MessagingViewModel, onCreated: @escaping (Conversation) -> Void) {
+        self.vm = vm
+        self.onCreated = onCreated
+        // The filter chips already chose the type; do not ask a second time.
+        let fromFilter = vm.convFilter != "all"
+        _convType = State(initialValue: fromFilter ? vm.convFilter : "direct")
+        _editingType = State(initialValue: !fromFilter)
+    }
+
+    private var isDirect: Bool { convType == "direct" }
+    private var isClinical: Bool { convType == "clinical" || convType == "care_team" }
+
+    private var typeLabel: String {
+        switch convType {
+        case "clinical": return "Clinical"
+        case "group": return "Group Chat"
+        case "care_team": return "Care Team"
+        default: return "Direct Message"
+        }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Type") {
-                    Picker("Type", selection: $convType) {
-                        Text("Direct Message").tag("direct")
-                        Text("Clinical").tag("clinical")
-                        Text("Group Chat").tag("group")
-                        Text("Care Team").tag("care_team")
+                if editingType {
+                    Section("Type") {
+                        Picker("Type", selection: $convType) {
+                            Text("Direct Message").tag("direct")
+                            Text("Clinical").tag("clinical")
+                            Text("Group Chat").tag("group")
+                            Text("Care Team").tag("care_team")
+                        }
+                    }
+                } else {
+                    Section {
+                        HStack {
+                            Text(typeLabel).foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Change") { editingType = true }.font(.subheadline)
+                        }
                     }
                 }
+
+                RecipientPicker(vm: vm, selected: $recipients, max: isDirect ? 1 : nil)
+
                 Section("Details") {
-                    TextField("Title", text: $title)
-                    TextField("Member IDs (comma-separated)", text: $memberIds)
+                    // A direct message is named by whoever is in it.
+                    if !isDirect { TextField("Name", text: $title) }
                     TextField("Description", text: $description)
                 }
-                if convType == "clinical" || convType == "care_team" {
+
+                if isClinical {
                     Section("Clinical") {
                         TextField("Specialty", text: $specialty)
                         Picker("Priority", selection: $priority) {
@@ -676,11 +833,16 @@ private struct CreateConversationSheet: View {
                         Toggle("Mark as Urgent", isOn: $isUrgent)
                     }
                 }
+
+                if let errorMessage {
+                    Section { Text(errorMessage).font(.caption).foregroundStyle(.red) }
+                }
+
                 Section {
                     Button(submitting ? "Creating..." : "Create Conversation") {
                         submit()
                     }
-                    .disabled(submitting || memberIds.isEmpty)
+                    .disabled(submitting || recipients.isEmpty)
                 }
             }
             .navigationTitle("New Conversation")
@@ -694,8 +856,9 @@ private struct CreateConversationSheet: View {
 
     private func submit() {
         submitting = true
-        let ids = memberIds.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
-        var data = ConversationCreate(conversationType: convType, memberIds: ids)
+        errorMessage = nil
+        var data = ConversationCreate(conversationType: convType,
+                                      memberIds: recipients.map(\.id))
         if !title.isEmpty { data.title = title }
         if !description.isEmpty { data.description = description }
         if !specialty.isEmpty { data.specialty = specialty }
@@ -704,6 +867,9 @@ private struct CreateConversationSheet: View {
         Task {
             if let conv = await vm.createConversation(data) {
                 onCreated(conv)
+            } else {
+                // Previously the button just stopped spinning with no reason given.
+                errorMessage = vm.errorMessage ?? "Could not create the conversation."
             }
             submitting = false
         }

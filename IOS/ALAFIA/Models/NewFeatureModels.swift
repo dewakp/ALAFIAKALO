@@ -348,18 +348,39 @@ struct DosageVerificationResponse: Codable {
 
 // MARK: - PDF Tools
 
-struct LabReportItem: Codable {
+/// One staged reading. `itemId` is what the confirm call selects on, so a
+/// patient can import some rows and leave others.
+struct LabReportItem: Codable, Identifiable {
     let testName: String?
     let value: String?
     let unit: String?
     let referenceRange: String?
     let isAbnormal: Bool?
+    let category: String?
+    let testDate: String?
+    let confidence: Double?
+    /// What the document literally said, kept so a wrong normalization is visible.
+    let sourceLabel: String?
+    /// "new" | "duplicate" | "conflict"
+    let dedupeStatus: String?
+    let itemId: Int?
+    let accepted: Bool?
+    let note: String?
+
+    var id: Int { itemId ?? 0 }
+    var isDuplicate: Bool { dedupeStatus == "duplicate" }
+    var isConflict: Bool { dedupeStatus == "conflict" }
 
     enum CodingKeys: String, CodingKey {
-        case value, unit
+        case value, unit, category, note, confidence
         case testName = "test_name"
         case referenceRange = "reference_range"
         case isAbnormal = "is_abnormal"
+        case testDate = "test_date"
+        case sourceLabel = "source_label"
+        case dedupeStatus = "dedupe_status"
+        case itemId = "item_id"
+        case accepted
     }
 }
 
@@ -370,14 +391,51 @@ struct LabReportParseResponse: Codable {
     let orderingPhysician: String?
     let items: [LabReportItem]?
     let rawTextPreview: String?
+    let parsingNotes: [String]?
+
+    // Import + classification context.
+    let importId: Int?
+    let docType: String?
+    let docTypeConfidence: Double?
+    let confidence: Double?
+    /// nil when this document type can be read but not imported yet.
+    let targetTable: String?
+    let pageCount: Int?
+    /// Set when nothing could be read. Must be shown — an empty item list and a
+    /// failed parse mean opposite things.
+    let error: String?
+    let alreadyImported: Bool?
+
+    var canImport: Bool { targetTable != nil && importId != nil }
 
     enum CodingKeys: String, CodingKey {
-        case items
+        case items, error, confidence
         case patientName = "patient_name"
         case reportDate = "report_date"
         case labName = "lab_name"
         case orderingPhysician = "ordering_physician"
         case rawTextPreview = "raw_text_preview"
+        case parsingNotes = "parsing_notes"
+        case importId = "import_id"
+        case docType = "doc_type"
+        case docTypeConfidence = "doc_type_confidence"
+        case targetTable = "target_table"
+        case pageCount = "page_count"
+        case alreadyImported = "already_imported"
+    }
+}
+
+struct ConfirmImportResponse: Codable {
+    let importId: Int?
+    let status: String?
+    let imported: [String: Int]?
+    let totalImported: Int?
+    let message: String?
+
+    enum CodingKeys: String, CodingKey {
+        case status, imported, message
+        case importId = "import_id"
+        case totalImported = "total_imported"
     }
 }
 
@@ -386,11 +444,13 @@ struct FlowsheetResponse: Codable {
     let generatedAt: String?
     let content: String?
     let sessionCount: Int?
+    let pdfUrl: String?
 
     enum CodingKeys: String, CodingKey {
         case title, content
         case generatedAt = "generated_at"
         case sessionCount = "session_count"
+        case pdfUrl = "pdf_url"
     }
 }
 

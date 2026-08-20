@@ -3,7 +3,7 @@ import api from '../../services/api';
 import {
   ArrowLeft, Gauge, HeartPulse, FlaskConical, Pill, Activity, Apple,
   Dumbbell, Droplets, Brain, BookOpen, Link2, ChevronRight, Lock,
-  Thermometer, Cross, Heart,
+  Thermometer, Cross, Heart, MessageSquare,
 } from 'lucide-react';
 
 // Icon per category key. The backend sends an icon name so every client can
@@ -13,6 +13,7 @@ const ICONS = {
   activity: Activity, apple: Apple, dumbbell: Dumbbell, droplets: Droplets,
   brain: Brain, book: BookOpen, link: Link2,
   thermometer: Thermometer, cross: Cross, heart: Heart,
+  'message-square': MessageSquare,
 };
 
 const ACCENTS = {
@@ -21,6 +22,7 @@ const ACCENTS = {
   fitness: '#0891b2', elimination: '#a16207', mood: '#db2777',
   journal: '#4f46e5', connected_records: '#0284c7',
   symptoms: '#f59e0b', dialysis: '#0d9488', lifestyle: '#65a30d',
+  messages: '#0369a1',
 };
 
 export default function PatientBoard({ patientId, onBack, onOpenCategory }) {

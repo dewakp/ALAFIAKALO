@@ -2,6 +2,8 @@ package com.alafia.android.views.messaging
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import com.alafia.android.schemas.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -44,6 +47,7 @@ fun MessagingScreen(navController: NavHostController) {
     var selectedConv by remember { mutableStateOf<Conversation?>(null) }
     var selectedPost by remember { mutableStateOf<CommunityPost?>(null) }
     var convFilter by remember { mutableStateOf<String?>(null) }
+    var createError by remember { mutableStateOf<String?>(null) }
     var feedTopic by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -260,16 +264,23 @@ fun MessagingScreen(navController: NavHostController) {
     // Create Conversation Sheet
     if (showCreateConv) {
         CreateConversationSheet(
-            onDismiss = { showCreateConv = false },
+            defaultType = convFilter ?: "direct",
+            typeLocked = convFilter != null,
+            errorMessage = createError,
+            onDismiss = { showCreateConv = false; createError = null },
             onCreate = { request ->
                 scope.launch {
                     try {
+                        createError = null
                         val conv = ApiClient.getApiService().createConversation(request)
                         showCreateConv = false
                         selectedConv = conv
                         currentView = "chat"
                         loadMessages(conv.id)
-                    } catch (_: Exception) { errorMessage = "Failed to create conversation" }
+                    } catch (e: Exception) {
+                        // Shown inside the sheet, which is where the user is looking.
+                        createError = e.message ?: "Could not create the conversation."
+                    }
                 }
             }
         )
@@ -1021,70 +1032,224 @@ private fun PostDetailView(
 
 // ── Create Conversation Sheet ──
 
+/**
+ * Search field + chips that replaced "Member IDs (comma-separated)".
+ *
+ * A member id is an internal handle — nobody knows their nephrologist's primary
+ * key. The lookup only matches a partial name among shared contacts; anyone
+ * else needs their full email or phone, so an empty result is a normal outcome
+ * and the empty copy says how to reach someone who is not a contact yet.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecipientPicker(
+    selected: List<RecipientMatch>,
+    onChange: (List<RecipientMatch>) -> Unit,
+    max: Int?
+) {
+    var term by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf<List<RecipientMatch>>(emptyList()) }
+    var searching by remember { mutableStateOf(false) }
+    var searchError by remember { mutableStateOf<String?>(null) }
+    var searched by remember { mutableStateOf(false) }
+    val isFull = max != null && selected.size >= max
+
+    // Debounced: one request per pause in typing, not one per keystroke.
+    LaunchedEffect(term) {
+        val q = term.trim()
+        searched = false
+        if (q.length < 2) {
+            results = emptyList(); searchError = null
+            return@LaunchedEffect
+        }
+        delay(300)
+        searching = true
+        try {
+            results = ApiClient.getApiService().findRecipients(q)
+            searchError = null
+        } catch (_: Exception) {
+            // An error is not an empty state: "nobody found" would send the
+            // user hunting for a contact who is in fact right there.
+            results = emptyList()
+            searchError = "Could not search right now."
+        } finally {
+            searching = false
+            searched = true
+        }
+    }
+
+    Text(
+        if (max == 1) "Recipient" else "Recipients",
+        style = MaterialTheme.typography.labelLarge
+    )
+    Spacer(Modifier.height(6.dp))
+
+    selected.forEach { person ->
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(person.fullName, fontWeight = FontWeight.SemiBold)
+                if (person.subtitle.isNotBlank()) {
+                    Text(
+                        person.subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            IconButton(onClick = { onChange(selected.filterNot { it.id == person.id }) }) {
+                Icon(Icons.Default.Close, contentDescription = "Remove ${person.fullName}")
+            }
+        }
+    }
+
+    if (!isFull) {
+        OutlinedTextField(
+            value = term,
+            onValueChange = { term = it },
+            label = { Text("Search by name, email or phone") },
+            singleLine = true,
+            trailingIcon = {
+                if (searching) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        results.forEach { person ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        if (selected.none { it.id == person.id }) {
+                            onChange(selected + person)
+                            term = ""; results = emptyList(); searched = false
+                        }
+                    }
+                    .padding(vertical = 8.dp)
+            ) {
+                Column {
+                    Text(person.fullName, fontWeight = FontWeight.SemiBold)
+                    if (person.subtitle.isNotBlank()) {
+                        Text(
+                            person.subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        val error = searchError
+        if (error != null) {
+            Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        } else if (searched && term.trim().length >= 2 && results.isEmpty()) {
+            Text(
+                "Nobody found. You can find your own contacts by name — to reach " +
+                    "anyone else, enter their full email address or phone number.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        Text(
+            "A direct message goes to one person. Remove them to pick someone else.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateConversationSheet(
+    defaultType: String,
+    typeLocked: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
     onCreate: (CreateConversationRequest) -> Unit
 ) {
-    var convType by remember { mutableStateOf("direct") }
+    var convType by remember { mutableStateOf(defaultType) }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var memberIds by remember { mutableStateOf("") }
+    var recipients by remember { mutableStateOf<List<RecipientMatch>>(emptyList()) }
     var specialty by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("routine") }
     var isUrgent by remember { mutableStateOf(false) }
     var typeExpanded by remember { mutableStateOf(false) }
     var priorityExpanded by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
+    // The filter chips already chose the type; do not ask a second time.
+    var editingType by remember { mutableStateOf(!typeLocked) }
 
     val convTypes = listOf("direct" to "Direct Message", "clinical" to "Clinical", "group" to "Group Chat", "care_team" to "Care Team")
     val priorities = listOf("routine", "urgent", "stat")
+    val isDirect = convType == "direct"
+
+    // A rejected create must release the button, or the sheet locks up.
+    LaunchedEffect(errorMessage) { if (errorMessage != null) submitting = false }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp, vertical = 16.dp)
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
         ) {
             Text("New Conversation", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
 
-            // Type dropdown
-            ExposedDropdownMenuBox(expanded = typeExpanded, onExpandedChange = { typeExpanded = it }) {
-                OutlinedTextField(
-                    value = convTypes.find { it.first == convType }?.second ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Type") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor()
-                )
-                ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
-                    convTypes.forEach { (value, label) ->
-                        DropdownMenuItem(text = { Text(label) }, onClick = { convType = value; typeExpanded = false })
+            if (editingType) {
+                ExposedDropdownMenuBox(expanded = typeExpanded, onExpandedChange = { typeExpanded = it }) {
+                    OutlinedTextField(
+                        value = convTypes.find { it.first == convType }?.second ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Type") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
+                        convTypes.forEach { (value, label) ->
+                            DropdownMenuItem(text = { Text(label) }, onClick = { convType = value; typeExpanded = false })
+                        }
                     }
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        convTypes.find { it.first == convType }?.second ?: convType,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    TextButton(onClick = { editingType = true }) { Text("Change") }
                 }
             }
             Spacer(Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Title (optional)") },
-                modifier = Modifier.fillMaxWidth()
+            RecipientPicker(
+                selected = recipients,
+                onChange = { recipients = it },
+                max = if (isDirect) 1 else null
             )
             Spacer(Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = memberIds,
-                onValueChange = { memberIds = it },
-                label = { Text("Member IDs (comma-separated)") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(12.dp))
+            // A direct message is named by whoever is in it.
+            if (!isDirect) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+            }
 
             OutlinedTextField(
                 value = description,
@@ -1127,23 +1292,27 @@ private fun CreateConversationSheet(
                 }
             }
 
+            if (errorMessage != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+
             Spacer(Modifier.height(20.dp))
             Button(
                 onClick = {
                     submitting = true
-                    val ids = memberIds.split(",").mapNotNull { it.trim().toIntOrNull() }
                     onCreate(CreateConversationRequest(
                         conversationType = convType,
                         title = title.ifBlank { null },
                         description = description.ifBlank { null },
-                        memberIds = ids,
+                        memberIds = recipients.map { it.id },
                         specialty = specialty.ifBlank { null },
                         priority = priority,
                         isUrgent = isUrgent
                     ))
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !submitting && memberIds.isNotBlank()
+                enabled = !submitting && recipients.isNotEmpty()
             ) {
                 Text(if (submitting) "Creating..." else "Create Conversation")
             }

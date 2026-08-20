@@ -216,6 +216,49 @@ it left `fitness` (no rows for ANY user), `lifestyle` (data belongs to a
 different user) and `pd_sessions` (empty everywhere) unexercised, and hid that
 six of the seven users with nutrition data fell outside the 7-day summary window.
 
+## 3ab. Document import (any clinical PDF)
+
+Upload → parse → **staged for review** → import. Full detail:
+**`DOCUMENT_IMPORT.md`**.
+
+- Parsing works from **word coordinates**, never `extract_text()`. A reference
+  range printed beside a row reflows onto a different line, which cost the old
+  extractor 489 of 853 ranges (3 of 13 documents lost every one). Now 510/510.
+- **`pdfplumber` must stay in `WEB/backend/requirements.txt`.** Without it the
+  upload endpoint falls through to decoding PDF bytes as UTF-8 and reads nothing.
+- Nothing reaches a clinical table until the patient confirms. Duplicates arrive
+  unticked; §3aa routing applies (documents state *prescriptions* → `medications`;
+  conditions → `chronic_conditions`, never `health_conditions`).
+- After touching `layout.py` / `normalize.py`, run the corpus harness — it reads
+  the real PHI corpus and is deliberately not in CI:
+  `ML/.venv-health-ml/bin/python WEB/backend/scripts/docparse_corpus_check.py`
+
+## 3ac. Dialysis changes the day's totals, not the limits
+
+A session clears potassium and phosphorus in gram quantities and *adds* calcium
+from the bath. Full detail: **`DIALYSIS_BALANCE.md`**.
+
+> **A treatment changes the day's TOTALS. It never changes the LIMIT.**
+> KDOQI's 2,000-3,000 mg/day of potassium is already the figure for a patient on
+> dialysis. Raising it on a treatment day counts that clearance twice — and a
+> typical session clears ~3,900 mg against a 3,000 mg limit.
+
+- `therapy_sessions.blood_flow_rate` is the **prescribed** rate — a flat 350 on
+  every row. The delivered rate is the per-session mean of
+  `intradialytic_readings.blood_flow_rate` (median 397, SD 61, range ~150-480).
+  Use the session column and blood flow silently becomes a constant.
+- **Post-dialysis potassium exists but is never named "POST".** It is identified
+  by facility and day: the provider draws the pre panel, an outside lab on a
+  treatment day is the post. Same-day only — a next-morning K has re-equilibrated.
+- `nutrition_backfilled.csv` needs deduping on `row_hash`: 26,400 rows,
+  1,600 unique. Read raw it reports 26,600 mg of dietary potassium a day.
+- Only **removals** are gated (completed session, serum below threshold, a draw
+  within **30 days** — full credit ≤14, tapering to zero at 30 — and
+  calibration). Gains are always applied — a guard that only relaxes is not a
+  guard.
+- Coefficients are per-patient and only adopted if they beat
+  predict-the-previous-value on a **chronological** hold-out.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host
@@ -274,6 +317,41 @@ was one `git add .` from being committed.
   like "no domains verified" if you do not look at the status code.
   `dig +short TXT resend._domainkey.alafia.app`
 
+## 3e. Finding people is not browsing people
+
+`GET /messaging/recipients` backs the compose form. It exists because the form
+used to ask for **"Member IDs (comma-separated)"** — an internal handle nobody
+knows about their own nephrologist.
+
+> **A complete identifier resolves anyone. A partial name resolves only a shared
+> contact.** Relaxing the second half turns a compose box into a browsable
+> directory of every patient on the platform.
+
+- **Shared contact** means an active `DataGrant` in either direction, a
+  conversation you are both still in, or a follow edge. Sharing labs with
+  someone is the strongest form of it and is the reason the rule is not just
+  "people you already message".
+- Contact details come back **masked** (`d•••@6igma.com`) unless the caller
+  typed the identifier — so scraping your own contact list yields no addresses.
+  The mask is fixed-width on purpose; padding to the real length leaks it.
+- The route is rate limited (`RATE_LIMIT_LOOKUP`) because exact-email matching
+  is inherently an account-existence oracle. That is true of every "invite by
+  email" feature; the limit is what keeps it from being a bulk one.
+- Phone matching compares against a small set of stored forms rather than
+  `regexp_replace`, so it does not silently become Postgres-only.
+- `tests/test_messaging_recipients.py` pins the boundary — a stranger's name
+  returns nothing, a near-miss email returns nothing.
+- **Not indexed yet, deliberately.** `lower(email)` cannot use `ix_users_email`,
+  and `conversation_members.user_id` has no index of its own (the unique
+  constraint indexes `conversation_id` first). At 81 users and 2 member rows
+  that is a sub-millisecond scan. If `users` reaches the low thousands, add
+  `lower(email)` as a functional index — `ws_messaging.py` and
+  `ws_telehealth.py` already filter the same way and would benefit too.
+
+`member_ids` are resolved to active users before any `conversation_members` row
+is written. Without that a typo produced a conversation with a member pointing
+at nobody: it looked created, and the recipient never heard about it.
+
 ## 4. Running things locally — **in Docker**
 
 > **All dev runs in containers.** Not host `npm`, not host `python`. The DB
@@ -291,14 +369,26 @@ docker compose up -d
 docker compose --profile dev up frontend-dev        # → http://localhost:5173
 
 # Tests
-docker compose --profile test run --rm frontend-test   # vitest      → 30
+docker compose --profile test run --rm frontend-test   # vitest      → 105
 docker compose --profile test run --rm e2e             # playwright  → 18
-docker compose --profile test run --rm backend-test    # pytest      → 292
+docker compose --profile test run --rm backend-test    # pytest      → 571
 ```
 
 - **`frontend` on :8080 is not a dev server.** It is nginx serving a `dist/`
-  baked at image-build time, so it shows stale code until
-  `docker compose build frontend`. Use `frontend-dev` on :5173.
+  baked at image-build time. Use `frontend-dev` on :5173 for frontend work.
+
+  Refreshing it takes **two** steps, and the build alone is the trap:
+
+  ```bash
+  docker compose build frontend     # bakes a new dist/ into the image
+  docker compose up -d frontend     # recreates the container from that image
+  ```
+
+  A running container keeps serving the image it started with, so after only the
+  build, `docker compose ps` says `Up`, the build says it succeeded, and :8080
+  still serves the old bundle — for days. Verify by asking the served asset, not
+  the build log: `curl -s localhost:8080/ | grep -oE '/assets/index-[^"]+\.js'`
+  and grep that chunk for a string your change added.
 - `frontend-dev` proxies `/api` → `http://backend:8000` via
   `VITE_API_PROXY_TARGET`. Inside a container `localhost` is that container, so
   the service name is required.
@@ -326,12 +416,13 @@ Other notes:
 - `ML/src/alafia_model` is the canonical ALAFIAModel source; `deploy.sh` vendors
   it into the backend image at build time. Edit it there, not in a copy.
 
-## 5. Known drift to fix (as of 2026-08-02)
+## 5. Known drift to fix (as of 2026-08-17)
 
-- **Dev DB is behind prod.** Dev is stamped `bb002_add_subscriptions`; the single
-  head is `dd004_nutrient_status`. Symptom seen in practice:
-  `media_assets.storage_url` exists in the model but not in the dev DB, because
-  migration `u001_media_s3_storage` was never applied there.
+- ✅ **Dev DB parity restored.** `pull_prod.sh` was run on 2026-08-17;
+  `verify_parity.sh` reports dev byte-identical to prod across `public` and
+  `identity` (117 tables). The old note said dev was stamped
+  `bb002_add_subscriptions` against a head of `dd004_nutrient_status` — both
+  numbers were stale. **Ask `alembic heads`, never a doc and never a grep.**
 - **The migration graph has exactly ONE head** — verified with `alembic heads`,
   which is the only trustworthy way to ask. A hand-rolled scan reported five
   because many revisions use the annotated form

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Awaitable, Callable
 
 from sqlalchemy import func, select
@@ -31,9 +31,11 @@ from app.models.elimination import BowelMovement, UrinationLog, VomitingLog
 from app.models.fitness import FitnessLog
 from app.models.labs import LabResult
 from app.models.lifestyle import LifestyleEntry
+from app.models.messaging import Conversation, ConversationMember, Message
 from app.models.mood import MoodEntry
 from app.models.nutrition import NutritionLog
 from app.models.peritoneal_dialysis import PDSession
+from app.models.user import User
 from app.models.vitals import VitalsLog
 from app.models.wellness import WellnessScore
 from app.services import clinical_sources as sources
@@ -587,14 +589,54 @@ _MICRONUTRIENTS: tuple[tuple[str, str, str, float | None], ...] = (
     ("choline_mg", "Choline", "mg", 550),
 )
 
-#: The four a nephrologist reads first, with the daily ceilings usually applied
-#: on dialysis. Flagged rather than scored — the number is the finding.
-_RENAL_LIMITS = (
-    ("potassium_mg", "Potassium", "mg", 2500),
-    ("phosphorus_mg", "Phosphorus", "mg", 1000),
-    ("sodium_mg", "Sodium", "mg", 2000),
-    ("water_ml", "Fluid", "mL", 1500),
-)
+#: Fluid is not part of `compute_goals` — 1500 mL/day is the usual allowance for
+#: an anuric patient on dialysis, and it is not weight-derived.
+_FLUID_CEILING_ML = 1500
+
+
+async def _renal_limits(db: AsyncSession, uid: int) -> list[tuple[str, str, str, float | None]] | None:
+    """Per-patient renal ceilings, or None when this patient is not renal.
+
+    Two bugs lived in the constant this replaced. It applied dialysis ceilings
+    to *every* patient, so a patient with healthy kidneys was flagged in danger
+    for a potassium intake that is a normal target for them. And it capped
+    potassium at a flat 2500 mg — the very number NUTRITION_INTELLIGENCE.md
+    records as wrong and replaced with a weight-based ~40 mg/kg — so the board a
+    clinician reads disagreed with the target shown to the patient.
+
+    Conditions come through `clinical_sources` because reading the tables
+    directly here would both miss half the data and fail the canon §3aa guard.
+    """
+    from app.models.user import User
+    from app.services.nutrient_goals_service import compute_goals, detect_condition_flags
+
+    conditions = await sources.conditions(db, uid, active_only=True)
+    flags = detect_condition_flags(conditions)
+    if not (flags.get("ckd") or flags.get("dialysis")):
+        return None
+
+    user = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+    goals = compute_goals(
+        date_of_birth=getattr(user, "date_of_birth", None),
+        sex=getattr(user, "gender_at_birth", None) or getattr(user, "gender", None),
+        height_cm=getattr(user, "height_cm", None),
+        current_weight_kg=getattr(user, "current_weight_kg", None),
+        target_weight_kg=getattr(user, "target_weight_kg", None),
+        activity_level=getattr(user, "activity_level", None),
+        conditions=conditions,
+    )
+    by_key = {g["key"]: g for g in goals["goals"] if g["kind"] == "limit"}
+
+    limits: list[tuple[str, str, str, float | None]] = []
+    for key, label, unit in (
+        ("potassium_mg", "Potassium", "mg"),
+        ("phosphorus_mg", "Phosphorus", "mg"),
+        ("sodium_mg", "Sodium", "mg"),
+    ):
+        goal = by_key.get(key)
+        limits.append((key, label, unit, float(goal["goal"]) if goal else None))
+    limits.append(("water_ml", "Fluid", "mL", float(_FLUID_CEILING_ML)))
+    return limits
 
 
 async def _nutrition_cards(db: AsyncSession, uid: int, days: int, daily) -> list[dict]:
@@ -634,8 +676,11 @@ async def _nutrition_cards(db: AsyncSession, uid: int, days: int, daily) -> list
     cards: list[dict] = []
 
     # ── Renal panel: the numbers that decide a dialysis diet ──
+    # Shown only for a patient who actually has kidney disease, against that
+    # patient's own computed ceilings.
+    renal_limits = await _renal_limits(db, uid)
     renal_items = []
-    for col, label, unit, ceiling in _RENAL_LIMITS:
+    for col, label, unit, ceiling in (renal_limits or ()):
         column = getattr(NutritionLog, col, None)
         if column is None:
             continue
@@ -646,7 +691,7 @@ async def _nutrition_cards(db: AsyncSession, uid: int, days: int, daily) -> list
         renal_items.append({
             "label": label, "value": value, "unit": f"{unit}/day",
             "danger": bool(ceiling and value > ceiling),
-            "note": f"typical ceiling {ceiling:g} {unit}" if ceiling else None,
+            "note": f"ceiling {ceiling:g} {unit}" if ceiling else None,
         })
     if renal_items:
         cards.append({"label": "Renal panel — daily average", "items": renal_items})
@@ -1064,6 +1109,96 @@ async def _journal_detail(db: AsyncSession, uid: int, days: int) -> Detail:
         rows=[{"date": str(r.entry_date), "entry": r.journal_entry, "mood": r.mood_score}
               for r in rows],
     )
+
+
+# ── Messages ─────────────────────────────────────────────────────────────
+
+async def _messages_summary(db: AsyncSession, uid: int) -> Summary:
+    """Conversations the patient is in, most recently active first.
+
+    The card deliberately shows conversation titles and activity, never message
+    bodies — a card is glanceable and sits on a shared screen. Bodies are behind
+    the detail view, which the clinician has to open on purpose.
+    """
+    joined = select(ConversationMember.conversation_id).where(
+        ConversationMember.user_id == uid,
+        ConversationMember.left_at.is_(None),
+    )
+    rows = (await db.execute(
+        select(Conversation).where(Conversation.id.in_(joined))
+        .order_by(Conversation.last_message_at.desc().nullslast())
+        .limit(3)
+    )).scalars().all()
+    if not rows:
+        return Summary(empty_reason="No conversations.")
+
+    # A LIMIT is not a count — count separately or a busy patient reads as 3.
+    total = (await db.execute(
+        select(func.count()).select_from(
+            select(Conversation.id).where(Conversation.id.in_(joined)).subquery()
+        )
+    )).scalar() or 0
+
+    items = []
+    for conv in rows:
+        label = conv.title or f"{str(conv.conversation_type).split('.')[-1].replace('_', ' ').title()} conversation"
+        when = conv.last_message_at
+        items.append({
+            "label": label,
+            "value": str(when.date()) if when else "no messages yet",
+            "danger": bool(conv.is_urgent),
+        })
+    newest = max((c.last_message_at for c in rows if c.last_message_at), default=None)
+    return Summary(items=items, count=int(total),
+                   last_updated=str(newest.date()) if newest else None)
+
+
+async def _messages_detail(db: AsyncSession, uid: int, days: int) -> Detail:
+    """Messages in the window, with who sent them.
+
+    Windowed like every other card, so say when the patient last wrote rather
+    than rendering a blank — "last message 60 days ago" is a finding.
+    """
+    joined = select(ConversationMember.conversation_id).where(
+        ConversationMember.user_id == uid,
+        ConversationMember.left_at.is_(None),
+    )
+    since = datetime.combine(_window(days), time.min).replace(tzinfo=timezone.utc)
+    rows = (await db.execute(
+        select(Message, Conversation.title, Conversation.conversation_type, User.full_name)
+        .join(Conversation, Conversation.id == Message.conversation_id)
+        .outerjoin(User, User.id == Message.sender_id)
+        .where(
+            Message.conversation_id.in_(joined),
+            Message.created_at >= since,
+            Message.is_deleted.is_(False),
+        )
+        .order_by(Message.created_at.desc())
+        .limit(300)
+    )).all()
+
+    columns = [{"key": "date", "label": "Date"}, {"key": "conversation", "label": "Conversation"},
+               {"key": "from", "label": "From"}, {"key": "message", "label": "Message"}]
+
+    if not rows:
+        newest = (await db.execute(
+            select(func.max(Message.created_at)).where(
+                Message.conversation_id.in_(joined), Message.is_deleted.is_(False)
+            )
+        )).scalar()
+        note = ("No messages in this period. Last message "
+                f"{newest.date()}." if newest else "No messages on record.")
+        return Detail(columns=columns, cards=[{"label": "Messages", "items": [], "note": note}])
+
+    out = []
+    for msg, title, conv_type, sender in rows:
+        out.append({
+            "date": str(msg.created_at.date()),
+            "conversation": title or str(conv_type).split(".")[-1].replace("_", " ").title(),
+            "from": "Patient" if msg.sender_id == uid else (sender or "—"),
+            "message": msg.content,
+        })
+    return Detail(columns=columns, rows=out)
 
 
 # ── Mood ─────────────────────────────────────────────────────────────────
@@ -1487,6 +1622,7 @@ CATEGORIES: list[Category] = [
     Category("journal", "Journal", "book", _journal_summary, _journal_detail),
     Category("connected_records", "Connected Records", "link",
              _connected_summary, _connected_detail),
+    Category("messages", "Messages", "message-square", _messages_summary, _messages_detail),
 ]
 
 BY_KEY = {c.key: c for c in CATEGORIES}

@@ -209,6 +209,38 @@ struct UserFollow: Codable, Identifiable {
 
 // MARK: - DTOs
 
+/// Someone the current user may start a conversation with.
+///
+/// Returned by `/messaging/recipients`, which replaces asking for raw member
+/// ids. `email`/`phoneNumber` are only populated when the caller typed the full
+/// identifier; otherwise only the masked hints come back, which is enough to
+/// tell two people with the same name apart.
+struct RecipientMatch: Decodable, Identifiable, Equatable {
+    let id: Int
+    let fullName: String
+    var email: String? = nil
+    var phoneNumber: String? = nil
+    var emailHint: String? = nil
+    var phoneHint: String? = nil
+    var matchedOn: String = "name"
+    var connected: Bool = false
+
+    /// What to show under the name in a result row.
+    var subtitle: String {
+        let identity = email ?? emailHint ?? phoneNumber ?? phoneHint ?? ""
+        return connected ? (identity.isEmpty ? "Shared contact" : "\(identity) · shared contact") : identity
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, email, connected
+        case fullName = "full_name"
+        case phoneNumber = "phone_number"
+        case emailHint = "email_hint"
+        case phoneHint = "phone_hint"
+        case matchedOn = "matched_on"
+    }
+}
+
 struct ConversationCreate: Encodable {
     let conversationType: String
     var title: String? = nil

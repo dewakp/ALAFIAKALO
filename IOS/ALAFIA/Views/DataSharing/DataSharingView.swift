@@ -56,10 +56,25 @@ final class DataSharingViewModel {
         isLoadingInvitations = false
     }
 
+    /// Fallback only — the live list comes from the API.
+    ///
+    /// A category added server-side should reach the app without a release, so
+    /// this is a safety net rather than the source of truth.
+    static let fallbackDataTypes = [
+        "all", "vitals", "labs", "medications", "nutrition", "fitness", "mood",
+        "lifestyle", "dialysis", "symptoms", "conditions", "journal",
+        "elimination", "connected_records", "messages",
+    ]
+
     func loadDataTypes() async {
         do {
-            availableDataTypes = try await APIClient.shared.get("/data-sharing/types")
-        } catch { /* silently use empty list */ }
+            let fetched: [String] = try await APIClient.shared.get("/data-sharing/types")
+            availableDataTypes = fetched.isEmpty ? Self.fallbackDataTypes : fetched
+        } catch {
+            // Was silently an empty list, which renders as "nothing is
+            // shareable" — not what a failed fetch means.
+            availableDataTypes = Self.fallbackDataTypes
+        }
     }
 
     func loadAll() async {

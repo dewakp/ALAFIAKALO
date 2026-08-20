@@ -158,7 +158,42 @@ data class NutrientGoalProgress(
     val pct: Float,
     val status: String,    // low | ok | warning | over
     val priority: Int,
-    val rationale: String
+    val rationale: String,
+    /**
+     * Present only on a day with a completed dialysis session.
+     *
+     * The LIMIT never moves for a treatment — the guideline figures already
+     * assume the patient is on dialysis, so raising them would count that
+     * clearance twice. [current] stays dietary intake; the balance sits beside it.
+     */
+    @SerializedName("dialysis_balance") val dialysisBalance: DialysisBalance? = null
+)
+
+/** What a session did to one nutrient's day. */
+data class DialysisBalance(
+    val intake: Float,
+    /** Signed: negative removed by treatment, positive gained from the bath. */
+    val delta: Float,
+    val net: Float,
+    @SerializedName("modelled_mg") val modelledMg: Float = 0f,
+    val direction: String,          // "removed" | "gained" | "none"
+    /** Fitted against this patient's own bloods, or a literature estimate? */
+    val calibrated: Boolean = false,
+    val reasons: List<String>? = null,
+    /**
+     * Set when removal was modelled but deliberately not counted — a high serum
+     * value, or no recent draw to confirm it.
+     */
+    val withheld: String? = null
+) {
+    val isGain: Boolean get() = direction == "gained"
+    val hasEffect: Boolean get() = withheld != null || kotlin.math.abs(delta) >= 0.005f
+}
+
+data class DialysisDaySummary(
+    @SerializedName("had_dialysis") val hadDialysis: Boolean = false,
+    @SerializedName("session_count") val sessionCount: Int = 0,
+    val notes: List<String>? = null
 )
 
 data class GoalProgressResponse(
@@ -166,7 +201,8 @@ data class GoalProgressResponse(
     @SerializedName("profile_complete") val profileComplete: Boolean,
     @SerializedName("energy_kcal") val energyKcal: Float,
     val conditions: List<String>,
-    val goals: List<NutrientGoalProgress>
+    val goals: List<NutrientGoalProgress>,
+    val dialysis: DialysisDaySummary? = null
 )
 
 // Lab Result

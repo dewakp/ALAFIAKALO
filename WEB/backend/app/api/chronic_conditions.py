@@ -7,14 +7,16 @@ from sqlalchemy.orm import selectinload
 from typing import List
 
 import alafia_crypto as _rc  # Rust crypto backend
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.notification_engine import notify_therapy_session_completed, notify_treatment_anomaly
 from app.models.user import User
 from app.models.chronic_conditions import ChronicCondition, TherapySession, ConditionMetric, IntradialyticReading, ClinicalNote, FlowsheetStatus
+from app.services import flowsheet_defaults as fs_defaults
 from app.schemas.chronic_conditions import (
+    FlowsheetDefaultsResponse,
     ChronicConditionCreate,
     ChronicConditionUpdate,
     ChronicConditionResponse,
@@ -233,6 +235,37 @@ async def get_therapy_sessions(
     result = await db.execute(query)
     sessions = result.scalars().unique().all()
     return sessions
+
+
+@router.get("/therapy-sessions/defaults", response_model=FlowsheetDefaultsResponse)
+async def get_flowsheet_defaults(
+    for_date: date | None = Query(None, alias="date"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """What a new treatment form can pre-fill for this patient.
+
+    Declared before `/therapy-sessions/{session_id}` so "defaults" is not parsed
+    as an id.
+
+    Everything returned is a *default*: the client shows it, shows the basis for
+    it, and lets the patient change it. Nothing here is submitted on their
+    behalf.
+    """
+    defaults = await fs_defaults.defaults_for(
+        db, current_user.id, for_date or date.today()
+    )
+    return FlowsheetDefaultsResponse(
+        target_weight_kg=defaults.target_weight_kg,
+        target_weight_basis=defaults.target_weight_basis,
+        target_weight_sample_size=defaults.target_weight_sample_size,
+        access_type=defaults.access_type,
+        access_kind=defaults.access_kind,
+        disabled_fields=defaults.disabled_fields,
+        carried_forward=defaults.carried_forward,
+        carried_from_date=defaults.carried_from_date,
+        notes=defaults.notes,
+    )
 
 
 @router.get("/therapy-sessions/{session_id}", response_model=TherapySessionResponse)

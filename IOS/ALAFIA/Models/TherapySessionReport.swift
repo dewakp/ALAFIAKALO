@@ -203,3 +203,72 @@ struct TherapySummary: Codable {
         case latestSession = "latest_session"
     }
 }
+
+// MARK: - New-treatment defaults (/chronic/therapy-sessions/defaults)
+
+/// Settings carried from the last completed treatment. Every value is a
+/// *default* the patient can change — nothing here is submitted on their behalf.
+struct FlowsheetCarriedForward: Codable {
+    let attendingPhysician: String?
+    let attendingNurse: String?
+    let dialysisAccessType: String?
+    let dialysateVolumeLiters: Double?
+    let dialysateLactateMeq: Double?
+    let dialysatePotassiumMeq: Double?
+    let bloodFlowRate: Double?
+    let dialysateFlowRate: Double?
+    let flowFraction: Double?
+    let cartridgeLot: String?
+    let sakLot: String?
+    let sakNumber: Int?
+    let cyclerNumber: String?
+    let warmerSerial: String?
+    let controlPanelSerial: String?
+
+    enum CodingKeys: String, CodingKey {
+        case attendingPhysician = "attending_physician"
+        case attendingNurse = "attending_nurse"
+        case dialysisAccessType = "dialysis_access_type"
+        case dialysateVolumeLiters = "dialysate_volume_liters"
+        case dialysateLactateMeq = "dialysate_lactate_meq"
+        case dialysatePotassiumMeq = "dialysate_potassium_meq"
+        case bloodFlowRate = "blood_flow_rate"
+        case dialysateFlowRate = "dialysate_flow_rate"
+        case flowFraction = "flow_fraction"
+        case cartridgeLot = "cartridge_lot"
+        case sakLot = "sak_lot"
+        case sakNumber = "sak_number"
+        case cyclerNumber = "cycler_number"
+        case warmerSerial = "warmer_serial"
+        case controlPanelSerial = "control_panel_serial"
+    }
+}
+
+struct FlowsheetDefaults: Codable {
+    /// Mean of recent post-treatment weights; nil until some are on file.
+    let targetWeightKg: Double?
+    let targetWeightBasis: String?
+    let targetWeightSampleSize: Int?
+
+    let accessType: String?
+    /// "catheter" | "needled" | "unknown"
+    let accessKind: String?
+    /// Fields the client should DISABLE (not hide) for this access.
+    let disabledFields: [String]?
+
+    let carriedForward: FlowsheetCarriedForward?
+    let carriedFromDate: String?
+    let notes: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case notes
+        case targetWeightKg = "target_weight_kg"
+        case targetWeightBasis = "target_weight_basis"
+        case targetWeightSampleSize = "target_weight_sample_size"
+        case accessType = "access_type"
+        case accessKind = "access_kind"
+        case disabledFields = "disabled_fields"
+        case carriedForward = "carried_forward"
+        case carriedFromDate = "carried_from_date"
+    }
+}

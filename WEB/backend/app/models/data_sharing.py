@@ -21,6 +21,7 @@ class SharableDataType(str, enum.Enum):
     JOURNAL = "journal"
     ELIMINATION = "elimination"
     CONNECTED_RECORDS = "connected_records"
+    MESSAGES = "messages"
     ALL = "all"
 
 
@@ -30,7 +31,7 @@ class SharableDataType(str, enum.Enum):
 ALL_DATA_TYPES = [
     "vitals", "labs", "medications", "nutrition", "fitness", "mood",
     "lifestyle", "dialysis", "symptoms", "conditions", "journal",
-    "elimination", "connected_records",
+    "elimination", "connected_records", "messages",
 ]
 
 

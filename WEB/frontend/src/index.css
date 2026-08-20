@@ -292,6 +292,67 @@ body {
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
+/* Modals
+   ──────
+   `.modal-overlay` / `.modal-content` were in use in Messaging and
+   PrivacySettings for a long time without ever being defined, so those dialogs
+   rendered as plain divs in normal document flow — they appeared *below* the
+   page content instead of over it, at browser-default width. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+/* The Bootstrap name for an input. Aliased rather than renamed at every call
+   site so a stray `.form-control` can never silently fall back to the browser
+   default again. */
+.form-control {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: var(--color-surface, #fff);
+  color: inherit;
+  transition: border-color 0.15s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+select.form-control,
+select.form-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23888'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  padding-right: 2rem;
+}
+
+textarea.form-control,
+textarea.form-input {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

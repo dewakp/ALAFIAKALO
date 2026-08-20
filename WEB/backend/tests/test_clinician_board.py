@@ -11,6 +11,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.models.data_sharing import ALL_DATA_TYPES
+from app.services import patient_board
 
 
 async def _account(client: AsyncClient, email: str, name: str) -> tuple[int, str]:
@@ -235,7 +236,7 @@ async def test_conditions_card_includes_chronic_conditions(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_every_category_survives_a_patient_with_no_data(client: AsyncClient):
-    """A brand-new patient must render all 14 cards, not raise.
+    """A brand-new patient must render every card, not raise.
 
     Verifying the board against a single well-populated record exercised only
     the categories that record happened to fill. Across the real database,
@@ -248,7 +249,10 @@ async def test_every_category_survives_a_patient_with_no_data(client: AsyncClien
     await _share(client, pat_token, "board.emptydoc@example.com", "all")
 
     board = await _board(client, doc_token, patient_id)
-    assert len(board["cards"]) == 14, [c["key"] for c in board["cards"]]
+    # Derived, not a literal: a new category must be exercised by this test the
+    # moment it is added, rather than the count being bumped to make it pass.
+    expected = {c.key for c in patient_board.CATEGORIES} | patient_board.ALWAYS_VISIBLE
+    assert {c["key"] for c in board["cards"]} == expected
 
     for card in board["cards"]:
         assert card["shared"] is True, card["key"]

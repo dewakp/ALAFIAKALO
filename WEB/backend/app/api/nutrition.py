@@ -36,12 +36,16 @@ from app.schemas.nutrition import (
     MealEstimateRequest,
     MealEstimateResponse,
     MealComponentResult,
+    DialysisBalance,
+    DialysisDaySummary,
     GoalProgressResponse,
     NutrientGoalProgress,
 )
 from app.services.nutrient_estimator import estimate_nutrients, estimate_meal_nutrients
 from app.services.nutrient_enrichment import enrich_log
 from app.services.nutrient_goals_service import compute_goals
+from app.services import dialysis_context
+from app.services.dialysis_day_adjustment import apply_to_totals
 from app.services.learned_nutrient_service import (
     record_correction, per_100g_from_total, get_learned,
 )
@@ -410,19 +414,51 @@ async def get_goal_progress(
         allergies=_json_list(current_user.allergies),
     )
 
+    # Attach the day's intake to each goal so the dialysis layer can work out
+    # the balance without re-querying.
+    goal_dicts = [
+        {**g, "current": round(float(aggregated.get(g["key"], 0) or 0), 1)}
+        for g in computed["goals"]
+    ]
+
+    # A treatment does not move a limit — KDOQI's figures already assume the
+    # patient is on dialysis. It moves the day's balance: solute eaten and then
+    # cleared, and calcium crossing in from the bath that was never eaten.
+    day_summary = None
+    try:
+        sessions = await dialysis_context.sessions_for_day(db, current_user.id, target_date)
+        if sessions:
+            serum = await dialysis_context.latest_serum(db, current_user.id, target_date)
+            coefficients = await dialysis_context.coefficients_for(db, current_user.id)
+            goal_dicts, day = apply_to_totals(
+                goal_dicts, sessions, serum, coefficients, target_date
+            )
+            day_summary = DialysisDaySummary(
+                had_dialysis=day.had_dialysis,
+                session_count=day.session_count,
+                modelled_mg={k: round(v, 1) for k, v in day.modelled.items()},
+                notes=day.notes,
+            )
+    except Exception:  # noqa: BLE001
+        # The nutrient page must still render if the model fails. Losing the
+        # dialysis annotation is a degraded view; a 500 is a blank one.
+        logger.exception("Dialysis balance could not be applied")
+
     progress: list[NutrientGoalProgress] = []
-    for g in computed["goals"]:
-        current = round(float(aggregated.get(g["key"], 0) or 0), 1)
+    for g in goal_dicts:
+        current = g["current"]
         goal = g["goal"] or 0
         pct = round((current / goal * 100), 0) if goal else 0
         if g["kind"] == "limit":
             status = "over" if pct > 100 else ("warning" if pct >= 80 else "ok")
         else:  # target
             status = "over" if pct > 110 else ("ok" if pct >= 80 else "low")
+        balance = g.get("dialysis_balance")
         progress.append(NutrientGoalProgress(
             key=g["key"], name=g["name"], unit=g["unit"],
             current=current, goal=goal, kind=g["kind"], pct=pct,
             status=status, priority=g["priority"], rationale=g["rationale"],
+            dialysis_balance=DialysisBalance(**balance) if balance else None,
         ))
 
     active_flags = [k for k, v in computed["flags"].items() if v]
@@ -432,6 +468,7 @@ async def get_goal_progress(
         energy_kcal=computed["energy_kcal"],
         conditions=active_flags,
         goals=progress,
+        dialysis=day_summary,
     )
 
 

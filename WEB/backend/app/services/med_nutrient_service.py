@@ -421,11 +421,72 @@ _UNIT_CONVERSIONS: dict[tuple[str, str], float] = {
     ("mcg", "mg"):  0.001,
     ("g", "mcg"):   1_000_000.0,
     ("mcg", "g"):   0.000_001,
-    # IU ↔ mcg: only meaningful for vitamin D (1 mcg = 40 IU)
-    ("mcg", "IU"):  40.0,    # for vitamin D only
-    ("IU", "mcg"):  0.025,   # for vitamin D only
+    # IU ↔ mcg: only meaningful for vitamin D (1 mcg = 40 IU).
+    # Keys must be lower-case: the lookup lower-cases both units, so an "IU"
+    # key never matched and this conversion silently fell back to a factor of 1,
+    # under-counting an IU-recorded dose fortyfold.
+    ("mcg", "iu"):  40.0,    # for vitamin D only
+    ("iu", "mcg"):  0.025,   # for vitamin D only
     # mEq ↔ mg: only for potassium — handled specially in lookup
 }
+
+#: Most a *single dose* of anything can plausibly contribute, per nutrient.
+#: Set above legitimate therapeutic megadoses (ergocalciferol really is
+#: prescribed at 50,000 IU) so real medicine passes and arithmetic accidents do
+#: not. Foods have had a believability layer since the nutrition-intelligence
+#: work; medication-derived nutrients had none, so a mis-resolved profile
+#: multiplied straight into the daily total: a 1000 mg *calcium* dose matched the
+#: Calcitriol profile (canonical unit mcg) and produced 40,000,000 IU of
+#: vitamin D on one day.
+MAX_NUTRIENT_PER_DOSE: dict[str, float] = {
+    "vitamin_d_iu": 50_000.0,
+    "vitamin_a_iu": 50_000.0,
+    "calcium_mg": 3_000.0,
+    "potassium_mg": 5_000.0,
+    "phosphorus_mg": 2_000.0,
+    "sodium_mg": 5_000.0,
+    "magnesium_mg": 1_000.0,
+    "iron_mg": 350.0,
+    "zinc_mg": 150.0,
+    "vitamin_c_mg": 5_000.0,
+    "vitamin_b12_mcg": 5_000.0,
+    "vitamin_b9_folate_mcg": 5_000.0,
+}
+
+
+#: Largest single dose that is a real prescription, in the profile's own
+#: canonical unit, keyed by normalized medication name.
+#:
+#: A per-nutrient ceiling cannot catch every unit error, because potency differs
+#: enormously between forms of the same vitamin. 1 mg of calcitriol implies
+#: 40,000 IU of vitamin D — under the 50,000 IU bound that legitimate
+#: ergocalciferol needs — yet calcitriol is prescribed at 0.25–1 *mcg*, so a
+#: milligram of it is a thousandfold error. The dose range is what separates them.
+MAX_DOSE_CANONICAL: dict[str, float] = {
+    "calcitriol": 2.0,                    # mcg  (typical 0.25–1 mcg)
+    "vitamin d3 cholecalciferol": 50_000.0,  # IU
+    "vitamin d2 ergocalciferol": 50_000.0,   # IU
+    "calcium carbonate": 3_000.0,         # mg elemental-equivalent tablet
+    "calcium acetate": 3_000.0,           # mg
+    "ferrous sulfate": 1_000.0,           # mg
+    "potassium chloride": 5_000.0,        # mg
+    "magnesium oxide": 2_000.0,           # mg
+    "cyanocobalamin": 5_000.0,            # mcg
+}
+
+
+def max_dose_for(med_name_original: str) -> float | None:
+    """Plausible per-dose ceiling in the profile's canonical unit, if known."""
+    return MAX_DOSE_CANONICAL.get(normalize_med_name(med_name_original))
+
+
+def implausible_nutrients(nutrients: dict[str, float]) -> dict[str, float]:
+    """Nutrient amounts that exceed what one dose could physiologically deliver."""
+    return {
+        key: value
+        for key, value in nutrients.items()
+        if key in MAX_NUTRIENT_PER_DOSE and value > MAX_NUTRIENT_PER_DOSE[key]
+    }
 
 
 def normalize_med_name(name: str) -> str:
@@ -524,8 +585,7 @@ async def lookup_med_nutrients(
             select(MedNutrientProfile).where(MedNutrientProfile.is_active.is_(True))
         )
         candidates = all_result.scalars().all()
-        best: MedNutrientProfile | None = None
-        best_score = 0
+        scored: list[tuple[int, MedNutrientProfile]] = []
         for candidate in candidates:
             # Score = number of query tokens found in candidate's searchable text
             search_text = normalize_med_name(
@@ -537,10 +597,38 @@ async def lookup_med_nutrients(
             )
             cand_tokens = set(search_text.split())
             overlap = len(tokens & cand_tokens)
-            if overlap > best_score and overlap >= max(1, len(tokens) // 2):
-                best_score = overlap
-                best = candidate
-        profile = best
+            if overlap >= max(1, len(tokens) // 2):
+                scored.append((overlap, candidate))
+
+        best_score = max((s for s, _ in scored), default=0)
+        leaders = [c for s, c in scored if s == best_score]
+
+        # A name that matches several ingredients equally is ambiguous, not a
+        # match. "Calcium Calcitriol" ties Calcium Carbonate and Calcitriol at
+        # one token each; the previous strict `>` comparison kept whichever the
+        # scan reached first, which is how a calcium dose became vitamin D.
+        if len(leaders) > 1:
+            logger.warning(
+                "Ambiguous med nutrient match for '%s' — %s all match equally; not resolving",
+                medication_name,
+                ", ".join(sorted(c.med_name_original for c in leaders)),
+            )
+            return {
+                "profile_id": None,
+                "med_name_resolved": medication_name,
+                "dose_amount": dose_amount,
+                "dose_unit": dose_unit,
+                "dose_unit_canonical": None,
+                "nutrients": {},
+                "source": "ambiguous",
+                "warning": (
+                    "This name matches more than one medication ("
+                    + ", ".join(sorted(c.med_name_original for c in leaders))
+                    + "). Log them separately so the nutrients can be attributed correctly."
+                ),
+            }
+
+        profile = leaders[0] if leaders else None
 
     if profile is None:
         logger.warning(
@@ -567,10 +655,68 @@ async def lookup_med_nutrients(
         factor = 1.0
 
     effective_amount = dose_amount * factor
+
+    # Check the dose against what this medication is actually prescribed at,
+    # before converting it into nutrients. This is the check that catches a
+    # thousandfold unit slip on a potent drug, where the resulting nutrient
+    # total still looks superficially reasonable.
+    dose_ceiling = max_dose_for(profile.med_name_original)
+    if dose_ceiling is not None and effective_amount > dose_ceiling:
+        logger.warning(
+            "Implausible dose for '%s': %s %s = %s %s (max %s %s); not recorded",
+            medication_name, dose_amount, dose_unit, effective_amount,
+            profile.dose_unit_canonical, dose_ceiling, profile.dose_unit_canonical,
+        )
+        return {
+            "profile_id": profile.id,
+            "med_name_resolved": profile.med_name_original,
+            "dose_amount": dose_amount,
+            "dose_unit": dose_unit,
+            "dose_unit_canonical": profile.dose_unit_canonical,
+            "nutrients": {},
+            "source": "implausible",
+            "warning": (
+                f"{dose_amount:g} {dose_unit} of {profile.med_name_original} is "
+                f"{effective_amount:g} {profile.dose_unit_canonical}, far above the "
+                f"largest normal dose ({dose_ceiling:g} {profile.dose_unit_canonical}). "
+                f"{profile.med_name_original} is dosed in {profile.dose_unit_canonical} — "
+                "please check the amount and unit."
+            ),
+        }
+
     nutrients = {
         key: round(val * effective_amount, 6)
         for key, val in profile.nutrients_per_dose_unit.items()
     }
+
+    # A dose that yields a physiologically impossible amount is a data error —
+    # a wrong unit, a wrong profile, or a typo. Recording it would corrupt the
+    # day's totals and every average built on them, so it is reported instead.
+    over_limit = implausible_nutrients(nutrients)
+    if over_limit:
+        detail = ", ".join(
+            f"{key.replace('_', ' ')} {value:,.0f} (max {MAX_NUTRIENT_PER_DOSE[key]:,.0f})"
+            for key, value in sorted(over_limit.items())
+        )
+        logger.warning(
+            "Implausible nutrient contribution for '%s' %s %s → %s; not recorded",
+            medication_name, dose_amount, dose_unit, detail,
+        )
+        return {
+            "profile_id": profile.id,
+            "med_name_resolved": profile.med_name_original,
+            "dose_amount": dose_amount,
+            "dose_unit": dose_unit,
+            "dose_unit_canonical": profile.dose_unit_canonical,
+            "nutrients": {},
+            "source": "implausible",
+            "warning": (
+                f"A dose of {dose_amount:g} {dose_unit} of {profile.med_name_original} "
+                f"would contribute {detail}, which is not physiologically possible. "
+                f"{profile.med_name_original} is dosed in {profile.dose_unit_canonical} — "
+                "please check the amount and unit."
+            ),
+        }
 
     return {
         "profile_id": profile.id,

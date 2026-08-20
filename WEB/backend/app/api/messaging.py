@@ -14,12 +14,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_, delete, func, or_, select, update
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import and_, delete, false, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.core.security import get_current_user
 from app.models.messaging import (
     CommunityPost,
@@ -37,6 +39,7 @@ from app.models.messaging import (
     ReactionType,
     UserFollow,
 )
+from app.models.data_sharing import DataGrant
 from app.models.user import User
 from app.schemas.messaging import (
     ConversationCreate,
@@ -54,6 +57,7 @@ from app.schemas.messaging import (
     PostReplyResponse,
     PostResponse,
     PostUpdate,
+    RecipientMatch,
     ReplyCreate,
     ReplyUpdate,
     UserProfileBrief,
@@ -106,6 +110,185 @@ def _conv_to_response(conv: Conversation, unread: int = 0) -> dict:
     ]
     d["unread_count"] = unread
     return d
+
+
+# ═══════════════════════════════════════════════
+#  R E C I P I E N T   L O O K U P
+# ═══════════════════════════════════════════════
+
+#: A compose box has to find people by something a human actually knows — a name,
+#: an email, a phone number. A lookup that answered any partial string would also
+#: let one account walk the entire patient list, so two rules bound it:
+#:
+#:   * a COMPLETE identifier (full email, or a phone number) always resolves —
+#:     the caller had to know it already in order to type it;
+#:   * a PARTIAL name only matches people the caller demonstrably already deals
+#:     with: a shared conversation, or a follow edge in either direction.
+#:
+#: So a patient can reach the nephrologist whose card they were handed, and can
+#: find "Dr Adeyemi" among their own care team, but cannot browse the directory.
+#: Contact details come back masked unless the caller was already entitled to
+#: them — see `RecipientMatch`.
+_RECIPIENT_MIN_QUERY = 2
+_RECIPIENT_MAX_LIMIT = 25
+
+#: Below this a string is a name fragment, not a phone number.
+_MIN_PHONE_DIGITS = 7
+
+
+def _digits(value: str | None) -> str:
+    return "".join(ch for ch in (value or "") if ch.isdigit())
+
+
+def _mask_email(email: str | None) -> str | None:
+    """`dew@6igma.com` -> `d•••@6igma.com` — enough to tell two people apart.
+
+    Fixed width on purpose: padding to the real length would leak how long the
+    address is, which is free information for anyone guessing at it.
+    """
+    if not email or "@" not in email:
+        return None
+    local, _, domain = email.partition("@")
+    return f"{local[:1]}•••@{domain}"
+
+
+def _mask_phone(phone: str | None) -> str | None:
+    digits = _digits(phone)
+    return f"•••• {digits[-4:]}" if len(digits) >= 4 else None
+
+
+def _phone_candidates(term: str) -> list[str]:
+    """Plausible stored forms of a typed number.
+
+    Numbers are stored E.164 (`+15551234567`) but people type `(555) 123-4567`.
+    Rather than a Postgres-only `regexp_replace` in the WHERE clause, compare
+    against the handful of forms the same digits could have been stored as.
+    """
+    digits = _digits(term)
+    if len(digits) < _MIN_PHONE_DIGITS:
+        return []
+    forms = {digits, f"+{digits}"}
+    if not digits.startswith("1"):
+        forms |= {f"+1{digits}", f"1{digits}"}
+    return sorted(forms)
+
+
+async def _connected_user_ids(db: AsyncSession, user_id: int) -> set[int]:
+    """This user's shared contacts — the only people a partial name may match.
+
+    "Shared" is meant in this app's own sense, and a data grant is the strongest
+    form of it: sharing labs or dialysis history with someone is a far more
+    deliberate act than following them. Three sources, any of which counts:
+
+      * an active `DataGrant` in either direction — they share data with you, or
+        you with them;
+      * a conversation you are both still in — you are already talking;
+      * a follow edge in either direction.
+
+    Everyone else is unreachable by partial name and can only be found by typing
+    their full email or phone number.
+    """
+    my_conversations = select(ConversationMember.conversation_id).where(
+        ConversationMember.user_id == user_id,
+        ConversationMember.left_at.is_(None),
+    )
+    shared_conversation = (await db.execute(
+        select(ConversationMember.user_id).where(
+            ConversationMember.conversation_id.in_(my_conversations),
+            ConversationMember.left_at.is_(None),
+        )
+    )).scalars().all()
+    following = (await db.execute(
+        select(UserFollow.following_id).where(UserFollow.follower_id == user_id)
+    )).scalars().all()
+    followers = (await db.execute(
+        select(UserFollow.follower_id).where(UserFollow.following_id == user_id)
+    )).scalars().all()
+
+    # An expired or revoked grant is not a contact.
+    live_grant = and_(
+        DataGrant.is_active.is_(True),
+        or_(DataGrant.expires_at.is_(None), DataGrant.expires_at > datetime.now(timezone.utc)),
+    )
+    granted_to = (await db.execute(
+        select(DataGrant.grantee_user_id).where(live_grant, DataGrant.owner_id == user_id)
+    )).scalars().all()
+    granted_by = (await db.execute(
+        select(DataGrant.owner_id).where(live_grant, DataGrant.grantee_user_id == user_id)
+    )).scalars().all()
+
+    everyone = (*shared_conversation, *following, *followers, *granted_to, *granted_by)
+    return {uid for uid in everyone if uid and uid != user_id}
+
+
+@router.get("/recipients", response_model=list[RecipientMatch])
+@limiter.limit(settings.RATE_LIMIT_LOOKUP)
+async def find_recipients(
+    request: Request,
+    q: str = Query("", description="Name, full email address, or phone number"),
+    limit: int = Query(10, ge=1, le=_RECIPIENT_MAX_LIMIT),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Find people to start a conversation with, by name, email or phone.
+
+    This exists so the compose form can stop asking for raw member ids. An id is
+    an internal handle; nobody knows their nephrologist's primary key.
+    """
+    term = (q or "").strip()
+    if len(term) < _RECIPIENT_MIN_QUERY:
+        return []
+
+    connected = await _connected_user_ids(db, current_user.id)
+    lowered = term.lower()
+
+    identifier_clauses = [func.lower(User.email) == lowered]
+    phone_forms = _phone_candidates(term)
+    if phone_forms:
+        identifier_clauses.append(User.phone_number.in_(phone_forms))
+    by_identifier = or_(*identifier_clauses)
+
+    # Partial matching is confined to people already connected; with nobody
+    # connected it must match no one, not everyone.
+    by_name = and_(
+        User.id.in_(connected) if connected else false(),
+        or_(
+            func.lower(User.full_name).like(f"%{lowered}%"),
+            func.lower(User.email).like(f"{lowered}%"),
+        ),
+    )
+
+    rows = (await db.execute(
+        select(User)
+        .where(
+            User.id != current_user.id,
+            User.is_active.is_(True),
+            or_(by_identifier, by_name),
+        )
+        .order_by(User.full_name, User.id)
+        .limit(limit)
+    )).scalars().all()
+
+    matches: list[dict] = []
+    for user in rows:
+        is_connected = user.id in connected
+        matched_email = (user.email or "").lower() == lowered
+        matched_phone = bool(phone_forms) and user.phone_number in phone_forms
+        # A full identifier comes back only to a caller who already had it. For
+        # a shared contact found by name, the masked hint is enough to tell two
+        # people apart, and scraping a contact list yields no addresses.
+        entitled = matched_email or matched_phone
+        matches.append({
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email if entitled else None,
+            "phone_number": user.phone_number if entitled else None,
+            "email_hint": _mask_email(user.email),
+            "phone_hint": _mask_phone(user.phone_number),
+            "matched_on": "email" if matched_email else "phone" if matched_phone else "name",
+            "connected": is_connected,
+        })
+    return matches
 
 
 # ═══════════════════════════════════════════════
@@ -170,6 +353,18 @@ async def create_conversation(
 ):
     if data.conversation_type not in VALID_CONVERSATION_TYPES:
         raise HTTPException(400, f"Invalid type. Must be one of {VALID_CONVERSATION_TYPES}")
+
+    # Member ids used to be written straight into `conversation_members`, so a
+    # typo produced a conversation with a member row pointing at nobody — it
+    # looked created, and the recipient never heard about it. Resolve them first.
+    requested = {uid for uid in data.member_ids if uid != current_user.id}
+    if requested:
+        found = set((await db.execute(
+            select(User.id).where(User.id.in_(requested), User.is_active.is_(True))
+        )).scalars().all())
+        missing = sorted(requested - found)
+        if missing:
+            raise HTTPException(400, f"No active user for member id(s): {missing}")
 
     # For DMs, check if one already exists between these two users
     if data.conversation_type == "direct":

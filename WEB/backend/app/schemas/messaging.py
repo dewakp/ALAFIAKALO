@@ -296,3 +296,27 @@ class UserProfileBrief(BaseModel):
 ConversationResponse.model_rebuild()
 MessageResponse.model_rebuild()
 PostResponse.model_rebuild()
+
+
+# ── Recipient lookup ──
+
+class RecipientMatch(BaseModel):
+    """A person the current user may start a conversation with.
+
+    Deliberately narrow. `email` and `phone` are only ever populated when the
+    caller is already entitled to see them — either they typed the identifier in
+    full, or they already share a conversation or a follow edge with this person.
+    Otherwise the masked hints are all that comes back, which is enough to tell
+    two people with the same name apart and not enough to harvest.
+    """
+
+    id: int
+    full_name: str
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    email_hint: Optional[str] = None
+    phone_hint: Optional[str] = None
+    matched_on: str          # "email" | "phone" | "name"
+    connected: bool = False
+
+    model_config = {"from_attributes": True}

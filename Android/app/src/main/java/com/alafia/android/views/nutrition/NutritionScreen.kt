@@ -962,6 +962,36 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
 
+            // A treatment changes the day's balance, never the dietary limit —
+            // the guideline figures already assume the patient is on dialysis.
+            data.dialysis?.takeIf { it.hadDialysis }?.let { d ->
+                Spacer(Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                    )
+                ) {
+                    Column(Modifier.padding(10.dp)) {
+                        Text(
+                            "Dialysis today — ${d.sessionCount} session${if (d.sessionCount == 1) "" else "s"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "Your limits are unchanged — they already assume your usual treatment. " +
+                                "What changes is the day's balance.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                        d.notes?.forEach { note ->
+                            Text(note, style = MaterialTheme.typography.bodySmall, color = Color(0xFFB45309))
+                        }
+                    }
+                }
+            }
+
             Spacer(Modifier.height(10.dp))
             data.goals.forEach { g ->
                 val color = statusColor(g.status)
@@ -986,6 +1016,9 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
                         trackColor = color.copy(alpha = 0.2f),
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50))
                     )
+                    g.dialysisBalance?.takeIf { it.hasEffect }?.let { b ->
+                        DialysisBalanceLine(b, g.unit)
+                    }
                 }
             }
 
@@ -994,5 +1027,41 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
         }
+    }
+}
+
+/**
+ * Treatment effect on one nutrient, shown beside the intake figure and never
+ * folded into it — a potassium total driven near zero by dialysis must not read
+ * as licence to eat more.
+ */
+/** `fmt` above is local to another composable, so this needs its own. */
+private fun fmtAmount(v: Float) =
+    if (kotlin.math.abs(v) < 10f) String.format("%.1f", v) else v.roundToInt().toString()
+
+@Composable
+private fun DialysisBalanceLine(balance: DialysisBalance, unit: String) {
+    Spacer(Modifier.height(2.dp))
+    if (balance.withheld != null) {
+        Text(
+            balance.withheld,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFFB45309)
+        )
+        return
+    }
+    Row {
+        Text(
+            "${if (balance.isGain) "+" else ""}${fmtAmount(balance.delta)} $unit from dialysis",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = if (balance.isGain) Color(0xFFB45309) else MaterialTheme.colorScheme.primary
+        )
+        Text(
+            " · net ${fmtAmount(balance.net)} $unit retained" +
+                if (!balance.calibrated) " · estimated" else "",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
     }
 }
