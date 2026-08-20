@@ -216,6 +216,48 @@ it left `fitness` (no rows for ANY user), `lifestyle` (data belongs to a
 different user) and `pd_sessions` (empty everywhere) unexercised, and hid that
 six of the seven users with nutrition data fell outside the 7-day summary window.
 
+## 3ab. Document import (any clinical PDF)
+
+Upload → parse → **staged for review** → import. Full detail:
+**`DOCUMENT_IMPORT.md`**.
+
+- Parsing works from **word coordinates**, never `extract_text()`. A reference
+  range printed beside a row reflows onto a different line, which cost the old
+  extractor 489 of 853 ranges (3 of 13 documents lost every one). Now 510/510.
+- **`pdfplumber` must stay in `WEB/backend/requirements.txt`.** Without it the
+  upload endpoint falls through to decoding PDF bytes as UTF-8 and reads nothing.
+- Nothing reaches a clinical table until the patient confirms. Duplicates arrive
+  unticked; §3aa routing applies (documents state *prescriptions* → `medications`;
+  conditions → `chronic_conditions`, never `health_conditions`).
+- After touching `layout.py` / `normalize.py`, run the corpus harness — it reads
+  the real PHI corpus and is deliberately not in CI:
+  `ML/.venv-health-ml/bin/python WEB/backend/scripts/docparse_corpus_check.py`
+
+## 3ac. Dialysis changes the day's totals, not the limits
+
+A session clears potassium and phosphorus in gram quantities and *adds* calcium
+from the bath. Full detail: **`DIALYSIS_BALANCE.md`**.
+
+> **A treatment changes the day's TOTALS. It never changes the LIMIT.**
+> KDOQI's 2,000-3,000 mg/day of potassium is already the figure for a patient on
+> dialysis. Raising it on a treatment day counts that clearance twice — and a
+> typical session clears ~3,900 mg against a 3,000 mg limit.
+
+- `therapy_sessions.blood_flow_rate` is the **prescribed** rate — a flat 350 on
+  every row. The delivered rate is the per-session mean of
+  `intradialytic_readings.blood_flow_rate` (median 397, SD 61, range ~150-480).
+  Use the session column and blood flow silently becomes a constant.
+- **Post-dialysis potassium exists but is never named "POST".** It is identified
+  by facility and day: the provider draws the pre panel, an outside lab on a
+  treatment day is the post. Same-day only — a next-morning K has re-equilibrated.
+- `nutrition_backfilled.csv` needs deduping on `row_hash`: 26,400 rows,
+  1,600 unique. Read raw it reports 26,600 mg of dietary potassium a day.
+- Only **removals** are gated (completed session, serum below threshold, recent
+  draw, calibration). Gains are always applied — a guard that only relaxes is
+  not a guard.
+- Coefficients are per-patient and only adopted if they beat
+  predict-the-previous-value on a **chronological** hold-out.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host
@@ -291,9 +333,9 @@ docker compose up -d
 docker compose --profile dev up frontend-dev        # → http://localhost:5173
 
 # Tests
-docker compose --profile test run --rm frontend-test   # vitest      → 30
+docker compose --profile test run --rm frontend-test   # vitest      → 76
 docker compose --profile test run --rm e2e             # playwright  → 18
-docker compose --profile test run --rm backend-test    # pytest      → 292
+docker compose --profile test run --rm backend-test    # pytest      → 528
 ```
 
 - **`frontend` on :8080 is not a dev server.** It is nginx serving a `dist/`
@@ -326,12 +368,13 @@ Other notes:
 - `ML/src/alafia_model` is the canonical ALAFIAModel source; `deploy.sh` vendors
   it into the backend image at build time. Edit it there, not in a copy.
 
-## 5. Known drift to fix (as of 2026-08-02)
+## 5. Known drift to fix (as of 2026-08-17)
 
-- **Dev DB is behind prod.** Dev is stamped `bb002_add_subscriptions`; the single
-  head is `dd004_nutrient_status`. Symptom seen in practice:
-  `media_assets.storage_url` exists in the model but not in the dev DB, because
-  migration `u001_media_s3_storage` was never applied there.
+- ✅ **Dev DB parity restored.** `pull_prod.sh` was run on 2026-08-17;
+  `verify_parity.sh` reports dev byte-identical to prod across `public` and
+  `identity` (117 tables). The old note said dev was stamped
+  `bb002_add_subscriptions` against a head of `dd004_nutrient_status` — both
+  numbers were stale. **Ask `alembic heads`, never a doc and never a grep.**
 - **The migration graph has exactly ONE head** — verified with `alembic heads`,
   which is the only trustworthy way to ask. A hand-rolled scan reported five
   because many revisions use the annotated form

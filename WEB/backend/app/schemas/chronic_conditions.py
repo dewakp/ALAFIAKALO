@@ -451,3 +451,23 @@ class FlowsheetActionResponse(BaseModel):
     id: int
     flowsheet_status: str
     message: str
+
+
+class FlowsheetDefaultsResponse(BaseModel):
+    """Pre-fill for a new treatment. Every field is a default, not a submission."""
+
+    target_weight_kg: float | None = None
+    target_weight_basis: str | None = None
+    target_weight_sample_size: int = 0
+
+    access_type: str | None = None
+    #: "catheter" | "needled" | "unknown"
+    access_kind: str = "unknown"
+    #: Fields the client should DISABLE (not hide) for this access type. A
+    #: catheter has no needles and no bruit.
+    disabled_fields: list[str] = []
+
+    #: Settings carried from the last completed session, all editable.
+    carried_forward: dict = {}
+    carried_from_date: str | None = None
+    notes: list[str] = []

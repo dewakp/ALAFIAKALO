@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alafia.android.api.ApiClient
+import com.alafia.android.models.FlowsheetDefaults
 import com.alafia.android.models.FlowsheetSignRequest
 import com.alafia.android.models.FlowsheetStatus
 import com.alafia.android.models.HDSummary
@@ -519,6 +520,30 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
     }
 
     val accessTypes = listOf("AV Fistula", "AV Graft", "Central Catheter", "Buttonhole")
+    // A catheter has no needles and no bruit. A GRAFT is cannulated like a
+    // fistula, so needle fields still apply to it. Mirrors classify_access in
+    // app/services/flowsheet_defaults.py.
+    val isCatheter = isCatheterAccess(accessType)
+
+    // Pre-fill from the last treatment, but only for a NEW session — an edit
+    // must show what was actually recorded, not last time's settings.
+    var defaults by remember { mutableStateOf<FlowsheetDefaults?>(null) }
+    LaunchedEffect(editing) {
+        if (editing != null) return@LaunchedEffect
+        // A failure here means an empty form, never a blocked one.
+        val d = try { ApiClient.getApiService().getFlowsheetDefaults() } catch (_: Exception) { null }
+        defaults = d ?: return@LaunchedEffect
+        d.targetWeightKg?.let { if (dryWeight.isBlank()) dryWeight = it.toString() }
+        d.carriedForward?.let { c ->
+            c.dialysisAccessType?.takeIf { it.isNotBlank() }?.let { accessType = it }
+            c.attendingPhysician?.let { if (physician.isBlank()) physician = it }
+            c.dialysateVolumeLiters?.let { if (dialVol.isBlank()) dialVol = it.toString() }
+            c.dialysatePotassiumMeq?.let { if (dialK.isBlank()) dialK = it.toString() }
+            c.dialysateLactateMeq?.let { if (dialLact.isBlank()) dialLact = it.toString() }
+            c.sakLot?.let { if (sakLot.isBlank()) sakLot = it }
+            c.sakNumber?.let { if (sakNum.isBlank()) sakNum = it.toString() }
+        }
+    }
     val statuses = listOf("SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED")
     val gauges = listOf("15G", "16G", "17G")
     val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
@@ -568,18 +593,43 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             }
             F(duration, { duration = it }, "Duration (min)")
 
+            defaults?.carriedFromDate?.let { from ->
+                Text(
+                    "Pre-filled from your treatment on $from. Change anything that differs today.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                defaults?.notes?.forEach { note ->
+                    Text(note, fontSize = 11.sp, color = Color(0xFFB45309))
+                }
+            }
+
             // Vascular Access
             SectionHeader("Vascular Access")
             Text("Access Type", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 accessTypes.forEach { a -> FilterChip(accessType == a, { accessType = a }, label = { Text(a, fontSize = 11.sp) }) }
             }
+            if (isCatheter) {
+                Text(
+                    "Needle and bruit fields are switched off for a catheter. " +
+                        "Change the access type above to turn them back on.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Text("Needle Gauge", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                gauges.forEach { g -> FilterChip(needleGauge == g, { needleGauge = g }, label = { Text(g, fontSize = 11.sp) }) }
+                gauges.forEach { g ->
+                    FilterChip(
+                        needleGauge == g, { needleGauge = g },
+                        label = { Text(g, fontSize = 11.sp) },
+                        enabled = !isCatheter
+                    )
+                }
             }
-            F(needleLength, { needleLength = it }, "Needle Length (mm)")
-            ToggleRow("Buttonhole Technique", buttonhole) { buttonhole = it }
+            F(needleLength, { needleLength = it }, "Needle Length (mm)", enabled = !isCatheter)
+            ToggleRow("Buttonhole Technique", buttonhole, enabled = !isCatheter) { buttonhole = it }
 
             // Weights
             SectionHeader("Weights (kg)")
@@ -821,16 +871,40 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun F(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier.fillMaxWidth()) {
-    OutlinedTextField(value, onChange, label = { Text(label, fontSize = 12.sp) }, modifier = modifier, singleLine = true)
+private fun F(
+    value: String,
+    onChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    enabled: Boolean = true,
+) {
+    OutlinedTextField(
+        value, onChange,
+        label = { Text(label, fontSize = 12.sp) },
+        modifier = modifier, singleLine = true, enabled = enabled,
+    )
     Spacer(Modifier.height(4.dp))
 }
 
 @Composable
-private fun ToggleRow(label: String, checked: Boolean, onToggle: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onToggle(!checked) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f), fontSize = 14.sp)
-        Switch(checked, onToggle)
+private fun ToggleRow(
+    label: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth()
+            .clickable(enabled = enabled) { onToggle(!checked) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label, Modifier.weight(1f), fontSize = 14.sp,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        )
+        Switch(checked, onToggle, enabled = enabled)
     }
 }
 
@@ -912,4 +986,19 @@ internal fun minutesBetween(start: String, end: String): Int? {
     var mins = to - from
     if (mins < 0) mins += 24 * 60
     return mins
+}
+
+/**
+ * Mirrors `classify_access` in `app/services/flowsheet_defaults.py`.
+ *
+ * The stored column is free text — "Catheter. URJ", "AV Graft Left lower arm",
+ * and a misspelt "Cather. URJ" all appear — so this matches on substance.
+ * A graft counts as needled. Anything unrecognised disables nothing: wrongly
+ * greying out a field stops the patient recording what actually happened.
+ */
+internal fun isCatheterAccess(accessType: String?): Boolean {
+    val text = accessType?.trim()?.lowercase() ?: return false
+    if (text.isEmpty()) return false
+    if (Regex("fistula|graft|\\bavf\\b|\\bavg\\b|buttonhole").containsMatchIn(text)) return false
+    return Regex("cath?eter|\\bcather\\b|\\bcvc\\b|perm[ -]?cath|tunn?el").containsMatchIn(text)
 }

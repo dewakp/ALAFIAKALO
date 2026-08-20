@@ -160,12 +160,25 @@ const btnDanger = { padding: '6px 14px', background: '#d32f2f', color: '#fff', b
 const tabActive = { padding: '10px 24px', background: '#1565c0', color: '#fff', border: 'none', borderRadius: '6px 6px 0 0', cursor: 'pointer', fontSize: 15, fontWeight: 600 };
 const tabInactive = { padding: '10px 24px', background: '#e0e0e0', color: '#333', border: 'none', borderRadius: '6px 6px 0 0', cursor: 'pointer', fontSize: 15 };
 
-const Checkbox = ({ checked, onChange, label: lbl }) => (
-  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' }}>
-    <input type="checkbox" checked={checked || false} onChange={onChange} />
+const Checkbox = ({ checked, onChange, label: lbl, disabled }) => (
+  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14,
+    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1 }}>
+    <input type="checkbox" checked={checked || false} onChange={onChange} disabled={disabled} />
     {lbl}
   </label>
 );
+
+/* Mirrors classify_access in app/services/flowsheet_defaults.py. A catheter has
+   no needles and no bruit; a GRAFT is cannulated like a fistula, so needle
+   fields still apply to it. Anything unrecognised disables nothing — wrongly
+   greying out a field stops the patient recording what actually happened. */
+const CATHETER_HINT = 'Not applicable with a catheter';
+const isCatheterAccess = (accessType) => {
+  const text = (accessType || '').trim();
+  if (!text) return false;
+  if (/fistula|graft|\bavf\b|\bavg\b|buttonhole/i.test(text)) return false;
+  return /cath?eter|\bcather\b|\bcvc\b|perm[ -]?cath|tunn?el/i.test(text);
+};
 
 const Field = ({ lbl, children }) => (
   <div><label style={label}>{lbl}</label>{children}</div>
@@ -183,6 +196,9 @@ export default function Hemodialysis() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState(emptyForm());
+  /* What the last treatment already told us, so it isn't retyped. */
+  const [defaults, setDefaults] = useState(null);
+  const isCatheter = isCatheterAccess(formData.dialysis_access_type);
   const [readings, setReadings] = useState([]);
   const [editing, setEditing] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -445,11 +461,26 @@ export default function Hemodialysis() {
     setTab('form');
   };
 
-  const startNew = () => {
+  const startNew = async () => {
     setEditing(null);
     setFormData({ ...emptyForm(), condition_id: conditionId });
     setReadings([emptyReading()]);
     setTab('form');
+
+    /* Pre-fill from the last treatment. These are defaults the patient can
+       change, never values submitted on their behalf — so a failure here just
+       means an empty form, not a blocked one. */
+    try {
+      const { data } = await api.get('/chronic/therapy-sessions/defaults');
+      setDefaults(data);
+      setFormData(prev => {
+        const next = { ...prev, ...(data.carried_forward || {}) };
+        if (data.target_weight_kg != null) next.dry_weight_kg = data.target_weight_kg;
+        return next;
+      });
+    } catch {
+      setDefaults(null);
+    }
   };
 
   /* ── Pagination ── */
@@ -495,6 +526,14 @@ export default function Hemodialysis() {
 
       {/* ──── ACCESS & WEIGHTS ──── */}
       <div style={sectionHead}>Vascular Access & Weights</div>
+      {defaults?.carried_from_date && (
+        <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
+          Pre-filled from your treatment on {defaults.carried_from_date}. Change anything that differs today.
+          {defaults.notes?.map((n, i) => (
+            <div key={i} style={{ color: '#b45309', marginTop: 2 }}>{n}</div>
+          ))}
+        </div>
+      )}
       <div style={grid4}>
         <Field lbl="Access Type">
           <select value={formData.dialysis_access_type || ''} onChange={set('dialysis_access_type')} style={input}>
@@ -502,12 +541,15 @@ export default function Hemodialysis() {
           </select>
         </Field>
         <Field lbl="Needle Gauge">
-          <select value={formData.needle_gauge || ''} onChange={set('needle_gauge')} style={input}>
+          <select value={formData.needle_gauge || ''} onChange={set('needle_gauge')} style={input}
+            disabled={isCatheter} title={isCatheter ? CATHETER_HINT : undefined}>
             {NEEDLE_GAUGES.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
         </Field>
-        <Input lbl="Needle Length (mm)" value={formData.needle_length} onChange={set('needle_length')} type="number" step="0.1" />
-        <Checkbox checked={formData.buttonhole_technique} onChange={set('buttonhole_technique')} label="Buttonhole" />
+        <Input lbl="Needle Length (mm)" value={formData.needle_length} onChange={set('needle_length')}
+          type="number" step="0.1" disabled={isCatheter} title={isCatheter ? CATHETER_HINT : undefined} />
+        <Checkbox checked={formData.buttonhole_technique} onChange={set('buttonhole_technique')}
+          label="Buttonhole" disabled={isCatheter} />
       </div>
       <div style={{ ...grid4, marginTop: 12 }}>
         <Input lbl="Dry Weight (kg)" value={formData.dry_weight_kg} onChange={set('dry_weight_kg')} type="number" step="0.1" />

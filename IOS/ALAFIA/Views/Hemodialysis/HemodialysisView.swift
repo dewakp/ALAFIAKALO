@@ -143,6 +143,54 @@ final class HemodialysisViewModel {
     var patientNotes = ""
 
     static let accessTypes = ["AV Fistula", "AV Graft", "Central Catheter", "Buttonhole"]
+
+    /// Pre-fill from the last treatment, and which fields this access supports.
+    var defaults: FlowsheetDefaults?
+
+    /// Mirrors `classify_access` in app/services/flowsheet_defaults.py.
+    ///
+    /// A catheter has no needles and no bruit. A **graft is cannulated like a
+    /// fistula**, so needle fields still apply to it. Anything unrecognised
+    /// disables nothing — wrongly greying out a field stops the patient
+    /// recording what actually happened.
+    var isCatheterAccess: Bool {
+        let text = dialysisAccessType.lowercased()
+        if text.contains("fistula") || text.contains("graft")
+            || text.contains("avf") || text.contains("avg") || text.contains("buttonhole") {
+            return false
+        }
+        return text.contains("catheter") || text.contains("cather")
+            || text.contains("cvc") || text.contains("permcath")
+            || text.contains("perm-cath") || text.contains("tunnel")
+    }
+
+    /// Load what the last treatment already told us. A failure here means an
+    /// empty form, never a blocked one.
+    func loadDefaults() async {
+        do {
+            let d: FlowsheetDefaults = try await APIClient.shared.get(
+                "/chronic/therapy-sessions/defaults"
+            )
+            defaults = d
+            if let target = d.targetWeightKg, dryWeightKg.isEmpty {
+                dryWeightKg = String(target)
+            }
+            if let access = d.carriedForward?.dialysisAccessType, !access.isEmpty {
+                dialysisAccessType = access
+            }
+            if let physician = d.carriedForward?.attendingPhysician { attendingPhysician = physician }
+            if let nurse = d.carriedForward?.attendingNurse { rnReviewer = nurse }
+            if let volume = d.carriedForward?.dialysateVolumeLiters {
+                dialysateVolumeLiters = String(volume)
+            }
+            if let potassium = d.carriedForward?.dialysatePotassiumMeq {
+                dialysatePotassiumMeq = String(potassium)
+            }
+            if let sak = d.carriedForward?.sakNumber { sakNumber = String(sak) }
+        } catch {
+            defaults = nil
+        }
+    }
     static let statusOptions = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
     static let needleGauges = ["15G", "16G", "17G"]
     static let daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -448,7 +496,11 @@ struct HemodialysisView: View {
         .navigationTitle("Hemodialysis")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button { vm.resetForm(); vm.showAddSheet = true } label: { Image(systemName: "plus") }
+                Button {
+                        vm.resetForm()
+                        vm.showAddSheet = true
+                        Task { await vm.loadDefaults() }
+                    } label: { Image(systemName: "plus") }
             }
         }
         .task { await vm.load(); await vm.loadSummary() }
@@ -734,10 +786,12 @@ struct HemodialysisView: View {
                     Picker("Needle Gauge", selection: $vm.needleGauge) {
                         ForEach(HemodialysisViewModel.needleGauges, id: \.self) { Text($0) }
                     }
+                    .disabled(vm.isCatheterAccess)
                     HStack {
                         VStack(alignment: .leading) { Text("Needle Length (mm)").font(.caption); TextField("mm", text: $vm.needleLength).keyboardType(.decimalPad) }
                     }
                     Toggle("Buttonhole Technique", isOn: $vm.buttonholeTechnique)
+                        .disabled(vm.isCatheterAccess)
                 }
 
                 Section("Weights (kg)") {
