@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseServer, fmtDate, toDateInput } from '../utils/datetime';
+import { parseServer, fmtDate, toDateInput, fmtCalendarDate } from '../utils/datetime';
 
 /* A treatment entered on the 19th was reported as the 18th.
  *
@@ -56,5 +56,23 @@ describe('formatting a stored session date', () => {
   it('round-trips through a date input unchanged', () => {
     /* Edit a session and the picker must show the date that was saved. */
     expect(toDateInput('2026-08-19T00:00:00')).toBe('2026-08-19');
+  });
+});
+
+describe('fmtCalendarDate — engine-independent', () => {
+  it.each([
+    '2026-08-19T00:00:00',      // naive (what the API sends)
+    '2026-08-19T00:00:00Z',     // if a serializer ever adds a Z
+    '2026-08-19T00:00:00+00:00',
+    '2026-08-19',
+  ])('renders %s as the 19th', (value) => {
+    /* A calendar date's meaning is its date part. Never let a timezone decide
+       it — that is how a session entered on the 19th was reported as the 18th. */
+    expect(fmtCalendarDate(value)).toContain('19');
+  });
+
+  it('returns empty for empty input', () => {
+    expect(fmtCalendarDate(null)).toBe('');
+    expect(fmtCalendarDate('')).toBe('');
   });
 });

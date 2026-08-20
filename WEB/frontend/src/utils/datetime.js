@@ -81,3 +81,25 @@ export function localNowTime() {
   const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getHours())}:${p(d.getMinutes())}`;
 }
+
+/** Format a CALENDAR DATE — a value whose date part is the whole meaning.
+ *
+ * `therapy_sessions.scheduled_date` and friends are dates that happen to live
+ * in a datetime column. The safe way to render them is to never let a Date
+ * object near the timezone question: take the YYYY-MM-DD prefix and build the
+ * date from its parts.
+ *
+ * This is deliberately independent of how any given engine parses
+ * "2026-08-19T00:00:00" — ES5 said UTC, ES2015 says local, and a value that
+ * arrives with a 'Z' is a third case again. iOS and Android already read these
+ * with prefix(10)/take(10), which is why neither ever showed the wrong day.
+ */
+export function fmtCalendarDate(v, opts) {
+  if (v == null || v === '') return '';
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v));
+  if (!match) return fmtDate(v, opts);
+  const [, y, m, d] = match;
+  // Month is 0-based; constructing from parts is always local, never shifted.
+  const local = new Date(Number(y), Number(m) - 1, Number(d));
+  return local.toLocaleDateString(undefined, opts);
+}

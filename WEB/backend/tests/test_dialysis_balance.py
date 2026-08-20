@@ -344,3 +344,46 @@ class TestNoDialysis:
         assert not day.had_dialysis
         assert "dialysis_balance" not in goals[0]
         assert goals[0]["goal"] == 3000.0
+
+
+class TestItSaysWhyWhenItCannotCompute:
+    """Silence is the failure mode this feature actually shipped with.
+
+    A real session on 2026-08-19 had no recorded dialysate volume and labs a
+    year old, so the model correctly produced nothing — and the page showed
+    nothing, which read as "dialysis had no effect on my nutrition". An
+    unexplained blank is indistinguishable from a confident zero.
+    """
+
+    def test_a_session_without_a_dialysate_volume_explains_itself(self):
+        goals, day = apply_to_totals(
+            [a_goal()], [a_session(dialysate_volume_l=None)],
+            a_serum(measured_on=TODAY), CALIBRATED, TODAY,
+        )
+        assert day.had_dialysis, "the treatment still happened"
+        assert day.notes, "a session that cannot be modelled must say so"
+        note = " ".join(day.notes)
+        assert "could not be included" in note
+        assert "dialysate volume" in note.lower()
+        assert "flowsheet" in note, "tell the patient how to fix it"
+
+    def test_analytes_with_no_recent_bloods_are_named(self):
+        """Otherwise potassium simply vanishes from the day with no reason."""
+        goals, day = apply_to_totals(
+            [a_goal(), a_goal("protein_g", 82.5, kind="target", current=70.0)],
+            [a_session()],
+            SerumLevels(measured_on=TODAY),   # no serum values at all
+            CALIBRATED, TODAY,
+        )
+        note = " ".join(day.notes)
+        assert "No recent blood test" in note
+        assert "potassium" in note
+        # Protein is not serum-gated, so it still resolves.
+        protein = next(g for g in goals if g["key"] == "protein_g")
+        assert protein["dialysis_balance"]["direction"] == "removed"
+
+    def test_a_fully_specified_session_needs_no_excuse(self):
+        _, day = apply_to_totals(
+            [a_goal()], [a_session()], a_serum(measured_on=TODAY), CALIBRATED, TODAY
+        )
+        assert not day.notes, f"nothing to explain, but got: {day.notes}"

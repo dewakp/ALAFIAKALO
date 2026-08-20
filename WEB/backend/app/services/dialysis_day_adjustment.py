@@ -196,12 +196,30 @@ def apply_to_totals(
         try:
             removals = estimate_session_removal(session, serum, coeffs)
         except SessionNotModellable as exc:
-            day.notes.append(f"A session could not be modelled: {exc}")
+            # Say what is missing and what to do about it. Silence here is what
+            # made a session with no recorded dialysate volume look as though
+            # dialysis simply had no effect on the day.
+            day.notes.append(
+                f"Today's treatment could not be included: {exc} "
+                "Add it on the session's flowsheet and this will fill in."
+            )
             continue
         for analyte, estimate in removals.items():
             totals[analyte] = totals.get(analyte, 0.0) + estimate.mass_mg
 
     day.modelled = dict(totals)
+
+    # An analyte with no recent serum produces no estimate at all, so it would
+    # otherwise just be absent with no explanation. Name it once for the day.
+    unmeasured = [
+        analyte for analyte in (POTASSIUM, PHOSPHORUS, MAGNESIUM, CALCIUM)
+        if analyte not in totals and _serum_for(analyte, serum) is None
+    ]
+    if unmeasured and totals:
+        day.notes.append(
+            "No recent blood test for " + ", ".join(sorted(unmeasured))
+            + ", so the effect of treatment on those could not be worked out."
+        )
 
     for analyte, mass_mg in totals.items():
         key = GOAL_KEY.get(analyte)

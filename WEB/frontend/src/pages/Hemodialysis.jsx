@@ -1,4 +1,4 @@
-import { localToday } from '../utils/datetime';
+import { localToday, fmtCalendarDate } from '../utils/datetime';
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
@@ -89,7 +89,11 @@ const emptyForm = () => ({
 });
 
 /* ───────── helpers ───────── */
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
+/* scheduled_date is a calendar date in a datetime column. `new Date(str)`
+   resolves it differently depending on the engine and on whether the value
+   carries a timezone, which is how a session entered on the 19th could be
+   reported as the 18th. Format from the date parts instead. */
+const fmtDate = (d) => d ? (fmtCalendarDate(d) || '—') : '—';
 const fmtWeight = (w) => w != null ? `${w} kg` : '—';
 const fmtBP = (s, d) => s && d ? `${s}/${d}` : '—';
 /** For DISPLAY only — returns an em-dash when empty. Never feed this to an

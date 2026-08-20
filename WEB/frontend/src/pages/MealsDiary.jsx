@@ -293,6 +293,28 @@ const COND_LABELS = {
   ckd: 'CKD', dialysis: 'Dialysis', diabetes: 'Diabetes',
   hypertension: 'Hypertension', cardiovascular: 'Cardiac', heart_failure: 'Heart failure',
 };
+/* What treatment did to this nutrient today. Shown beside the intake figure and
+   never folded into it — a potassium total driven near zero by dialysis must not
+   read as licence to eat more. */
+function BalanceLine({ balance, unit }) {
+  if (!balance.withheld && Math.abs(balance.delta) < 0.005) return null;
+  const gained = balance.direction === 'gained';
+  if (balance.withheld) {
+    return <div style={{ fontSize: '.64rem', color: '#b45309', marginTop: '.15rem' }}>{balance.withheld}</div>;
+  }
+  return (
+    <div style={{ fontSize: '.64rem', marginTop: '.15rem', lineHeight: 1.35 }}>
+      <span style={{ color: gained ? '#b45309' : 'var(--color-primary)', fontWeight: 600 }}>
+        {gained ? '+' : ''}{fmtNum(balance.delta)}{unit} from dialysis
+      </span>
+      <span style={{ color: 'var(--color-text-tertiary)' }}>
+        {' '}· net {fmtNum(balance.net)}{unit}
+      </span>
+      {!balance.calibrated && <span style={{ color: 'var(--color-text-tertiary)' }}> · est.</span>}
+    </div>
+  );
+}
+
 function goalColor(status) {
   if (status === 'ok') return '#22c55e';      // green
   if (status === 'over') return '#ef4444';    // red
@@ -312,6 +334,7 @@ function NutrientGoalsCard({ data }) {
     );
   }
   const goals = data.goals || [];
+  const dialysis = data.dialysis;
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.5rem' }}>
@@ -336,6 +359,24 @@ function NutrientGoalsCard({ data }) {
         </div>
       )}
 
+      {dialysis?.had_dialysis && (
+        <div style={{ marginBottom: '.6rem', padding: '.45rem .55rem', borderRadius: 6,
+          background: 'var(--color-primary-light, #e0f2fe)', border: '1px solid #7dd3fc' }}>
+          <div style={{ fontSize: '.72rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+            Dialysis on this day — {dialysis.session_count} session{dialysis.session_count === 1 ? '' : 's'}
+          </div>
+          <div style={{ fontSize: '.66rem', color: 'var(--color-text-secondary)', marginTop: '.1rem' }}>
+            Your limits are unchanged — they already assume your usual treatment. What changes is
+            the day's balance.
+          </div>
+          {/* When the model could not run, say so. Silence here is what made a
+              missing dialysate volume look like "dialysis had no effect". */}
+          {dialysis.notes?.map((note, i) => (
+            <div key={i} style={{ fontSize: '.66rem', color: '#b45309', marginTop: '.2rem' }}>{note}</div>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '.55rem' }}>
         {goals.map(g => {
           const color = goalColor(g.status);
@@ -355,6 +396,7 @@ function NutrientGoalsCard({ data }) {
               <div style={{ height: 6, borderRadius: 999, background: 'var(--color-border)', overflow: 'hidden' }}>
                 <div style={{ width: `${fill}%`, height: '100%', background: color, borderRadius: 999, transition: 'width .3s' }}/>
               </div>
+              {g.dialysis_balance && <BalanceLine balance={g.dialysis_balance} unit={g.unit} />}
             </div>
           );
         })}
