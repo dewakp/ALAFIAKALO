@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
-import api from '../services/api';
+import api, { AI_TIMEOUT_MS } from '../services/api';
 import {
   UtensilsCrossed,
   Sparkles,
@@ -172,7 +172,7 @@ export default function MealPlanner() {
         preferences: form.preferences || undefined,
         pantry_items: form.pantry_items || undefined,
         count: form.count,
-      }, { timeout: 300000 }); // AI generation runs on CPU — allow up to 5 min
+      }, { timeout: AI_TIMEOUT_MS }); // must stay BELOW Cloud Run's 300s, not equal to it
       setResult(data);
     } catch (err) {
       setError(apiErrorMessage(err, 'Failed to generate meal plan. Please try again.'));

@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Optional, List
 import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -12,7 +13,10 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.services.ai_engine import AIPersonalizationEngine
+from app.services.alafia_model_service import ALAFIAModelError
 from app.services.ai_memory_service import AIMemoryService
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/personalization", tags=["Personalization"])
@@ -201,12 +205,6 @@ async def get_ai_recommendations(
     # Initialize AI engine with memory
     ai_engine = AIPersonalizationEngine(db=db)
     
-    if not ai_engine.api_key:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI service is not configured. Please contact support."
-        )
-    
     try:
         recommendations = await ai_engine.generate_personalized_recommendations(
             user=current_user,
@@ -216,8 +214,18 @@ async def get_ai_recommendations(
         )
         
         return RecommendationResponse(**recommendations)
-    
+
+    except ALAFIAModelError as e:
+        # The model really is unreachable. Say so, and say why. The old code
+        # could not tell "no provider configured" from "provider errored",
+        # because it never asked the provider at all.
+        logger.error("%s failed -- model unavailable: %s", "Failed to generate recommendations", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"The AI service is temporarily unavailable: {e}",
+        )
     except Exception as e:
+        logger.exception("%s failed", "Failed to generate recommendations")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate recommendations: {str(e)}"
@@ -243,12 +251,6 @@ async def analyze_symptoms(
     
     ai_engine = AIPersonalizationEngine(db=db)
     
-    if not ai_engine.api_key:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI service is not configured. Please contact support."
-        )
-    
     try:
         analysis = await ai_engine.analyze_symptoms(
             user=current_user,
@@ -257,8 +259,18 @@ async def analyze_symptoms(
         )
         
         return SymptomAnalysisResponse(**analysis)
-    
+
+    except ALAFIAModelError as e:
+        # The model really is unreachable. Say so, and say why. The old code
+        # could not tell "no provider configured" from "provider errored",
+        # because it never asked the provider at all.
+        logger.error("%s failed -- model unavailable: %s", "Failed to analyze symptoms", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"The AI service is temporarily unavailable: {e}",
+        )
     except Exception as e:
+        logger.exception("%s failed", "Failed to analyze symptoms")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to analyze symptoms: {str(e)}"

@@ -23,26 +23,31 @@ from app.services.ai_memory_service import AIMemoryService
 class AIPersonalizationEngine:
     """Proprietary LLM-based personalization engine with memory and learning."""
     
-    def __init__(self, api_key: Optional[str] = None, provider: str = "openai", db: Optional[Session] = None):
+    def __init__(self, api_key: Optional[str] = None, provider: Optional[str] = None, db: Optional[Session] = None):
         """
         Initialize AI engine.
-        
+
         Args:
-            api_key: API key for LLM provider (defaults to env var)
-            provider: LLM provider ('openai' or 'anthropic')
+            api_key: unused; kept so existing call sites keep working.
+            provider: label only — the actual provider is chosen by ALAFIAModel.
             db: Database session for memory access
+
+        This class used to call OpenAI directly, and carried `api_key` and
+        `api_url` for that. Every call now goes through `_call_llm` →
+        `alafia_chat` (the ALAFIAModel router), so those fields were dead. They
+        were not harmless: `/personalization/*` gated on `if not
+        ai_engine.api_key` and therefore returned
+        "AI service is not configured" in production for 27 days, on a
+        deployment whose LLM (Ollama) needs no API key at all. Asking whether a
+        provider-specific key exists is the wrong question — CLAUDE.md §3 says
+        provider strategy is a backend concern.
         """
-        self.provider = provider
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY")
         self.db = db
         self.memory_service = AIMemoryService(db) if db else None
-        
-        if provider == "openai":
-            self.api_url = "https://api.openai.com/v1/chat/completions"
-            self.model = os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
-        else:
-            self.api_url = "https://api.anthropic.com/v1/messages"
-            self.model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+        # Recorded on stored interactions. Reported by ALAFIAModel rather than
+        # assumed: prod was labelling Ollama answers "openai"/"gpt-4-turbo-preview".
+        self.provider = provider or os.getenv("ALAFIA_LLM_PROVIDER", "alafia-model")
+        self.model = os.getenv("OLLAMA_MODEL", "unknown")
     
     async def _call_llm(self, messages: List[Dict[str, str]], temperature: float = 0.7, max_tokens: int = 2000) -> str:
         """Call the LLM through the ALAFIAModel router (Ollama → OpenAI fallback).

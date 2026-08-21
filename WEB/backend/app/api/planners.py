@@ -1,6 +1,7 @@
 """Meal & Exercise Planner endpoints — AI-powered 7-day plans with deterministic fallback."""
 
 import json
+import logging
 import httpx
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,6 +18,10 @@ from app.models.medications import Medication
 from app.models.nutrition import NutritionLog
 from app.models.labs import LabResult
 from app.models.pantry import PantryItem
+# Module scope, not inside the helpers: the endpoint needs to catch this too,
+# and a function-local import leaves the name unbound in the handler above.
+# alafia_model_service imports nothing from app, so there is no cycle.
+from app.services.alafia_model_service import ALAFIAModelError
 from app.schemas.wellness import (
     MealPlanRequest, MealPlanResponse, MealItem, DayMeals,
     ExercisePlanRequest, ExercisePlanResponse, ExerciseItem, DayWorkout,
@@ -24,6 +29,7 @@ from app.schemas.wellness import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # ── Deterministic Meal Plan Templates ───────────────────────────
 
@@ -321,7 +327,12 @@ async def _ollama_generate_meal_plan(
         raw = (await alafia_chat(
             [{"role": "user", "content": prompt}], temperature=0.4, max_tokens=2048,
         )).strip()
-    except ALAFIAModelError:
+    except ALAFIAModelError as exc:
+        # Falling back to a deterministic template is deliberate: the user
+        # still gets a plan. But the reason has to reach the logs, or a
+        # provider that has been down for weeks is indistinguishable from
+        # "the template was fine".
+        logger.warning("Planner: model unavailable, using template fallback: %s", exc)
         return None
 
     try:
@@ -408,7 +419,12 @@ async def _ollama_generate_exercise_plan(
         raw = (await alafia_chat(
             [{"role": "user", "content": prompt}], temperature=0.4, max_tokens=2048,
         )).strip()
-    except ALAFIAModelError:
+    except ALAFIAModelError as exc:
+        # Falling back to a deterministic template is deliberate: the user
+        # still gets a plan. But the reason has to reach the logs, or a
+        # provider that has been down for weeks is indistinguishable from
+        # "the template was fine".
+        logger.warning("Planner: model unavailable, using template fallback: %s", exc)
         return None
 
     try:
@@ -554,7 +570,12 @@ async def _generate_meal_suggestions(
             [{"role": "user", "content": prompt}], temperature=0.5, max_tokens=2600,
         )).strip()
     except ALAFIAModelError:
-        return []
+        # NOT swallowed into []. There is no template fallback on this path, so
+        # an empty list becomes a bare 503 and the real cause is lost -- an
+        # error rendered as an empty state (CLAUDE.md §3aa). Let it propagate;
+        # the endpoint turns it into a 503 that names the reason.
+        logger.error("Meal suggestions: model unavailable", exc_info=True)
+        raise
 
     try:
         items = json.loads(raw[raw.index("["):raw.rindex("]") + 1])
@@ -616,11 +637,23 @@ async def generate_meal_suggestions(
         pantry_saved = 0
     pantry_names = submitted or [p.name for p in ctx.get("pantry", [])]
 
-    suggestions = await _generate_meal_suggestions(current_user, ctx, request, pantry_names)
-    if not suggestions:
+    try:
+        suggestions = await _generate_meal_suggestions(current_user, ctx, request, pantry_names)
+    except ALAFIAModelError as exc:
+        # Name the reason. "Unavailable right now" sent the operator looking for
+        # a down service when the model was actually up and answering — it was
+        # just slower than the client's timeout.
+        logger.error("Meal suggestions failed: %s", exc)
         raise HTTPException(
             status_code=503,
-            detail="The AI meal engine is unavailable right now. Please try again shortly.",
+            detail=f"The AI meal engine could not complete this request: {exc}",
+        )
+    if not suggestions:
+        # Distinct from the failure above: the model answered, but nothing
+        # usable could be parsed out of it.
+        raise HTTPException(
+            status_code=502,
+            detail="The AI meal engine returned no usable suggestions. Please try again.",
         )
 
     # Aggregate unique missing items into one shopping list

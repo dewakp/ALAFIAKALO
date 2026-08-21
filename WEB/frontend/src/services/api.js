@@ -6,6 +6,27 @@ const api = axios.create({
   withCredentials: true,
 });
 
+/**
+ * Timeout for endpoints that wait on an LLM. Pass explicitly:
+ *   api.post('/planners/meal-suggestions', body, { timeout: AI_TIMEOUT_MS })
+ *
+ * The 30s default above is right for ordinary CRUD and wrong for generation.
+ * A production meal-suggestion request measured 99s and 121s end to end — the
+ * model was up and answering at ~51 tokens/s, it simply takes that long to
+ * produce ~2,600 tokens. The browser aborted at 30s and the user was told the
+ * AI was "unavailable", which sent us looking for a service that was never down.
+ *
+ * The ladder has to stay ordered, longest last, or the client hides the
+ * server's real error behind a generic abort:
+ *
+ *   client 240s  <  backend OLLAMA_TIMEOUT 300s  =  Cloud Run 300s  <  Ollama 600s
+ *
+ * This is a ceiling, not a target. The durable fix for slow generation is the
+ * async pattern nutrition already uses (CLAUDE.md §3c): persist immediately,
+ * fill in from a background task, and let the client poll.
+ */
+export const AI_TIMEOUT_MS = 240000;
+
 export function getCookieValue(name) {
   return document.cookie
     .split('; ')

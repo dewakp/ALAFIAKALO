@@ -1,7 +1,7 @@
 import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
+import api, { AI_TIMEOUT_MS } from '../services/api';
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, BookOpen, Apple, Zap, Pill,
   CalendarDays, ExternalLink, Sparkles, Heart, FlaskConical, FileText, Activity, Bot,
@@ -318,7 +318,7 @@ function RecommendationsCard() {
       const { data } = await api.post('/personalization/recommendations', {
         type: 'wellness',
         specific_request: extra ? extra.slice(0, 500) : null,
-      });
+      }, { timeout: AI_TIMEOUT_MS });
       setResult(data);
     } catch (e) {
       setError(e.response?.data?.detail || 'Could not generate recommendations right now. Please try again later.');
@@ -379,7 +379,7 @@ function InsightsCard() {
     try {
       const { data } = await api.post('/personalization/analyze-symptoms', {
         symptoms_description: symptoms.trim().slice(0, 1000),
-      });
+      }, { timeout: AI_TIMEOUT_MS });
       setResult(data);
     } catch (e) {
       setError(e.response?.data?.detail || 'Could not analyze symptoms right now. Please try again later.');
@@ -434,7 +434,8 @@ function DailyFoodIdeaCard() {
     } catch { /* ignore bad cache */ }
 
     let cancelled = false;
-    api.post('/planners/meal-suggestions', { health_goals: '', count: 1 })
+    api.post('/planners/meal-suggestions', { health_goals: '', count: 1 },
+             { timeout: AI_TIMEOUT_MS })
       .then(({ data }) => {
         if (cancelled) return;
         const meal = data.suggestions?.[0] || null;
