@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
 import UnitToggle from '../components/UnitToggle';
@@ -146,6 +147,30 @@ export default function Profile() {
       setSaving(false);
     }
   }
+
+  // Conditions live on their own screen (/chronic-conditions) but are surfaced
+  // here because this is where people look for them. `conditionsError` is kept
+  // apart from an empty list so a failed fetch never reads as "none recorded".
+  const [conditions, setConditions] = useState(null);
+  const [conditionsError, setConditionsError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/chronic/conditions', { params: { limit: 1000 } })
+      .then(({ data }) => {
+        if (!cancelled) {
+          setConditions(Array.isArray(data) ? data : []);
+          setConditionsError(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error('Failed to load conditions:', err);
+          setConditionsError(true);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const sectionStyle = { marginBottom: '1.5rem' };
   const sectionTitle = (title) => (
@@ -333,6 +358,58 @@ export default function Profile() {
                 <input className="form-input" value={form.family_history} onChange={(e) => updateField('family_history', e.target.value)} placeholder="e.g. heart disease, diabetes" />
               </div>
             </div>
+          </div>
+
+          {/* ── Health Conditions ──
+              Diagnosed conditions are their own records (ICD-11 coded, with
+              severity and diagnosis dates), so they get a dedicated screen
+              rather than a text box here. */}
+          <div style={sectionStyle}>
+            {sectionTitle('Health Conditions')}
+            <Link
+              to="/chronic-conditions"
+              data-testid="profile-conditions-link"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px',
+                border: '1px solid var(--color-border, #e0e0e0)', textDecoration: 'none',
+                color: 'inherit', background: 'var(--color-surface-alt, #fafafa)'
+              }}
+            >
+              <span>
+                <span style={{ display: 'block', fontWeight: 600 }}>
+                  Conditions &amp; diagnoses
+                </span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary, #666)' }}>
+                  {conditionsError
+                    ? 'Could not load — open to retry'
+                    : conditions === null
+                      ? 'Loading…'
+                      : conditions.length === 0
+                        ? 'None recorded yet — add one with its ICD-11 code'
+                        : conditions
+                            .filter((c) => c.is_active !== false)
+                            .slice(0, 3)
+                            .map((c) => c.condition_name)
+                            .join(', ')
+                          || 'No active conditions'}
+                </span>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                {!conditionsError && conditions !== null && conditions.length > 0 && (
+                  <span
+                    style={{
+                      background: 'var(--color-primary, #1565c0)', color: 'white',
+                      borderRadius: '999px', padding: '0.1rem 0.6rem', fontSize: '0.8rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    {conditions.length}
+                  </span>
+                )}
+                <span aria-hidden="true" style={{ color: 'var(--color-text-secondary, #888)' }}>›</span>
+              </span>
+            </Link>
           </div>
 
           {/* ── Fitness ── */}

@@ -193,6 +193,10 @@ class AIPersonalizationEngine:
                 "category": c.category,
                 "severity": c.severity,
                 "since": c.diagnosed,
+                # The coded diagnosis disambiguates a free-text name the
+                # patient typed ("kidney problem") into a specific entity.
+                "icd11": c.icd11_code,
+                "icd11_title": c.icd11_title,
             }
             for c in conditions
         ]

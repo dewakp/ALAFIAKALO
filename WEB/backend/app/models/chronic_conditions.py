@@ -82,7 +82,12 @@ class ChronicCondition(Base):
     # Condition Details
     condition_name = Column(String(200), nullable=False)  # e.g., "Type 2 Diabetes", "Chronic Kidney Disease Stage 3"
     category = Column(SQLEnum(ConditionCategory), nullable=False, index=True)
-    icd10_code = Column(String(20), nullable=True)  # ICD-10 diagnosis code
+    # Two coding systems on purpose, not a duplicate. ICD-11 is what the
+    # patient picks in the app; ICD-10 is what the FHIR import and the PDF
+    # parser read off a source document. See migration nn001_condition_icd11.
+    icd10_code = Column(String(20), nullable=True)  # ICD-10, usually imported
+    icd11_code = Column(String(20), nullable=True, index=True)  # ICD-11 MMS stem code
+    icd11_title = Column(String(300), nullable=True)  # official title as selected
     severity = Column(SQLEnum(ConditionSeverity), nullable=False)
     
     # Diagnosis Information

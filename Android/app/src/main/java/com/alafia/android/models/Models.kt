@@ -301,7 +301,11 @@ data class ChronicCondition(
     @SerializedName("user_id") val userId: Int,
     @SerializedName("condition_name") val conditionName: String,
     val category: String,
+    // Two coding systems, deliberately: ICD-10 arrives with an imported record
+    // (FHIR / parsed PDF), ICD-11 is what the patient picks. See CLAUDE.md §3aa.
     @SerializedName("icd10_code") val icd10Code: String?,
+    @SerializedName("icd11_code") val icd11Code: String? = null,
+    @SerializedName("icd11_title") val icd11Title: String? = null,
     val severity: String,
     @SerializedName("diagnosis_date") val diagnosisDate: String?,
     @SerializedName("diagnosed_by") val diagnosedBy: String?,
@@ -320,6 +324,24 @@ data class ChronicCondition(
     val complications: String?,
     @SerializedName("created_at") val createdAt: String,
     @SerializedName("updated_at") val updatedAt: String
+)
+
+// ICD-11 catalog (reference data served by the backend from the bundled
+// WHO MMS linearization — the app never carries a code list of its own).
+data class ICD11Code(
+    val code: String,
+    val title: String,
+    val chapter: String,
+    @SerializedName("chapter_title") val chapterTitle: String,
+    @SerializedName("is_leaf") val isLeaf: Boolean,
+    @SerializedName("is_residual") val isResidual: Boolean
+)
+
+data class ICD11SearchResponse(
+    val query: String,
+    val results: List<ICD11Code>,
+    val total: Int,
+    @SerializedName("catalog_version") val catalogVersion: String
 )
 
 // Intradialytic Reading

@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { mockAppChrome } from './helpers.js';
+
 
 // ── Nutrition page ────────────────────────────────────────────────────────────
 
 test.describe('Nutrition page', () => {
   test.beforeEach(async ({ page }) => {
     // Intercept API calls so tests run without a live backend
+    await mockAppChrome(page);
     await page.route('**/api/v1/auth/csrf-cookie', (r) => r.fulfill({ body: '{}' }));
     await page.route('**/api/v1/users/me', (r) =>
       r.fulfill({
@@ -50,6 +53,7 @@ test.describe('Nutrition page', () => {
 
 test.describe('Labs page', () => {
   test.beforeEach(async ({ page }) => {
+    await mockAppChrome(page);
     await page.route('**/api/v1/auth/csrf-cookie', (r) => r.fulfill({ body: '{}' }));
     await page.route('**/api/v1/users/me', (r) =>
       r.fulfill({
@@ -91,6 +95,7 @@ test.describe('Labs page', () => {
 
 test.describe('Dashboard page', () => {
   test.beforeEach(async ({ page }) => {
+    await mockAppChrome(page);
     await page.route('**/api/v1/auth/csrf-cookie', (r) => r.fulfill({ body: '{}' }));
     await page.route('**/api/v1/users/me', (r) =>
       r.fulfill({

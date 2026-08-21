@@ -63,6 +63,12 @@ class ConditionView:
     diagnosed: str | None
     active: bool
     source: str  # "chronic" | "legacy"
+    # Diagnosis coding. ICD-11 is what the patient selected in the app; ICD-10
+    # is what an EHR/FHIR or document import carried in. Both are surfaced so a
+    # clinician can see which system a code came from.
+    icd11_code: str | None = None
+    icd11_title: str | None = None
+    icd10_code: str | None = None
 
     @property
     def is_severe(self) -> bool:
@@ -89,6 +95,9 @@ def _chronic_view(c: ChronicCondition) -> ConditionView:
         diagnosed=str(c.diagnosis_date)[:10] if c.diagnosis_date else None,
         active=bool(c.is_active),
         source="chronic",
+        icd11_code=c.icd11_code,
+        icd11_title=c.icd11_title,
+        icd10_code=c.icd10_code,
     )
 
 
@@ -100,6 +109,9 @@ def _legacy_view(h: HealthCondition) -> ConditionView:
         diagnosed=str(h.diagnosis_date) if h.diagnosis_date else None,
         active=h.status in ("active", "managed"),
         source="legacy",
+        # The legacy table has no ICD-11 column and never will — it has no
+        # writer at all (CLAUDE.md §3aa).
+        icd10_code=h.icd10_code,
     )
 
 

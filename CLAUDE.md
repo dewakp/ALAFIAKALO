@@ -208,7 +208,12 @@ finding; a blank card is a dead end.
 data** and prints which paths never executed:
 
 ```bash
-docker compose --profile test run --rm backend-test python scripts/board_sweep.py
+# NOTE: backend-test's env_file points DATABASE_URL at the *test* database, so
+# the bare command reports "users holding data: 0" and proves nothing. Override
+# it to sweep the dev copy of prod:
+docker compose --profile test run --rm \
+  -e DATABASE_URL="postgresql+asyncpg://alafia:alafia@db:5432/alafia" \
+  backend-test python scripts/board_sweep.py
 ```
 
 Checking a single well-populated patient proved almost nothing: on this database
@@ -258,6 +263,36 @@ from the bath. Full detail: **`DIALYSIS_BALANCE.md`**.
   guard.
 - Coefficients are per-patient and only adopted if they beat
   predict-the-previous-value on a **chronological** hold-out.
+
+## 3ad. Conditions are ICD-11 coded, and the web screen was never wired
+
+The patient's problem list. Full detail: **`CONDITIONS.md`**.
+
+- **The web page existed but had no route** — 602 lines of working CRUD with no
+  import in `App.jsx` and no link, since the initial commit. It did not regress;
+  it was never wired. iOS and Android had it all along. Now at
+  `/chronic-conditions`, linked from **Profile → Health Conditions**.
+- **`icd11_code` is the patient-facing code; `icd10_code` stays.** They are
+  different facts, not duplicates: ICD-10 is what the FHIR import and the PDF
+  parser read off a source document. Label which system a code came from — the
+  same disease is `N18.6` in ICD-10 and `GB61.5` in ICD-11.
+- **Never type an ICD code from memory.** The catalog is *generated* from WHO's
+  published MMS linearization into `app/data/icd11_mms.tsv.gz` (35,339 codes,
+  370 KB) by `scripts/build_icd11_catalog.py`. G6PD deficiency is `3A10.00`,
+  which is not what anyone guesses. `tests/test_icd11_catalog.py` fails the
+  build if a hand-written alias points at a code that is not in the file.
+- Search must survive what patients actually type. Each of these returned
+  **zero** results before it was handled: word order ("diabetes mellitus type
+  2" vs WHO's "Type 2 diabetes mellitus"), lay terms ("ESRD", "G6PD"), and US
+  spelling — WHO writes "haemodialysis" and "tumour", and **867 titles** carry a
+  spelling a US patient will not type.
+- **The client never decides what a code means.** The API verifies the code
+  against the catalog (a 4-character stem code typo is usually still
+  code-*shaped*, so format checks alone pass `ZZ99.9`) and fills `icd11_title`
+  server-side, discarding any title the client sent.
+- A patient holds **many** conditions, one row each. All three clients ask for
+  `limit=1000`; the endpoint defaults to 100, and a truncated page hides
+  conditions exactly the way a `LIMIT` reported as a count does.
 
 ## 3b. Admin console
 
@@ -402,6 +437,21 @@ docker compose --profile test run --rm backend-test    # pytest      → 571
   server: vite compiles lazy route chunks on first request, and with parallel
   workers that compile lands inside whichever spec got there first, failing a
   different one each cold run.
+
+  **`frontend-preview` builds at container START.** A long-running one serves a
+  stale `dist/` exactly like `:8080` does, so a green suite can be testing code
+  you never wrote. `docker compose --profile test up -d --force-recreate
+  frontend-preview` before trusting a pass, and confirm the served bundle
+  contains your change rather than reading the build log.
+- **An e2e spec that does not mock the chrome endpoints is racing a logout.**
+  `notifications/unread-count`, `subscription/status`, `ehr/connections` and
+  `auth/refresh` 401 when unmocked; the axios interceptor reads that as a dead
+  session and redirects to `/login` mid-test. Specs that assert before the
+  redirect lands pass by luck — adding one lazy route chunk was enough to lose
+  the race and fail three *unrelated* Nutrition/Labs specs, which looks exactly
+  like a regression somewhere else. Use `mockAppChrome()` from
+  `e2e/helpers.js`. Confirm a fix is not masking anything by running the
+  hardened spec at HEAD too.
 - **The Playwright image tag must equal the `@playwright/test` version**
   (`1.59.1` in both `package.json` and `docker-compose.yml`), or the runner looks
   for a browser build the image does not contain.

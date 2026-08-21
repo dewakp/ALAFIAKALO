@@ -262,6 +262,15 @@ interface ApiService {
     @DELETE("chronic/conditions/{id}")
     suspend fun deleteChronicCondition(@Path("id") id: Int)
 
+    // ICD-11 catalog. Search runs on the backend against the full WHO
+    // linearization, so lay terms ("ESRD", "G6PD") and US spellings resolve
+    // the same way on every client.
+    @GET("chronic/icd11/search")
+    suspend fun searchIcd11(
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 25
+    ): ICD11SearchResponse
+
     // Therapy Sessions Endpoints
     @GET("chronic/therapy-sessions")
     suspend fun getTherapySessions(

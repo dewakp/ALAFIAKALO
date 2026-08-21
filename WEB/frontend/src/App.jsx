@@ -30,6 +30,7 @@ const Labs = lazy(() => import('./pages/Labs'));
 const Medications = lazy(() => import('./pages/Medications'));
 const AIChat = lazy(() => import('./pages/AIChat'));
 const Profile = lazy(() => import('./pages/Profile'));
+const ChronicConditions = lazy(() => import('./pages/ChronicConditions'));
 const Capture = lazy(() => import('./pages/Capture'));
 const MentalHealth = lazy(() => import('./pages/MentalHealth'));
 const CommunityHealth = lazy(() => import('./pages/CommunityHealth'));
@@ -118,6 +119,10 @@ export default function App() {
           <Route path="community" element={<CommunityHealth />} />
           <Route path="capture" element={<Capture />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="chronic-conditions" element={<ChronicConditions />} />
+          {/* Matches the Android route name and the iOS "Health Conditions"
+              entry so a link is the same everywhere. */}
+          <Route path="conditions" element={<Navigate to="/chronic-conditions" replace />} />
           <Route path="roles" element={<Roles />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="telehealth" element={<Telehealth />} />

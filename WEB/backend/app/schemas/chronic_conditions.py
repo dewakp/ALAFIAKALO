@@ -9,6 +9,8 @@ class ChronicConditionBase(BaseModel):
     condition_name: str = Field(..., max_length=200)
     category: str
     icd10_code: Optional[str] = Field(None, max_length=20)
+    icd11_code: Optional[str] = Field(None, max_length=20)
+    icd11_title: Optional[str] = Field(None, max_length=300)
     severity: str
     diagnosis_date: Optional[datetime] = None
     diagnosed_by: Optional[str] = Field(None, max_length=200)
@@ -35,6 +37,8 @@ class ChronicConditionUpdate(BaseModel):
     condition_name: Optional[str] = Field(None, max_length=200)
     category: Optional[str] = None
     icd10_code: Optional[str] = Field(None, max_length=20)
+    icd11_code: Optional[str] = Field(None, max_length=20)
+    icd11_title: Optional[str] = Field(None, max_length=300)
     severity: Optional[str] = None
     diagnosis_date: Optional[datetime] = None
     diagnosed_by: Optional[str] = Field(None, max_length=200)
@@ -471,3 +475,30 @@ class FlowsheetDefaultsResponse(BaseModel):
     carried_forward: dict = {}
     carried_from_date: str | None = None
     notes: list[str] = []
+
+
+# ── ICD-11 catalog ────────────────────────────────────────────────────
+#
+# Reference data served from the bundled WHO MMS linearization
+# (services/icd11_catalog.py), not user data.
+
+
+class ICD11CodeOut(BaseModel):
+    code: str
+    title: str
+    chapter: str
+    chapter_title: str
+    is_leaf: bool
+    is_residual: bool
+
+
+class ICD11SearchResult(BaseModel):
+    query: str
+    results: List[ICD11CodeOut]
+    total: int
+    catalog_version: str
+
+
+class ICD11Chapter(BaseModel):
+    chapter: str
+    title: str

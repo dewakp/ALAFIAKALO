@@ -78,6 +78,10 @@ const navGroups = [
       { to: '/pantry', icon: Package, label: 'Pantry' },
     ],
   },
+  // Conditions are a cornerstone of the record (they drive nutrient limits,
+  // the clinician board and the AI coach), so they sit at the top level rather
+  // than inside a collapsed group.
+  { to: '/chronic-conditions', icon: Stethoscope, label: 'Conditions' },
   { to: '/medications', icon: Pill, label: 'Medications' },
   {
     label: 'Activities & Logs', icon: Activity, children: [
