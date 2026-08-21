@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
-import api from '../services/api';
+import api, { AI_TIMEOUT_MS } from '../services/api';
 import {
   Dumbbell,
   Plus,
@@ -341,7 +341,7 @@ export default function ExercisePlanner() {
         fitness_level: form.fitness_level,
         weekly_minutes_target: form.weekly_minutes_target,
         limitations: form.limitations || undefined,
-      });
+      }, { timeout: AI_TIMEOUT_MS });
       setGeneratedPlan(data);
       fetchSavedPlans();
     } catch (err) {

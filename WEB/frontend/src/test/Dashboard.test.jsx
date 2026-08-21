@@ -3,6 +3,9 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/api', () => ({
+  // The module exports AI_TIMEOUT_MS alongside the default client;
+  // a default-only mock makes every importer throw at load time.
+  AI_TIMEOUT_MS: 240000,
   default: {
     get: vi.fn((url) => {
       if (url === '/wellness/score') {
