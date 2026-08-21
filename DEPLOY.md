@@ -124,6 +124,25 @@ grepping `down_revision` — many revisions use the annotated form
 ## 4. Smoke test
 
 ```bash
+scripts/gcp/smoke.sh --token "$TOKEN"
+```
+
+> **Run it WITH a token.** Without one the AI checks are skipped, and the
+> script says so rather than printing green. That distinction is the whole
+> point: the old two-curl checklist below passed every day for 27 days while
+> all three AI panels on the dashboard returned 503 to every user. Nothing in
+> the deploy path — or in 700 passing tests — ever called a real model.
+
+The AI checks take tens of seconds because a real generation does. A 200 that
+takes longer than ~120s is reported as a warning even though it passed: the
+browser gives up at `AI_TIMEOUT_MS` (240s), so "correct but slow" is still a
+user-facing failure. An **instant** 503 is called out separately — that is the
+signature of a gate refusing before the model was ever asked (CLAUDE.md §3ae),
+not an outage.
+
+The underlying checks, if you want them by hand:
+
+```bash
 API=https://api.alafia.app
 curl -s $API/api/v1/subscription/plans | head -c 120        # 200
 curl -s -o /dev/null -w '%{http_code}\n' $API/api/v1/auth/csrf-cookie   # 204
