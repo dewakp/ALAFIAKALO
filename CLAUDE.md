@@ -294,6 +294,41 @@ The patient's problem list. Full detail: **`CONDITIONS.md`**.
   `limit=1000`; the endpoint defaults to 100, and a truncated page hides
   conditions exactly the way a `LIMIT` reported as a count does.
 
+## 3ae. AI endpoints: never gate on a provider-specific key
+
+Three dashboard AI surfaces were dead in production for 27 days. Two causes,
+told apart by latency in the Cloud Run logs — 80ms vs 99s. Always look at
+latency first: it separates a hard gate from a timeout.
+
+- **Do not ask "is `OPENAI_API_KEY` set?"** `AIPersonalizationEngine` defaulted
+  to `provider="openai"` and `/personalization/*` gated on
+  `if not ai_engine.api_key` → 503 "AI service is not configured". Prod's LLM is
+  **Ollama, which needs no key**, so that check could never pass there. Every
+  call already routed through `alafia_chat`; the field was vestigial. §3 already
+  says provider strategy is a backend concern — that applies to the backend's
+  own readiness checks, not just to clients.
+- **"Unavailable" usually means "slower than the client".** Nothing was down:
+  Ollama answered `POST /api/chat` with **200 in 1m38s** at ~51 tok/s for ~2,600
+  tokens. The browser aborted at the 30s axios default. Keep the ladder ordered,
+  longest last, and never let two rungs be equal:
+
+      client AI_TIMEOUT_MS 240s < OLLAMA_TIMEOUT 300s = Cloud Run 300s < Ollama 600s
+
+  Use `AI_TIMEOUT_MS` from `services/api.js` for any LLM-backed call; the 30s
+  default is for CRUD. MealPlanner had 300000 — *equal* to Cloud Run's ceiling,
+  so client and server could abort together.
+- **Distinguish 503 from 502.** Upstream unreachable ≠ upstream returned junk.
+  Both used to collapse into one message that sent us hunting a healthy service.
+- Where a **template fallback exists** (meal-plan, exercise-plan) returning
+  `None` is correct — the user still gets a plan — but **log why**, or a
+  month-long outage is indistinguishable from "the template was fine".
+- `/personalization` and `/planners` had **zero tests**. That is how this
+  survived 696 passing ones. `tests/test_ai_endpoints_availability.py` pins the
+  boundary; the deploy smoke test in DEPLOY.md still does not touch `/ai/*`.
+- ⚠️ `alafia-ollama` runs **`minScale` unset, `maxScale=1`** — every cold request
+  pays a GPU model load and concurrent users queue. Warming it is a standing
+  cost decision (1 GPU + 8 CPU + 32Gi), not a code change.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host
