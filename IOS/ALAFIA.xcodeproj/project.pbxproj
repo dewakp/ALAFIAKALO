@@ -58,6 +58,7 @@
 		4A0000000000000000000227 /* Messaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000128 /* Messaging.swift */; };
 		4A0000000000000000000228 /* MessagingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000129 /* MessagingView.swift */; };
 		4A0000000000000000000229 /* ChronicConditionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000012A /* ChronicConditionsView.swift */; };
+		4A0000000000000000000999 /* ICD11Picker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000998 /* ICD11Picker.swift */; };
 		4A000000000000000000022A /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000012B /* PrivacySettingsView.swift */; };
 		4A000000000000000000022B /* PrivacySettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000012C /* PrivacySettingsViewModel.swift */; };
 		5416CA5C925F88921614518C /* OfflineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02394AE3863321EA2264282D /* OfflineCacheTests.swift */; };
@@ -175,6 +176,7 @@
 		4A0000000000000000000128 /* Messaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Messaging.swift; sourceTree = "<group>"; };
 		4A0000000000000000000129 /* MessagingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingView.swift; sourceTree = "<group>"; };
 		4A000000000000000000012A /* ChronicConditionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronicConditionsView.swift; sourceTree = "<group>"; };
+		4A0000000000000000000998 /* ICD11Picker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICD11Picker.swift; sourceTree = "<group>"; };
 		4A000000000000000000012B /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
 		4A000000000000000000012C /* PrivacySettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsViewModel.swift; sourceTree = "<group>"; };
 		CE0000000000000000000107 /* FormEncodingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FormEncodingTests.swift; path = Tests/ALAFIATests/FormEncodingTests.swift; sourceTree = "<group>"; };
@@ -591,6 +593,7 @@
 			isa = PBXGroup;
 			children = (
 				4A000000000000000000012A /* ChronicConditionsView.swift */,
+				4A0000000000000000000998 /* ICD11Picker.swift */,
 			);
 			path = Chronic;
 			sourceTree = "<group>";
@@ -953,6 +956,7 @@
 				4A0000000000000000000227 /* Messaging.swift in Sources */,
 				4A0000000000000000000228 /* MessagingView.swift in Sources */,
 				4A0000000000000000000229 /* ChronicConditionsView.swift in Sources */,
+				4A0000000000000000000999 /* ICD11Picker.swift in Sources */,
 				4A000000000000000000022A /* PrivacySettingsView.swift in Sources */,
 				4A000000000000000000022B /* PrivacySettingsViewModel.swift in Sources */,
 				AA11BB22CC330002 /* Insurance.swift in Sources */,

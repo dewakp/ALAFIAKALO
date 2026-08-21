@@ -15,6 +15,13 @@ from app.core.notification_engine import notify_therapy_session_completed, notif
 from app.models.user import User
 from app.models.chronic_conditions import ChronicCondition, TherapySession, ConditionMetric, IntradialyticReading, ClinicalNote, FlowsheetStatus
 from app.services import flowsheet_defaults as fs_defaults
+from app.services.icd11_catalog import (
+    ICD11_CODE_RE,
+    catalog_version as icd11_catalog_version,
+    get_icd11_by_code,
+    list_chapters as icd11_chapters,
+    search_icd11,
+)
 from app.schemas.chronic_conditions import (
     FlowsheetDefaultsResponse,
     ChronicConditionCreate,
@@ -33,6 +40,9 @@ from app.schemas.chronic_conditions import (
     ClinicalNoteResponse,
     FlowsheetSignRequest,
     FlowsheetActionResponse,
+    ICD11CodeOut,
+    ICD11SearchResult,
+    ICD11Chapter,
 )
 
 
@@ -79,10 +89,103 @@ def _naive_session_payload(data: dict) -> dict:
 
 logger = logging.getLogger(__name__)
 
+def _apply_icd11(data: dict) -> dict:
+    """Normalise and verify an ICD-11 code, and set its title from the catalog.
+
+    Two things a client must not decide. First, whether the code is real: a
+    stem code is only four alphanumerics, so a typo is very often still
+    code-SHAPED, and an unverified one lands on a clinical record looking
+    exactly like a verified one. Second, what the code is called — the title is
+    WHO's, so it is filled in server-side and any client-supplied
+    `icd11_title` is discarded rather than trusted.
+
+    Mutates and returns *data* so both create and update share the rule. An
+    explicit null clears the pair.
+    """
+    if "icd11_code" not in data:
+        # PATCH-style update that never mentioned the field.
+        data.pop("icd11_title", None)
+        return data
+
+    raw = (data.get("icd11_code") or "").strip().upper()
+    if not raw:
+        data["icd11_code"] = None
+        data["icd11_title"] = None
+        return data
+
+    if not ICD11_CODE_RE.match(raw):
+        raise HTTPException(
+            status_code=422,
+            detail=f"'{raw}' is not a valid ICD-11 code format (e.g. GB61.5).",
+        )
+
+    entry = get_icd11_by_code(raw)
+    if entry is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"ICD-11 code '{raw}' does not exist in the WHO catalog.",
+        )
+
+    data["icd11_code"] = entry.code
+    data["icd11_title"] = entry.title
+    return data
+
+
 router = APIRouter()
 
 
 # ============= CHRONIC CONDITIONS =============
+
+# ============= ICD-11 CATALOG =============
+#
+# Reference data, not patient data: the whole WHO MMS linearization ships with
+# the image (app/data/icd11_mms.tsv.gz), so this never makes an outbound call.
+# Authenticated like the rest of the namespace, but deliberately NOT rate
+# limited — a type-ahead fires a request per keystroke, and there is nothing to
+# enumerate in a public classification.
+
+
+@router.get("/icd11/search", response_model=ICD11SearchResult)
+async def search_icd11_codes(
+    q: str = Query(..., min_length=1, max_length=100, description="Code or free text"),
+    chapter: str | None = Query(None, max_length=2),
+    limit: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+):
+    """Search ICD-11 by code or description.
+
+    Handles what patients actually type: lay terms ("ESRD", "G6PD", "heart
+    attack"), US spellings of WHO's British titles ("hemodialysis"), and any
+    word order.
+    """
+    matches = search_icd11(q, chapter=chapter, limit=limit)
+    return ICD11SearchResult(
+        query=q,
+        results=[ICD11CodeOut(**vars(m)) for m in matches],
+        total=len(matches),
+        catalog_version=icd11_catalog_version(),
+    )
+
+
+@router.get("/icd11/chapters", response_model=List[ICD11Chapter])
+async def list_icd11_chapters(
+    current_user: User = Depends(get_current_user),
+):
+    """The 28 ICD-11 chapters, for browsing rather than searching."""
+    return [ICD11Chapter(**c) for c in icd11_chapters()]
+
+
+@router.get("/icd11/{code}", response_model=ICD11CodeOut)
+async def get_icd11_code(
+    code: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Resolve a single ICD-11 code to its official WHO title."""
+    entry = get_icd11_by_code(code)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Unknown ICD-11 code: {code}")
+    return ICD11CodeOut(**vars(entry))
+
 
 @router.get("/conditions", response_model=List[ChronicConditionResponse])
 async def get_chronic_conditions(
@@ -137,7 +240,7 @@ async def create_chronic_condition(
 ):
     """Create a new chronic condition."""
     db_condition = ChronicCondition(
-        **condition.model_dump(),
+        **_apply_icd11(condition.model_dump()),
         user_id=current_user.id
     )
     db.add(db_condition)
@@ -166,7 +269,7 @@ async def update_chronic_condition(
     if not db_condition:
         raise HTTPException(status_code=404, detail="Chronic condition not found")
     
-    update_data = condition_update.model_dump(exclude_unset=True)
+    update_data = _apply_icd11(condition_update.model_dump(exclude_unset=True))
     for field, value in update_data.items():
         setattr(db_condition, field, value)
     

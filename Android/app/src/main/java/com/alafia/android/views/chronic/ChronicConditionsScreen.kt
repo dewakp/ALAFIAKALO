@@ -26,17 +26,25 @@ fun ChronicConditionsScreen(
 ) {
     var conditions by remember { mutableStateOf<List<ChronicCondition>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    // Separate from `conditions` on purpose: a Toast disappears and leaves the
+    // empty-state copy on screen, which reads as "you have no conditions" when
+    // the truth is "we could not load them" (CLAUDE.md §3aa).
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var reloadToken by remember { mutableStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
     var editingCondition by remember { mutableStateOf<ChronicCondition?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reloadToken) {
+        isLoading = true
         try {
             val apiService = ApiClient.getApiService()
-            conditions = apiService.getChronicConditions(isActive = true)
+            conditions = apiService.getChronicConditions(limit = 1000, isActive = true)
+            loadError = null
         } catch (e: Exception) {
-            Toast.makeText(context, "Failed to load conditions: ${e.message}", Toast.LENGTH_SHORT).show()
+            loadError = "Could not load your conditions. This is a loading problem, " +
+                "not an empty list — retry before assuming nothing is recorded."
         } finally {
             isLoading = false
         }
@@ -72,6 +80,26 @@ fun ChronicConditionsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
+            }
+        } else if (loadError != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Text(
+                        loadError!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(onClick = { reloadToken++ }) { Text("Retry") }
+                }
             }
         } else if (conditions.isEmpty()) {
             Box(
@@ -113,7 +141,7 @@ fun ChronicConditionsScreen(
                                 try {
                                     val apiService = ApiClient.getApiService()
                                     apiService.deleteChronicCondition(condition.id)
-                                    conditions = apiService.getChronicConditions(isActive = true)
+                                    conditions = apiService.getChronicConditions(limit = 1000, isActive = true)
                                     Toast.makeText(context, "Condition deleted", Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -141,7 +169,7 @@ fun ChronicConditionsScreen(
                             apiService.createChronicCondition(conditionData)
                             Toast.makeText(context, "Condition created", Toast.LENGTH_SHORT).show()
                         }
-                        conditions = apiService.getChronicConditions(isActive = true)
+                        conditions = apiService.getChronicConditions(limit = 1000, isActive = true)
                         showDialog = false
                     } catch (e: Exception) {
                         Toast.makeText(context, "Failed to save: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -188,6 +216,15 @@ fun ConditionCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     
+                    condition.icd11Code?.let { icd11 ->
+                        Text(
+                            text = "ICD-11: $icd11" +
+                                (condition.icd11Title?.let { " — $it" } ?: ""),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
                     condition.icd10Code?.let { icd10 ->
                         Text(
                             text = "ICD-10: $icd10",
@@ -294,6 +331,8 @@ fun ConditionFormDialog(
     var conditionName by remember { mutableStateOf(condition?.conditionName ?: "") }
     var category by remember { mutableStateOf(condition?.category ?: "other") }
     var icd10Code by remember { mutableStateOf(condition?.icd10Code ?: "") }
+    var icd11Code by remember { mutableStateOf(condition?.icd11Code ?: "") }
+    var icd11Title by remember { mutableStateOf(condition?.icd11Title ?: "") }
     var severity by remember { mutableStateOf(condition?.severity ?: "moderate") }
     var diagnosisDate by remember { mutableStateOf(condition?.diagnosisDate ?: "") }
     var primaryPhysician by remember { mutableStateOf(condition?.primaryPhysician ?: "") }
@@ -391,6 +430,14 @@ fun ConditionFormDialog(
                 }
                 
                 item {
+                    Icd11PickerField(
+                        code = icd11Code,
+                        title = icd11Title,
+                        onChange = { c, t -> icd11Code = c; icd11Title = t }
+                    )
+                }
+
+                item {
                     OutlinedTextField(
                         value = icd10Code,
                         onValueChange = { icd10Code = it },
@@ -448,6 +495,10 @@ fun ConditionFormDialog(
                         "is_active" to true
                     )
                     if (icd10Code.isNotBlank()) data["icd10_code"] = icd10Code
+                    // Sent even when blank (as null) so clearing a code on an
+                    // edit actually removes it; omitting the key would leave
+                    // the old code in place. The backend derives the title.
+                    data["icd11_code"] = icd11Code.ifBlank { null }
                     if (diagnosisDate.isNotBlank()) data["diagnosis_date"] = diagnosisDate
                     if (primaryPhysician.isNotBlank()) data["primary_physician"] = primaryPhysician
                     if (treatmentPlan.isNotBlank()) data["current_treatment_plan"] = treatmentPlan

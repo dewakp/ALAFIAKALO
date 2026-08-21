@@ -1290,6 +1290,10 @@ async def _conditions_detail(db: AsyncSession, uid: int, days: int) -> Detail:
     def _item(c) -> dict:
         bits = [b for b in ((c.severity or "").replace("_", " ").title(),
                             (c.category or "").replace("_", " ").title()) if b]
+        if c.icd11_code:
+            bits.append(f"ICD-11 {c.icd11_code}")
+        elif c.icd10_code:
+            bits.append(f"ICD-10 {c.icd10_code}")
         return {
             "label": c.name,
             "value": " · ".join(bits) or "—",
@@ -1323,10 +1327,16 @@ async def _conditions_detail(db: AsyncSession, uid: int, days: int) -> Detail:
 
     return Detail(
         cards=cards,
-        columns=[{"key": "name", "label": "Condition"}, {"key": "category", "label": "Category"},
+        columns=[{"key": "name", "label": "Condition"}, {"key": "code", "label": "Code"},
+                 {"key": "category", "label": "Category"},
                  {"key": "severity", "label": "Severity"},
                  {"key": "diagnosed", "label": "Diagnosed"}, {"key": "status", "label": "Status"}],
         rows=[{"name": c.name,
+               # Labelled with its system: a bare code is ambiguous between
+               # ICD-10 and ICD-11, and the two look nothing alike per concept
+               # (N18.6 vs GB61.5 for the same disease).
+               "code": (f"ICD-11 {c.icd11_code}" if c.icd11_code
+                        else f"ICD-10 {c.icd10_code}" if c.icd10_code else None),
                "category": (c.category or "").replace("_", " ").title() or None,
                "severity": (c.severity or "").replace("_", " ").title() or None,
                "diagnosed": c.diagnosed,

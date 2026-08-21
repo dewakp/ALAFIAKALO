@@ -103,6 +103,12 @@ struct ConditionRow: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
+                if let icd11 = condition.icd11Code {
+                    Text("• ICD-11: \(icd11)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
                 if let icd10 = condition.icd10Code {
                     Text("• ICD-10: \(icd10)")
                         .font(.caption)
@@ -179,6 +185,11 @@ struct ConditionFormView: View {
                         }
                     }
                     
+                    ICD11PickerField(
+                        code: $formData.icd11Code,
+                        title: $formData.icd11Title
+                    )
+
                     TextField("ICD-10 Code", text: Binding(
                         get: { formData.icd10Code ?? "" },
                         set: { formData.icd10Code = $0.isEmpty ? nil : $0 }
@@ -317,6 +328,10 @@ struct ChronicCondition: Identifiable, Codable {
     let conditionName: String
     let category: String
     let icd10Code: String?
+    // Two coding systems, deliberately: ICD-10 arrives with an imported
+    // record, ICD-11 is what the patient picks. See CLAUDE.md §3aa.
+    let icd11Code: String?
+    let icd11Title: String?
     let severity: String
     let diagnosisDate: Date?
     let diagnosedBy: String?
@@ -341,6 +356,8 @@ struct ChronicCondition: Identifiable, Codable {
         case userId = "user_id"
         case conditionName = "condition_name"
         case icd10Code = "icd10_code"
+        case icd11Code = "icd11_code"
+        case icd11Title = "icd11_title"
         case diagnosisDate = "diagnosis_date"
         case diagnosedBy = "diagnosed_by"
         case diagnosingFacility = "diagnosing_facility"
@@ -360,6 +377,8 @@ struct ChronicConditionCreate: Codable {
     var conditionName: String
     var category: String
     var icd10Code: String?
+    var icd11Code: String?
+    var icd11Title: String?
     var severity: String
     var diagnosisDate: Date?
     var diagnosedBy: String?
@@ -381,6 +400,8 @@ struct ChronicConditionCreate: Codable {
         case category, severity, stage, grade, notes, symptoms, complications
         case conditionName = "condition_name"
         case icd10Code = "icd10_code"
+        case icd11Code = "icd11_code"
+        case icd11Title = "icd11_title"
         case diagnosisDate = "diagnosis_date"
         case diagnosedBy = "diagnosed_by"
         case diagnosingFacility = "diagnosing_facility"
@@ -406,6 +427,8 @@ struct ChronicConditionCreate: Codable {
         self.conditionName = condition.conditionName
         self.category = condition.category
         self.icd10Code = condition.icd10Code
+        self.icd11Code = condition.icd11Code
+        self.icd11Title = condition.icd11Title
         self.severity = condition.severity
         self.diagnosisDate = condition.diagnosisDate
         self.diagnosedBy = condition.diagnosedBy
@@ -425,7 +448,8 @@ struct ChronicConditionCreate: Codable {
     }
     
     init(conditionName: String, category: String, severity: String, isActive: Bool,
-         icd10Code: String? = nil, diagnosisDate: Date? = nil, diagnosedBy: String? = nil,
+         icd10Code: String? = nil, icd11Code: String? = nil, icd11Title: String? = nil,
+         diagnosisDate: Date? = nil, diagnosedBy: String? = nil,
          diagnosingFacility: String? = nil, remissionDate: Date? = nil, stage: String? = nil,
          grade: String? = nil, currentTreatmentPlan: String? = nil, primaryPhysician: String? = nil,
          specialistPhysician: String? = nil, monitoringFrequency: String? = nil,
@@ -434,6 +458,8 @@ struct ChronicConditionCreate: Codable {
         self.conditionName = conditionName
         self.category = category
         self.icd10Code = icd10Code
+        self.icd11Code = icd11Code
+        self.icd11Title = icd11Title
         self.severity = severity
         self.diagnosisDate = diagnosisDate
         self.diagnosedBy = diagnosedBy

@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import ICD11Picker from '../components/ICD11Picker';
 
 const ChronicConditions = () => {
   const [conditions, setConditions] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Kept separate from `conditions` on purpose: a failed fetch must never
+  // render as "No chronic conditions recorded yet" (CLAUDE.md §3aa).
+  const [loadError, setLoadError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [formData, setFormData] = useState({
     condition_name: '',
     category: 'other',
     icd10_code: '',
+    icd11_code: '',
+    icd11_title: '',
     severity: 'moderate',
     diagnosis_date: '',
     diagnosed_by: '',
@@ -55,10 +61,19 @@ const ChronicConditions = () => {
 
   const loadConditions = async () => {
     try {
-      const response = await api.get('/chronic/conditions');
+      // Ask for the maximum the endpoint allows. The default page size is
+      // 100, and a truncated page here would silently hide conditions from a
+      // patient who has many — the same shape of bug as a LIMIT being reported
+      // as a count (CLAUDE.md §3aa).
+      const response = await api.get('/chronic/conditions', { params: { limit: 1000 } });
       setConditions(response.data);
+      setLoadError(null);
     } catch (error) {
       console.error('Failed to load conditions:', error);
+      setLoadError(
+        'Could not load your conditions. This is a loading problem, not an empty list — '
+        + 'please retry before assuming nothing is recorded.'
+      );
     } finally {
       setLoading(false);
     }
@@ -85,7 +100,11 @@ const ChronicConditions = () => {
       loadConditions();
     } catch (error) {
       console.error('Failed to save condition:', error);
-      alert('Failed to save condition');
+      // Surface the server's reason. The ICD-11 check replies 422 with the
+      // specific problem ("code 'ZZ99.9' does not exist"); a flat "failed to
+      // save" leaves the patient with no idea which field to correct.
+      const detail = error?.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : 'Failed to save condition');
     }
   };
 
@@ -95,6 +114,8 @@ const ChronicConditions = () => {
       condition_name: condition.condition_name || '',
       category: condition.category || 'other',
       icd10_code: condition.icd10_code || '',
+      icd11_code: condition.icd11_code || '',
+      icd11_title: condition.icd11_title || '',
       severity: condition.severity || 'moderate',
       diagnosis_date: condition.diagnosis_date ? condition.diagnosis_date.split('T')[0] : '',
       diagnosed_by: condition.diagnosed_by || '',
@@ -131,6 +152,8 @@ const ChronicConditions = () => {
       condition_name: '',
       category: 'other',
       icd10_code: '',
+      icd11_code: '',
+      icd11_title: '',
       severity: 'moderate',
       diagnosis_date: '',
       diagnosed_by: '',
@@ -233,6 +256,14 @@ const ChronicConditions = () => {
                 </select>
               </div>
 
+              <ICD11Picker
+                code={formData.icd11_code}
+                title={formData.icd11_title}
+                onChange={({ code, title }) =>
+                  setFormData({ ...formData, icd11_code: code, icd11_title: title })
+                }
+              />
+
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
                   ICD-10 Code
@@ -242,7 +273,7 @@ const ChronicConditions = () => {
                   value={formData.icd10_code}
                   onChange={(e) => setFormData({ ...formData, icd10_code: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="e.g., E11.9, N18.3"
+                  placeholder="e.g., E11.9, N18.3 — usually filled in from an imported record"
                 />
               </div>
 
@@ -475,7 +506,27 @@ const ChronicConditions = () => {
         </div>
       )}
 
-      {conditions.length === 0 ? (
+      {loadError ? (
+        <div
+          data-testid="conditions-load-error"
+          style={{
+            textAlign: 'center', padding: '40px', backgroundColor: '#fdecea',
+            border: '1px solid #f5c6cb', borderRadius: '8px', color: '#a12622'
+          }}
+        >
+          <p style={{ fontWeight: 600 }}>{loadError}</p>
+          <button
+            type="button"
+            onClick={() => { setLoading(true); loadConditions(); }}
+            style={{
+              marginTop: '10px', padding: '8px 20px', borderRadius: '4px',
+              border: 'none', backgroundColor: '#a12622', color: 'white', cursor: 'pointer'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : conditions.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
           <p>No chronic conditions recorded yet.</p>
           <p>Click "Add Condition" to get started.</p>
@@ -525,8 +576,14 @@ const ChronicConditions = () => {
                   <div style={{ color: '#666', marginBottom: '15px' }}>
                     <p style={{ margin: '5px 0' }}>
                       <strong>Category:</strong> {categories.find(c => c.value === condition.category)?.label}
+                      {condition.icd11_code && ` | ICD-11: ${condition.icd11_code}`}
                       {condition.icd10_code && ` | ICD-10: ${condition.icd10_code}`}
                     </p>
+                    {condition.icd11_title && (
+                      <p style={{ margin: '5px 0', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                        {condition.icd11_title}
+                      </p>
+                    )}
                     {condition.diagnosis_date && (
                       <p style={{ margin: '5px 0' }}>
                         <strong>Diagnosed:</strong> {new Date(condition.diagnosis_date).toLocaleDateString()}
