@@ -200,7 +200,15 @@ file-system-synchronized group, so a new Swift file must be added to
 
 ## 8. Migration state
 
-`nn001_condition_icd11` adds `icd11_code`, `icd11_title` and an index. It has
-been applied to **dev only**. Until it is deployed, `verify_parity.sh` will
-report dev ahead of prod on `chronic_conditions` and on the alembic revision —
-that is a pending migration, not drift to re-pull away.
+`nn001_condition_icd11` adds `icd11_code`, `icd11_title` and an index.
+
+**Applied to production 2026-08-22**, and the job's own output is what settled
+where prod actually was:
+
+```
+Running upgrade mm001_dialysis_coefficients -> nn001_condition_icd11
+```
+
+DEPLOY.md had claimed `cc002_reconcile_drift` — four weeks stale. Canon §5's
+"ask `alembic heads`, never a doc" applies to the deployed side too, and the
+migration log is the only place that answers it honestly.

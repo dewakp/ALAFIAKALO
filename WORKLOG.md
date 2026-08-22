@@ -2027,3 +2027,85 @@ too**; `greenlet` was missing from `requirements.txt`.
 **Correction:** an earlier claim of "5 alembic heads" was wrong. `alembic heads`
 reports exactly **one**. The hand-rolled scan that produced it missed the
 annotated form `down_revision: Union[str, None] = '…'`. Never grep for this.
+
+---
+
+## Session 2026-08-21/22 — Conditions/ICD-11, AI endpoints, flowsheet drugs, mobile nav
+
+**Instruction:** Restore Medical Conditions with ICD-11 codes under Profile; then a
+run of production defects surfaced from screenshots, each investigated and fixed.
+
+### Conditions are back on web, ICD-11 coded
+
+The web screen was never wired — 602 lines of working CRUD with no import in
+`App.jsx`, no route and no link, since the initial commit. iOS and Android had
+it all along. Routed at `/chronic-conditions`, linked from Profile and the nav.
+
+`icd11_code`/`icd11_title` added (migration `nn001_condition_icd11`). The
+catalog is **generated** from WHO's published MMS linearization into
+`app/data/icd11_mms.tsv.gz` — 35,339 codes, 370 KB — by
+`scripts/build_icd11_catalog.py`. Typed-from-memory codes are how a
+plausible-but-wrong one reaches a record: G6PD deficiency is `3A10.00`, which is
+not what anyone guesses.
+
+Three search gaps each returned **zero** results before being handled: word
+order ("diabetes mellitus type 2" vs WHO's "Type 2 diabetes mellitus"), lay
+terms ("ESRD", "G6PD"), and US spelling — WHO writes "haemodialysis" and
+"tumour", and 867 titles carry a spelling a US patient will not type.
+
+`icd10_code` kept: it is what the FHIR import and PDF parser read off a source
+document, a different fact from what the patient selected.
+
+### AI endpoints — five faults stacked on one endpoint
+
+Three dashboard AI panels had been dead in production since 2026-07-25. See
+canon §3ae and §3ag. In order of discovery, each hidden by the one above:
+
+1. `if not ai_engine.api_key` — asked for an OpenAI key production never has,
+   on a deployment whose LLM is Ollama. 80ms 503, could never have passed.
+2. `db.query()` on an `AsyncSession` — the whole router is sync; `db: Session`
+   annotated a lie. All 11 endpoints moved to `get_sync_db`.
+3. Eleven wrong column names in `ai_engine` (`NutritionLog.consumed_at`,
+   `VitalsLog.systolic_bp`, `Medication.status`, …).
+4. `json.loads()` on profile fields stored as comma-separated text.
+5. `OllamaAdapter` ignoring `OLLAMA_TIMEOUT` — a hardcoded 120s against prompts
+   that take 98–121s.
+
+Also: `/ai/vision` had **never worked in production** — the Ollama image baked
+only `gpt-oss:20b`, so vision 404'd for a missing model, and `image_ai.py`
+defaulted to `moondream`, the model §3a forbids. Dockerfile now pulls `llava`;
+`deploy.sh` sets `OLLAMA_VISION_MODEL` explicitly.
+
+And the provider chain reported failures as `all providers failed (last: )` —
+blank, because `str(httpx.ReadTimeout(''))` is `''`.
+
+### Flowsheet drugs — the third medication source
+
+`therapy_sessions.drugs_administered` holds Epogene ×1,962, Venofer ×1,248,
+Doxercalciferol ×788 — and **zero** of them are in `medication_dose_logs`. They
+are given by the unit, so they can never appear in a patient-filled dose log.
+`services/flowsheet_drugs.py` parses it (the `;` also occurs *inside* a dose);
+`clinical_sources.medications_administered()` exposes it. Canon §3aa corrected:
+medications live in THREE sources, not two.
+
+Structured capture added to the HD flowsheet on web, iOS and Android — that
+screen had **no drugs field at all**, so a decade of data arrived only by
+import. It serialises to the same string format, so history stays readable
+without a migration.
+
+### Mobile web had no navigation
+
+`.sidebar { display: none }` below 768px with nothing in its place. Fixed with a
+top bar and off-canvas drawer; see canon §3af.
+
+### Also
+
+- `scripts/gcp/smoke.sh` — the deploy checklist was two curls that stayed green
+  for 27 days while every AI panel 503'd. It now calls a real model, and
+  distinguishes an instant 503 (a gate) from a slow one (an outage).
+- App Store rejection investigated: the demo account works; the credentials in
+  App Store Connect appear to carry literal quotes (`'127ParkwayL@ne!'`), which
+  reproduces the reviewer's 401 exactly.
+- `TASKS.md` — queued the nutrient-limits work, rewritten to key dietary rules
+  to ICD-11 codes as data rather than six hardcoded conditions, with drivers,
+  leading indicators and evidence-age as first-class requirements.

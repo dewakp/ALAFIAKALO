@@ -121,6 +121,41 @@ cc002_reconcile_drift
 grepping `down_revision` — many revisions use the annotated form
 `down_revision: Union[str, None] = '…'`, which a naive regex misses.
 
+## 3a. The GPU model service is NOT deployed by `deploy.sh`
+
+`alafia-ollama` (us-central1, 1×L4 GPU) serves every LLM and vision call, and
+**`./deploy.sh` does not build or deploy it.** Nothing in this runbook mentioned
+it, which is how production ran for months with **no vision model at all**:
+the image baked only `gpt-oss:20b`, so `/ai/vision` asked for `llava` and Ollama
+answered `/api/chat` with a bare `404`. Chat worked, so the service looked
+healthy while food-photo analysis had never worked once.
+
+Models are **baked into the image**, not pulled at runtime — a scale-to-zero
+cold start would otherwise re-download ~18 GB. So changing a model means
+rebuilding:
+
+```bash
+cd deploy/gcp/ollama
+gcloud builds submit --config cloudbuild.yaml .        # ~28 min, ~18 GB
+# Cloud Run pins :latest and will NOT re-pull a same-tag image. Deploy the
+# DIGEST, or you will serve the old one and believe you shipped the new.
+gcloud artifacts docker images list \
+  us-central1-docker.pkg.dev/alafia-prod-6igma/alafia-ml/ollama --include-tags
+gcloud run deploy alafia-ollama --region us-central1 --image ...@sha256:<digest>
+```
+
+The Dockerfile runs `ollama list` after pulling, so the build log states what
+actually landed in the layer. **Read it** — a successful build only proves the
+`pull` command ran.
+
+Then re-run `./deploy.sh`, which sets `OLLAMA_VISION_MODEL` on the backend. The
+model named there must be one the image actually carries, or every vision
+request 404s.
+
+> ⚠️ `minScale` is unset and `maxScale=1`. Every cold request pays a model load
+> (~77 s observed) and concurrent users queue. Warming it is an ongoing GPU cost
+> decision, not a code change.
+
 ## 4. Smoke test
 
 ```bash

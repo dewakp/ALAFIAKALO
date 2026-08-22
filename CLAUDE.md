@@ -133,7 +133,7 @@ Non-obvious points that have already caused bugs:
   `SAVEPOINT`, because a failed flush poisons the session and the later commit
   500s even when the exception was caught.
 
-## 3aa. Clinical domains split across TWO tables
+## 3aa. Clinical domains split across TWO tables — medications across THREE
 
 Board mechanics, the four ways this surface showed "empty" when data existed, and
 how to verify it: **`CLINICIAN_BOARD.md`**.
@@ -146,6 +146,18 @@ how to verify it: **`CLINICIAN_BOARD.md`**.
 |---|---|---|
 | **Conditions** | `chronic_conditions` — Conditions screen, EHR import, dialysis/chemo flowsheets | `health_conditions` — **LEGACY: zero writers anywhere in the app.** Any query against it alone returns nothing, forever. |
 | **Medications** | `medication_dose_logs` — what the patient actually TOOK, written by the Medications screen | `medications` — prescriptions/profile, written by the **EHR/FHIR import** (`api/ehr.py`) and manual entry |
+
+> ⚠️ **Medications have a THIRD source: `therapy_sessions.drugs_administered`.**
+> Drugs given *during dialysis* — free text, and for a long time unread by
+> anything. On the production record it holds **Epogene ×1,962, Venofer ×1,248,
+> Doxercalciferol ×788**, and **zero** of them appear in `medication_dose_logs`.
+> They are administered by the unit, so they can never appear in a dose log the
+> patient fills in. Checking the two tables above and calling it complete is how
+> a review of that record concluded "no ESA prescribed or taken" while the
+> patient had been on one for years. Read it through
+> `clinical_sources.medications_administered()`; parsing lives in
+> `services/flowsheet_drugs.py` (the `;` also occurs *inside* a dose, so a naive
+> split invents drugs).
 
 This is not theoretical. On one production record:
 
@@ -314,11 +326,26 @@ latency first: it separates a hard gate from a timeout.
 
       client AI_TIMEOUT_MS 240s < OLLAMA_TIMEOUT 300s = Cloud Run 300s < Ollama 600s
 
+  **And check the rung is actually read.** `OllamaAdapter` took
+  `timeout: float = 120.0` and never looked at `OLLAMA_TIMEOUT`, while
+  `base_url` and `model` both read theirs — every call site is
+  `OllamaAdapter()` with no argument, so production's configured 300 was
+  silently discarded and the real limit was 120s. These prompts take 98-121s,
+  so requests died just past the boundary and reported `ReadTimeout` on a model
+  that was still working. **That looked like an outage three separate times in
+  one day.** A setting that is configured, documented in `deploy.sh`, and
+  ignored is worse than one never offered.
+
   Use `AI_TIMEOUT_MS` from `services/api.js` for any LLM-backed call; the 30s
   default is for CRUD. MealPlanner had 300000 — *equal* to Cloud Run's ceiling,
   so client and server could abort together.
 - **Distinguish 503 from 502.** Upstream unreachable ≠ upstream returned junk.
   Both used to collapse into one message that sent us hunting a healthy service.
+- **An error message must never be blank.** The provider chain formatted its
+  failure as `last: {exc}` — and `str(httpx.ReadTimeout(''))` is `''`, so the
+  most likely failure of all rendered as `all providers failed (last: )`. Name
+  the exception *type*. §3aa's "an error is not an empty state", applied to the
+  error text itself.
 - Where a **template fallback exists** (meal-plan, exercise-plan) returning
   `None` is correct — the user still gets a plan — but **log why**, or a
   month-long outage is indistinguishable from "the template was fine".
@@ -328,6 +355,50 @@ latency first: it separates a hard gate from a timeout.
 - ⚠️ `alafia-ollama` runs **`minScale` unset, `maxScale=1`** — every cold request
   pays a GPU model load and concurrent users queue. Warming it is a standing
   cost decision (1 GPU + 8 CPU + 32Gi), not a code change.
+
+## 3af. Mobile web had no navigation at all
+
+The sidebar was `display: none` below 768px and **nothing replaced it** — that
+was the whole "Responsive" section, and `Layout.jsx` had no hamburger, drawer or
+media query. An authenticated phone user could reach no route except by typing a
+URL. For a product whose patients are mostly on phones, that was the app.
+
+- Off-canvas via `transform`, **not** `display: none` — the links stay in the
+  DOM for assistive tech instead of vanishing.
+- The drawer closes on navigate (or it covers the page just opened), on backdrop
+  tap and on Escape; body scroll is locked while open.
+- **Unit tests cannot catch this class of bug.** jsdom has no viewport and does
+  not apply media queries, so 132 passing frontend tests were blind to it by
+  construction. `e2e/mobile-nav.spec.js` runs a real browser at Pixel 7 width.
+  Any layout rule behind a media query needs an e2e test at that width or it is
+  untested.
+
+## 3ag. ai_engine was written against a schema that never existed
+
+`/personalization/*` had **five** faults stacked on top of each other, each
+hidden by the one above, each found only after fixing its predecessor:
+
+1. `if not ai_engine.api_key` → 503 (§3ae) — asked for an OpenAI key prod never has
+2. `db.query()` on an `AsyncSession` — the router is sync throughout, so it takes
+   `get_sync_db`; a `db: Session` annotation converts nothing
+3. **eleven wrong column names** — `NutritionLog.consumed_at`, `carbohydrates_g`,
+   `FitnessLog.performed_at`, `SleepLog.bedtime`, `MoodEntry.recorded_at`,
+   `SymptomLog.started_at`/`severity_level`, `VitalsLog.recorded_at`/`systolic_bp`,
+   `Medication.status`
+4. `json.loads(user.allergies)` — those fields are **comma-separated text**
+   ("Penicilin, Latex, Heparine"); the Profile screen's own placeholder says so
+5. a 120s timeout ignoring `OLLAMA_TIMEOUT` (§3ae)
+
+Two lessons worth more than the fixes:
+
+- **Do not debug a never-executed path one deploy at a time.** Drive it locally
+  against the dev copy of prod until it completes. That found faults 3 and 4 in
+  minutes after two production round-trips found one each.
+- **A static check beats behavioural tests for this.** Every `Model.attribute`
+  in a module must exist on that model — see
+  `tests/test_ai_endpoints_availability.py`. It catches all eleven for free;
+  stubbing the engine skips right past `_build_user_context`, which is where the
+  queries live.
 
 ## 3b. Admin console
 
@@ -501,21 +572,31 @@ Other notes:
 - `ML/src/alafia_model` is the canonical ALAFIAModel source; `deploy.sh` vendors
   it into the backend image at build time. Edit it there, not in a copy.
 
-## 5. Known drift to fix (as of 2026-08-17)
+## 5. Known drift to fix (as of 2026-08-22)
 
-- ✅ **Dev DB parity restored.** `pull_prod.sh` was run on 2026-08-17;
-  `verify_parity.sh` reports dev byte-identical to prod across `public` and
-  `identity` (117 tables). The old note said dev was stamped
-  `bb002_add_subscriptions` against a head of `dd004_nutrient_status` — both
-  numbers were stale. **Ask `alembic heads`, never a doc and never a grep.**
+- **Head is `nn001_condition_icd11`**, applied to dev and to prod
+  (2026-08-22, `mm001_dialysis_coefficients -> nn001_condition_icd11`).
+  This line is dated because it goes stale: **ask `alembic heads`, never a doc
+  and never a grep.** DEPLOY.md claimed prod sat at `cc002_reconcile_drift`
+  while it was actually on `mm001` — four weeks out of date, and only the
+  migration job's own output settled it.
+- ⚠️ **Dev parity is unverified since the ICD-11 work.** Reads were run against
+  the dev copy while debugging, and a handful of test conditions were created
+  and deleted through the API. Run `scripts/db/verify_parity.sh` before trusting
+  dev for anything, and re-pull rather than hand-editing a difference.
 - **The migration graph has exactly ONE head** — verified with `alembic heads`,
   which is the only trustworthy way to ask. A hand-rolled scan reported five
   because many revisions use the annotated form
   `down_revision: Union[str, None] = '…'`, which a naive `^down_revision\s*=`
   regex misses, making real parents look like heads. Never grep for this; run
   `alembic heads`.
-- `WORKLOG.md` still describes the DB as `europe-west1` / `alafia-db`;
-  `deploy/gcp/config.env` (authoritative) says `us-east4` / `alafia-db-va`.
+- `WORKLOG.md` has one stale line (~1797) describing three Cloud Run services in
+  `europe-west1`; `deploy/gcp/config.env` (authoritative) says **`us-east4`** /
+  `alafia-db-va`. The europe-west1 *images* still exist in Artifact Registry and
+  were deliberately kept — do not treat their presence as evidence of the region.
+- ⚠️ **`alafia-ollama` runs `minScale` unset, `maxScale=1`.** Every cold request
+  pays a GPU model load, and concurrent users queue behind one instance. Warming
+  it is a standing cost decision (1 GPU + 8 CPU + 32 Gi), not a code change.
 
 ## 5a. Deploying
 
