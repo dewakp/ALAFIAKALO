@@ -2,6 +2,7 @@ import { fmtDateTime } from '../utils/datetime';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import DrugsAdministered from '../components/DrugsAdministered';
 
 const TherapySessions = () => {
   const [sessions, setSessions] = useState([]);
@@ -459,15 +460,9 @@ const TherapySessions = () => {
                 <h3 style={{ marginTop: 0 }}>Chemotherapy/Infusion Data</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Drugs Administered
-                    </label>
-                    <input
-                      type="text"
+                    <DrugsAdministered
                       value={formData.drugs_administered}
-                      onChange={(e) => setFormData({ ...formData, drugs_administered: e.target.value })}
-                      style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                      placeholder="e.g., Cisplatin, Etoposide"
+                      onChange={(text) => setFormData({ ...formData, drugs_administered: text })}
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>

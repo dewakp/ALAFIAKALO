@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import DrugsAdministered from '../components/DrugsAdministered';
 import { useTempUnit } from '../hooks/useTempUnit';
 
 /* ───────── constants ───────── */
@@ -86,6 +87,7 @@ const emptyForm = () => ({
   // Labs & Notes
   lab_tubes_drawn: '', oxygen_saturation: '',
   side_effects: '', clinical_notes: '', patient_notes: '',
+  drugs_administered: '',
 });
 
 /* ───────── helpers ───────── */
@@ -347,6 +349,7 @@ export default function Hemodialysis() {
                'sak_lot', 'cycler_number', 'warmer_serial', 'control_panel_serial',
                'dialyzer_appearance', 'post_bleeding_stop_time', 'lab_tubes_drawn',
                'side_effects', 'clinical_notes', 'patient_notes', 'therapy_type',
+               'drugs_administered',
                'status', 'filtration_fraction', 'scheduled_date', 'actual_start_time',
                'actual_end_time'].includes(k)) return;
           payload[k] = parseFloat(payload[k]);
@@ -700,6 +703,20 @@ export default function Hemodialysis() {
         <Input lbl="SAK Use #" value={formData.sak_use_number} onChange={set('sak_use_number')} type="number" />
         <Input lbl="Total Chloramine (ppm)" value={formData.total_chloramine_level} onChange={set('total_chloramine_level')} type="number" step="0.01" />
         <Input lbl="Lab Tubes Drawn" value={formData.lab_tubes_drawn} onChange={set('lab_tubes_drawn')} placeholder="e.g., EDTA, SST" />
+      </div>
+
+      {/* ──── DRUGS GIVEN THIS SESSION ────
+          This screen had no drugs field at all. A decade of Epogene, Venofer
+          and Doxercalciferol reached the database only by import, and nothing
+          else in the app could see it (§3aa: the medication picture has THREE
+          sources, and this is the unread one). */}
+      <div style={sectionHead}>Drugs Given This Session</div>
+      <div style={{ marginBottom: 16 }}>
+        <DrugsAdministered
+          label=""
+          value={formData.drugs_administered}
+          onChange={(text) => setFormData((f) => ({ ...f, drugs_administered: text }))}
+        />
       </div>
 
       {/* ──── NOTES ──── */}

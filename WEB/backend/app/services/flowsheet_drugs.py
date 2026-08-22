@@ -38,7 +38,13 @@ import re
 from dataclasses import dataclass, field
 from typing import Iterable
 
-__all__ = ["FlowsheetDrug", "parse_drugs_administered", "summarize_flowsheet_drugs"]
+__all__ = [
+    "FlowsheetDrug",
+    "parse_drugs_administered",
+    "format_drugs_administered",
+    "summarize_flowsheet_drugs",
+    "COMMON_DIALYSIS_DRUGS",
+]
 
 
 # Canonical names for what the corpus actually contains. Keys are matched
@@ -221,3 +227,76 @@ def summarize_flowsheet_drugs(sessions: Iterable) -> list[FlowsheetDrugSummary]:
             if drug.dose:
                 entry.doses_seen.append(drug.dose)
     return sorted(rolled.values(), key=lambda e: e.sessions, reverse=True)
+
+
+# ── Structured capture ────────────────────────────────────────────────
+
+
+def format_drugs_administered(items: Iterable[dict | FlowsheetDrug]) -> str:
+    """Serialise structured drug rows back into the flowsheet field.
+
+    Deliberately writes the SAME `Name (dose); Name (dose)` shape the corpus
+    already uses, rather than introducing JSON in a column holding 1,964 rows of
+    free text. One format means `parse_drugs_administered()` reads a row typed
+    in 2019 and a row captured by the new form identically, and no migration is
+    needed to make history readable.
+
+    Round-trips: `parse(format(x)) == x` for any name/dose pair without
+    parentheses. Drops entries with no name; a dose with no drug is not a fact.
+    """
+    parts: list[str] = []
+    for item in items or []:
+        if isinstance(item, FlowsheetDrug):
+            name, dose = item.name, item.dose
+        else:
+            name = (item.get("name") or "").strip()
+            dose = (item.get("dose") or "").strip() or None
+        name = " ".join((name or "").split())
+        if not name:
+            continue
+        # Parentheses would break the round-trip: the dose is delimited by them.
+        name = name.replace("(", "").replace(")", "").strip()
+        if dose:
+            dose = " ".join(dose.split()).replace("(", "").replace(")", "")
+            parts.append(f"{name} ({dose})")
+        else:
+            parts.append(name)
+    return "; ".join(parts)
+
+
+# Offered as a picker on the flowsheet. Derived from what this population is
+# actually given — Epogene 1,962 sessions, Sodium Citrate 1,467, Venofer 1,246,
+# Doxercalciferol 788 — plus the common alternatives in each class, so a unit
+# that uses Aranesp instead of Epogen is not forced into "Other".
+#
+# `label` is what the clinician sees and what gets written. Canonicalisation to
+# a generic name happens on READ (see _CANONICAL), so changing this list never
+# invalidates stored rows.
+COMMON_DIALYSIS_DRUGS: list[dict] = [
+    {"label": "Epogene",         "generic": "Epoetin alfa",     "class": "ESA",
+     "dose_hint": "e.g. 3,000 SQ"},
+    {"label": "Aranesp",         "generic": "Darbepoetin alfa", "class": "ESA",
+     "dose_hint": "e.g. 60 mcg"},
+    {"label": "Mircera",         "generic": "Methoxy PEG-epoetin beta", "class": "ESA",
+     "dose_hint": "e.g. 75 mcg"},
+    {"label": "Venofer",         "generic": "Iron sucrose",     "class": "IV iron",
+     "dose_hint": "e.g. 100 mg"},
+    {"label": "Ferrlecit",       "generic": "Sodium ferric gluconate", "class": "IV iron",
+     "dose_hint": "e.g. 125 mg"},
+    {"label": "Feraheme",        "generic": "Ferumoxytol",      "class": "IV iron",
+     "dose_hint": "e.g. 510 mg"},
+    {"label": "Doxercalciferol", "generic": "Doxercalciferol",  "class": "vitamin D analogue",
+     "dose_hint": "e.g. 2 mcg"},
+    {"label": "Paricalcitol",    "generic": "Paricalcitol",     "class": "vitamin D analogue",
+     "dose_hint": "e.g. 5 mcg"},
+    {"label": "Calcitriol",      "generic": "Calcitriol",       "class": "vitamin D analogue",
+     "dose_hint": "e.g. 1 mcg"},
+    {"label": "Sodium Citrate",  "generic": "Sodium citrate",   "class": "catheter lock",
+     "dose_hint": "e.g. 2.5 ml x 2"},
+    {"label": "Heparin",         "generic": "Heparin",          "class": "anticoagulant",
+     "dose_hint": "e.g. 5,000 units"},
+    {"label": "Alteplase",       "generic": "Alteplase",        "class": "thrombolytic",
+     "dose_hint": "e.g. 2 mg"},
+    {"label": "Vancomycin",      "generic": "Vancomycin",       "class": "antibiotic",
+     "dose_hint": "e.g. 1 g"},
+]
