@@ -16,6 +16,8 @@ The model itself is stubbed. The point is the decision the endpoint makes about
 it, which is exactly the part that was wrong.
 """
 
+from pathlib import Path
+
 import pytest
 from httpx import AsyncClient
 
@@ -239,3 +241,57 @@ def test_personalization_uses_a_sync_session():
                 assert dependency is get_sync_db, (
                     f"{endpoint.__name__}() should depend on get_sync_db"
                 )
+
+
+# ── The context builder actually runs ─────────────────────────────────
+
+
+def test_ai_engine_references_only_real_model_columns():
+    """Every `Model.attribute` in ai_engine must exist on that model.
+
+    This module was written against a schema that never existed. Removing the
+    api_key gate exposed it one layer at a time, each fix revealing the next:
+
+        NutritionLog.consumed_at        -> log_date
+        NutritionLog.carbohydrates_g    -> carbs_g
+        FitnessLog.performed_at         -> log_date
+        SleepLog.bedtime                -> sleep_date
+        MoodEntry.recorded_at           -> entry_date
+        SymptomLog.started_at           -> log_date
+        VitalsLog.recorded_at           -> log_date
+        VitalsLog.systolic_bp           -> blood_pressure_systolic
+        Medication.status == "active"   -> is_active
+
+    Nine wrong names in one file, none reachable while the gate above them
+    returned 503 first. A static check costs nothing and finds them all at once
+    instead of one production deploy at a time.
+    """
+    import re
+    import app.services.ai_engine as engine_module
+
+    src = (Path(engine_module.__file__)).read_text()
+    bad = []
+    for model_name, attr in sorted(set(re.findall(r"\b([A-Z][A-Za-z]+)\.([a-z_]+)\b", src))):
+        model = getattr(engine_module, model_name, None)
+        if model is None or not hasattr(model, "__table__"):
+            continue  # not an ORM model in this module's namespace
+        if not hasattr(model, attr):
+            cols = sorted(c.name for c in model.__table__.columns)
+            bad.append(f"{model_name}.{attr} (real columns include: {cols[:6]})")
+    assert not bad, "ai_engine references columns that do not exist:\n  " + "\n  ".join(bad)
+
+
+def test_profile_list_fields_survive_comma_separated_text():
+    """Allergies are stored as "Penicilin, Latex, Heparine", not JSON.
+
+    `json.loads()` on that raises JSONDecodeError and takes the whole context
+    build down, so /personalization/* 500d for any user who had filled in an
+    allergy — which is most of them.
+    """
+    from app.services.ai_engine import AIPersonalizationEngine as E
+
+    assert E._as_list("Penicilin, Latex, Heparine") == ["Penicilin", "Latex", "Heparine"]
+    assert E._as_list('["a", "b"]') == ["a", "b"]          # JSON still works
+    assert E._as_list("") == []
+    assert E._as_list(None) == []
+    assert E._as_list("single") == ["single"]

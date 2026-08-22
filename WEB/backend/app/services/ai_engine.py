@@ -58,6 +58,34 @@ class AIPersonalizationEngine:
         from app.services.alafia_model_service import alafia_chat
         return await alafia_chat(messages, temperature=temperature, max_tokens=max_tokens)
     
+    @staticmethod
+    def _as_list(value) -> List[str]:
+        """Profile list fields, however they were stored.
+
+        These are written by the Profile screen as COMMA-SEPARATED TEXT
+        ("Penicilin, Latex, Heparine"), not JSON — its own placeholder says
+        "e.g. penicillin, shellfish, latex". `json.loads()` on that raises
+        JSONDecodeError and takes the whole context build with it, which is why
+        /personalization/* 500d on any user who had filled in an allergy.
+
+        Accepts a JSON array too, since some rows were written that way.
+        """
+        if not value:
+            return []
+        if isinstance(value, (list, tuple)):
+            return [str(v).strip() for v in value if str(v).strip()]
+        text = str(value).strip()
+        if text.startswith("[") or text.startswith("{"):
+            try:
+                parsed = json.loads(text)
+            except (ValueError, TypeError):
+                parsed = None
+            if isinstance(parsed, list):
+                return [str(v).strip() for v in parsed if str(v).strip()]
+            if isinstance(parsed, dict):
+                return [f"{k}: {v}" for k, v in parsed.items()]
+        return [part.strip() for part in text.split(",") if part.strip()]
+
     def _build_user_context(self, user: User, db: Session, days: int = 30) -> Dict[str, Any]:
         """Build comprehensive user context from all available data."""
         context = {
@@ -79,17 +107,17 @@ class AIPersonalizationEngine:
                 "preferred_language": user.preferred_language
             },
             "health_profile": {
-                "allergies": json.loads(user.allergies) if user.allergies else [],
-                "food_intolerances": json.loads(user.food_intolerances) if user.food_intolerances else [],
-                "dietary_restrictions": json.loads(user.dietary_restrictions) if user.dietary_restrictions else [],
-                "dietary_preferences": json.loads(user.dietary_preferences) if user.dietary_preferences else [],
+                "allergies": self._as_list(user.allergies),
+                "food_intolerances": self._as_list(user.food_intolerances),
+                "dietary_restrictions": self._as_list(user.dietary_restrictions),
+                "dietary_preferences": self._as_list(user.dietary_preferences),
                 "chronic_conditions": self._get_active_conditions(user, db),
-                "family_history": json.loads(user.family_history) if user.family_history else {}
+                "family_history": self._as_list(user.family_history)
             },
             "fitness_profile": {
                 "activity_level": user.activity_level,
-                "fitness_goals": json.loads(user.fitness_goals) if user.fitness_goals else [],
-                "preferred_activities": json.loads(user.preferred_activities) if user.preferred_activities else [],
+                "fitness_goals": self._as_list(user.fitness_goals),
+                "preferred_activities": self._as_list(user.preferred_activities),
                 "exercise_frequency_per_week": user.exercise_frequency_per_week
             },
             "lifestyle": {
@@ -210,17 +238,19 @@ class AIPersonalizationEngine:
         """Summarize recent nutrition data."""
         logs = db.query(NutritionLog).filter(
             NutritionLog.user_id == user_id,
-            NutritionLog.consumed_at >= cutoff_date
+            # log_date is a DATE column; the model has no consumed_at.
+            NutritionLog.log_date >= (cutoff_date.date()
+                                      if hasattr(cutoff_date, 'date') else cutoff_date)
         ).all()
         
         if not logs:
             return {"status": "no_data"}
         
-        total_days = len(set(log.consumed_at.date() for log in logs))
-        avg_calories = sum(log.calories_kcal or 0 for log in logs) / total_days if total_days > 0 else 0
+        total_days = len({log.log_date for log in logs})
+        avg_calories = sum(log.calories or 0 for log in logs) / total_days if total_days > 0 else 0
         avg_protein = sum(log.protein_g or 0 for log in logs) / total_days if total_days > 0 else 0
-        avg_carbs = sum(log.carbohydrates_g or 0 for log in logs) / total_days if total_days > 0 else 0
-        avg_fat = sum(log.total_fat_g or 0 for log in logs) / total_days if total_days > 0 else 0
+        avg_carbs = sum(log.carbs_g or 0 for log in logs) / total_days if total_days > 0 else 0
+        avg_fat = sum(log.fat_g or 0 for log in logs) / total_days if total_days > 0 else 0
         
         return {
             "days_tracked": total_days,
@@ -237,13 +267,15 @@ class AIPersonalizationEngine:
         """Summarize recent fitness data."""
         logs = db.query(FitnessLog).filter(
             FitnessLog.user_id == user_id,
-            FitnessLog.performed_at >= cutoff_date
+            # fitness_logs has log_date (DATE); there is no performed_at.
+            FitnessLog.log_date >= (cutoff_date.date()
+                                    if hasattr(cutoff_date, 'date') else cutoff_date)
         ).all()
         
         if not logs:
             return {"status": "no_data"}
         
-        total_days = len(set(log.performed_at.date() for log in logs))
+        total_days = len({log.log_date for log in logs})
         workouts_per_week = len(logs) / (total_days / 7) if total_days > 0 else 0
         avg_duration = sum(log.duration_minutes or 0 for log in logs) / len(logs) if logs else 0
         
@@ -262,7 +294,7 @@ class AIPersonalizationEngine:
         """Summarize recent mood data."""
         entries = db.query(MoodEntry).filter(
             MoodEntry.user_id == user_id,
-            MoodEntry.recorded_at >= cutoff_date
+            MoodEntry.entry_date >= (cutoff_date.date() if hasattr(cutoff_date, 'date') else cutoff_date)
         ).all()
         
         if not entries:
@@ -284,7 +316,9 @@ class AIPersonalizationEngine:
         """Summarize recent sleep data."""
         logs = db.query(SleepLog).filter(
             SleepLog.user_id == user_id,
-            SleepLog.bedtime >= cutoff_date
+            # sleep_logs has sleep_date (DATE); bedtime is not a column.
+            SleepLog.sleep_date >= (cutoff_date.date()
+                                    if hasattr(cutoff_date, 'date') else cutoff_date)
         ).all()
         
         if not logs:
@@ -304,14 +338,14 @@ class AIPersonalizationEngine:
         """Get latest vital signs."""
         latest = db.query(VitalsLog).filter(
             VitalsLog.user_id == user_id
-        ).order_by(desc(VitalsLog.recorded_at)).first()
+        ).order_by(desc(VitalsLog.log_date)).first()
         
         if not latest:
             return {"status": "no_data"}
         
         return {
-            "recorded_at": latest.recorded_at.isoformat(),
-            "blood_pressure": f"{latest.systolic_bp}/{latest.diastolic_bp}" if latest.systolic_bp else None,
+            "recorded_at": latest.log_date.isoformat() if latest.log_date else None,
+            "blood_pressure": f"{latest.blood_pressure_systolic}/{latest.blood_pressure_diastolic}" if latest.blood_pressure_systolic else None,
             "heart_rate_bpm": latest.heart_rate_bpm,
             "weight_kg": latest.weight_kg,
             "body_fat_pct": latest.body_fat_pct,
@@ -322,15 +356,15 @@ class AIPersonalizationEngine:
         """Get recent symptoms."""
         symptoms = db.query(SymptomLog).filter(
             SymptomLog.user_id == user_id,
-            SymptomLog.started_at >= cutoff_date
-        ).order_by(desc(SymptomLog.started_at)).limit(5).all()
+            SymptomLog.log_date >= (cutoff_date.date() if hasattr(cutoff_date, 'date') else cutoff_date)
+        ).order_by(desc(SymptomLog.log_date)).limit(5).all()
         
         return [
             {
                 "symptom": s.symptom_name,
-                "severity": s.severity_level,
+                "severity": s.severity,
                 "body_part": s.body_part,
-                "started": s.started_at.isoformat()
+                "started": s.log_date.isoformat() if s.log_date else None
             }
             for s in symptoms
         ]
@@ -339,7 +373,7 @@ class AIPersonalizationEngine:
         """Get current medications."""
         meds = db.query(Medication).filter(
             Medication.user_id == user_id,
-            Medication.status == "active"
+            Medication.is_active.is_(True)
         ).all()
         
         return [
