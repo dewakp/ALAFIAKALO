@@ -1,5 +1,6 @@
 package com.alafia.android.models
 
+import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
 import java.time.LocalDateTime
 
@@ -424,6 +425,10 @@ data class TherapySession(
     @SerializedName("adverse_reactions") val adverseReactions: String?,
     val complications: String?,
     @SerializedName("patient_tolerance") val patientTolerance: String?,
+    // clinical_notes is a LIST on a completed flowsheet, not a string. Without
+    // this adapter Gson throws "Expected a string but was BEGIN_ARRAY" and the
+    // entire session list fails to parse (CLAUDE.md §3aa).
+    @JsonAdapter(FlexibleNotesAdapter::class)
     @SerializedName("clinical_notes") val clinicalNotes: String?,
     @SerializedName("patient_notes") val patientNotes: String?,
     @SerializedName("next_session_scheduled") val nextSessionScheduled: String?,

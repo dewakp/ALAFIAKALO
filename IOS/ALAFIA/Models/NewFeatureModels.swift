@@ -1096,6 +1096,42 @@ struct HDSummary: Codable {
 
 // MARK: - Therapy Sessions (Hemodialysis / Chemotherapy / Generic)
 
+/// `clinical_notes` arrives as EITHER a string or a list of note records.
+///
+/// On a completed flowsheet the backend sends a LIST — clinical notes are their
+/// own append-only rows, not a column on the session. `clinicalNotes: String?`
+/// therefore hit a `typeMismatch`, the whole session list failed to decode, and
+/// the screen showed "No hemodialysis sessions in this period" beneath a summary
+/// reading "12 Sessions".
+///
+/// CLAUDE.md §3aa twice over: the array shape is named there as a known
+/// production failure, and an error must never be rendered as an empty state.
+/// The web client already guards this; iOS did not.
+struct FlexibleNotes: Codable {
+    let text: String?
+    let notes: [ClinicalNote]
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            text = nil; notes = []
+        } else if let string = try? container.decode(String.self) {
+            text = string; notes = []
+        } else if let list = try? container.decode([ClinicalNote].self) {
+            text = nil; notes = list
+        } else {
+            // Unknown shape: decode to empty rather than failing the WHOLE
+            // session list over one field.
+            text = nil; notes = []
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        if let text { try container.encode(text) } else { try container.encode(notes) }
+    }
+}
+
 struct TherapySession: Codable, Identifiable {
     let id: Int
     let userId: Int?
@@ -1194,7 +1230,9 @@ struct TherapySession: Codable, Identifiable {
     let adverseReactions: String?
     let complications: String?
     let patientTolerance: String?
-    let clinicalNotes: String?
+    /// Raw field: a string on some payloads, a list of notes on a completed
+    /// flowsheet. Read `clinicalNotes` (computed below) instead.
+    let clinicalNotesRaw: FlexibleNotes?
     let patientNotes: String?
     let nextSessionScheduled: String?
     let createdAt: String?
@@ -1212,6 +1250,21 @@ struct TherapySession: Codable, Identifiable {
     let reviewedBy: Int?
     let payloadHash: String?
     let clinicalNotesList: [ClinicalNote]?
+
+    /// The notes as text, whichever shape the backend sent. Five call sites
+    /// already read this as `String?`; keeping the name means the decoding fix
+    /// does not ripple into the views.
+    var clinicalNotes: String? {
+        if let text = clinicalNotesRaw?.text, !text.isEmpty { return text }
+        let joined = (clinicalNotesRaw?.notes ?? [])
+            .map(\.noteText)
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+        return joined.isEmpty ? nil : joined
+    }
+
+    /// The structured notes, when the backend sent the list form.
+    var clinicalNoteRecords: [ClinicalNote] { clinicalNotesRaw?.notes ?? [] }
 
     enum CodingKeys: String, CodingKey {
         case id, status, dosage, complications
@@ -1297,7 +1350,7 @@ struct TherapySession: Codable, Identifiable {
         case sideEffects = "side_effects"
         case adverseReactions = "adverse_reactions"
         case patientTolerance = "patient_tolerance"
-        case clinicalNotes = "clinical_notes"
+        case clinicalNotesRaw = "clinical_notes"
         case patientNotes = "patient_notes"
         case nextSessionScheduled = "next_session_scheduled"
         case createdAt = "created_at"
