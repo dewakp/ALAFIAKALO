@@ -11,23 +11,76 @@ assistant returned generic dietary advice and told an ESRD patient to **increase
 calories and protein**. That patient's most recent potassium is **6.0 mEq/L**.
 Potassium was never mentioned.
 
-Even with perfect data the answer would have been wrong, because the context
-tells the model what the patient ATE and never what they may HAVE. Fixing the
-fabrication (separate issue) does not fix this.
+Even with perfect data the answer would have been wrong: the context tells the
+model what the patient ATE and never what they may HAVE. Fixing the fabrication
+(separate issue) does not fix this.
 
-### The gap
+### The real problem: dietary rules are hardcoded to six conditions
 
-`services/nutrient_goals_service.compute_goals()` already derives personalised
-targets from conditions, and **none of it reaches `_fetch_patient_context()` in
-`api/ai.py`**. There is no limits section in the prompt at all.
+`nutrient_goals_service.detect_condition_flags()` returns a fixed dict —
+`ckd, dialysis, diabetes, hypertension, cardiovascular, heart_failure` — set by
+**substring matching on free text**. This is a tool for the world; a
+hand-maintained list of six diagnoses cannot serve it, and adding "anaemia" and
+"g6pd" to the list would just make it eight.
 
-`detect_condition_flags()` covers `ckd, dialysis, diabetes, hypertension,
-cardiovascular, heart_failure`. It knows nothing about **anaemia** or **G6PD
-deficiency**, and there is no G6PD dietary logic anywhere in the app — only a
-comment in `models/chronic_conditions.py` and a risk-factor string in the
-ICD-10 catalog.
+It is not merely incomplete. It is **wrong in both directions**:
 
-### What the record actually holds (user 63, verify before trusting)
+| Input | Flag set | Reality |
+|---|---|---|
+| `Heartburn` | `cardiovascular` | substring "heart"; GERD is not cardiac |
+| `Diabetes insipidus` | `diabetes` | a water-balance disorder — carb targets are clinically wrong |
+| `Sickle cell disease` | none | |
+| `G6PD deficiency` | none | |
+| `Crohn disease` | none | |
+| `Coeliac disease` | none | |
+| `Malignant neoplasms of breast` | none | |
+| `Gout` | none | |
+| `Chronic liver disease` | none | |
+
+Seven real conditions produce **no flags and no signal that nothing was
+produced**. The patient gets generic targets that look authoritative. That is
+§3aa again: an absent rule is being rendered as a normal answer.
+
+### 1. Key dietary rules to the ICD-11 code, as DATA
+
+Conditions now carry `icd11_code` (35,339 codes, generated catalog). Key the
+rules to that, not to keywords:
+
+- **Hierarchical lookup.** ICD-11 is structured — `GB61.5 → GB61 → GB6 →
+  chapter 16. A rule attaches at any level, so a chapter-level renal default
+  exists without enumerating every code, and `GB61.5` can override it.
+- **A data file, not `if` branches.** Adding a condition must not be a Python
+  deploy. Same shape as the ICD-11 catalog: generated/curated data, loaded at
+  runtime, covered by a test that every rule's code resolves.
+- Rules need at least two shapes: **numeric targets/limits** (K+, PO4, protein,
+  fluid) and **absolute avoids** (fava beans for G6PD). An engine that only
+  emits numbers cannot express a contraindication.
+
+### 2. Never let "no rule" look like "no restriction"
+
+For any active condition with no rule on file, the context must say so
+explicitly — `no dietary rule on file for 3A51.1 Sickle cell disease` — so the
+model states the gap instead of filling it. Silence here is how a G6PD patient
+gets advice that never mentions fava beans.
+
+Uncoded free-text conditions must be reported as uncoded, **not** keyword-matched.
+Retire `detect_condition_flags()` once rules are code-keyed; keep it only as a
+fallback for legacy rows with no `icd11_code`, and mark its output as low
+confidence.
+
+### 3. Put a limits section in the AI context
+
+Add `=== NUTRIENT LIMITS & TARGETS (personal) ===` to
+`_fetch_patient_context()` in `api/ai.py` — today there is none at all. State
+each as limit, latest serum value, and direction, so the model can say "your
+potassium is 6.0 against a 2,000-3,000 mg/day limit" instead of inventing a diet.
+
+§3ac applies: **a treatment changes the day's TOTALS, never the LIMIT.** Do not
+raise the potassium limit on a dialysis day.
+
+### 4. Read the direction of each value, not the condition label
+
+From the record (user 63 — verify, do not trust this table):
 
 | | |
 |---|---|
@@ -35,54 +88,37 @@ ICD-10 catalog.
 | Taken | calcium carbonate ×477, calcitriol ×348, folic acid ×20 |
 | K+ | **6.0 mEq/L** — hyperkalaemia |
 | Phosphorus | 2.6 mg/dL — *below* the 3.5-5.5 dialysis target |
-| Calcium | 8.3 mg/dL, on calcitriol + a calcium-based binder |
+| Calcium | 8.3 mg/dL, on calcitriol *and* a calcium-based binder |
 | Hb / ferritin / iron sat | 12.4 g/dL / 186 / 33% |
 
-Note phosphorus is LOW while on a binder, and calcium is low-normal while on
-calcitriol *and* calcium carbonate. Advice must read the direction of each
-value, not assume "renal patient ⇒ restrict phosphorus".
+Phosphorus is LOW while on a binder, so "renal ⇒ restrict phosphorus" is wrong
+here. Iron stores are adequate, so "anaemic ⇒ eat more iron" is wrong here. The
+rule supplies the target; the serum value decides the direction.
 
-### 1. Put a limits section in the AI context
+Calcium carbonate is a **phosphate binder taken with meals** — timing is part
+of the answer, not a footnote.
 
-Add a `=== NUTRIENT LIMITS & TARGETS (personal) ===` block to
-`_fetch_patient_context()`, sourced from `compute_goals()` — never hardcoded.
-State each as limit, latest serum value, and direction, so the model can say
-"your potassium is 6.0 against a 2,000-3,000 mg/day intake limit" instead of
-inventing a diet.
-
-§3ac applies: **a treatment changes the day's TOTALS, never the LIMIT.** Do not
-raise the potassium limit on a dialysis day.
-
-### 2. Teach the goals engine anaemia and G6PD
-
-- **Anaemia**: iron, B12, folate targets. Gate on ferritin and transferrin
-  saturation — this patient's iron stores are already adequate, so "eat more
-  iron" would be wrong.
-- **G6PD**: an AVOID list, not a target — fava beans above all. This is the one
-  case where the answer is a contraindication rather than a number, so it needs
-  its own shape in the model.
-
-### 3. Record what is only known verbally
+### 5. Some conditions are only known verbally
 
 G6PD deficiency and anaemia are **not in this patient's `chronic_conditions`**,
-so nothing downstream can act on them. The ICD-11 picker now makes them
-recordable — G6PD deficiency is `3A10.00`. Without the record there is nothing
-to personalise from.
+so nothing downstream can act on them. The ICD-11 picker makes them recordable
+— G6PD deficiency is `3A10.00`. Until they are recorded there is nothing to
+personalise from, and the system should say that rather than imply health.
 
-### 4. Prove it against the population, not one patient
+### 6. Prove it against the population
 
-`scripts/board_sweep.py` is the pattern. A patient with no labs must produce
-"not recorded", never a fabricated limit, and never a blank (§3aa: an error is
-not an empty state).
+`scripts/board_sweep.py` is the pattern. Required: a patient with no labs
+produces "not recorded" and never a fabricated limit; a condition with no rule
+produces an explicit gap; and no condition silently sets an unrelated flag —
+`Heartburn` must never be cardiovascular again.
 
 ### Watch
 
-- Route conditions through `services/clinical_sources.py` — never query
+- Route conditions through `services/clinical_sources.py` — never
   `health_conditions`, which has no writer (§3aa).
-- Group dose logs case-insensitively; "Calcium Carbonate" and "Calcium
-  carbonate" are the same drug (§3aa).
-- Calcium carbonate is a **phosphate binder taken with meals**. Timing advice is
-  part of the answer, not a footnote.
+- Group dose logs case-insensitively (§3aa).
+- Rules are clinical content. Cite the source (KDOQI etc.) in the data file;
+  do not let a model invent a limit at runtime.
 
 ---
 
