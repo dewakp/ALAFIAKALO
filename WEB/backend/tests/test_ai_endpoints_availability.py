@@ -199,3 +199,43 @@ async def test_planners_still_fall_back_to_a_template(client: AsyncClient, monke
     assert r.status_code in (200, 422), r.text
     if r.status_code == 200:
         assert r.json().get("weekly_plan"), "template fallback produced no plan"
+
+
+# ── Session type ──────────────────────────────────────────────────────
+
+
+def test_personalization_uses_a_sync_session():
+    """These endpoints must not be wired to the async session dependency.
+
+    `get_db` yields an AsyncSession. Every path in this router — and all of
+    ai_engine — uses the SYNC ORM API (`db.query`, `db.commit`, `db.refresh`).
+    The `db: Session` annotation converts nothing, so the mismatch produced
+    `AttributeError: 'AsyncSession' object has no attribute 'query'` on the
+    first query and the endpoints could never have worked.
+
+    A behavioural test did not catch this: stubbing the engine skips right past
+    `_build_user_context`, which is where the query lives. This checks the
+    wiring itself, which is the thing that was wrong.
+    """
+    import inspect
+    from app.core.database import get_db, get_sync_db
+    import app.api.personalization as personalization
+
+    for route in personalization.router.routes:
+        endpoint = getattr(route, "endpoint", None)
+        if endpoint is None:
+            continue
+        for name, param in inspect.signature(endpoint).parameters.items():
+            default = param.default
+            dependency = getattr(default, "dependency", None)
+            if dependency is None:
+                continue
+            assert dependency is not get_db, (
+                f"{endpoint.__name__}() takes the ASYNC session via '{name}'; "
+                "this router uses the sync ORM API and will raise "
+                "AttributeError on the first db.query()"
+            )
+            if name == "db":
+                assert dependency is get_sync_db, (
+                    f"{endpoint.__name__}() should depend on get_sync_db"
+                )

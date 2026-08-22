@@ -9,7 +9,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+# get_sync_db, not get_db: get_db yields an AsyncSession, and every path in this
+# router -- and all of ai_engine -- uses the SYNC ORM API (db.query, db.commit,
+# db.refresh). The `db: Session` annotation converts nothing; it only made the
+# mismatch look deliberate. The result was
+# `AttributeError: 'AsyncSession' object has no attribute 'query'`, so these
+# endpoints could never have worked. Nobody noticed because the api_key gate
+# above them returned 503 before execution ever reached a query.
+from app.core.database import get_sync_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.services.ai_engine import AIPersonalizationEngine
@@ -125,7 +132,7 @@ class SymptomAnalysisResponse(BaseModel):
 @router.get("/profile", response_model=UserProfileResponse)
 async def get_personalized_profile(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Get user's complete personalization profile."""
     # Parse JSON fields
@@ -154,7 +161,7 @@ async def get_personalized_profile(
 async def update_personalized_profile(
     profile_update: UserProfileUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Update user's personalization profile."""
     update_data = profile_update.model_dump(exclude_unset=True)
@@ -189,7 +196,7 @@ async def update_personalized_profile(
 async def get_ai_recommendations(
     request: RecommendationRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Get personalized AI recommendations.
@@ -236,7 +243,7 @@ async def get_ai_recommendations(
 async def analyze_symptoms(
     request: SymptomAnalysisRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Analyze symptoms with user's health context.
@@ -280,7 +287,7 @@ async def analyze_symptoms(
 @router.get("/health-score")
 async def get_health_score(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Calculate overall health score based on recent tracking data.
@@ -400,7 +407,7 @@ def _get_grade(score: float) -> str:
 async def learn_from_user_data(
     days: int = 90,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Trigger AI to learn from user's data and create memories.
@@ -422,7 +429,7 @@ async def get_my_memories(
     category: Optional[str] = None,
     min_confidence: float = 0.5,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Get AI's learned memories about the user.
@@ -458,7 +465,7 @@ async def get_interaction_history(
     interaction_type: Optional[str] = None,
     limit: int = 20,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Get history of AI interactions.
@@ -498,7 +505,7 @@ async def provide_interaction_feedback(
     user_feedback: Optional[str] = None,
     was_followed: Optional[bool] = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Provide feedback on an AI recommendation.
@@ -536,7 +543,7 @@ async def get_collective_insights(
     category: Optional[str] = None,
     limit: int = 10,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Get insights learned from all ALAFIA users.
@@ -583,7 +590,7 @@ async def get_global_knowledge(
     topics: List[str] = [],
     limit: int = 5,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """
     Get evidence-based health knowledge from authoritative sources.
