@@ -37,7 +37,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from app.models.chronic_conditions import ChronicCondition
+from app.models.chronic_conditions import ChronicCondition, TherapySession
+from app.services.flowsheet_drugs import summarize_flowsheet_drugs
 from app.models.conditions import HealthCondition
 from app.models.med_nutrient import MedicationDoseLog
 from app.models.medications import Medication
@@ -170,6 +171,48 @@ async def medications_taken(db: AsyncSession, user_id: int, since: date | None =
         detail=f"{doses} dose{'s' if doses != 1 else ''} in this period",
         last=str(last), doses=int(doses), source="taken", active=True,
     ) for name, doses, last in rows]
+
+
+async def medications_administered(db: AsyncSession, user_id: int, since: date | None = None
+                                   ) -> list[MedicationView]:
+    """Drugs given DURING dialysis, read off the flowsheet.
+
+    The THIRD medication source. §3aa names two tables; this is the one nobody
+    reads, and on a real record it holds a decade of ESA and IV iron:
+
+        Epogene 1,962 sessions · Venofer 1,248 · Doxercalciferol 788
+        ...and 0 of them in medication_dose_logs.
+
+    These are administered by the unit, so they can never appear in a dose log
+    the patient fills in. Omitting them is why a review of that record concluded
+    "no ESA prescribed or taken" while the patient had been on one for years —
+    and an ESA on board is the difference between an anaemia being treated and
+    one being missed.
+
+    `since=None` means the whole history on purpose: the question here is "what
+    is this patient on", and a 90-day window on a thrice-weekly therapy answers
+    a different one.
+    """
+    stmt = select(TherapySession).where(
+        TherapySession.user_id == user_id,
+        TherapySession.drugs_administered.isnot(None),
+    )
+    if since:
+        stmt = stmt.where(TherapySession.scheduled_date >= since)
+    rows = (await db.execute(stmt)).scalars().all()
+
+    return [MedicationView(
+        name=e.name,
+        detail=" · ".join(x for x in (
+            e.drug_class,
+            f"latest {e.latest_dose}" if e.latest_dose else None,
+            f"{e.sessions} session{'s' if e.sessions != 1 else ''}",
+        ) if x),
+        last=e.last_seen,
+        doses=e.sessions,
+        source="administered",
+        active=True,
+    ) for e in summarize_flowsheet_drugs(rows)]
 
 
 async def medications_prescribed(db: AsyncSession, user_id: int, active_only: bool = False
