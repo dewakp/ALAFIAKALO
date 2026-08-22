@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { detachFile } from '../utils/fileInput';
 import { useNavigate } from 'react-router-dom';
 import { Send, Mic, Square, Camera, Loader2, Apple, Pill, BookOpen, Bot } from 'lucide-react';
 import api from '../services/api';
@@ -168,7 +169,9 @@ export default function PromptHub() {
   }
 
   async function handleImageSelected(e) {
-    const file = e.target.files?.[0];
+    // Detach BEFORE clearing: the reset strips the data off the original File
+    // in WebKit, and it would upload as an empty part.
+    const file = await detachFile(e.target.files);
     e.target.value = '';
     if (!file) return;
     setBusy(true);

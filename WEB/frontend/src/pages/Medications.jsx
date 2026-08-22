@@ -1,4 +1,5 @@
 import { localToday } from '../utils/datetime';
+import { detachFile } from '../utils/fileInput';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -62,9 +63,11 @@ export default function Medications() {
   /* Scan a bottle/label photo → AI reads the label → prefill the intake log
      and the prescription form. */
   async function scanLabel(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    // Detach BEFORE clearing: the reset below strips the data off the
+    // original File in WebKit, and FileReader would then read nothing.
+    const file = await detachFile(e.target.files);
     e.target.value = '';
+    if (!file) return;
     setScanning(true);
     try {
       const image_base64 = await new Promise((resolve, reject) => {

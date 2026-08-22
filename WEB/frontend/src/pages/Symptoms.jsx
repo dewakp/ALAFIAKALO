@@ -1,4 +1,5 @@
 import { localToday } from '../utils/datetime';
+import { detachFile } from '../utils/fileInput';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -31,9 +32,11 @@ export default function Symptoms() {
   /* Photo → AI: describe a visible symptom (rash, swelling, wound…) and
      prefill the form. The photo itself is not stored. */
   async function analyzePhoto(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    // Detach BEFORE clearing: the reset below strips the data off the
+    // original File in WebKit, and FileReader would then read nothing.
+    const file = await detachFile(e.target.files);
     e.target.value = '';
+    if (!file) return;
     setAnalyzing(true); setAiNote('');
     try {
       const image_base64 = await new Promise((resolve, reject) => {

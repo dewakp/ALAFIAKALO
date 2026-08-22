@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
+import { detachFiles } from '../utils/fileInput';
 import {
   Plus, Search, Apple, ChevronDown, ChevronRight,
   BarChart3, Utensils, X, Loader2, Info, Calendar, Zap, Camera, Image, Sparkles, Link,
@@ -563,10 +564,27 @@ export default function Nutrition() {
               same meal are read together as one plate.
             </div>
             <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
-              onChange={(e) => {
-                const added = Array.from(e.target.files || []).slice(0, 3 - imageFiles.length);
+              onChange={async (e) => {
+                const picked = Array.from(e.target.files || []).slice(0, 3 - imageFiles.length);
+                // Copy the bytes out BEFORE the input is cleared below.
+                //
+                // Clearing the input detaches the File objects it produced in
+                // WebKit: they keep their `name` — so the chips below still
+                // render "IMG_0667.jpeg" — but carry no data. FormData then
+                // serialises them as empty parts and the request reaches the
+                // server with no image in it. Production logged two of these at
+                // 6360 bytes, of which 5329 was the auth token, and the backend
+                // correctly answered "No image file provided" for a form that
+                // visibly had two files attached.
+                //
+                // Re-wrapping each File around its own ArrayBuffer makes it
+                // independent of the input element, so clearing cannot reach it.
+                const added = await detachFiles(picked);
                 setImageFiles((prev) => [...prev, ...added].slice(0, 3));
+                // Reset so re-picking the SAME file fires onChange again.
                 e.target.value = '';
+                // A previous failure must not linger next to a fresh selection.
+                setImageAnalysisResult('');
               }}/>
             <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.5rem' }}>
               <button type="button" className="btn btn-secondary btn-sm"
