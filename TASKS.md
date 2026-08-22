@@ -8,8 +8,9 @@ Work that is agreed but not yet started. Completed work goes in `WORKLOG.md`.
 
 Asked "how well have I been meeting my daily nutrient in past week?", the
 assistant returned generic dietary advice and told an ESRD patient to **increase
-calories and protein**. That patient's most recent potassium is **6.0 mEq/L**.
-Potassium was never mentioned.
+calories and protein**. That patient's last recorded potassium is **6.0 mEq/L** — and it was measured
+**369 days ago**. Potassium was never mentioned, and neither was the fact that
+nothing has been measured since.
 
 Even with perfect data the answer would have been wrong: the context tells the
 model what the patient ATE and never what they may HAVE. Fixing the fabrication
@@ -86,7 +87,7 @@ From the record (user 63 — verify, do not trust this table):
 |---|---|
 | Condition | End-Stage Renal Disease, severe, active |
 | Taken | calcium carbonate ×477, calcitriol ×348, folic acid ×20 |
-| K+ | **6.0 mEq/L** — hyperkalaemia |
+| K+ | 6.0 mEq/L — but measured **2025-08-18, 369 days ago** |
 | Phosphorus | 2.6 mg/dL — *below* the 3.5-5.5 dialysis target |
 | Calcium | 8.3 mg/dL, on calcitriol *and* a calcium-based binder |
 | Hb / ferritin / iron sat | 12.4 g/dL / 186 / 33% |
@@ -111,6 +112,60 @@ personalise from, and the system should say that rather than imply health.
 produces "not recorded" and never a fabricated limit; a condition with no rule
 produces an explicit gap; and no condition silently sets an unrelated flag —
 `Heartburn` must never be cardiovascular again.
+
+### 7. Model drivers and leading indicators, not just labels
+
+"Anaemic → eat more iron" treats the label. "Iron stores are adequate, so this
+anaemia has a different driver" reasons about cause — and only the second is
+useful. In ESRD the usual driver is EPO deficiency, and the iron indices are
+what discriminate between them. This patient has **no ESA prescribed or taken**,
+which is the finding; dietary iron is the wrong lever entirely.
+
+An analysis layer needs three things a target table cannot express:
+
+**Candidate drivers per abnormal value, with discriminators.** For K+ that is
+intake, missed sessions, metabolic acidosis, ACE-i/ARB/K-sparing agents,
+catabolism, or a haemolysed sample — distinguished by interdialytic weight
+gain, session adherence, bicarbonate, and the medication list. The output should
+name which driver the data supports, not restate the number.
+
+**Leading indicators.** Rising interdialytic weight gain predicts fluid
+overload before the weight is dangerous; falling transferrin saturation predicts
+functional iron deficiency before Hb moves. Acting on a lagging value means
+acting late.
+
+**Direction over category — worked example.** Phosphorus here is **2.6, below
+the 3.5-5.5 target, while on a phosphate binder**. Label-driven logic says
+"ESRD ⇒ restrict phosphorus". Driver-driven logic asks why it is low on a
+binder and points at over-binding or poor intake — the opposite intervention.
+Getting this backwards is not a missed nuance; it is harm.
+
+`services/diagnostics_engine.py` already does exactly this shape for
+**symptoms** (differential + discriminators, ICD coded). Nothing does it for
+**values**. Extend the pattern rather than inventing a second one.
+
+### 8. Evidence has an age, and staleness is itself a finding
+
+The record above is the case in point, and it caught the author of this task:
+K+ 6.0 was quoted as current. It is 369 days old. **All 422 labs are ≥369 days
+old, while the patient dialysed 7 days ago** — actively treated, unmonitored.
+For a dialysis patient whose labs should be monthly, that gap is a more
+actionable finding than any single value in it.
+
+So every derived statement must carry the age and provenance of what it rests
+on:
+
+- "your potassium is 6.0" is wrong. "your last potassium, a year ago, was 6.0
+  and nothing has been measured since" is right.
+- Staleness must **degrade confidence**, not be silently quoted as current.
+  A stale value may still be the best evidence available — it must not be the
+  unmarked evidence.
+- **"Not known" is a first-class answer.** A driver that cannot be
+  discriminated from available data must be reported as undetermined, with what
+  would settle it. Guessing is what the model already does badly (§3ae).
+
+This is the same rule as §3aa's "an error is not an empty state", applied to
+time rather than to failure.
 
 ### Watch
 
