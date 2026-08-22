@@ -151,7 +151,17 @@ BACKEND_ENV="${BACKEND_ENV},TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
 # Private GPU Ollama LLM + the deployed commit stamp (surfaced by /api/health).
-BACKEND_ENV="${BACKEND_ENV},OLLAMA_BASE_URL=${OLLAMA_URL},OLLAMA_MODEL=gpt-oss:20b,OLLAMA_TIMEOUT=300,GIT_SHA=${GIT_SHA}"
+# OLLAMA_VISION_MODEL is set EXPLICITLY. Left unset, the backend falls back to a
+# per-file default, and those defaults disagreed: image_ai.py said "moondream"
+# (which CLAUDE.md §3a forbids -- it answers the food schema with bounding boxes)
+# while ALAFIAModel said "llava". Naming it here means the deployed value is
+# visible in the service description instead of buried in two code paths.
+#
+# The model must also be PULLED on the Ollama service -- Ollama answers
+# /api/chat with 404 for a model it does not have, which is what took food-photo
+# analysis down in production.
+: "${OLLAMA_VISION_MODEL:=llava}"
+BACKEND_ENV="${BACKEND_ENV},OLLAMA_BASE_URL=${OLLAMA_URL},OLLAMA_MODEL=gpt-oss:20b,OLLAMA_VISION_MODEL=${OLLAMA_VISION_MODEL},OLLAMA_TIMEOUT=300,GIT_SHA=${GIT_SHA}"
 # Core secrets always mount. Provider keys mount ONLY if the secret has a value
 # (an enabled version) — otherwise the rail stays unconfigured (503 in prod), which
 # is the correct pre-go-live state. Add a version to a provider secret to enable it.

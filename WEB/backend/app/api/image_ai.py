@@ -86,9 +86,21 @@ MEDICATION_LIBRARY = {
 }
 
 
+# Must match ML/src/alafia_model/capabilities/vision.py, which defaults to the
+# same model. These two files ask the SAME Ollama service for a vision model, so
+# a disagreement means half the app requests a model the service does not have.
+#
+# NOT moondream (CLAUDE.md §3a): it is a grounding model and answers the food
+# schema with bounding boxes, so every photo fails. moondream was the default
+# here while vision.py defaulted to llava -- and since OLLAMA_VISION_MODEL is
+# unset in production, these endpoints were asking for the one model canon
+# forbids.
+DEFAULT_VISION_MODEL = "llava"
+
+
 async def _vision_ask(image: bytes, prompt: str) -> str:
     """Ask the local vision model a plain question about the photo."""
-    model = os.environ.get("OLLAMA_VISION_MODEL", "moondream")
+    model = os.environ.get("OLLAMA_VISION_MODEL", DEFAULT_VISION_MODEL)
     b64 = base64.b64encode(image).decode("ascii")
     try:
         async with httpx.AsyncClient(timeout=float(os.environ.get("OLLAMA_TIMEOUT", "300"))) as client:
@@ -416,7 +428,7 @@ _MED_LABEL_PROMPT = (
 
 async def _vision_read_med_label(image: bytes) -> dict | None:
     """Read a medication label with the local Ollama vision model."""
-    model = os.environ.get("OLLAMA_VISION_MODEL", "moondream")
+    model = os.environ.get("OLLAMA_VISION_MODEL", DEFAULT_VISION_MODEL)
     b64 = base64.b64encode(image).decode("ascii")
     try:
         async with httpx.AsyncClient(timeout=float(os.environ.get("OLLAMA_TIMEOUT", "300"))) as client:
