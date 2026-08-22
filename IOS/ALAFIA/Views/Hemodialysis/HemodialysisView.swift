@@ -139,6 +139,7 @@ final class HemodialysisViewModel {
     var labTubesDrawn = ""
     // Notes
     var sideEffects = ""
+    var drugsAdministered = ""
     var clinicalNotes = ""
     var patientNotes = ""
 
@@ -290,6 +291,7 @@ final class HemodialysisViewModel {
         wasteLineBleachDisinfection = false; alarmTestCompleted = false
         sakUseNumber = ""; totalChloramineLevel = ""; labTubesDrawn = ""
         sideEffects = ""; clinicalNotes = ""; patientNotes = ""
+        drugsAdministered = ""
         isSaving = false
     }
 
@@ -361,6 +363,7 @@ final class HemodialysisViewModel {
         totalChloramineLevel = s.totalChloramineLevel.map { String($0) } ?? ""
         labTubesDrawn = s.labTubesDrawn ?? ""
         sideEffects = s.sideEffects ?? ""; clinicalNotes = s.clinicalNotes ?? ""
+        drugsAdministered = s.drugsAdministered ?? ""
         patientNotes = s.patientNotes ?? ""
     }
 
@@ -459,6 +462,7 @@ final class HemodialysisViewModel {
         body.sakUseNumber = Int(sakUseNumber); body.totalChloramineLevel = Double(totalChloramineLevel)
         if !labTubesDrawn.isEmpty { body.labTubesDrawn = labTubesDrawn }
         if !sideEffects.isEmpty { body.sideEffects = sideEffects }
+        if !drugsAdministered.isEmpty { body.drugsAdministered = drugsAdministered }
         if !clinicalNotes.isEmpty { body.clinicalNotes = clinicalNotes }
         if !patientNotes.isEmpty { body.patientNotes = patientNotes }
 
@@ -914,6 +918,12 @@ struct HemodialysisView: View {
                     TextField("Facility Name", text: $vm.facilityName)
                     TextField("Physician", text: $vm.attendingPhysician)
                     TextField("RN Reviewer", text: $vm.rnReviewer)
+                }
+
+                // This screen had no drugs field at all; a decade of Epogene,
+                // Venofer and Doxercalciferol arrived only by import (§3aa).
+                Section("Drugs Given This Session") {
+                    DrugsAdministeredEditor(text: $vm.drugsAdministered)
                 }
 
                 Section("Notes") {

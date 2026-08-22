@@ -144,3 +144,58 @@ def test_summary_counts_sessions_and_tracks_the_period():
 def test_summary_is_ordered_by_how_often_the_drug_was_given():
     sessions = [_Session("Epogene", "2024-01-01")] * 3 + [_Session("Venofer", "2024-02-01")]
     assert [e.name for e in summarize_flowsheet_drugs(sessions)][0] == "Epoetin alfa"
+
+
+# ── Structured capture round-trip ─────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        "Epogene",
+        "Epogene (20,000 SQ)",
+        "Venofer (100 mg)",
+        "Doxercalcif (4mcg)",
+        "Sodium Citrate (1.8 ml x 2); Epogene (3,000 SQ); Venofer (100 mg)",
+        "Sodium Citrate (2.5 ml x 2); Epogene (3,000 SQ); Venofer (100 mg); Doxercalcif (2 mcg)",
+    ],
+)
+def test_open_and_save_does_not_rewrite_history(stored):
+    """Structured capture writes back into the SAME column as 1,964 old rows.
+
+    If the round-trip is not exact, opening a 2019 flowsheet and saving it
+    without edits silently rewrites a decade of drug history. These values are
+    from the corpus.
+
+    Note this asserts on the RAW names, not canonical ones — the stored string
+    must survive untouched. Canonicalisation happens on read.
+    """
+    from app.services.flowsheet_drugs import format_drugs_administered
+
+    rows = [{"name": d.raw.split("(")[0].strip(), "dose": d.dose}
+            for d in parse_drugs_administered(stored)]
+    assert format_drugs_administered(rows) == stored
+
+
+def test_dose_without_a_drug_is_dropped():
+    from app.services.flowsheet_drugs import format_drugs_administered
+    assert format_drugs_administered([{"name": "", "dose": "100 mg"}]) == ""
+
+
+def test_parentheses_in_a_name_cannot_break_the_round_trip():
+    from app.services.flowsheet_drugs import format_drugs_administered
+    out = format_drugs_administered([{"name": "Epogene (extra)", "dose": "3,000 SQ"}])
+    assert out == "Epogene extra (3,000 SQ)"
+    assert parse_drugs_administered(out)[0].dose == "3,000 SQ"
+
+
+def test_common_drugs_catalog_is_consistent_with_the_parser():
+    """Every offered label must canonicalise, or the picker writes rows the
+    reader cannot classify — the exact split-brain §3aa warns about."""
+    from app.services.flowsheet_drugs import COMMON_DIALYSIS_DRUGS
+
+    for entry in COMMON_DIALYSIS_DRUGS:
+        parsed = parse_drugs_administered(entry["label"])[0]
+        assert parsed.recognised, f"{entry['label']} is offered but not recognised on read"
+        assert parsed.name == entry["generic"]
+        assert parsed.drug_class == entry["class"]

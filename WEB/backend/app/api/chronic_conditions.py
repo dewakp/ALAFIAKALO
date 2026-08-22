@@ -15,6 +15,7 @@ from app.core.notification_engine import notify_therapy_session_completed, notif
 from app.models.user import User
 from app.models.chronic_conditions import ChronicCondition, TherapySession, ConditionMetric, IntradialyticReading, ClinicalNote, FlowsheetStatus
 from app.services import flowsheet_defaults as fs_defaults
+from app.services.flowsheet_drugs import COMMON_DIALYSIS_DRUGS
 from app.services.icd11_catalog import (
     ICD11_CODE_RE,
     catalog_version as icd11_catalog_version,
@@ -338,6 +339,21 @@ async def get_therapy_sessions(
     result = await db.execute(query)
     sessions = result.scalars().unique().all()
     return sessions
+
+
+@router.get("/flowsheet-drugs")
+async def list_flowsheet_drugs(
+    current_user: User = Depends(get_current_user),
+):
+    """Drugs commonly given DURING dialysis, for structured flowsheet capture.
+
+    The field behind this held free text for 1,964 sessions — a decade of ESA
+    and IV iron that no other screen could see, and that the HD flowsheet form
+    could not even record (it had no drugs field at all; the data arrived by
+    import). Offering the list is what makes structured entry possible without
+    changing how the column is stored.
+    """
+    return {"drugs": COMMON_DIALYSIS_DRUGS}
 
 
 @router.get("/therapy-sessions/defaults", response_model=FlowsheetDefaultsResponse)

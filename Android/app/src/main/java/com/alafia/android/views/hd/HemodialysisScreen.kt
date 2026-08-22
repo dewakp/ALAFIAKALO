@@ -494,6 +494,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
     var physician by remember { mutableStateOf(editing?.attendingPhysician ?: "") }
     var rnReviewer by remember { mutableStateOf(editing?.rnReviewer ?: "") }
     var sideEffects by remember { mutableStateOf(editing?.sideEffects ?: "") }
+    var drugsAdministered by remember { mutableStateOf(editing?.drugsAdministered ?: "") }
     var clinicalNotes by remember { mutableStateOf(editing?.clinicalNotes ?: "") }
     var patientNotes by remember { mutableStateOf(editing?.patientNotes ?: "") }
 
@@ -749,6 +750,10 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
 
             // Notes
             SectionHeader("Notes")
+            // This screen had no drugs field at all; a decade of Epogene, Venofer
+            // and Doxercalciferol arrived only by import (§3aa).
+            DrugsAdministeredEditor(value = drugsAdministered, onChange = { drugsAdministered = it })
+            Spacer(Modifier.height(8.dp))
             OutlinedTextField(sideEffects, { sideEffects = it }, label = { Text("Side Effects") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             Spacer(Modifier.height(4.dp))
             OutlinedTextField(clinicalNotes, { clinicalNotes = it }, label = { Text("Clinical Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
@@ -829,6 +834,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                             s("facility_name", facility); s("attending_physician", physician)
                             s("rn_reviewer", rnReviewer)
                             s("side_effects", sideEffects); s("clinical_notes", clinicalNotes)
+                            s("drugs_administered", drugsAdministered)
                             s("patient_notes", patientNotes)
 
                             val saved = if (editing != null) {
