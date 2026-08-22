@@ -235,9 +235,15 @@ class LLMCapability(BaseCapability):
         except Exception as exc:
             telemetry.record(provider="ollama", task=kind, tier="local", success=False, error=str(exc)[:300])
             logger.error("all LLM providers failed; last cloud=%s ollama=%s", last_error, exc, exc_info=True)
+            # Name the exception TYPE, not just its message. httpx timeout
+            # exceptions carry an EMPTY str(), so "last: {exc}" rendered as
+            # "all providers failed (last: )" — an error that says nothing,
+            # and which sent an operator looking for a downed service when the
+            # model was simply slower than the timeout.
+            detail = last_error or f"{type(exc).__name__}: {exc}".rstrip(": ")
             return CapabilityResult(
                 success=False,
-                error=f"LLM unavailable: all providers failed (last: {last_error or exc})",
+                error=f"LLM unavailable: all providers failed (last: {detail})",
             )
 
     @staticmethod
