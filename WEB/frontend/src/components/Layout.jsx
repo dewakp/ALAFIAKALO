@@ -1,10 +1,11 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useClinicianMode } from '../context/ClinicianModeContext';
 import api from '../services/api';
 import MembershipNudge from './MembershipNudge';
 import {
+  Menu,
   LayoutDashboard,
   Apple,
   Dumbbell,
@@ -270,9 +271,64 @@ export default function Layout() {
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
+  /* Mobile navigation.
+     The sidebar is `display: none` below 768px and nothing replaced it, so an
+     authenticated phone user had NO navigation at all — every route was
+     unreachable except by typing a URL. This adds a top bar with a menu button
+     and a slide-in drawer holding the same nav. Desktop is unchanged: both are
+     hidden at >=769px by CSS. */
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  // Close on navigate — otherwise the drawer stays over the page you just opened.
+  useEffect(() => { setMobileNavOpen(false); }, [pathname]);
+
+  // Escape closes it, and a drawer that is open must not let the page behind scroll.
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setMobileNavOpen(false); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
+
   return (
     <div className="app-layout">
-      <aside className="sidebar">
+      <header className="mobile-topbar">
+        <button
+          type="button"
+          className="mobile-nav-toggle"
+          aria-label="Open menu"
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen(true)}
+        >
+          <Menu size={22} />
+        </button>
+        <span className="mobile-topbar-logo">ALAFIA</span>
+        <button
+          type="button"
+          className="mobile-nav-toggle"
+          aria-label="Notifications"
+          onClick={() => navigate('/notifications')}
+        >
+          <Bell size={20} />
+          {unreadCount > 0 && <span className="mobile-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+        </button>
+      </header>
+
+      {mobileNavOpen && (
+        <div
+          className="mobile-nav-backdrop"
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`sidebar${mobileNavOpen ? ' sidebar-mobile-open' : ''}`}>
         <div className="sidebar-logo">ALAFIA</div>
         <button
           onClick={() => navigate('/notifications')}

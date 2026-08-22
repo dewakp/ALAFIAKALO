@@ -597,14 +597,96 @@ textarea.form-input {
   flex: 1;
 }
 
-/* Responsive */
+/* Responsive
+   The sidebar used to be `display: none` here with nothing in its place, so an
+   authenticated phone user had NO navigation at all — every route was
+   unreachable except by typing a URL. It is now a slide-in drawer opened from a
+   top bar. */
+
+/* Desktop: the mobile chrome does not exist. */
+.mobile-topbar,
+.mobile-nav-backdrop { display: none; }
+
 @media (max-width: 768px) {
-  .sidebar {
-    display: none;
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-surface, #fff);
+    border-bottom: 1px solid var(--color-border, #e5e7eb);
+    position: sticky;
+    top: 0;
+    z-index: 40;
   }
+
+  .mobile-topbar-logo {
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--color-primary, #f2711c);
+  }
+
+  .mobile-nav-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* 44px is the minimum comfortable touch target. */
+    min-width: 44px;
+    min-height: 44px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .mobile-badge {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    background: #d50000;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+  }
+
+  .mobile-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 50;
+  }
+
+  /* Off-canvas rather than display:none, so it can animate in and, more
+     importantly, so its links stay in the DOM for assistive tech. */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 82vw;
+    max-width: 320px;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar.sidebar-mobile-open { transform: translateX(0); }
+
   .main-content {
     padding: 1rem;
   }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .sidebar { transition: none; }
 }
 
 /* Spinner animation */
