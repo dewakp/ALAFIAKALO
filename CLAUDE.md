@@ -324,7 +324,7 @@ latency first: it separates a hard gate from a timeout.
   tokens. The browser aborted at the 30s axios default. Keep the ladder ordered,
   longest last, and never let two rungs be equal:
 
-      client AI_TIMEOUT_MS 240s < OLLAMA_TIMEOUT 300s = Cloud Run 300s < Ollama 600s
+      client AI_TIMEOUT_MS 285s < OLLAMA_TIMEOUT 290s < Cloud Run 300s < Ollama 600s
 
   **And check the rung is actually read.** `OllamaAdapter` took
   `timeout: float = 120.0` and never looked at `OLLAMA_TIMEOUT`, while
@@ -594,9 +594,21 @@ Other notes:
   `europe-west1`; `deploy/gcp/config.env` (authoritative) says **`us-east4`** /
   `alafia-db-va`. The europe-west1 *images* still exist in Artifact Registry and
   were deliberately kept — do not treat their presence as evidence of the region.
-- ⚠️ **`alafia-ollama` runs `minScale` unset, `maxScale=1`.** Every cold request
-  pays a GPU model load, and concurrent users queue behind one instance. Warming
-  it is a standing cost decision (1 GPU + 8 CPU + 32 Gi), not a code change.
+- ✅ **`alafia-ollama` scales to ZERO, deliberately** (`minScale` unset,
+  `maxScale=1`). Decided 2026-08-22: **cost over latency.** Keeping 1 GPU +
+  8 CPU + 32 Gi warm would cost roughly $500/month to remove a cold start.
+  Do not "fix" the cold start by setting `minScale` — that is the trade, not an
+  oversight.
+
+  What the choice costs, measured: a cold call pays a model load (~77 s) on top
+  of generation (up to 172 s) — about 249 s. The timeout ladder is sized for
+  that path, so **every rung must clear ~250 s and none may equal another**:
+
+      client AI_TIMEOUT_MS 285s  <  OLLAMA_TIMEOUT 290s  <  Cloud Run 300s
+
+  The client used to sit at 240s and cut off a cold request the server would
+  have completed, and `OLLAMA_TIMEOUT` used to be 300 — equal to Cloud Run, so
+  the backend's own limit could never fire first.
 
 ## 5a. Deploying
 

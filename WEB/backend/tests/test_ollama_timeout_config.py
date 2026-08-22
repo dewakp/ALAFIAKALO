@@ -22,10 +22,10 @@ def test_timeout_comes_from_the_environment(monkeypatch):
 
 
 def test_default_is_not_the_old_hardcoded_120(monkeypatch):
-    """120s sat below the observed 98–121s range, so the default itself was
+    """120s sat below the observed 98–172s range, so the default itself was
     the bug for anyone who had not set the variable."""
     monkeypatch.delenv("OLLAMA_TIMEOUT", raising=False)
-    assert OllamaAdapter().timeout >= 300.0
+    assert OllamaAdapter().timeout >= 240.0
 
 
 def test_explicit_argument_still_wins(monkeypatch):
@@ -37,14 +37,18 @@ def test_explicit_argument_still_wins(monkeypatch):
 def test_unusable_values_fall_back_rather_than_crash(monkeypatch, bad):
     # A malformed env var must not take the LLM path down at import time.
     monkeypatch.setenv("OLLAMA_TIMEOUT", bad)
-    assert OllamaAdapter().timeout >= 300.0
+    assert OllamaAdapter().timeout >= 240.0
 
 
-def test_timeout_does_not_exceed_cloud_run_request_limit(monkeypatch):
-    """Waiting longer than the platform allows just swaps one error for a worse
-    one: Cloud Run cuts the request at 300s regardless."""
+def test_timeout_stays_strictly_below_the_cloud_run_limit(monkeypatch):
+    """STRICTLY below 300, not equal to it.
+
+    At an equal value Cloud Run kills the request first and the caller gets the
+    platform's error instead of ours. Every rung of the ladder must be ordered:
+    client 285s < OLLAMA_TIMEOUT 290s < Cloud Run 300s.
+    """
     monkeypatch.delenv("OLLAMA_TIMEOUT", raising=False)
-    assert OllamaAdapter().timeout <= 300.0
+    assert OllamaAdapter().timeout < 300.0
 
 
 def test_base_url_and_model_still_read_their_environment(monkeypatch):

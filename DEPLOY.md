@@ -152,9 +152,12 @@ Then re-run `./deploy.sh`, which sets `OLLAMA_VISION_MODEL` on the backend. The
 model named there must be one the image actually carries, or every vision
 request 404s.
 
-> ⚠️ `minScale` is unset and `maxScale=1`. Every cold request pays a model load
-> (~77 s observed) and concurrent users queue. Warming it is an ongoing GPU cost
-> decision, not a code change.
+> ✅ `minScale` is unset and `maxScale=1` **on purpose** — the service scales to
+> zero. Decided 2026-08-22: cost over latency, since keeping a GPU warm costs
+> roughly $500/month. A cold request therefore pays a model load (~77 s) before
+> it generates anything, and concurrent users queue behind one instance.
+> **Do not set `minScale` to "fix" a slow first request** — that is the trade.
+> The timeout ladder is sized for the cold path (see CLAUDE.md §5).
 
 ## 4. Smoke test
 

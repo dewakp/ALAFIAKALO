@@ -19,13 +19,20 @@ const api = axios.create({
  * The ladder has to stay ordered, longest last, or the client hides the
  * server's real error behind a generic abort:
  *
- *   client 240s  <  backend OLLAMA_TIMEOUT 300s  =  Cloud Run 300s  <  Ollama 600s
+ *   client 285s  <  OLLAMA_TIMEOUT 290s  <  Cloud Run 300s  <  Ollama 600s
+ *
+ * Sized for a COLD request, because alafia-ollama deliberately scales to zero
+ * to control GPU cost (CLAUDE.md §5). A cold call pays a model load (~77s
+ * measured) on top of generation (up to 172s measured) -- about 249s, which the
+ * old 240s ceiling cut off while the server was still working. No rung may
+ * EQUAL another: OLLAMA_TIMEOUT used to be 300, the same as Cloud Run, so the
+ * backend's own limit could never fire first.
  *
  * This is a ceiling, not a target. The durable fix for slow generation is the
  * async pattern nutrition already uses (CLAUDE.md §3c): persist immediately,
  * fill in from a background task, and let the client poll.
  */
-export const AI_TIMEOUT_MS = 240000;
+export const AI_TIMEOUT_MS = 285000;
 
 export function getCookieValue(name) {
   return document.cookie

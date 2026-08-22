@@ -72,12 +72,13 @@ async def _ollama_auth_headers(base_url: str) -> dict:
         return {}
 
 
-def _env_timeout(default: float = 300.0) -> float:
+def _env_timeout(default: float = 290.0) -> float:
     """Seconds to wait on Ollama, from OLLAMA_TIMEOUT.
 
-    Must stay at or below Cloud Run's request timeout (300s) — a client that
-    waits longer than the platform will be cut off mid-answer with a less
-    useful error than the one it was waiting for.
+    Default 290, strictly BELOW Cloud Run's 300s request timeout. At an equal
+    value the platform kills the request first and the caller gets Cloud Run's
+    error instead of ours, which says less. Every rung of the ladder must be
+    strictly ordered — see AI_TIMEOUT_MS in services/api.js.
     """
     raw = os.environ.get("OLLAMA_TIMEOUT")
     if not raw:
