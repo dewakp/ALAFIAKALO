@@ -300,6 +300,57 @@ def _assign(line: Line, columns: list[Column]) -> dict[str, list[Word]]:
     return buckets
 
 
+def _reclaim_name_overflow(buckets: dict[str, list[Word]]) -> None:
+    """Pull a test name's tail back out of the value column.
+
+    Column boundaries come from the header labels, so a NAME longer than the
+    words "LAB TEST NAME" spills past the midpoint into RESULT. On a real
+    report:
+
+        1715 WEIGHT - PRE DAY 1   57.5 kg Final
+                            ^^^ x_mid 165.5, boundary 162.0
+
+    The "1" of "DAY 1" landed in the value column and won, so the record was
+    stored as 1.0 kg and the true 57.5 was discarded. A clinician then saw
+    "WEIGHT - PRE DAY  1 kg" for a 57 kg patient.
+
+    The geometry says which is which, and does not need a list of known names:
+    a gap INSIDE a name is a word space, while the gap to the real value is a
+    column gap — 2.0pt versus 29.0pt on this row. So if the value cell holds
+    more than one token and its leading tokens hug the name, move them back.
+    """
+    name_words = buckets.get("name")
+    value_words = buckets.get("value")
+    if not name_words or not value_words or len(value_words) < 2:
+        return
+
+    name_words.sort(key=lambda w: w.x0)
+    value_words.sort(key=lambda w: w.x0)
+
+    # The widest gap inside the value cell is the column gap; everything left of
+    # it is name overflow.
+    gaps = [(value_words[i + 1].x0 - value_words[i].x1, i)
+            for i in range(len(value_words) - 1)]
+    widest, split_at = max(gaps)
+
+    join_gap = value_words[0].x0 - name_words[-1].x1
+    if join_gap < 0:
+        return
+
+    # Only reclaim when the tokens clearly belong to the name: they must hug it
+    # far more tightly than the value sits from them. The factor keeps a normal
+    # "12.3 mg" cell intact, where the leading token is not attached to a name.
+    if widest <= join_gap * 3 or widest < 8.0:
+        return
+
+    moved = value_words[: split_at + 1]
+    # Never swallow the value itself.
+    if len(moved) >= len(value_words):
+        return
+    buckets["name"] = name_words + moved
+    buckets["value"] = value_words[split_at + 1:]
+
+
 def _cell_text(words: list[Word]) -> str:
     return " ".join(w.text for w in sorted(words, key=lambda w: w.x0))
 
@@ -325,6 +376,7 @@ def parse_page(page: Page) -> Table | None:
         buckets = _assign(line, columns)
         if not buckets:
             continue
+        _reclaim_name_overflow(buckets)
 
         populated = len(buckets)
         widest_cell = max(len(ws) for ws in buckets.values())

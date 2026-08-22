@@ -217,6 +217,49 @@ def period_to_date(period: str) -> tuple[date | None, int | None]:
     return None, int(match.group(2))
 
 
+
+# Words that only appear in prose, never in an analyte name. A lab report is a
+# clinical document wrapped in legal boilerplate, and the boilerplate parses
+# just as happily as the results do.
+_PROSE_WORDS = frozenset("""
+and or the of to with including up down for from that this which shall will
+may must employment termination disciplinary action policy confidential
+please note refer contact page report printed signature authorized
+""".split())
+
+
+def looks_like_prose(name: str) -> bool:
+    """True when a candidate analyte name is really a sentence fragment.
+
+    Production carries a lab result named "up to and including termination of"
+    whose value is "employment with DaVita." — DaVita's disciplinary-policy
+    footer, parsed as a test and a result and shown to a clinician among real
+    labs.
+
+    Decided by shape, not a blocklist of phrases: an analyte name is a short
+    noun phrase, so it does not run to many words, does not begin lowercase,
+    and does not contain the connective words prose is built from. That catches
+    the next document's boilerplate too, which a phrase list would not.
+    """
+    text = (name or "").strip()
+    if not text:
+        return True
+    words = text.split()
+    # Real names are short. "Erythrocyte distribution width [Entitic volume] by
+    # Automated count" is 8 words, so the bar has to sit above that.
+    if len(words) > 10:
+        return True
+    lowered = [w.strip(".,;:()").lower() for w in words]
+    connectives = sum(1 for w in lowered if w in _PROSE_WORDS)
+    # A name starting lowercase is already suspect; combined with connectives it
+    # is prose. "up to and including termination of" -> 5 of 6.
+    starts_lower = text[:1].islower()
+    if starts_lower and connectives >= 2:
+        return True
+    # Even capitalised, a majority of connectives means a sentence.
+    return len(words) >= 4 and connectives >= len(words) / 2
+
+
 def _finish(record: LabRecord) -> LabRecord:
     """Assign category and a confidence the reviewer can sort on."""
     record.category = category_for(record.test_name)
@@ -242,6 +285,11 @@ def records_from_table(table: Table, report_date: date | None = None) -> list[La
     for row in table.rows:
         raw_name = row.get("name").strip()
         if not raw_name:
+            continue
+        # Boilerplate is not a lab result. Prod shows a clinician a row named
+        # "up to and including termination of" with the value "employment with
+        # DaVita." among real results.
+        if looks_like_prose(raw_name):
             continue
 
         name, unit_from_name = split_trailing_unit(raw_name)

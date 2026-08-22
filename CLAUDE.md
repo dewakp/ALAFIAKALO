@@ -250,6 +250,43 @@ Upload → parse → **staged for review** → import. Full detail:
   the real PHI corpus and is deliberately not in CI:
   `ML/.venv-health-ml/bin/python WEB/backend/scripts/docparse_corpus_check.py`
 
+> **A parser fix does not repair what it already imported — and re-importing
+> makes it worse.** Dedupe is keyed on `(test_date, lower(test_name))`, and
+> `existing_row_id` is recorded on the staging row but **never read back**: the
+> commit path only ever constructs `LabResult(...)`, an insert. So even a
+> `DEDUPE_CONFLICT` (same name and date, different value) adds a second row
+> rather than correcting the first. Worse, a fix that changes the NAME —
+> `WEIGHT - PRE DAY` → `WEIGHT - PRE DAY 1` — no longer matches the key at all,
+> so the corrected row arrives as `DEDUPE_NEW` and lands *beside* the wrong one.
+> The patient then has two contradictory weights on one date. **Delete first,
+> then re-import:** `scripts/db/cleanup_docparse_artifacts.sh` (dry-run by
+> default).
+
+> **A lab report is a clinical document wrapped in legal boilerplate, and the
+> boilerplate parses just as well as the results.** The DaVita reports carry
+> "disciplinary action, up to and including termination of employment with
+> DaVita.", which became a test name and a value and was shown to a clinician
+> among real labs — **29 rows across 5 dates** on one record. `looks_like_prose()`
+> in `normalize.py` rejects it by shape (word count, leading case, density of
+> connective words) rather than by a phrase list, so the next document's footer
+> is caught too.
+
+> **A test name wider than its header label steals the value.** Column
+> boundaries come from the header, so on
+> `1715 WEIGHT - PRE DAY 1   57.5 kg` the "1" of "DAY 1" fell past the
+> name/value boundary (x_mid 165.5 vs 162.0), won the value column, and the true
+> 57.5 was discarded — a clinician saw **1 kg for a 57 kg dialysis patient**, and
+> the pre/post pair that should differ by ~1 kg both read as 1.
+> `_reclaim_name_overflow()` splits on the geometry: a gap *inside* a name is a
+> word space (2.0 pt here), the gap to the real value is a column gap (29.0 pt).
+> The same PDF family parses correctly or not depending on layout, so **a
+> passing corpus run does not mean every document is fine.**
+
+> **The corpus harness measures recall, not precision.** It scores reference-range
+> recovery, so a parser can emit a hundred prose rows and still report 100%. That
+> is how boilerplate-as-a-lab-result shipped past a green gate. When you change
+> extraction, check what it *added* as well as what it recovered.
+
 ## 3ac. Dialysis changes the day's totals, not the limits
 
 A session clears potassium and phosphorus in gram quantities and *adds* calcium

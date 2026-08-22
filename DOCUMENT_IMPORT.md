@@ -181,3 +181,50 @@ Plus the corpus harness in §0, and — because canon §3 means all three client
   imported → rolled back).
 - `scripts/import_pdf_labs.py` still points at port **5432** (dev is **5435**;
   5432 belongs to a different project on this machine).
+
+
+---
+
+## Re-importing does not repair a bad row
+
+Dedupe is keyed on `(test_date, lower(test_name))`. `existing_row_id` is stored
+on the staging item but **never read back** — the commit path only constructs
+`LabResult(...)`, an insert. So:
+
+| Case | What happens |
+|---|---|
+| same name+date, same value | `DEDUPE_DUPLICATE` — unticked, nothing added |
+| same name+date, **different** value | `DEDUPE_CONFLICT` — ticked, **inserted as a second row** |
+| name changed by a parser fix | `DEDUPE_NEW` — inserted beside the old, wrong row |
+
+That last case is the trap. A fix that corrects `WEIGHT - PRE DAY` (value 1) to
+`WEIGHT - PRE DAY 1` (value 57.5) changes the key, so re-importing the same PDF
+leaves the patient with **two contradictory weights on one date**.
+
+**Delete first, then re-import.** `scripts/db/cleanup_docparse_artifacts.sh`
+dry-runs by default and prints exactly the rows `--apply` would remove — the same
+statements inside a transaction that is rolled back, so the preview cannot drift
+from the action.
+
+## Two artefacts this parser produced in production
+
+**Boilerplate as a result.** The DaVita reports end with "disciplinary action, up
+to and including termination of employment with DaVita." It parsed into a name
+and a value: 29 rows across 5 dates on one record, shown to a clinician among
+real labs. `looks_like_prose()` rejects prose by shape, not by a list of phrases.
+
+**Name overflow eating the value.** Column boundaries come from the header
+labels, so a name wider than "LAB TEST NAME" spills into RESULT:
+
+```
+1715 WEIGHT - PRE DAY 1   57.5 kg Final
+                    ^^^ x_mid 165.5, boundary 162.0
+```
+
+The "1" won and 57.5 was discarded — 1 kg displayed for a 57 kg patient.
+`_reclaim_name_overflow()` decides on geometry: the gap inside a name is a word
+space (2.0 pt), the gap to the value is a column gap (29.0 pt).
+
+Both were invisible to the corpus harness, which measures **range recovery only**
+— 510/510 both before and after. Recall says nothing about what a parser
+*invented*.

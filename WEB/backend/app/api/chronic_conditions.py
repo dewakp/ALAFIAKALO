@@ -903,7 +903,31 @@ async def get_hd_summary(
     # made this screen disagree with the clinician's view of the same window.
     weights_pre = [s.pre_dialysis_weight_kg for s in sessions if s.pre_dialysis_weight_kg is not None]
     weights_post = [s.post_dialysis_weight_kg for s in sessions if s.post_dialysis_weight_kg is not None]
-    fluids = [s.fluid_removed_ml for s in sessions if s.fluid_removed_ml is not None]
+    # NEGATIVE fluid removed is not a measurement — you cannot remove -500 mL.
+    # It is what you get when `fluid_removed_ml` is derived from (pre - post)
+    # and the weights are wrong or the patient weighed more afterwards. On the
+    # reference record **365 of 1,976** sessions (18.5%) are negative and 128
+    # are zero; averaging them in reported **273 mL** where the valid sessions
+    # average **1,126 mL**. A nephrologist reading 273 mL for a patient who
+    # actually pulls over a litre a session is being misled about the number
+    # they dry a patient to.
+    #
+    # Zero is KEPT deliberately (see above) — 0 mL removed is a real
+    # measurement. Only the impossible values are dropped, and the count is
+    # reported rather than silently discarded (§3aa: never hide a data problem
+    # behind a clean-looking number).
+    fluids_all = [s.fluid_removed_ml for s in sessions if s.fluid_removed_ml is not None]
+    fluids = [f for f in fluids_all if f >= 0]
+    fluids_invalid = len(fluids_all) - len(fluids)
+
+    # PRESCRIBED removal, alongside achieved. The flowsheet records what the
+    # session was set to pull (`fluid_to_remove_kg`, median 1.28 kg on the
+    # source corpus); the weights record what it appears to have pulled. Showing
+    # only the second answers "how much came off" but not the clinical question,
+    # "did the session hit its target" — and when the weights are unreliable,
+    # the prescription is the sounder of the two figures.
+    prescribed = [s.fluid_to_remove_kg * 1000 for s in sessions
+                  if s.fluid_to_remove_kg is not None and s.fluid_to_remove_kg > 0]
     durations = [s.duration_minutes for s in sessions if s.duration_minutes is not None]
 
     return {
@@ -912,6 +936,11 @@ async def get_hd_summary(
         "avg_pre_weight_kg": round(sum(weights_pre) / len(weights_pre), 1) if weights_pre else None,
         "avg_post_weight_kg": round(sum(weights_post) / len(weights_post), 1) if weights_post else None,
         "avg_fluid_removed_ml": round(sum(fluids) / len(fluids), 0) if fluids else None,
+        # How many sessions were excluded as physically impossible. A client
+        # showing the average should surface this rather than imply the figure
+        # covers every session.
+        "sessions_with_invalid_fluid": fluids_invalid,
+        "avg_fluid_prescribed_ml": round(sum(prescribed) / len(prescribed), 0) if prescribed else None,
         "avg_duration_min": round(sum(durations) / len(durations), 0) if durations else None,
         "sessions_with_readings": sum(1 for s in sessions if s.intradialytic_readings),
     }
