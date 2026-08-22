@@ -72,6 +72,23 @@ async def _ollama_auth_headers(base_url: str) -> dict:
         return {}
 
 
+def _env_timeout(default: float = 300.0) -> float:
+    """Seconds to wait on Ollama, from OLLAMA_TIMEOUT.
+
+    Must stay at or below Cloud Run's request timeout (300s) — a client that
+    waits longer than the platform will be cut off mid-answer with a less
+    useful error than the one it was waiting for.
+    """
+    raw = os.environ.get("OLLAMA_TIMEOUT")
+    if not raw:
+        return default
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
 class OllamaAdapter(BaseAdapter):
     """Adapter for Ollama local LLM server."""
 
@@ -79,7 +96,7 @@ class OllamaAdapter(BaseAdapter):
         self,
         base_url: str | None = None,
         model: str | None = None,
-        timeout: float = 120.0,
+        timeout: float | None = None,
     ) -> None:
         self.base_url = (
             base_url
@@ -89,7 +106,16 @@ class OllamaAdapter(BaseAdapter):
             model
             or os.environ.get("OLLAMA_MODEL", _DEFAULT_MODEL)
         )
-        self.timeout = timeout
+        # OLLAMA_TIMEOUT, like base_url and model above. It was the one setting
+        # that did NOT read its environment variable: the default was a
+        # hardcoded 120.0 and every construction site calls OllamaAdapter()
+        # with no timeout, so production's OLLAMA_TIMEOUT=300 -- set explicitly
+        # by deploy.sh -- was silently ignored and the real limit was 120s.
+        #
+        # These prompts legitimately take 98-121s against gpt-oss:20b, so
+        # requests were dying just past the boundary and reporting
+        # "ReadTimeout" on a model that was still working.
+        self.timeout = timeout if timeout is not None else _env_timeout()
         self.is_available = False  # set by health_check()
 
     async def health_check(self) -> bool:
