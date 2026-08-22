@@ -2109,3 +2109,69 @@ top bar and off-canvas drawer; see canon §3af.
 - `TASKS.md` — queued the nutrient-limits work, rewritten to key dietary rules
   to ICD-11 codes as data rather than six hardcoded conditions, with drivers,
   leading indicators and evidence-age as first-class requirements.
+
+### Later the same session — production defects found from screenshots
+
+Each of these started as a screenshot and was traced to a cause before anything
+was changed.
+
+**Mobile web had no navigation.** `.sidebar { display: none }` below 768px with
+nothing in its place, and `Layout.jsx` had no hamburger, drawer or media query.
+An authenticated phone user could reach no route except by typing a URL. Fixed
+with a top bar and off-canvas drawer (canon §3af). Unit tests could not have
+caught it — jsdom has no viewport — so `e2e/mobile-nav.spec.js` runs a real
+browser at Pixel 7 width.
+
+**`/personalization/*` had five faults stacked on one endpoint**, each hidden by
+the one above it: the `api_key` gate, an `AsyncSession` given to sync ORM code,
+eleven wrong column names, `json.loads()` on comma-separated text, and a 120s
+timeout ignoring `OLLAMA_TIMEOUT`. Now returns 200 (172s). Canon §3ag records
+the two lessons: drive a never-executed path locally instead of one deploy at a
+time, and prefer a static check (`Model.attribute` must exist) over behavioural
+tests that stub past the queries.
+
+**LLM failures reported nothing.** `str(httpx.ReadTimeout(''))` is `''`, so the
+most likely failure of all rendered as `all providers failed (last: )`. Naming
+the exception type turned the last mystery into a measurement on its first run.
+
+**`clinical_notes` is a LIST on a completed flowsheet**, and both mobile models
+declared it a string — one mistyped field failed the ENTIRE session list, and
+the screen rendered that as "No hemodialysis sessions in this period" beneath a
+summary reading "12 Sessions". Web already guarded it; iOS and Android did not.
+
+**Ultrafiltration averaged impossible values.** `fluid_removed_ml` is derived
+from (pre − post), and 365 of 1,976 sessions are NEGATIVE — you cannot remove
+−500 mL. Averaging them in showed 273 mL where the valid sessions average
+1,126 mL. Now excluded and counted, with the PRESCRIBED figure shown alongside,
+because "did the session hit its target" is the clinical question. Zero is kept
+deliberately: 0 mL removed is a real measurement.
+
+**Two document-parser artefacts reached a clinician's board.** DaVita's
+disciplinary-policy footer parsed into a lab result (29 rows across 5 dates),
+and a test name wider than its header label pushed the "1" of "DAY 1" into the
+value column, so `WEIGHT - PRE DAY` read 1 kg for a 57 kg patient. Both fixed;
+`scripts/db/cleanup_docparse_artifacts.sh` removes the rows already imported.
+Neither was catchable by the corpus harness, which measures recall only.
+
+**Ollama stays scaled to zero** — decided, cost over latency. The timeout ladder
+was resized for the cold path it implies (client 285s < OLLAMA_TIMEOUT 290s <
+Cloud Run 300s), since the old client ceiling cut off a request the server would
+have completed.
+
+### Corrections made during the session
+
+Recorded because the reasoning matters more than the fixes:
+
+- Claimed prod was unaffected by my changes on the basis of a run against a
+  **3-day-stale** `frontend-preview` build. It proved nothing at the time.
+- Called three failing specs "flakiness"; they failed deterministically and were
+  caused by my change tipping a pre-existing race against an auth redirect.
+- Said "no ESA prescribed or taken" after checking two of the **three**
+  medication sources.
+- Read "13 years of history" off a `min()` over a single outlier row; it is 10.
+- Said re-importing would "supersede" bad rows. Dedupe is keyed on
+  `(date, name)`, `existing_row_id` is never read back, and the fix CHANGES the
+  name — so re-import would have inserted the corrected row beside the wrong one.
+- Reported "3 bad lab rows" from the summary card; the detail view shows 35+.
+- Concluded the parser artefacts were historical; the user's source PDF
+  reproduced both in the current parser.
