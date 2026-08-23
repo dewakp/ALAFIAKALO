@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.alafia.android.api.ApiClient
+import com.alafia.android.api.EntitlementState
 import com.alafia.android.billing.BillingManager
 import com.alafia.android.models.GoogleVerifyRequest
 import com.alafia.android.models.SubscriptionPlans
@@ -48,7 +49,17 @@ private fun Context.findActivity(): Activity? {
 }
 
 @Composable
-fun SubscriptionScreen(navController: NavHostController) {
+fun SubscriptionScreen(
+    navController: NavHostController,
+    /**
+     * `true` when this is the membership WALL rather than a settings screen: the
+     * user has no way past it except paying, restoring, or signing out. The
+     * backend already answers 402 to every gated path, so letting them into the
+     * tabs only produces a shell of failed requests.
+     */
+    blocking: Boolean = false,
+    onSignOut: () -> Unit = {},
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -99,6 +110,13 @@ fun SubscriptionScreen(navController: NavHostController) {
         billingManager.start()
     }
 
+    // A purchase — new, restored, or already active on another device — is
+    // verified server-side before it counts. When the backend agrees, open the
+    // app without waiting for another round-trip.
+    LaunchedEffect(status?.entitled) {
+        if (status?.entitled == true) EntitlementState.markEntitled()
+    }
+
     DisposableEffect(Unit) {
         onDispose { billingManager.end() }
     }
@@ -118,8 +136,10 @@ fun SubscriptionScreen(navController: NavHostController) {
             TopAppBar(
                 title = { Text("ALAFIA Membership") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    if (!blocking) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 }
             )
@@ -139,7 +159,11 @@ fun SubscriptionScreen(navController: NavHostController) {
                 Text(plans?.productName ?: "ALAFIA Membership",
                     fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
-            Text("Unlock the full ALAFIA experience across every device.",
+            Text(
+                if (blocking)
+                    "ALAFIA needs an active membership. Subscribe to continue — if you already pay on another device, restore it below."
+                else
+                    "Unlock the full ALAFIA experience across every device.",
                 color = Color.Gray, modifier = Modifier.padding(top = 4.dp, bottom = 16.dp))
 
             when {
@@ -198,6 +222,34 @@ fun SubscriptionScreen(navController: NavHostController) {
                     }
                 }
             }
+
+            // The only two ways off the wall that are not "pay again": a purchase
+            // this install has not seen yet, and signing out. Without them a user
+            // who already paid on iOS — or who signed in as the wrong account —
+            // is simply stuck with no route forward.
+            if (blocking && !entitled) {
+                Spacer(Modifier.height(20.dp))
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            message = "Checking for an existing subscription…"
+                            billingManager.start()      // re-queries owned purchases
+                            refreshStatus()
+                            EntitlementState.refresh()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Restore purchase") }
+
+                TextButton(
+                    onClick = {
+                        EntitlementState.reset()
+                        onSignOut()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Sign out", color = MaterialTheme.colorScheme.error) }
+                Spacer(Modifier.height(24.dp))
+            }
         }
     }
 }
@@ -234,7 +286,6 @@ private fun SubscribedCard(status: SubscriptionStatus) {
 
 private fun prettyProvider(p: String): String = when (p) {
     "stripe" -> "Card (Stripe)"
-    "paypal" -> "PayPal"
     "google_play" -> "Google Play"
     "apple" -> "App Store"
     else -> p

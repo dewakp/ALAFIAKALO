@@ -100,6 +100,8 @@
 		DD0000000000000000000806 /* WeightTrendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000805 /* WeightTrendView.swift */; };
 		ECAFBC6A27D9823B4B5285CE /* UserModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996258B7101E0217D1A2CF57 /* UserModelTests.swift */; };
 		EE0000000000000000000101 /* BiometricAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001 /* BiometricAuthManager.swift */; };
+		DD10000000000000000000B2 /* SubscriptionGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD10000000000000000000B1 /* SubscriptionGateView.swift */; };
+		EE0000000000000000000012 /* EntitlementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* EntitlementManager.swift */; };
 		EE0000000000000000000102 /* OfflineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000002 /* OfflineCache.swift */; };
 		EE0000000000000000000103 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003 /* CrashReporter.swift */; };
 		EE0000000000000000000104 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000004 /* DeepLinkRouter.swift */; };
@@ -226,6 +228,8 @@
 		DD0000000000000000000805 /* WeightTrendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightTrendView.swift; sourceTree = "<group>"; };
 		EC737E5695007FBB722507B4 /* HealthModelsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HealthModelsTests.swift; path = Tests/ALAFIATests/HealthModelsTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000000001 /* BiometricAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthManager.swift; sourceTree = "<group>"; };
+		DD10000000000000000000B1 /* SubscriptionGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionGateView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000011 /* EntitlementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementManager.swift; sourceTree = "<group>"; };
 		EE0000000000000000000002 /* OfflineCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineCache.swift; sourceTree = "<group>"; };
 		EE0000000000000000000003 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		EE0000000000000000000004 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
@@ -360,6 +364,7 @@
 				4A0000000000000000000106 /* AuthManager.swift */,
 				CD0000000000000000000101 /* ClinicianMode.swift */,
 				EE0000000000000000000001 /* BiometricAuthManager.swift */,
+				EE0000000000000000000011 /* EntitlementManager.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -631,6 +636,7 @@
 			isa = PBXGroup;
 			children = (
 				DD10000000000000000000A1 /* SubscriptionView.swift */,
+				DD10000000000000000000B1 /* SubscriptionGateView.swift */,
 			);
 			path = Subscription;
 			sourceTree = "<group>";
@@ -997,6 +1003,8 @@
 				DD0000000000000000000804 /* SurveillanceView.swift in Sources */,
 				DD0000000000000000000806 /* WeightTrendView.swift in Sources */,
 				EE0000000000000000000101 /* BiometricAuthManager.swift in Sources */,
+				DD10000000000000000000B2 /* SubscriptionGateView.swift in Sources */,
+				EE0000000000000000000012 /* EntitlementManager.swift in Sources */,
 				EE0000000000000000000102 /* OfflineCache.swift in Sources */,
 				EE0000000000000000000103 /* CrashReporter.swift in Sources */,
 				EE0000000000000000000104 /* DeepLinkRouter.swift in Sources */,

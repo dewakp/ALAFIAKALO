@@ -76,6 +76,7 @@ struct ALAFIAApp: App {
     @StateObject private var authManager = AuthManager()
     @StateObject private var deepLinkRouter = DeepLinkRouter()
     @StateObject private var clinicianMode = ClinicianMode()
+    @StateObject private var entitlement = EntitlementManager()
     @Environment(\.scenePhase) private var scenePhase
     
     var body: some Scene {
@@ -84,6 +85,7 @@ struct ALAFIAApp: App {
                 .environmentObject(authManager)
                 .environmentObject(deepLinkRouter)
                 .environmentObject(clinicianMode)
+                .environmentObject(entitlement)
                 .onOpenURL { url in
                     deepLinkRouter.handle(url: url)
                 }

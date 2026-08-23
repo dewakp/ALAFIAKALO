@@ -10,7 +10,9 @@ struct ContentView: View {
             } else if authManager.awaitingBiometric {
                 BiometricLockView()
             } else if authManager.isAuthenticated {
-                MainTabView()
+                // Signed in is not the same as allowed in: the membership gate
+                // decides whether the app opens. See SubscriptionGateView.
+                SubscriptionGateView()
             } else {
                 LoginView()
             }
