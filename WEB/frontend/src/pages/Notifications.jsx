@@ -26,6 +26,10 @@ export default function Notifications() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Kept SEPARATE from an empty list on purpose. This page reported "No
+  // notifications" to a user holding 18 unread ones, because the fetch failed
+  // and the failure fell through to the empty-state copy.
+  const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all' | 'unread' | category
   const [showPrefs, setShowPrefs] = useState(false);
   const [preferences, setPreferences] = useState([]);
@@ -36,9 +40,18 @@ export default function Notifications() {
       const params = {};
       if (filter === 'unread') params.unread_only = true;
       else if (filter !== 'all') params.category = filter;
-      const { data } = await api.get('/notifications', { params });
+      // The trailing slash is REQUIRED: the route is registered at the bare
+      // prefix, so '/notifications' 307s to '/notifications/' — and behind the
+      // proxy that Location came back as http://, which the browser blocks as
+      // mixed content. The request never completed and the error was swallowed.
+      const { data } = await api.get('/notifications/', { params });
       setNotifications(data);
-    } catch (e) { console.error(e); }
+      setLoadError(null);
+    } catch (e) {
+      console.error(e);
+      setNotifications([]);
+      setLoadError(e?.response?.data?.detail || e?.message || 'Could not load notifications.');
+    }
     setLoading(false);
   }, [filter]);
 
@@ -114,6 +127,14 @@ export default function Notifications() {
 
       {loading ? (
         <p>Loading…</p>
+      ) : loadError ? (
+        <div style={{ textAlign: 'center', padding: 60, color: '#c62828' }} role="alert" data-testid="notifications-error">
+          <p style={{ fontWeight: 600, marginBottom: 4 }}>Couldn’t load your notifications</p>
+          <p style={{ fontSize: 14 }}>{loadError}</p>
+          <button onClick={load} style={{ marginTop: 12, padding: '8px 16px', cursor: 'pointer' }}>
+            Try again
+          </button>
+        </div>
       ) : notifications.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
           <BellOff size={48} style={{ marginBottom: 12 }} />
