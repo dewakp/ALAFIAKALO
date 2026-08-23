@@ -12,12 +12,24 @@ class NotificationOut(BaseModel):
     title: str
     message: str
     action_url: str | None = None
-    metadata: str | None = None
+    # The DB column really is called "metadata", but `metadata` is RESERVED on a
+    # SQLAlchemy declarative class — it is the MetaData object for the whole
+    # schema — so the model maps it to the `extra_data` attribute:
+    #
+    #     extra_data = Column("metadata", Text, nullable=True)
+    #
+    # Without validation_alias, from_attributes read `Notification.metadata`,
+    # got that MetaData object, and raised one ResponseValidationError PER ROW.
+    # The endpoint therefore 200'd only for users with zero notifications; the
+    # production account got `18 validation errors` and a 500.
+    metadata: str | None = Field(default=None, validation_alias="extra_data")
     is_read: bool
     read_at: datetime | None = None
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    # populate_by_name keeps `metadata=` working for callers that build this
+    # model directly, now that the validation alias points at the attribute.
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class NotificationPreferenceOut(BaseModel):
