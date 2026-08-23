@@ -47,13 +47,13 @@ interface ApiService {
     suspend fun updateUser(@Body updates: UserUpdateRequest): UserSchema
 
     // Fitness Endpoints
-    @GET("fitness")
+    @GET("fitness/")
     suspend fun getFitnessLogs(
         @Query("skip") skip: Int = 0,
         @Query("limit") limit: Int = 50
     ): List<FitnessLogResponse>
 
-    @POST("fitness")
+    @POST("fitness/")
     suspend fun createFitnessLog(@Body request: FitnessLogRequest): FitnessLogResponse
 
     @GET("fitness/{id}")
@@ -88,13 +88,13 @@ interface ApiService {
     suspend fun deleteMoodEntry(@Path("id") id: Int)
 
     // Nutrition Endpoints
-    @GET("nutrition")
+    @GET("nutrition/")
     suspend fun getNutritionLogs(
         @Query("skip") skip: Int = 0,
         @Query("limit") limit: Int = 50
     ): List<NutritionLog>
 
-    @POST("nutrition")
+    @POST("nutrition/")
     suspend fun createNutritionLog(@Body request: NutritionLogRequest): NutritionLog
 
     @PUT("nutrition/{id}")
@@ -122,13 +122,13 @@ interface ApiService {
     suspend fun getNutritionGoalProgress(@Query("date") date: String): GoalProgressResponse
 
     // Labs Endpoints
-    @GET("labs")
+    @GET("labs/")
     suspend fun getLabResults(
         @Query("skip") skip: Int = 0,
         @Query("limit") limit: Int = 50
     ): List<LabResult>
 
-    @POST("labs")
+    @POST("labs/")
     suspend fun createLabResult(@Body request: LabResultRequest): LabResult
 
     @PUT("labs/{id}")
@@ -141,13 +141,13 @@ interface ApiService {
     suspend fun deleteLabResult(@Path("id") id: Int)
 
     // Medications Endpoints
-    @GET("medications")
+    @GET("medications/")
     suspend fun getMedications(
         @Query("skip") skip: Int = 0,
         @Query("limit") limit: Int = 50
     ): List<Medication>
 
-    @POST("medications")
+    @POST("medications/")
     suspend fun createMedication(@Body request: MedicationRequest): Medication
 
     @PUT("medications/{id}")
@@ -174,13 +174,13 @@ interface ApiService {
     suspend fun deleteMedicationDoseLog(@Path("id") id: Int)
 
     // Lifestyle Endpoints
-    @GET("lifestyle")
+    @GET("lifestyle/")
     suspend fun getLifestyleEntries(
         @Query("skip") skip: Int = 0,
         @Query("limit") limit: Int = 50
     ): List<LifestyleEntry>
 
-    @POST("lifestyle")
+    @POST("lifestyle/")
     suspend fun createLifestyleEntry(@Body request: LifestyleEntryRequest): LifestyleEntry
 
     @PUT("lifestyle/{id}")
@@ -1007,10 +1007,10 @@ interface ApiService {
 
     // ── Pantry ──────────────────────────────────────────
 
-    @GET("pantry")
+    @GET("pantry/")
     suspend fun getPantryItems(): List<PantryItem>
 
-    @POST("pantry")
+    @POST("pantry/")
     suspend fun createPantryItem(@Body request: PantryItemCreate): PantryItem
 
     @PUT("pantry/{id}")
