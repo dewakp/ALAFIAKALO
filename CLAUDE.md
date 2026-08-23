@@ -449,6 +449,101 @@ Two lessons worth more than the fixes:
   stubbing the engine skips right past `_build_user_context`, which is where the
   queries live.
 
+## 3ah. Billing: an option nobody can complete, and a payment nobody recorded
+
+Found by investigating one user who signed up, tried to pay, and never got in.
+Three faults on one four-minute session. Full rail detail: **`SubscriptionRail.md`**.
+
+- **PayPal was advertised and unbuyable — WITHDRAWN 2026-08-23.** `/plans` listed
+  the rail unconditionally and the paywall drew the button unconditionally, while
+  no PayPal credential was ever mounted in production: `_require_configured`
+  answered **503 "PayPal billing is not configured"** to every tap. A new customer
+  pressed it twice before finding the card button. Stripe is now the only web
+  rail; `CheckoutRequest.provider` is `Literal["stripe"]`, so an unsupported rail
+  is refused at the boundary as a 422 instead of a 503 from inside the service.
+  `SubscriptionProvider.PAYPAL` and `subscriptions.paypal_subscription_id` stay
+  in the model — the deployed column still has them in its domain.
+
+- **`client_reference_id` does not survive a declined card.** It rides on the
+  checkout *session*, so it only ever reaches us through
+  `checkout.session.completed` — which never fires when the first payment fails.
+  The Subscription and its invoices are separate objects carrying none of it, and
+  `stripe_customer_id` is only written at completion, so
+  `_stripe_find_by_customer` matched nothing: **four webhooks recorded against
+  `user_id` NULL with a NULL payload.** Nothing on the account said a payment had
+  been attempted and nothing linked that Stripe customer back to the user. Fixed
+  by stamping `subscription_data[metadata][alafia_user_id]` at checkout-creation
+  time (it is copied onto the Subscription object, so it survives the failure),
+  plus fallbacks by subscription id and the 2025 `invoice.parent.
+  subscription_details` shape, and an ids-only trace on every recorded event.
+
+  > ⚠️ **Attributing that event is only safe together with the next point.**
+  > `invoice.payment_failed` used to set `status = PAST_DUE` unconditionally, and
+  > **PAST_DUE is an ENTITLING status** measured against a `current_period_end`
+  > that Stripe stamps on a subscription *the moment it is created, before a cent
+  > is collected*. Fixing attribution alone would have turned every declined card
+  > into a free period. `SubscriptionStatus.INCOMPLETE` is the non-entitling
+  > "tried and failed"; PAST_DUE now means only "was paying, a RENEWAL failed".
+
+- **A refused webhook was the emptiest state of all.** 21 of 31 production
+  deliveries over four weeks were rejected at the signature check — and that
+  happens *before* the event is recorded, so there was no log line AND no audit
+  row: two thirds of Stripe's traffic vanished with no trace anywhere. The
+  rejection now logs `livemode`, `account`, event id and `age_seconds`, which is
+  what separates a wrong secret from a second (or test-mode) endpoint from an
+  expired replay window. **Point exactly ONE Stripe endpoint at the URL** — a
+  second one signs with a different secret and every one of its deliveries is
+  refused and then retried for days.
+
+- The cause of those rejections is **not yet confirmed** — it needs the Stripe
+  dashboard's endpoint list, or the first log line from the instrumented build.
+  What the request logs already rule out: it is not the replay window (the first
+  delivery of each rejected event failed, not just its retries), and it is not a
+  blanket duplicate endpoint (the accepted events have no rejected twin).
+
+### The paywall is a WALL on mobile now
+
+iOS and Android used to treat the membership as a settings screen: you could
+navigate to it, and nothing stopped you if you never did. With
+`SUBSCRIPTION_REQUIRED=true` the backend answers **402 to every gated path**, so
+an unpaid mobile user was walked into a shell of failing screens with no
+explanation. Both clients now gate the whole app on `GET /subscription/status`
+(`EntitlementManager` on iOS, `EntitlementState` on Android).
+
+- **An error is not a verdict.** The gate has FOUR states — unknown, checking,
+  entitled, locked — plus `unavailable`, which must never collapse into `locked`.
+  Showing a paying member a paywall because their connection dropped is far worse
+  than a retry button. `EntitlementStateTest` pins exactly this.
+- **A 402 anywhere flips the gate**, not just the launch check (iOS posts
+  `.alafiaPaymentRequired` from `APIClient`; Android has `PaywallInterceptor`).
+  A membership can lapse or be refunded mid-session.
+- **The wall must have two exits that are not "pay": Restore and Sign out.**
+  Someone who already paid on the other platform, or who signed in as the wrong
+  account, is otherwise stuck with no route forward — and Apple requires a
+  restore path for auto-renewable subscriptions regardless.
+- ⚠️ **`/subscription/status` must agree with what the paywall enforces.** The
+  `SUBSCRIPTION_EXEMPT_EMAILS` bypass lived only in `require_active_subscription`,
+  so an exempt owner account got a silent pass on the API while `/status` said
+  `entitled: false`. Invisible on web (the 402 that would have shown it never
+  fired for those accounts) — and an instant lockout from both apps the moment
+  the gate shipped. `is_paywall_exempt()` is now part of the answer, not just the
+  enforcement. **The App Review account clears the wall by its subscription row,
+  not by this list** — see [[app-review-account-is-comped-in-db]].
+
+### Tell the user their card was declined, and why
+
+`invoice.payment_failed` now emails the user with the bank's own reason mapped to
+plain language ("the card didn’t have enough available funds"), via
+`send_payment_failed_email`. The reason is read off the expanded PaymentIntent in
+the event, and only fetched from Stripe when the payload carries an id instead.
+
+- **First failure and renewal failure are different letters.** "Your membership
+  never started" vs "we couldn't renew it" — the same `was_entitled` flag that
+  decides INCOMPLETE vs PAST_DUE decides the wording.
+- **A mail outage must never fail the webhook.** The whole notification is
+  wrapped: a non-2xx would send Stripe into a multi-day retry cascade over an
+  email problem, and the entitlement state has already been applied by then.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host
