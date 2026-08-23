@@ -44,8 +44,12 @@ warn() { printf '\033[1;33m[db]\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m[db] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # psql against the LOCAL dev database.
+#
+# -i is REQUIRED: without it `docker run` does not forward stdin, so a caller
+# that pipes SQL in (`... | dev_psql -f -`) hands psql an immediate EOF. psql
+# then executes NOTHING and exits 0 — a silent no-op that reads as success.
 dev_psql() {
-  docker run --rm --network host -e PGPASSWORD="$DEV_PASS" \
+  docker run --rm -i --network host -e PGPASSWORD="$DEV_PASS" \
     -v "$REPO_ROOT/scripts/db:/sql:ro" "$PG_IMAGE" \
     psql -h "$DEV_HOST" -p "$DEV_PORT" -U "$DEV_USER" -d "$DEV_DB" "$@"
 }
@@ -53,7 +57,7 @@ dev_psql() {
 # psql against PROD, through an already-running Cloud SQL Auth Proxy.
 prod_psql() {
   [ -n "${PROD_DB_PASS:-}" ] || die "PROD_DB_PASS is not set (see docs/DATABASE_PARITY.md)"
-  docker run --rm --network host -e PGPASSWORD="$PROD_DB_PASS" \
+  docker run --rm -i --network host -e PGPASSWORD="$PROD_DB_PASS" \
     -v "$REPO_ROOT/scripts/db:/sql:ro" "$PG_IMAGE" \
     psql -h 127.0.0.1 -p "$PROXY_PORT" -U "$DB_USER" -d "$DB_NAME" "$@"
 }

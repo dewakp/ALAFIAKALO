@@ -210,7 +210,7 @@ from the action.
 
 **Boilerplate as a result.** The DaVita reports end with "disciplinary action, up
 to and including termination of employment with DaVita." It parsed into a name
-and a value: 29 rows across 5 dates on one record, shown to a clinician among
+and a value: 30 rows across 5 dates on one record, shown to a clinician among
 real labs. `looks_like_prose()` rejects prose by shape, not by a list of phrases.
 
 **Name overflow eating the value.** Column boundaries come from the header

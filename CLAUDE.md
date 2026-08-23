@@ -262,11 +262,23 @@ Upload → parse → **staged for review** → import. Full detail:
 > then re-import:** `scripts/db/cleanup_docparse_artifacts.sh` (dry-run by
 > default).
 
+> **`docker run` without `-i` does not forward stdin, and psql calls that a
+> success.** `db_lib.sh`'s `prod_psql`/`dev_psql` omitted it, so the one caller
+> that pipes SQL in (`... | prod_psql -f -`, the docparse cleanup) handed psql an
+> immediate EOF: it executed NOTHING and exited 0. The dry run printed no rows,
+> which reads as "nothing to clean" — and `--apply` would have printed
+> `applied.` plus its "NEXT: re-import" instruction while deleting nothing, so
+> the re-import would have produced exactly the duplicate contradictory weights
+> the paragraph above warns about. §3aa's "an error is not an empty state", now
+> in a shell pipeline. Every other call site passes `-f /sql/<file>` or `-c`,
+> which is why it survived unnoticed. **A destructive script that reports
+> success is worse than one that fails.**
+
 > **A lab report is a clinical document wrapped in legal boilerplate, and the
 > boilerplate parses just as well as the results.** The DaVita reports carry
 > "disciplinary action, up to and including termination of employment with
 > DaVita.", which became a test name and a value and was shown to a clinician
-> among real labs — **29 rows across 5 dates** on one record. `looks_like_prose()`
+> among real labs — **30 rows across 5 dates** on one record. `looks_like_prose()`
 > in `normalize.py` rejects it by shape (word count, leading case, density of
 > connective words) rather than by a phrase list, so the next document's footer
 > is caught too.
