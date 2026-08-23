@@ -544,6 +544,57 @@ the event, and only fetched from Stripe when the payload carries an id instead.
   wrapped: a non-2xx would send Stripe into a multi-day retry cascade over an
   email problem, and the entitlement state has already been applied by then.
 
+## 3ai. Two bugs on one page, and the second only appeared once the first was fixed
+
+The Notifications page reported **"No notifications"** to a user holding 18
+unread ones, while the sidebar badge correctly said 18. Both numbers came from
+the same table with the same user filter, so they could not legitimately differ.
+
+**Fault 1 — the trailing-slash 307 downgraded to `http://`.** The route is
+registered at the bare prefix, so `GET /api/v1/notifications` redirects to add
+the slash. Uvicorn ran without `--proxy-headers`, and TLS terminates at Cloud
+Run's front end, so the app believed every request arrived over plaintext and
+built the Location as `http://`. The browser blocks that hop as mixed content:
+
+    GET https://api.alafia.app/api/v1/notifications
+      -> 307  location: http://api.alafia.app/api/v1/notifications/     (blocked)
+      -> 302  location: https://api.alafia.app/api/v1/notifications/    (edge, too late)
+
+Every absolute URL the app generated had the same defect. `--proxy-headers
+--forwarded-allow-ips "*"` is the general fix (the wildcard is right here
+specifically: Cloud Run is the only ingress and overwrites those headers).
+`unread-count` matches its route exactly, never redirects, and kept working —
+which is exactly why the two numbers disagreed. **When two counts of the same
+data disagree, suspect the transport before the query.**
+
+⚠️ **OkHttp does NOT refuse that hop** — `followSslRedirects` defaults to true,
+so Android was *following* the redirect into plaintext instead of failing. All
+client call sites now send the trailing slash so no redirect exists to follow.
+
+**Fault 2 — `metadata` is reserved on a SQLAlchemy declarative class.** It is
+the `MetaData` object for the whole schema. The model handles this correctly:
+
+    extra_data = Column("metadata", Text, nullable=True)
+
+but `NotificationOut` declared a plain `metadata: str | None`, so with
+`from_attributes=True` Pydantic read that MetaData object and raised **one
+ResponseValidationError per row**. The endpoint 200'd *only* for users with zero
+notifications — the one case with nothing to validate. Fixed with
+`Field(validation_alias="extra_data")`, which keeps the wire name.
+
+Three lessons, in order of value:
+
+- **Fixing an empty-state lie can uncover a worse bug, not fix one.** The 500 had
+  never once been observed, because the redirect meant the browser never reached
+  the endpoint. `catch (e) { console.error(e) }` hid the redirect failure; the
+  redirect failure hid the 500. Two faults stacked, exactly like §3ag.
+- **The data corroborated it.** `mark_read` returns the same schema, so marking
+  read 500'd too — and sure enough all 18 rows were unread with `read_at` NULL
+  since 2026-07-01. A symptom visible in the table the whole time.
+- **A route that only works on the empty case looks healthy.** Any test fixture
+  with zero rows passes it. `tests/test_notifications_list.py` seeds a row.
+
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host
