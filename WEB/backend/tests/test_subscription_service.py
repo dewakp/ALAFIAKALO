@@ -1,9 +1,9 @@
 """Regression tests for subscription entitlement + event idempotency.
 
-Focus: the test-mode web rails (Stripe/PayPal) share a constant reference id, so
-``_record_event`` MUST be idempotent on the unique ``(provider, event_id)`` index —
-otherwise the *second* user (or a double checkout-redirect) 500s on a UniqueViolation.
-Runs against the SQLite test DB, so it also guards the fix's dialect-agnosticism.
+Focus: the test-mode Stripe rail hands every caller the same constant reference
+id, so ``_record_event`` MUST be idempotent on the unique ``(provider, event_id)``
+index — otherwise the *second* user (or a double checkout-redirect) 500s on a
+UniqueViolation.
 """
 
 import pytest

@@ -195,3 +195,95 @@ async def send_verification_email(to: str, token: str) -> bool:
     </body></html>
     """
     return await send_email(to, subject, html_body)
+
+
+def _escape(value: str) -> str:
+    """Minimal HTML escaping for values that reach the template.
+
+    The decline reason comes from Stripe, not from us, and lands inside an HTML
+    body — so it is escaped rather than trusted, like any other external string.
+    """
+    return (str(value).replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace('"', "&quot;"))
+
+
+async def send_payment_failed_email(
+    to: str,
+    *,
+    full_name: str | None = None,
+    reason: str | None = None,
+    first_payment: bool = True,
+    amount_label: str | None = None,
+    next_attempt: str | None = None,
+) -> bool:
+    """Tell a user their card was declined, and say WHY.
+
+    Without this the whole event is invisible to the person it happened to: the
+    paywall looks exactly as it did before they tried to pay, so a declined card
+    reads as "nothing happened" and they have no reason to think anything needs
+    fixing. `reason` is the bank's own decline reason, mapped to plain language —
+    "the card didn't have enough available funds" is actionable in a way that
+    "payment failed" never is.
+
+    ``first_payment`` distinguishes "your membership never started" from "we
+    couldn't renew your membership", which are different problems for the reader.
+    """
+    manage_url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/subscription"
+    greeting = f"Hi {_escape(full_name.split()[0])}," if full_name else "Hi,"
+
+    if first_payment:
+        subject = f"{settings.APP_NAME} — your payment didn’t go through"
+        headline = "Your payment didn’t go through"
+        lede = ("Your card was declined, so your ALAFIA Membership never started "
+                "and you haven’t been charged.")
+    else:
+        subject = f"{settings.APP_NAME} — we couldn’t renew your membership"
+        headline = "We couldn’t renew your membership"
+        lede = ("The card on file was declined, so this renewal didn’t go "
+                "through. Your access continues for a short grace period.")
+
+    reason_block = (
+        f"""<p style="background:#fff4f4;border:1px solid #f3c2c2;border-radius:8px;
+                     padding:12px 14px;margin:18px 0;">
+              <strong>Why it failed:</strong> {_escape(reason)}.
+            </p>"""
+        if reason else ""
+    )
+    amount_block = (
+        f"""<p style="color:#6b7280;font-size:13px;">Amount attempted: {_escape(amount_label)}</p>"""
+        if amount_label else ""
+    )
+    retry_block = (
+        f"""<p style="color:#6b7280;font-size:13px;">
+              We’ll automatically try again on {_escape(next_attempt)}. Updating your
+              card before then will settle it sooner.
+            </p>"""
+        if next_attempt else ""
+    )
+
+    html_body = f"""
+    <html><body style="font-family:sans-serif;max-width:480px;margin:auto;">
+      <h2>{settings.APP_NAME}</h2>
+      <p>{greeting}</p>
+      <h3 style="margin-bottom:6px;">{headline}</h3>
+      <p>{lede}</p>
+      {reason_block}
+      {amount_block}
+      <p style="text-align:center;margin:28px 0;">
+        <a href="{manage_url}"
+           style="background:#ea580c;color:#fff;text-decoration:none;padding:12px 24px;
+                  border-radius:8px;display:inline-block;font-weight:600;">
+          Try a different card
+        </a>
+      </p>
+      {retry_block}
+      <p style="color:#6b7280;font-size:13px;">
+        If the button doesn't work, paste this link into your browser:<br>
+        <span style="word-break:break-all;">{manage_url}</span>
+      </p>
+      <p>If you think this is a mistake, your bank can usually say more than we can see.</p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+      <p style="color:#6b7280;font-size:12px;">{settings.APP_NAME} — Holistic Health Platform</p>
+    </body></html>
+    """
+    return await send_email(to, subject, html_body)

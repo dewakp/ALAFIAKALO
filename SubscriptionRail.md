@@ -1,6 +1,6 @@
 Next full feature == Subscription
 
-1) Subscribe via Web (Stripe/Paypal): $12/month
+1) Subscribe via Web (Stripe): $12/month
 2) Subscribe Via Android : $14/month
 3)Subscribe via IOS: $14/month
 

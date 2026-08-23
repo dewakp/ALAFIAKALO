@@ -71,7 +71,6 @@ OPENAI_API_KEY:openai-api-key PERPLEXITY_API_KEY:perplexity-api-key ANTHROPIC_AP
 for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
-         paypal-client-id paypal-client-secret paypal-plan-id paypal-plan-id-annual paypal-webhook-id \
          apple-shared-secret \
          resend-api-key smtp-host smtp-user smtp-password smtp-from-email; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
@@ -135,7 +134,7 @@ gcloud run jobs execute alafia-migrate --region "$REGION" --wait
 # ── 4. Backend (first pass — public URL not known yet) ────────────────────────
 echo "── Deploying backend ─────────────────────────────────────────"
 BACKEND_ENV="DEBUG=false,IDENTITY_ENABLED=true,IDENTITY_BASE_URL=${IDENTITY_URL},IDENTITY_AUDIENCE=alafia"
-BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_ENABLED=true,APPLE_ENVIRONMENT=production,PAYPAL_API_BASE=https://api-m.paypal.com"
+BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_ENABLED=true,APPLE_ENVIRONMENT=production"
 # Hard paywall: every user needs an active subscription (owner email exempt via the
 # config default). Flip to false to open the app.
 BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_REQUIRED=true"
@@ -180,11 +179,6 @@ add_secret_if_present STRIPE_SECRET_KEY       stripe-secret-key
 add_secret_if_present STRIPE_PRICE_ID         stripe-price-id
 add_secret_if_present STRIPE_PRICE_ID_ANNUAL  stripe-price-id-annual
 add_secret_if_present STRIPE_WEBHOOK_SECRET   stripe-webhook-secret
-add_secret_if_present PAYPAL_CLIENT_ID        paypal-client-id
-add_secret_if_present PAYPAL_CLIENT_SECRET    paypal-client-secret
-add_secret_if_present PAYPAL_PLAN_ID          paypal-plan-id
-add_secret_if_present PAYPAL_PLAN_ID_ANNUAL   paypal-plan-id-annual
-add_secret_if_present PAYPAL_WEBHOOK_ID       paypal-webhook-id
 add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
 # Email — transactional (signup verification, password reset).
 # Resend (HTTPS API) is preferred over SMTP on Cloud Run: no outbound mail ports,

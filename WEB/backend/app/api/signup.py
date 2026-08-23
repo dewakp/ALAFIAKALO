@@ -60,13 +60,13 @@ class ResendRequest(BaseModel):
 
 class CheckoutStart(BaseModel):
     email: EmailStr
-    provider: str = Field(default="stripe", pattern="^(stripe|paypal)$")
+    provider: str = Field(default="stripe", pattern="^stripe$")
     interval: str = Field(default="month", pattern="^(month|year)$")
 
 
 class CompleteSignup(BaseModel):
     email: EmailStr
-    provider: str = Field(default="stripe", pattern="^(stripe|paypal)$")
+    provider: str = Field(default="stripe", pattern="^stripe$")
     reference_id: str
 
 
@@ -181,15 +181,8 @@ async def signup_checkout(
     if not pending.email_verified:
         raise HTTPException(status_code=403, detail="Verify your email address first")
 
-    if body.provider != "stripe":
-        # PayPal's pre-account flow needs a subscription created against a payer
-        # rather than a customer email; not wired, and saying so beats a stub
-        # that looks like it works.
-        raise HTTPException(
-            status_code=503,
-            detail="Only card checkout is available for new signups right now.",
-        )
-
+    # `provider` is pinned to "stripe" by the schema, so an unsupported rail is
+    # refused as a 422 on the field rather than a 503 from inside the flow.
     from app.services import subscription_service as subs
     result = await subs.signup_stripe_checkout(pending.email, body.interval)
     return {

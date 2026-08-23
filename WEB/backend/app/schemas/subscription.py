@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 class RailPrice(BaseModel):
     """Price for a single billing rail."""
 
-    provider: str            # stripe | paypal | google_play | apple
+    provider: str            # stripe | google_play | apple
     price_usd: float
     store_product_id: str | None = None  # native store product id (mobile)
 
@@ -55,20 +55,24 @@ class SubscriptionStatusResponse(BaseModel):
     cancel_at_period_end: bool = False
 
 
-# ── Web checkout (Stripe / PayPal) ────────────────────────────────────────
+# ── Web checkout (Stripe) ─────────────────────────────────────────────────
+#
+# `provider` stays in the payload (all three clients send it) but now admits one
+# value, so an unsupported rail is refused at the boundary with a 422 naming the
+# field — not accepted and then answered 503 from deep inside the service.
 
 class CheckoutRequest(BaseModel):
-    provider: Literal["stripe", "paypal"]
+    provider: Literal["stripe"] = "stripe"
     # Billing interval. Defaults to monthly for older clients that don't send it.
     interval: Literal["month", "year"] = "month"
 
 
 class CheckoutResponse(BaseModel):
     provider: str
-    # For Stripe: the hosted Checkout URL. For PayPal: the approval URL.
+    # The hosted Stripe Checkout URL.
     checkout_url: str
-    # Provider handle the client returns with on success (Stripe session id /
-    # PayPal subscription id) so a confirm call can finalise without a webhook.
+    # Provider handle the client returns with on success (the Stripe session id)
+    # so a confirm call can finalise without waiting for the webhook.
     reference_id: str
     test_mode: bool = False
 
@@ -81,7 +85,7 @@ class ConfirmRequest(BaseModel):
     webhooks aren't yet configured). Idempotent.
     """
 
-    provider: Literal["stripe", "paypal"]
+    provider: Literal["stripe"] = "stripe"
     reference_id: str
 
 

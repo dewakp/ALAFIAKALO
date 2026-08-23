@@ -1,11 +1,11 @@
 """Subscription / billing models.
 
 ALAFIA has a single paid tier ("ALAFIA Plus"). Entitlement is owned by the
-backend — whichever rail a user pays through (Stripe or PayPal on the web,
-Google Play on Android, Apple StoreKit on iOS) reports a *verified* purchase and
-the backend records the resulting active period on the user's one
-``Subscription`` row. Reads never trust the client; ``is_entitled`` derives
-access purely from ``status`` + ``current_period_end`` (+ a small grace window).
+backend — whichever rail a user pays through (Stripe on the web, Google Play on
+Android, Apple StoreKit on iOS) reports a *verified* purchase and the backend
+records the resulting active period on the user's one ``Subscription`` row.
+Reads never trust the client; ``is_entitled`` derives access purely from
+``status`` + ``current_period_end`` (+ a small grace window).
 
 ``SubscriptionEvent`` is an append-only audit / idempotency log: every provider
 webhook or verify call is recorded by its provider event id so the same event is
@@ -25,6 +25,7 @@ class SubscriptionStatus(str, PyEnum):
     """Lifecycle of a subscription. Stored as a plain string column."""
 
     NONE = "none"            # never subscribed / fully lapsed
+    INCOMPLETE = "incomplete"  # checkout started, first payment never succeeded (NOT entitled)
     TRIALING = "trialing"    # in a free trial (entitled)
     ACTIVE = "active"        # paid and current (entitled)
     PAST_DUE = "past_due"    # renewal failed, retrying (entitled during grace)
@@ -33,6 +34,13 @@ class SubscriptionStatus(str, PyEnum):
 
 
 # Statuses that grant access while the current period (or grace) is still valid.
+#
+# ``INCOMPLETE`` is deliberately absent, and the distinction from ``PAST_DUE`` is
+# the whole point of having it: Stripe puts a period on a subscription the moment
+# it is created, *before* the first invoice is paid. Treating a first-payment
+# failure as PAST_DUE would therefore hand out a full period of free access to
+# anyone who reaches the card form with a card that declines. PAST_DUE means "was
+# paying, a RENEWAL failed" — access already earned. INCOMPLETE means "never paid".
 _ENTITLING_STATUSES = {
     SubscriptionStatus.TRIALING.value,
     SubscriptionStatus.ACTIVE.value,
@@ -46,6 +54,10 @@ class SubscriptionProvider(str, PyEnum):
 
     NONE = "none"
     STRIPE = "stripe"
+    # PAYPAL is a WITHDRAWN rail: it can no longer be selected, and nothing
+    # writes it. It stays here (with `paypal_subscription_id` below) because the
+    # value is still part of the deployed column's domain — dropping it from the
+    # model while the column exists is drift, not cleanup.
     PAYPAL = "paypal"
     GOOGLE_PLAY = "google_play"
     APPLE = "apple"
@@ -140,7 +152,7 @@ class SubscriptionEvent(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     provider: Mapped[str] = mapped_column(String(20), nullable=False)
-    # Provider's own event id (Stripe event id, PayPal event id, purchase token,
+    # Provider's own event id (Stripe event id, purchase token,
     # transaction id …). Unique per provider so the same event applies once.
     event_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     event_type: Mapped[str | None] = mapped_column(String(100))

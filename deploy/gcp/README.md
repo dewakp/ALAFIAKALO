@@ -70,12 +70,12 @@ value in Secret Manager, then re-running `deploy.sh` (or `gcloud run services up
 printf 'sk_live_…'   | gcloud secrets versions add stripe-secret-key --data-file=-
 printf 'price_…'     | gcloud secrets versions add stripe-price-id --data-file=-
 printf 'whsec_…'     | gcloud secrets versions add stripe-webhook-secret --data-file=-
-# …paypal-*, apple-shared-secret likewise
+# …apple-shared-secret likewise
 ```
 
-- Create the recurring **$12/mo** price in Stripe and the **$12/mo** plan in PayPal.
-- Point the Stripe webhook at `<APP_URL>/api/v1/subscription/webhook/stripe` and
-  PayPal at `…/webhook/paypal` (both are signature-verified, CSRF-exempt).
+- Create the recurring **$12/mo** price in Stripe. (Stripe is the only web rail.)
+- Point the Stripe webhook at `<APP_URL>/api/v1/subscription/webhook/stripe`
+  (signature-verified, CSRF-exempt) — and point exactly ONE endpoint at it.
 - Google Play / Apple ($14/mo) are wired in the **mobile track** (separate runbook).
 
 ## Deferred by design (not needed to go live on web)

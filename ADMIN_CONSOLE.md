@@ -237,8 +237,9 @@ unconfigured outside DEBUG → 503.
 > "forged reference accepted" result proves nothing. The tests above force the
 > production path.
 
-PayPal pre-account checkout is **not** wired (503): its flow needs a subscription
-created against a payer rather than a customer email.
+Stripe is the only web rail. PayPal was withdrawn on 2026-08-23 — it had been
+advertised by `/plans` and drawn as a button on the paywall while no PayPal
+credential was ever mounted in production, so every attempt answered 503.
 
 # Robot account cleanup
 

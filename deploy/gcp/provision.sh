@@ -73,7 +73,6 @@ echo "── Provider keys (subscriptions) — placeholders ──────�
 # These start EMPTY. In DEBUG=false the rails raise 503 until you set real keys,
 # so the web app deploys fine now and you fill these before charging cards.
 for s in stripe-secret-key stripe-price-id stripe-webhook-secret \
-         paypal-client-id paypal-client-secret paypal-plan-id paypal-webhook-id \
          apple-shared-secret; do
   gcloud secrets describe "$s" >/dev/null 2>&1 || printf '' | gcloud secrets create "$s" --data-file=-
 done
