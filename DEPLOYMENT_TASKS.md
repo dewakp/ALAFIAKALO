@@ -45,16 +45,15 @@ keys exist (checkout returns 503). Steps:
 
 1. 🔴👤 Create a **Stripe** account; create a recurring **$12/mo** price → get `price_…`, secret key
    `sk_live_…`, and a webhook signing secret `whsec_…`.
-2. 🔴👤 Create a **PayPal** account + **$12/mo** billing plan → client id/secret, plan id, webhook id.
 3. 🔴 Put them in Secret Manager (I can run these once you paste the values):
    ```
    printf 'sk_live_…' | gcloud secrets versions add stripe-secret-key --data-file=-
    printf 'price_…'   | gcloud secrets versions add stripe-price-id --data-file=-
    printf 'whsec_…'   | gcloud secrets versions add stripe-webhook-secret --data-file=-
-   # + paypal-client-id / -client-secret / -plan-id / -webhook-id
    ```
-4. 🔴👤 Point the **Stripe webhook** at `…/api/v1/subscription/webhook/stripe` and **PayPal** at
-   `…/webhook/paypal` (both are signature-verified).
+4. 🔴👤 Point the **Stripe webhook** at `…/api/v1/subscription/webhook/stripe` (signature-verified).
+   Point **one** endpoint at it: an extra endpoint signs with a different secret, and every one of
+   its deliveries is refused and retried for days. Stripe is the only web rail (PayPal withdrawn).
 5. 🔴 Re-run `deploy/gcp/deploy.sh` (mounts the now-configured secrets) and verify a real test checkout.
 6. 🔴👤 Sign the **HIPAA BAA** in the Google Cloud console before real PHI/payments (free, self-service).
 

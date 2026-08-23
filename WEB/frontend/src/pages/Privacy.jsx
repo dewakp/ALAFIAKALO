@@ -93,7 +93,7 @@ export default function Privacy() {
           and none of them receive your health records:
         </p>
         <ul className="mk-list">
-          <li><strong>Payments</strong> — Stripe and PayPal handle subscriptions. They receive your billing details; we never see or store your full card number.</li>
+          <li><strong>Payments</strong> — Stripe handles web subscriptions, and the App Store or Google Play handles in-app ones. They receive your billing details; we never see or store your full card number.</li>
           <li><strong>Email</strong> — Resend delivers account email such as password resets. It receives your email address.</li>
           <li><strong>Nutrition reference data</strong> — we look food up in the USDA FoodData Central database. We send the food name, never anything about you.</li>
         </ul>

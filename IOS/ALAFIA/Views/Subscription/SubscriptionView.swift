@@ -128,8 +128,15 @@ final class StoreManager: ObservableObject {
 }
 
 struct SubscriptionView: View {
+    /// `true` when this is the membership WALL rather than a settings screen:
+    /// the user has no way past it except paying, restoring, or signing out.
+    var blocking: Bool = false
+
+    @EnvironmentObject private var authManager: AuthManager
+    @EnvironmentObject private var entitlement: EntitlementManager
     @StateObject private var store = StoreManager()
     @State private var plans: SubscriptionPlans?
+    @State private var restoring = false
 
     private var isAnnual: Bool { store.selected?.id == annualProductId }
 
@@ -150,7 +157,9 @@ struct SubscriptionView: View {
                     Text(plans?.productName ?? "ALAFIA Membership")
                         .font(.title).bold()
                 }
-                Text("Unlock the full ALAFIA experience across every device.")
+                Text(blocking
+                     ? "ALAFIA needs an active membership. Subscribe to continue — if you already pay on another device, restore it below."
+                     : "Unlock the full ALAFIA experience across every device.")
                     .foregroundColor(.secondary)
 
                 if store.isLoading {
@@ -159,6 +168,7 @@ struct SubscriptionView: View {
                     subscribedCard
                 } else {
                     offerCard
+                    if blocking { blockedFooter }
                 }
             }
             .padding()
@@ -169,6 +179,11 @@ struct SubscriptionView: View {
             plans = try? await APIClient.shared.get("/subscription/plans")
             await store.start()
         }
+        // A purchase (new OR restored) is verified server-side by StoreManager;
+        // when the backend agrees, open the app without another round-trip.
+        .onChange(of: store.entitled) { _, nowEntitled in
+            if nowEntitled { entitlement.markEntitled() }
+        }
         .onDisappear { store.stop() }
         .alert("Notice", isPresented: Binding(
             get: { store.errorMessage != nil },
@@ -178,6 +193,35 @@ struct SubscriptionView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
+    }
+
+    /// The only two ways out of the wall that are not "pay": a purchase this
+    /// device has not seen yet, and signing out. Without them a user who already
+    /// paid on Android — or who mistyped their email at signup — is simply stuck.
+    private var blockedFooter: some View {
+        VStack(spacing: 12) {
+            Button {
+                Task {
+                    restoring = true
+                    defer { restoring = false }
+                    try? await AppStore.sync()      // pulls entitlements onto this device
+                    await store.start()             // re-verifies them with the backend
+                    await entitlement.refresh()
+                }
+            } label: {
+                if restoring { ProgressView() } else { Text("Restore purchases") }
+            }
+            .disabled(restoring)
+
+            Button("Sign out", role: .destructive) {
+                store.stop()
+                entitlement.reset()
+                authManager.logout()
+            }
+            .font(.footnote)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 4)
     }
 
     private var offerCard: some View {
@@ -258,7 +302,6 @@ struct SubscriptionView: View {
     private func prettyProvider(_ p: String) -> String {
         switch p {
         case "stripe": return "Card (Stripe)"
-        case "paypal": return "PayPal"
         case "google_play": return "Google Play"
         case "apple": return "App Store"
         default: return p

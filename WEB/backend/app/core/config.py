@@ -148,10 +148,10 @@ class Settings(BaseSettings):
     # live credentials (never enabled when DEBUG is False).
     SUBSCRIPTION_ENABLED: bool = True
     SUBSCRIPTION_PRODUCT_NAME: str = "ALAFIA Membership"
-    SUBSCRIPTION_PRICE_WEB_USD: float = 12.0        # Stripe / PayPal (monthly)
+    SUBSCRIPTION_PRICE_WEB_USD: float = 12.0        # Stripe (monthly)
     SUBSCRIPTION_PRICE_ANDROID_USD: float = 14.0    # Google Play Billing (monthly)
     SUBSCRIPTION_PRICE_IOS_USD: float = 14.0        # Apple StoreKit (monthly)
-    # Annual web plan (Stripe / PayPal). ~$10.75/mo vs $12/mo monthly.
+    # Annual web plan (Stripe). ~$10.75/mo vs $12/mo monthly.
     SUBSCRIPTION_PRICE_WEB_ANNUAL_USD: float = 129.0
     SUBSCRIPTION_TRIAL_DAYS: int = 0
     # Grace window after a period ends before entitlement is revoked (covers
@@ -182,7 +182,7 @@ class Settings(BaseSettings):
     # able to hand out console access. BOTH must hold — email on this list AND
     # the account active.
     ADMIN_EMAILS: list[str] = ["dew@6igma.com"]
-    # Public base URL of the web app; used to build Stripe/PayPal return URLs.
+    # Public base URL of the web app; used to build Stripe return URLs.
     PUBLIC_WEB_URL: str = "http://localhost:8080"
 
     # Stripe (web card rail). Blank STRIPE_SECRET_KEY ⇒ dev test-mode checkout.
@@ -192,13 +192,8 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""      # whsec_… for signature verification
     STRIPE_API_BASE: str = "https://api.stripe.com"
 
-    # PayPal (web alternative rail).
-    PAYPAL_CLIENT_ID: str = ""
-    PAYPAL_CLIENT_SECRET: str = ""
-    PAYPAL_PLAN_ID: str = ""             # P-… billing plan for the $12/mo sub
-    PAYPAL_PLAN_ID_ANNUAL: str = ""      # P-… billing plan for the $129/yr sub
-    PAYPAL_WEBHOOK_ID: str = ""          # for webhook signature verification
-    PAYPAL_API_BASE: str = "https://api-m.sandbox.paypal.com"  # live: api-m.paypal.com
+    # (PayPal was withdrawn 2026-08-23 — it was offered on the paywall while
+    # unconfigured in production, so every attempt could only answer 503.)
 
     # Google Play Billing (Android). Server-side purchase verification via a
     # service account with the Android Publisher scope.

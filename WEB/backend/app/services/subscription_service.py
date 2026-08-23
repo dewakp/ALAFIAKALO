@@ -1,10 +1,10 @@
 """Subscription / billing service.
 
-The backend owns entitlement. Each billing rail (Stripe & PayPal on the web,
-Google Play on Android, Apple StoreKit on iOS) reports a *verified* purchase and
-this service records the resulting active period on the user's ``Subscription``
-row. All provider I/O goes through ``httpx`` + stdlib crypto — no vendor SDKs —
-so nothing new has to be installed into the image.
+The backend owns entitlement. Each billing rail (Stripe on the web, Google Play
+on Android, Apple StoreKit on iOS) reports a *verified* purchase and this service
+records the resulting active period on the user's ``Subscription`` row. All
+provider I/O goes through ``httpx`` + stdlib crypto — no vendor SDKs — so nothing
+new has to be installed into the image.
 
 Dev **test-mode**: when a rail's credentials are blank *and* ``settings.DEBUG``
 is true, the rail returns a synthetic-but-consistent active purchase so the whole
@@ -39,6 +39,7 @@ from app.models.subscription import (
     plan_for_interval,
 )
 from app.models.user import User
+from app.services import email as email_service
 
 logger = get_logger(__name__)
 
@@ -55,7 +56,7 @@ def _defer_start(sub: Subscription | None) -> datetime | None:
     """If the user still has entitled time (grandfather comp or an existing paid
     period), return its end so newly-purchased billing starts *then* — the paid
     plan stacks on top of what they already have instead of overwriting it. This
-    is how a grandfathered user "extends": Stripe trial_end / PayPal start_time is
+    is how a grandfathered user "extends": Stripe trial_end is
     set to this instant, so they aren't charged (and don't lose time) until it
     passes. Returns None when there's nothing to preserve (bill immediately)."""
     if sub is None or not sub.is_entitled(grace_days=0):
@@ -130,7 +131,6 @@ def _rail_price(provider: str, plan: str = PLAN_PLUS_MONTHLY) -> float:
         return settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD  # annual is web-only
     return {
         SubscriptionProvider.STRIPE.value: settings.SUBSCRIPTION_PRICE_WEB_USD,
-        SubscriptionProvider.PAYPAL.value: settings.SUBSCRIPTION_PRICE_WEB_USD,
         SubscriptionProvider.GOOGLE_PLAY.value: settings.SUBSCRIPTION_PRICE_ANDROID_USD,
         SubscriptionProvider.APPLE.value: settings.SUBSCRIPTION_PRICE_IOS_USD,
     }.get(provider, settings.SUBSCRIPTION_PRICE_WEB_USD)
@@ -187,7 +187,11 @@ _STRIPE_STATUS_MAP = {
     "past_due": SubscriptionStatus.PAST_DUE.value,
     "unpaid": SubscriptionStatus.PAST_DUE.value,
     "canceled": SubscriptionStatus.CANCELED.value,
-    "incomplete": SubscriptionStatus.NONE.value,
+    # "incomplete" = created, first invoice never paid. Neither NONE (which reads
+    # as "never tried" and leaves the user staring at a plain paywall with no clue
+    # their card was declined) nor PAST_DUE (which is ENTITLING — see the note on
+    # _ENTITLING_STATUSES; it would hand out a free period for a declined card).
+    "incomplete": SubscriptionStatus.INCOMPLETE.value,
     "incomplete_expired": SubscriptionStatus.EXPIRED.value,
 }
 
@@ -223,6 +227,20 @@ async def stripe_create_checkout(db: AsyncSession, user: User, interval: str = "
         "cancel_url": cancel_url,
         "client_reference_id": str(user.id),
         "customer_email": user.email,
+        # Who this is, stamped where every later event can still see it.
+        #
+        # `client_reference_id` rides on the checkout SESSION, so it only reaches
+        # us via `checkout.session.completed` — which never fires when the first
+        # payment fails. The Subscription and its invoices are separate objects
+        # and carry none of it, so a declined card produced
+        # `customer.subscription.created` + `invoice.payment_failed` that matched
+        # no row (the customer id is only learned at completion) and were logged
+        # against user_id NULL. The user then saw an ordinary paywall instead of
+        # "your card was declined", and nothing linked that Stripe customer back
+        # to the account. subscription_data[metadata] is copied onto the
+        # Subscription object itself, so it survives the failure.
+        "metadata[alafia_user_id]": str(user.id),
+        "subscription_data[metadata][alafia_user_id]": str(user.id),
     }
     sub = await get_subscription(db, user.id)
     if sub and sub.stripe_customer_id:
@@ -294,6 +312,47 @@ def _stripe_apply_subscription_object(sub: Subscription, data: dict) -> None:
     )
 
 
+def _stripe_signature_debug(sig_header: str) -> dict:
+    """What the Stripe-Signature header itself says, without trusting the body."""
+    parts = [p.split("=", 1) for p in sig_header.split(",") if "=" in p]
+    info: dict = {"header_present": bool(sig_header),
+                  "schemes": sorted({k.strip() for k, _ in parts})}
+    timestamp = next((v for k, v in parts if k.strip() == "t"), "").strip()
+    if timestamp.isdigit():
+        # Distinguishes a wrong secret from an expired replay window at a glance.
+        info["age_seconds"] = int(time.time()) - int(timestamp)
+    return info
+
+
+def stripe_describe_rejected(payload: bytes, sig_header: str) -> dict:
+    """Describe a webhook we are about to REFUSE, so the refusal is not silent.
+
+    The body is untrusted by definition here — its signature did not verify — so
+    nothing in it is acted on; it is only named. ``livemode`` and ``account`` are
+    what actually identify the sender: a test-mode endpoint, or a second Stripe
+    account pointed at this URL, sends perfectly well-formed events signed with a
+    secret we do not hold, and every one of them is retried for days.
+    """
+    info = _stripe_signature_debug(sig_header)
+    info["bytes"] = len(payload)
+    try:
+        event = json.loads(payload)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        event = None
+    if not isinstance(event, dict):
+        info["parsed"] = False
+        return info
+    info.update({
+        "parsed": True,
+        "event_id": str(event.get("id") or "")[:64],
+        "event_type": str(event.get("type") or "")[:64],
+        "livemode": event.get("livemode"),
+        "account": str(event.get("account") or "")[:64] or None,
+        "api_version": str(event.get("api_version") or "")[:32] or None,
+    })
+    return info
+
+
 def stripe_verify_signature(payload: bytes, sig_header: str) -> bool:
     """Verify a Stripe webhook signature (HMAC-SHA256 over ``t.payload``)."""
     secret = settings.STRIPE_WEBHOOK_SECRET
@@ -312,6 +371,217 @@ def stripe_verify_signature(payload: bytes, sig_header: str) -> bool:
     return abs(time.time() - int(timestamp)) < 300
 
 
+def _stripe_metadata_user_id(*objs: dict) -> int | None:
+    """Read our own ``alafia_user_id`` stamp off any Stripe object carrying it."""
+    for obj in objs:
+        if not isinstance(obj, dict):
+            continue
+        raw = (obj.get("metadata") or {}).get("alafia_user_id")
+        if raw is not None and str(raw).strip().isdigit():
+            return int(str(raw).strip())
+    return None
+
+
+def _stripe_invoice_subscription_id(obj: dict) -> str | None:
+    """The subscription an invoice belongs to — in either payload shape.
+
+    Older API versions put it at ``invoice.subscription``; 2025+ versions moved it
+    to ``invoice.parent.subscription_details.subscription``. Reading only one shape
+    loses attribution silently the day the account's API version rolls forward.
+    """
+    for candidate in (obj.get("subscription"),
+                      ((obj.get("parent") or {}).get("subscription_details") or {}).get("subscription")):
+        if isinstance(candidate, str) and candidate:
+            return candidate
+        if isinstance(candidate, dict) and candidate.get("id"):
+            return candidate["id"]
+    return None
+
+
+def _stripe_event_trace(etype: str, obj: dict) -> dict:
+    """Ids — never PII — kept on the audit row so an event stays traceable.
+
+    An event we could not attribute used to be recorded with ``user_id`` NULL and
+    ``payload`` NULL, which left nothing at all to reconcile against Stripe later.
+    Card details and email are deliberately not copied here.
+    """
+    trace: dict[str, str] = {"type": etype}
+    for key in ("id", "customer"):
+        value = obj.get(key)
+        if isinstance(value, str) and value:
+            trace[key] = value
+    sub_id = _stripe_invoice_subscription_id(obj)
+    if sub_id:
+        trace["subscription"] = sub_id
+    return trace
+
+
+# Stripe's decline codes, in language a person can act on. "Your payment failed"
+# tells the reader nothing; "the card didn't have enough available funds" tells
+# them exactly what to do next. Codes not listed here fall back to Stripe's own
+# sentence rather than to silence.
+_STRIPE_DECLINE_REASONS = {
+    "insufficient_funds": "the card didn’t have enough available funds",
+    "expired_card": "the card has expired",
+    "incorrect_cvc": "the security code (CVC) didn’t match",
+    "invalid_cvc": "the security code (CVC) was invalid",
+    "incorrect_number": "the card number was incorrect",
+    "invalid_number": "the card number was invalid",
+    "invalid_expiry_month": "the card’s expiry month was invalid",
+    "invalid_expiry_year": "the card’s expiry year was invalid",
+    "card_not_supported": "the card doesn’t support this kind of purchase",
+    "currency_not_supported": "the card doesn’t support payments in this currency",
+    "lost_card": "the bank has the card marked as lost",
+    "stolen_card": "the bank has the card marked as stolen",
+    "pickup_card": "the bank asked for the card to be withheld",
+    "do_not_honor": "the bank declined it without giving a reason",
+    "generic_decline": "the bank declined it without giving a reason",
+    "transaction_not_allowed": "the bank doesn’t allow this kind of transaction",
+    "try_again_later": "the bank asked us to try again later",
+    "processing_error": "the bank hit a temporary processing error",
+    "authentication_required": "the bank needs you to confirm the payment (3-D Secure)",
+    "card_velocity_exceeded": "the card has gone past its usage limit",
+    "withdrawal_count_limit_exceeded": "the card has gone past its withdrawal limit",
+    "card_declined": "the bank declined the charge",
+}
+
+
+def _friendly_decline(err: dict) -> str | None:
+    """Map a Stripe error object to one plain-language clause."""
+    if not isinstance(err, dict):
+        return None
+    for key in ("decline_code", "code"):
+        mapped = _STRIPE_DECLINE_REASONS.get(str(err.get(key) or ""))
+        if mapped:
+            return mapped
+    message = err.get("message")
+    if isinstance(message, str) and message.strip():
+        # Stripe's own wording, de-punctuated so the template can punctuate.
+        return message.strip().rstrip(".")
+    return None
+
+
+def _stripe_payment_intent_id(obj: dict) -> str | None:
+    """The PaymentIntent behind an invoice, across both payload shapes."""
+    pi = obj.get("payment_intent")
+    if isinstance(pi, str) and pi:
+        return pi
+    if isinstance(pi, dict) and pi.get("id"):
+        return pi["id"]
+    # 2025+ shape: invoice.payments.data[].payment.payment_intent
+    for payment in ((obj.get("payments") or {}).get("data") or []):
+        candidate = ((payment or {}).get("payment") or {}).get("payment_intent")
+        if isinstance(candidate, str) and candidate:
+            return candidate
+        if isinstance(candidate, dict) and candidate.get("id"):
+            return candidate["id"]
+    return None
+
+
+async def _stripe_failure_reason(obj: dict) -> str | None:
+    """Why the bank refused, in plain language.
+
+    Read from the event payload first and only call Stripe when it carries an id
+    where the expanded object would have been. Never raises: a missing reason
+    costs the email one sentence, but an exception here would cost the webhook a
+    non-2xx and send Stripe into a multi-day retry cascade.
+    """
+    try:
+        pi = obj.get("payment_intent")
+        if isinstance(pi, dict):
+            reason = _friendly_decline(pi.get("last_payment_error") or {})
+            if reason:
+                return reason
+
+        charge = obj.get("charge")
+        if isinstance(charge, dict):
+            outcome = charge.get("outcome") or {}
+            reason = _friendly_decline({
+                "decline_code": outcome.get("reason"),
+                "code": charge.get("failure_code"),
+                "message": outcome.get("seller_message") or charge.get("failure_message"),
+            })
+            if reason:
+                return reason
+
+        reason = _friendly_decline(obj.get("last_finalization_error") or {})
+        if reason:
+            return reason
+
+        pi_id = _stripe_payment_intent_id(obj)
+        if pi_id and settings.STRIPE_SECRET_KEY and not _test_mode(settings.STRIPE_SECRET_KEY):
+            data = await _stripe_request("GET", f"/v1/payment_intents/{pi_id}")
+            return _friendly_decline(data.get("last_payment_error") or {})
+    except Exception:
+        logger.warning("No decline reason readable off invoice %s", obj.get("id"), exc_info=True)
+    return None
+
+
+def _amount_label(obj: dict) -> str | None:
+    amount = obj.get("amount_due")
+    if not isinstance(amount, int):
+        return None
+    return f"{amount / 100:.2f} {str(obj.get('currency') or 'usd').upper()}"
+
+
+async def _notify_payment_failed(db: AsyncSession, sub: Subscription, obj: dict, *,
+                                 first_payment: bool) -> None:
+    """Email the user that their card was declined — and say why.
+
+    The failure is otherwise invisible to the one person who can fix it: the
+    paywall looks exactly as it did before they tried, so a declined card reads
+    as "nothing happened".
+
+    The whole thing is wrapped: a mail outage must never turn into a non-2xx on
+    the webhook, which Stripe would retry for days.
+    """
+    try:
+        user = await db.get(User, sub.user_id)
+        if user is None or not user.email:
+            return
+        reason = await _stripe_failure_reason(obj)
+        next_attempt = _ts_to_dt(obj.get("next_payment_attempt"))
+        sent = await email_service.send_payment_failed_email(
+            user.email,
+            full_name=user.full_name,
+            reason=reason,
+            first_payment=first_payment,
+            amount_label=_amount_label(obj),
+            next_attempt=(f"{next_attempt.day} {next_attempt:%B %Y}" if next_attempt else None),
+        )
+        logger.info("Payment-failure email for user %s: sent=%s first_payment=%s reason=%r",
+                    sub.user_id, sent, first_payment, reason)
+    except Exception:
+        logger.exception("Could not notify user %s about a declined payment", sub.user_id)
+
+
+def _stripe_apply_payment_failure(sub: Subscription) -> None:
+    """A failed invoice — downgrade only where a downgrade is what it means.
+
+    This used to be an unconditional ``status = PAST_DUE``. PAST_DUE is an
+    *entitling* status, so once a first-payment failure became attributable (it
+    never was before, which is the only reason this was harmless) that line would
+    have granted a full period of free access to any declined card. It also must
+    not rewrite the history of someone who genuinely paid and later lapsed.
+    """
+    if sub.is_entitled(grace_days=0):
+        sub.status = SubscriptionStatus.PAST_DUE.value      # a RENEWAL failed; grace applies
+    elif sub.status in (SubscriptionStatus.NONE.value, SubscriptionStatus.INCOMPLETE.value):
+        sub.status = SubscriptionStatus.INCOMPLETE.value    # never got in; say so, don't let them in
+
+
+async def _user_exists(db: AsyncSession, user_id: int) -> bool:
+    return await db.scalar(select(User.id).where(User.id == user_id)) is not None
+
+
+async def _stripe_attribute_by_metadata(db: AsyncSession, *objs: dict) -> Subscription | None:
+    """Last-resort attribution via the user id we stamped at checkout time."""
+    user_id = _stripe_metadata_user_id(*objs)
+    if user_id is None or not await _user_exists(db, user_id):
+        return None
+    return await get_or_create_subscription(db, user_id)
+
+
 async def stripe_handle_webhook(db: AsyncSession, event: dict) -> None:
     event_id = event.get("id", "")
     if await _already_processed(db, "stripe", event_id):
@@ -323,7 +593,11 @@ async def stripe_handle_webhook(db: AsyncSession, event: dict) -> None:
     sub = None
     if etype == "checkout.session.completed":
         ref = obj.get("client_reference_id")
-        user_id = int(ref) if ref and ref.isdigit() else None
+        user_id = int(ref) if ref and str(ref).isdigit() else _stripe_metadata_user_id(obj)
+        # A reference naming a user who no longer exists would otherwise violate
+        # the FK and 500 the webhook, which Stripe then retries for days.
+        if user_id and not await _user_exists(db, user_id):
+            user_id = None
         if user_id:
             sub = await get_or_create_subscription(db, user_id)
             sub.stripe_customer_id = obj.get("customer") or sub.stripe_customer_id
@@ -334,17 +608,44 @@ async def stripe_handle_webhook(db: AsyncSession, event: dict) -> None:
         sub = await _stripe_find_by_customer(db, obj.get("customer"))
         if sub is None and obj.get("id"):
             sub = await _stripe_find_by_sub_id(db, obj["id"])
+        if sub is None:
+            # Nothing on file yet. This is the ordinary case when the FIRST
+            # payment fails: the customer id is only learned at completion, so
+            # neither lookup above can match and the event used to vanish into a
+            # user_id NULL audit row.
+            sub = await _stripe_attribute_by_metadata(db, obj)
         if sub:
             user_id = sub.user_id
             _stripe_apply_subscription_object(sub, obj)
-    elif etype in ("invoice.payment_succeeded", "invoice.payment_failed"):
+    elif etype in ("invoice.payment_succeeded", "invoice.paid", "invoice.payment_failed"):
+        # `invoice.paid` is listed because Stripe sends it alongside
+        # `invoice.payment_succeeded`; an account subscribed to only the former
+        # would otherwise have every renewal fall through unattributed.
         sub = await _stripe_find_by_customer(db, obj.get("customer"))
+        if sub is None:
+            sub = await _stripe_find_by_sub_id(db, _stripe_invoice_subscription_id(obj))
+        if sub is None:
+            sub = await _stripe_attribute_by_metadata(
+                db, obj, (obj.get("parent") or {}).get("subscription_details") or {})
         if sub:
             user_id = sub.user_id
+            if isinstance(obj.get("customer"), str) and not sub.stripe_customer_id:
+                sub.stripe_customer_id = obj["customer"]
             if etype == "invoice.payment_failed":
-                sub.status = SubscriptionStatus.PAST_DUE.value
+                # Captured BEFORE the downgrade: it is what separates "your
+                # membership never started" from "we couldn't renew it", and
+                # _stripe_apply_payment_failure is about to change it.
+                was_entitled = sub.is_entitled(grace_days=0)
+                _stripe_apply_payment_failure(sub)
+                await _notify_payment_failed(db, sub, obj, first_payment=not was_entitled)
 
-    await _record_event(db, provider="stripe", event_id=event_id, event_type=etype, user_id=user_id)
+    if user_id is None:
+        # Not an empty state: say so, with the ids needed to reconcile by hand.
+        logger.warning("Stripe webhook %s (%s) could not be attributed to a user: %s",
+                       event_id, etype, _stripe_event_trace(etype, obj))
+
+    await _record_event(db, provider="stripe", event_id=event_id, event_type=etype,
+                        user_id=user_id, payload=_stripe_event_trace(etype, obj))
 
 
 async def _stripe_find_by_customer(db: AsyncSession, customer_id: str | None) -> Subscription | None:
@@ -362,173 +663,18 @@ async def _stripe_find_by_sub_id(db: AsyncSession, sub_id: str | None) -> Subscr
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# PayPal (web alternative rail) — Subscriptions API + webhook
+# PayPal — WITHDRAWN RAIL (removed 2026-08-23)
 # ════════════════════════════════════════════════════════════════════════════
-
-_PAYPAL_STATUS_MAP = {
-    "APPROVAL_PENDING": SubscriptionStatus.NONE.value,
-    "APPROVED": SubscriptionStatus.NONE.value,
-    "ACTIVE": SubscriptionStatus.ACTIVE.value,
-    "SUSPENDED": SubscriptionStatus.PAST_DUE.value,
-    "CANCELLED": SubscriptionStatus.CANCELED.value,
-    "EXPIRED": SubscriptionStatus.EXPIRED.value,
-}
-
-
-async def _paypal_token() -> str:
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
-        resp = await client.post(
-            f"{settings.PAYPAL_API_BASE}/v1/oauth2/token",
-            data={"grant_type": "client_credentials"},
-            auth=(settings.PAYPAL_CLIENT_ID, settings.PAYPAL_CLIENT_SECRET),
-        )
-    if resp.status_code >= 400:
-        raise HTTPException(status_code=http_status.HTTP_502_BAD_GATEWAY, detail="PayPal auth failed")
-    return resp.json()["access_token"]
-
-
-async def _paypal_request(method: str, path: str, token: str, json_body: dict | None = None) -> dict:
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
-        resp = await client.request(method, f"{settings.PAYPAL_API_BASE}{path}",
-                                    headers={"Authorization": f"Bearer {token}",
-                                             "Content-Type": "application/json"},
-                                    json=json_body)
-    if resp.status_code >= 400:
-        logger.warning("PayPal %s %s -> %s %s", method, path, resp.status_code, resp.text[:300])
-        raise HTTPException(status_code=http_status.HTTP_502_BAD_GATEWAY, detail="PayPal request failed")
-    return resp.json() if resp.content else {}
-
-
-async def paypal_create_checkout(db: AsyncSession, user: User, interval: str = "month") -> dict:
-    _require_configured(settings.PAYPAL_CLIENT_SECRET, "PayPal")
-    plan = plan_for_interval(interval)
-    plan_id = settings.PAYPAL_PLAN_ID_ANNUAL if plan == PLAN_PLUS_ANNUAL else settings.PAYPAL_PLAN_ID
-    return_url = f"{settings.PUBLIC_WEB_URL}/subscription?status=success&provider=paypal"
-    cancel_url = f"{settings.PUBLIC_WEB_URL}/subscription?status=cancel&provider=paypal"
-
-    if _test_mode(settings.PAYPAL_CLIENT_SECRET):
-        return {"checkout_url": f"{return_url}&subscription_id=I-TEST-DEV",
-                "reference_id": "I-TEST-DEV", "test_mode": True}
-
-    token = await _paypal_token()
-    body = {
-        "plan_id": plan_id,
-        "custom_id": str(user.id),
-        "subscriber": {"email_address": user.email},
-        "application_context": {
-            "brand_name": settings.SUBSCRIPTION_PRODUCT_NAME,
-            "user_action": "SUBSCRIBE_NOW",
-            "return_url": return_url,
-            "cancel_url": cancel_url,
-        },
-    }
-    # Extend: defer first billing to the end of any entitled time they already have
-    # (grandfather comp / paid) so the paid plan stacks on top instead of overwriting.
-    defer = _defer_start(await get_subscription(db, user.id))
-    if defer is not None:
-        body["start_time"] = defer.strftime("%Y-%m-%dT%H:%M:%SZ")
-    data = await _paypal_request("POST", "/v1/billing/subscriptions", token, body)
-    approve = next((l["href"] for l in data.get("links", []) if l.get("rel") == "approve"), None)
-    if not approve:
-        raise HTTPException(status_code=http_status.HTTP_502_BAD_GATEWAY, detail="PayPal approval link missing")
-    return {"checkout_url": approve, "reference_id": data["id"], "test_mode": False}
-
-
-async def paypal_confirm(db: AsyncSession, user: User, subscription_id: str) -> Subscription:
-    sub = await get_or_create_subscription(db, user.id)
-
-    if _test_mode(settings.PAYPAL_CLIENT_SECRET):
-        _apply_active_period(sub, provider=SubscriptionProvider.PAYPAL.value,
-                             status_value=SubscriptionStatus.ACTIVE.value,
-                             period_start=datetime.now(timezone.utc),
-                             period_end=datetime.now(timezone.utc) + _MONTH)
-        sub.paypal_subscription_id = subscription_id or "I-TEST-DEV"
-        await _record_event(db, provider="paypal", event_id=subscription_id or "I-TEST-DEV",
-                            event_type="subscription.confirm.test", user_id=user.id)
-        return sub
-
-    _require_configured(settings.PAYPAL_CLIENT_SECRET, "PayPal")
-    token = await _paypal_token()
-    data = await _paypal_request("GET", f"/v1/billing/subscriptions/{subscription_id}", token)
-    if str(data.get("custom_id")) not in (str(user.id), "None", ""):
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
-                            detail="Subscription does not belong to this user")
-    sub.paypal_subscription_id = subscription_id
-    _paypal_apply(sub, data)
-    await _record_event(db, provider="paypal", event_id=subscription_id,
-                        event_type="subscription.confirmed", user_id=user.id)
-    return sub
-
-
-def _paypal_apply(sub: Subscription, data: dict) -> None:
-    mapped = _PAYPAL_STATUS_MAP.get(data.get("status", ""), SubscriptionStatus.NONE.value)
-    plan = (PLAN_PLUS_ANNUAL if data.get("plan_id") and data.get("plan_id") == settings.PAYPAL_PLAN_ID_ANNUAL
-            else PLAN_PLUS_MONTHLY)
-    next_billing = (data.get("billing_info") or {}).get("next_billing_time")
-    period_end = None
-    if next_billing:
-        try:
-            period_end = datetime.fromisoformat(next_billing.replace("Z", "+00:00"))
-        except ValueError:
-            period_end = None
-    if period_end is None and mapped == SubscriptionStatus.ACTIVE.value:
-        period_end = datetime.now(timezone.utc) + _period_delta(plan)
-    _apply_active_period(sub, provider=SubscriptionProvider.PAYPAL.value,
-                         status_value=mapped, period_end=period_end, plan=plan)
-
-
-async def paypal_verify_webhook(headers: dict, body: dict) -> bool:
-    if not settings.PAYPAL_WEBHOOK_ID:
-        return settings.DEBUG
-    token = await _paypal_token()
-    verify_body = {
-        "auth_algo": headers.get("paypal-auth-algo"),
-        "cert_url": headers.get("paypal-cert-url"),
-        "transmission_id": headers.get("paypal-transmission-id"),
-        "transmission_sig": headers.get("paypal-transmission-sig"),
-        "transmission_time": headers.get("paypal-transmission-time"),
-        "webhook_id": settings.PAYPAL_WEBHOOK_ID,
-        "webhook_event": body,
-    }
-    data = await _paypal_request("POST", "/v1/notifications/verify-webhook-signature",
-                                 token, verify_body)
-    return data.get("verification_status") == "SUCCESS"
-
-
-async def paypal_handle_webhook(db: AsyncSession, event: dict) -> None:
-    event_id = event.get("id", "")
-    if await _already_processed(db, "paypal", event_id):
-        return
-    etype = event.get("event_type", "")
-    resource = event.get("resource", {})
-    sub_id = resource.get("id") or (resource.get("billing_agreement_id"))
-    custom = resource.get("custom_id") or (resource.get("custom"))
-
-    sub = None
-    user_id = int(custom) if custom and str(custom).isdigit() else None
-    if sub_id:
-        r = await db.execute(select(Subscription).where(Subscription.paypal_subscription_id == sub_id))
-        sub = r.scalar_one_or_none()
-    if sub is None and user_id:
-        sub = await get_or_create_subscription(db, user_id)
-        sub.paypal_subscription_id = sub_id or sub.paypal_subscription_id
-    if sub:
-        user_id = sub.user_id
-        if etype in ("BILLING.SUBSCRIPTION.ACTIVATED", "BILLING.SUBSCRIPTION.RE-ACTIVATED",
-                     "PAYMENT.SALE.COMPLETED"):
-            _apply_active_period(sub, provider=SubscriptionProvider.PAYPAL.value,
-                                 status_value=SubscriptionStatus.ACTIVE.value,
-                                 period_end=datetime.now(timezone.utc) + _MONTH)
-        elif etype == "BILLING.SUBSCRIPTION.CANCELLED":
-            sub.status = SubscriptionStatus.CANCELED.value
-            sub.cancel_at_period_end = True
-            sub.canceled_at = datetime.now(timezone.utc)
-        elif etype in ("BILLING.SUBSCRIPTION.EXPIRED", "BILLING.SUBSCRIPTION.SUSPENDED"):
-            sub.status = (SubscriptionStatus.EXPIRED.value if "EXPIRED" in etype
-                          else SubscriptionStatus.PAST_DUE.value)
-    await _record_event(db, provider="paypal", event_id=event_id, event_type=etype, user_id=user_id)
-
-
+#
+# PayPal was advertised by /plans and rendered as a button on the web paywall
+# while no PayPal credential was ever mounted in production, so every tap
+# returned 503 "PayPal billing is not configured". The first paying customer to
+# hit it pressed it twice before finding the card button. The rail is gone
+# rather than gated: an option nobody can complete is worse than no option.
+#
+# `SubscriptionProvider.PAYPAL` and `subscriptions.paypal_subscription_id`
+# survive in the model because the deployed column still has them in its
+# domain. Zero rows use either.
 # ════════════════════════════════════════════════════════════════════════════
 # Google Play Billing (Android) — server-side purchase verification
 # ════════════════════════════════════════════════════════════════════════════
@@ -744,15 +890,6 @@ async def cancel_subscription(db: AsyncSession, user: User, at_period_end: bool 
         else:
             data = await _stripe_request("DELETE", f"/v1/subscriptions/{sub.stripe_subscription_id}")
             _stripe_apply_subscription_object(sub, data)
-    elif provider == SubscriptionProvider.PAYPAL.value and sub.paypal_subscription_id \
-            and not _test_mode(settings.PAYPAL_CLIENT_SECRET):
-        token = await _paypal_token()
-        await _paypal_request("POST",
-                              f"/v1/billing/subscriptions/{sub.paypal_subscription_id}/cancel",
-                              token, {"reason": "User requested cancellation"})
-        sub.status = SubscriptionStatus.CANCELED.value
-        sub.cancel_at_period_end = True
-        sub.canceled_at = datetime.now(timezone.utc)
     else:  # test-mode
         sub.status = SubscriptionStatus.CANCELED.value
         sub.cancel_at_period_end = at_period_end

@@ -48,6 +48,7 @@ object ApiClient {
                 .addInterceptor(AuthInterceptor(context))
                 .authenticator(TokenAuthenticator(context))  // silent refresh-and-retry on 401 (iOS parity)
                 .addInterceptor(RetryInterceptor(maxRetries = 3))
+                .addInterceptor(PaywallInterceptor())   // app-wide 402 → membership gate
                 .addNetworkInterceptor(CacheControlInterceptor())
                 .addInterceptor(HttpLoggingInterceptor().apply {
                     level = HttpLoggingInterceptor.Level.BASIC

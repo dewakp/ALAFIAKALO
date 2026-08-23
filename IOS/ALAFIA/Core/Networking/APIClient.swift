@@ -375,6 +375,14 @@ actor APIClient {
             return
         case 401:
             throw APIError.unauthorized
+        case 402:
+            // The app-wide paywall. Broadcast it so the entitlement gate closes
+            // wherever the user happens to be, not only at launch.
+            NotificationCenter.default.post(name: .alafiaPaymentRequired, object: nil)
+            if let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
+                throw APIError.paymentRequired(detail.detail)
+            }
+            throw APIError.paymentRequired("An active ALAFIA Membership is required.")
         case 400...499:
             if let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
                 throw APIError.clientError(detail.detail)
@@ -393,6 +401,7 @@ actor APIClient {
 enum APIError: LocalizedError {
     case invalidResponse
     case unauthorized
+    case paymentRequired(String)
     case clientError(String)
     case serverError
     case unknown(Int)
@@ -401,6 +410,7 @@ enum APIError: LocalizedError {
         switch self {
         case .invalidResponse: return "Invalid server response"
         case .unauthorized: return "Please log in again"
+        case .paymentRequired(let msg): return msg
         case .clientError(let msg): return msg
         case .serverError: return "Server error — try again later"
         case .unknown(let code): return "Unexpected error (\(code))"

@@ -38,8 +38,16 @@ def _paywall_open_path(path: str) -> bool:
     return any(path.startswith(p) for p in _PAYWALL_OPEN_PREFIXES)
 
 
-def _is_exempt_user(user: User | None) -> bool:
-    """True for owner/staff emails that bypass the paywall entirely."""
+def is_paywall_exempt(user: User | None) -> bool:
+    """True for owner/staff emails that bypass the paywall entirely.
+
+    Public because the exemption has to be visible everywhere entitlement is
+    *answered*, not just where it is enforced. It used to be honoured only by
+    ``require_active_subscription``, which was invisible on web (the 402 that
+    would have revealed the gap never fired for these accounts) — but the iOS and
+    Android clients gate the whole app on ``GET /subscription/status``, so an
+    exempt owner with no subscription row would have been walled out of both.
+    """
     exempt = {e.strip().lower() for e in settings.SUBSCRIPTION_EXEMPT_EMAILS if e.strip()}
     return bool(user and user.email and user.email.lower() in exempt)
 
@@ -66,7 +74,7 @@ async def require_active_subscription(
     if not settings.SUBSCRIPTION_REQUIRED or _paywall_open_path(request.url.path):
         return
     user = await _user_from_bearer(request, db)
-    if user is None or _is_exempt_user(user):
+    if user is None or is_paywall_exempt(user):
         return
     if not svc.is_entitled(await svc.get_subscription(db, user.id)):
         raise HTTPException(
@@ -80,7 +88,7 @@ async def require_plus(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Allow the request only when the user has an active Plus entitlement."""
-    if not settings.SUBSCRIPTION_ENABLED:
+    if not settings.SUBSCRIPTION_ENABLED or is_paywall_exempt(current_user):
         return current_user
     sub = await svc.get_subscription(db, current_user.id)
     if not svc.is_entitled(sub):

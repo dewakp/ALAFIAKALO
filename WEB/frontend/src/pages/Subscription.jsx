@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
-import { Sparkles, Check, CreditCard, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
+import { Sparkles, Check, CreditCard, Loader2, ShieldCheck, Smartphone, AlertCircle } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
 const MEMBERSHIP_FEATURES = [
@@ -19,7 +19,7 @@ export default function Subscription() {
   const [plans, setPlans] = useState(null);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState('');        // 'stripe' | 'paypal' | 'cancel'
+  const [busy, setBusy] = useState('');        // 'stripe' | 'cancel'
   const [banner, setBanner] = useState(null);  // { type, text }
   const [interval, setBillingInterval] = useState('month'); // 'month' | 'year'
   const [params, setParams] = useSearchParams();
@@ -34,7 +34,7 @@ export default function Subscription() {
     setLoading(false);
   }, []);
 
-  // Finalise a redirect back from Stripe / PayPal.
+  // Finalise a redirect back from Stripe Checkout.
   useEffect(() => {
     const outcome = params.get('status');
     const provider = params.get('provider');
@@ -121,6 +121,10 @@ export default function Subscription() {
   // need to see & buy a plan so they can subscribe/extend before the comp ends.
   const isComp = entitled && status?.provider === 'none';
   const canBuy = !entitled || isComp;   // show plan selection
+  // Tried to pay and it did not go through. Without this the paywall is
+  // identical to a first visit's, so a declined card looks like "nothing
+  // happened" — the user has no reason to think anything needs fixing.
+  const paymentFailed = !entitled && (status?.status === 'incomplete' || status?.status === 'past_due');
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '1rem' }}>
@@ -171,7 +175,7 @@ export default function Subscription() {
               </div>
             )}
           </div>
-          {(status.provider === 'stripe' || status.provider === 'paypal') && !status.cancel_at_period_end && (
+          {status.provider === 'stripe' && !status.cancel_at_period_end && (
             <button onClick={cancel} disabled={busy === 'cancel'} style={secondaryBtn}>
               {busy === 'cancel' ? 'Canceling…' : 'Cancel subscription'}
             </button>
@@ -195,6 +199,18 @@ export default function Subscription() {
                 Ends on <strong>{new Date(status.current_period_end).toLocaleDateString()}</strong> — subscribe below to keep your membership after that.
               </div>
             )}
+          </div>
+        )}
+        {paymentFailed && (
+          <div style={paymentFailedCard} role="alert" data-testid="payment-failed">
+            <AlertCircle size={20} color="#c62828" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <strong style={{ display: 'block', marginBottom: 2 }}>Your last payment didn’t go through</strong>
+              <span style={{ fontSize: 14 }}>
+                Your card was declined, so your membership never started. Try again below —
+                a different card usually works.
+              </span>
+            </div>
           </div>
         )}
         {canBuy && (
@@ -235,10 +251,6 @@ export default function Subscription() {
             {busy === 'stripe' ? <Loader2 className="spin" size={18} /> : <CreditCard size={18} />}
             Pay with card
           </button>
-          <button onClick={() => startCheckout('paypal')} disabled={!!busy} style={paypalBtn}>
-            {busy === 'paypal' ? <Loader2 className="spin" size={18} /> : <span style={{ fontWeight: 800, fontStyle: 'italic' }}>PayPal</span>}
-            {busy !== 'paypal' && <span>Checkout</span>}
-          </button>
 
           <p style={{ fontSize: 12, color: '#999', marginTop: 14, textAlign: 'center' }}>
             Secure checkout. Cancel anytime.
@@ -260,7 +272,7 @@ export default function Subscription() {
 }
 
 function prettyProvider(p) {
-  return { stripe: 'Card (Stripe)', paypal: 'PayPal', google_play: 'Google Play', apple: 'App Store' }[p] || p;
+  return { stripe: 'Card (Stripe)', google_play: 'Google Play', apple: 'App Store' }[p] || p;
 }
 
 const primaryBtn = {
@@ -268,10 +280,10 @@ const primaryBtn = {
   width: '100%', padding: '13px', border: 'none', borderRadius: 10, cursor: 'pointer',
   background: '#7c4dff', color: '#fff', fontSize: 16, fontWeight: 600, marginBottom: 10,
 };
-const paypalBtn = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-  width: '100%', padding: '13px', border: '1px solid #ffc439', borderRadius: 10, cursor: 'pointer',
-  background: '#ffc439', color: '#003087', fontSize: 16, fontWeight: 600,
+const paymentFailedCard = {
+  display: 'flex', gap: 10, alignItems: 'flex-start',
+  border: '1px solid #ef9a9a', background: '#ffebee', color: '#c62828',
+  borderRadius: 14, padding: 16, marginBottom: 16,
 };
 const secondaryBtn = {
   marginTop: 16, padding: '9px 16px', border: '1px solid #ef9a9a', borderRadius: 8,
