@@ -603,10 +603,28 @@ async def estimate_nutrients(
     """
     from app.services import plausibility
     from app.services.food_aliases import canonicalize
+    from app.services.meal_parser import extract_nutrient_facts
+
+    # Facts the user stated about the food are NOT part of its name. The pre-save
+    # suggestion posts the whole description as one food_name, so
+    # "Nounos Yogurt with 170 mg calcium, 210 potassium, 6g fat, 14 g carbohydrate"
+    # was looked up verbatim — nothing matches that, and the fallback answered
+    # with a different product's numbers (494 kcal) while the user's own figures
+    # sat unread in the string.
+    clean_name, stated = extract_nutrient_facts(food_name)
+    display_name = clean_name or food_name
+
     # Locale normalization: map non-English / regional names to an English head-noun
     # for lookup (e.g. "arroz"→rice, "jollof"→jollof rice). Display keeps the original.
-    lookup_name = canonicalize(food_name)
+    lookup_name = canonicalize(display_name)
     result = await _estimate_nutrients_impl(db, lookup_name, serving_size)
+
+    if stated and isinstance(result, dict):
+        # Report them verbatim, per SERVING as the user stated them. They are not
+        # merged into `nutrients` (which is per-100 g) — mixing the two bases is
+        # how a 150 g yogurt turns into a four-figure calorie count.
+        result["stated_nutrients"] = dict(stated)
+        result["stated_food_name"] = display_name
     if isinstance(result, dict) and isinstance(result.get("nutrients"), dict):
         corrected, warnings, believable = plausibility.review(lookup_name, result["nutrients"])
         result["nutrients"] = corrected
@@ -734,6 +752,42 @@ async def _estimate_nutrients_impl(
         "nutrients": {},
         "cached": False,
     }
+
+
+async def _learn_stated(db: AsyncSession, food_name: str, stated: dict,
+                        serving_weight_g: float | None, user_id: int | None = None) -> None:
+    """Remember what the user told us, so the NEXT lookup starts from their numbers.
+
+    Correcting a meal used to teach identification only: `/ai/vision/feedback`
+    writes the vision corpus (`food_training_samples`) and never touches
+    `learned_food_nutrients`, which is the one table `get_learned` consults. So
+    "ALAFIA learned the right foods" was literally true and nutritionally
+    useless — the next estimate re-derived everything from scratch and answered
+    with a different product's numbers.
+
+    Only learned when the serving weight is KNOWN and credible. Stated values are
+    per serving; storing them as per-100 g without a weight would bake in a
+    silent scaling error, which is worse than not learning at all.
+    """
+    if not stated or not serving_weight_g or serving_weight_g < 5:
+        return
+    factor = 100.0 / float(serving_weight_g)
+    per100 = {k: round(v * factor, 4) for k, v in stated.items()
+              if isinstance(v, (int, float))}
+    try:
+        from app.services import plausibility
+        from app.services.learned_nutrient_service import record_correction
+        reviewed, _warnings, believable = plausibility.review(food_name, per100)
+        if not believable:
+            logger.info("Not learning %r — stated values failed the plausibility review", food_name)
+            return
+        await record_correction(db, food_name, reviewed,
+                                serving_weight_g=round(float(serving_weight_g), 1),
+                                user_id=user_id, source="user_correction")
+        logger.info("Learned %r from stated values (%.0f g serving)", food_name, serving_weight_g)
+    except Exception:
+        # Learning is best-effort and must never break the estimate itself.
+        logger.exception("Could not record stated nutrients for %r", food_name)
 
 
 async def estimate_meal_nutrients(
@@ -884,6 +938,11 @@ async def estimate_meal_nutrients(
     # Anything the user stated OUTRANKS the estimate — they read it off the pot.
     if stated:
         aggregate.update(stated)
+        # …and is remembered, so the next lookup for this food starts from the
+        # user's own numbers instead of re-deriving them.
+        if len(component_results) == 1:
+            await _learn_stated(db, component_results[0]["food_name"], stated,
+                                component_results[0].get("qty_g"))
 
     # Believability guardrail at the meal level + roll up component warnings.
     from app.services import plausibility
