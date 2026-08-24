@@ -5,13 +5,31 @@ import { Component } from 'react';
  * or a lazy-loaded route chunk fails to load (which happens when the app is
  * redeployed with new asset hashes while a stale index.html is cached).
  *
- * - Chunk-load failures self-heal: reload once to fetch the fresh assets.
+ * - Chunk-load failures self-heal: reload to fetch the fresh assets, rate
+ *   limited so a genuinely broken build cannot loop.
  * - Any other render error shows a recoverable message (with the error text,
  *   which is invaluable for diagnosing field issues) instead of a blank page.
  */
 const CHUNK_ERROR_RE =
   /Loading chunk|loading dynamically imported module|Failed to fetch dynamically imported module|Importing a module script failed/i;
-const RELOAD_FLAG = 'alafia_chunk_reloaded';
+const RELOAD_FLAG = 'alafia_chunk_reloaded_at';
+// Guard against a RELOAD LOOP, not against reloading twice in a session.
+//
+// This used to be a once-per-session flag, so the first deploy healed and every
+// deploy after it showed the error page instead — the flag was set and never
+// expired. On a day with several deploys that is most of them. A short window
+// still makes a genuine loop impossible (a broken build cannot reload faster
+// than this) while letting each new deploy self-heal.
+const RELOAD_COOLDOWN_MS = 30_000;
+
+function reloadedRecently() {
+  try {
+    const at = Number(sessionStorage.getItem(RELOAD_FLAG) || 0);
+    return at > 0 && Date.now() - at < RELOAD_COOLDOWN_MS;
+  } catch {
+    return false;   // private mode / storage blocked: healing beats erroring
+  }
+}
 
 export default class ErrorBoundary extends Component {
   state = { error: null };
@@ -22,15 +40,17 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error) {
     const msg = String(error?.message || error);
-    if (CHUNK_ERROR_RE.test(msg) && !sessionStorage.getItem(RELOAD_FLAG)) {
-      // First chunk failure after a deploy → reload once to pull fresh assets.
-      sessionStorage.setItem(RELOAD_FLAG, '1');
+    if (CHUNK_ERROR_RE.test(msg) && !reloadedRecently()) {
+      // A chunk failure means the app was redeployed under this tab: the loaded
+      // index.html names asset hashes that no longer exist. Reload to pull the
+      // fresh ones.
+      try { sessionStorage.setItem(RELOAD_FLAG, String(Date.now())); } catch { /* ignore */ }
       window.location.reload();
     }
   }
 
   handleReload = () => {
-    sessionStorage.removeItem(RELOAD_FLAG);
+    try { sessionStorage.removeItem(RELOAD_FLAG); } catch { /* ignore */ }
     window.location.reload();
   };
 

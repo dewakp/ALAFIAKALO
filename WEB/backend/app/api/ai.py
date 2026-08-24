@@ -421,6 +421,12 @@ class VisionFeedbackItem(BaseModel):
     name: str
     estimated_portion: str | None = None
     estimated_grams: float | None = None
+    # Nutrient values the user read off the label, per the stated portion.
+    # Without these a correction taught IDENTIFICATION only: the vision corpus
+    # learned the right food and `learned_food_nutrients` — the one table
+    # `get_learned` consults — stayed empty, so the next estimate re-derived the
+    # numbers from scratch and answered with a different product's.
+    nutrients: dict[str, float] | None = None
 
 
 class VisionFeedbackRequest(BaseModel):
@@ -450,6 +456,34 @@ async def vision_feedback(
     if sample is None:
         raise HTTPException(status_code=404, detail="Unknown sample for this user")
 
+    # Teach the NUTRIENTS too, not just the name. A correction that carries
+    # values the user read off the label is the most authoritative data we will
+    # ever have for that food.
+    learned_foods: list[str] = []
+    for item in body.items:
+        name = (item.name or "").strip()
+        if not name or not item.nutrients:
+            continue
+        grams = item.estimated_grams
+        if not grams or grams < 5:
+            continue     # per-100 g without a weight would bake in a scaling error
+        try:
+            from app.services import plausibility
+            from app.services.learned_nutrient_service import record_correction
+            factor = 100.0 / float(grams)
+            per100 = {k: round(float(v) * factor, 4)
+                      for k, v in item.nutrients.items() if isinstance(v, (int, float))}
+            reviewed, _warnings, believable = plausibility.review(name, per100)
+            if not believable:
+                logger.info("Not learning %r — stated values failed plausibility", name)
+                continue
+            await record_correction(db, name, reviewed,
+                                    serving_weight_g=round(float(grams), 1),
+                                    user_id=current_user.id, source="user_correction")
+            learned_foods.append(name)
+        except Exception:
+            logger.exception("Could not learn nutrients for %r from a correction", name)
+
     # Feed the correction into per-user recall so the next shot short-circuits.
     labels = "; ".join(i.name.strip() for i in body.items if i.name.strip())[:500]
     if labels and sample.media_asset_id:
@@ -467,6 +501,8 @@ async def vision_feedback(
         "sample_id": sample.id,
         "correction_kind": sample.correction_kind,
         "image_retained": sample.image_retained,
+        # So the UI can say what was actually learned rather than implying more.
+        "nutrients_learned": learned_foods,
     }
 
 

@@ -220,3 +220,23 @@ def _no_network_rxnorm(monkeypatch):
 
     monkeypatch.setattr(rxnorm, "lookup", _offline)
     monkeypatch.setattr("app.services.med_dose_validation.rxnorm_lookup", _offline)
+
+
+@pytest.fixture(autouse=True)
+def _reset_provider_registry():
+    """Clear the provider registry's module-level state between tests.
+
+    `_cooldown_until` and `_model_cache` are process globals. A test that puts a
+    provider on cooldown, or caches a discovered model, silently changes which
+    providers a LATER test selects — so the suite passes or fails depending on
+    the order pytest happens to choose. That is exactly how
+    test_llm_capability_does_not_emit_an_empty_reason failed in a randomised run
+    and passed in isolation.
+    """
+    from alafia_model.registry import providers as registry
+
+    registry._cooldown_until.clear()
+    registry._model_cache.clear()
+    yield
+    registry._cooldown_until.clear()
+    registry._model_cache.clear()

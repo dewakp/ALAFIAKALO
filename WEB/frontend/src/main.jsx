@@ -30,3 +30,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// Vite fires this when a lazy chunk's PRELOAD fails, which can happen before any
+// component renders — so the error boundary never sees it and the user gets a
+// dead page rather than the recovery screen. Same cause as the boundary's chunk
+// handling: the app was redeployed under an open tab.
+window.addEventListener('vite:preloadError', (event) => {
+  const KEY = 'alafia_chunk_reloaded_at';
+  try {
+    const at = Number(sessionStorage.getItem(KEY) || 0);
+    if (at > 0 && Date.now() - at < 30_000) return;   // loop guard
+    sessionStorage.setItem(KEY, String(Date.now()));
+  } catch { /* storage blocked — healing still beats a dead page */ }
+  event.preventDefault();
+  window.location.reload();
+});

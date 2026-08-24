@@ -208,12 +208,38 @@ async def _stripe_request(method: str, path: str, data: dict | None = None) -> d
     return resp.json()
 
 
-async def stripe_create_checkout(db: AsyncSession, user: User, interval: str = "month") -> dict:
+def checkout_return_base(origin: str | None) -> str:
+    """Where Stripe should send the user back to, after paying.
+
+    MUST be the origin they started on. `www.alafia.app` and `alafia.app` both
+    serve the app with no redirect between them, and localStorage is per-origin
+    — so a user who signs in on www, pays, and is returned to the apex arrives
+    with NO TOKEN. The app reads that as signed out, `/subscription/confirm`
+    never runs, and they land on a login page having just been charged. The
+    subscription is real (the webhook still fires), but to the user the payment
+    plainly failed.
+
+    The origin comes from a request header, so it is checked against the hosts
+    we actually serve before being used — an unvalidated redirect target is an
+    open redirect, and this one is handed to a payment provider.
+    """
+    allowed = {settings.PUBLIC_WEB_URL.rstrip("/")}
+    for entry in (settings.CORS_ORIGINS or []):
+        entry = str(entry).strip().rstrip("/")
+        if entry and entry != "*":
+            allowed.add(entry)
+    candidate = (origin or "").strip().rstrip("/")
+    return candidate if candidate in allowed else settings.PUBLIC_WEB_URL.rstrip("/")
+
+
+async def stripe_create_checkout(db: AsyncSession, user: User, interval: str = "month",
+                                 *, return_origin: str | None = None) -> dict:
     _require_configured(settings.STRIPE_SECRET_KEY, "Stripe")
     plan = plan_for_interval(interval)
     price_id = settings.STRIPE_PRICE_ID_ANNUAL if plan == PLAN_PLUS_ANNUAL else settings.STRIPE_PRICE_ID
-    success_url = f"{settings.PUBLIC_WEB_URL}/subscription?status=success&provider=stripe&session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{settings.PUBLIC_WEB_URL}/subscription?status=cancel&provider=stripe"
+    base = checkout_return_base(return_origin)
+    success_url = f"{base}/subscription?status=success&provider=stripe&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{base}/subscription?status=cancel&provider=stripe"
 
     if _test_mode(settings.STRIPE_SECRET_KEY):
         return {"checkout_url": f"{settings.PUBLIC_WEB_URL}/subscription?status=success&provider=stripe&session_id=cs_test_dev",
@@ -275,8 +301,27 @@ async def stripe_confirm(db: AsyncSession, user: User, session_id: str) -> Subsc
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
                             detail="Checkout session does not belong to this user")
     if session.get("payment_status") not in ("paid", "no_payment_required"):
-        raise HTTPException(status_code=http_status.HTTP_402_PAYMENT_REQUIRED,
-                            detail="Checkout not completed")
+        # Cash App Pay, ACH and other ASYNCHRONOUS methods finish the session
+        # before the money settles: status="complete" with payment_status
+        # "unpaid", and `checkout.session.async_payment_succeeded` arrives
+        # afterwards. Answering 402 here tells a user whose payment is on its way
+        # that their checkout was not completed, and the UI reports that as a
+        # failure — for a payment that then succeeds minutes later.
+        if session.get("status") != "complete":
+            raise HTTPException(status_code=http_status.HTTP_402_PAYMENT_REQUIRED,
+                                detail="Checkout not completed")
+        # Keep the ids so the settlement webhook can attribute, and leave the
+        # subscription UNENTITLED until the money actually lands.
+        sub.stripe_customer_id = session.get("customer") or sub.stripe_customer_id
+        if session.get("subscription"):
+            sub.stripe_subscription_id = session["subscription"]
+        sub.status = SubscriptionStatus.INCOMPLETE.value
+        await _record_event(db, provider="stripe", event_id=f"{session_id}:pending",
+                            event_type="checkout.session.pending", user_id=user.id,
+                            payload={"session": session_id, "payment_status": "unpaid"})
+        logger.info("Checkout %s for user %s is awaiting an async payment", session_id, user.id)
+        return sub
+
     sub.stripe_customer_id = session.get("customer") or sub.stripe_customer_id
     stripe_sub_id = session.get("subscription")
     if stripe_sub_id:
@@ -591,7 +636,11 @@ async def stripe_handle_webhook(db: AsyncSession, event: dict) -> None:
 
     user_id = None
     sub = None
-    if etype == "checkout.session.completed":
+    # `async_payment_succeeded` is the SETTLEMENT of an asynchronous method
+    # (Cash App Pay, ACH). Without it a Cash App purchase would sit at
+    # "incomplete" forever: `completed` fires with the payment still pending, and
+    # nothing else ever activated the subscription.
+    if etype in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
         ref = obj.get("client_reference_id")
         user_id = int(ref) if ref and str(ref).isdigit() else _stripe_metadata_user_id(obj)
         # A reference naming a user who no longer exists would otherwise violate
@@ -603,6 +652,19 @@ async def stripe_handle_webhook(db: AsyncSession, event: dict) -> None:
             sub.stripe_customer_id = obj.get("customer") or sub.stripe_customer_id
             if obj.get("subscription"):
                 await _stripe_sync_subscription(db, sub, obj["subscription"])
+    elif etype == "checkout.session.async_payment_failed":
+        # The async method declined after the session completed. Attribute it,
+        # keep them out, and tell them — same treatment as a declined card.
+        ref = obj.get("client_reference_id")
+        user_id = int(ref) if ref and str(ref).isdigit() else _stripe_metadata_user_id(obj)
+        if user_id and not await _user_exists(db, user_id):
+            user_id = None
+        if user_id:
+            sub = await get_or_create_subscription(db, user_id)
+            sub.stripe_customer_id = obj.get("customer") or sub.stripe_customer_id
+            was_entitled = sub.is_entitled(grace_days=0)
+            _stripe_apply_payment_failure(sub)
+            await _notify_payment_failed(db, sub, obj, first_payment=not was_entitled)
     elif etype in ("customer.subscription.updated", "customer.subscription.deleted",
                    "customer.subscription.created"):
         sub = await _stripe_find_by_customer(db, obj.get("customer"))
