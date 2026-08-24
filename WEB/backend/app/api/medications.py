@@ -4,7 +4,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
@@ -121,10 +121,31 @@ async def delete_medication(
     med = result.scalar_one_or_none()
     if not med:
         raise HTTPException(status_code=404, detail="Medication not found")
-    raise HTTPException(
-        status_code=403,
-        detail="Medication entries cannot be deleted. You can modify this entry instead.",
-    )
+
+    # This used to refuse EVERY delete with a flat 403, so the button in the UI
+    # could never succeed — and the client swallowed the rejection, so the row
+    # simply sat there and the app looked broken.
+    #
+    # What the rule is actually for is the clinical record: a prescription with
+    # doses recorded against it is part of the patient's history and must not
+    # vanish. A prescription with NO dose logs is a catalog entry — the EHR
+    # import creates these, and this account's only two are 2017 sandbox rows
+    # with zero doses. Deleting one of those destroys nothing.
+    dose_count = await db.scalar(
+        select(func.count(MedicationDoseLog.id)).where(
+            MedicationDoseLog.medication_id == med_id
+        )
+    ) or 0
+    if dose_count:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(f"{med.name} has {dose_count} recorded dose"
+                    f"{'' if dose_count == 1 else 's'} logged against it, so it is part "
+                    f"of your history and cannot be deleted. Mark it inactive instead."),
+        )
+
+    await db.delete(med)
+    await db.flush()
 
 
 # ── Med → Nutrient profile endpoints ─────────────────────────────────────────

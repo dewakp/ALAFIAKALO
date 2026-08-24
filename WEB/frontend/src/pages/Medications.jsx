@@ -214,7 +214,17 @@ export default function Medications() {
     try { await api.post('/medications/', payload); setRx({ ...EMPTY_RX }); loadMeds(); }
     catch (err) { alert(apiErrorMessage(err, 'Could not save medication')); }
   }
-  async function deleteRx(id) { await api.delete(`/medications/${id}`); loadMeds(); }
+  /* The rejection used to vanish: no catch, so a refused delete left the row in
+     place with nothing said, and the button read as broken. */
+  async function deleteRx(id, name) {
+    if (!window.confirm(`Remove ${name || 'this prescription'} from your list?`)) return;
+    try {
+      await api.delete(`/medications/${id}`);
+      loadMeds();
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Could not remove this prescription'));
+    }
+  }
 
   const doseTime = (d) => (d.log_time ? String(d.log_time).slice(0, 5) : timeFromNotes(d.notes));
 
@@ -492,7 +502,7 @@ export default function Medications() {
                         ⤵ Imported
                       </span>)}</td><td>{m.dosage} {m.dosage_unit}</td><td>{m.frequency ?? '-'}</td>
                     <td>{m.is_active ? '🟢 Active' : '⚪ Inactive'}</td>
-                    <td><button className="btn btn-danger btn-sm" onClick={() => deleteRx(m.id)}><Trash2 size={14} /></button></td>
+                    <td><button className="btn btn-danger btn-sm" onClick={() => deleteRx(m.id, m.name)}><Trash2 size={14} /></button></td>
                   </tr>
                 ))}
                 {meds.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No prescriptions yet</td></tr>}
