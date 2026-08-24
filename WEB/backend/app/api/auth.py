@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt  # PyJWT (maintained); legacy HS512 refresh tokens during migration
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -168,7 +169,20 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
         identity_uid=identity_uid,
     )
     db.add(user)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        # The pre-check above is not a lock. Two registrations for the same
+        # address arriving together both pass it, then both insert, and the
+        # loser hits ix_users_email — which surfaced as a 500 in production
+        # while the FIRST request had already created the account. The user saw
+        # a server error for a signup that had actually succeeded, retried, and
+        # the retries then tripped the auth rate limiter into 429s.
+        #
+        # Only the database can settle a uniqueness race, so the answer is the
+        # same one the pre-check gives: this address is taken.
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Email or username already registered")
 
     # Use the identity-minted canonical SID; fall back to a local canonical SID.
     if not sid:

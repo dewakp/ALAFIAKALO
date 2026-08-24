@@ -12,6 +12,7 @@ export default function Register() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -25,11 +26,19 @@ export default function Register() {
     // clients are UX, not enforcement.
     if (!dateOfBirth) { setError('Date of birth is required'); return; }
     if (new Date(dateOfBirth) > new Date()) { setError('Date of birth cannot be in the future'); return; }
+    // One click, one account. Without this the button fires a POST per click:
+    // production logs show four register requests inside 300ms, the first
+    // creating the account and the rest racing the unique index, then the
+    // retries tripping the auth rate limiter into 429s.
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await register(email, password, fullName, phone, dateOfBirth,
                      Intl.DateTimeFormat().resolvedOptions().locale?.split('-')[1] || null);
     } catch (err) {
       setError(apiErrorMessage(err, 'Registration failed'));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -102,8 +111,9 @@ export default function Register() {
               autoComplete="new-password"
             />
           </div>
-          <button className="btn btn-primary" style={{ width: '100%' }} type="submit">
-            Create Account
+          <button className="btn btn-primary" style={{ width: '100%' }} type="submit"
+                  disabled={submitting}>
+            {submitting ? 'Creating your account…' : 'Create Account'}
           </button>
         </form>
         <div className="auth-footer">
