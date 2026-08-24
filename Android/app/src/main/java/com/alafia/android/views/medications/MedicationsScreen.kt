@@ -1,4 +1,6 @@
 package com.alafia.android.views.medications
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
@@ -26,6 +28,8 @@ import com.alafia.android.models.MedicationDoseLog
 import com.alafia.android.models.MedicationFromImageResponse
 import com.alafia.android.schemas.MedicationRequest
 import com.alafia.android.schemas.MedicationDoseLogRequest
+import com.alafia.android.schemas.MedicationIntakeProposal
+import com.alafia.android.schemas.MedicationIntakeRequest
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -48,8 +52,36 @@ fun MedicationsScreen(navController: NavHostController) {
     var doseLogs by remember { mutableStateOf<List<MedicationDoseLog>>(emptyList()) }
     var loadingLogs by remember { mutableStateOf(false) }
     var showLogSheet by remember { mutableStateOf(false) }                      // general "Log New Intake"
+    var intakeText by remember { mutableStateOf("") }
+    var intakeBusy by remember { mutableStateOf(false) }
+    var intakeError by remember { mutableStateOf<String?>(null) }
+    var intakeProposal by remember { mutableStateOf<MedicationIntakeProposal?>(null) }
+    var intakeAccepted by remember { mutableStateOf<MedicationIntakeProposal?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    /** "I take Calcitriol" → a proposal. Nothing is written until the user acts. */
+    fun readIntake() {
+        val text = intakeText.trim()
+        if (text.isEmpty()) return
+        scope.launch {
+            intakeBusy = true; intakeProposal = null; intakeError = null
+            try {
+                val p = ApiClient.getApiService().proposeMedicationIntake(
+                    MedicationIntakeRequest(text)
+                )
+                if (p.medicationName.isBlank()) {
+                    intakeError = p.provenance ?: "No medication recognised."
+                } else {
+                    intakeProposal = p
+                }
+            } catch (e: Exception) {
+                intakeError = ErrorUtil.userMessage(e)
+            } finally {
+                intakeBusy = false
+            }
+        }
+    }
 
     fun loadDoseLogs() {
         scope.launch {
@@ -169,6 +201,22 @@ fun MedicationsScreen(navController: NavHostController) {
                     }
                 }
             } else {
+                IntakeIntentCard(
+                    text = intakeText,
+                    onTextChange = { intakeText = it },
+                    busy = intakeBusy,
+                    error = intakeError,
+                    proposal = intakeProposal,
+                    onRead = { readIntake() },
+                    onAccept = { p ->
+                        // Hand it to the sheet the user already knows rather
+                        // than logging on their behalf.
+                        intakeProposal = null
+                        intakeText = ""
+                        showLogSheet = true
+                        intakeAccepted = p
+                    },
+                )
                 IntakeLogContent(
                     date = logDate,
                     onDateChange = { logDate = it },
@@ -239,12 +287,14 @@ fun MedicationsScreen(navController: NavHostController) {
             medication = null,
             defaultDate = logDate,
             existingMedications = medications,
-            onDismiss = { showLogSheet = false },
+            prefill = intakeAccepted,
+            onDismiss = { showLogSheet = false; intakeAccepted = null },
             onSave = { request ->
                 scope.launch {
                     try {
                         ApiClient.getApiService().logMedicationDose(request)
                         showLogSheet = false
+                        intakeAccepted = null
                         Toast.makeText(context, "Intake logged!", Toast.LENGTH_SHORT).show()
                         loadDoseLogs()
                     } catch (e: Exception) {
@@ -364,12 +414,28 @@ private fun LogDoseDialog(
     medication: Medication?,
     defaultDate: LocalDate,
     existingMedications: List<Medication> = emptyList(),
+    /** A proposal read from free text, pre-filled so the user confirms in the
+     *  form they already know instead of the app writing a dose for them. */
+    prefill: MedicationIntakeProposal? = null,
     onDismiss: () -> Unit,
     onSave: (MedicationDoseLogRequest) -> Unit
 ) {
-    var medName by remember { mutableStateOf(medication?.name ?: "") }
-    var amount by remember { mutableStateOf((medication?.dosage ?: "").filter { it.isDigit() || it == '.' }) }
-    var unit by remember { mutableStateOf((medication?.dosage ?: "").filter { it.isLetter() }.ifBlank { "mg" }) }
+    var medName by remember {
+        mutableStateOf(prefill?.medicationName?.takeIf { it.isNotBlank() } ?: medication?.name ?: "")
+    }
+    var amount by remember {
+        mutableStateOf(
+            prefill?.doseAmount?.let { a ->
+                if (a == a.toLong().toDouble()) a.toLong().toString() else a.toString()
+            } ?: (medication?.dosage ?: "").filter { it.isDigit() || it == '.' }
+        )
+    }
+    var unit by remember {
+        mutableStateOf(
+            prefill?.doseUnit?.takeIf { it.isNotBlank() }
+                ?: (medication?.dosage ?: "").filter { it.isLetter() }.ifBlank { "mg" }
+        )
+    }
     var time by remember { mutableStateOf(java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))) }
     var systolic by remember { mutableStateOf("") }
     var diastolic by remember { mutableStateOf("") }
@@ -521,4 +587,81 @@ private fun vitalsSummary(log: MedicationDoseLog): String? {
     log.pre_heart_rate?.let { parts.add("HR $it") }
     log.pre_temperature_c?.let { parts.add(String.format("%.1f°F", it * 9 / 5 + 32)) }
     return if (parts.isEmpty()) null else "Pre: " + parts.joinToString(", ")
+}
+
+
+/**
+ * Free-text medication intake: "I take Calcitriol".
+ *
+ * Shows the proposed dose WITH its provenance, always. An inferred dose that
+ * does not say where it came from cannot be told apart from one the app made up
+ * — and on this data most user/medication pairs use more than one dose over
+ * time, so the value is a suggestion, not a fact.
+ */
+@Composable
+private fun IntakeIntentCard(
+    text: String,
+    onTextChange: (String) -> Unit,
+    busy: Boolean,
+    error: String?,
+    proposal: MedicationIntakeProposal?,
+    onRead: () -> Unit,
+    onAccept: (MedicationIntakeProposal) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    label = { Text("Say it in words") },
+                    placeholder = { Text("e.g. \"I take Calcitriol\"") },
+                )
+                Spacer(Modifier.width(8.dp))
+                if (busy) {
+                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                } else {
+                    TextButton(onClick = onRead, enabled = text.isNotBlank()) { Text("Read") }
+                }
+            }
+
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error,
+                     style = MaterialTheme.typography.bodySmall,
+                     modifier = Modifier.padding(top = 6.dp))
+            }
+
+            if (proposal != null && proposal.medicationName.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    buildString {
+                        append(proposal.medicationName)
+                        proposal.doseAmount?.let { a ->
+                            append(" — ")
+                            append(if (a == a.toLong().toDouble()) a.toLong().toString() else a.toString())
+                            proposal.doseUnit?.let { append(" $it") }
+                        }
+                    },
+                    fontWeight = FontWeight.SemiBold,
+                )
+                proposal.provenance?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
+                proposal.blocking.forEach { f ->
+                    Text(f.message, style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.error,
+                         modifier = Modifier.padding(top = 4.dp))
+                }
+                Button(onClick = { onAccept(proposal) },
+                       modifier = Modifier.padding(top = 8.dp)) {
+                    Text(if (proposal.hasDose) "Use this" else "Fill the name")
+                }
+            }
+        }
+    }
 }

@@ -63,6 +63,13 @@ final class MedicationsViewModel {
     }
 
     /// Records a "taken" dose event. Returns true on success.
+    /// Read free text into a dose proposal. Writes nothing — see the model.
+    func readIntake(_ text: String) async -> MedicationIntakeProposal? {
+        try? await APIClient.shared.post(
+            "/medications/intake-intent", body: MedicationIntakeRequest(text: text)
+        )
+    }
+
     func logDose(_ dose: MedicationDoseLogCreate) async -> Bool {
         do {
             let _: MedicationDoseLog = try await APIClient.shared.post("/medications/dose-logs", body: dose)
@@ -104,6 +111,11 @@ struct MedicationsView: View {
     @State private var scanning = false
     @State private var scanPrefill: MedicationFromImageResponse?
     @State private var showScanForm = false
+    @State private var intakeText = ""
+    @State private var intakeBusy = false
+    @State private var intakeError: String?
+    @State private var intakeProposal: MedicationIntakeProposal?
+    @State private var intakePrefill: MedicationIntakeProposal?
 
     private var logDateISO: String {
         let f = DateFormatter()
@@ -166,7 +178,8 @@ struct MedicationsView: View {
             MedicationDoseSheet(medication: med, vm: vm, defaultDate: logDate)
         }
         .sheet(isPresented: $showLogSheet, onDismiss: refreshLogsIfNeeded) {
-            MedicationDoseSheet(medication: nil, vm: vm, defaultDate: logDate)
+            MedicationDoseSheet(medication: nil, vm: vm, defaultDate: logDate,
+                                prefill: intakePrefill)
         }
         .task { await vm.fetchMedications() }
     }
@@ -202,8 +215,73 @@ struct MedicationsView: View {
 
     // MARK: - Intake-log tab (date + per-day history with pre-med vitals)
 
+    /// 0.5 stays 0.5; 2.0 prints as 2. Doses are read at a glance.
+    static func doseText(_ value: Double) -> String {
+        value == value.rounded() && abs(value) < 1e9
+            ? String(Int(value)) : String(format: "%g", value)
+    }
+
+    private func runIntake() async {
+        let text = intakeText.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        intakeBusy = true; intakeProposal = nil; intakeError = nil
+        defer { intakeBusy = false }
+        guard let proposal = await vm.readIntake(text) else {
+            intakeError = "Couldn’t read that."; return
+        }
+        if proposal.medicationName.isEmpty {
+            intakeError = proposal.provenance ?? "No medication recognised."
+        } else {
+            intakeProposal = proposal
+        }
+    }
+
+    /// Hand the proposal to the sheet the user already knows, rather than
+    /// logging it behind their back.
+    private func acceptProposal(_ p: MedicationIntakeProposal) {
+        intakePrefill = p
+        intakeProposal = nil
+        intakeText = ""
+        showLogSheet = true
+    }
+
     @ViewBuilder private var intakeLog: some View {
         List {
+            Section("Say it in words") {
+                HStack {
+                    TextField("e.g. “I take Calcitriol”", text: $intakeText)
+                        .textInputAutocapitalization(.never)
+                        .onSubmit { Task { await runIntake() } }
+                    if intakeBusy { ProgressView() }
+                    else {
+                        Button("Read") { Task { await runIntake() } }
+                            .disabled(intakeText.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+                if let p = intakeProposal, !p.medicationName.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(p.medicationName).bold()
+                            if let amount = p.doseAmount {
+                                Text("— \(Self.doseText(amount)) \(p.doseUnit ?? "")")
+                            }
+                        }
+                        // Provenance is always shown. An inferred dose that does
+                        // not say where it came from cannot be told apart from
+                        // one the app invented.
+                        if let why = p.provenance {
+                            Text(why).font(.caption).foregroundStyle(.secondary)
+                        }
+                        ForEach(p.blocking) { f in
+                            Text(f.message).font(.caption).foregroundStyle(.red)
+                        }
+                        Button(p.hasDose ? "Use this" : "Fill the name") { acceptProposal(p) }
+                            .buttonStyle(.borderedProminent).controlSize(.small)
+                    }
+                } else if let err = intakeError {
+                    Text(err).font(.caption).foregroundStyle(.red)
+                }
+            }
             Section {
                 DatePicker("Date", selection: $logDate, displayedComponents: .date)
                 Button { showLogSheet = true } label: {
@@ -420,6 +498,10 @@ struct MedicationDoseSheet: View {
     let medication: Medication?
     @Bindable var vm: MedicationsViewModel
     var defaultDate: Date = Date()
+    /// A proposal read from free text ("I take Calcitriol"), pre-filled here so
+    /// the user confirms in the form they already know instead of the app
+    /// writing a dose on their behalf.
+    var prefill: MedicationIntakeProposal? = nil
     @Environment(\.dismiss) var dismiss
 
     @State private var medName = ""
@@ -512,6 +594,14 @@ struct MedicationDoseSheet: View {
             }
             .onAppear {
                 date = defaultDate
+                // A proposal read from free text wins over the registry default:
+                // it is what the user just asked for, and it already carries the
+                // dose their own history says they take.
+                if let p = prefill, !p.medicationName.isEmpty {
+                    medName = p.medicationName
+                    if let value = p.doseAmount { amount = MedicationsView.doseText(value) }
+                    if let u = p.doseUnit, !u.isEmpty { unit = u }
+                }
                 if amount.isEmpty {
                     amount = (medication?.dosage ?? "").filter { "0123456789.".contains($0) }
                 }

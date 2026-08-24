@@ -20,7 +20,10 @@ from app.schemas.medications import (
     MedicationDoseLogCreate,
     MedicationDoseLogResponse,
     MedNutrientLookupResponse,
+    IntakeIntentRequest,
 )
+from app.services.med_dose_validation import validate_dose, blocking
+from app.services.med_intake_intent import propose_intake
 from app.services.med_nutrient_service import lookup_med_nutrients, seed_med_profiles
 
 router = APIRouter()
@@ -178,6 +181,24 @@ async def lookup_med_nutrient(
 # ── Medication Dose Log endpoints ─────────────────────────────────────────────
 
 
+@router.post("/intake-intent")
+async def propose_medication_intake(
+    body: IntakeIntentRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Read "I take Calcitriol" into a dose the user confirms. Writes NOTHING.
+
+    Supplies a missing dose from this user's own logging history, with the
+    provenance shown alongside it, and refuses to pre-fill anything the dose
+    guard can prove is wrong. Confirmation is required by design: on this
+    database, 6 of 9 user/medication pairs with repeat logs use more than one
+    dose over time, so "the dose from history" is often not a single answer.
+    """
+    proposal = await propose_intake(db, current_user.id, body.text)
+    return proposal.as_dict()
+
+
 @router.post("/dose-logs", response_model=MedicationDoseLogResponse, status_code=201)
 async def log_medication_dose(
     dose_in: MedicationDoseLogCreate,
@@ -189,6 +210,26 @@ async def log_medication_dose(
     The nutrient_contributed field is computed automatically and stored for
     inclusion in the daily nutrition summary.
     """
+    # Refuse a dose that reference data says cannot be right. This is the guard
+    # that "calcium calcitriol 1000 mg" walked past: calcitriol is dosed in
+    # MICROGRAMS, so read literally that row is ~1000x a real dose sitting in a
+    # clinical record — and it is exactly what a "usual dose from history"
+    # feature would replay. max_dose_for()/unit_convert_factor() already existed
+    # and nothing called them.
+    if not dose_in.acknowledge_unusual:
+        findings = blocking(await validate_dose(
+            db, dose_in.medication_name, dose_in.dose_amount, dose_in.dose_unit,
+        ))
+        if findings:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "message": "This dose looks wrong — please check it.",
+                    "findings": [f.as_dict() for f in findings],
+                    "override_with": "acknowledge_unusual",
+                },
+            )
+
     # Resolve nutrients
     resolved = await lookup_med_nutrients(
         db,

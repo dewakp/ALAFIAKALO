@@ -55,3 +55,10 @@ def test_the_rung_is_configurable_not_hardcoded():
         assert nutrient_enrichment._enrichment_timeout() == 999.0
     finally:
         object.__setattr__(settings, "NUTRIENT_ENRICHMENT_TIMEOUT", original)
+
+
+# NOTE: the DEPLOYED ladder cannot be checked from here. This container only has
+# WEB/backend copied to /app, so deploy/gcp/deploy.sh is not visible — and a test
+# that silently skips is a guard that can never fail. That check lives in
+# deploy.sh itself, as a preflight that refuses to deploy an inverted ladder,
+# which is both where the values are set and the moment it matters.

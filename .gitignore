@@ -114,3 +114,6 @@ WEB/backend/test.db
 pitch/
 marketing.md
 subscription_tiers.md
+
+# iOS release artifacts (archives and signed IPAs are rebuilt, never committed)
+IOS/build/

@@ -63,6 +63,12 @@ class MedicationResponse(BaseModel):
 
 
 class MedicationDoseLogCreate(BaseModel):
+    # Set true to record a dose the plausibility guard flagged (see
+    # services/med_dose_validation). Deliberately explicit: the guard fires only
+    # on provable contradictions — a unit the drug is not measured in, a dose
+    # above a sourced ceiling, or a name that contains a different drug — so
+    # overriding one is a decision, not a default.
+    acknowledge_unusual: bool = False
     medication_name: str
     log_date: date
     log_time: time | None = None
@@ -117,3 +123,8 @@ class MedNutrientLookupResponse(BaseModel):
     brand_names: str | None = None
     active_ingredient: str | None = None
     source: str
+
+
+class IntakeIntentRequest(BaseModel):
+    """Free text such as "I take Calcitriol" or "took 2 tablets of calcium carbonate"."""
+    text: str

@@ -595,6 +595,70 @@ Three lessons, in order of value:
   with zero rows passes it. `tests/test_notifications_list.py` seeds a row.
 
 
+## 3aj. Medications: what a dose is allowed to be, and who says so
+
+Found from one production dose log reading **"calcium calcitriol 1000 mg"**.
+Calcium carbonate 1000 mg was meant. Read literally it names calcitriol, dosed in
+MICROGRAMS — a ~1000x overdose in a clinical record, and exactly the row a
+"usual dose from history" feature replays under a reassuring caption.
+
+- **RxNorm is the authority on whether a name is a drug, not a table.**
+  NLM RxNav is free, public, keyless. The first version of the guard used the
+  23-row `med_nutrient_profiles` seed and was wrong in BOTH directions:
+  `sevelamer carbonate` (real, rxcui 660890) was waved through as "unrecognised,
+  allow", and `Calcitriol` was flagged by difflib as a misspelling of
+  *calcitriol* — blocking a user's most common medication as a typo of itself.
+  `tests/test_clinician_board.py` caught that, which is the §3aa test's whole job.
+- **Ceilings are derived from what is actually sold.** RxNorm lists calcitriol at
+  0.00025 and 0.0005 MG, so 1000 mg is two million times the largest capsule. Do
+  not hand-write dose ranges — same rule as §3ad's "never type an ICD code from
+  memory", with worse consequences.
+- **String similarity is the wrong instrument for drug names.** "calcium
+  calcitriol" scores 0.63 against "calcium carbonate" and its NEAREST match by
+  ratio is "calcium citrate" — a confidently wrong suggestion. RxNorm's
+  `approximateTerm` returns "Calcitriol".
+- **Fail OPEN.** Unreachable ≠ invalid. Blocking every dose log because a
+  third-party API is down is worse than the failure being guarded against.
+  `acknowledge_unusual` records a flagged dose deliberately.
+- **Inference proposes; it never writes.** Of the user/medication pairs with ≥2
+  dose logs on this database, **6 of 9 use more than one dose over time**, so
+  "the dose from history" is usually not a single answer. Show the value with its
+  provenance ("0.5 mcg — your last 3 doses") and let the user press save.
+- **A stopped prescription is not an option.** The picker offered every row, so an
+  account holding two 2017 EHR imports (`is_active=false`) was shown those as its
+  only two choices for "what are you taking today".
+
+### The e2e suite could not reach the backend, by construction
+
+`vite preview` had **no proxy block** — only the dev `server` did. e2e runs
+against preview, so `/api` was answered by vite with 500 text/plain and every
+spec was *forced* to mock the API. Twenty-seven passing specs were structurally
+incapable of catching the trailing-slash redirect of §3ai. Both `server` and
+`preview` now carry the proxy, and `frontend-preview` gets
+`VITE_API_PROXY_TARGET` like `frontend-dev`.
+
+> **A suite that cannot reach the thing it tests is not evidence.** Same shape as
+> §3af (jsdom has no viewport, so 132 tests were blind to a missing mobile nav).
+
+- `e2e/medication-intake.spec.js` drives a real browser → real build → real
+  backend → real DB → RxNorm. It logs in **once**: `/auth/login` is rate limited
+  and a login per test trips it, failing like a broken feature rather than a
+  throttled one.
+- `scripts/prove_ui_contracts.py` drives every endpoint the three clients call
+  over real HTTP. Direct registration is closed in dev
+  (`TWO_STEP_SIGNUP_REQUIRED` defaults ON), so the account is seeded by
+  `scripts/make_proof_user.py`.
+
+### Model ids must be discovered, not pinned
+
+`claude-3-5-haiku-latest` was pinned in the provider registry and retired
+upstream, so every Anthropic call returned **404 not_found_error** — which looks
+exactly like a dead account beside deepseek's 402 and openai's 429. A pin cannot
+notice it has died. `resolved_model()` is now: operator override → newest live
+model from the provider's own `/models` (cached 6h, `model_prefer` naming the
+FAMILY) → the pin, last resort only.
+
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

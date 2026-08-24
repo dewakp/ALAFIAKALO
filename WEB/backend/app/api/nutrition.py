@@ -227,6 +227,13 @@ async def estimate_meal(
             "meal_type": body.meal_type,
             "food_name": body.description[:500],
             "serving_size": f"composite meal ({result['total_weight_g']:.0f} g total)",
+            # The status is what the clients render, NOT whether calories is
+            # null: §3c has all three showing "estimating…"/"unavailable" from
+            # this field. Re-analyze wrote the nutrients and left the status at
+            # whatever the failed background pass had set, so a meal that now
+            # resolved kept reporting "unavailable" with correct numbers sitting
+            # in the row underneath.
+            "nutrient_status": "done" if result.get("aggregate_nutrients") else "failed",
         }
         for key in DB_COLUMN_KEYS:
             if key in agg:
