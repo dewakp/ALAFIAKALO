@@ -192,11 +192,15 @@ async def test_medications_card_reads_what_the_patient_actually_took(client: Asy
     assert r.status_code == 201, r.text
 
     # What the patient is actually taking, logged from the Medications screen.
-    for name, amount in (("Calcitriol", 1.0), ("Calcium Carbonate", 1000.0),
-                         ("Calcium carbonate", 1000.0)):
+    # Calcitriol is dosed in MICROGRAMS (0.25-1 mcg); it was written here as
+    # 1 mg, which is 2000x the largest capsule made. Fixed so the fixture is a
+    # dose a patient could actually take — the dose guard now refuses the old one.
+    for name, amount, unit in (("Calcitriol", 0.5, "mcg"),
+                               ("Calcium Carbonate", 1000.0, "mg"),
+                               ("Calcium carbonate", 1000.0, "mg")):
         r = await client.post("/api/v1/medications/dose-logs", json={
             "medication_name": name, "log_date": str(date.today()),
-            "dose_amount": amount, "dose_unit": "mg",
+            "dose_amount": amount, "dose_unit": unit,
         }, headers=_auth(pat_token))
         assert r.status_code == 201, r.text
 

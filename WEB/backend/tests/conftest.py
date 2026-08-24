@@ -201,3 +201,22 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
     async with TestSession() as session:
         yield session
         await session.commit()
+
+
+@pytest.fixture(autouse=True)
+def _no_network_rxnorm(monkeypatch):
+    """Keep the suite off the network.
+
+    `validate_dose` consults RxNorm, and a test suite that makes live calls to
+    nlm.nih.gov is slow, flaky, and fails differently depending on where it runs.
+    The stub reports UNREACHABLE, which is the fail-open path — so tests that
+    care about the guard must inject their own captured DrugFacts (see
+    test_med_dose_validation.py), and tests that do not are unaffected.
+    """
+    from app.services import rxnorm
+
+    async def _offline(name: str):
+        return rxnorm.DrugFacts(query=name, reachable=False)
+
+    monkeypatch.setattr(rxnorm, "lookup", _offline)
+    monkeypatch.setattr("app.services.med_dose_validation.rxnorm_lookup", _offline)
