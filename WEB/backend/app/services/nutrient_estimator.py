@@ -809,11 +809,32 @@ async def estimate_meal_nutrients(
             "believable": believable,
         }
 
+    # ── What the user STATED about the food, lifted out before anything is
+    #    looked up. "Nounos Yogurt with 170 mg calcium, 210 potassium, 6g fat,
+    #    14 g carbohydrate" is ONE food plus facts — split on commas it became
+    #    six "foods" (100 g of potassium, 6 g of pure fat …) priced and summed
+    #    into 1142 kcal for a pot of yogurt.
+    from app.services.meal_parser import extract_nutrient_facts
+    food_text, stated = extract_nutrient_facts(description)
+
     # Localize cup/tbsp/tsp sizes to the user's locale (US label baseline by default).
     from app.services import locale_units
     vol_factors = locale_units.volume_factors(country, preferred_units, locale)
-    components = parse_meal_text(description, vol_factors=vol_factors)
+    components = parse_meal_text(food_text or description, vol_factors=vol_factors)
     if not components:
+        # Nothing but facts ("170 mg calcium, 6 g fat") is still worth keeping.
+        if stated:
+            return {
+                "description": description,
+                "components": [{
+                    "food_name": (food_text or description).strip()[:120] or description[:120],
+                    "qty_g": 0.0, "qty_text": "as stated", "source": "user_provided",
+                    "fdc_id": None, "confidence": 1.0, "nutrients_scaled": dict(stated),
+                    "warnings": [], "believable": True,
+                }],
+                "aggregate_nutrients": dict(stated),
+                "total_weight_g": 0.0,
+            }
         return empty
 
     component_results: list[dict] = []
@@ -859,6 +880,10 @@ async def estimate_meal_nutrients(
         })
 
     total_weight_g = round(sum(c.qty_g for c in components), 1)
+
+    # Anything the user stated OUTRANKS the estimate — they read it off the pot.
+    if stated:
+        aggregate.update(stated)
 
     # Believability guardrail at the meal level + roll up component warnings.
     from app.services import plausibility

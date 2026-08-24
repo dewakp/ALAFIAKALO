@@ -701,6 +701,105 @@ def _default_g(food_name: str) -> float:
     return 100.0  # generic 100 g serving
 
 
+
+# ── Nutrient facts stated inline ─────────────────────────────────────────────
+# "Nounos Yogurt with 170 mg calcium, 210 potassium, 6g fat, 14 g carbohydrate"
+#
+# These are FACTS ABOUT THE FOOD, not ingredients of the meal. Split on commas
+# like everything else they became six separate "foods" — 100 g of potassium,
+# 100 g of cholesterol, 100 g of sodium, 6 g of pure fat — priced and summed
+# into 1142 kcal for a pot of yogurt. Whatever a user states about a food has to
+# be lifted out of the text before anything tries to look it up.
+
+_NUTRIENT_TERMS: dict[str, tuple[str, str]] = {
+    # spoken form            -> (db key, canonical unit)
+    "calcium":               ("calcium_mg", "mg"),
+    "potassium":             ("potassium_mg", "mg"),
+    "sodium":                ("sodium_mg", "mg"),
+    "na":                    ("sodium_mg", "mg"),
+    "salt":                  ("sodium_mg", "mg"),
+    "cholesterol":           ("cholesterol_mg", "mg"),
+    "phosphorus":            ("phosphorus_mg", "mg"),
+    "magnesium":             ("magnesium_mg", "mg"),
+    "iron":                  ("iron_mg", "mg"),
+    "zinc":                  ("zinc_mg", "mg"),
+    "protein":               ("protein_g", "g"),
+    "fat":                   ("fat_g", "g"),
+    "total fat":             ("fat_g", "g"),
+    "saturated fat":         ("saturated_fat_g", "g"),
+    "trans fat":             ("trans_fat_g", "g"),
+    "carbohydrate":          ("carbs_g", "g"),
+    "carbohydrates":         ("carbs_g", "g"),
+    "carb":                  ("carbs_g", "g"),
+    "carbs":                 ("carbs_g", "g"),
+    "fiber":                 ("fiber_g", "g"),
+    "fibre":                 ("fiber_g", "g"),
+    "sugar":                 ("sugar_g", "g"),
+    "sugars":                ("sugar_g", "g"),
+    "calories":              ("calories", "kcal"),
+    "calorie":               ("calories", "kcal"),
+    "kcal":                  ("calories", "kcal"),
+}
+
+# Longest names first so "saturated fat" wins over "fat".
+_NUTRIENT_ALTERNATION = "|".join(
+    re.escape(term) for term in sorted(_NUTRIENT_TERMS, key=len, reverse=True)
+)
+_UNIT_TO_CANON = {"mcg": 0.001, "µg": 0.001, "ug": 0.001, "mg": 1.0, "g": 1.0,
+                  "kcal": 1.0, "cal": 1.0}
+
+# "170 mg calcium" and "calcium 170 mg" — both orders occur.
+_NUTRIENT_FACT_RE = re.compile(
+    rf"\b(?P<amount>\d+(?:\.\d+)?)\s*(?P<unit>mcg|µg|ug|mg|g|kcal|cal)?\s*"
+    rf"(?:of\s+)?(?P<name>{_NUTRIENT_ALTERNATION})\b"
+    rf"|\b(?P<name2>{_NUTRIENT_ALTERNATION})\s*[:=]?\s*"
+    rf"(?P<amount2>\d+(?:\.\d+)?)\s*(?P<unit2>mcg|µg|ug|mg|g|kcal|cal)?\b",
+    re.IGNORECASE,
+)
+
+
+def extract_nutrient_facts(text: str) -> tuple[str, dict[str, float]]:
+    """Lift stated nutrient values out of a description.
+
+    Returns (text with those fragments removed, {db_key: value}). The unit is
+    optional — "210 potassium" means 210 mg, because that is the unit potassium
+    is stated in; guessing grams there would be off by a thousand.
+    """
+    facts: dict[str, float] = {}
+    if not text:
+        return "", facts
+
+    def _capture(m: re.Match) -> str:
+        name = (m.group("name") or m.group("name2") or "").lower().strip()
+        amount = m.group("amount") or m.group("amount2")
+        unit = (m.group("unit") or m.group("unit2") or "").lower().strip()
+        mapping = _NUTRIENT_TERMS.get(name)
+        if mapping is None or amount is None:
+            return m.group(0)
+        key, canonical = mapping
+        try:
+            value = float(amount)
+        except ValueError:
+            return m.group(0)
+        # An explicit unit that differs from the canonical one is converted;
+        # a missing unit is read as the canonical one.
+        if unit and unit != canonical:
+            factor = _UNIT_TO_CANON.get(unit)
+            base = _UNIT_TO_CANON.get(canonical)
+            if factor is not None and base:
+                value = value * factor / base
+        facts[key] = round(value, 4)
+        return " "
+
+    stripped = _NUTRIENT_FACT_RE.sub(_capture, text)
+    # Tidy the connective debris the removal leaves behind ("yogurt with , ,").
+    stripped = re.sub(r"\s*\bwith\b\s*(?=[,;]|$)", " ", stripped, flags=re.IGNORECASE)
+    stripped = re.sub(r"[,;]\s*(?=[,;])", " ", stripped)
+    stripped = re.sub(r"[\s,;]+$", "", stripped)
+    stripped = re.sub(r"\s{2,}", " ", stripped).strip(" ,;")
+    return stripped, facts
+
+
 # ── Segment splitting ─────────────────────────────────────────────────────────
 
 # Split on a top-level " and "/" & "/" plus ", but NOT when it's part of a numeric
