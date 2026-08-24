@@ -55,8 +55,15 @@ export default function Medications() {
   const [savingLog, setSavingLog] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
+  // Opens itself when there is nothing current to pick from: the section was
+  // collapsed by default, so a user with no usable prescriptions saw no way to
+  // enter one and reported that the app had no such feature at all.
   const [showRx, setShowRx] = useState(false);
   const [rx, setRx] = useState({ ...EMPTY_RX });
+  const [intakeText, setIntakeText] = useState('');
+  const [intakeBusy, setIntakeBusy] = useState(false);
+  const [intakeError, setIntakeError] = useState(null);
+  const [proposal, setProposal] = useState(null);
   const [scanning, setScanning] = useState(false);
   const temp = useTempUnit();
 
@@ -116,6 +123,11 @@ export default function Medications() {
     }));
   });
 
+  const activeMeds = meds.filter((m) => m.is_active);
+  // Has prescriptions on file, but every one of them is stopped — the state this
+  // account was actually in. Say so rather than showing an empty picker.
+  const onlyStaleMeds = meds.length > 0 && activeMeds.length === 0;
+
   const loadMeds = useCallback(async () => {
     try { const { data } = await api.get('/medications/'); setMeds(data); } catch { setMeds([]); }
   }, []);
@@ -123,8 +135,38 @@ export default function Medications() {
     try { const { data } = await api.get('/medications/dose-logs'); setDoseLogs(data); } catch { setDoseLogs([]); }
   }, []);
   useEffect(() => { loadMeds(); loadDoseLogs(); }, [loadMeds, loadDoseLogs]);
+  useEffect(() => { if (meds.length === 0 || onlyStaleMeds) setShowRx(true); },
+    [meds.length, onlyStaleMeds]);
 
   function up(field, value) { setLog((f) => ({ ...f, [field]: value })); }
+
+  /* ── "I take Calcitriol" → a proposal you confirm ────────────────────────
+     The backend reads the medication out of the text and, when no dose is
+     stated, supplies the one this user actually logs, with its provenance. It
+     writes NOTHING: on this data 6 of 9 user/medication pairs use more than one
+     dose over time, so a proposal is honest and an auto-write is not. */
+  async function readIntake() {
+    const text = intakeText.trim();
+    if (!text) return;
+    setIntakeBusy(true); setProposal(null); setIntakeError(null);
+    try {
+      const { data } = await api.post('/medications/intake-intent', { text });
+      setProposal(data);
+      if (!data.medication_name) setIntakeError(data.provenance || 'No medication recognised.');
+    } catch (e) {
+      setIntakeError(e?.response?.data?.detail || e?.message || 'Could not read that.');
+    } finally { setIntakeBusy(false); }
+  }
+
+  /* Drop the proposal into the form the user already knows, rather than
+     logging behind their back. One glance, one button. */
+  function acceptProposal() {
+    if (!proposal?.medication_name) return;
+    const dose = proposal.dose_amount != null
+      ? `${proposal.dose_amount}${proposal.dose_unit ? ' ' + proposal.dose_unit : ''}` : '';
+    setLog((f) => ({ ...f, medication_name: proposal.medication_name, dosage: dose }));
+    setProposal(null); setIntakeText('');
+  }
 
   async function submitLog(e) {
     e.preventDefault();
@@ -215,6 +257,49 @@ export default function Medications() {
           <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
             <Plus size={18} /> Log New Medication Intake
           </h3>
+          {/* ── Say it in words ── */}
+          <div data-testid="intake-intent" style={{ marginBottom: 14, padding: 12, borderRadius: 10, background: '#f6f4ff' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="form-input" style={{ flex: 1 }}
+                placeholder='e.g. "I take Calcitriol" or "took 2 tablets of calcium carbonate"'
+                value={intakeText} onChange={(e) => setIntakeText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); readIntake(); } }} />
+              <button type="button" className="btn btn-secondary" onClick={readIntake}
+                disabled={intakeBusy || !intakeText.trim()}>
+                {intakeBusy ? 'Reading…' : 'Read this'}
+              </button>
+            </div>
+
+            {intakeError && (
+              <p data-testid="intake-error" style={{ color: '#c62828', fontSize: 13, marginTop: 8 }}>{intakeError}</p>
+            )}
+
+            {proposal?.medication_name && (
+              <div data-testid="intake-proposal" style={{ marginTop: 10, fontSize: 14 }}>
+                <strong>{proposal.medication_name}</strong>
+                {proposal.dose_amount != null && (
+                  <> — {proposal.dose_amount}{proposal.dose_unit ? ` ${proposal.dose_unit}` : ''}</>
+                )}
+                {/* Provenance is shown, always. A dose lifted from history that
+                    arrives without saying where it came from is indistinguishable
+                    from one the app invented. */}
+                {proposal.provenance && (
+                  <div style={{ color: '#666', fontSize: 12, marginTop: 2 }}>{proposal.provenance}</div>
+                )}
+                {(proposal.findings || []).map((f, i) => (
+                  <div key={i} data-testid="intake-finding"
+                    style={{ color: f.level === 'error' ? '#c62828' : '#856404', fontSize: 12, marginTop: 4 }}>
+                    {f.message}
+                  </div>
+                ))}
+                <button type="button" className="btn btn-primary btn-sm" style={{ marginTop: 8 }}
+                  onClick={acceptProposal}>
+                  {proposal.dose_amount != null ? 'Use this' : 'Fill the name'}
+                </button>
+              </div>
+            )}
+          </div>
+
           <form onSubmit={submitLog}>
             <div className="form-row">
               <div className="form-group">
@@ -231,8 +316,22 @@ export default function Medications() {
               <input className="form-input" list="med-catalog" placeholder="Select from profile or add new"
                 value={log.medication_name} onChange={(e) => up('medication_name', e.target.value)} />
               <datalist id="med-catalog">
-                {meds.map((m) => <option key={m.id} value={m.name} />)}
+                {/* ACTIVE only. The picker used to offer every row, so a patient
+                    whose profile held two 2017 EHR imports (both is_active=false,
+                    stopped nine years ago) was shown those as their only two
+                    choices for "what are you taking today". A stopped
+                    prescription is a historical fact, not an option. They remain
+                    visible, labelled, in Prescriptions below. */}
+                {activeMeds.map((m) => <option key={m.id} value={m.name} />)}
               </datalist>
+              {onlyStaleMeds && (
+                <p data-testid="stale-meds-hint" style={{ fontSize: 12, color: '#856404', marginTop: 6 }}>
+                  Your profile has {meds.length} prescription{meds.length === 1 ? '' : 's'}, but
+                  {meds.length === 1 ? ' it is' : ' all of them are'} marked stopped — so
+                  {meds.length === 1 ? ' it is' : ' none are'} offered above. Type the medication,
+                  or add a current one under <strong>Prescriptions</strong>.
+                </p>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">Dosage Taken</label>
@@ -354,7 +453,7 @@ export default function Medications() {
       <div className="card" style={{ marginTop: '1.5rem' }}>
         <button type="button" onClick={() => setShowRx((v) => !v)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 600, color: 'var(--primary)', padding: 0 }}>
-          {showRx ? '▾' : '▸'} Prescriptions {meds.length > 0 && `(${meds.length})`}
+          {showRx ? '▾' : '▸'} Prescriptions {meds.length > 0 && `(${activeMeds.length} active of ${meds.length})`}
         </button>
         {showRx && (
           <div style={{ marginTop: 12 }}>

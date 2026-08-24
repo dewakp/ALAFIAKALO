@@ -708,3 +708,33 @@ data class VomitingLogRequest(
     val dizziness: Boolean? = null,
     val notes: String? = null
 )
+
+
+// ── "I take Calcitriol" → a dose the user confirms ─────────────────────────
+// The backend supplies a missing dose from this user's own logging history and
+// says where it came from. It writes nothing: most user/medication pairs in this
+// data use more than one dose over time, so a proposal is honest and a silent
+// write is not.
+
+data class MedicationIntakeRequest(val text: String)
+
+data class MedicationDoseFinding(
+    val level: String,          // "error" | "warning"
+    val code: String,
+    val message: String,
+    val suggestion: String? = null,
+)
+
+data class MedicationIntakeProposal(
+    @com.google.gson.annotations.SerializedName("medication_name") val medicationName: String,
+    @com.google.gson.annotations.SerializedName("dose_amount") val doseAmount: Double? = null,
+    @com.google.gson.annotations.SerializedName("dose_unit") val doseUnit: String? = null,
+    @com.google.gson.annotations.SerializedName("dose_source") val doseSource: String = "unknown",
+    val provenance: String? = null,
+    val confidence: Double = 0.0,
+    @com.google.gson.annotations.SerializedName("needs_confirmation") val needsConfirmation: Boolean = true,
+    val findings: List<MedicationDoseFinding> = emptyList(),
+) {
+    val hasDose: Boolean get() = doseAmount != null
+    val blocking: List<MedicationDoseFinding> get() = findings.filter { it.level == "error" }
+}

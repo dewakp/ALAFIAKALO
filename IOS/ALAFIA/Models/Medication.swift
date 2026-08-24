@@ -143,3 +143,44 @@ enum TempConvert {
     static func toFahrenheit(_ celsius: Double) -> Double { celsius * 9 / 5 + 32 }
     static func fahrenheitString(fromCelsius c: Double) -> String { String(format: "%.1f°F", toFahrenheit(c)) }
 }
+
+/// A dose read out of free text ("I take Calcitriol") that the user confirms.
+///
+/// The backend supplies a missing dose from this user's own logging history and
+/// says where it came from. It writes nothing — on this data most user/medication
+/// pairs use more than one dose over time, so a proposal is honest and a silent
+/// write is not. `findings` carries anything the dose guard could prove wrong.
+struct MedicationIntakeProposal: Decodable {
+    let medicationName: String
+    let doseAmount: Double?
+    let doseUnit: String?
+    let doseSource: String        // stated | history | prescription | unknown
+    let provenance: String?
+    let confidence: Double
+    let needsConfirmation: Bool
+    let findings: [MedicationDoseFinding]
+
+    var hasDose: Bool { doseAmount != nil }
+    var blocking: [MedicationDoseFinding] { findings.filter { $0.level == "error" } }
+
+    enum CodingKeys: String, CodingKey {
+        case provenance, confidence, findings
+        case medicationName = "medication_name"
+        case doseAmount = "dose_amount"
+        case doseUnit = "dose_unit"
+        case doseSource = "dose_source"
+        case needsConfirmation = "needs_confirmation"
+    }
+}
+
+struct MedicationDoseFinding: Decodable, Identifiable {
+    let level: String             // "error" | "warning"
+    let code: String
+    let message: String
+    let suggestion: String?
+    var id: String { code + message }
+}
+
+struct MedicationIntakeRequest: Encodable {
+    let text: String
+}

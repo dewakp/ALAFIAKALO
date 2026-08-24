@@ -160,6 +160,12 @@ interface ApiService {
     suspend fun deleteMedication(@Path("id") id: Int)
 
     // Medication dose logs ("taken" events)
+    /** Read free text into a confirmable dose proposal. Writes nothing. */
+    @POST("medications/intake-intent")
+    suspend fun proposeMedicationIntake(
+        @Body request: MedicationIntakeRequest
+    ): MedicationIntakeProposal
+
     @POST("medications/dose-logs")
     suspend fun logMedicationDose(@Body request: MedicationDoseLogRequest): MedicationDoseLog
 
