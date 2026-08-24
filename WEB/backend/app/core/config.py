@@ -97,6 +97,15 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
     OLLAMA_MODEL: str = "gpt-oss:20b"  # 20B model; use llama3.2:latest for faster but weaker responses
     OLLAMA_TIMEOUT: int = 120  # seconds
+    # Outer rung of the AI ladder for BACKGROUND nutrient enrichment. It must sit
+    # ABOVE OLLAMA_TIMEOUT: a hardcoded 120 s here while production ran
+    # OLLAMA_TIMEOUT=290 meant the wrapper always won, so Ollama's own limit
+    # could never fire and every meal needing the AI fallback was killed at
+    # exactly 120 s — "0.5 cup of bismatti rice, 1 cup of goat meat vindaloo"
+    # logged `Nutrient enrichment timed out` and showed the user "unavailable".
+    # §5: a COLD Ollama call pays ~77 s model load on top of generation (~250 s
+    # total), so this has to clear that too. See tests/test_timeout_ladder.py.
+    NUTRIENT_ENRICHMENT_TIMEOUT: int = 310  # seconds
 
     # Whisper speech-to-text (Voice Phase 7). Leave WHISPER_BASE_URL empty to use
     # the OpenAI hosted Whisper fallback (requires OPENAI_API_KEY); set it to a

@@ -335,19 +335,37 @@ def extract_nutrition_facts(text: str) -> dict | None:
     if macros_present < 2:
         return None  # not enough to be a real label — treat as a normal meal
 
-    # Serving size, e.g. "8 fl oz".
-    serving_g = None
-    sm = re.search(r"(\d+(?:\.\d+)?)\s*(fl\s*oz|fluid ounces?|ounces?|oz|milliliters?|ml|cc|liters?|litres?|l|grams?|g|cups?|tbsp|tablespoons?|tsp|teaspoons?)\b", low)
-    if sm:
-        unit = re.sub(r"\s+", " ", sm.group(2)).strip()
-        serving_g = float(sm.group(1)) * _SERVING_TO_G.get(unit, _SERVING_TO_G.get(unit.rstrip("s"), 1.0))
-
-    # Name = text before the first nutrient figure, minus the serving phrase + brands.
+    # Where the nutrient figures start. Computed FIRST because it bounds the
+    # serving search below.
     first_idx = len(text)
     for pat in (r"\d+(?:\.\d+)?\s*k?cal", r"\d+(?:\.\d+)?\s*g\s*(?:of\s+)?(?:protein|carb|fat)"):
         m = re.search(pat, low)
         if m:
             first_idx = min(first_idx, m.start())
+
+    # Serving size, e.g. "8 fl oz".
+    #
+    # "g" is one of the units, so an unbounded search matched the FIRST "N g" in
+    # the text — which on any real label is a macro, not the serving. On
+    # "Per serving: 240 calories, 18 g protein, ..." it took 18 g as the serving
+    # weight, so 240 kcal became 240*100/18 = 1333 kcal/100 g, the plausibility
+    # ceiling clamped that to 902, and scaling back by 18 g reported 162 kcal for
+    # a 240 kcal meal. Two guards, because either alone leaks:
+    #   1. a label writes the serving BEFORE the figures, so search there first;
+    #   2. anywhere else, refuse a quantity that is immediately labelled as a
+    #      nutrient.
+    _NUTRIENT_WORD = (r"(?!\s*(?:of\s+)?(?:protein|carb|carbohydrate|fat|fibre|fiber|sugar|"
+                      r"sodium|salt|potassium|phosphorus|calcium|iron|cholesterol)s?\b)")
+    _SERVING_UNITS = (r"(fl\s*oz|fluid ounces?|ounces?|oz|milliliters?|ml|cc|liters?|litres?|l|"
+                      r"grams?|g|cups?|tbsp|tablespoons?|tsp|teaspoons?)\b")
+    serving_re = re.compile(r"(\d+(?:\.\d+)?)\s*" + _SERVING_UNITS + _NUTRIENT_WORD)
+
+    serving_g = None
+    sm = serving_re.search(low[:first_idx]) or serving_re.search(low)
+    if sm:
+        unit = re.sub(r"\s+", " ", sm.group(2)).strip()
+        serving_g = float(sm.group(1)) * _SERVING_TO_G.get(unit, _SERVING_TO_G.get(unit.rstrip("s"), 1.0))
+
     name = text[:first_idx]
     if sm and sm.start() < first_idx:
         name = name[:sm.start()] + name[sm.end():]
@@ -687,7 +705,25 @@ def _default_g(food_name: str) -> float:
 
 # Split on a top-level " and "/" & "/" plus ", but NOT when it's part of a numeric
 # quantity ("1 and a half", "1 and 1/2") — guarded by the negative lookahead.
-_AND_SPLIT_RE = re.compile(r"\s+(?:and|&|plus)\s+(?!(?:a\s+)?half\b|\d)", re.IGNORECASE)
+# The old guard refused to split before ANY digit, to protect "1 and a half" and
+# "1 and 1/2". But a following digit is the NORMAL case — "Boost Glucose Control
+# and 0.5 cup of corn flour", "2 eggs and 1 slice of toast" — so that blanket
+# refusal silently merged most two-item meals into one unmatchable food name.
+# The real signal is what precedes the conjunction: a fraction continuation is
+# preceded by a DIGIT ("1 and a half"), a second food is not.
+_AND_SPLIT_RE = re.compile(r"(?<!\d)\s+(?:and|&|plus)\s+(?!(?:a\s+)?half\b)", re.IGNORECASE)
+
+# " + " is a separator too, and it needs its OWN pattern rather than a slot in
+# the alternation above: that one refuses to split before a digit so "1 and a
+# half" survives, but a plus is nearly always followed by a quantity —
+# "Boost Glucose Control + 0.5 cup of corn flour". Sharing the lookahead made
+# that whole meal collapse into a single component whose food name was
+# "boost glucose control + 0.5 cup of roasted corn flour", which matches nothing,
+# so the log came back with no nutrients at all.
+#
+# Whitespace on BOTH sides is required on purpose: product names carry an
+# attached plus ("Boost+", "Glucerna+"), and those must not be torn apart.
+_PLUS_SPLIT_RE = re.compile(r"\s+\+\s+")
 
 # Compound dish names that read as "X and Y" but are ONE dish — never split these.
 _COMPOUND_DISHES = (
@@ -734,7 +770,8 @@ def _split_top_level(text: str) -> list[str]:
         if "(" in p or _has_compound_dish(p):
             expanded.append(p)   # keep parenthetical recipes + compound dishes intact
         else:
-            expanded.extend(s.strip() for s in _AND_SPLIT_RE.split(p) if s.strip())
+            for seg in _AND_SPLIT_RE.split(p):
+                expanded.extend(x.strip() for x in _PLUS_SPLIT_RE.split(seg) if x.strip())
     return expanded
 
 

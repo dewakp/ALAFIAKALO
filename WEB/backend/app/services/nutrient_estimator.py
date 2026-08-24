@@ -740,6 +740,7 @@ async def estimate_meal_nutrients(
     db: AsyncSession,
     description: str,
     *,
+    notes: str | None = None,
     country: str | None = None,
     preferred_units: str | None = None,
     locale: str | None = None,
@@ -774,7 +775,16 @@ async def estimate_meal_nutrients(
     # ── Authoritative input: if the text carries an explicit label, TRUST it
     #    (no re-estimation) and learn it permanently. Fixes "I gave the right
     #    numbers and it still computed something else" (the Boost case).
+    #    The NOTES field counts as label text too. A user who writes the panel
+    #    values there — the obvious place to put "240 cal, 10 g protein" for a
+    #    dish no database has, like goat meat vindaloo — was previously ignored
+    #    entirely: only `food_name` ever reached this function, so the numbers
+    #    they had already supplied were thrown away and the log came back empty.
     facts = extract_nutrition_facts(description)
+    if not facts and notes:
+        facts = extract_nutrition_facts(notes)
+        if facts and not facts.get("name"):
+            facts["name"] = description.strip()[:120]
     if facts:
         serving_g = facts["serving_g"] or 100.0
         per100 = {k: round(v * 100.0 / serving_g, 4) for k, v in facts["nutrients"].items()}

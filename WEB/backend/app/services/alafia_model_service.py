@@ -123,10 +123,17 @@ async def alafia_chat(
     """Route a chat completion through ALAFIAModel's LLM capability and return text.
 
     This is the single entry point backend services should use instead of calling
-    Ollama / OpenAI directly. The router handles Ollama → OpenAI fallback.
+    a provider directly.
+
+    Order (see capabilities/llm.py): the hosted provider pool FIRST — free tier
+    shuffled by weight, then paid — with self-hosted Ollama as the TERMINAL
+    fallback. This docstring used to claim the reverse ("Ollama → OpenAI"), which
+    is wrong and actively misleading: with no provider keys configured the hosted
+    pool is empty, so every call went straight to Ollama and looked Ollama-first.
+    That is a configuration state, not the routing policy.
 
     Args:
-        model: optional per-call model override for the primary (Ollama) adapter.
+        model: optional per-call model override for the Ollama fallback adapter.
 
     Raises:
         ALAFIAModelError: if the model is unavailable or the call fails.

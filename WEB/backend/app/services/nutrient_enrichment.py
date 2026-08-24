@@ -24,6 +24,7 @@ import logging
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.database import async_session
 from app.models.nutrition import NutritionLog
 
@@ -31,13 +32,20 @@ logger = logging.getLogger(__name__)
 
 # Generous: nothing is waiting on this, so the only job of the ceiling is to stop
 # a wedged dependency pinning a worker forever.
-ENRICHMENT_TIMEOUT_SECONDS = 120.0
+def _enrichment_timeout() -> float:
+    """Read the rung at call time so it cannot drift from the ladder in config.
+
+    Was a hardcoded 120.0 while OLLAMA_TIMEOUT was 290 in production — an outer
+    rung SHORTER than the inner one, which is the §3ae failure exactly: the inner
+    limit becomes unreachable and every cold-model call dies at the wrapper.
+    """
+    return float(settings.NUTRIENT_ENRICHMENT_TIMEOUT)
 
 
 async def enrich_log(log_id: int) -> None:
     """Estimate and store nutrients for an already-saved log. Never raises."""
     try:
-        await asyncio.wait_for(_enrich(log_id), timeout=ENRICHMENT_TIMEOUT_SECONDS)
+        await asyncio.wait_for(_enrich(log_id), timeout=_enrichment_timeout())
     except asyncio.TimeoutError:
         logger.warning("Nutrient enrichment timed out for log %s", log_id)
         await _mark(log_id, "failed")
@@ -48,7 +56,6 @@ async def enrich_log(log_id: int) -> None:
 
 async def _enrich(log_id: int) -> None:
     from app.core.nutrition_data import DB_COLUMN_KEYS
-    from app.services.nlm_food_extractor import extract_food_items_nlm
     from app.services.nutrient_estimator import estimate_meal_nutrients, estimate_nutrients
 
     async with async_session() as db:
@@ -63,14 +70,26 @@ async def _enrich(log_id: int) -> None:
             await db.commit()
             return
 
-        # Multi-item meals go to the meal estimator, which scales each item by its
-        # gram weight and sums to a TOTAL. The single-food path merges per-100 g
-        # densities, which for a list produces an impossible number.
-        if len(extract_food_items_nlm(log.food_name)) > 1:
-            meal = await estimate_meal_nutrients(db, log.food_name)
-            nutrients = meal.get("aggregate_nutrients") or {}
-            fdc_id = None
-        else:
+        # EVERY description goes through the meal estimator — including a single
+        # item — because it is the only path that scales by the quantity the user
+        # actually typed. `estimate_nutrients` returns a per-100 g/mL profile, and
+        # storing that unscaled reported "8 Fl oz Boost Glucose Control" as
+        # 80 kcal / 6.75 g protein instead of 190 / 16: every value divided by
+        # 2.37, the 237 mL serving over 100 mL. For a dialysis patient that
+        # understates phosphorus and potassium by the same factor, so it is worse
+        # than the "unavailable" the multi-item meals showed — it looks right.
+        #
+        # (Multi-item still MUST NOT use the single path: that one merges per-100 g
+        # densities, which for a list produces an impossible number — CLAUDE.md §3c.)
+        meal = await estimate_meal_nutrients(db, log.food_name, notes=log.notes)
+        nutrients = meal.get("aggregate_nutrients") or {}
+        components = meal.get("components") or []
+        # Keep the USDA provenance link when the meal resolved to one known food.
+        fdc_id = components[0].get("fdc_id") if len(components) == 1 else None
+
+        if not nutrients:
+            # Nothing parsed as a portion (a bare food name, an unusual phrasing).
+            # Fall back to the per-100 profile rather than storing nothing.
             est = await estimate_nutrients(db, log.food_name, log.serving_size)
             nutrients = est.get("nutrients") or {}
             fdc_id = est.get("fdc_id")
