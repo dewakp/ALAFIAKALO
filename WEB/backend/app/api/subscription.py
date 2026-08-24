@@ -102,10 +102,19 @@ async def get_status(current_user: User = Depends(get_current_user),
 # ── Web checkout (Stripe) ───────────────────────────────────────────────────
 
 @router.post("/checkout", response_model=CheckoutResponse)
-async def create_checkout(body: CheckoutRequest,
+async def create_checkout(request: Request,
+                          body: CheckoutRequest,
                           current_user: User = Depends(get_current_user),
                           db: AsyncSession = Depends(get_db)):
-    result = await svc.stripe_create_checkout(db, current_user, body.interval)
+    # Return them to the origin they started on — see checkout_return_base.
+    origin = request.headers.get("origin") or ""
+    if not origin:
+        referer = request.headers.get("referer") or ""
+        if "://" in referer:
+            scheme, _, rest = referer.partition("://")
+            origin = f"{scheme}://{rest.split('/')[0]}"
+    result = await svc.stripe_create_checkout(db, current_user, body.interval,
+                                              return_origin=origin)
     return CheckoutResponse(provider=body.provider, **result)
 
 
