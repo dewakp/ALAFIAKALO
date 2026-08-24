@@ -205,7 +205,13 @@ export default function Medications() {
 
   async function saveRx(e) {
     e.preventDefault();
-    try { await api.post('/medications/', rx); setRx({ ...EMPTY_RX }); loadMeds(); }
+    // Drop blanks rather than posting "" for a date the user left empty. The
+    // backend normalises these too (all three clients can send them), but there
+    // is no reason to transmit a value that means nothing.
+    const payload = Object.fromEntries(
+      Object.entries(rx).filter(([, v]) => !(typeof v === 'string' && v.trim() === '')),
+    );
+    try { await api.post('/medications/', payload); setRx({ ...EMPTY_RX }); loadMeds(); }
     catch (err) { alert(apiErrorMessage(err, 'Could not save medication')); }
   }
   async function deleteRx(id) { await api.delete(`/medications/${id}`); loadMeds(); }

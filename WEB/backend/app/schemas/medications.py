@@ -2,7 +2,21 @@
 
 from datetime import date, datetime, time
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+def _blank_dates_are_null(cls, value):
+    """Treat an empty string as "no date".
+
+    HTML date inputs submit `""` when cleared, and `date | None` rejects that
+    with "Input should be a valid date or datetime, input is too short" — which
+    is what a user saw on every attempt to save a prescription with no end date.
+    The blank is the browser's representation of null, not a malformed date, and
+    all three clients can send it, so it is normalised here rather than in one UI.
+    """
+    if isinstance(value, str) and not value.strip():
+        return None
+    return value
 
 
 class MedicationCreate(BaseModel):
@@ -20,6 +34,8 @@ class MedicationCreate(BaseModel):
     is_active: bool = True
     notes: str | None = None
 
+    _blank_dates = field_validator(*['start_date', 'end_date'], mode="before")(_blank_dates_are_null)
+
 
 class MedicationUpdate(BaseModel):
     name: str | None = None
@@ -35,6 +51,8 @@ class MedicationUpdate(BaseModel):
     side_effects: str | None = None
     is_active: bool | None = None
     notes: str | None = None
+
+    _blank_dates = field_validator(*['start_date', 'end_date'], mode="before")(_blank_dates_are_null)
 
 
 class MedicationResponse(BaseModel):
