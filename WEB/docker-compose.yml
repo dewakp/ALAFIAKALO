@@ -230,6 +230,13 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      # Same as frontend-dev: inside a container `localhost` is that container,
+      # so the proxy has to name the backend SERVICE. Without this, `/api` in
+      # preview mode is ECONNREFUSED and every e2e spec is forced to mock the
+      # API — which is how a real client/server contract break stays invisible
+      # to a green suite.
+      VITE_API_PROXY_TARGET: http://backend:8000
     command: sh -c '[ -f node_modules/.install-stamp ] && [ node_modules/.install-stamp -nt package-lock.json ] || { npm ci && touch node_modules/.install-stamp; }; npm run build && npm run preview'
     healthcheck:
       # e2e waits on this rather than racing the ~15s install-and-build.

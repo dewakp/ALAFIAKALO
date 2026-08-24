@@ -43,5 +43,17 @@ export default defineConfig({
     port: 5173,
     host: '0.0.0.0',
     allowedHosts: ['localhost', 'frontend-preview'],
+    // The SAME proxy as the dev server. Without it `/api` in preview mode has
+    // nowhere to go and vite answers 500 text/plain — so no e2e spec could ever
+    // reach the real backend, and every spec had to mock the API. That is how a
+    // suite stays green while the actual client/server contract drifts: the
+    // trailing-slash redirect that broke Notifications was invisible to 27
+    // passing specs for exactly this reason.
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8005',
+        changeOrigin: true,
+      },
+    },
   },
 });
