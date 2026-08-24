@@ -138,6 +138,31 @@ BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_ENABLED=true,APPLE_ENVIRONMENT=producti
 # Hard paywall: every user needs an active subscription (owner email exempt via the
 # config default). Flip to false to open the app.
 BACKEND_ENV="${BACKEND_ENV},SUBSCRIPTION_REQUIRED=true"
+
+# ── AI timeout ladder (CLAUDE.md §3ae / §5) ──────────────────────────────────
+# Both rungs are set HERE, explicitly, so the ordering is visible in one place.
+# NUTRIENT_ENRICHMENT_TIMEOUT used to be a hardcoded 120.0 in the service while
+# this file set OLLAMA_TIMEOUT=290 — an outer rung shorter than the inner one, so
+# Ollama's own limit could never fire and every meal needing the AI fallback was
+# killed at exactly 120 s and reported to the user as "unavailable".
+OLLAMA_TIMEOUT_S=290
+ENRICHMENT_TIMEOUT_S=310
+BACKEND_ENV="${BACKEND_ENV},NUTRIENT_ENRICHMENT_TIMEOUT=${ENRICHMENT_TIMEOUT_S}"
+
+# Refuse to ship an inverted ladder. The unit tests compare the CODE DEFAULTS and
+# cannot see this file, so without this check a green suite says nothing about
+# what is actually deployed.
+if [ "$ENRICHMENT_TIMEOUT_S" -le "$OLLAMA_TIMEOUT_S" ]; then
+  echo "ERROR: NUTRIENT_ENRICHMENT_TIMEOUT=${ENRICHMENT_TIMEOUT_S} must EXCEED OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT_S}." >&2
+  echo "  A wrapper shorter than the call it waits on makes the inner timeout unreachable." >&2
+  exit 1
+fi
+# alafia-ollama scales to zero (§5): a cold call pays ~77 s of model load on top
+# of generation, ~250 s total. Every rung waiting on it must clear that.
+if [ "$ENRICHMENT_TIMEOUT_S" -lt 250 ]; then
+  echo "ERROR: NUTRIENT_ENRICHMENT_TIMEOUT=${ENRICHMENT_TIMEOUT_S} does not clear a cold Ollama model load (~250 s)." >&2
+  exit 1
+fi
 # Two-step signup (verify email → pay → account) is CODE-READY but gated OFF
 # here, because turning it on closes registration until email actually works:
 #   /auth/register            -> 410 Gone
@@ -164,7 +189,7 @@ BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED
 # /api/chat with 404 for a model it does not have, which is what took food-photo
 # analysis down in production.
 : "${OLLAMA_VISION_MODEL:=llava}"
-BACKEND_ENV="${BACKEND_ENV},OLLAMA_BASE_URL=${OLLAMA_URL},OLLAMA_MODEL=gpt-oss:20b,OLLAMA_VISION_MODEL=${OLLAMA_VISION_MODEL},OLLAMA_TIMEOUT=290,GIT_SHA=${GIT_SHA}"
+BACKEND_ENV="${BACKEND_ENV},OLLAMA_BASE_URL=${OLLAMA_URL},OLLAMA_MODEL=gpt-oss:20b,OLLAMA_VISION_MODEL=${OLLAMA_VISION_MODEL},OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT_S},GIT_SHA=${GIT_SHA}"
 # Core secrets always mount. Provider keys mount ONLY if the secret has a value
 # (an enabled version) — otherwise the rail stays unconfigured (503 in prod), which
 # is the correct pre-go-live state. Add a version to a provider secret to enable it.
