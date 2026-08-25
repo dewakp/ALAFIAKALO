@@ -659,6 +659,58 @@ model from the provider's own `/models` (cached 6h, `model_prefer` naming the
 FAMILY) → the pin, last resort only.
 
 
+## 3ak. Provider order is per-environment — dev and prod are OPPOSITE
+
+Ollama is **preferred in dev and the fallback in production**, and that is not an
+inconsistency to tidy up. `_ollama_first()` / `_ollama_required()` in
+`ML/src/alafia_model/capabilities/llm.py`, set in `WEB/docker-compose.yml`, both
+**off by default** so production keeps the order it always had.
+
+| | Order | Ollama down |
+|---|---|---|
+| **dev** | Ollama → hosted pool | **hard failure**, named, with the fix in the message |
+| **prod** | hosted pool → Ollama | falls back, as before |
+
+- **Dev prefers it** because it is free, never rate-limited, keeps patient text
+  on our own infrastructure, and is the provider production actually runs. With
+  the hosted pool first, one stray key on a laptop meant dev exercised a path
+  production never takes — and a meal estimate was answered by whichever vendor
+  won a weighted shuffle. Same input, different provider, different numbers.
+- **Prod does not**, because prod's Ollama is Cloud Run with `minScale` unset
+  (§5): a cold call pays ~77 s of model load on top of generation, ~250 s all in.
+  That is the right price for a fallback and the wrong one for a front door.
+- **`OLLAMA_REQUIRED` is the important half.** A silent hosted stand-in is how
+  the AI tier went unproven locally for so long: every AI change was verified in
+  production because dev "worked" without Ollama. §3aa's *an error is not an
+  empty state*, applied to a provider chain.
+- `tests/test_provider_order.py` pins both directions, including that a total
+  failure never renders as `all providers failed (last: )`.
+
+### Dev could not hold a provider key at all
+
+`Settings.Config` used pydantic's default `extra="forbid"` together with
+`env_file=".env"`, so **any** provider key in `WEB/backend/.env` was a hard
+`ValidationError` at import — the backend died before serving a request. The LLM
+registry reads its ~19 keys straight from `os.environ` (§3ae: provider strategy
+is a backend concern), and compose's `env_file` does put them there, so the
+registry would have found them; pydantic just refused to start first.
+
+In production those keys arrive as Cloud Run env vars, which pydantic **ignores**
+when undeclared. So the failure existed only locally, and its effect was that the
+documented way to configure a provider in dev bricked the app. Now `extra =
+"ignore"`.
+
+### Ollama has to be told to listen
+
+Installed is not running, and running is not reachable:
+
+```bash
+OLLAMA_HOST=0.0.0.0:11434 ollama serve    # 0.0.0.0, NOT the default localhost
+```
+
+The default bind is `127.0.0.1`, which `host.docker.internal` cannot reach — the
+container sees connection-refused while `ollama` on the host works perfectly.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host
@@ -696,6 +748,32 @@ exceeded the web client's 30s timeout and, because the request never committed,
 - The background worker gets its **own DB session** — the request's session is
   closed by the time it runs — and never raises: a failed lookup becomes
   `nutrient_status="failed"`, never a broken save.
+
+### A confident wrong match is worse than no match
+
+Two defects let a branded product answer for a dish it has nothing to do with,
+and both reported `confidence: 1.0`:
+
+- **Relevance was measured in one direction.** `overlap / query_tokens` means a
+  one-word dish name scores **100%** against any packaged product containing that
+  word: `vindaloo` matched *Vindaloo Simmer Sauce* and answered **80 kcal / 1.6 g
+  protein** for a goat curry. Jaccard counts the words the product ADDS as well
+  as the ones it shares, which costs nothing on a real branded match
+  (*BOOST Glucose Control* still resolves) and rejects a generic dish landing on
+  a jar.
+- **An all-zero row counted as a hit.** A branded record with `0/0/0/0` satisfied
+  "found it", so the dish contributed nothing and a whole meal logged 108 kcal.
+  `_has_any_substance()` now treats it as a miss.
+
+Together these are why the same meal logged twice returned **108 kcal** and
+**520 kcal**. The fix is not a better food list — it is letting an unknown dish
+FALL THROUGH to the AI tier, which already caches its answer
+(`_save_to_cache(..., source="ai")`). **Look it up once, remember it after.**
+
+> **Do not add aliases.** Hardcoding `vindaloo → curry` is the same mistake as
+> pinning a model id (§3ae): it defeats the AI and MCP paths that exist to answer
+> exactly this, and it only ever covers the dish you happened to see. If a lookup
+> is wrong, fix what blocks the lookup.
 
 ## 3d. Email
 
@@ -760,6 +838,11 @@ at nobody: it looked created, and the recipient never heard about it.
 > machines or between you and CI.
 
 ```bash
+# Ollama first — it is REQUIRED in dev (3ak) and AI calls fail loudly without it.
+# 0.0.0.0, not the default localhost, or host.docker.internal cannot reach it.
+OLLAMA_HOST=0.0.0.0:11434 ollama serve &
+curl -s localhost:11434/api/tags | head -c 80      # prove it before trusting a run
+
 cd WEB
 
 # App (backend :8005, identity :8100, db :5435, prod-build frontend :8080)
@@ -771,7 +854,7 @@ docker compose --profile dev up frontend-dev        # → http://localhost:5173
 # Tests
 docker compose --profile test run --rm frontend-test   # vitest      → 105
 docker compose --profile test run --rm e2e             # playwright  → 18
-docker compose --profile test run --rm backend-test    # pytest      → 571
+docker compose --profile test run --rm backend-test    # pytest      → 880
 ```
 
 - **`frontend` on :8080 is not a dev server.** It is nginx serving a `dist/`

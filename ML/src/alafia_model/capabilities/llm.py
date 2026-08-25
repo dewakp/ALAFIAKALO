@@ -17,6 +17,7 @@ TODO(alafia-model): Phase 4 — build RAG index over USDA + WAFCT and wire into 
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import Any
 
@@ -43,6 +44,33 @@ grounded in clinical nutrition science and global food traditions.
 You have deep knowledge of West African, South Asian, Caribbean, and
 Western food composition from USDA SR Legacy, WAFCT 2019, and IFCT.
 """
+
+
+
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "false").strip().lower() in ("true", "1", "yes")
+
+
+def _ollama_first() -> bool:
+    """Try Ollama ahead of the hosted pool. ON in dev, OFF in production.
+
+    Production's Ollama is scale-to-zero on Cloud Run, so a cold call costs ~250 s
+    (canon 5). That is the right price for a fallback and the wrong one for a
+    front door.
+    """
+    return _env_flag("OLLAMA_FIRST")
+
+
+def _ollama_required() -> bool:
+    """Whether a dead Ollama is a hard failure rather than a fallback trigger.
+
+    ON in dev, OFF everywhere else. Dev wants the loud error: a hosted provider
+    quietly standing in is exactly how the AI tier went unproven locally.
+    Production wants the fallback — there it is the difference between a degraded
+    answer and no answer at all for a real patient. Only consulted when
+    OLLAMA_FIRST is set.
+    """
+    return _env_flag("OLLAMA_REQUIRED")
 
 
 class LLMCapability(BaseCapability):
@@ -167,84 +195,133 @@ class LLMCapability(BaseCapability):
         self, kind: str, arg: Any, temperature: float, max_tokens: int, json_mode: bool,
         model: str | None = None,
     ) -> CapabilityResult:
-        """Free-first weighted round-robin over the hosted provider pool, then a
-        terminal fall back to self-hosted Ollama. Every attempt is recorded for the
-        ALAFIA-model training corpus (telemetry)."""
+        """Dispatch across Ollama and the hosted provider pool. Order is per-environment.
+
+        The two environments want OPPOSITE orders, and picking one globally is
+        wrong in whichever half it is not:
+
+          dev  — Ollama FIRST and REQUIRED. It is free, never rate-limited, keeps
+                 user content on our own infrastructure, and is what production
+                 ultimately runs. If it is down the dispatch fails loudly, because
+                 a hosted provider quietly standing in is precisely how the AI tier
+                 stayed unproven locally while every AI change was checked in prod.
+
+          prod — hosted providers FIRST, Ollama as the terminal fallback. Prod's
+                 Ollama is Cloud Run with minScale unset (canon 5): a cold call
+                 pays a ~77 s model load on top of generation, about 250 s all in.
+                 Preferring it there would put that on every request to save a few
+                 cents — the fallback is the point, not the front door.
+
+        Controlled by OLLAMA_FIRST / OLLAMA_REQUIRED, both set in
+        WEB/docker-compose.yml and both off by default. Every attempt is recorded
+        for the ALAFIA-model training corpus (telemetry)."""
         from alafia_model.registry.providers import ordered_for_selection, mark_cooldown
         from alafia_model import telemetry
 
         chat_msgs = arg if kind == "chat" else None
-        last_error: str | None = None
+        state = {"cloud_error": None, "ollama_error": None}
 
-        for spec in ordered_for_selection():
+        async def try_ollama() -> CapabilityResult | None:
+            ollama = self._get_adapter(model)
             t0 = time.monotonic()
             try:
-                resp = await self._call(self._adapter_for(spec), kind, arg, temperature, max_tokens, json_mode)
+                resp = await self._call(ollama, kind, arg, temperature, max_tokens, json_mode)
                 telemetry.record(
-                    provider=spec.name, model=resp.get("model"), task=kind, tier=spec.tier,
+                    provider="ollama", model=resp.get("model"), task=kind, tier="local",
                     latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
                     success=True, messages=chat_msgs, response=resp.get("content"),
                 )
                 return CapabilityResult(
-                    # tokens_used/model travel in `data`, not just telemetry: the
-                    # backend records per-user usage from here, and dropping them
-                    # is why AIInteraction.tokens_used was always 0.
                     success=True,
                     data={
                         "text": resp["content"],
                         "tokens_used": resp.get("tokens_used", 0),
-                        "model": resp.get("model", spec.resolved_model()),
-                        "provider": spec.name,
+                        "model": resp.get("model", ollama.model_name),
+                        "provider": "ollama",
                     },
-                    confidence=0.7,
-                    source=f"{spec.name}:{resp.get('model', spec.resolved_model())}",
+                    confidence=0.75,
+                    source=f"ollama:{resp.get('model', ollama.model_name)}",
                 )
             except Exception as exc:
-                last_error = str(exc)
-                status = getattr(getattr(exc, "response", None), "status_code", None)
-                blob = str(exc).lower()
-                if status in (401, 402, 403, 429) or "quota" in blob or "rate" in blob or "insufficient" in blob:
-                    mark_cooldown(spec.name)  # back this provider off; free tier likely spent
-                telemetry.record(
-                    provider=spec.name, task=kind, tier=spec.tier,
-                    latency_ms=int((time.monotonic() - t0) * 1000), success=False, error=str(exc)[:300],
-                )
-                logger.warning("provider %s %s failed (%s); trying next", spec.name, kind, exc)
+                # Name the TYPE: httpx timeouts carry an empty str(), which once
+                # rendered as "all providers failed (last: )" and sent an operator
+                # hunting a healthy service.
+                state["ollama_error"] = f"{type(exc).__name__}: {exc}".rstrip(": ")
+                telemetry.record(provider="ollama", task=kind, tier="local", success=False,
+                                 error=str(exc)[:300])
+                logger.warning("ollama %s failed (%s)", kind, exc)
+                return None
 
-        # ── Terminal fallback: self-hosted Ollama (never rate-limited) ──
-        ollama = self._get_adapter(model)
-        t0 = time.monotonic()
-        try:
-            resp = await self._call(ollama, kind, arg, temperature, max_tokens, json_mode)
-            telemetry.record(
-                provider="ollama", model=resp.get("model"), task=kind, tier="local",
-                latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
-                success=True, messages=chat_msgs, response=resp.get("content"),
-            )
-            return CapabilityResult(
-                success=True,
-                data={
-                    "text": resp["content"],
-                    "tokens_used": resp.get("tokens_used", 0),
-                    "model": resp.get("model", ollama.model_name),
-                    "provider": "ollama",
-                },
-                confidence=0.75,
-                source=f"ollama:{resp.get('model', ollama.model_name)}",
-            )
-        except Exception as exc:
-            telemetry.record(provider="ollama", task=kind, tier="local", success=False, error=str(exc)[:300])
-            logger.error("all LLM providers failed; last cloud=%s ollama=%s", last_error, exc, exc_info=True)
-            # Name the exception TYPE, not just its message. httpx timeout
-            # exceptions carry an EMPTY str(), so "last: {exc}" rendered as
-            # "all providers failed (last: )" — an error that says nothing,
-            # and which sent an operator looking for a downed service when the
-            # model was simply slower than the timeout.
-            detail = last_error or f"{type(exc).__name__}: {exc}".rstrip(": ")
-            return CapabilityResult(
-                success=False,
-                error=f"LLM unavailable: all providers failed (last: {detail})",
-            )
+        async def try_hosted() -> CapabilityResult | None:
+            for spec in ordered_for_selection():
+                t0 = time.monotonic()
+                try:
+                    resp = await self._call(self._adapter_for(spec), kind, arg, temperature, max_tokens, json_mode)
+                    telemetry.record(
+                        provider=spec.name, model=resp.get("model"), task=kind, tier=spec.tier,
+                        latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
+                        success=True, messages=chat_msgs, response=resp.get("content"),
+                    )
+                    return CapabilityResult(
+                        # tokens_used/model travel in `data`, not just telemetry: the
+                        # backend records per-user usage from here, and dropping them
+                        # is why AIInteraction.tokens_used was always 0.
+                        success=True,
+                        data={
+                            "text": resp["content"],
+                            "tokens_used": resp.get("tokens_used", 0),
+                            "model": resp.get("model", spec.resolved_model()),
+                            "provider": spec.name,
+                        },
+                        confidence=0.7,
+                        source=f"{spec.name}:{resp.get('model', spec.resolved_model())}",
+                    )
+                except Exception as exc:
+                    state["cloud_error"] = str(exc)
+                    status = getattr(getattr(exc, "response", None), "status_code", None)
+                    blob = str(exc).lower()
+                    if status in (401, 402, 403, 429) or "quota" in blob or "rate" in blob or "insufficient" in blob:
+                        mark_cooldown(spec.name)  # back this provider off; free tier likely spent
+                    telemetry.record(
+                        provider=spec.name, task=kind, tier=spec.tier,
+                        latency_ms=int((time.monotonic() - t0) * 1000), success=False, error=str(exc)[:300],
+                    )
+                    logger.warning("provider %s %s failed (%s); trying next", spec.name, kind, exc)
+            return None
+
+        if _ollama_first():
+            result = await try_ollama()
+            if result is not None:
+                return result
+            if _ollama_required():
+                # Loud, not silent. Standing a hosted provider in here would make
+                # dev green on a path production does not run.
+                detail = state["ollama_error"]
+                logger.error("OLLAMA_REQUIRED is set and Ollama is unreachable: %s", detail)
+                return CapabilityResult(
+                    success=False,
+                    error=("LLM unavailable: Ollama is required in this environment and could "
+                           f"not be reached ({detail}). Start it on the host with "
+                           "`OLLAMA_HOST=0.0.0.0:11434 ollama serve` — the default localhost "
+                           "bind is not reachable from the container — or set "
+                           "OLLAMA_REQUIRED=false to allow hosted providers."),
+                )
+            result = await try_hosted()
+        else:
+            result = await try_hosted()
+            if result is None:
+                result = await try_ollama()
+
+        if result is not None:
+            return result
+
+        logger.error("all LLM providers failed; ollama=%s last cloud=%s",
+                     state["ollama_error"], state["cloud_error"])
+        detail = state["cloud_error"] or state["ollama_error"] or "no provider produced an error"
+        return CapabilityResult(
+            success=False,
+            error=f"LLM unavailable: all providers failed (last: {detail})",
+        )
 
     @staticmethod
     async def _call(adapter, kind, arg, temperature, max_tokens, json_mode):
