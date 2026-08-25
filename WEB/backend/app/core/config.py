@@ -220,6 +220,20 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        # The LLM registry reads its ~19 provider keys straight from os.environ
+        # (ANTHROPIC_API_KEY, GROQ_API_KEY, …) because provider strategy is not a
+        # settings concern — see canon 3ae. Compose's `env_file` does put those in
+        # the environment, so the registry finds them; but pydantic ALSO parses the
+        # same file, and the default `extra="forbid"` made any key it does not
+        # declare a hard ValidationError at import. The backend died before
+        # serving a request, with a pydantic error naming the key.
+        #
+        # In production the keys arrive as Cloud Run env vars, which pydantic
+        # simply ignores when undeclared — so the failure only ever appeared
+        # locally, and the effect was that DEV COULD NOT CARRY A PROVIDER KEY AT
+        # ALL. The AI tier was therefore unprovable in dev and every AI change was
+        # verified in production. Ignore unknown keys instead.
+        extra = "ignore"
 
 
 settings = Settings()

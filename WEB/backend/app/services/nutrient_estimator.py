@@ -321,7 +321,21 @@ def _is_relevant_branded_match(query: str, description: str | None) -> bool:
     if not query_tokens or not desc_tokens:
         return False
     overlap = query_tokens.intersection(desc_tokens)
-    return len(overlap) / len(query_tokens) >= 0.30
+    if len(overlap) / len(query_tokens) < 0.30:
+        return False
+
+    # …and the product must not be mostly words the user did not ask for.
+    #
+    # Measuring only overlap/query lets a ONE-WORD dish name score 100% against
+    # any packaged product containing it: "vindaloo" matched a simmer sauce and
+    # answered 80 kcal / 1.6 g protein for a goat curry, with confidence 1.0 — so
+    # the AI tier that actually knows what a vindaloo is was never reached.
+    # Jaccard counts the words the product adds as well as the ones it shares,
+    # which costs nothing on a real product match ("boost glucose control" against
+    # "BOOST Glucose Control, Very Vanilla" still clears it) and rejects a generic
+    # dish name landing on a branded jar.
+    union = query_tokens | desc_tokens
+    return len(overlap) / len(union) >= 0.50
 
 
 async def _try_mcp_branded(food_name: str) -> dict | None:
@@ -355,6 +369,16 @@ async def _try_mcp_branded(food_name: str) -> dict | None:
                 pass
 
         if not nutrients or "calories" not in nutrients:
+            continue
+
+        # An all-zero record is an EMPTY record, not a food with no calories.
+        # "goat meat vindaloo" matched a branded row whose every nutrient was
+        # 0.0, so the dish contributed nothing and a rice-and-curry dinner logged
+        # as 108 kcal — the meal looked light instead of looking unresolved.
+        # §3aa's rule applied to a nutrient profile: silence is not a value.
+        if not _has_any_substance(nutrients):
+            logger.info("Ignoring all-zero branded match for '%s' (fdc_id=%s)",
+                        food_name, fdc_id)
             continue
 
         serving_size = item.get("serving_size")
@@ -589,6 +613,20 @@ def _curated_lookup(food_name: str) -> tuple[str, dict] | None:
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
+
+def _has_any_substance(nutrients: dict) -> bool:
+    """True when a profile carries a non-zero macro.
+
+    A record of all zeros contributes nothing to a meal while looking like a
+    successful lookup — the worst kind of miss, because it is indistinguishable
+    from a genuinely calorie-free food until the totals come out wrong.
+    """
+    for key in ("calories", "protein_g", "carbs_g", "fat_g"):
+        value = nutrients.get(key)
+        if isinstance(value, (int, float)) and value > 0:
+            return True
+    return False
 
 
 async def estimate_nutrients(

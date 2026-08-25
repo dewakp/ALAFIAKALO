@@ -73,6 +73,14 @@ services:
       # with one image and with several. Verified against both.
       OLLAMA_VISION_MODEL: llava
       OLLAMA_TIMEOUT: "300"
+      # Ollama is the PREFERRED provider and is REQUIRED in dev: if it is not
+      # running, AI calls fail loudly here rather than quietly borrowing a hosted
+      # provider. A silent fallback is why the AI tier sat unproven locally while
+      # every AI change was verified in production instead.
+      #   OLLAMA_HOST=0.0.0.0:11434 ollama serve
+      # (0.0.0.0, not the default localhost, or host.docker.internal cannot reach it.)
+      OLLAMA_FIRST: "true"
+      OLLAMA_REQUIRED: "true"
       FIREBASE_SERVICE_ACCOUNT: /run/secrets/firebase_sa
       # One-directional incremental Firebase→PostgreSQL sync (delta-only)
       FIREBASE_SYNC_ENABLED: "true"

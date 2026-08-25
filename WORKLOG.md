@@ -2175,3 +2175,58 @@ Recorded because the reasoning matters more than the fixes:
 - Reported "3 bad lab rows" from the summary card; the detail view shows 35+.
 - Concluded the parser artefacts were historical; the user's source PDF
   reproduced both in the current parser.
+
+---
+
+## Session 2026-08-25 — Provider order, and letting an unknown dish reach the AI
+
+**Instructions:** "why are we creating aliases. that is hard coding which defeats
+the purpose of AI and MCP channels we have built. When it's new we lookup. once
+learned we remember." → "Yes, wire dev with provider key ONLY for testing
+purposes." → "why are we not using ollama in dev?" → "ollama must be preference.
+required in dev." → "the reverse is the case in production." → "verify my
+instruction have faithfully implemented and document everything."
+
+**Work done:**
+
+- **Reverted the aliases.** `food_aliases.py` is back to HEAD — no `vindaloo →
+  curry` entries. No food knowledge is hardcoded anywhere in app source; the only
+  remaining mentions are comments explaining the bugs below.
+- **Fixed what was blocking the lookup instead.** Two defects each let a branded
+  product answer a dish query with `confidence: 1.0`:
+  - `_is_relevant_branded_match` scored `overlap / query_tokens`, so the one-word
+    query "vindaloo" scored **100%** against *Vindaloo Simmer Sauce*. Now Jaccard
+    (both directions), which also counts the words the product adds.
+  - A branded row of `0/0/0/0` counted as a successful match, so the dish
+    contributed nothing. `_has_any_substance()` treats it as a miss.
+  These are why the same meal logged twice produced **108 kcal** and **520 kcal**
+  (prod `nutrition_logs` 1002 and 1005 — 1002 also sat at
+  `nutrient_status = failed`).
+- **Dev could not hold a provider key at all.** `Settings.Config` used pydantic's
+  default `extra="forbid"` with `env_file=".env"`, so any provider key in
+  `WEB/backend/.env` was a `ValidationError` at import — the backend died before
+  serving a request. Prod passes those keys as Cloud Run env vars, which pydantic
+  ignores when undeclared, so the fault existed only locally. Now `extra="ignore"`.
+- **Ollama was installed but not running** — the actual reason the AI tier had
+  never been exercised in dev. Started on `0.0.0.0:11434` (the default localhost
+  bind is unreachable from the container) with `gpt-oss:20b` present.
+- **Provider order is now per-environment**, dev and prod deliberately opposite:
+  `OLLAMA_FIRST` / `OLLAMA_REQUIRED` (`ML/src/alafia_model/capabilities/llm.py`),
+  both **off by default** so production is unchanged — hosted pool first, Ollama
+  terminal fallback, because prod's Ollama is scale-to-zero and a cold call costs
+  ~250 s. Dev sets both: Ollama first, and a hard, named failure when it is down
+  rather than a silent hosted stand-in.
+
+**Proven, not assumed:** with Ollama live, `goat meat vindaloo` resolves
+`src=ai` at 165 kcal / 22.5 g protein; `Boost Glucose Control` still resolves
+`src=mcp_branded_usda` at 80 kcal / 6.75 g protein — no regression on genuine
+branded matches.
+
+**Tests:** backend **880 passed, 9 xfailed, 0 failed** — one clean serialised run
+(`-p no:randomly`), including 6 new `tests/test_provider_order.py` pinning both
+orders and the required-in-dev failure. Two earlier runs in this session collided
+with each other on `alafia_test` and were discarded as invalid, not reported.
+
+**Not done:** frontend/e2e/Android suites not re-run (no client code changed);
+nothing committed or deployed yet; historical `nutrition_logs` rows computed by
+the pre-fix estimator still carry their old values.
