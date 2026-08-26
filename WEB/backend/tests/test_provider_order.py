@@ -56,8 +56,13 @@ def wired(monkeypatch):
     return _build
 
 
-async def _dispatch(cap):
-    return await cap._dispatch("chat", [{"role": "user", "content": "hi"}], 0.2, 64, False)
+async def _dispatch(cap, local_only=False):
+    """local_only defaults to False here so these tests exercise the ORDER.
+
+    The production default is True — see the PHI-boundary tests at the bottom.
+    """
+    return await cap._dispatch("chat", [{"role": "user", "content": "hi"}], 0.2, 64, False,
+                               None, local_only)
 
 
 @pytest.mark.asyncio
@@ -125,3 +130,75 @@ async def test_a_total_failure_names_the_exception_type(wired, monkeypatch):
     assert result.success is False
     assert result.error.strip().endswith(")")
     assert "last: )" not in result.error, "the error must never be blank"
+
+
+# ── The PHI boundary ──────────────────────────────────────────────────────────
+#
+# The published privacy policy says AI features run on inference servers ALAFIA
+# operates and that health data is not sent to a third-party AI provider. Every
+# prompt this app builds carries patient material — conditions, family history,
+# meals, journal text — so that promise is enforced in the dispatcher rather than
+# left to each call site to remember.
+
+
+@pytest.mark.asyncio
+async def test_the_default_uses_hosted_providers(wired, monkeypatch):
+    """Hosted carries the load — a warm local model is still ~16 s vs ~1 s hosted,
+    and production's Ollama is scale-to-zero on top of that (canon 5).
+
+    The privacy guarantee therefore rests on redaction at egress
+    (`test_pii_egress.py`), not on refusing to send.
+    """
+    monkeypatch.delenv("OLLAMA_FIRST", raising=False)   # production's order
+    cap, calls = wired()
+    result = await cap._dispatch("chat", [{"role": "user", "content": "hi"}], 0.2, 64, False)
+    assert result.success
+    assert calls == ["hosted"]
+
+
+@pytest.mark.asyncio
+async def test_a_local_only_call_never_falls_back_to_a_third_party(wired, monkeypatch):
+    """"The local model was busy" is not a reason to disclose a patient's data."""
+    monkeypatch.delenv("OLLAMA_FIRST", raising=False)
+    cap, calls = wired(ollama_fails=True)
+    result = await cap._dispatch("chat", [{"role": "user", "content": "hi"}], 0.2, 64, False,
+                                 None, True)
+
+    assert result.success is False
+    assert calls == ["ollama"], "no hosted provider may be tried for a PHI prompt"
+    assert "NOT sent to any third-party provider" in result.error, result.error
+
+
+@pytest.mark.asyncio
+async def test_the_boundary_holds_even_when_ollama_is_not_preferred(wired, monkeypatch):
+    """OLLAMA_FIRST is about latency. The PHI boundary is not negotiable by env."""
+    monkeypatch.setenv("OLLAMA_FIRST", "false")
+    monkeypatch.setenv("OLLAMA_REQUIRED", "false")
+    cap, calls = wired(ollama_fails=True)
+    result = await cap._dispatch("chat", [{"role": "user", "content": "hi"}], 0.2, 64, False,
+                                 None, True)
+    assert result.success is False
+    assert calls == ["ollama"], "env must not be able to override local_only"
+
+
+@pytest.mark.asyncio
+async def test_local_only_can_still_be_demanded(wired, monkeypatch):
+    """The escape hatch for anything that must not leave, whatever the default."""
+    monkeypatch.delenv("OLLAMA_FIRST", raising=False)
+    cap, calls = wired()
+    result = await cap.infer({"task": "chat", "local_only": True,
+                              "messages": [{"role": "user", "content": "hi"}]})
+    assert result.success
+    assert calls == ["ollama"]
+
+
+@pytest.mark.asyncio
+async def test_infer_reaches_a_hosted_provider(wired, monkeypatch):
+    """The payload entry point backend services actually use."""
+    monkeypatch.delenv("OLLAMA_FIRST", raising=False)
+    cap, calls = wired()
+    result = await cap.infer({"task": "chat",
+                              "messages": [{"role": "user", "content": "hi"}]})
+    assert result.success
+    assert result.data["provider"] == "groq"
+    assert calls == ["hosted"]

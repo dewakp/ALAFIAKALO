@@ -137,29 +137,43 @@ class LLMCapability(BaseCapability):
         max_tokens = payload.get("max_tokens", 2048)
         json_mode = bool(payload.get("json_mode", False))
         model = payload.get("model") or None
+        # Hosted providers carry the load, deliberately: production's Ollama is
+        # scale-to-zero and warming it is a standing cost decision (canon 5), so
+        # a ~250 s cold call is the wrong front door. The privacy guarantee
+        # therefore rests ENTIRELY on redaction at the egress point below — the
+        # patient's IDENTITY is stripped, never their clinical detail, which the
+        # model needs to answer at all.
+        #
+        # `local_only=True` stays available for anything that must not leave
+        # regardless, and is what the tests use to pin that boundary.
+        local_only = bool(payload.get("local_only", False))
+        # Extra identifiers for this call. The signed-in user's own name, email
+        # and phone are picked up from the request context inside `scrub_payload`
+        # — a hint each caller must remember is one someone eventually forgets.
+        identity_hints = tuple(payload.get("identity_hints") or ())
 
         # Tasks that prepend an ALAFIA system prompt
         if task == "health_chat":
             system = _HEALTH_SYSTEM_PROMPT
             if context.get("user_profile"):
                 system += f"\n\nUser profile context:\n{context['user_profile']}"
-            return await self._chat(system, messages, temperature, max_tokens, json_mode, model)
+            return await self._chat(system, messages, temperature, max_tokens, json_mode, model, local_only, identity_hints)
 
         if task == "nutrition_guidance":
             system = _NUTRITION_SYSTEM_PROMPT
             if context.get("nutrition_summary"):
                 system += f"\n\nRecent nutrition summary:\n{context['nutrition_summary']}"
-            return await self._chat(system, messages, temperature, max_tokens, json_mode, model)
+            return await self._chat(system, messages, temperature, max_tokens, json_mode, model, local_only, identity_hints)
 
         # Generic passthrough — the caller supplies its own system message (if any).
         # This is the entry point backend services use so every LLM call is routed
         # through ALAFIAModel rather than hitting Ollama/OpenAI directly.
         if task in ("chat", "raw_chat", "health_coaching"):
-            return await self._chat(None, messages, temperature, max_tokens, json_mode, model)
+            return await self._chat(None, messages, temperature, max_tokens, json_mode, model, local_only, identity_hints)
 
         # Single-prompt completion (maps to /api/generate style structured output).
         if task == "complete":
-            return await self._complete(payload.get("text", ""), temperature, max_tokens, model)
+            return await self._complete(payload.get("text", ""), temperature, max_tokens, model, local_only, identity_hints)
 
         if task in ("symptom_triage", "cbt_support"):
             return CapabilityResult(
@@ -181,19 +195,26 @@ class LLMCapability(BaseCapability):
         max_tokens: int,
         json_mode: bool,
         model: str | None = None,
+        local_only: bool = False,
+        identity_hints: tuple[str, ...] = (),
     ) -> CapabilityResult:
         # TODO(alafia-model): replace adapters with native fine-tuned BioMistral 7B
         full_messages = ([{"role": "system", "content": system}] if system else []) + list(messages)
-        return await self._dispatch("chat", full_messages, temperature, max_tokens, json_mode, model)
+        return await self._dispatch("chat", full_messages, temperature, max_tokens, json_mode,
+                                    model, local_only, identity_hints)
 
     async def _complete(
-        self, prompt: str, temperature: float, max_tokens: int, model: str | None = None
+        self, prompt: str, temperature: float, max_tokens: int, model: str | None = None,
+        local_only: bool = False,
+        identity_hints: tuple[str, ...] = (),
     ) -> CapabilityResult:
-        return await self._dispatch("complete", prompt, temperature, max_tokens, True, model)
+        return await self._dispatch("complete", prompt, temperature, max_tokens, True,
+                                    model, local_only, identity_hints)
 
     async def _dispatch(
         self, kind: str, arg: Any, temperature: float, max_tokens: int, json_mode: bool,
-        model: str | None = None,
+        model: str | None = None, local_only: bool = False,
+        identity_hints: tuple[str, ...] = (),
     ) -> CapabilityResult:
         """Dispatch across Ollama and the hosted provider pool. Order is per-environment.
 
@@ -216,7 +237,7 @@ class LLMCapability(BaseCapability):
         WEB/docker-compose.yml and both off by default. Every attempt is recorded
         for the ALAFIA-model training corpus (telemetry)."""
         from alafia_model.registry.providers import ordered_for_selection, mark_cooldown
-        from alafia_model import telemetry
+        from alafia_model import privacy, telemetry
 
         chat_msgs = arg if kind == "chat" else None
         state = {"cloud_error": None, "ollama_error": None}
@@ -253,14 +274,24 @@ class LLMCapability(BaseCapability):
                 return None
 
         async def try_hosted() -> CapabilityResult | None:
+            # Nothing leaves for a third party wearing the patient's identity.
+            # Redaction happens HERE, at the single egress point, rather than in
+            # each caller: free text is written by patients who type their own
+            # name, their clinician's, an email or a phone number without
+            # thinking about it, and a new call site cannot forget a step it
+            # never had to take. The subject is identified to a provider only by
+            # `privacy.subject_token()` — our handle, meaningless to them.
+            outbound = privacy.scrub_payload(arg, identity_hints)
             for spec in ordered_for_selection():
                 t0 = time.monotonic()
                 try:
-                    resp = await self._call(self._adapter_for(spec), kind, arg, temperature, max_tokens, json_mode)
+                    resp = await self._call(self._adapter_for(spec), kind, outbound, temperature, max_tokens, json_mode)
                     telemetry.record(
                         provider=spec.name, model=resp.get("model"), task=kind, tier=spec.tier,
                         latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
-                        success=True, messages=chat_msgs, response=resp.get("content"),
+                        success=True,
+                        messages=outbound if kind == "chat" else chat_msgs,
+                        response=resp.get("content"),
                     )
                     return CapabilityResult(
                         # tokens_used/model travel in `data`, not just telemetry: the
@@ -288,6 +319,24 @@ class LLMCapability(BaseCapability):
                     )
                     logger.warning("provider %s %s failed (%s); trying next", spec.name, kind, exc)
             return None
+
+        if local_only:
+            # PHI boundary. The prompt carries patient material, so ALAFIA-operated
+            # inference is the ONLY permitted destination — there is no fallback,
+            # because "the local model was busy" is not a reason to disclose a
+            # patient's conditions to a third party. A failure here is an outage;
+            # a silent hosted retry would be a privacy breach that no log records.
+            result = await try_ollama()
+            if result is not None:
+                return result
+            detail = state["ollama_error"] or "no error reported"
+            logger.error("local-only LLM call failed; refusing hosted fallback (%s)", detail)
+            return CapabilityResult(
+                success=False,
+                error=("LLM unavailable: this request carries health data and may only be "
+                       f"answered by ALAFIA-operated inference, which failed ({detail}). "
+                       "It was NOT sent to any third-party provider."),
+            )
 
         if _ollama_first():
             result = await try_ollama()

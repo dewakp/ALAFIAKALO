@@ -1,5 +1,6 @@
 """Authentication & authorization utilities."""
 
+import logging
 from datetime import datetime, timedelta, timezone
 
 import jwt  # PyJWT (maintained); legacy HS512 tokens during the migration window
@@ -11,6 +12,8 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.database import get_db
+
+logger = logging.getLogger(__name__)
 
 # Argon2id for new hashes; bcrypt kept so legacy $2b$ hashes still verify (and can
 # be rehashed). Password hashing is already quantum-adequate (Grover = quadratic).
@@ -149,4 +152,35 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
+    _register_identity_for_redaction(user)
     return user
+
+
+def _register_identity_for_redaction(user) -> None:
+    # `user` is intentionally unannotated: `User` is imported inside functions
+    # here to avoid a circular import, so a module-level annotation referencing
+    # it raises NameError at import and takes every module that imports security
+    # down with it.
+    """Tell the AI egress layer who this request belongs to.
+
+    Anything sent to a third-party model provider is redacted on the way out, and
+    a NAME can only be stripped reliably by exact match — no pattern separates
+    "Bola" the name from "Mark" the verb. The identifiers come from here, the one
+    dependency every authenticated request already passes through, rather than
+    from each AI call site: a hint a caller has to remember is a hint someone
+    eventually forgets, and what they forget is a patient's name reaching a vendor.
+
+    Best-effort by design. A failure here must never break authentication — it
+    degrades redaction to pattern-only, which is still applied.
+    """
+    try:
+        from alafia_model import privacy
+
+        privacy.register_identity(
+            getattr(user, "id", None),
+            getattr(user, "full_name", None),
+            getattr(user, "email", None),
+            getattr(user, "phone_number", None),
+        )
+    except Exception:  # pragma: no cover - never let this break a login
+        logger.debug("could not register identity for redaction", exc_info=True)
