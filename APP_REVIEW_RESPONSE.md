@@ -12,45 +12,56 @@ Resubmitting: **1.3 (5)**.
 
 **1. Does your app use any third-party service for the AI features?**
 
-No. ALAFIA's AI features are served by inference servers ALAFIA operates. No app
-feature sends user content to a third-party AI provider.
-
-This is enforced in code rather than by convention: every prompt is marked
-local-only by default, and a local-only request is answered by our own
-infrastructure or it fails with an error. There is deliberately **no third-party
-fallback** — "our model was busy" is not a reason to disclose a patient's health
-information. Automated tests assert that a failed local call is never retried
-against an external provider.
+Yes. ALAFIA routes AI requests to established third-party model providers
+(currently Anthropic, with OpenAI, DeepSeek and Moonshot configured as
+fallbacks). We also run our own inference servers, which serve as a fallback and
+can be required for specific features.
 
 **2. If yes, what personal data does it collect and/or send to the third-party
 AI service?**
 
-None — no personal data is sent to a third-party AI service.
+No personal data is sent. The user is never identified to a provider.
 
-We keep external model providers configured only as a contingency for requests
-that carry no health information, and two controls apply if one is ever used:
+Requests are de-identified before they leave our infrastructure, at a single
+egress point that every AI call passes through:
 
-- The subject is identified by a token ALAFIA issues (derived from our app
-  identifier and an internal user id). The user's name, email address, phone
-  number and date of birth are never sent.
-- Direct identifiers (emails, phone numbers, national identifiers, dates of
-  birth, URLs, record numbers) are stripped from the text at the point it would
-  leave our infrastructure.
+- **The user is identified only by a token we issue** — an HMAC of our own app
+  identifier and an internal user id (for example `alafia-ba9e8bb2f9077c6e`). It
+  is stable, so a conversation keeps its subject, but it is meaningless outside
+  our database and cannot be joined against anything a provider holds.
+- **Direct identifiers are removed from the text**: name, email address, phone
+  number, date of birth, national identifiers, payment card numbers, medical
+  record numbers, URLs, and the names of clinicians the user mentions.
+- The identifiers we hold for the signed-in user are registered automatically
+  from the authentication layer, so no individual feature can omit them.
 
-No third party receives health records, and no user data is used to train any
-third party's models.
+What does reach the provider is the clinical content needed to answer — for
+example a potassium value, a drug name and a dose — attached to the token rather
+than to a person. A representative request captured in full:
+
+    user typed:  "I'm Jane Doe (jane.doe@example.com, +1 555 010-9999),
+                  DOB 04/11/1962, record MRN0012345. Dr. Sarah Okafor put me on
+                  calcitriol 0.5 mcg. My potassium was 5.2..."
+
+    sent:        "I'm alafia-ba9e8bb2f9077c6e ([email], [phone]), DOB [dob],
+                  record [id]. [name] put me on calcitriol 0.5 mcg.
+                  My potassium was 5.2..."
+
+Providers are used under their API terms, which do not permit training on
+submitted data, and no user data is used to train any third party's models.
 
 **3. Does your app obtain the user's explicit consent (such as an 'Accept &
 Enable AI Features' button) before sending the user's data?**
 
-No user data is sent to a third-party AI service, so there is no third-party
-disclosure to consent to.
+Yes. On first use of any AI feature the app presents **AI & Your Data**, which
+states that requests are processed by third-party model providers, that the user
+is identified only by an ALAFIA-issued token, and which identifiers are removed.
+The user must accept before any AI request is made, and can withdraw at any time
+in Profile → AI & Your Data, which disables the AI features.
 
-The app still discloses AI processing in-product. **Profile → AI & Your Data**
-states where AI requests are processed, what is stored, and what would happen if
-an external service were ever used, and links to the full Privacy Policy at
-https://alafia.app/privacy. Profile also carries per-user consent toggles for
-data sharing and AI training, both **off** unless the user turns them on.
+The same screen links to the full Privacy Policy at https://alafia.app/privacy,
+whose AI section describes exactly the behaviour above. Profile also carries
+separate consent toggles for data sharing and AI training, both off by default.
 
 ---
 

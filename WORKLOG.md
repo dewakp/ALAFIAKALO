@@ -2230,3 +2230,66 @@ with each other on `alafia_test` and were discarded as invalid, not reported.
 **Not done:** frontend/e2e/Android suites not re-run (no client code changed);
 nothing committed or deployed yet; historical `nutrition_logs` rows computed by
 the pre-fix estimator still carry their old values.
+
+---
+
+## Session 2026-08-26 — App Review rejection, and where patient data actually goes
+
+**Instructions:** think through the Apple rejection (submission 0ace0f33) →
+"Focus on 1.3 to ensure the blockers are not there" → "Ollama is a financial
+decision. We settled that. To limit issues with ollama we use provider keys for
+now. But we ensure that user PII never get sent to external AI" → "Prove / verify
+in dev the PII striping" → "test the speed for hosted provider ai" → "finish".
+
+**The rejection listed five items. Apple reviewed 1.0 (2), which predates the
+StoreKit work**, so 2.1(b) is an App Store Connect matter, not a code defect.
+The rest were real and present in 1.3:
+
+- **2.1(a) "content was loading indefinitely" — reproduced.** A 401 from
+  `/subscription/status` mapped to the gate's `unknown` state on the stated
+  grounds that "AuthManager owns the signed-out case". Nothing was listening:
+  `APIClient` broadcast 402s only, `AuthManager` had no observer, `unknown`
+  renders the splash spinner and its one-shot task does not re-run. An expired
+  refresh token left the app loading forever with no way out. **Android was
+  identical** (`401 -> State.Unknown` → `SplashIndicator`). Both fixed.
+- **1.4.1 citations — zero in the app.** Added Profile → Sources & Citations
+  (KDOQI 2020, KDIGO, USDA FoodData Central, DRI, RxNorm/NLM, WHO ICD-11, Open
+  Food Facts), each with what it is used for and a publisher link. Taken from
+  what the code actually reads.
+- **2.1 / 5.1.1** — added AI & Your Data, an Accept & Enable consent gate on both
+  platforms, and in-app Privacy Policy / Terms links.
+
+**Where patient data goes, decided this session.** Production had four provider
+keys mounted and ran hosted-first while the published policy said health data was
+not sent to third parties. After measuring — hosted **1.0 s** short / **4.7 s**
+long vs a **warm** local Ollama at **16.4 s / 19.6 s**, before production's ~77 s
+cold load — the decision was: keep hosted providers, guarantee de-identification.
+
+- Redaction at ONE egress point; identity registered in `get_current_user` so no
+  AI call site can omit it; the user becomes `subject_token(user_id)`.
+- Captured on the wire against a local server standing in for the provider:
+  name, email, phone, DOB, record number and clinician name absent; potassium,
+  drug and dose kept; token present.
+- **That capture found a leak the unit tests missed** — the first version sent
+  `I'm Jane Doe` in the clear, because the tests asserted only on the identifiers
+  their author thought of. It also caught `scrub_pii` reading the request context
+  only via `scrub_payload`.
+- **Known gap, pinned as a passing test:** a bare name in passing ("tell Bola I
+  logged my meal") is not detectable by pattern and is not redacted.
+- `ALAFIA_PSEUDONYM_SECRET` was unset, so the HMAC fell back to a constant in the
+  source and the token was reversible by enumeration. `subject_token()` now
+  raises in production, and `deploy.sh` fails with instructions if the secret is
+  absent.
+
+**Every user-facing claim was rewritten** — the iOS screens, `alafia.app/privacy`
+and the App Review reply all described the previous local-only architecture and
+became false when the decision changed. When the data path changes, the copy is
+part of the change.
+
+**Tests:** backend 910 passed / 9 xfailed on a clean serialised run before this
+last batch; iOS and Android both built, with the new strings verified present in
+the compiled binary rather than inferred from a green build. iOS is 1.3 (5).
+
+**Not done:** `alafia-pseudonym-secret` must be created in Secret Manager before
+the next deploy (deploy.sh now refuses without it); the bare-name gap needs a
+named-entity model; Android version is still 1.0.0/versionCode 2.

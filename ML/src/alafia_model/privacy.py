@@ -153,12 +153,31 @@ def subject_token(user_id: int | str, app_id: str = _APP_ID) -> str:
     """
     secret = os.getenv("ALAFIA_PSEUDONYM_SECRET", "")
     if not secret:
-        # Deterministic per-deployment fallback so the token stays stable even
-        # where the secret has not been provisioned. Set the env var in
-        # production: without it, two deployments derive different tokens.
-        secret = f"{app_id}:fallback"
+        # The fallback is a CONSTANT IN THIS FILE, so the HMAC degrades to a
+        # public hash: anyone holding a token can recover the user id by trying
+        # a few million of them. That is precisely the property the HMAC exists
+        # to prevent, so outside development it is a hard error rather than a
+        # quiet downgrade — a pseudonym nobody can rely on is worse than none,
+        # because it is trusted.
+        if _is_production():
+            raise RuntimeError(
+                "ALAFIA_PSEUDONYM_SECRET is not set. Subject tokens sent to model "
+                "providers would be reversible by enumerating user ids. Mount the "
+                "secret (deploy/gcp/deploy.sh) before serving traffic."
+            )
+        secret = f"{app_id}:dev-only-not-a-secret"
     digest = hmac.new(secret.encode(), f"{app_id}:{user_id}".encode(), hashlib.sha256)
     return f"alafia-{digest.hexdigest()[:16]}"
+
+
+def _is_production() -> bool:
+    """True unless this is clearly a developer machine or a test run."""
+    env = os.getenv("ENVIRONMENT", os.getenv("ENV", "")).strip().lower()
+    if env in ("dev", "development", "local", "test", "testing", "ci"):
+        return False
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return False
+    return env in ("prod", "production", "staging") or bool(os.getenv("K_SERVICE"))
 
 
 def scrub_pii(text: str, known_values: Iterable[str] = ()) -> str:

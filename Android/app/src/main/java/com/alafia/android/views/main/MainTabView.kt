@@ -66,6 +66,7 @@ import com.alafia.android.views.community.SurveillanceScreen
 import com.alafia.android.views.pharmacy.PharmacyScreen
 import com.alafia.android.views.elimination.EliminationScreen
 import com.alafia.android.views.pantry.PantryScreen
+import com.alafia.android.views.about.AiConsentGate
 import com.alafia.android.views.prompt.PromptScreen
 
 @Composable
@@ -156,7 +157,11 @@ fun MainTabView(
             modifier = Modifier.padding(paddingValues)
         ) {
             composable("prompt") {
-                PromptScreen(navController = innerNavController)
+                // AI features do not run before the user has accepted what leaves
+                // the device (App Review 2.1 question 3; iOS parity).
+                AiConsentGate(context = LocalContext.current) {
+                    PromptScreen(navController = innerNavController)
+                }
             }
 
             composable("dashboard") {

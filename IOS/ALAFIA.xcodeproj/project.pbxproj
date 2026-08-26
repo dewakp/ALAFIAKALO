@@ -103,6 +103,7 @@
 		DD10000000000000000000B2 /* SubscriptionGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD10000000000000000000B1 /* SubscriptionGateView.swift */; };
 		EE20000000000000000000C2 /* MedicalSourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C1 /* MedicalSourcesView.swift */; };
 		EE20000000000000000000C4 /* AIAndDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C3 /* AIAndDataView.swift */; };
+		EE20000000000000000000C6 /* AIConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C5 /* AIConsentView.swift */; };
 		EE0000000000000000000012 /* EntitlementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* EntitlementManager.swift */; };
 		EE0000000000000000000102 /* OfflineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000002 /* OfflineCache.swift */; };
 		EE0000000000000000000103 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003 /* CrashReporter.swift */; };
@@ -233,6 +234,7 @@
 		DD10000000000000000000B1 /* SubscriptionGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionGateView.swift; sourceTree = "<group>"; };
 		EE20000000000000000000C1 /* MedicalSourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalSourcesView.swift; sourceTree = "<group>"; };
 		EE20000000000000000000C3 /* AIAndDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAndDataView.swift; sourceTree = "<group>"; };
+		EE20000000000000000000C5 /* AIConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConsentView.swift; sourceTree = "<group>"; };
 		EE0000000000000000000011 /* EntitlementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementManager.swift; sourceTree = "<group>"; };
 		EE0000000000000000000002 /* OfflineCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineCache.swift; sourceTree = "<group>"; };
 		EE0000000000000000000003 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
@@ -642,6 +644,7 @@
 			children = (
 				EE20000000000000000000C1 /* MedicalSourcesView.swift */,
 				EE20000000000000000000C3 /* AIAndDataView.swift */,
+				EE20000000000000000000C5 /* AIConsentView.swift */,
 			);
 			path = About;
 			sourceTree = "<group>";
@@ -1020,6 +1023,7 @@
 				DD10000000000000000000B2 /* SubscriptionGateView.swift in Sources */,
 				EE20000000000000000000C2 /* MedicalSourcesView.swift in Sources */,
 				EE20000000000000000000C4 /* AIAndDataView.swift in Sources */,
+				EE20000000000000000000C6 /* AIConsentView.swift in Sources */,
 				EE0000000000000000000012 /* EntitlementManager.swift in Sources */,
 				EE0000000000000000000102 /* OfflineCache.swift in Sources */,
 				EE0000000000000000000103 /* CrashReporter.swift in Sources */,

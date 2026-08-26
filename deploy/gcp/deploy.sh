@@ -71,7 +71,7 @@ OPENAI_API_KEY:openai-api-key PERPLEXITY_API_KEY:perplexity-api-key ANTHROPIC_AP
 for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
-         apple-shared-secret \
+         apple-shared-secret alafia-pseudonym-secret \
          resend-api-key smtp-host smtp-user smtp-password smtp-from-email; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
@@ -200,6 +200,26 @@ add_secret_if_present() {  # ENV_VAR  SECRET_NAME
     echo "   + mounting $1 (configured)"
   fi
 }
+# The AI de-identification secret. NOT optional and deliberately not routed
+# through add_secret_if_present: without it, `subject_token()` falls back to a
+# constant in the source, so the pseudonym sent to model providers is reversible
+# by enumerating user ids. The backend raises rather than serve in that state, so
+# a missing secret must fail HERE, with an instruction, not at the first AI call.
+if gcloud secrets versions list alafia-pseudonym-secret --filter='state=enabled' \
+     --format='value(name)' --limit=1 2>/dev/null | grep -q .; then
+  BACKEND_SECRETS="${BACKEND_SECRETS},ALAFIA_PSEUDONYM_SECRET=alafia-pseudonym-secret:latest"
+  echo "   + mounting ALAFIA_PSEUDONYM_SECRET (required)"
+else
+  echo "ERROR: secret 'alafia-pseudonym-secret' does not exist." >&2
+  echo "  AI requests identify the user by an HMAC of this secret. Without it the" >&2
+  echo "  token is derived from a constant in the source and can be reversed." >&2
+  echo "  Create it once (it must NEVER be rotated casually — every existing" >&2
+  echo "  subject token changes with it):" >&2
+  echo "    openssl rand -hex 32 | tr -d '\\n' \\" >&2
+  echo "      | gcloud secrets create alafia-pseudonym-secret --data-file=- --project=${PROJECT_ID}" >&2
+  exit 1
+fi
+
 add_secret_if_present STRIPE_SECRET_KEY       stripe-secret-key
 add_secret_if_present STRIPE_PRICE_ID         stripe-price-id
 add_secret_if_present STRIPE_PRICE_ID_ANNUAL  stripe-price-id-annual

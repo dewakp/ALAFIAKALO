@@ -27,7 +27,9 @@ struct MainTabView: View {
     // Share Records could take a permanent, visible slot.
     private var patientTabs: some View {
         TabView(selection: $selectedTab) {
-            PromptView()
+            // AI features do not run before the user has accepted what leaves
+            // the device (App Review 2.1, question 3).
+            AIConsentGate { PromptView() }
                 .tabItem {
                     Label("Ask", systemImage: "sparkles")
                 }

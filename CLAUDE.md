@@ -711,48 +711,63 @@ OLLAMA_HOST=0.0.0.0:11434 ollama serve    # 0.0.0.0, NOT the default localhost
 The default bind is `127.0.0.1`, which `host.docker.internal` cannot reach — the
 container sees connection-refused while `ollama` on the host works perfectly.
 
-## 3al. Health data does not leave our infrastructure — enforced, not promised
+## 3al. The patient's IDENTITY never leaves — their clinical detail does
 
-The published privacy policy says AI features run on servers ALAFIA operates and
-that health data is not sent to a third-party AI provider. For a long time that
-was **false as deployed**: production had four provider keys mounted
-(ANTHROPIC, DEEPSEEK, MOONSHOT, OPENAI) and ran hosted-pool-first, so a prompt
-carrying chronic conditions, family history and smoking status was answered by
-whichever vendor won the shuffle. Verified, not assumed — prod answered
-`PROVIDER: anthropic` on a live call.
+Hosted providers answer ALAFIA's AI. That is a decision, not drift: a warm local
+Ollama still takes **16–20 s** against a hosted **1–5 s**, and production's Ollama
+is scale-to-zero on top of that (§5, a standing cost decision). Measured, not
+assumed.
 
-- **Every prompt is `local_only` by default.** A caller must opt OUT, and today
-  none do. A local-only call that fails returns an error; there is **no
-  third-party fallback**, because "our model was busy" is not a reason to
-  disclose a patient's conditions. The boundary is not overridable by env —
-  `OLLAMA_FIRST=false` does not open it.
-- **Redaction happens at the single egress point**, in `try_hosted()`, not at
-  each call site. A new call site cannot forget a step it never had to take.
-- Identity is `privacy.subject_token(user_id)` — HMAC, not a bare hash: a plain
-  SHA-256 of a small integer id is reversible by enumerating a few million ids.
+So the privacy guarantee is **de-identification**, and it lives in
+`ML/src/alafia_model/privacy.py` at ONE egress point (`try_hosted()`), never in
+the call sites:
+
+- The signed-in user becomes `subject_token(user_id)` — HMAC of the app id and
+  our internal id, e.g. `alafia-ba9e8bb2f9077c6e`. Stable, so a conversation
+  keeps its subject; meaningless outside our database.
+- Name, email, phone, DOB, national ids, card numbers, record numbers, URLs and
+  **clinician names** are stripped. The potassium value, the drug and the dose
+  are kept — without them the model cannot answer.
+- **Identity is registered in `get_current_user`**, the one dependency every
+  authenticated request passes through. A hint each AI caller must remember is a
+  hint someone forgets, and what they forget is a patient's name reaching a vendor.
+- `local_only=True` still forces ALAFIA-operated inference with **no** fallback,
+  for anything that must not leave regardless.
+
+⚠️ **`ALAFIA_PSEUDONYM_SECRET` must be mounted.** Without it the HMAC falls back
+to a constant in the source, so the token degrades to a public hash and is
+reversible by enumerating user ids — exactly the property HMAC is there to
+prevent. `subject_token()` now raises in production rather than downgrading
+quietly: **a pseudonym nobody can rely on is worse than none, because it is
+trusted.**
 
 > **A unit test proves the function; only the wire proves the system.**
-> `test_pii_egress.py` passed while the real request body carried
-> `I'm Jane Doe` in the clear — the tests asserted on the identifiers their
-> author happened to think of (email, phone), and names were not among them. It
-> was found by standing a local HTTP server in for the provider and reading the
-> bytes. Nothing else was stubbed: dispatcher, redaction, adapter and httpx all
-> ran for real. **Capture the payload; do not infer it from the code.** (§0.)
+> `test_pii_egress.py` was green while the real request body carried
+> `I'm Jane Doe` in the clear — the assertions covered the identifiers their
+> author thought of (email, phone) and names were not among them. It was found by
+> standing a local HTTP server in for the provider and reading the bytes, with
+> dispatcher, redaction, adapter and httpx all running for real. **Capture the
+> payload; never infer it from the code** (§0). The same run later caught
+> `scrub_pii` consulting the request context only via `scrub_payload`, so calling
+> the inner function directly silently lost name redaction.
 
-**What redaction cannot do, pinned as a passing test.** Names are covered three
-ways — exact `known_values`, self-introduction (`I'm Jane Doe`), and titles
+**What redaction CANNOT do, pinned as a passing test.** Names are covered three
+ways — registered `known_values`, self-introduction (`I'm Jane Doe`), and titles
 (`Dr. Sarah Okafor`). A bare name in passing — *"tell Bola I logged my meal"* —
-is **not** detectable by pattern: "Bola" is a name, "Mark" is also a verb, and
+is **not** detectable by pattern: "Bola" is a name, "Mark" is also a verb,
 "Dialysis" is capitalised mid-sentence. `test_a_bare_name_in_passing_is_NOT_redacted`
-records this deliberately. That residual gap is exactly why the guarantee is the
-local-only default and redaction is the second line. If a future feature opts
-out, it must send **structured fields, not raw user prose**.
+records this deliberately. Closing it needs a named-entity model. Until then, a
+feature that sends a NEW kind of free text must weigh that gap, and anything
+sending structured fields should send those rather than prose.
 
-⚠️ **This makes warming Ollama a dependency, not an optimisation.** With health
-traffic pinned to our own inference and `minScale` unset (§5), a cold AI call
-costs ~250 s — which is the *performance* rejection App Review already cited.
-Keeping the privacy guarantee and the latency both requires the standing cost
-decision, not a code change.
+**Consent is asked for anyway.** "We removed your name" is our assurance, not the
+user's decision. iOS `AIConsentGate` / Android `AiConsentGate` block the Ask tab
+until *Accept & Enable AI Features*, and Profile → AI & Your Data withdraws it.
+Every user-facing claim — the app screens, `alafia.app/privacy`, and the App
+Review reply — states third-party processing plainly. **They were all rewritten
+once already**, because they described the previous local-only architecture and
+became false the moment the decision changed. **When the data path changes, the
+copy is part of the change.**
 
 ## 3b. Admin console
 

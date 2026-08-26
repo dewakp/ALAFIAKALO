@@ -84,18 +84,22 @@ export default function Privacy() {
           encrypted database there. Data travels over encrypted connections (HTTPS/TLS).
         </p>
         <p>
-          <strong>AI features run on our own infrastructure.</strong> When you ask the assistant a
-          question or have a meal photo analysed, that request is processed by inference servers
-          ALAFIA operates. Your health data is not sent to a third-party AI provider — this is
-          enforced in our code, not left to policy: a request carrying health information is
-          answered by our own servers or it fails, and there is no third-party fallback.
+          <strong>You are never identified to an AI provider.</strong> ALAFIA's AI
+          features are answered by established model providers we work with. Before a
+          request leaves ALAFIA it is de-identified at a single point that every AI
+          call passes through: your name, email address, phone number, date of birth,
+          record numbers and the names of clinicians you mention are removed, and you
+          are represented by a token we issue — something like
+          <code>alafia-ba9e8bb2f9077c6e</code>, which means nothing outside ALAFIA and
+          cannot be linked back to you by the provider.
         </p>
         <p>
-          <strong>If a third-party model is ever used, it is for requests that carry no health
-          information</strong> — and even then you are identified by a token we issue, never by
-          your name, email address, phone number or date of birth. Direct identifiers are stripped
-          from the text before it leaves us. No third party receives your health records, and your
-          data is never used to train their models.
+          What the provider receives is the health detail needed to answer your
+          question — a lab value, a medication and its dose — attached to that token
+          rather than to you. Providers are used under terms that do not permit
+          training on submitted data, and <strong>your data is never used to train
+          anyone's models.</strong> You choose whether to enable AI features at all,
+          and can turn them off at any time.
         </p>
         <p>
           A small number of service providers process narrow slices of data strictly on our behalf,
