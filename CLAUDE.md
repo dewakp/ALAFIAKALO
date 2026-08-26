@@ -711,6 +711,49 @@ OLLAMA_HOST=0.0.0.0:11434 ollama serve    # 0.0.0.0, NOT the default localhost
 The default bind is `127.0.0.1`, which `host.docker.internal` cannot reach — the
 container sees connection-refused while `ollama` on the host works perfectly.
 
+## 3al. Health data does not leave our infrastructure — enforced, not promised
+
+The published privacy policy says AI features run on servers ALAFIA operates and
+that health data is not sent to a third-party AI provider. For a long time that
+was **false as deployed**: production had four provider keys mounted
+(ANTHROPIC, DEEPSEEK, MOONSHOT, OPENAI) and ran hosted-pool-first, so a prompt
+carrying chronic conditions, family history and smoking status was answered by
+whichever vendor won the shuffle. Verified, not assumed — prod answered
+`PROVIDER: anthropic` on a live call.
+
+- **Every prompt is `local_only` by default.** A caller must opt OUT, and today
+  none do. A local-only call that fails returns an error; there is **no
+  third-party fallback**, because "our model was busy" is not a reason to
+  disclose a patient's conditions. The boundary is not overridable by env —
+  `OLLAMA_FIRST=false` does not open it.
+- **Redaction happens at the single egress point**, in `try_hosted()`, not at
+  each call site. A new call site cannot forget a step it never had to take.
+- Identity is `privacy.subject_token(user_id)` — HMAC, not a bare hash: a plain
+  SHA-256 of a small integer id is reversible by enumerating a few million ids.
+
+> **A unit test proves the function; only the wire proves the system.**
+> `test_pii_egress.py` passed while the real request body carried
+> `I'm Jane Doe` in the clear — the tests asserted on the identifiers their
+> author happened to think of (email, phone), and names were not among them. It
+> was found by standing a local HTTP server in for the provider and reading the
+> bytes. Nothing else was stubbed: dispatcher, redaction, adapter and httpx all
+> ran for real. **Capture the payload; do not infer it from the code.** (§0.)
+
+**What redaction cannot do, pinned as a passing test.** Names are covered three
+ways — exact `known_values`, self-introduction (`I'm Jane Doe`), and titles
+(`Dr. Sarah Okafor`). A bare name in passing — *"tell Bola I logged my meal"* —
+is **not** detectable by pattern: "Bola" is a name, "Mark" is also a verb, and
+"Dialysis" is capitalised mid-sentence. `test_a_bare_name_in_passing_is_NOT_redacted`
+records this deliberately. That residual gap is exactly why the guarantee is the
+local-only default and redaction is the second line. If a future feature opts
+out, it must send **structured fields, not raw user prose**.
+
+⚠️ **This makes warming Ollama a dependency, not an optimisation.** With health
+traffic pinned to our own inference and `minScale` unset (§5), a cold AI call
+costs ~250 s — which is the *performance* rejection App Review already cited.
+Keeping the privacy guarantee and the latency both requires the standing cost
+decision, not a code change.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host
@@ -794,6 +837,49 @@ was one `git add .` from being committed.
   `GET /domains` returns `401 restricted_api_key` — an error that reads exactly
   like "no domains verified" if you do not look at the status code.
   `dig +short TXT resend._domainkey.alafia.app`
+
+### Bulk mail: consent, and a secret that is not what the shell says it is
+
+Marketing is separate from transactional. `users.marketing_opt_out_at` gates
+announcements only — password reset, verification and billing must **never**
+consult it, or opting out of news locks someone out of their own account
+recovery. `NotificationCategory` is no help here: all twelve values are clinical
+or system, and `notification_preferences.email` defaults to False, so there was
+no consent surface at all before this. Tooling and the full procedure:
+**`scripts/email/README.md`**.
+
+`/unsubscribe` is mounted **outside `api_router`** on purpose. That router
+carries `Depends(require_active_subscription)`, and the person most likely to
+click unsubscribe is the one whose subscription lapsed — a paywalled unsubscribe
+is not an unsubscribe. `tests/test_marketing_unsubscribe.py` fails if anyone
+moves it under `/api/v1`.
+
+> **A secret read through a shell is not always the secret the service holds.**
+> `alafia-secret-key` is stored with a **trailing newline** — 65 bytes ending
+> `0x0a`. Cloud Run mounts a secret's bytes verbatim, so the service verifies
+> with all 65, while `SECRET_KEY="$(gcloud secrets versions access …)"` strips it
+> and signs with 64. Anything minted OUTSIDE the app and verified INSIDE it then
+> fails every time. The app's own tokens never notice, because they are signed
+> and verified by the same process. Check the bytes before trusting an
+> externally-minted signature:
+> `gcloud secrets versions access latest --secret=alafia-secret-key | xxd | tail -1`
+> `_signing_key()` in `api/marketing.py` strips on both sides so the two forms
+> agree whatever the storage did.
+
+> **A silent-by-design endpoint fails silently by design.** Unsubscribe returns
+> the same 200 and the same page for a valid token as for garbage, so it cannot
+> become an account-existence oracle (§3e). The cost is that a *broken* token is
+> indistinguishable from a working one: on 2026-08-26 a real batch of 17 went out
+> whose links rendered **"You're unsubscribed"** and recorded nothing — telling
+> each reader the opposite of the truth, which is worse than a 404 because it
+> fails invisibly. **Where a response is deliberately uninformative, verify the
+> side effect instead** — read the row, do not read the status code.
+
+> **An absent log line is not evidence.** The hunt above lost several rounds to
+> treating a missing `logger.info` as proof the token was rejected. The module
+> used plain `logging.getLogger` while the app configures `app.core.logging.get_logger`,
+> so its INFO was simply filtered. §0, one level down: the missing thing was a
+> formatting artifact, not a measurement.
 
 ## 3e. Finding people is not browsing people
 

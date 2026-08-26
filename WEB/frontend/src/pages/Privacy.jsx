@@ -86,7 +86,16 @@ export default function Privacy() {
         <p>
           <strong>AI features run on our own infrastructure.</strong> When you ask the assistant a
           question or have a meal photo analysed, that request is processed by inference servers
-          ALAFIA operates. Your health data is not sent to a third-party AI provider.
+          ALAFIA operates. Your health data is not sent to a third-party AI provider — this is
+          enforced in our code, not left to policy: a request carrying health information is
+          answered by our own servers or it fails, and there is no third-party fallback.
+        </p>
+        <p>
+          <strong>If a third-party model is ever used, it is for requests that carry no health
+          information</strong> — and even then you are identified by a token we issue, never by
+          your name, email address, phone number or date of birth. Direct identifiers are stripped
+          from the text before it leaves us. No third party receives your health records, and your
+          data is never used to train their models.
         </p>
         <p>
           A small number of service providers process narrow slices of data strictly on our behalf,
@@ -94,7 +103,7 @@ export default function Privacy() {
         </p>
         <ul className="mk-list">
           <li><strong>Payments</strong> — Stripe handles web subscriptions, and the App Store or Google Play handles in-app ones. They receive your billing details; we never see or store your full card number.</li>
-          <li><strong>Email</strong> — Resend delivers account email such as password resets. It receives your email address.</li>
+          <li><strong>Email</strong> — Resend delivers account email such as password resets and address verification, and occasional product announcements. It receives your email address. Every announcement carries a one-click unsubscribe; account email is essential to your account and cannot be turned off while it is open.</li>
           <li><strong>Nutrition reference data</strong> — we look food up in the USDA FoodData Central database. We send the food name, never anything about you.</li>
         </ul>
 

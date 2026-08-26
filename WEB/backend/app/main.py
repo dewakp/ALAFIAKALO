@@ -494,3 +494,10 @@ app.include_router(ws_router)
 
 from app.api.ws_messaging import router as ws_messaging_router
 app.include_router(ws_messaging_router)
+
+# Marketing unsubscribe — deliberately NOT under api_router. That router carries
+# the paywall dependency, and the person most likely to click "unsubscribe" is
+# the one whose subscription lapsed; a 402 there would trap them on a list they
+# asked to leave. Public and unauthenticated by design.
+from app.api.marketing import router as marketing_router  # noqa: E402
+app.include_router(marketing_router)

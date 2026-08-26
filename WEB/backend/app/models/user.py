@@ -101,6 +101,13 @@ class User(Base):
     last_login: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
+    # When this user opted out of MARKETING email. NULL = still eligible.
+    # Never consult this for transactional mail (password reset, verification,
+    # payment failure) — opting out of announcements must not lock someone out
+    # of their own account recovery.
+    marketing_opt_out_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
