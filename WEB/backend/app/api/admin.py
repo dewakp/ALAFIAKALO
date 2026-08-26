@@ -208,6 +208,8 @@ async def admin_user_detail(
         select(Subscription).where(Subscription.user_id == user_id)
     )).scalars().first()
 
+    activity = await _user_activity(db, user_id)
+
     return {
         "id": user.id,
         "email": user.email,
@@ -217,6 +219,35 @@ async def admin_user_detail(
         "auth_provider": user.auth_provider,
         "created_at": _iso(user.created_at),
         "last_login": _iso(user.last_login),
+        # ── Identifiers ──
+        # `system_id` is the 255-char SID and is THE cross-system key: it mirrors
+        # the FLOWSHEET portal's `user_identity_sid_log`, so an operator
+        # reconciling an account against FLOWSHEET needs to read it here. The
+        # decoded segments are shown too — a mismatch is usually one segment
+        # (a DOB or a name spelling), and the whole string is unreadable at a
+        # glance.
+        "identifiers": {
+            "system_id": user.system_id,
+            "system_id_segments": _decode_sid(user.system_id),
+            "identity_uid": user.identity_uid,
+            "subject_token": _subject_token(user.id),
+        },
+        "profile": {
+            # `date_of_birth` is a String column, not a datetime — `_iso` would
+            # raise on `.tzinfo`. Pass it through as stored.
+            "date_of_birth": getattr(user, "date_of_birth", None),
+            "gender": user.gender,
+            "country": user.country,
+            "timezone": user.timezone,
+            "phone_number": user.phone_number,
+            "height_cm": user.height_cm,
+            "current_weight_kg": user.current_weight_kg,
+            # NOT `user.chronic_conditions` — that is a relationship, and touching
+            # it here triggers a lazy load in async context (MissingGreenlet).
+            # The count already appears under Activity, sourced the canonical way.
+            "allergies": user.allergies,
+        },
+        "activity": activity,
         "subscription": {
             "status": str(subscription.status) if subscription else None,
             "current_period_end": _iso(getattr(subscription, "current_period_end", None)),
@@ -374,3 +405,69 @@ async def admin_token_usage(
             for r in rows
         ],
     }
+
+
+# ── User identifiers & activity (admin detail) ───────────────────────────
+
+def _decode_sid(sid: str | None) -> dict | None:
+    """Split a 255-char SID into the segments an operator can actually compare.
+
+    Format: S1.FN3.LN3.DOB8.G.EPOCH10.<payload>.<checksum>. Returned as-is when
+    the shape is unexpected rather than guessed at — a malformed SID is itself
+    the finding, and inventing segments for it would hide that.
+    """
+    if not sid:
+        return None
+    parts = sid.split(".")
+    if len(parts) < 6:
+        return {"malformed": True, "raw": sid[:64]}
+    return {
+        "version": parts[0], "first3": parts[1], "last3": parts[2],
+        "dob8": parts[3], "gender": parts[4], "epoch10": parts[5],
+    }
+
+
+def _subject_token(user_id: int) -> str | None:
+    """The handle third-party AI providers see for this user (canon 3al)."""
+    try:
+        from alafia_model import privacy
+        return privacy.subject_token(user_id)
+    except Exception:  # pragma: no cover - never break the admin view
+        return None
+
+
+async def _user_activity(db: AsyncSession, user_id: int) -> dict:
+    """What this account has actually DONE, per domain.
+
+    A row count plus the most recent timestamp, because the two answer different
+    questions: "is this account in use" and "is it in use NOW". A support case
+    that reads "0 meals" is different from "180 meals, none since April".
+
+    Tables are resolved by name and missing ones are skipped, so this cannot
+    500 the whole admin page if a model is renamed — canon 3aa's "an error is
+    not an empty state" applies, so a domain that FAILS reports null rather
+    than a silent zero, which would read as "this patient logs nothing".
+    """
+    domains = [
+        ("meals", "nutrition_logs", "created_at"),
+        ("medication_doses", "medication_dose_logs", "log_date"),
+        ("medications_prescribed", "medications", "created_at"),
+        ("conditions", "chronic_conditions", "created_at"),
+        ("lab_results", "lab_results", "test_date"),
+        ("therapy_sessions", "therapy_sessions", "scheduled_date"),
+        ("documents", "document_imports", "created_at"),
+        ("vitals", "vitals_logs", "created_at"),
+        ("notifications", "notifications", "created_at"),
+    ]
+    out: dict[str, dict] = {}
+    for label, table, ts_col in domains:
+        try:
+            row = (await db.execute(text(
+                f"SELECT count(*), max({ts_col})::text FROM {table} WHERE user_id = :uid"
+            ), {"uid": user_id})).one()
+            out[label] = {"count": int(row[0] or 0), "last": row[1]}
+        except Exception:
+            # Distinguishable from a real zero on purpose.
+            await db.rollback()
+            out[label] = {"count": None, "last": None, "unavailable": True}
+    return out

@@ -32,6 +32,18 @@ function ago(iso) {
 const num = (n) => (n ?? 0).toLocaleString();
 
 function Stat({ label, value, sub, tone }) {
+  useEffect(() => {
+    if (detailId == null) { setDetail(null); setDetailError(null); return; }
+    let cancelled = false;
+    setDetail(null); setDetailError(null);
+    api.get(`/admin/users/${detailId}`)
+      .then((r) => { if (!cancelled) setDetail(r.data); })
+      // Never fall through to an empty profile: a failed fetch and a user with
+      // no data look identical otherwise, and one of them is a lie.
+      .catch((e) => { if (!cancelled) setDetailError(e?.response?.data?.detail || e.message); });
+    return () => { cancelled = true; };
+  }, [detailId]);
+
   return (
     <div style={{
       background: 'var(--color-bg-secondary)', borderRadius: 10, padding: '.85rem 1rem',
@@ -47,6 +59,119 @@ function Stat({ label, value, sub, tone }) {
   );
 }
 
+function UserDetailPanel({ detail, error, onClose }) {
+  const cell = { padding: '.35rem .5rem', fontSize: '.8rem' };
+  const mono = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', wordBreak: 'break-all' };
+
+  return (
+    <div onClick={onClose}
+         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.35)', zIndex: 50,
+                  display: 'flex', justifyContent: 'flex-end' }}>
+      <div onClick={(e) => e.stopPropagation()}
+           style={{ width: 'min(560px, 100%)', height: '100%', overflowY: 'auto',
+                    background: 'var(--color-surface, #fff)', padding: '1.25rem',
+                    boxShadow: '-8px 0 24px rgba(0,0,0,.15)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0 }}>{detail?.full_name || (error ? 'User' : 'Loading…')}</h3>
+          <button className="btn btn-secondary btn-sm" onClick={onClose}>Close</button>
+        </div>
+
+        {error && (
+          <p style={{ color: '#ef4444', fontSize: '.85rem', marginTop: '1rem' }}>
+            Couldn’t load this user: {error}
+          </p>
+        )}
+
+        {!error && !detail && (
+          <p style={{ color: 'var(--color-text-tertiary)', marginTop: '1rem' }}>Loading…</p>
+        )}
+
+        {detail && (
+          <>
+            <p style={{ color: 'var(--color-text-tertiary)', fontSize: '.8rem', marginTop: '.25rem' }}>
+              {detail.email} · id {detail.id}
+              {!detail.is_active && <span style={{ color: '#ef4444' }}> · inactive</span>}
+            </p>
+
+            <h4 style={{ marginBottom: '.4rem' }}>Unique ID</h4>
+            <p style={{ fontSize: '.75rem', color: 'var(--color-text-tertiary)', marginTop: 0 }}>
+              The System Identifier — this is the value that must match FLOWSHEET.
+            </p>
+            <div style={{ ...mono, fontSize: '.72rem', background: 'var(--color-bg-subtle, #f6f7f9)',
+                          padding: '.5rem', borderRadius: 6 }}>
+              {detail.identifiers?.system_id || <em>not assigned</em>}
+            </div>
+            {detail.identifiers?.system_id_segments && (
+              <table style={{ width: '100%', marginTop: '.5rem' }}>
+                <tbody>
+                  {Object.entries(detail.identifiers.system_id_segments).map(([k, v]) => (
+                    <tr key={k}>
+                      <td style={{ ...cell, color: 'var(--color-text-tertiary)' }}>{k}</td>
+                      <td style={{ ...cell, ...mono }}>{String(v)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <table style={{ width: '100%', marginTop: '.5rem' }}>
+              <tbody>
+                <tr>
+                  <td style={{ ...cell, color: 'var(--color-text-tertiary)' }}>identity_uid</td>
+                  <td style={{ ...cell, ...mono }}>{detail.identifiers?.identity_uid || '—'}</td>
+                </tr>
+                <tr>
+                  <td style={{ ...cell, color: 'var(--color-text-tertiary)' }}>AI subject token</td>
+                  <td style={{ ...cell, ...mono }}>{detail.identifiers?.subject_token || '—'}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4 style={{ marginBottom: '.4rem' }}>Activity</h4>
+            <table style={{ width: '100%' }}>
+              <tbody>
+                {Object.entries(detail.activity || {}).map(([k, v]) => (
+                  <tr key={k} style={{ borderTop: '1px solid var(--color-border)' }}>
+                    <td style={{ ...cell }}>{k.replace(/_/g, ' ')}</td>
+                    <td style={{ ...cell, textAlign: 'right' }}>
+                      {/* A failed lookup must not read as "this patient logs nothing". */}
+                      {v.unavailable
+                        ? <span style={{ color: '#ef4444' }}>unavailable</span>
+                        : <strong>{v.count}</strong>}
+                    </td>
+                    <td style={{ ...cell, color: 'var(--color-text-tertiary)', textAlign: 'right' }}>
+                      {v.last ? String(v.last).slice(0, 10) : (v.unavailable ? '' : 'never')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h4 style={{ marginBottom: '.4rem' }}>Profile</h4>
+            <table style={{ width: '100%' }}>
+              <tbody>
+                {Object.entries(detail.profile || {}).map(([k, v]) => (
+                  <tr key={k} style={{ borderTop: '1px solid var(--color-border)' }}>
+                    <td style={{ ...cell, color: 'var(--color-text-tertiary)' }}>{k.replace(/_/g, ' ')}</td>
+                    <td style={{ ...cell }}>{v == null || v === '' ? '—' : String(v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h4 style={{ marginBottom: '.4rem' }}>AI usage</h4>
+            <p style={{ fontSize: '.8rem', margin: 0 }}>
+              {detail.usage?.ai_interactions ?? 0} calls · {detail.usage?.tokens_used ?? 0} tokens
+              {detail.usage?.last_interaction
+                ? ` · last ${String(detail.usage.last_interaction).slice(0, 10)}`
+                : ''}
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const [tab, setTab] = useState('overview');
   const [overview, setOverview] = useState(null);
@@ -54,6 +179,9 @@ export default function Admin() {
   const [usage, setUsage] = useState(null);
   const [users, setUsers] = useState(null);
   const [q, setQ] = useState('');
+  const [detailId, setDetailId] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [detailError, setDetailError] = useState(null);
   const [sort, setSort] = useState('last_login');
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState('');
@@ -198,7 +326,10 @@ export default function Admin() {
                 </thead>
                 <tbody>
                   {users.users.map((u) => (
-                    <tr key={u.id} style={{ borderTop: '1px solid var(--color-border)' }}>
+                    <tr key={u.id}
+                        onClick={() => setDetailId(u.id)}
+                        style={{ borderTop: '1px solid var(--color-border)', cursor: 'pointer' }}
+                        title="Open user detail">
                       <td style={{ padding: '.55rem .7rem' }}>
                         <div style={{ fontWeight: 600 }}>{u.full_name || '—'}</div>
                         <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.75rem' }}>
@@ -298,6 +429,14 @@ export default function Admin() {
             {usage.note}
           </div>
         </>
+      )}
+
+      {detailId != null && (
+        <UserDetailPanel
+          detail={detail}
+          error={detailError}
+          onClose={() => setDetailId(null)}
+        />
       )}
     </div>
   );
