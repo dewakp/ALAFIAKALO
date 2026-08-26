@@ -145,6 +145,16 @@ fun AppNavigation(activity: MainActivity, intent: Intent?) {
                 navController.navigate("login") { popUpTo("main") { inclusive = true } }
             }
 
+            // A dead session must reach the login screen. Before this, a 401 left
+            // the gate in Unknown and the app sat on the splash spinner forever.
+            val expired by EntitlementState.sessionExpired.collectAsState()
+            LaunchedEffect(expired) {
+                if (expired) {
+                    EntitlementState.acknowledgeSessionExpired()
+                    signOut()
+                }
+            }
+
             when (val state = entitlement) {
                 is EntitlementState.State.Entitled ->
                     MainTabView(navController = navController, activity = activity)

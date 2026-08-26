@@ -28,6 +28,22 @@ object EntitlementState {
     private val _state = MutableStateFlow<State>(State.Unknown)
     val state: StateFlow<State> = _state
 
+    /**
+     * Set when the status check comes back 401 — the session is dead, not merely
+     * stale (OkHttp's TokenAuthenticator has already tried a silent refresh).
+     *
+     * Without this, a 401 parked the gate in [State.Unknown], which MainActivity
+     * renders as the splash spinner — leaving the app loading forever with no
+     * retry and no way out. The comment said "signed out; not our question", but
+     * nothing was listening, so nobody ever asked it. App Review rejected the iOS
+     * build for exactly that (guideline 2.1(a)); the Android path was identical.
+     */
+    private val _sessionExpired = MutableStateFlow(false)
+    val sessionExpired: StateFlow<Boolean> = _sessionExpired
+
+    /** Cleared once the app has acted on it, so a later sign-in starts clean. */
+    fun acknowledgeSessionExpired() { _sessionExpired.value = false }
+
     /** Ask the backend. Never downgrades a failure into a lock. */
     suspend fun refresh() {
         if (_state.value is State.Unknown) _state.value = State.Checking
@@ -37,7 +53,10 @@ object EntitlementState {
         } catch (e: retrofit2.HttpException) {
             _state.value = when (e.code()) {
                 402 -> State.Locked                       // the server's own verdict
-                401 -> State.Unknown                      // signed out; not our question
+                401 -> {                                  // dead session: hand it to the UI
+                    _sessionExpired.value = true
+                    State.Unknown
+                }
                 else -> State.Unavailable(e.message())
             }
         } catch (e: Exception) {
@@ -52,5 +71,8 @@ object EntitlementState {
     fun markEntitled() { _state.value = State.Entitled }
 
     /** Sign-out: the next user must be checked from scratch. */
-    fun reset() { _state.value = State.Unknown }
+    fun reset() {
+        _state.value = State.Unknown
+        _sessionExpired.value = false
+    }
 }

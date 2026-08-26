@@ -365,6 +365,14 @@ actor APIClient {
     
     // MARK: - Validation
     
+    /// Paths where a 401 is an answer to the user, not a dead session.
+    private static func isSignInPath(_ path: String?) -> Bool {
+        guard let path else { return false }
+        return ["/auth/login", "/auth/register", "/auth/refresh", "/auth/verify",
+                "/auth/forgot-password", "/auth/reset-password"]
+            .contains { path.hasSuffix($0) }
+    }
+
     private func validateResponse(_ response: URLResponse, data: Data) throws {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -374,6 +382,17 @@ actor APIClient {
         case 200...299:
             return
         case 401:
+            // This 401 has already survived one transparent refresh (see `send`),
+            // so the session is dead rather than stale. Announce it, or the
+            // entitlement gate parks in `.unknown` and renders a spinner that
+            // never resolves — the indefinite load App Review reported.
+            //
+            // Sign-in endpoints are excluded on purpose: a wrong password is a
+            // 401 the login form shows itself, not a reason to tear down a
+            // session that never existed.
+            if !Self.isSignInPath(httpResponse.url?.path) {
+                NotificationCenter.default.post(name: .alafiaUnauthorized, object: nil)
+            }
             throw APIError.unauthorized
         case 402:
             // The app-wide paywall. Broadcast it so the entitlement gate closes

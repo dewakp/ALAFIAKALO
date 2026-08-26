@@ -12,12 +12,35 @@ class AuthManager: ObservableObject {
     @Published var awaitingBiometric = false
 
     private static let refreshTokenKey = "alafia_refresh_token"
-    
+
+    private var unauthorizedObserver: NSObjectProtocol?
+
     init(skipSessionCheck: Bool = false) {
+        // A dead session must land the user on the login screen. Before this,
+        // nothing observed a 401: EntitlementManager deferred to "AuthManager
+        // owns the signed-out case" and AuthManager was never listening, so the
+        // gate sat in `.unknown` drawing a spinner that never resolved. That is
+        // the indefinite load App Review rejected 1.0(2) for.
+        unauthorizedObserver = NotificationCenter.default.addObserver(
+            forName: .alafiaUnauthorized, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.isAuthenticated else { return }
+                self.error = "Your session expired. Please sign in again."
+                self.logout()
+            }
+        }
+
         if skipSessionCheck {
             isLoading = false
         } else {
             Task { await checkExistingSession() }
+        }
+    }
+
+    deinit {
+        if let unauthorizedObserver {
+            NotificationCenter.default.removeObserver(unauthorizedObserver)
         }
     }
     

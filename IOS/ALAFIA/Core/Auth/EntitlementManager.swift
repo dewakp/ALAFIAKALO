@@ -7,6 +7,17 @@ extension Notification.Name {
     /// whose membership lapses mid-use is detected wherever it happens rather
     /// than only at launch.
     static let alafiaPaymentRequired = Notification.Name("alafia.paymentRequired")
+
+    /// Raised by `APIClient` on a 401 that has already survived one transparent
+    /// token refresh — i.e. the session is genuinely dead, not merely stale.
+    ///
+    /// Without this the app could hang on a spinner forever. `EntitlementManager`
+    /// maps `.unauthorized` to `.unknown` on the stated grounds that "AuthManager
+    /// owns the signed-out case" — but nothing ever told AuthManager, and
+    /// `.unknown` renders a `ProgressView` whose `.task` does not re-run. The
+    /// result was an INDEFINITE LOAD with no retry and no way out, which is what
+    /// App Review saw (guideline 2.1(a), submission 0ace0f33).
+    static let alafiaUnauthorized = Notification.Name("alafia.unauthorized")
 }
 
 /// Whether this signed-in user may use the app.

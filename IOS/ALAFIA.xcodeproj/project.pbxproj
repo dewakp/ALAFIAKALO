@@ -101,6 +101,8 @@
 		ECAFBC6A27D9823B4B5285CE /* UserModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996258B7101E0217D1A2CF57 /* UserModelTests.swift */; };
 		EE0000000000000000000101 /* BiometricAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001 /* BiometricAuthManager.swift */; };
 		DD10000000000000000000B2 /* SubscriptionGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD10000000000000000000B1 /* SubscriptionGateView.swift */; };
+		EE20000000000000000000C2 /* MedicalSourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C1 /* MedicalSourcesView.swift */; };
+		EE20000000000000000000C4 /* AIAndDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C3 /* AIAndDataView.swift */; };
 		EE0000000000000000000012 /* EntitlementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* EntitlementManager.swift */; };
 		EE0000000000000000000102 /* OfflineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000002 /* OfflineCache.swift */; };
 		EE0000000000000000000103 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003 /* CrashReporter.swift */; };
@@ -229,6 +231,8 @@
 		EC737E5695007FBB722507B4 /* HealthModelsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HealthModelsTests.swift; path = Tests/ALAFIATests/HealthModelsTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000000001 /* BiometricAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthManager.swift; sourceTree = "<group>"; };
 		DD10000000000000000000B1 /* SubscriptionGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionGateView.swift; sourceTree = "<group>"; };
+		EE20000000000000000000C1 /* MedicalSourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalSourcesView.swift; sourceTree = "<group>"; };
+		EE20000000000000000000C3 /* AIAndDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAndDataView.swift; sourceTree = "<group>"; };
 		EE0000000000000000000011 /* EntitlementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementManager.swift; sourceTree = "<group>"; };
 		EE0000000000000000000002 /* OfflineCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineCache.swift; sourceTree = "<group>"; };
 		EE0000000000000000000003 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
@@ -423,6 +427,7 @@
 				4A00000000000000000000EA /* Privacy */,
 				AA11BB22CC330005 /* Insurance */,
 				DD10000000000000000000A0 /* Subscription */,
+				EE20000000000000000000C0 /* About */,
 				BB0000000000000000000501 /* Physicians */,
 				BB0000000000000000000502 /* LabCharts */,
 				BB0000000000000000000503 /* Wellness */,
@@ -630,6 +635,15 @@
 				30F01C708275FA63CED50239 /* ALAFIATests */,
 			);
 			name = Tests;
+			sourceTree = "<group>";
+		};
+		EE20000000000000000000C0 /* About */ = {
+			isa = PBXGroup;
+			children = (
+				EE20000000000000000000C1 /* MedicalSourcesView.swift */,
+				EE20000000000000000000C3 /* AIAndDataView.swift */,
+			);
+			path = About;
 			sourceTree = "<group>";
 		};
 		DD10000000000000000000A0 /* Subscription */ = {
@@ -1004,6 +1018,8 @@
 				DD0000000000000000000806 /* WeightTrendView.swift in Sources */,
 				EE0000000000000000000101 /* BiometricAuthManager.swift in Sources */,
 				DD10000000000000000000B2 /* SubscriptionGateView.swift in Sources */,
+				EE20000000000000000000C2 /* MedicalSourcesView.swift in Sources */,
+				EE20000000000000000000C4 /* AIAndDataView.swift in Sources */,
 				EE0000000000000000000012 /* EntitlementManager.swift in Sources */,
 				EE0000000000000000000102 /* OfflineCache.swift in Sources */,
 				EE0000000000000000000103 /* CrashReporter.swift in Sources */,
@@ -1208,7 +1224,7 @@
 				CODE_SIGN_ENTITLEMENTS = ALAFIA/ALAFIA.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = E48V6Y372K;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1240,7 +1256,7 @@
 				CODE_SIGN_ENTITLEMENTS = ALAFIA/ALAFIA.Release.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = E48V6Y372K;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

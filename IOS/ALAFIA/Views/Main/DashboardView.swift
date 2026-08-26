@@ -314,6 +314,28 @@ struct ProfileSheet: View {
                     Toggle("AI Training Consent", isOn: $aiTrainingConsent)
                 }
 
+                // App Review 1.4.1 requires the citations behind medical
+                // information to be easy for the user to FIND, so these sit in
+                // the profile root rather than buried under an About screen.
+                Section("About & Sources") {
+                    NavigationLink {
+                        MedicalSourcesView()
+                    } label: {
+                        Label("Sources & Citations", systemImage: "book.closed")
+                    }
+                    NavigationLink {
+                        AIAndDataView()
+                    } label: {
+                        Label("AI & Your Data", systemImage: "lock.shield")
+                    }
+                    Link(destination: URL(string: "https://alafia.app/privacy")!) {
+                        Label("Privacy Policy", systemImage: "hand.raised")
+                    }
+                    Link(destination: URL(string: "https://alafia.app/terms")!) {
+                        Label("Terms of Service", systemImage: "doc.text")
+                    }
+                }
+
                 // ── Message & Logout ──
                 if let message {
                     Section {
