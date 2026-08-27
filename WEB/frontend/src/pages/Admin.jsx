@@ -32,18 +32,6 @@ function ago(iso) {
 const num = (n) => (n ?? 0).toLocaleString();
 
 function Stat({ label, value, sub, tone }) {
-  useEffect(() => {
-    if (detailId == null) { setDetail(null); setDetailError(null); return; }
-    let cancelled = false;
-    setDetail(null); setDetailError(null);
-    api.get(`/admin/users/${detailId}`)
-      .then((r) => { if (!cancelled) setDetail(r.data); })
-      // Never fall through to an empty profile: a failed fetch and a user with
-      // no data look identical otherwise, and one of them is a lie.
-      .catch((e) => { if (!cancelled) setDetailError(e?.response?.data?.detail || e.message); });
-    return () => { cancelled = true; };
-  }, [detailId]);
-
   return (
     <div style={{
       background: 'var(--color-bg-secondary)', borderRadius: 10, padding: '.85rem 1rem',
@@ -213,6 +201,21 @@ export default function Admin() {
   }, [tab, q, sort, offset, call]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Fetch the selected user's detail. Lives HERE, in the component that owns
+  // `detailId` — it was briefly inside `Stat`, which renders on every tab, so
+  // the whole console died with "detailId is not defined" before any markup ran.
+  useEffect(() => {
+    if (detailId == null) { setDetail(null); setDetailError(null); return; }
+    let cancelled = false;
+    setDetail(null); setDetailError(null);
+    api.get(`/admin/users/${detailId}`)
+      .then((r) => { if (!cancelled) setDetail(r.data); })
+      // Never fall through to an empty profile: a failed fetch and a user with
+      // no data look identical otherwise, and one of them is a lie.
+      .catch((e) => { if (!cancelled) setDetailError(apiErrorMessage(e)); });
+    return () => { cancelled = true; };
+  }, [detailId]);
 
   if (denied) {
     return (
