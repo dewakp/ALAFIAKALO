@@ -613,6 +613,19 @@ MICROGRAMS — a ~1000x overdose in a clinical record, and exactly the row a
   0.00025 and 0.0005 MG, so 1000 mg is two million times the largest capsule. Do
   not hand-write dose ranges — same rule as §3ad's "never type an ICD code from
   memory", with worse consequences.
+
+  > This rule was written **and then broken in the same module.**
+  > `MAX_DOSE_CANONICAL` held nine hand-typed ceilings and fed a second blocking
+  > check beside the RxNorm one. It is gone: RxNorm's marketed strengths are the
+  > only ceiling, which covers every drug rather than nine and cannot go stale
+  > silently. When RxNorm is unreachable there is now **no** ceiling check — that
+  > is "fail OPEN" below, applied honestly rather than propped up by a table.
+
+- **Say the strength in the units the label uses.** RxNorm returns milligrams for
+  everything, so the calcitriol warning read *"the largest marketed single unit is
+  0.0005 mg"* — on a drug prescribed and labelled in MICROGRAMS. Nearly unreadable,
+  on the one warning whose job is to stop a 1000x error. `_readable_mg()` prints
+  sub-milligram strengths as mcg (`0.5 mcg`).
 - **String similarity is the wrong instrument for drug names.** "calcium
   calcitriol" scores 0.63 against "calcium carbonate" and its NEAREST match by
   ratio is "calcium citrate" — a confidently wrong suggestion. RxNorm's
@@ -627,6 +640,39 @@ MICROGRAMS — a ~1000x overdose in a clinical record, and exactly the row a
 - **A stopped prescription is not an option.** The picker offered every row, so an
   account holding two 2017 EHR imports (`is_active=false`) was shown those as its
   only two choices for "what are you taking today".
+
+### The picker is a safety control, not a convenience
+
+A production 422 refused a dose of **"Calcium Carbonat*ed*"** — one letter off a
+drug that account had logged **489 times**. Three separate faults met in it:
+
+- **The picker was fed from the wrong table.** It offered `/medications/`
+  (prescriptions) only. That account holds **943 dose logs and ZERO
+  prescriptions**, so typing "Calcium" suggested nothing at all. §3aa in the
+  intake form: prescribed and taken are different facts, and the question "what
+  am I taking today" is answered by the dose logs. `/medications/frequent` now
+  serves history, grouped case-insensitively, most recent first.
+- **`<datalist>` was the wrong instrument.** Matching differs between browsers,
+  it cannot show provenance, and it is unreliable on mobile. `MedicationPicker`
+  is a real combobox and shows *why* each option is offered — `Taken 489× · last
+  2026-08-24` is what separates a real drug from a stray one-off entry.
+- **The refusal threw away its own answer.** The API returns `findings` naming
+  the cause and `override_with: acknowledge_unusual`. The UI dropped both and
+  showed *"This dose looks wrong — please check it."* The user read that as the
+  DOSE being questioned (1000 mg of calcium carbonate is an ordinary tablet) when
+  the NAME was wrong and RxNorm had already computed the fix. **A guard that
+  cannot explain itself gets blamed for the thing it did not do**, and one with no
+  route forward blocks a true clinical record. Findings now render, with "This is
+  correct — log it anyway".
+
+> **Choosing from a list cannot produce a typo.** That is the actual fix for the
+> 422 — the guard was right, and no amount of tuning it would have helped.
+
+**A regularly logged drug becomes a prescription.** `POST /medications/promote-logged`
+turns dose-log history into `medications` rows (9 on this record: Calcium
+carbonate ×489, Calcitriol ×351 …). Deliberately explicit and thresholded at 3
+logs, not automatic on every write: a prescription is a clinical statement, and
+the `Calcium Calcitriol` row logged ONCE must never silently become one.
 
 ### The e2e suite could not reach the backend, by construction
 

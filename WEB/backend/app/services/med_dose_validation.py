@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from app.services.rxnorm import DrugFacts
 from app.services.med_nutrient_service import (
     MAX_DOSE_CANONICAL,
-    max_dose_for,
     normalize_med_name,
     unit_convert_factor,
 )
@@ -156,13 +155,27 @@ def _check_marketed_strength(
     ceiling_mg = rx.max_strength_mg * _UNITS_PER_DOSE
     if dose_mg <= ceiling_mg:
         return []
+    ceiling_str = _readable_mg(rx.max_strength_mg)
     return [DoseFinding(
         level="error",
         code="dose_exceeds_marketed_strength",
         message=(f"{dose_amount:g} {dose_unit} of {name} is {dose_mg:g} mg — the largest "
-                 f"marketed single unit is {rx.max_strength_mg:g} mg. Check the units."),
-        suggestion=f"{rx.max_strength_mg:g} mg or less per unit",
+                 f"marketed single unit is {ceiling_str}. Check the units."),
+        suggestion=f"{ceiling_str} or less per unit",
     )]
+
+
+def _readable_mg(mg: float) -> str:
+    """Express a strength the way a label does.
+
+    RxNorm returns milligrams for everything, so calcitriol comes back as
+    0.0005 mg. Printed like that, the warning is nearly unreadable and invites
+    the very misjudgement it exists to prevent — the drug is dosed, prescribed
+    and labelled in MICROGRAMS. Sub-milligram strengths are shown in mcg.
+    """
+    if mg < 1:
+        return f"{mg * 1000:g} mcg"
+    return f"{mg:g} mg"
 
 
 async def _check_against(
@@ -185,20 +198,20 @@ async def _check_against(
         ))
         return findings   # without a conversion the ceiling check is meaningless
 
-    # ── 3. The dose exceeds what one dose of this drug can plausibly be ──
-    ceiling = max_dose_for(profile.med_name_normalized)
-    if ceiling is not None and factor is not None and dose_amount:
-        in_canonical = float(dose_amount) * factor
-        if in_canonical > ceiling:
-            findings.append(DoseFinding(
-                level="error",
-                code="dose_exceeds_ceiling",
-                message=(f"{dose_amount:g} {unit} of {profile.med_name_original} is "
-                         f"{in_canonical:g} {canonical} — above the {ceiling:g} {canonical} "
-                         f"ceiling for a single dose. Check the units on the label."),
-                suggestion=f"{ceiling:g} {canonical}",
-            ))
-
+    # ── 3. Ceilings come from RxNorm, NOT from a table in this repo ──────
+    #
+    # There used to be a second ceiling check here reading `MAX_DOSE_CANONICAL`,
+    # nine hand-written numbers. That is the thing this module exists to avoid:
+    # a hand-written range is only ever right for the drugs someone thought of,
+    # it goes stale silently, and when it is wrong it BLOCKS A CORRECT CLINICAL
+    # RECORD — the patient cannot log what they actually took.
+    #
+    # `_check_marketed_strength()` already derives the ceiling from what RxNorm
+    # says is actually sold, which is authoritative and covers every drug rather
+    # than nine. When RxNorm is unreachable there is no ceiling check at all, and
+    # that is deliberate: unreachable is not invalid, and blocking every dose
+    # because a third-party API is down is worse than the risk being guarded
+    # against (canon 3aj, "fail OPEN").
     return findings
 
 

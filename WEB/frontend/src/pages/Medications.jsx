@@ -2,6 +2,7 @@ import { localToday } from '../utils/datetime';
 import { detachFile } from '../utils/fileInput';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
+import MedicationPicker from '../components/MedicationPicker';
 import { apiErrorMessage } from '../utils/apiError';
 import { Plus, Trash2, Pill, ChevronLeft, ChevronRight, Camera, Loader2 } from 'lucide-react';
 import BackButton from '../components/BackButton';
@@ -50,6 +51,9 @@ const EMPTY_RX = {
 
 export default function Medications() {
   const [meds, setMeds] = useState([]);          // prescription catalog
+  const [doseFindings, setDoseFindings] = useState(null);  // why the guard refused
+  const [logged, setLogged] = useState([]);      // what this patient actually takes
+  const [promoting, setPromoting] = useState(false);
   const [doseLogs, setDoseLogs] = useState([]);  // intake events
   const [log, setLog] = useState({ ...EMPTY_LOG });
   const [savingLog, setSavingLog] = useState(false);
@@ -127,14 +131,50 @@ export default function Medications() {
   // Has prescriptions on file, but every one of them is stopped — the state this
   // account was actually in. Say so rather than showing an empty picker.
   const onlyStaleMeds = meds.length > 0 && activeMeds.length === 0;
+  // Drugs this patient logs regularly that are not on their prescription list.
+  // Case-insensitive: "Calcium Carbonate" and "Calcium carbonate" are one drug.
+  // Prescriptions first (a current prescription is the strongest statement of
+  // what they take), then their own logging history, de-duplicated
+  // case-insensitively — "Calcium Carbonate" and "Calcium carbonate" are one drug.
+  const pickerOptions = useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    for (const m of activeMeds) {
+      const key = (m.name || '').toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push({ name: m.name, source: 'prescription' });
+    }
+    for (const h of logged) {
+      const key = h.name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ ...h, source: 'logged' });
+    }
+    return out;
+  }, [activeMeds, logged]);
+
+  const unlisted = logged.filter(
+    (h) => h.times_logged >= 3
+      && !meds.some((m) => (m.name || '').toLowerCase() === h.name.toLowerCase()),
+  );
 
   const loadMeds = useCallback(async () => {
     try { const { data } = await api.get('/medications/'); setMeds(data); } catch { setMeds([]); }
   }, []);
+  // The picker used to offer prescriptions only. This account holds 943 dose
+  // logs and ZERO prescriptions, so typing "Calcium" suggested nothing while the
+  // patient had logged Calcium carbonate 489 times. Prescribed and taken are
+  // different facts (canon 3aa) — offer both.
+  const loadLogged = useCallback(async () => {
+    try { const { data } = await api.get('/medications/frequent'); setLogged(data); }
+    catch { setLogged([]); }
+  }, []);
   const loadDoseLogs = useCallback(async () => {
     try { const { data } = await api.get('/medications/dose-logs'); setDoseLogs(data); } catch { setDoseLogs([]); }
   }, []);
-  useEffect(() => { loadMeds(); loadDoseLogs(); }, [loadMeds, loadDoseLogs]);
+  useEffect(() => { loadMeds(); loadDoseLogs(); loadLogged(); },
+    [loadMeds, loadDoseLogs, loadLogged]);
   useEffect(() => { if (meds.length === 0 || onlyStaleMeds) setShowRx(true); },
     [meds.length, onlyStaleMeds]);
 
@@ -168,13 +208,15 @@ export default function Medications() {
     setProposal(null); setIntakeText('');
   }
 
-  async function submitLog(e) {
-    e.preventDefault();
+  async function submitLog(e, acknowledgeUnusual = false) {
+    if (e) e.preventDefault();
     if (!log.medication_name.trim()) { alert('Medication name is required'); return; }
     setSavingLog(true);
+    if (!acknowledgeUnusual) setDoseFindings(null);
     try {
       const { dose_amount, dose_unit } = parseDosage(log.dosage);
       await api.post('/medications/dose-logs', {
+        acknowledge_unusual: acknowledgeUnusual,
         medication_name: log.medication_name.trim(),
         log_date: log.log_date,
         log_time: log.log_time || null,
@@ -191,10 +233,31 @@ export default function Medications() {
       });
       setLog({ ...EMPTY_LOG, log_date: log.log_date });
       setSelectedDate(log.log_date);
+      setDoseFindings(null);
       loadDoseLogs();
     } catch (err) {
+      // The dose guard returns WHY it refused, and offers a way through
+      // (`override_with`). Both used to be thrown away: the user saw
+      // "This dose looks wrong — please check it." with no reason and no route
+      // forward, on a dose that was correct. An error the user cannot act on is
+      // barely better than a silent failure.
+      const detail = err?.response?.data?.detail;
+      if (err?.response?.status === 422 && detail?.findings?.length) {
+        setDoseFindings(detail);
+        return;
+      }
       alert(apiErrorMessage(err, 'Could not log medication'));
     } finally { setSavingLog(false); }
+  }
+
+  async function addLoggedToPrescriptions() {
+    setPromoting(true);
+    try {
+      await api.post('/medications/promote-logged');
+      await Promise.all([loadMeds(), loadLogged()]);
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Could not add these to your prescriptions'));
+    } finally { setPromoting(false); }
   }
 
   async function deleteDose(id) {
@@ -329,17 +392,30 @@ export default function Medications() {
             </div>
             <div className="form-group">
               <label className="form-label">Medication</label>
-              <input className="form-input" list="med-catalog" placeholder="Select from profile or add new"
-                value={log.medication_name} onChange={(e) => up('medication_name', e.target.value)} />
-              <datalist id="med-catalog">
-                {/* ACTIVE only. The picker used to offer every row, so a patient
-                    whose profile held two 2017 EHR imports (both is_active=false,
-                    stopped nine years ago) was shown those as their only two
-                    choices for "what are you taking today". A stopped
-                    prescription is a historical fact, not an option. They remain
-                    visible, labelled, in Prescriptions below. */}
-                {activeMeds.map((m) => <option key={m.id} value={m.name} />)}
-              </datalist>
+              <MedicationPicker
+                value={log.medication_name}
+                onChange={(v) => up('medication_name', v)}
+                options={pickerOptions}
+              />
+              {unlisted.length > 0 && (
+                <div data-testid="promote-logged"
+                     style={{ marginTop: 8, padding: '.6rem .7rem', borderRadius: 8,
+                              background: 'var(--color-bg-secondary)',
+                              border: '1px solid var(--color-border)' }}>
+                  <div style={{ fontSize: '.82rem' }}>
+                    You regularly log {unlisted.slice(0, 3).map((h) => h.name).join(', ')}
+                    {unlisted.length > 3 ? ` and ${unlisted.length - 3} more` : ''}, but
+                    {unlisted.length === 1 ? ' it is' : ' they are'} not on your
+                    prescription list.
+                  </div>
+                  <button type="button" className="btn btn-secondary btn-sm"
+                          style={{ marginTop: 6 }} disabled={promoting}
+                          onClick={addLoggedToPrescriptions}>
+                    {promoting ? 'Adding…' : `Add ${unlisted.length} to my medications`}
+                  </button>
+                </div>
+              )}
+
               {onlyStaleMeds && (
                 <p data-testid="stale-meds-hint" style={{ fontSize: 12, color: '#856404', marginTop: 6 }}>
                   Your profile has {meds.length} prescription{meds.length === 1 ? '' : 's'}, but
@@ -352,6 +428,31 @@ export default function Medications() {
             <div className="form-group">
               <label className="form-label">Dosage Taken</label>
               <input className="form-input" placeholder="e.g., 1 pill, 10mg" value={log.dosage} onChange={(e) => up('dosage', e.target.value)} />
+
+              {/* The guard refused. Say WHY, and offer the way through it —
+                  the dose it questions is often correct (calcium carbonate at
+                  1000 mg is an ordinary tablet), and a warning with no route
+                  forward just blocks the record. */}
+              {doseFindings && (
+                <div data-testid="dose-findings"
+                     style={{ marginTop: 8, padding: '.6rem .7rem', borderRadius: 8,
+                              background: '#fff8e1', border: '1px solid #ffe0a3' }}>
+                  <div style={{ fontWeight: 600, fontSize: '.85rem' }}>{doseFindings.message}</div>
+                  <ul style={{ margin: '.4rem 0 .5rem 1rem', padding: 0, fontSize: '.8rem' }}>
+                    {doseFindings.findings.map((f, i) => (
+                      <li key={i}>
+                        {f.message}
+                        {f.suggestion && <> <em>Suggested: {f.suggestion}</em></>}
+                      </li>
+                    ))}
+                  </ul>
+                  <button type="button" className="btn btn-secondary btn-sm"
+                          disabled={savingLog}
+                          onClick={() => submitLog(null, true)}>
+                    {savingLog ? 'Saving…' : 'This is correct — log it anyway'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <fieldset style={{ border: '1px solid var(--border,#e5e7eb)', borderRadius: 8, padding: 12, marginBottom: 12 }}>

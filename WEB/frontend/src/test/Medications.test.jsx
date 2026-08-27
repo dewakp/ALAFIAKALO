@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -35,8 +35,13 @@ function renderPage() {
   return render(<MemoryRouter><Medications /></MemoryRouter>);
 }
 
+// The picker is a real combobox now, not a <datalist>: it renders its options
+// only while focused, so the test has to open it the way a user would.
 function pickerOptions() {
-  return Array.from(document.querySelectorAll('#med-catalog option')).map(o => o.value);
+  const input = screen.getByTestId('medication-picker-input');
+  fireEvent.focus(input);
+  return Array.from(document.querySelectorAll('[data-testid="medication-suggestions"] [role="option"]'))
+    .map((li) => li.querySelector('div')?.textContent || '');
 }
 
 beforeEach(() => { vi.clearAllMocks(); });

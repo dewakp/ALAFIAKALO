@@ -220,6 +220,114 @@ async def propose_medication_intake(
     return proposal.as_dict()
 
 
+@router.post("/promote-logged")
+async def promote_logged_medications(
+    min_logs: int = 3,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Turn a regularly-logged medication into a prescription row.
+
+    A patient who logs Calcium carbonate 489 times is taking Calcium carbonate;
+    requiring them to also type it into Prescriptions is asking them to tell us
+    something we already know. This reads their own dose logs and creates the
+    missing `medications` rows.
+
+    Deliberately explicit rather than automatic on every write: a prescription is
+    a clinical statement, and one mistyped dose log should not silently become
+    one. `min_logs` is the evidence threshold, and a one-off typo like the
+    "Calcium Calcitriol" row on this database (logged ONCE against Calcium
+    carbonate's 489) stays below it.
+
+    Idempotent: an existing row for the same name — matched case-insensitively,
+    because the same drug arrives as both "Calcium Carbonate" and "Calcium
+    carbonate" — is left alone rather than duplicated.
+    """
+    name_key = func.lower(MedicationDoseLog.medication_name)
+    candidates = (await db.execute(
+        select(
+            func.max(MedicationDoseLog.medication_name).label("display"),
+            func.count(MedicationDoseLog.id).label("times"),
+            func.max(MedicationDoseLog.log_date).label("last"),
+        )
+        .where(MedicationDoseLog.user_id == current_user.id)
+        .group_by(name_key)
+        .having(func.count(MedicationDoseLog.id) >= max(1, min_logs))
+    )).all()
+
+    existing = {
+        (n or "").strip().lower()
+        for (n,) in (await db.execute(
+            select(Medication.name).where(Medication.user_id == current_user.id)
+        )).all()
+    }
+
+    created = []
+    for row in candidates:
+        if (row.display or "").strip().lower() in existing:
+            continue
+        med = Medication(
+            user_id=current_user.id,
+            name=row.display,
+            is_active=True,
+            notes=(f"Added from your own logs — recorded {row.times} times, "
+                   f"last {row.last.isoformat() if row.last else 'unknown'}."),
+        )
+        db.add(med)
+        created.append({"name": row.display, "times_logged": int(row.times)})
+
+    if created:
+        await db.commit()
+    return {"created": created, "min_logs": max(1, min_logs)}
+
+
+@router.get("/frequent")
+async def frequently_logged_medications(
+    limit: int = 25,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """What this patient ACTUALLY takes, from their own dose logs.
+
+    The intake picker was populated only from `/medications/` — the prescription
+    table. On this database that is the wrong source for the question being
+    asked: an account with **943 dose logs and 0 prescriptions** got an empty
+    picker and no suggestion for "Calcium", a drug it had recorded hundreds of
+    times. Canon 3aa, in the intake form: prescribed and taken are different
+    facts, and reading one table and calling it the answer hides the other.
+
+    Grouped case-insensitively, because the same drug arrives as both "Calcium
+    Carbonate" and "Calcium carbonate" and two rows would misstate the regimen.
+    The spelling returned is the one most recently used, so the suggestion looks
+    like what the patient last typed.
+    """
+    name_key = func.lower(MedicationDoseLog.medication_name)
+    rows = (await db.execute(
+        select(
+            name_key.label("key"),
+            func.max(MedicationDoseLog.medication_name).label("display"),
+            func.count(MedicationDoseLog.id).label("times"),
+            func.max(MedicationDoseLog.log_date).label("last"),
+        )
+        .where(MedicationDoseLog.user_id == current_user.id)
+        .group_by(name_key)
+        # Recency first: what you took yesterday is a better suggestion than
+        # something logged 200 times two years ago and stopped since.
+        .order_by(func.max(MedicationDoseLog.log_date).desc(),
+                  func.count(MedicationDoseLog.id).desc())
+        .limit(max(1, min(limit, 100)))
+    )).all()
+
+    return [
+        {
+            "name": r.display,
+            "times_logged": int(r.times),
+            "last_taken": r.last.isoformat() if r.last else None,
+        }
+        for r in rows
+    ]
+
+
 @router.post("/dose-logs", response_model=MedicationDoseLogResponse, status_code=201)
 async def log_medication_dose(
     dose_in: MedicationDoseLogCreate,

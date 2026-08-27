@@ -2293,3 +2293,66 @@ the compiled binary rather than inferred from a green build. iOS is 1.3 (5).
 **Not done:** `alafia-pseudonym-secret` must be created in Secret Manager before
 the next deploy (deploy.sh now refuses without it); the bare-name gap needs a
 named-entity model; Android version is still 1.0.0/versionCode 2.
+
+---
+
+## Session 2026-08-27 — A blocked dose, and a picker that offered nothing
+
+**Instructions:** "medication in picker. no suggestions based on history" →
+"calcium caronate at 1000 mg is correct. this must have been hard wired, against
+my instructions" → "systemm must be smart enough to add regularly logged
+medication as prescription or medications taken" → "typicing calcium should show
+options" → "so re-pull" → "document, commit".
+
+**The blocked dose was not what it looked like.** Production logs named the
+actual value:
+
+    GET rxnav.nlm.nih.gov/REST/rxcui.json?name=Calcium+Carbonated
+    GET rxnav.nlm.nih.gov/REST/approximateTerm.json?term=Calcium+Carbonated
+    POST /medications/dose-logs -> 422
+
+The medication was **"Calcium Carbonated"** — one letter off a drug that account
+had logged 489 times. The dose was never questioned; RxNorm puts calcium
+carbonate's ceiling at 25,000 mg. The guard did exactly its job and had the fix
+ready ("closest match is Calcium Carbonate").
+
+**What actually failed was the UI**, which discarded the guard's `findings` AND
+its `override_with`, showing only "This dose looks wrong — please check it." That
+reads as the DOSE being refused, so a correct 1000 mg tablet looked like a false
+positive with no way through. Findings now render, with "This is correct — log it
+anyway".
+
+**The hardcoded ceilings were real, and are gone.** `MAX_DOSE_CANONICAL`, nine
+hand-typed numbers, fed a second blocking check beside the RxNorm one — in the
+very module whose canon says "do not hand-write dose ranges". Removed. RxNorm's
+marketed strengths are the only ceiling now. It was NOT the cause of this 422,
+and saying so mattered more than letting the fix imply it was.
+
+Removing it surfaced one test failure that was worth having: the RxNorm-derived
+message read "the largest marketed single unit is 0.0005 mg" for a drug dosed in
+MICROGRAMS. Safety was intact, readability was not. `_readable_mg()` now prints
+sub-milligram strengths as mcg.
+
+**The picker offered nothing because it read the wrong table** — `/medications/`
+(prescriptions) on an account with 943 dose logs and 0 prescriptions. Now:
+
+- `GET /medications/frequent` — the patient's own history, grouped
+  case-insensitively, most recent first.
+- `MedicationPicker` — a real combobox replacing `<datalist>`, matching on
+  substring and showing provenance (`Taken 489× · last 2026-08-24`).
+- `POST /medications/promote-logged` — turns regularly logged drugs into
+  prescriptions (9 created on this record), thresholded at 3 logs so the
+  `Calcium Calcitriol` row logged once does not become a clinical statement.
+
+**Verified:** Calcitriol 1000 mg BLOCKED (message in mcg), Calcitriol 0.5 mcg ok,
+Calcium Carbonate 1000 mg ok, Calcium Carbonated 1000 mg BLOCKED with the
+suggestion. Frontend 160 passing including 9 new picker tests; one existing test
+was asserting against the removed `<datalist>` and was updated to drive the
+combobox.
+
+**Dev re-pulled** after verification wrote 9 prescription rows into it:
+`PARITY OK` across 120 tables and both schemas, test rows gone, 943 dose logs
+intact.
+
+**Not done:** the ASC check (`IOS/scripts/asc_check.py`) still needs
+ASC_API_ISSUER_ID; Android has neither the picker nor promote-logged yet.
