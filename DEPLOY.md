@@ -105,17 +105,30 @@ frontend, then re-points the backend at the public URL.
 
 ### What the migration job will apply
 
-Production is at `cc002_reconcile_drift`. The chain to head is linear and every
-`upgrade()` is **additive — no drops, no deletes**:
+> ⚠️ **Do not trust a revision written down here — ask the database.** This
+> section has now been wrong twice. It claimed `cc002_reconcile_drift` while
+> production was on `mm001` (canon §5), and claimed it again on 2026-08-27 while
+> production was on `oo001_marketing_opt_out` — every migration in the list below
+> had already been applied. A revision in prose goes stale the first time anyone
+> deploys and nobody notices, because the deploy still works.
 
+Read the live value before you deploy, so you know what the job will actually do:
+
+```bash
+# what production is on right now
+export PROD_DB_PASS=$(gcloud secrets versions access latest \
+  --secret=alafia-database-url --project=alafia-prod-6igma \
+  | sed -E 's|.*://[^:]+:([^@]+)@.*|\1|')
+source scripts/db/db_lib.sh && start_proxy
+prod_psql -tAc "select version_num from alembic_version;"
+
+# what the code expects — `alembic heads`, never a grep for down_revision
+docker compose exec -T -w /app backend alembic heads
 ```
-cc002_reconcile_drift
-  → cc003_med_dose_logtime
-  → dd001_food_training_samples     new table (vision corpus)
-  → dd002_user_last_login           users.last_login + index
-  → dd003_pending_registrations     new table (two-step signup)
-  → dd004_nutrient_status           nutrition_logs.nutrient_status + index
-```
+
+Every `upgrade()` in this project's history is **additive — no drops, no
+deletes** — and that is the property worth checking in the diff of whatever
+revisions actually separate those two numbers.
 
 `alembic heads` reports exactly one head. Verify with `alembic heads`, never by
 grepping `down_revision` — many revisions use the annotated form
