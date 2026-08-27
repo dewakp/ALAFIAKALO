@@ -5,6 +5,8 @@ Call these helpers from other API endpoints when relevant events occur
 """
 
 import json
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,11 +53,77 @@ async def create_notification(
         title=title,
         message=message,
         action_url=action_url,
-        metadata=json.dumps(metadata_dict) if metadata_dict else None,
+        # `extra_data`, NOT `metadata`. `metadata` is the MetaData object of the
+        # whole schema on any declarative class, so the model maps the column as
+        # `extra_data = Column("metadata", ...)` (canon 3ai). Passing
+        # `metadata=` to the constructor does not raise — hasattr() is true — it
+        # just sets a junk attribute on the instance and leaves the column NULL.
+        # Every notification ever written dropped its payload this way: 27 rows
+        # on this database, 0 with metadata, from 12 call sites that pass it.
+        extra_data=json.dumps(metadata_dict) if metadata_dict else None,
     )
     db.add(notif)
     await db.flush()
     return notif
+
+
+
+# How long one viewer's look at one patient's chart counts as a single visit.
+#
+# A clinician opening the board fires several requests — the board, a category,
+# a therapy session — and each one passes the same authorization check. Without
+# a window the patient would get five notifications for one visit and learn to
+# ignore all of them. An hour is a consultation, not a request.
+RECORD_ACCESS_WINDOW_MINUTES = 60
+
+
+async def notify_record_accessed(
+    db: AsyncSession,
+    *,
+    patient_id: int,
+    viewer_id: int,
+    viewer_name: str | None = None,
+    window_minutes: int = RECORD_ACCESS_WINDOW_MINUTES,
+) -> Notification | None:
+    """Tell a patient that someone else opened their record.
+
+    Returns None when there is nothing to say — the patient looking at their own
+    chart, or the same viewer already announced inside the window.
+    """
+    # Your own record is not an access event. This is the whole point of the
+    # feature and the easiest thing to get wrong, so it is the first line.
+    if viewer_id == patient_id:
+        return None
+
+    since = datetime.now(timezone.utc) - timedelta(minutes=max(1, window_minutes))
+    recent = (await db.execute(
+        select(Notification).where(
+            Notification.user_id == patient_id,
+            Notification.category == NotificationCategory.RECORD_ACCESS,
+            Notification.created_at >= since,
+        )
+    )).scalars().all()
+    for note in recent:
+        try:
+            seen = json.loads(note.extra_data or "{}")
+        except (ValueError, TypeError):
+            seen = {}
+        if seen.get("viewer_id") == viewer_id:
+            return None
+
+    # The patient granted this person access, so naming them is the point. Fall
+    # back to something honest rather than to an empty string.
+    who = (viewer_name or "").strip() or "A member of your care team"
+    return await create_notification(
+        db,
+        user_id=patient_id,
+        category=NotificationCategory.RECORD_ACCESS,
+        priority=NotificationPriority.LOW,
+        title="Your record was viewed",
+        message=f"{who} opened your health record.",
+        action_url="/data-sharing",
+        metadata_dict={"viewer_id": viewer_id, "viewer_name": who},
+    )
 
 
 # ── Domain-specific helpers ──────────────────────────────────────────

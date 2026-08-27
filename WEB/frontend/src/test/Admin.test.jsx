@@ -24,13 +24,20 @@ const USERS = {
 const DETAIL = {
   id: 63, email: 'developer@hntsolutions.com', full_name: 'Wole Akpose', is_active: true,
   identifiers: {
-    system_id: 'S1.WOL.AKP.00000000.U.1747887746.PAYLOAD.checksum',
+    // Masked server-side: the DOB and gender segments are blanked in BOTH the
+    // raw SID and its decoded form. Masking only the segments moved the
+    // disclosure — the raw string sat beside them carrying the same values.
+    system_id: 'S1.WOL.AKP.\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022.\u2022.1747887746.PAYLOAD.checksum',
     system_id_segments: { version: 'S1', first3: 'WOL', last3: 'AKP',
-                          dob8: '00000000', gender: 'U', epoch10: '1747887746' },
+                          dob8: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022', dob_present: true,
+                          gender: '\u2022', gender_present: true, epoch10: '1747887746' },
     identity_uid: '1690b893-e650-4b51-a1e6-618b825e3213',
     subject_token: 'alafia-ba9e8bb2f9077c6e',
   },
-  profile: { date_of_birth: '1974-03-15', gender: 'Male' },
+  // Administrative only. The console used to serve date_of_birth, gender,
+  // allergies, height and weight; ADMIN_CONSOLE.md says it returns
+  // "counts and metadata only — never clinical records", and now it does.
+  profile: { country: 'NG', timezone: 'Africa/Lagos', phone_number: '+234...' },
   activity: {
     meals: { count: 969, last: '2026-08-24' },
     documents: { count: null, last: null, unavailable: true },

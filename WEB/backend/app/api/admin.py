@@ -227,25 +227,30 @@ async def admin_user_detail(
         # (a DOB or a name spelling), and the whole string is unreadable at a
         # glance.
         "identifiers": {
-            "system_id": user.system_id,
+            "system_id": _mask_sid(user.system_id),
             "system_id_segments": _decode_sid(user.system_id),
             "identity_uid": user.identity_uid,
             "subject_token": _subject_token(user.id),
         },
+        # ADMINISTRATIVE ONLY. ADMIN_CONSOLE.md states the contract plainly —
+        # "counts and metadata only — never clinical records… without becoming a
+        # back door into health data" — and this block used to break it, serving
+        # `allergies`, `height_cm`, `current_weight_kg`, `date_of_birth` and
+        # `gender` to an operator who needs none of them to answer "is this
+        # account healthy and who is using it".
+        #
+        # An operator reconciling an account against FLOWSHEET still gets the
+        # identity they need from `identifiers.system_id_segments`, which decodes
+        # the SID's own DOB8 and G fields. Identity matching is administrative;
+        # a body-measurement and allergy profile is not.
+        #
+        # Do not re-add a clinical field here. The console has no clinical
+        # purpose, and a reader with no clinical purpose is the one disclosure a
+        # patient never consented to.
         "profile": {
-            # `date_of_birth` is a String column, not a datetime — `_iso` would
-            # raise on `.tzinfo`. Pass it through as stored.
-            "date_of_birth": getattr(user, "date_of_birth", None),
-            "gender": user.gender,
             "country": user.country,
             "timezone": user.timezone,
             "phone_number": user.phone_number,
-            "height_cm": user.height_cm,
-            "current_weight_kg": user.current_weight_kg,
-            # NOT `user.chronic_conditions` — that is a relationship, and touching
-            # it here triggers a lazy load in async context (MissingGreenlet).
-            # The count already appears under Activity, sourced the canonical way.
-            "allergies": user.allergies,
         },
         "activity": activity,
         "subscription": {
@@ -415,6 +420,20 @@ def _decode_sid(sid: str | None) -> dict | None:
     Format: S1.FN3.LN3.DOB8.G.EPOCH10.<payload>.<checksum>. Returned as-is when
     the shape is unexpected rather than guessed at — a malformed SID is itself
     the finding, and inventing segments for it would hide that.
+
+    **Date of birth and gender are masked.** They are two of the SID's segments,
+    so removing the health profile from the detail view but printing them here
+    would have moved the disclosure rather than ended it. The console exists to
+    answer "is this account healthy and who is using it"; it does not need a
+    patient's date of birth to do that.
+
+    `dob_present` / `gender_present` keep the segment structure legible — a SID
+    missing a segment entirely is still visible as a finding — while the values
+    are not shown. What this costs is real and worth stating: an operator can no
+    longer eyeball a DOB mismatch against FLOWSHEET. Name-spelling and version
+    mismatches, the other common cases, still compare. If DOB reconciliation is
+    needed, add an endpoint that takes the FLOWSHEET value and answers
+    match/mismatch — never one that prints the stored value.
     """
     if not sid:
         return None
@@ -422,9 +441,41 @@ def _decode_sid(sid: str | None) -> dict | None:
     if len(parts) < 6:
         return {"malformed": True, "raw": sid[:64]}
     return {
-        "version": parts[0], "first3": parts[1], "last3": parts[2],
-        "dob8": parts[3], "gender": parts[4], "epoch10": parts[5],
+        "version": parts[0],
+        # Name fragments, and the console already shows full_name and email to
+        # the same reader — these disclose nothing further.
+        "first3": parts[1],
+        "last3": parts[2],
+        "dob8": "••••••••",
+        "dob_present": bool(parts[3].strip()),
+        "gender": "•",
+        "gender_present": bool(parts[4].strip()),
+        "epoch10": parts[5],
     }
+
+
+def _mask_sid(sid: str | None) -> str | None:
+    """The raw SID with its DOB and gender segments blanked.
+
+    Masking only `system_id_segments` achieved nothing: the raw string sits
+    beside it in the same response and reads
+    `S1.IOS.REV.19850615.F.1786569891.<payload>.<checksum>` — the date of birth
+    and gender in plain text. Found by reading an actual response rather than
+    the diff (canon 0).
+
+    The payload and checksum are what make this the cross-system key, and they
+    are untouched, so an operator can still match an account against
+    FLOWSHEET's `user_identity_sid_log`. Only the two identity segments the
+    console has no reason to display are blanked.
+    """
+    if not sid:
+        return None
+    parts = sid.split(".")
+    if len(parts) < 6:
+        return sid[:64]
+    parts[3] = "•" * 8
+    parts[4] = "•"
+    return ".".join(parts)
 
 
 def _subject_token(user_id: int) -> str | None:

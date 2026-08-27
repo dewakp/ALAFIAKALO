@@ -11,6 +11,7 @@ from sqlalchemy import func, select, desc
 from app.api.chronic_conditions import _compute_payload_hash
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.notification_engine import notify_record_accessed
 from app.models.blockchain import BlockRecord
 from app.models.chronic_conditions import (
     ClinicalNote,
@@ -183,19 +184,11 @@ async def get_patient_detail(
     db: AsyncSession = Depends(get_db),
 ):
     """Get detailed patient summary (requires active data grant)."""
-    result = await db.execute(
-        select(DataGrant)
-        .where(
-            DataGrant.grantee_user_id == current_user.id,
-            DataGrant.owner_id == patient_id,
-            DataGrant.is_active == True,
-        )
-    )
-    grants = result.scalars().all()
-    if not grants:
-        raise HTTPException(status_code=403, detail="No active data grant from this patient")
-
-    permissions = [g.data_type for g in grants]
+    # Was an inline copy of _permissions_for's query and its 403. Unified so
+    # there is ONE authorization path — and therefore one place that records
+    # the access. A second copy is a route that reads a chart without telling
+    # the patient, which is the bug this feature exists to prevent.
+    permissions = await _permissions_for(current_user.id, patient_id, db)
     result = await db.execute(select(User).where(User.id == patient_id))
     patient = result.scalar_one_or_none()
     if not patient:
@@ -250,7 +243,12 @@ async def get_patient_detail(
 # a patient revoking access must take effect immediately, not at next login.
 
 async def _permissions_for(clinician_id: int, patient_id: int, db: AsyncSession) -> list[str]:
-    """The data types this clinician may see for this patient, or 403."""
+    """The data types this clinician may see for this patient, or 403.
+
+    Every `/patient/{patient_id}/...` route passes through here, which is why
+    the access notification is raised here too: a new route cannot read a
+    patient's chart without authorizing, so it cannot read one silently either.
+    """
     grants = (await db.execute(
         select(DataGrant).where(
             DataGrant.grantee_user_id == clinician_id,
@@ -260,7 +258,35 @@ async def _permissions_for(clinician_id: int, patient_id: int, db: AsyncSession)
     )).scalars().all()
     if not grants:
         raise HTTPException(status_code=403, detail="No active data grant from this patient")
+    await _announce_access(db, clinician_id=clinician_id, patient_id=patient_id)
     return [g.data_type for g in grants]
+
+
+async def _announce_access(db: AsyncSession, *, clinician_id: int, patient_id: int) -> None:
+    """Tell the patient their record was opened. Never breaks the read.
+
+    The write runs in a SAVEPOINT because a failed flush poisons the session and
+    the request's own commit then 500s even when the exception was caught
+    (canon 3a). A clinician must never lose a chart because a notification could
+    not be written — and the patient must never be told about an access that
+    did not happen, which is why this runs after authorization, not before.
+    """
+    try:
+        async with db.begin_nested():
+            viewer = (await db.execute(
+                select(User).where(User.id == clinician_id)
+            )).scalar_one_or_none()
+            await notify_record_accessed(
+                db,
+                patient_id=patient_id,
+                viewer_id=clinician_id,
+                viewer_name=(viewer.full_name if viewer else None),
+            )
+    except Exception:  # noqa: BLE001 - a notification is never worth a 500
+        logger.warning(
+            "Could not record chart access", exc_info=True,
+            extra={"viewer_id": clinician_id, "patient_id": patient_id},
+        )
 
 
 async def _patient_or_404(patient_id: int, db: AsyncSession) -> User:

@@ -47,6 +47,12 @@ actor APIClient {
 
     // MARK: - CSRF
 
+    /// Non-throwing wrapper: the body below already falls back to a generated
+    /// token, so a caller should never have to handle a failure it cannot get.
+    private func fetchCsrfTokenOrGenerated() async -> String {
+        (try? await fetchCsrfToken()) ?? UUID().uuidString
+    }
+
     private func fetchCsrfToken() async throws -> String {
         var request = buildRequest(path: "/auth/csrf-cookie", method: "GET")
         request.httpBody = nil
@@ -183,10 +189,38 @@ actor APIClient {
     
     func post<T: Decodable, B: Encodable>(_ path: String, body: B, timeout: TimeInterval? = nil) async throws -> T {
         let bodyData = try encoder.encode(body)
-        let request = buildRequest(path: path, method: "POST", body: bodyData, timeout: timeout)
+        var request = buildRequest(path: path, method: "POST", body: bodyData, timeout: timeout)
+        await attachCSRFIfUnauthenticated(&request)
         let (data, response) = try await send(request)
         try validateResponse(response, data: data)
         return try decoder.decode(T.self, from: data)
+    }
+
+    /// Attach a double-submit CSRF pair when the request carries no Bearer token.
+    ///
+    /// This mirrors the server's own rule rather than a list of paths. `main.py`
+    /// exempts a request whose credential is explicit and non-ambient — anything
+    /// with `Authorization: Bearer` — and enforces CSRF on everything else. The
+    /// endpoints with no Bearer token are exactly the ones a user reaches when
+    /// they cannot log in: **register, and password reset**.
+    ///
+    /// Those were sent as plain JSON with no CSRF pair and the server answered
+    /// 403, which the Reset Password screen rendered verbatim as
+    /// "CSRF token missing or invalid" — to a user who had merely forgotten
+    /// their password. Login escaped it only because it happens to use
+    /// `postFormWithCSRF`; the CSRF-aware path existed and the JSON one never
+    /// got it.
+    ///
+    /// Deriving the condition from the Authorization header, instead of naming
+    /// the affected routes, is what stops the next unauthenticated endpoint from
+    /// shipping broken the same way.
+    private func attachCSRFIfUnauthenticated(_ request: inout URLRequest) async {
+        guard request.value(forHTTPHeaderField: "Authorization") == nil else { return }
+        // Never throws: falls back to a generated token, and double-submit only
+        // requires that the header and the cookie MATCH.
+        let csrfToken = await fetchCsrfTokenOrGenerated()
+        request.setValue(csrfToken, forHTTPHeaderField: "X-CSRF-Token")
+        request.setValue("csrf_token=\(csrfToken)", forHTTPHeaderField: "Cookie")
     }
     
     /// Encode a form body for `application/x-www-form-urlencoded`.
@@ -419,6 +453,14 @@ actor APIClient {
                                           status: httpResponse.statusCode,
                                           body: data)
             }
+            // FastAPI's own validation errors are a LIST of field problems. Left
+            // undecoded they fell through to "Request failed (422)" — which is
+            // what the Reset Password screen showed for an empty email, telling
+            // the user a status code instead of which field is wrong.
+            if let invalid = try? JSONDecoder().decode(ValidationErrorDetail.self, from: data),
+               let readable = invalid.readableMessage {
+                throw APIError.clientError(readable)
+            }
             throw APIError.clientError("Request failed (\(httpResponse.statusCode))")
         case 500...599:
             throw APIError.serverError
@@ -463,6 +505,59 @@ struct ErrorDetail: Decodable {
 struct StructuredErrorDetail: Decodable {
     struct Body: Decodable { let message: String? }
     let detail: Body
+}
+
+/// `{"detail": [{"loc": ["body","email"], "msg": "..."}]}` — pydantic's form.
+struct ValidationErrorDetail: Decodable {
+    struct Item: Decodable {
+        let loc: [String]?
+        let msg: String?
+
+        /// "email" out of ["body", "email"] — the field the user must fix.
+        var field: String? {
+            guard let last = loc?.last, last != "body" else { return nil }
+            return last.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+    let detail: [Item]
+
+    /// One line the user can act on. Several problems are joined rather than
+    /// showing only the first, or fixing one reveals the next on the next tap.
+    var readableMessage: String? {
+        let parts: [String] = detail.compactMap { item in
+            guard let msg = item.msg, !msg.isEmpty else { return nil }
+            if let field = item.field { return "\(field): \(msg)" }
+            return msg
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: "\n")
+    }
+}
+
+extension ValidationErrorDetail.Item {
+    private enum CodingKeys: String, CodingKey { case loc, msg }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.msg = try? c.decode(String.self, forKey: .msg)
+        // `loc` mixes strings and integers (a list index). Decode leniently
+        // rather than failing the whole message over an array position.
+        if var arr = try? c.nestedUnkeyedContainer(forKey: .loc) {
+            var parts: [String] = []
+            while !arr.isAtEnd {
+                if let s = try? arr.decode(String.self) { parts.append(s) }
+                else if let i = try? arr.decode(Int.self) { parts.append(String(i)) }
+                else { _ = try? arr.decode(AnyCodableSkip.self) }
+            }
+            self.loc = parts
+        } else {
+            self.loc = nil
+        }
+    }
+}
+
+/// Consumes one unknown element so a mixed `loc` array cannot stall decoding.
+private struct AnyCodableSkip: Decodable {
+    init(from decoder: Decoder) throws { _ = try decoder.singleValueContainer() }
 }
 
 // MARK: - Local date/time display

@@ -29,6 +29,9 @@ class NotificationCategory(str, enum.Enum):
     MEDICATION_CONFLICT = "medication_conflict"
     NUTRITION_ALERT = "nutrition_alert"
     SYSTEM = "system"
+    # Someone other than the patient opened their record. Not clinical advice —
+    # the patient's own view of who is looking at their chart.
+    RECORD_ACCESS = "record_access"
     # Pharmacy
     PRESCRIPTION_CREATED = "prescription_created"
     PRESCRIPTION_READY = "prescription_ready"

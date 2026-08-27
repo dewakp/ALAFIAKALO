@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell, BellOff, Check, CheckCheck, Trash2, AlertTriangle,
-  Activity, Calendar, FlaskConical, Pill, Apple, Settings, X,
+  Activity, Calendar, FlaskConical, Pill, Apple, Settings, X, Eye,
 } from 'lucide-react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
@@ -15,6 +15,9 @@ const CATEGORY_META = {
   treatment_anomaly: { icon: AlertTriangle, color: '#e65100', label: 'Treatment Alert' },
   medication_conflict: { icon: Pill, color: '#c62828', label: 'Medication Conflict' },
   nutrition_alert: { icon: Apple, color: '#2e7d32', label: 'Nutrition Alert' },
+  // Someone other than the patient opened their chart. Deliberately not red:
+  // an authorised clinician reading a record is normal care, not an alarm.
+  record_access:   { icon: Eye, color: '#00838f', label: 'Record Access' },
   system:          { icon: Bell, color: '#546e7a', label: 'System' },
 };
 
