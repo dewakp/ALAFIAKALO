@@ -121,6 +121,10 @@ struct MedicationDoseLogCreate: Encodable {
     var preHeartRate: Int? = nil
     var preTemperatureC: Double? = nil
     var notes: String? = nil
+    /// Records a dose the guard flagged, deliberately. The guard fails OPEN on an
+    /// unreachable RxNorm, so this is for a dose the PATIENT confirms is right —
+    /// never a default, and never set without showing them what was flagged.
+    var acknowledgeUnusual: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case notes
@@ -134,6 +138,61 @@ struct MedicationDoseLogCreate: Encodable {
         case preDiastolicBp = "pre_diastolic_bp"
         case preHeartRate = "pre_heart_rate"
         case preTemperatureC = "pre_temperature_c"
+        case acknowledgeUnusual = "acknowledge_unusual"
+    }
+}
+
+/// One drug this patient actually takes, from their own dose logs
+/// (`GET /medications/frequent`).
+///
+/// The intake picker used to offer PRESCRIPTIONS only. On the production record
+/// that is 943 dose logs against zero prescriptions — so typing "Calcium"
+/// offered nothing while the history held Calcium carbonate 489 times. Canon
+/// §3aa: prescribed and taken are different facts, and reading one table and
+/// calling it the answer hides the other.
+struct FrequentMedication: Decodable, Identifiable {
+    let name: String
+    let timesLogged: Int
+    let lastTaken: String?
+
+    var id: String { name.lowercased() }
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case timesLogged = "times_logged"
+        case lastTaken = "last_taken"
+    }
+}
+
+/// What the dose guard refused, and how to proceed anyway
+/// (the `detail` object of a 422 from `POST /medications/dose-logs`).
+///
+/// This is the half that mobile threw away. iOS decoded `detail` as a String,
+/// which fails on an object, so a refusal rendered as "Request failed (422)" —
+/// no reason, no suggestion, no route forward, on a guard that had already
+/// worked out that "Calcium Carbonated" should be "Calcium Carbonate". A guard
+/// that cannot explain itself gets blamed for the thing it did not do.
+struct DoseGuardRefusal: Decodable {
+    struct Detail: Decodable {
+        let message: String
+        let findings: [MedicationDoseFinding]
+        let overrideWith: String?
+
+        enum CodingKeys: String, CodingKey {
+            case message, findings
+            case overrideWith = "override_with"
+        }
+    }
+    let detail: Detail
+
+    /// Decodes a refusal out of an `APIError`, or nil if this was some other failure.
+    static func from(_ error: Error) -> DoseGuardRefusal? {
+        guard case APIError.structured(_, let status, let body) = error, status == 422 else {
+            return nil
+        }
+        guard let refusal = try? JSONDecoder().decode(DoseGuardRefusal.self, from: body),
+              !refusal.detail.findings.isEmpty else { return nil }
+        return refusal
     }
 }
 

@@ -2356,3 +2356,66 @@ intact.
 
 **Not done:** the ASC check (`IOS/scripts/asc_check.py`) still needs
 ASC_API_ISSUER_ID; Android has neither the picker nor promote-logged yet.
+
+## Session 2026-08-27b — The picker shipped web-only, and mobile made the guard mute
+
+**Instruction:** "restarted to update. return to last task".
+
+The last session closed with a **Not done** line: "Android has neither the picker
+nor promote-logged yet". Canon §3 says that is not a stopping point — shipping
+web-only and disclosing it is still shipping a parity gap. This finishes it on
+both mobile clients.
+
+**Mobile was not merely missing the fix — it was worse than the web had been.**
+Captured from the running backend rather than reasoned about, against the account
+holding 943 dose logs:
+
+    POST /medications/dose-logs {"medication_name":"Calcium Carbonated", ...}
+      -> 422 {"detail":{"message":..., "findings":[...],
+                        "override_with":"acknowledge_unusual"}}
+
+`detail` is an OBJECT. Both clients discarded it before any screen could read it:
+
+- **iOS** `ErrorDetail` declares `detail: String`, so `try?` decode returned nil
+  and `validateResponse` fell through to **"Request failed (422)"**.
+- **Android** `ErrorUtil.userMessage` has no 422 arm, so it landed on
+  **"Something went wrong. Please try again."** — which does not even say the
+  dose was questioned.
+
+Both fixes are in the transport and neither is medication-specific:
+`APIError.structured(message:status:body:)` keeps the raw body and reports the
+server's own sentence; `DoseGuard.refusalFrom()` parses it off the
+`HttpException`. A pydantic 422 (`detail` as a LIST) returns nil on both, so a
+field-validation error still takes the ordinary path instead of rendering an
+empty findings panel.
+
+**Two Android model faults found on the way, both real:**
+
+- `Medication` had **no `is_active` field at all**, so the client could not tell a
+  current drug from a stopped 2017 EHR import — §3aj's "a stopped prescription is
+  not an option" defeated one layer below the picker meant to enforce it.
+- `dosage`, `frequency`, `reason`, `start_date` were declared **non-null** while
+  `MedicationResponse` allows null for all four. Gson writes null into a Kotlin
+  non-null field anyway, and a `promote-logged` row carries a name and notes and
+  nothing else — so `Text(medication.dosage)` would have taken a null on exactly
+  the rows this feature creates. Every field was populated in the EHR test data,
+  which is why it survived.
+
+**Shipped on both clients:** `MedicationPickerField` (substring match over
+prescriptions + `/medications/frequent`, provenance shown — `Taken 489× · last
+2026-08-24`), the findings panel with "Use “Calcium Carbonate”" and "This is
+correct — log it anyway", `acknowledge_unusual` on the dose payload, and the
+promote-logged prompt replacing "No medications" on an account that has 943 dose
+logs and zero prescriptions.
+
+**Verified:** iOS `BUILD SUCCEEDED`; ALAFIATests **46 passing**, including the 11
+new ones (`DoseGuardRefusalTests` 8, `MedicationSuggestionTests` 3). Android
+`BUILD SUCCESSFUL`; unit suite **49 passing**, including `DoseGuardTest` 6. Both
+guard tests decode the real captured 422 body. Against the live backend:
+`/medications/frequent` returns the history (Calcium carbonate 489, Calcitriol
+351, …), the refusal reproduces, and `acknowledge_unusual: true` on the same dose
+returns **201** (the row was deleted again).
+
+**Not verified:** neither UI was exercised in a running simulator or emulator —
+both platforms were verified by building and by unit tests, not by driving the
+screen. Web was not touched this session.

@@ -13,6 +13,7 @@
 		1B84B817D8E548B6F2F47A39 /* OfflineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54A4453102DA1889F93494A /* OfflineCacheTests.swift */; };
 		2B735102C7EC4AB9A6F0E89A /* ChemotherapyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFE2B9BDF0D4F4296E0DBC1 /* ChemotherapyView.swift */; };
 		CE0000000000000000000207 /* FormEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000107 /* FormEncodingTests.swift */; };
+		CE0000000000000000000208 /* DoseGuardRefusalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000108 /* DoseGuardRefusalTests.swift */; };
 		3DAAAEF13A8E66CE33AEFD04 /* UserModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 540417D020944D206CCD54B5 /* UserModelTests.swift */; };
 		42F5BB87C87D050F55ABC18E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F545AF4D419DF7BF4039B01 /* Foundation.framework */; };
 		4A0000000000000000000201 /* ALAFIAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000101 /* ALAFIAApp.swift */; };
@@ -40,6 +41,7 @@
 		4A0000000000000000000215 /* FitnessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000115 /* FitnessView.swift */; };
 		4A0000000000000000000216 /* LabsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000116 /* LabsView.swift */; };
 		4A0000000000000000000217 /* MedicationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000117 /* MedicationsView.swift */; };
+		4A0000000000000000000A02 /* MedicationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000A01 /* MedicationPicker.swift */; };
 		4A0000000000000000000218 /* MoodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000118 /* MoodView.swift */; };
 		4A0000000000000000000219 /* LifestyleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000119 /* LifestyleView.swift */; };
 		4A000000000000000000021A /* AIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011A /* AIChatView.swift */; };
@@ -162,6 +164,7 @@
 		4A0000000000000000000115 /* FitnessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000116 /* LabsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabsView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000117 /* MedicationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsView.swift; sourceTree = "<group>"; };
+		4A0000000000000000000A01 /* MedicationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationPicker.swift; sourceTree = "<group>"; };
 		4A0000000000000000000118 /* MoodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000119 /* LifestyleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifestyleView.swift; sourceTree = "<group>"; };
 		4A000000000000000000011A /* AIChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatView.swift; sourceTree = "<group>"; };
@@ -186,6 +189,7 @@
 		4A000000000000000000012B /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
 		4A000000000000000000012C /* PrivacySettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsViewModel.swift; sourceTree = "<group>"; };
 		CE0000000000000000000107 /* FormEncodingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FormEncodingTests.swift; path = Tests/ALAFIATests/FormEncodingTests.swift; sourceTree = "<group>"; };
+		CE0000000000000000000108 /* DoseGuardRefusalTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DoseGuardRefusalTests.swift; path = Tests/ALAFIATests/DoseGuardRefusalTests.swift; sourceTree = "<group>"; };
 		540417D020944D206CCD54B5 /* UserModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = UserModelTests.swift; path = Tests/ALAFIATests/UserModelTests.swift; sourceTree = "<group>"; };
 		7C8FBA971CE4F9702EC7A090 /* HealthModelsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HealthModelsTests.swift; path = Tests/ALAFIATests/HealthModelsTests.swift; sourceTree = "<group>"; };
 		7FFE2B9BDF0D4F4296E0DBC1 /* ChemotherapyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChemotherapyView.swift; sourceTree = "<group>"; };
@@ -293,6 +297,7 @@
 				C54A4453102DA1889F93494A /* OfflineCacheTests.swift */,
 				540417D020944D206CCD54B5 /* UserModelTests.swift */,
 				CE0000000000000000000107 /* FormEncodingTests.swift */,
+				CE0000000000000000000108 /* DoseGuardRefusalTests.swift */,
 			);
 			name = ALAFIATests;
 			sourceTree = SOURCE_ROOT;
@@ -500,6 +505,7 @@
 			isa = PBXGroup;
 			children = (
 				4A0000000000000000000117 /* MedicationsView.swift */,
+				4A0000000000000000000A01 /* MedicationPicker.swift */,
 			);
 			path = Medications;
 			sourceTree = "<group>";
@@ -930,6 +936,7 @@
 				847351E7B1F1540D01FBB1BE /* HealthModelsTests.swift in Sources */,
 				1B84B817D8E548B6F2F47A39 /* OfflineCacheTests.swift in Sources */,
 				CE0000000000000000000207 /* FormEncodingTests.swift in Sources */,
+				CE0000000000000000000208 /* DoseGuardRefusalTests.swift in Sources */,
 				3DAAAEF13A8E66CE33AEFD04 /* UserModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -963,6 +970,7 @@
 				4A0000000000000000000215 /* FitnessView.swift in Sources */,
 				4A0000000000000000000216 /* LabsView.swift in Sources */,
 				4A0000000000000000000217 /* MedicationsView.swift in Sources */,
+				4A0000000000000000000A02 /* MedicationPicker.swift in Sources */,
 				4A0000000000000000000218 /* MoodView.swift in Sources */,
 				4A0000000000000000000219 /* LifestyleView.swift in Sources */,
 				4A000000000000000000021A /* AIChatView.swift in Sources */,
