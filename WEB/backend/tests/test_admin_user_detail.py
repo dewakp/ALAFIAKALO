@@ -22,13 +22,38 @@ from app.models.user import User
 # ── The SID an operator has to compare against FLOWSHEET ─────────────────────
 
 def test_a_sid_is_split_into_comparable_segments():
-    """A mismatch is usually ONE segment; 255 unbroken chars hide which."""
+    """A mismatch is usually ONE segment; 255 unbroken chars hide which.
+
+    Date of birth and gender are MASKED. They are SID segments, so printing them
+    here would have moved the health disclosure out of `profile` rather than
+    ended it. The structure stays legible — a missing segment is still a
+    finding — without the values.
+    """
     sid = "S1.WOL.AKP.19740315.M.1747887746.PAYLOAD.checksum"
     seg = _decode_sid(sid)
     assert seg == {
         "version": "S1", "first3": "WOL", "last3": "AKP",
-        "dob8": "19740315", "gender": "M", "epoch10": "1747887746",
+        "dob8": "••••••••", "dob_present": True,
+        "gender": "•", "gender_present": True,
+        "epoch10": "1747887746",
     }
+
+
+def test_the_sid_never_prints_a_date_of_birth():
+    """The regression guard: no real DOB or gender may appear in the segments."""
+    seg = _decode_sid("S1.WOL.AKP.19740315.M.1747887746.PAYLOAD.checksum")
+    rendered = repr(seg)
+    assert "19740315" not in rendered
+    # "M" alone is too short to search for safely; assert the field directly.
+    assert seg["gender"] == "•"
+    assert seg["dob8"] == "••••••••"
+
+
+def test_a_sid_missing_a_segment_still_reads_as_missing():
+    """Masking must not make an absent DOB look present."""
+    seg = _decode_sid("S1.WOL.AKP...1747887746.PAYLOAD.checksum")
+    assert seg["dob_present"] is False
+    assert seg["gender_present"] is False
 
 
 def test_a_malformed_sid_is_reported_not_invented():
@@ -96,3 +121,78 @@ async def test_a_failed_lookup_is_not_reported_as_zero(db, monkeypatch):
     assert activity["meals"].get("unavailable") is True
     # …and one failure must not take the rest of the page with it.
     assert activity["vitals"]["count"] == 0
+
+
+# ── The console is not a back door into health data ──────────────────────────
+
+def test_the_admin_detail_serves_no_clinical_field():
+    """ADMIN_CONSOLE.md: "counts and metadata only — never clinical records".
+
+    The code broke its own documented contract: the `profile` block served
+    `allergies`, `height_cm`, `current_weight_kg`, `date_of_birth` and `gender`
+    to an operator, none of which are needed to answer "is this account healthy
+    and who is using it". An operator is the one reader a patient never granted
+    access to — a clinician has an explicit DataGrant, an admin has an allowlist.
+
+    Read off the source rather than a live response so this fails the moment a
+    field is added back, with or without a database.
+    """
+    import inspect
+    from app.api import admin
+
+    src = inspect.getsource(admin.admin_user_detail)
+    profile = src.split('"profile": {', 1)[1].split("},", 1)[0]
+
+    for field in (
+        "allergies",
+        "height_cm",
+        "current_weight_kg",
+        "date_of_birth",
+        "gender",
+        "blood_type",
+        "family_history",
+        "dietary_restrictions",
+        "food_intolerances",
+    ):
+        assert field not in profile, (
+            f"{field!r} is clinical and must not be served by the admin console"
+        )
+
+
+def test_the_admin_detail_keeps_what_an_operator_needs():
+    """Removing clinical data must not strip the administrative fields with it."""
+    import inspect
+    from app.api import admin
+
+    src = inspect.getsource(admin.admin_user_detail)
+    profile = src.split('"profile": {', 1)[1].split("},", 1)[0]
+
+    for field in ("country", "timezone", "phone_number"):
+        assert field in profile, f"{field!r} is administrative and should remain"
+
+
+def test_the_raw_sid_does_not_leak_what_the_segments_mask():
+    """Masking the segments alone moved the disclosure; it did not end it.
+
+    The raw `system_id` sits beside `system_id_segments` in the same response,
+    and it reads `S1.IOS.REV.19850615.F....` — the date of birth and gender in
+    plain text. Found by reading an actual response, not the diff.
+    """
+    from app.api.admin import _mask_sid
+
+    sid = "S1.WOL.AKP.19740315.M.1747887746.PAYLOAD.checksum"
+    masked = _mask_sid(sid)
+
+    assert "19740315" not in masked
+    assert masked.split(".")[3] == "••••••••"
+    assert masked.split(".")[4] == "•"
+    # The cross-system key itself must survive, or reconciliation breaks.
+    assert masked.endswith(".PAYLOAD.checksum")
+    assert masked.startswith("S1.WOL.AKP.")
+
+
+def test_a_malformed_sid_is_still_truncated_not_exploded():
+    from app.api.admin import _mask_sid
+
+    assert _mask_sid("garbage") == "garbage"
+    assert _mask_sid(None) is None

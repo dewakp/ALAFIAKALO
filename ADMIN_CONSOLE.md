@@ -48,6 +48,20 @@ It returns **counts and metadata only** — never clinical records. The console 
 answer "is the app healthy and who is using it" without becoming a back door into
 health data.
 
+> ⚠️ **The code broke this contract and the doc did not notice.** `admin_user_detail`
+> served `allergies`, `height_cm`, `current_weight_kg`, `date_of_birth` and
+> `gender` under `profile` — a health profile, to a reader who needs none of it
+> to answer the question above. A clinician reaches a chart through the
+> patient's own `DataGrant`; an operator reaches it through an email allowlist,
+> so the operator is the one disclosure the patient never consented to. The
+> block is now `country`, `timezone`, `phone_number`, and
+> `tests/test_admin_user_detail.py` reads the source and **fails the build** if a
+> clinical field is added back.
+>
+> Identity reconciliation is unaffected: `identifiers.system_id_segments` still
+> decodes the SID's own `dob8` and `G`, because matching an account against
+> FLOWSHEET is administrative. A body-measurement and allergy profile is not.
+
 ## API
 
 All under `/api/v1/admin`, all gated by `require_admin`:
