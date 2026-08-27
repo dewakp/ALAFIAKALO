@@ -228,16 +228,27 @@ data class LabResult(
 )
 
 // Medication
+// Nullable where the backend is nullable. These were declared non-null while
+// `MedicationResponse` allows null for every one of them — and Gson populates a
+// Kotlin non-null field with null regardless, so the declaration bought nothing
+// and hid the risk. A row created by `POST /medications/promote-logged` carries
+// a name and notes and NOTHING else, so `Text(medication.dosage)` would have
+// been handed a null on exactly the rows this app now creates.
 data class Medication(
     val id: Int,
     val user_id: Int,
     val name: String,
-    val dosage: String,
-    val frequency: String,
-    val reason: String,
-    val start_date: String,
-    val end_date: String?,
-    val notes: String?,
+    val dosage: String? = null,
+    val dosage_unit: String? = null,
+    val frequency: String? = null,
+    val reason: String? = null,
+    val start_date: String? = null,
+    val end_date: String? = null,
+    val notes: String? = null,
+    // A stopped prescription is not an option (canon 3aj). The field was absent
+    // entirely, so the app could not tell a current drug from a 2017 EHR import
+    // and offered both as equally valid answers to "what am I taking today".
+    val is_active: Boolean = true,
     val source: String? = null,   // null = entered manually; else importing portal/org
     val created_at: String
 )

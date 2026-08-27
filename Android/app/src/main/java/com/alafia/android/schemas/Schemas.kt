@@ -226,7 +226,11 @@ data class MedicationDoseLogRequest(
     val pre_diastolic_bp: Int? = null,
     val pre_heart_rate: Int? = null,
     val pre_temperature_c: Double? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    /** Records a dose the guard flagged, deliberately. The guard fails OPEN on an
+     *  unreachable RxNorm, so this is for a dose the PATIENT confirms is right —
+     *  never a default, and never set without showing them what was flagged. */
+    val acknowledge_unusual: Boolean = false
 )
 
 // Labs Schemas
@@ -717,6 +721,49 @@ data class VomitingLogRequest(
 // write is not.
 
 data class MedicationIntakeRequest(val text: String)
+
+/**
+ * One drug this patient actually takes, from their own dose logs
+ * (`GET /medications/frequent`).
+ *
+ * The intake picker used to offer PRESCRIPTIONS only. On the production record
+ * that is 943 dose logs against zero prescriptions — so typing "Calcium" offered
+ * nothing while the history held Calcium carbonate 489 times. Canon 3aa:
+ * prescribed and taken are different facts, and reading one table and calling it
+ * the answer hides the other.
+ */
+data class FrequentMedication(
+    val name: String,
+    @com.google.gson.annotations.SerializedName("times_logged") val timesLogged: Int = 0,
+    @com.google.gson.annotations.SerializedName("last_taken") val lastTaken: String? = null,
+)
+
+data class PromoteLoggedResponse(
+    val created: List<PromotedMedication> = emptyList(),
+) {
+    data class PromotedMedication(
+        val name: String,
+        @com.google.gson.annotations.SerializedName("times_logged") val timesLogged: Int = 0,
+    )
+}
+
+/**
+ * What the dose guard refused, and how to proceed anyway — the `detail` object of
+ * a 422 from `POST /medications/dose-logs`.
+ *
+ * This is the half mobile threw away. A 422 fell through ErrorUtil to
+ * "Something went wrong. Please try again." — no reason, no suggestion and no
+ * route forward, on a guard that had already worked out that "Calcium
+ * Carbonated" should be "Calcium Carbonate". A guard that cannot explain itself
+ * gets blamed for the thing it did not do.
+ */
+data class DoseGuardRefusal(
+    val message: String = "",
+    val findings: List<MedicationDoseFinding> = emptyList(),
+    @com.google.gson.annotations.SerializedName("override_with") val overrideWith: String? = null,
+)
+
+data class DoseGuardErrorBody(val detail: DoseGuardRefusal? = null)
 
 data class MedicationDoseFinding(
     val level: String,          // "error" | "warning"

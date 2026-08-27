@@ -406,6 +406,19 @@ actor APIClient {
             if let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
                 throw APIError.clientError(detail.detail)
             }
+            // `detail` is not always a string. The medication dose guard answers
+            // 422 with an OBJECT — the findings that name what it refused and
+            // the field that overrides it — and the string decode above simply
+            // fails on that, so the user was shown "Request failed (422)" while
+            // the server had already written the reason AND the fix. Keep the
+            // body so the caller can read the fields it knows about, and use
+            // the server's own sentence in the meantime.
+            if let structured = try? JSONDecoder().decode(StructuredErrorDetail.self, from: data),
+               let message = structured.detail.message {
+                throw APIError.structured(message: message,
+                                          status: httpResponse.statusCode,
+                                          body: data)
+            }
             throw APIError.clientError("Request failed (\(httpResponse.statusCode))")
         case 500...599:
             throw APIError.serverError
@@ -422,6 +435,10 @@ enum APIError: LocalizedError {
     case unauthorized
     case paymentRequired(String)
     case clientError(String)
+    /// A 4xx whose `detail` is an object rather than a string. `body` is the raw
+    /// response so the caller can decode the extra fields — the dose guard's
+    /// `findings` and `override_with` are why this exists.
+    case structured(message: String, status: Int, body: Data)
     case serverError
     case unknown(Int)
     
@@ -431,6 +448,7 @@ enum APIError: LocalizedError {
         case .unauthorized: return "Please log in again"
         case .paymentRequired(let msg): return msg
         case .clientError(let msg): return msg
+        case .structured(let msg, _, _): return msg
         case .serverError: return "Server error — try again later"
         case .unknown(let code): return "Unexpected error (\(code))"
         }
@@ -439,6 +457,12 @@ enum APIError: LocalizedError {
 
 struct ErrorDetail: Decodable {
     let detail: String
+}
+
+/// `{"detail": {"message": "...", ...}}` — the object form of a FastAPI error.
+struct StructuredErrorDetail: Decodable {
+    struct Body: Decodable { let message: String? }
+    let detail: Body
 }
 
 // MARK: - Local date/time display

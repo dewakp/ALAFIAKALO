@@ -674,6 +674,49 @@ carbonate ×489, Calcitriol ×351 …). Deliberately explicit and thresholded at
 logs, not automatic on every write: a prescription is a clinical statement, and
 the `Calcium Calcitriol` row logged ONCE must never silently become one.
 
+### The refusal is an OBJECT, and both mobile clients threw it away
+
+The picker and the findings shipped web-only. On iOS and Android the guard was
+not merely unexplained — it was *less* explained than before the web fix, because
+the transport discarded the body before any screen could read it:
+
+| Client | What the patient saw for the "Calcium Carbonated" 422 |
+|---|---|
+| Web (before the fix) | "This dose looks wrong — please check it." |
+| iOS | **"Request failed (422)"** |
+| Android | **"Something went wrong. Please try again."** |
+
+Both causes are one line of transport code, and neither is medication-specific:
+
+- **iOS `ErrorDetail` declared `detail: String`.** FastAPI's `detail` is whatever
+  the raise passes — here `{message, findings, override_with}` — so the decode
+  simply failed and `validateResponse` fell through to its
+  `"Request failed (\(statusCode))"`. `APIError.structured(message:status:body:)`
+  now keeps the raw body, so any object-shaped 4xx says the server's own sentence
+  instead of a status code, and a caller that knows the shape can read the rest.
+- **Android's `ErrorUtil.userMessage` has no 422 arm**, so a refusal landed on
+  `else -> "Something went wrong. Please try again."` — which does not even say
+  the dose was questioned. `DoseGuard.refusalFrom()` parses the body off the
+  `HttpException`; anything that is not a refusal still takes the ordinary path.
+
+> **A pydantic 422 and a guard 422 are different events.** FastAPI's own
+> validation errors are also 422 with `detail` as a **list**. Both clients return
+> nil for that, or an empty findings panel renders in place of a real message.
+> Pinned in `DoseGuardTest` / `DoseGuardRefusalTests`.
+
+**Android's `Medication` model did not have `is_active` at all.** So the client
+could not distinguish a current drug from a stopped 2017 EHR import — §3aj's "a
+stopped prescription is not an option", one layer lower than the picker that was
+supposed to enforce it. It also declared `dosage`, `frequency`, `reason` and
+`start_date` **non-null** while `MedicationResponse` allows null for every one —
+and Gson writes null into a Kotlin non-null field regardless, so the declaration
+bought nothing and hid the risk. A row created by `promote-logged` carries a name
+and notes and nothing else, so `Text(medication.dosage)` would have been handed a
+null on exactly the rows this feature creates.
+
+> **Match the model to the schema, not to the rows you happened to see.** Every
+> field was non-null in the EHR-imported test data, which is why it survived.
+
 ### The e2e suite could not reach the backend, by construction
 
 `vite preview` had **no proxy block** — only the dev `server` did. e2e runs

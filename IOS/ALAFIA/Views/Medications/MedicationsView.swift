@@ -1,13 +1,59 @@
 import SwiftUI
 import PhotosUI
 
+/// What came back from an attempt to record a dose.
+///
+/// `logDose` used to return `Bool` and flatten the guard's refusal into
+/// `errorMessage`, which discarded the findings and the override. A refusal is
+/// not the same event as a network failure: one has a reason and a way through,
+/// the other does not.
+enum DoseLogOutcome {
+    case saved
+    case refused(DoseGuardRefusal.Detail)
+    case failed(String)
+}
+
 @Observable
 final class MedicationsViewModel {
     var medications: [Medication] = []
     var doseLogs: [MedicationDoseLog] = []
+    /// What this patient actually takes, from their own dose logs.
+    var frequent: [FrequentMedication] = []
     var isLoading = false
     var loadingLogs = false
     var errorMessage: String?
+
+    /// Prescriptions first (the strongest statement of what they take), then
+    /// their own logging history, de-duplicated case-insensitively — the same
+    /// drug arrives as both "Calcium Carbonate" and "Calcium carbonate".
+    var pickerOptions: [MedicationSuggestion] {
+        var seen = Set<String>()
+        var out: [MedicationSuggestion] = []
+        for m in medications where m.isActive {
+            let key = m.name.lowercased()
+            if key.isEmpty || seen.contains(key) { continue }
+            seen.insert(key)
+            out.append(MedicationSuggestion(name: m.name, timesLogged: nil, lastTaken: nil))
+        }
+        for h in frequent {
+            let key = h.name.lowercased()
+            if seen.contains(key) { continue }
+            seen.insert(key)
+            out.append(MedicationSuggestion(name: h.name, timesLogged: h.timesLogged, lastTaken: h.lastTaken))
+        }
+        return out
+    }
+
+    /// Drugs logged often enough to be a real regimen but absent from the
+    /// prescription list. Thresholded at 3, matching the backend: a drug logged
+    /// ONCE (the mistyped "Calcium Calcitriol" on this record) must never become
+    /// a clinical statement.
+    var unlistedRegulars: [FrequentMedication] {
+        frequent.filter { h in
+            h.timesLogged >= 3
+                && !medications.contains { $0.name.lowercased() == h.name.lowercased() }
+        }
+    }
 
     /// Intake history for a single day (YYYY-MM-DD), newest first.
     func fetchDoseLogs(date: String) async {
@@ -70,13 +116,44 @@ final class MedicationsViewModel {
         )
     }
 
-    func logDose(_ dose: MedicationDoseLogCreate) async -> Bool {
+    /// The patient's own dose-log history, for the intake picker.
+    /// A failure leaves the list empty rather than blocking the form — they can
+    /// still type a name.
+    func fetchFrequent() async {
+        frequent = (try? await APIClient.shared.get("/medications/frequent")) ?? []
+    }
+
+    /// Turn regularly-logged drugs into prescription rows. Explicit on purpose:
+    /// a prescription is a clinical statement, so the patient asks for it.
+    @discardableResult
+    func promoteLogged() async -> Bool {
+        struct Empty: Encodable {}
+        struct Result: Decodable { let created: [Created]
+                                   struct Created: Decodable { let name: String } }
         do {
-            let _: MedicationDoseLog = try await APIClient.shared.post("/medications/dose-logs", body: dose)
+            let _: Result = try await APIClient.shared.post("/medications/promote-logged", body: Empty())
+            await fetchMedications()
+            await fetchFrequent()
             return true
         } catch {
             errorMessage = error.localizedDescription
             return false
+        }
+    }
+
+    func logDose(_ dose: MedicationDoseLogCreate) async -> DoseLogOutcome {
+        do {
+            let _: MedicationDoseLog = try await APIClient.shared.post("/medications/dose-logs", body: dose)
+            return .saved
+        } catch {
+            // A refusal carries WHY and a way through. Both used to be dropped:
+            // iOS showed "Request failed (422)" on a dose the guard had already
+            // diagnosed down to the corrected spelling.
+            if let refusal = DoseGuardRefusal.from(error) {
+                return .refused(refusal.detail)
+            }
+            errorMessage = error.localizedDescription
+            return .failed(error.localizedDescription)
         }
     }
 
@@ -116,6 +193,7 @@ struct MedicationsView: View {
     @State private var intakeError: String?
     @State private var intakeProposal: MedicationIntakeProposal?
     @State private var intakePrefill: MedicationIntakeProposal?
+    @State private var promoting = false
 
     private var logDateISO: String {
         let f = DateFormatter()
@@ -181,7 +259,10 @@ struct MedicationsView: View {
             MedicationDoseSheet(medication: nil, vm: vm, defaultDate: logDate,
                                 prefill: intakePrefill)
         }
-        .task { await vm.fetchMedications() }
+        .task {
+            await vm.fetchMedications()
+            await vm.fetchFrequent()
+        }
     }
 
     private func refreshLogsIfNeeded() {
@@ -193,24 +274,62 @@ struct MedicationsView: View {
     @ViewBuilder private var medicationsList: some View {
         if vm.isLoading {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if vm.medications.isEmpty {
+        } else if vm.medications.isEmpty && vm.unlistedRegulars.isEmpty {
             EmptyStateView(icon: "pills.fill", title: "No Medications", message: "Tap + to add a medication")
         } else {
             List {
-                ForEach(vm.medications) { med in
-                    MedicationRow(med: med)
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button { doseTarget = med } label: {
-                                Label("Log Dose", systemImage: "checkmark.circle.fill")
-                            }
-                            .tint(.green)
-                        }
+                // "No medications" was a lie on the production record: zero
+                // prescriptions, 943 dose logs. The patient's own history is a
+                // statement of what they take — offer to make it one on file
+                // rather than showing an empty screen (canon §3aa).
+                if !vm.unlistedRegulars.isEmpty {
+                    Section {
+                        promoteLoggedPrompt
+                    }
                 }
-                .onDelete { indexSet in
-                    Task { for index in indexSet { await vm.deleteMedication(id: vm.medications[index].id) } }
+                if !vm.medications.isEmpty {
+                    Section {
+                        ForEach(vm.medications) { med in
+                            MedicationRow(med: med)
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button { doseTarget = med } label: {
+                                        Label("Log Dose", systemImage: "checkmark.circle.fill")
+                                    }
+                                    .tint(.green)
+                                }
+                        }
+                        .onDelete { indexSet in
+                            Task { for index in indexSet { await vm.deleteMedication(id: vm.medications[index].id) } }
+                        }
+                    } header: {
+                        // Prescribed and taken are different facts; label which
+                        // one this list is, rather than implying it is both.
+                        Text(vm.medications.contains { $0.isActive }
+                             ? "Prescriptions" : "Prescriptions (all stopped)")
+                    }
                 }
             }
         }
+    }
+
+    @ViewBuilder private var promoteLoggedPrompt: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("You regularly log \(vm.unlistedRegulars.count) medication\(vm.unlistedRegulars.count == 1 ? "" : "s") that aren’t on this list")
+                .font(.subheadline.weight(.semibold))
+            ForEach(vm.unlistedRegulars) { m in
+                Text("• \(m.name) — taken \(m.timesLogged)×\(m.lastTaken.map { ", last \($0)" } ?? "")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                Task { promoting = true; await vm.promoteLogged(); promoting = false }
+            } label: {
+                if promoting { ProgressView() } else { Text("Add these to my medications") }
+            }
+            .font(.subheadline.weight(.semibold))
+            .disabled(promoting)
+        }
+        .padding(.vertical, 4)
     }
 
     // MARK: - Intake-log tab (date + per-day history with pre-med vitals)
@@ -517,6 +636,9 @@ struct MedicationDoseSheet: View {
     @State private var tempF = ""
     @State private var saving = false
     @State private var errorText: String?
+    /// What the dose guard refused, kept apart from `errorText`: a refusal has a
+    /// reason and a way through, a network failure has neither.
+    @State private var refusal: DoseGuardRefusal.Detail?
 
     private var resolvedName: String {
         (medication?.name ?? medName).trimmingCharacters(in: .whitespaces)
@@ -539,18 +661,20 @@ struct MedicationDoseSheet: View {
                             Text(freq).font(.caption).foregroundStyle(.secondary)
                         }
                     } else {
-                        TextField("Medication name", text: $medName)
-                        if !vm.medications.isEmpty {
-                            Menu("Choose from your medications") {
-                                ForEach(vm.medications) { m in
-                                    Button(m.name) {
-                                        medName = m.name
-                                        if let u = m.dosageUnit, !u.isEmpty { unit = u }
-                                    }
+                        // Offers prescriptions AND this patient's own dose-log
+                        // history. The menu it replaces read `/medications/`
+                        // only, which on this record is empty (canon §3aa).
+                        MedicationPickerField(
+                            name: $medName,
+                            options: vm.pickerOptions,
+                            onSelect: { option in
+                                if let m = vm.medications.first(where: {
+                                    $0.name.lowercased() == option.name.lowercased()
+                                }), let u = m.dosageUnit, !u.isEmpty {
+                                    unit = u
                                 }
                             }
-                            .font(.caption)
-                        }
+                        )
                     }
                 }
                 Section("When") {
@@ -576,6 +700,18 @@ struct MedicationDoseSheet: View {
                     TextField("Notes (optional)", text: $notes, axis: .vertical)
                         .lineLimit(2...4)
                 }
+                if let refusal {
+                    Section {
+                        DoseGuardFindingsView(
+                            detail: refusal,
+                            onUseSuggestion: { suggestion in
+                                medName = suggestion
+                                self.refusal = nil
+                            },
+                            onAcknowledge: { save(acknowledgeUnusual: true) }
+                        )
+                    }
+                }
                 if let errorText {
                     Text(errorText).font(.caption).foregroundStyle(.red)
                 }
@@ -592,6 +728,7 @@ struct MedicationDoseSheet: View {
                         .fontWeight(.semibold)
                 }
             }
+            .task { await vm.fetchFrequent() }
             .onAppear {
                 date = defaultDate
                 // A proposal read from free text wins over the registry default:
@@ -610,10 +747,11 @@ struct MedicationDoseSheet: View {
         }
     }
 
-    private func save() {
+    private func save(acknowledgeUnusual: Bool = false) {
         guard let value = Double(amount), !resolvedName.isEmpty else { return }
         saving = true
         errorText = nil
+        if !acknowledgeUnusual { refusal = nil }
         let dateF = DateFormatter()
         dateF.locale = Locale(identifier: "en_US_POSIX"); dateF.timeZone = .current
         dateF.dateFormat = "yyyy-MM-dd"
@@ -632,15 +770,21 @@ struct MedicationDoseSheet: View {
             preDiastolicBp: Int(diastolic),
             preHeartRate: Int(heartRate),
             preTemperatureC: Double(tempF).map(TempConvert.toCelsius),
-            notes: notes.isEmpty ? nil : notes
+            notes: notes.isEmpty ? nil : notes,
+            acknowledgeUnusual: acknowledgeUnusual
         )
         Task {
-            let ok = await vm.logDose(dose)
+            let outcome = await vm.logDose(dose)
             saving = false
-            if ok {
+            switch outcome {
+            case .saved:
                 dismiss()
-            } else {
-                errorText = vm.errorMessage ?? "Failed to log dose"
+            case .refused(let detail):
+                // Not an error the user can only stare at: it names what is
+                // wrong and offers both the correction and a way past.
+                refusal = detail
+            case .failed(let message):
+                errorText = message
             }
         }
     }

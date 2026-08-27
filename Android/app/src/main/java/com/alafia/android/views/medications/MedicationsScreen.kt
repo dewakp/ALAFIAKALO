@@ -30,6 +30,10 @@ import com.alafia.android.schemas.MedicationRequest
 import com.alafia.android.schemas.MedicationDoseLogRequest
 import com.alafia.android.schemas.MedicationIntakeProposal
 import com.alafia.android.schemas.MedicationIntakeRequest
+import com.alafia.android.schemas.MedicationDoseFinding
+import com.alafia.android.schemas.FrequentMedication
+import com.alafia.android.schemas.DoseGuardRefusal
+import com.alafia.android.util.DoseGuard
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -57,6 +61,14 @@ fun MedicationsScreen(navController: NavHostController) {
     var intakeError by remember { mutableStateOf<String?>(null) }
     var intakeProposal by remember { mutableStateOf<MedicationIntakeProposal?>(null) }
     var intakeAccepted by remember { mutableStateOf<MedicationIntakeProposal?>(null) }
+    // What this patient ACTUALLY takes, from their own dose logs. The picker
+    // read prescriptions only, which on the production record is empty while the
+    // history holds 943 doses (canon 3aa).
+    var frequent by remember { mutableStateOf<List<FrequentMedication>>(emptyList()) }
+    var promoting by remember { mutableStateOf(false) }
+    // Kept apart from a Toast: a refusal names what is wrong and offers a way
+    // through, so it belongs in the form, not in a message that disappears.
+    var doseRefusal by remember { mutableStateOf<DoseGuardRefusal?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -135,7 +147,16 @@ fun MedicationsScreen(navController: NavHostController) {
         }
     }
 
-    LaunchedEffect(Unit) { loadMedications() }
+    fun loadFrequent() {
+        scope.launch {
+            // A failure leaves the list empty rather than blocking the form —
+            // the patient can still type a name.
+            frequent = try { ApiClient.getApiService().getFrequentMedications() }
+                       catch (e: Exception) { emptyList() }
+        }
+    }
+
+    LaunchedEffect(Unit) { loadMedications(); loadFrequent() }
     LaunchedEffect(tab, logDate) { if (tab == 1) loadDoseLogs() }
 
     Scaffold(
@@ -165,9 +186,16 @@ fun MedicationsScreen(navController: NavHostController) {
                 Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Intake Log") })
             }
             if (tab == 0) {
+                // Drugs logged often enough to be a real regimen but absent from
+                // the prescription list. Thresholded at 3, matching the backend:
+                // a drug logged ONCE (the mistyped "Calcium Calcitriol" on this
+                // record) must never become a clinical statement.
+                val unlistedRegulars = frequent.filter { h ->
+                    h.timesLogged >= 3 && medications.none { it.name.equals(h.name, ignoreCase = true) }
+                }
                 if (isLoading) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                } else if (medications.isEmpty()) {
+                } else if (medications.isEmpty() && unlistedRegulars.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.LocalPharmacy, "No medications", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -182,6 +210,44 @@ fun MedicationsScreen(navController: NavHostController) {
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // "No medications" was a lie on the production record:
+                        // zero prescriptions, 943 dose logs. The patient's own
+                        // history is a statement of what they take — offer to
+                        // make it one on file rather than showing an empty
+                        // screen (canon 3aa).
+                        if (unlistedRegulars.isNotEmpty()) {
+                            item {
+                                PromoteLoggedCard(
+                                    unlisted = unlistedRegulars,
+                                    busy = promoting,
+                                    onPromote = {
+                                        scope.launch {
+                                            promoting = true
+                                            try {
+                                                ApiClient.getApiService().promoteLoggedMedications()
+                                                loadMedications()
+                                                loadFrequent()
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+                                            }
+                                            promoting = false
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                        if (medications.isNotEmpty()) {
+                            item {
+                                // Prescribed and taken are different facts;
+                                // label which one this list is.
+                                Text(
+                                    if (medications.any { it.is_active }) "Prescriptions"
+                                    else "Prescriptions (all stopped)",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                         items(medications, key = { it.id }) { med ->
                             MedicationCard(
                                 medication = med,
@@ -266,16 +332,25 @@ fun MedicationsScreen(navController: NavHostController) {
         LogDoseDialog(
             medication = med,
             defaultDate = logDate,
-            onDismiss = { doseTarget = null },
+            frequent = frequent,
+            refusal = doseRefusal,
+            onClearRefusal = { doseRefusal = null },
+            onDismiss = { doseTarget = null; doseRefusal = null },
             onSave = { request ->
                 scope.launch {
                     try {
                         ApiClient.getApiService().logMedicationDose(request)
                         doseTarget = null
+                        doseRefusal = null
                         Toast.makeText(context, "Dose logged!", Toast.LENGTH_SHORT).show()
+                        loadFrequent()
                         if (tab == 1) loadDoseLogs()
                     } catch (e: Exception) {
-                        Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+                        // A refusal is not a failure: show WHY, in the form,
+                        // with the correction and the way past it.
+                        val refusal = DoseGuard.refusalFrom(e)
+                        if (refusal != null) doseRefusal = refusal
+                        else Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -287,18 +362,25 @@ fun MedicationsScreen(navController: NavHostController) {
             medication = null,
             defaultDate = logDate,
             existingMedications = medications,
+            frequent = frequent,
             prefill = intakeAccepted,
-            onDismiss = { showLogSheet = false; intakeAccepted = null },
+            refusal = doseRefusal,
+            onClearRefusal = { doseRefusal = null },
+            onDismiss = { showLogSheet = false; intakeAccepted = null; doseRefusal = null },
             onSave = { request ->
                 scope.launch {
                     try {
                         ApiClient.getApiService().logMedicationDose(request)
                         showLogSheet = false
                         intakeAccepted = null
+                        doseRefusal = null
                         Toast.makeText(context, "Intake logged!", Toast.LENGTH_SHORT).show()
+                        loadFrequent()
                         loadDoseLogs()
                     } catch (e: Exception) {
-                        Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+                        val refusal = DoseGuard.refusalFrom(e)
+                        if (refusal != null) doseRefusal = refusal
+                        else Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -323,7 +405,16 @@ private fun MedicationCard(medication: Medication, onLogDose: () -> Unit, onDele
                                 style = MaterialTheme.typography.labelSmall)
                         }
                     }
-                    Text(medication.dosage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    listOfNotNull(medication.dosage, medication.dosage_unit)
+                        .joinToString(" ").takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    if (!medication.is_active) {
+                        // Prescribed once is not taken now. An account whose only
+                        // rows were two 2017 EHR imports showed them as current.
+                        Text("Stopped", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error)
+                    }
                 }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
@@ -331,15 +422,22 @@ private fun MedicationCard(medication: Medication, onLogDose: () -> Unit, onDele
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
-                    Text(medication.frequency, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+                medication.frequency?.takeIf { it.isNotBlank() }?.let {
+                    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
+                        Text(it, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+                    }
                 }
-                Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.small) {
-                    Text(medication.reason, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+                medication.reason?.takeIf { it.isNotBlank() }?.let {
+                    Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.small) {
+                        Text(it, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
             Spacer(Modifier.height(4.dp))
-            Text("Since: ${medication.start_date}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // "Since: null" is what printing an absent date unguarded looks like.
+            medication.start_date?.takeIf { it.isNotBlank() }?.let {
+                Text("Since: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if (medication.end_date != null) {
                 Text("Until: ${medication.end_date}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -414,9 +512,15 @@ private fun LogDoseDialog(
     medication: Medication?,
     defaultDate: LocalDate,
     existingMedications: List<Medication> = emptyList(),
+    /** What this patient actually takes, from their own dose logs. */
+    frequent: List<FrequentMedication> = emptyList(),
     /** A proposal read from free text, pre-filled so the user confirms in the
      *  form they already know instead of the app writing a dose for them. */
     prefill: MedicationIntakeProposal? = null,
+    /** What the dose guard refused, if the last attempt was refused. Kept apart
+     *  from a plain error: a refusal has a reason and a way through. */
+    refusal: DoseGuardRefusal? = null,
+    onClearRefusal: () -> Unit = {},
     onDismiss: () -> Unit,
     onSave: (MedicationDoseLogRequest) -> Unit
 ) {
@@ -442,9 +546,43 @@ private fun LogDoseDialog(
     var heartRate by remember { mutableStateOf("") }
     var tempF by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
-
     val resolvedName = (medication?.name ?: medName).trim()
+
+    // Prescriptions first (the strongest statement of what they take), then
+    // their own logging history, de-duplicated case-insensitively — the same
+    // drug arrives as both "Calcium Carbonate" and "Calcium carbonate".
+    val pickerOptions = remember(existingMedications, frequent) {
+        val seen = mutableSetOf<String>()
+        val out = mutableListOf<MedicationSuggestion>()
+        existingMedications.filter { it.is_active }.forEach { m ->
+            val key = m.name.lowercase()
+            if (key.isNotBlank() && seen.add(key)) out += MedicationSuggestion(m.name)
+        }
+        frequent.forEach { h ->
+            if (seen.add(h.name.lowercase())) {
+                out += MedicationSuggestion(h.name, h.timesLogged, h.lastTaken)
+            }
+        }
+        out
+    }
+
+    // One builder for both routes into the API. The acknowledge path must send
+    // exactly what the refused attempt sent, plus the flag — rebuilding it a
+    // second way is how the two drift.
+    fun buildDoseRequest(acknowledgeUnusual: Boolean) = MedicationDoseLogRequest(
+        medication_name = resolvedName,
+        log_date = defaultDate.format(DateTimeFormatter.ISO_DATE),
+        dose_amount = amount.toDoubleOrNull() ?: 0.0,
+        dose_unit = unit.ifBlank { "unit" },
+        log_time = time.ifBlank { null },
+        medication_id = medication?.id,
+        pre_systolic_bp = systolic.toIntOrNull(),
+        pre_diastolic_bp = diastolic.toIntOrNull(),
+        pre_heart_rate = heartRate.toIntOrNull(),
+        pre_temperature_c = tempF.toDoubleOrNull()?.let { (it - 32) * 5 / 9 },
+        notes = notes.ifBlank { null },
+        acknowledge_unusual = acknowledgeUnusual,
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -454,24 +592,36 @@ private fun LogDoseDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
+                refusal?.let {
+                    DoseGuardFindings(
+                        refusal = it,
+                        onUseSuggestion = { suggestion ->
+                            medName = suggestion
+                            onClearRefusal()
+                        },
+                        onAcknowledge = {
+                            val value = amount.toDoubleOrNull()
+                            if (value != null) onSave(buildDoseRequest(true))
+                        },
+                    )
+                }
                 if (medication != null) {
                     Text(medication.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 } else {
-                    OutlinedTextField(value = medName, onValueChange = { medName = it }, label = { Text("Medication name") }, modifier = Modifier.fillMaxWidth())
-                    if (existingMedications.isNotEmpty()) {
-                        Box {
-                            TextButton(onClick = { expanded = true }) { Text("Choose from your medications") }
-                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                existingMedications.forEach { m ->
-                                    DropdownMenuItem(text = { Text(m.name) }, onClick = {
-                                        medName = m.name
-                                        m.dosage.filter { it.isLetter() }.takeIf { it.isNotBlank() }?.let { unit = it }
-                                        expanded = false
-                                    })
-                                }
-                            }
-                        }
-                    }
+                    // Offers prescriptions AND this patient's own dose-log
+                    // history. The dropdown it replaces read `/medications/`
+                    // only, which on this record is empty (canon 3aa).
+                    MedicationPickerField(
+                        name = medName,
+                        onNameChange = { medName = it },
+                        options = pickerOptions,
+                        onSelect = { option ->
+                            existingMedications.firstOrNull {
+                                it.name.equals(option.name, ignoreCase = true)
+                            }?.dosage?.filter { it.isLetter() }?.takeIf { it.isNotBlank() }
+                                ?.let { unit = it }
+                        },
+                    )
                 }
                 Text("Date: ${defaultDate.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))}",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -501,22 +651,8 @@ private fun LogDoseDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val value = amount.toDoubleOrNull() ?: return@TextButton
-                    onSave(
-                        MedicationDoseLogRequest(
-                            medication_name = resolvedName,
-                            log_date = defaultDate.format(DateTimeFormatter.ISO_DATE),
-                            dose_amount = value,
-                            dose_unit = unit.ifBlank { "unit" },
-                            log_time = time.ifBlank { null },
-                            medication_id = medication?.id,
-                            pre_systolic_bp = systolic.toIntOrNull(),
-                            pre_diastolic_bp = diastolic.toIntOrNull(),
-                            pre_heart_rate = heartRate.toIntOrNull(),
-                            pre_temperature_c = tempF.toDoubleOrNull()?.let { (it - 32) * 5 / 9 },
-                            notes = notes.ifBlank { null }
-                        )
-                    )
+                    if (amount.toDoubleOrNull() == null) return@TextButton
+                    onSave(buildDoseRequest(false))
                 },
                 enabled = amount.toDoubleOrNull() != null && unit.isNotBlank() && resolvedName.isNotBlank()
             ) { Text("Log") }

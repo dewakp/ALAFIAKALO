@@ -117,3 +117,13 @@ subscription_tiers.md
 
 # iOS release artifacts (archives and signed IPAs are rebuilt, never committed)
 IOS/build/
+
+# ── Claude Code operator config — local to a machine, not to the repo ─────
+# `.claude/settings.local.json` is already covered by the user's global git
+# ignore, but `.claude/settings.json` is not, and it is the file Claude Code
+# writes a permission allowlist into. An allowlist is a statement about what
+# THIS operator has agreed to run unattended on THIS machine — it is not a
+# property of the project, and committing one silently widens what runs
+# without a prompt for anyone who clones. Ignore the directory, not one file,
+# so a future settings file does not arrive tracked by default.
+.claude/

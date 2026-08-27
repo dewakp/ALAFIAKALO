@@ -159,6 +159,18 @@ interface ApiService {
     @DELETE("medications/{id}")
     suspend fun deleteMedication(@Path("id") id: Int)
 
+    /** What this patient actually takes, from their own dose logs — the picker's
+     *  real source. `/medications/` is prescriptions, a different fact (canon 3aa). */
+    @GET("medications/frequent")
+    suspend fun getFrequentMedications(
+        @Query("limit") limit: Int = 25
+    ): List<FrequentMedication>
+
+    /** Turn regularly-logged drugs into prescription rows. Explicit on purpose:
+     *  a prescription is a clinical statement, so the patient asks for it. */
+    @POST("medications/promote-logged")
+    suspend fun promoteLoggedMedications(): PromoteLoggedResponse
+
     // Medication dose logs ("taken" events)
     /** Read free text into a confirmable dose proposal. Writes nothing. */
     @POST("medications/intake-intent")
