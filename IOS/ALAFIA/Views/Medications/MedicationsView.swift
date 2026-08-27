@@ -654,6 +654,23 @@ struct MedicationDoseSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                // FIRST, deliberately. "Log" is in the top toolbar, so a refusal
+                // rendered after the Notes section sits below the fold: the user
+                // taps Log, nothing appears to happen, and the explanation is
+                // off-screen — the very failure this panel exists to fix. Only
+                // running the app showed it; the build and unit tests were green.
+                if let refusal {
+                    Section {
+                        DoseGuardFindingsView(
+                            detail: refusal,
+                            onUseSuggestion: { suggestion in
+                                medName = suggestion
+                                self.refusal = nil
+                            },
+                            onAcknowledge: { save(acknowledgeUnusual: true) }
+                        )
+                    }
+                }
                 Section("Medication") {
                     if let medication {
                         Text(medication.name).font(.headline)
@@ -699,18 +716,6 @@ struct MedicationDoseSheet: View {
                 Section("Notes") {
                     TextField("Notes (optional)", text: $notes, axis: .vertical)
                         .lineLimit(2...4)
-                }
-                if let refusal {
-                    Section {
-                        DoseGuardFindingsView(
-                            detail: refusal,
-                            onUseSuggestion: { suggestion in
-                                medName = suggestion
-                                self.refusal = nil
-                            },
-                            onAcknowledge: { save(acknowledgeUnusual: true) }
-                        )
-                    }
                 }
                 if let errorText {
                     Text(errorText).font(.caption).foregroundStyle(.red)

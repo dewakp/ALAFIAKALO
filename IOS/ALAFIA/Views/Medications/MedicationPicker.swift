@@ -108,33 +108,38 @@ struct DoseGuardFindingsView: View {
     let onUseSuggestion: (String) -> Void
     let onAcknowledge: () -> Void
 
+    // Each element is its OWN Form row, exactly like MedicationPickerField.
+    //
+    // The first version wrapped all of this in a single `VStack`, which a Form
+    // renders as ONE row — and a List row holding several buttons swallows the
+    // taps rather than routing them, so BOTH exits were dead on the device.
+    // The panel looked perfect in a screenshot and could not be used: the guard
+    // explained itself and then refused to act, which is the failure this whole
+    // panel exists to prevent. The build was green and the unit tests were
+    // green; only tapping it in the simulator found this.
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label(detail.message, systemImage: "exclamationmark.triangle.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.orange)
+        Label(detail.message, systemImage: "exclamationmark.triangle.fill")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.orange)
 
-            ForEach(detail.findings) { finding in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(finding.message)
-                        .font(.footnote)
-                        .foregroundStyle(.primary)
-                    if let suggestion = finding.suggestion, !suggestion.isEmpty {
-                        Button("Use “\(suggestion)”") { onUseSuggestion(suggestion) }
-                            .font(.footnote.weight(.semibold))
-                            .buttonStyle(.borderless)
-                    }
-                }
-            }
+        ForEach(detail.findings) { finding in
+            Text(finding.message)
+                .font(.footnote)
+                .foregroundStyle(.primary)
 
-            if detail.overrideWith != nil {
-                // A guard with no route forward blocks a true clinical record.
-                Button("This is correct — log it anyway", action: onAcknowledge)
-                    .font(.footnote)
+            if let suggestion = finding.suggestion, !suggestion.isEmpty {
+                Button("Use \u{201C}\(suggestion)\u{201D}") { onUseSuggestion(suggestion) }
+                    .font(.footnote.weight(.semibold))
                     .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 4)
+
+        if detail.overrideWith != nil {
+            // A guard with no route forward blocks a true clinical record.
+            Button("This is correct — log it anyway", action: onAcknowledge)
+                .font(.footnote)
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+        }
     }
 }
