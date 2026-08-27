@@ -59,6 +59,20 @@ object EntitlementState {
                 }
                 else -> State.Unavailable(e.message())
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // A cancellation is NOT a failure and must never reach the user.
+            //
+            // This runs from a LaunchedEffect, so the post-login recomposition
+            // cancels it mid-flight — and the generic catch below turned that
+            // into State.Unavailable("The coroutine scope left the composition"),
+            // a raw Compose internal shown to every user immediately after
+            // signing in. They had to press "Try again" to enter the app.
+            //
+            // Rethrow so the coroutine dies quietly and the state is left for
+            // whoever is still asking. Canon 3ah, one level down: unavailable
+            // must never collapse into locked, and "nobody is waiting for this
+            // answer any more" must never collapse into unavailable.
+            throw e
         } catch (e: Exception) {
             _state.value = State.Unavailable(e.message ?: "Network unavailable")
         }

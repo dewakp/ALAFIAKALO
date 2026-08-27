@@ -125,9 +125,12 @@ async def validate_dose(
         findings.extend(await _check_against(profile, name, dose_amount, dose_unit))
 
     findings.extend(_check_marketed_strength(rx, name, dose_amount, dose_unit))
-    # When RxNorm is unreachable the profile path above still applies its
-    # canonical unit and MAX_DOSE_CANONICAL ceiling, so an outage degrades the
-    # check rather than removing it.
+    # When RxNorm is unreachable, the profile path above still applies its
+    # canonical UNIT check — but there is no ceiling left to fall back on: the
+    # MAX_DOSE_CANONICAL ceiling was deliberately removed (see _check_against).
+    # An outage therefore removes the ceiling check entirely. That is "fail
+    # OPEN" (canon 3aj) stated honestly; do not re-add a hand-written table to
+    # paper over it.
     return findings
 
 
