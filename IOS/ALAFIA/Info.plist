@@ -44,6 +44,12 @@
 	<string>ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>ALAFIA transcribes your speech on device to understand spoken health logs and questions.</string>
+	<!-- Camera is the DEFAULT source for every photo this app takes: a meal, a
+	     medication label, a test strip. Without this key iOS does not deny the
+	     camera, it TERMINATES the app the instant one is opened — so this key is
+	     a prerequisite of the feature, not a nicety. -->
+	<key>NSCameraUsageDescription</key>
+	<string>ALAFIA uses your camera to photograph a meal, a medication label or a test strip so it can read them for you.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>ALAFIA lets you attach a photo of a meal so it can estimate nutrition.</string>
 	<key>NSFaceIDUsageDescription</key>

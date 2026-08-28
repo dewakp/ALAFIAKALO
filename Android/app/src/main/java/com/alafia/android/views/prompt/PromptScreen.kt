@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.alafia.android.views.components.rememberCameraCapture
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -140,10 +141,8 @@ fun PromptScreen(
         }
     }
 
-    val imagePicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) vm.analyzeImage(context.contentResolver, uri) { navController.navigate(it) }
+    val imagePicker = rememberCameraCapture { uri ->
+        vm.analyzeImage(context.contentResolver, uri) { navController.navigate(it) }
     }
 
     Column(
@@ -171,7 +170,7 @@ fun PromptScreen(
             IconButton(onClick = { startVoice() }, enabled = !vm.busy) {
                 Icon(Icons.Default.Mic, contentDescription = "Speak")
             }
-            IconButton(onClick = { imagePicker.launch("image/*") }, enabled = !vm.busy) {
+            IconButton(onClick = { imagePicker.capture() }, enabled = !vm.busy) {
                 Icon(Icons.Default.PhotoCamera, contentDescription = "Photo")
             }
             OutlinedTextField(

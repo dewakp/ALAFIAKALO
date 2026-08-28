@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.alafia.android.views.components.rememberCameraCapture
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -80,7 +81,7 @@ private fun NutritionFromImageTab() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val imagePicker = rememberCameraCapture { uri ->
         if (uri != null) {
             selectedUri = uri
             scope.launch {
@@ -131,7 +132,7 @@ private fun NutritionFromImageTab() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Button(
-            onClick = { imagePicker.launch("image/*") },
+            onClick = { imagePicker.capture() },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading
         ) {
@@ -238,7 +239,7 @@ private fun MedicationFromImageTab() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val imagePicker = rememberCameraCapture { uri ->
         if (uri != null) {
             selectedUri = uri
             scope.launch {
@@ -266,7 +267,7 @@ private fun MedicationFromImageTab() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Button(
-            onClick = { imagePicker.launch("image/*") },
+            onClick = { imagePicker.capture() },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading
         ) {

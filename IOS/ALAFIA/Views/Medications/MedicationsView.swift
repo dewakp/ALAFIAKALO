@@ -184,7 +184,6 @@ struct MedicationsView: View {
     @State private var showLogSheet = false
     @State private var showAdd = false
     @State private var doseTarget: Medication?
-    @State private var scanItem: PhotosPickerItem?
     @State private var scanning = false
     @State private var scanPrefill: MedicationFromImageResponse?
     @State private var showScanForm = false
@@ -219,31 +218,17 @@ struct MedicationsView: View {
         .navigationTitle("Medications")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                PhotosPicker(selection: $scanItem, matching: .images) {
+                // A medication label is in the patient's hand when they tap
+                // this. Opening the photo library was the wrong default.
+                PhotoCaptureButton { data in
+                    Task { await scanLabel(data) }
+                } label: {
                     if scanning { ProgressView() } else { Image(systemName: "camera.viewfinder") }
                 }
                 .disabled(scanning)
                 Button { showAdd = true } label: {
                     Image(systemName: "plus")
                 }
-            }
-        }
-        .onChange(of: scanItem) { _, item in
-            guard let item else { return }
-            Task {
-                scanning = true
-                defer { scanning = false }
-                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-                if let res = await vm.scanLabel(imageData: data) {
-                    let name = res.medicationName ?? ""
-                    if name.isEmpty || name.caseInsensitiveCompare("Unknown Medication") == .orderedSame {
-                        vm.errorMessage = res.notes ?? "Couldn't read the label — try a clearer, well-lit photo."
-                    } else {
-                        scanPrefill = res
-                        showScanForm = true
-                    }
-                }
-                scanItem = nil
             }
         }
         .sheet(isPresented: $showAdd) {
@@ -262,6 +247,22 @@ struct MedicationsView: View {
         .task {
             await vm.fetchMedications()
             await vm.fetchFrequent()
+        }
+    }
+
+    /// Read a label photo. Takes Data so the CAMERA and the library are the
+    /// same path — the source is the caller's choice, not this function's
+    /// concern.
+    private func scanLabel(_ data: Data) async {
+        scanning = true
+        defer { scanning = false }
+        guard let res = await vm.scanLabel(imageData: data) else { return }
+        let name = res.medicationName ?? ""
+        if name.isEmpty || name.caseInsensitiveCompare("Unknown Medication") == .orderedSame {
+            vm.errorMessage = res.notes ?? "Couldn't read the label — try a clearer, well-lit photo."
+        } else {
+            scanPrefill = res
+            showScanForm = true
         }
     }
 

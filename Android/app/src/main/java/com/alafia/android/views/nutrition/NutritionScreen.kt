@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.alafia.android.views.components.rememberCameraCapture
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -401,6 +402,17 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     val scope = rememberCoroutineScope()
     var searchJob by remember { mutableStateOf<Job?>(null) }
 
+    // Camera FIRST: a meal is in front of you when you tap. The picker below
+    // stays because a meal can be several shots (the backend takes 3) and a
+    // camera returns one at a time — so this appends rather than replaces.
+    val mealCamera = rememberCameraCapture { uri ->
+        if (selectedImages.size < 3) {
+            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }?.let { bytes ->
+                selectedImages = selectedImages + bytes
+            }
+        }
+    }
+
     // Max 3 images, matching the backend cap on /ai/vision.
     val imagePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
@@ -444,6 +456,12 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { mealCamera.capture() },
+                                modifier = Modifier.weight(1f), enabled = selectedImages.size < 3) {
+                                Icon(Icons.Filled.PhotoCamera, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Take Photo", fontSize = 12.sp)
+                            }
                             OutlinedButton(onClick = { imagePicker.launch("image/*") },
                                 modifier = Modifier.weight(1f), enabled = selectedImages.size < 3) {
                                 Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(14.dp))

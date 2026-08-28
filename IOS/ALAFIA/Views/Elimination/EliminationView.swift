@@ -18,7 +18,9 @@ struct AnalyzeEliminationPhotoButton: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            PhotosPicker(selection: $photoItem, matching: .images) {
+            PhotoCaptureButton { data in
+                Task { await analyze(data) }
+            } label: {
                 HStack {
                     if analyzing { ProgressView() } else { Image(systemName: "camera.viewfinder") }
                     Text(analyzing ? "Analyzing photo…" : "Analyze photo")
@@ -27,7 +29,7 @@ struct AnalyzeEliminationPhotoButton: View {
             .disabled(analyzing)
             .onChange(of: photoItem) { _, item in
                 guard let item else { return }
-                Task { await analyze(item) }
+                Task { _ = item }
             }
             ForEach(flags, id: \.self) { f in
                 Label(f, systemImage: "exclamationmark.triangle.fill")
@@ -39,8 +41,7 @@ struct AnalyzeEliminationPhotoButton: View {
         }
     }
 
-    private func analyze(_ item: PhotosPickerItem) async {
-        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+    private func analyze(_ data: Data) async {
         analyzing = true; errorMessage = nil; flags = []
         struct Body: Encodable { let event_type: String; let image_base64: String }
         do {

@@ -42,6 +42,7 @@
 		4A0000000000000000000216 /* LabsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000116 /* LabsView.swift */; };
 		4A0000000000000000000217 /* MedicationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000117 /* MedicationsView.swift */; };
 		4A0000000000000000000A02 /* MedicationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000A01 /* MedicationPicker.swift */; };
+		4A0000000000000000000B02 /* PhotoCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000B01 /* PhotoCapture.swift */; };
 		4A0000000000000000000218 /* MoodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000118 /* MoodView.swift */; };
 		4A0000000000000000000219 /* LifestyleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000119 /* LifestyleView.swift */; };
 		4A000000000000000000021A /* AIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011A /* AIChatView.swift */; };
@@ -165,6 +166,7 @@
 		4A0000000000000000000116 /* LabsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabsView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000117 /* MedicationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000A01 /* MedicationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationPicker.swift; sourceTree = "<group>"; };
+		4A0000000000000000000B01 /* PhotoCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCapture.swift; sourceTree = "<group>"; };
 		4A0000000000000000000118 /* MoodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000119 /* LifestyleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifestyleView.swift; sourceTree = "<group>"; };
 		4A000000000000000000011A /* AIChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatView.swift; sourceTree = "<group>"; };
@@ -538,6 +540,7 @@
 			isa = PBXGroup;
 			children = (
 				4A000000000000000000010F /* SharedComponents.swift */,
+				4A0000000000000000000B01 /* PhotoCapture.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -971,6 +974,7 @@
 				4A0000000000000000000216 /* LabsView.swift in Sources */,
 				4A0000000000000000000217 /* MedicationsView.swift in Sources */,
 				4A0000000000000000000A02 /* MedicationPicker.swift in Sources */,
+				4A0000000000000000000B02 /* PhotoCapture.swift in Sources */,
 				4A0000000000000000000218 /* MoodView.swift in Sources */,
 				4A0000000000000000000219 /* LifestyleView.swift in Sources */,
 				4A000000000000000000021A /* AIChatView.swift in Sources */,

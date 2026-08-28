@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.alafia.android.views.components.rememberCameraCapture
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -110,7 +111,7 @@ fun MedicationsScreen(navController: NavHostController) {
 
     // Scan Label: read a bottle/label photo → AI extracts the name/dosage/instructions
     // → open the Add-Medication form prefilled (parity with the web "Scan Label").
-    val scanPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val scanPicker = rememberCameraCapture { uri ->
         if (uri != null) {
             scope.launch {
                 scanning = true
@@ -168,7 +169,7 @@ fun MedicationsScreen(navController: NavHostController) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { if (!scanning) scanPicker.launch("image/*") }, enabled = !scanning) {
+                    IconButton(onClick = { if (!scanning) scanPicker.capture() }, enabled = !scanning) {
                         if (scanning) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         else Icon(Icons.Default.CameraAlt, contentDescription = "Scan Label")
                     }

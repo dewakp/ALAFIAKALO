@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.alafia.android.views.components.rememberCameraCapture
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -83,8 +84,7 @@ private fun AnalyzeEliminationPhoto(
     var analyzing by remember { mutableStateOf(false) }
     var flags by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
+    val picker = rememberCameraCapture { uri ->
         scope.launch {
             analyzing = true
             try {
@@ -104,7 +104,7 @@ private fun AnalyzeEliminationPhoto(
     }
 
     Column {
-        OutlinedButton(onClick = { picker.launch("image/*") }, enabled = !analyzing,
+        OutlinedButton(onClick = { picker.capture() }, enabled = !analyzing,
             modifier = Modifier.fillMaxWidth()) {
             if (analyzing) {
                 CircularProgressIndicator(Modifier.size(16.dp))

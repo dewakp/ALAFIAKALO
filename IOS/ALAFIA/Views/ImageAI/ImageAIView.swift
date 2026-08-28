@@ -181,7 +181,10 @@ struct ImageAIView: View {
                     .cornerRadius(12)
             }
 
-            PhotosPicker(selection: $vm.nutritionPhotoItem, matching: .images) {
+            PhotoCaptureButton { data in
+                vm.nutritionImageData = data
+                Task { await vm.analyzeNutrition() }
+            } label: {
                 Label("Select Food Photo", systemImage: "photo.on.rectangle.angled")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -288,7 +291,10 @@ struct ImageAIView: View {
                     .cornerRadius(12)
             }
 
-            PhotosPicker(selection: $vm.medicationPhotoItem, matching: .images) {
+            PhotoCaptureButton { data in
+                vm.medicationImageData = data
+                Task { await vm.analyzeMedication() }
+            } label: {
                 Label("Select Medication Photo", systemImage: "pills.fill")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)

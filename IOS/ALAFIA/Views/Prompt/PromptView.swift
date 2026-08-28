@@ -163,7 +163,6 @@ struct PromptView: View {
     @State private var vm = PromptViewModel()
     @State private var speech = SpeechRecognizer()
     @State private var destination: PromptDestination?
-    @State private var photoItem: PhotosPickerItem?
 
     private func send() {
         Task { await vm.route { destination = $0 } }
@@ -211,7 +210,9 @@ struct PromptView: View {
                     }
                     .disabled(vm.busy)
 
-                    PhotosPicker(selection: $photoItem, matching: .images) {
+                    PhotoCaptureButton { data in
+                        Task { await vm.analyzeImage(data) { destination = $0 } }
+                    } label: {
                         Image(systemName: "camera.fill").font(.title2)
                     }
                     .disabled(vm.busy)
@@ -246,15 +247,6 @@ struct PromptView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $destination) { dest in
                 NavigationStack { dest.view }
-            }
-            .onChange(of: photoItem) { _, newItem in
-                guard let newItem else { return }
-                Task {
-                    if let data = try? await newItem.loadTransferable(type: Data.self) {
-                        await vm.analyzeImage(data) { destination = $0 }
-                    }
-                    photoItem = nil
-                }
             }
         }
     }
