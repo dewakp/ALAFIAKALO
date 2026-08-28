@@ -845,6 +845,34 @@ async def generate_exercise_plan(
     )
 
 
+@router.delete("/exercise-plans/{plan_id}", status_code=204)
+async def delete_exercise_plan(
+    plan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete one of this user's exercise plans.
+
+    The web planner has always had a delete button and it always 404'd: the
+    route did not exist. Plans ARE persisted (`ExercisePlanModel`), so the
+    button was right and the backend was simply missing.
+
+    Scoped by `user_id` as well as id, so a valid plan id belonging to somebody
+    else is a 404 rather than a delete — ownership is part of the lookup, never
+    a separate check that can be forgotten.
+    """
+    plan = (await db.execute(
+        select(ExercisePlanModel).where(
+            ExercisePlanModel.id == plan_id,
+            ExercisePlanModel.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Exercise plan not found")
+    await db.delete(plan)
+    return None
+
+
 @router.get("/exercise-plans", response_model=list[ExercisePlanResponse])
 async def list_exercise_plans(
     current_user: User = Depends(get_current_user),

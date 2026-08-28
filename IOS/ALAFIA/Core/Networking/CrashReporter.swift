@@ -2,13 +2,27 @@ import Foundation
 import UIKit
 
 /// Lightweight crash and error reporter.
-/// Captures uncaught exceptions and signal-based crashes, persists them to disk,
-/// and uploads to the backend on next launch.
+/// Captures uncaught exceptions and signal-based crashes and persists them to
+/// disk, where they can be read off the device for support.
 ///
-/// For production, replace the upload target with Sentry/Crashlytics if desired.
-/// This gives immediate crash visibility without a third-party SDK.
+/// ⚠️ **There is no upload.** This used to POST every report to
+/// `/diagnostics/crash-report`, which has never existed — `diagnostics` is the
+/// CLINICAL router (ICD-10, assessments, screening) and has no crash endpoint.
+/// Every upload 404'd, the failure was swallowed by a `print`, and because a
+/// failed report is deliberately kept for "retry next launch", reports
+/// accumulated in Caches indefinitely and were never sent. A crash reporter
+/// that cannot deliver also cannot report that it cannot deliver.
+///
+/// Adding a server-side ingest endpoint is a deliberate decision, not a
+/// bug-fix: a stack trace can carry user data, and this app's egress rules
+/// (CLAUDE.md §3al) apply to anything leaving the device. Until that endpoint
+/// exists on purpose, reports stay local and bounded.
 final class CrashReporter {
     static let shared = CrashReporter()
+
+    /// How many crash files to keep on disk. Nothing uploads them, so this
+    /// is the only thing stopping them growing without bound.
+    private static let maxStoredReports = 20
 
     private let crashDir: URL
     private let encoder = JSONEncoder()
@@ -44,8 +58,8 @@ final class CrashReporter {
             }
         }
 
-        // Upload any crash reports from previous sessions
-        Task { await uploadPendingReports() }
+        // Reports from previous sessions stay on disk; keep them bounded.
+        prunePendingReports()
     }
 
     // MARK: - Record non-fatal errors
@@ -92,22 +106,26 @@ final class CrashReporter {
         }
     }
 
-    private func uploadPendingReports() async {
-        guard let files = try? FileManager.default
-            .contentsOfDirectory(at: crashDir, includingPropertiesForKeys: nil)
-            .filter({ $0.pathExtension == "json" }) else { return }
+    /// Keeps the most recent reports and discards the rest.
+    ///
+    /// Nothing is uploaded (see the type comment). Retention is bounded because
+    /// the previous "retry next launch, never delete on failure" behaviour had
+    /// no ceiling: with the upload permanently 404ing, every crash a device ever
+    /// had was still sitting in Caches.
+    private func prunePendingReports() {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: crashDir,
+            includingPropertiesForKeys: [.contentModificationDateKey]
+        ).filter({ $0.pathExtension == "json" }) else { return }
 
-        for file in files {
-            do {
-                let data = try Data(contentsOf: file)
-                let report = try JSONDecoder().decode(CrashReport.self, from: data)
-                // Upload to backend (fire-and-forget)
-                let _: EmptyResponse = try await APIClient.shared.post("/diagnostics/crash-report", body: report)
-                try? FileManager.default.removeItem(at: file)
-            } catch {
-                // Will retry next launch — don't delete the file
-                print("[CrashReporter] upload failed: \(error.localizedDescription)")
-            }
+        guard files.count > Self.maxStoredReports else { return }
+        let byNewest = files.sorted {
+            let a = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            let b = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            return a > b
+        }
+        for stale in byNewest.dropFirst(Self.maxStoredReports) {
+            try? FileManager.default.removeItem(at: stale)
         }
     }
 }
@@ -127,4 +145,3 @@ private struct CrashReport: Codable {
     let isFatal: Bool
 }
 
-private struct EmptyResponse: Decodable {}

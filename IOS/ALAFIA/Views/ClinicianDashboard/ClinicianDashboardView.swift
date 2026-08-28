@@ -77,11 +77,23 @@ final class ClinicianDashboardViewModel {
     
     func addNote(patientId: Int, sessionId: Int = 0) async {
         guard !newNoteText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        // `loadNotes` above was fixed to stop calling a route that never
+        // existed; this one was left behind, still posting to
+        // `/clinical-notes` (the route is `/notes`) with the same session 0
+        // placeholder. So a clinician typed a note, pressed save, and the note
+        // was lost — the 404 surfaced as a generic error message.
+        //
+        // A note hangs off a specific therapy session. Refusing to send is
+        // honest; posting into a session that cannot exist is not.
+        guard sessionId > 0 else {
+            errorMessage = "Open a specific dialysis session to add a note to it."
+            return
+        }
         savingNote = true
         do {
             let body = ClinicalNoteCreate(noteType: "clinician", noteText: newNoteText)
             let _: ClinicalNote = try await APIClient.shared.post(
-                "/chronic/therapy-sessions/\(sessionId)/clinical-notes",
+                "/chronic/therapy-sessions/\(sessionId)/notes",
                 body: body
             )
             newNoteText = ""

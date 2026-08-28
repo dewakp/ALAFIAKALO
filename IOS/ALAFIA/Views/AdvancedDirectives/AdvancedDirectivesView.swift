@@ -113,7 +113,13 @@ final class AdvancedDirectivesViewModel {
     func deleteDirective() async {
         guard let d = directive, let id = d.id else { return }
         do {
-            try await APIClient.shared.delete("/advanced-directives/\(id)")
+            // `/advanced-directives/` is a SINGLETON per user — GET, POST, PUT
+            // and DELETE all take no id, and the row is found from the bearer
+            // token. Passing one produced `/advanced-directives/42`, which
+            // matches no route: the delete 404'd every time and the catch below
+            // reported it as a generic failure.
+            _ = id
+            try await APIClient.shared.delete("/advanced-directives/")
             directive = nil
             resetForm()
             isEditing = false
