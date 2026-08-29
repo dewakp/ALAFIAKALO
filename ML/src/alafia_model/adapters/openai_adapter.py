@@ -13,6 +13,7 @@ import logging
 import os
 from typing import Any
 
+import json
 import httpx
 
 from alafia_model.adapters.base_adapter import BaseAdapter
@@ -44,6 +45,50 @@ class OpenAIAdapter(BaseAdapter):
         self.model_name = model or os.environ.get("OPENAI_MODEL", _DEFAULT_MODEL)
         self.timeout = timeout
         self.is_available = bool(key)
+
+    async def stream_chat(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.5,
+        max_tokens: int = 2048,
+    ):
+        """Yield text deltas from the OpenAI-style SSE stream.
+
+        Every hosted provider needs this, not just one: `_stream_hosted()` skips
+        an adapter that cannot stream, so a provider without it is passed over
+        even when it has credit — and the chain falls back to Ollama with money
+        still on the table.
+        """
+        if not self._api_key:
+            raise RuntimeError("openai: API key not configured")
+        body: dict[str, Any] = {
+            "model": self.model_name,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with client.stream("POST", _OPENAI_CHAT_URL, headers=headers, json=body) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    raw = line[5:].strip()
+                    if not raw or raw == "[DONE]":
+                        continue
+                    try:
+                        event = json.loads(raw)
+                    except ValueError:
+                        continue
+                    for choice in event.get("choices", []):
+                        text = (choice.get("delta") or {}).get("content")
+                        if text:
+                            yield text
 
     async def health_check(self) -> bool:
         return bool(self._api_key)

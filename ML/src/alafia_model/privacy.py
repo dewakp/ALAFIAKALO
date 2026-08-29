@@ -48,9 +48,18 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("[email]", re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]{2,}\b")),
     ("[card]", re.compile(r"\b(?:\d[ -]*?){13,19}\b")),
     ("[ssn]", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
+    # BEFORE [phone], and covering ISO. A date of birth is mostly digits and
+    # separators, so the phone pattern swallows it and reports a birthday as
+    # "[phone]" — redacted, but mislabelled, and a reader auditing the egress
+    # cannot tell what actually left. The previous pattern also matched only
+    # D/M/YYYY, so an ISO date (1974-03-15 — what this API returns) never
+    # reached it at all.
+    ("[dob]", re.compile(
+        r"\b(?:(?:19|20)\d{2}[/-]\d{1,2}[/-]\d{1,2}"      # 1974-03-15
+        r"|\d{1,2}[/-]\d{1,2}[/-](?:19|20)\d{2})\b"        # 15/03/1974
+    )),
     # +1 (555) 010-9999, 555.010.9999, 07700 900123 — 9+ digits with separators.
     ("[phone]", re.compile(r"(?<!\w)\+?\d[\d\s().-]{7,}\d(?!\w)")),
-    ("[dob]", re.compile(r"\b\d{1,2}[/-]\d{1,2}[/-](?:19|20)\d{2}\b")),
     ("[url]", re.compile(r"\bhttps?://\S+")),
     ("[id]", re.compile(r"\b[A-Z]{2,4}\d{6,}\b")),          # MRN / policy numbers
 )

@@ -1068,6 +1068,39 @@ def _v(val) -> str:
     return str(val) if val is not None else "not recorded"
 
 
+def _age_from_dob(dob) -> str:
+    """Years, from a `date` or a `YYYY-MM-DD` string. 'unknown' when unparseable.
+
+    Deliberately lossy: age is the clinically useful part of a date of birth,
+    and the rest is a direct identifier.
+    """
+    if not dob:
+        return "unknown"
+    try:
+        from datetime import date, datetime
+        d = dob if isinstance(dob, date) and not isinstance(dob, datetime) else (
+            dob.date() if isinstance(dob, datetime) else datetime.strptime(str(dob)[:10], "%Y-%m-%d").date()
+        )
+        today = date.today()
+        return str(today.year - d.year - ((today.month, today.day) < (d.month, d.day)))
+    except Exception:  # noqa: BLE001 - never fail a chat over a birthday
+        return "unknown"
+
+
+def _subject_token_for(user: User) -> str:
+    """Our handle for this patient, as sent to any model provider.
+
+    Falls back to a plainly non-identifying string rather than to the name: a
+    failure here must never degrade into leaking the thing it exists to hide.
+    """
+    try:
+        from alafia_model import privacy
+        return privacy.subject_token(user.id)
+    except Exception:  # noqa: BLE001 - never fail a chat over the pseudonym
+        logger.warning("subject_token unavailable; sending an opaque id", exc_info=True)
+        return f"alafia-user-{user.id}"
+
+
 async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
     """
     Query all health tables for the current user and return a structured
@@ -1092,8 +1125,20 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
 
     # ── 1. PROFILE ────────────────────────────────────────────────
     lines.append("=== PATIENT PROFILE ===")
-    lines.append(f"Name          : {user.full_name}")
-    lines.append(f"Date of Birth : {_v(user.date_of_birth)}")
+    # The subject is identified by OUR token, never by name (CLAUDE.md §3al).
+    # This context is sent to a model provider; `subject_token()` is an HMAC of
+    # the app id and our internal id — stable, so a conversation keeps its
+    # subject, and meaningless outside our database.
+    #
+    # Redaction at the egress point already covers a name that slips through,
+    # but not putting it in the payload is the stronger guarantee: it does not
+    # depend on the scrubber recognising it, and it holds on the Ollama path too.
+    lines.append(f"Subject       : {_subject_token_for(user)}")
+    # AGE, not date of birth. A DOB is a direct identifier (one of HIPAA's 18)
+    # and the model never needs it — every clinical judgement that depends on it
+    # depends on age. Sending the date buys nothing and costs the patient a
+    # re-identification handle at the provider.
+    lines.append(f"Age           : {_age_from_dob(user.date_of_birth)}")
     lines.append(f"Gender        : {_v(user.gender)}")
     lines.append(f"Blood Type    : {_v(user.blood_type)}")
     if user.height_cm:
@@ -1582,7 +1627,10 @@ def _build_system_prompt(
             f"  - FORBIDDEN: Do NOT tell {user_name} to check another platform or app when data is here.\n"
             f"  - If something is not in the record, say so plainly — do not fabricate values.\n"
             f"  - Refer to the patient as '{user_name}' or 'you'.\n"
-            f"  - Plain text only. No markdown headers. Use numbered lists only when listing multiple items."
+            f"  - Answer in short paragraphs and simple bullet points. NEVER use a markdown table: "
+            f"the answer is read in a narrow chat column where a multi-column table cannot fit, and it "
+            f"arrives as a wall of pipes and dashes. Put each point on its own line instead.\n"
+            f"  - Keep it brief. Lead with the direct answer, then the reasoning — not the reverse."
         )
         return f"{patient_block}{module_note}{specialist_prompt}{knowledge_block}{core_rules}"
 
@@ -1858,7 +1906,11 @@ async def ai_chat(
             domain_knowledge.append(f"{gk.title} ({gk.source_organization}): {points}")
 
     system_prompt = _build_system_prompt(
-        persona, request.context_module, current_user.full_name or "there",
+        # NOT the patient's name: this prompt reaches a third-party provider and
+        # a second-person reference carries the same weight (§3al). "the patient"
+        # rather than a greeting word, because the string is interpolated into
+        # rules ("ANSWER THE QUESTION {x} ASKED") as well as into address.
+        persona, request.context_module, "the patient",
         patient_context, global_knowledge=domain_knowledge or None,
     )
     model = request.model or settings.OLLAMA_MODEL
@@ -1952,7 +2004,11 @@ async def ai_chat_stream(
             domain_knowledge.append(f"{gk.title} ({gk.source_organization}): {points}")
 
     system_prompt = _build_system_prompt(
-        persona, request.context_module, current_user.full_name or "there",
+        # NOT the patient's name: this prompt reaches a third-party provider and
+        # a second-person reference carries the same weight (§3al). "the patient"
+        # rather than a greeting word, because the string is interpolated into
+        # rules ("ANSWER THE QUESTION {x} ASKED") as well as into address.
+        persona, request.context_module, "the patient",
         patient_context, global_knowledge=domain_knowledge or None,
     )
     model = request.model or settings.OLLAMA_MODEL
@@ -1968,58 +2024,54 @@ async def ai_chat_stream(
     t0 = time.monotonic()
     accumulated: list[str] = []
 
-    # NOTE(alafia-model): token streaming is the one LLM path still calling Ollama
-    # directly — the ALAFIAModel router has no streaming capability yet. Migrate this
-    # once a streaming interface is added to the router (tracked as Phase 3 work).
+    # Streams through the ALAFIAModel router, NOT straight to Ollama.
+    #
+    # This was the one LLM path that bypassed the router, and it cost three
+    # things at once: a hosted provider was never used — so APP_REVIEW_RESPONSE.md
+    # telling Apple "currently Anthropic … our own servers as fallback" was
+    # inverted for the app's main AI surface; the answer came from a 20B local
+    # model, which invented a potassium limit 10x too strict; and the payload
+    # never passed `privacy.scrub_payload`, the single egress point where a
+    # patient stops being a name and becomes `subject_token()`.
+    #
+    # Order is the router's: hosted first in production, Ollama as the fallback
+    # when a provider is unreachable or out of credit.
     async def token_generator():
         try:
-            async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT) as client:
-                async with client.stream(
-                    "POST",
-                    f"{settings.OLLAMA_BASE_URL}/api/chat",
-                    json={"model": model, "messages": ollama_messages, "stream": True},
-                    headers=await ollama_auth_headers(),
-                ) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if not line:
-                            continue
-                        try:
-                            chunk = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-                        token = chunk.get("message", {}).get("content", "")
-                        if token:
-                            accumulated.append(token)
-                            yield f"data: {json.dumps({'content': token})}\n\n"
-                        if chunk.get("done"):
-                            elapsed_ms = int((time.monotonic() - t0) * 1000)
-                            full_response = "".join(accumulated)
-                            # Persist interaction (best-effort — don't fail stream)
-                            try:
-                                interaction = AIInteraction(
-                                    user_id=current_user.id,
-                                    interaction_type="chat_stream",
-                                    category=request.context_module or "general",
-                                    user_request=request.query,
-                                    ai_response=full_response,
-                                    context_used={"persona": persona_key, "module": request.context_module},
-                                    llm_provider="ollama",
-                                    llm_model=model,
-                                    response_time_ms=elapsed_ms,
-                                )
-                                db.add(interaction)
-                                await db.commit()
-                                await db.refresh(interaction)
-                                yield f"data: {json.dumps({'interaction_id': interaction.id})}\n\n"
-                            except Exception:
-                                await db.rollback()
-                            yield "data: [DONE]\n\n"
-                            return
-        except httpx.ConnectError:
-            yield f"data: {json.dumps({'error': 'Ollama is not reachable'})}\n\n"
+            from app.services.alafia_model_service import stream_alafia_chat
+
+            async for token in stream_alafia_chat(ollama_messages, model=model):
+                accumulated.append(token)
+                yield f"data: {json.dumps({'content': token})}\n\n"
+
+            elapsed_ms = int((time.monotonic() - t0) * 1000)
+            full_response = "".join(accumulated)
+            try:
+                interaction = AIInteraction(
+                    user_id=current_user.id,
+                    interaction_type="chat_stream",
+                    category=request.context_module or "general",
+                    user_request=request.query,
+                    ai_response=full_response,
+                    context_used={"persona": persona_key, "module": request.context_module},
+                    llm_provider="router",
+                    llm_model=model,
+                    response_time_ms=elapsed_ms,
+                )
+                db.add(interaction)
+                await db.commit()
+                await db.refresh(interaction)
+                yield f"data: {json.dumps({'interaction_id': interaction.id})}\n\n"
+            except Exception:
+                await db.rollback()
+            yield "data: [DONE]\n\n"
+            return
         except Exception as exc:
-            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+            # Name the exception TYPE: `str(httpx.ReadTimeout(''))` is '', so the
+            # likeliest failure would otherwise render as nothing at all (§3ae).
+            detail = f"{type(exc).__name__}: {exc}".rstrip(": ")
+            logger.error("chat stream failed: %s", detail, exc_info=True)
+            yield f"data: {json.dumps({'error': detail})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(

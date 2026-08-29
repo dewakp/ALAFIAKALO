@@ -176,6 +176,36 @@ class OllamaAdapter(BaseAdapter):
             "tokens_used": data.get("eval_count", 0),
         }
 
+    async def stream_chat(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.5,
+        max_tokens: int = 2048,
+    ):
+        """Yield text chunks from Ollama's newline-delimited JSON stream."""
+        url = f"{self.base_url.rstrip('/')}/api/chat"
+        body = {
+            "model": self.model_name,
+            "messages": messages,
+            "stream": True,
+            "options": {"temperature": temperature, "num_predict": max_tokens},
+        }
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with client.stream("POST", url, json=body, headers=await _ollama_auth_headers(self.base_url)) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except ValueError:
+                        continue
+                    text = (chunk.get("message") or {}).get("content")
+                    if text:
+                        yield text
+                    if chunk.get("done"):
+                        break
+
     async def complete(
         self,
         prompt: str,

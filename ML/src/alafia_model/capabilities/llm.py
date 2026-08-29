@@ -372,6 +372,88 @@ class LLMCapability(BaseCapability):
             error=f"LLM unavailable: all providers failed (last: {detail})",
         )
 
+    async def stream_chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        identity_hints: tuple = (),
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+    ):
+        """Stream a chat completion through the SAME egress point as `run()`.
+
+        `/ai/chat/stream` used to POST straight to Ollama, so token streaming was
+        the one LLM path that never passed `privacy.scrub_payload`, never
+        consulted the provider order, and could never reach Anthropic — while
+        APP_REVIEW_RESPONSE.md told Apple that Anthropic was the primary provider
+        and our own servers were the fallback.
+
+        The redaction below is the reason this lives here rather than in the
+        endpoint: a caller that has to remember to scrub is a caller that
+        eventually forgets, and what gets forgotten is a patient's name reaching
+        a vendor (CLAUDE.md §3al).
+
+        Provider order matches `run()`: hosted first in production, Ollama first
+        in dev, Ollama always the fallback. Yields text chunks.
+        """
+        from alafia_model import privacy
+        from alafia_model.registry.providers import ordered_for_selection, mark_cooldown
+
+        async def _stream_ollama():
+            adapter = self._get_adapter(None)
+            async for chunk in adapter.stream_chat(messages, temperature, max_tokens):
+                yield chunk
+
+        async def _stream_hosted():
+            # Redaction HERE, at the single egress point — identical to try_hosted().
+            outbound = privacy.scrub_payload(messages, identity_hints)
+            last_error = None
+            for spec in ordered_for_selection():
+                adapter = self._adapter_for(spec)
+                streamer = getattr(adapter, "stream_chat", None)
+                if streamer is None:
+                    continue  # provider cannot stream; the next one may
+                try:
+                    produced = False
+                    async for chunk in streamer(outbound, temperature, max_tokens):
+                        produced = True
+                        yield chunk
+                    if produced:
+                        return
+                except Exception as exc:  # noqa: BLE001 — try the next provider
+                    last_error = f"{type(exc).__name__}: {exc}".rstrip(": ")
+                    logger.warning("streaming via %s failed (%s)", spec.name, last_error)
+                    mark_cooldown(spec.name)
+                    continue
+            if last_error:
+                # Named, never blank: `str(httpx.ReadTimeout(''))` is '' and the
+                # most likely failure would otherwise render as nothing (§3ae).
+                raise RuntimeError(f"all streaming providers failed (last: {last_error})")
+            raise RuntimeError("no streaming-capable provider is configured")
+
+        if _ollama_first():
+            try:
+                async for chunk in _stream_ollama():
+                    yield chunk
+                return
+            except Exception as exc:  # noqa: BLE001
+                if _ollama_required():
+                    raise
+                logger.warning("ollama streaming failed, falling back to hosted (%s)", exc)
+            async for chunk in _stream_hosted():
+                yield chunk
+            return
+
+        try:
+            async for chunk in _stream_hosted():
+                yield chunk
+            return
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("hosted streaming failed, falling back to ollama (%s)", exc)
+        async for chunk in _stream_ollama():
+            yield chunk
+
+
     @staticmethod
     async def _call(adapter, kind, arg, temperature, max_tokens, json_mode):
         if kind == "chat":

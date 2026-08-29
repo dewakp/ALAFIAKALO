@@ -4,6 +4,7 @@ import api, { ensureCsrfToken, refreshAccessToken } from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
 import { Send, RefreshCw, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import AssistantMarkdown from '../components/AssistantMarkdown';
 
 const REGION_ORDER = ['africa', 'middle_east', 'south_asia', 'europe', 'north_america'];
 const REGION_LABELS = {
@@ -455,7 +456,9 @@ export default function AIChat() {
               style={i === lastUserIndex ? { scrollMarginTop: '0.5rem' } : undefined}
             >
               <div className="chat-bubble">
-                {msg.content}
+                {msg.role === 'assistant'
+                  ? <AssistantMarkdown content={msg.content} />
+                  : msg.content}
                 {loading && i === messages.length - 1 && msg.role === 'assistant' && (
                   <span className="typing-cursor" />
                 )}

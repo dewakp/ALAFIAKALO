@@ -155,6 +155,47 @@ async def alafia_chat(
     return (result.get("data") or {}).get("text", "")
 
 
+async def stream_alafia_chat(
+    messages: list[dict[str, str]],
+    *,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    model: str | None = None,
+    identity_hints: tuple = (),
+):
+    """Stream a chat completion through ALAFIAModel, yielding text chunks.
+
+    The streaming twin of `alafia_chat`, and it exists for the same reason: so
+    that no backend code talks to a provider directly. `/ai/chat/stream` used to,
+    which meant token streaming was the single LLM path that never passed
+    `privacy.scrub_payload` and could never reach a hosted provider.
+
+    Same order as the non-streaming path — hosted pool first, Ollama as the
+    terminal fallback when a provider is unreachable or out of credit.
+
+    Raises:
+        ALAFIAModelError: if no provider could produce a stream.
+    """
+    from alafia_model.router import Modality  # type: ignore
+
+    model_obj = get_alafia_model()
+    capability = model_obj._capabilities.get(Modality.LLM)
+    streamer = getattr(capability, "stream_chat", None)
+    if streamer is None:
+        raise ALAFIAModelError("ALAFIAModel LLM capability does not support streaming")
+
+    try:
+        async for chunk in streamer(
+            messages,
+            identity_hints=identity_hints,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        ):
+            yield chunk
+    except Exception as exc:  # noqa: BLE001 - surfaced to the caller, named
+        raise ALAFIAModelError(f"{type(exc).__name__}: {exc}".rstrip(": ")) from exc
+
+
 async def alafia_chat_detailed(
     messages: list[dict[str, str]],
     *,
