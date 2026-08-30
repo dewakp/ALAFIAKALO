@@ -101,11 +101,24 @@ check("names the reason", bool(codes), codes)
 
 print("\n2. a real calcitriol dose is accepted")
 # log_time is part of `uq_dose_log_per_user_date_med_dose`, so three identical
-# doses need three distinct times. This used to derive the minute from
+# doses need three distinct times AND the script has to be re-runnable.
+#
+# Two bugs lived here in turn. It first derived the minute from
 # `int(time.time()) % 60` — the seconds hand — so three fast calls landed in the
-# same second and the 2nd was refused 409 as a duplicate. It passed only when
-# the run happened to straddle a second boundary: a race that reported itself
-# as "0.5 mcg accepted — 409", i.e. as a broken dose guard.
+# same second and the 2nd was refused 409 as a duplicate, reporting itself as
+# "0.5 mcg accepted — 409", i.e. as a broken dose guard. Replacing that with
+# fixed times fixed the race and introduced a worse one: the script could then
+# only pass ONCE PER DAY, and a second run that day failed the same way.
+#
+# Its own rows for today are cleared first — through the ordinary
+# DELETE /medications/dose-logs/{id} the clients use, not a test-only endpoint
+# — so the run proves the guard rather than the calendar.
+_st, _existing = call("GET", "/medications/dose-logs", token=token)
+for _row in (_existing if isinstance(_existing, list) else []):
+    if (str(_row.get("log_date", "")).startswith(today)
+            and str(_row.get("medication_name", "")).lower() == "calcitriol"):
+        call("DELETE", f"/medications/dose-logs/{_row['id']}", token=token)
+
 for i, amount in enumerate((0.5, 0.5, 0.5)):
     status, body = call("POST", "/medications/dose-logs", {
         "medication_name": "Calcitriol", "log_date": today,

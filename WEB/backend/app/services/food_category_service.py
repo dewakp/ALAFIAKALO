@@ -197,6 +197,16 @@ async def resolve_band_category(db: AsyncSession, food_name: str) -> tuple[str, 
         return "unknown", "keyword"
 
     # ── know it? ──────────────────────────────────────────────────────────
+    from app.models.food_category_cache import FoodCategoryCache
+
+    learned = (await db.execute(
+        select(FoodCategoryCache).where(
+            FoodCategoryCache.food_name_normalized == name)
+    )).scalar_one_or_none()
+    if learned is not None:
+        learned.hit_count = (learned.hit_count or 0) + 1
+        return learned.band_category, "cache"
+
     row = (await db.execute(
         select(FoodNutrientCache).where(
             FoodNutrientCache.food_name_normalized == name)
@@ -277,15 +287,24 @@ async def resolve_band_category(db: AsyncSession, food_name: str) -> tuple[str, 
         band = nutrition_reference.classify(name)
 
     # ── store, so the next meal does not repeat the lookup ────────────────
+    #
+    # This used to write ONLY onto an existing `food_nutrient_cache` row, so a
+    # food never seen before had its USDA answer thrown away and every later
+    # meal repeated the lookup — the half of the loop that was described but
+    # not implemented. `food_category_cache` gives the answer somewhere to live
+    # regardless, without an empty nutrient row shadowing a real lookup.
     try:
+        db.add(FoodCategoryCache(
+            food_name_normalized=name,
+            usda_food_category=usda_category,
+            band_category=band,
+            source=source,
+        ))
         if row is not None:
             row.band_category = band
             row.usda_food_category = usda_category
             row.category_source = source
-            await db.flush()
-        # No cache row yet: the nutrient path creates one, and it will carry the
-        # category from here on. Writing a nutrient-less row would put an empty
-        # entry in the way of a real lookup.
+        await db.flush()
     except Exception:  # noqa: BLE001 - learning must never fail the request
         logger.warning("Could not store category for %r", name, exc_info=True)
 
