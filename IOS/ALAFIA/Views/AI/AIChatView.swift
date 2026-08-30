@@ -134,9 +134,18 @@ final class AIChatViewModel {
 }
 
 struct AIChatView: View {
+    /// The question the user already typed on the Ask screen.
+    ///
+    /// Ask used the text only to CHOOSE this screen and then dropped it, so the
+    /// user arrived at an empty chat showing the canned greeting and had to type
+    /// the same question a second time to get an answer. Routing a question
+    /// should carry the question.
+    var initialQuery: String? = nil
+
     @State private var vm = AIChatViewModel()
     @State private var speech = SpeechRecognizer()
     @FocusState private var isFocused: Bool
+    @State private var didSendInitial = false
     
     var body: some View {
         NavigationStack {
@@ -241,6 +250,17 @@ struct AIChatView: View {
                         }
                     }
                 }
+            }
+            // Send the question the user already asked on the Ask screen, once.
+            // Without this they land on the greeting and have to type it again —
+            // which reads as "the first message did nothing".
+            .task {
+                guard !didSendInitial,
+                      let q = initialQuery?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      !q.isEmpty else { return }
+                didSendInitial = true
+                vm.inputText = q
+                await vm.sendMessage()
             }
             .sheet(isPresented: $vm.showPersonaPicker) {
                 PersonaPickerSheet(vm: vm)

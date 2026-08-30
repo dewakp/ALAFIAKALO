@@ -113,6 +113,19 @@ class MedicationDoseLog(Base):
     )
 
     medication_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    # A dose the guard refused, recorded anyway because the patient confirmed it.
+    #
+    # `acknowledge_unusual` used to be a request flag only — nothing persisted —
+    # so a clinician reading the chart could not tell a force-logged dose from a
+    # routine one. The guard fires on provable contradictions (a unit the drug is
+    # not measured in, a dose above the largest marketed strength, a name RxNorm
+    # does not know), so overriding one is a clinical statement and belongs in
+    # the record with its reason.
+    override_acknowledged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # The findings as they stood when it was overridden, verbatim. Stored rather
+    # than recomputed: RxNorm's answer changes over time, and what matters is
+    # what the patient was shown when they pressed "log it anyway".
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     log_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     log_time: Mapped[time | None] = mapped_column(Time)
     dose_amount: Mapped[float] = mapped_column(Float, nullable=False)

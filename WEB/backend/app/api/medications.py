@@ -1,5 +1,7 @@
 """Medications CRUD endpoints + medication dose log (nutrient-contributing doses)."""
 
+import json
+import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -25,6 +27,8 @@ from app.schemas.medications import (
 from app.services.med_dose_validation import validate_dose, blocking
 from app.services.med_intake_intent import propose_intake
 from app.services.med_nutrient_service import lookup_med_nutrients, seed_med_profiles
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -345,19 +349,39 @@ async def log_medication_dose(
     # clinical record — and it is exactly what a "usual dose from history"
     # feature would replay. max_dose_for()/unit_convert_factor() already existed
     # and nothing called them.
-    if not dose_in.acknowledge_unusual:
-        findings = blocking(await validate_dose(
-            db, dose_in.medication_name, dose_in.dose_amount, dose_in.dose_unit,
-        ))
-        if findings:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail={
-                    "message": "This dose looks wrong — please check it.",
-                    "findings": [f.as_dict() for f in findings],
-                    "override_with": "acknowledge_unusual",
-                },
-            )
+    # The guard runs EITHER WAY. When the dose is acknowledged we still need to
+    # know what was overridden — a flag with no reason tells a clinician that
+    # something was wrong but not what, which is barely better than silence.
+    findings = blocking(await validate_dose(
+        db, dose_in.medication_name, dose_in.dose_amount, dose_in.dose_unit,
+    ))
+    if findings and not dose_in.acknowledge_unusual:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": "This dose looks wrong — please check it.",
+                "findings": [f.as_dict() for f in findings],
+                "override_with": "acknowledge_unusual",
+            },
+        )
+
+    # Only a dose that was actually refused counts as an override. Setting the
+    # flag on every acknowledged request would mark ordinary doses as overridden
+    # whenever a client sent the flag defensively.
+    was_overridden = bool(findings and dose_in.acknowledge_unusual)
+    override_reason = (
+        json.dumps([f.as_dict() for f in findings]) if was_overridden else None
+    )
+    if was_overridden:
+        logger.warning(
+            "dose recorded over a blocking finding",
+            extra={
+                "user_id": current_user.id,
+                "medication_name": dose_in.medication_name,
+                "dose": f"{dose_in.dose_amount} {dose_in.dose_unit}",
+                "codes": [f.code for f in findings],
+            },
+        )
 
     # Resolve nutrients
     resolved = await lookup_med_nutrients(
@@ -386,6 +410,8 @@ async def log_medication_dose(
         post_heart_rate=dose_in.post_heart_rate,
         pre_temperature_c=dose_in.pre_temperature_c,
         post_temperature_c=dose_in.post_temperature_c,
+        override_acknowledged=was_overridden,
+        override_reason=override_reason,
         nutrients_contributed=nutrients if nutrients else None,
         nutrients_resolved=bool(nutrients),
         notes=dose_in.notes,

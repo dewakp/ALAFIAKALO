@@ -44,11 +44,20 @@ struct AIVisionResponse: Decodable {
 /// Maps a routed intent to an existing screen (Basis: reuse current UIs).
 enum PromptDestination: Identifiable {
     case nutrition, medications, fitness, elimination, mood, mentalHealth
-    case lifestyle, labs, trends, imageAI, chat
+    case lifestyle, labs, trends, imageAI
+    /// Carries the question the user asked, so the chat can send it on arrival
+    /// instead of making them type it again.
+    case chat(query: String?)
 
-    var id: String { String(describing: self) }
+    var id: String {
+        if case .chat = self { return "chat" }
+        return String(describing: self)
+    }
 
-    static func from(intent: String) -> PromptDestination {
+    /// `query` is the user's original text. It matters only for `.chat`, which
+    /// is where an unrouted question ends up — every other destination is a form
+    /// the user fills in, not a question to answer.
+    static func from(intent: String, query: String? = nil) -> PromptDestination {
         switch intent {
         case "log_meal": return .nutrition
         case "log_medication": return .medications
@@ -60,7 +69,7 @@ enum PromptDestination: Identifiable {
         case "view_labs": return .labs
         case "view_trends": return .trends
         case "vision_capture": return .imageAI
-        default: return .chat
+        default: return .chat(query: query)
         }
     }
 
@@ -76,7 +85,7 @@ enum PromptDestination: Identifiable {
         case .labs: LabsView()
         case .trends: ChartDashboardView()
         case .imageAI: ImageAIView()
-        case .chat: AIChatView()
+        case .chat(let query): AIChatView(initialQuery: query)
         }
     }
 }
@@ -99,7 +108,7 @@ final class PromptViewModel {
                 "/ai/route", body: AIRouteRequest(text: text)
             )
             status = res.assistantMessage
-            onRouted(PromptDestination.from(intent: res.intent))
+            onRouted(PromptDestination.from(intent: res.intent, query: text))
         } catch {
             status = "Couldn't understand that. Try the AI assistant."
         }

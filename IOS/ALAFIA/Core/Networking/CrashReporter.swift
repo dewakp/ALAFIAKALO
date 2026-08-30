@@ -13,10 +13,13 @@ import UIKit
 /// accumulated in Caches indefinitely and were never sent. A crash reporter
 /// that cannot deliver also cannot report that it cannot deliver.
 ///
-/// Adding a server-side ingest endpoint is a deliberate decision, not a
-/// bug-fix: a stack trace can carry user data, and this app's egress rules
-/// (CLAUDE.md §3al) apply to anything leaving the device. Until that endpoint
-/// exists on purpose, reports stay local and bounded.
+/// **Decision 2026-08-29: reports stay LOCAL for now, to be revisited.**
+/// Adding a server-side ingest endpoint is a deliberate choice, not a bug-fix:
+/// a stack trace can carry user data, and this app's egress rules (§3al) apply
+/// to anything leaving the device. Revisiting it means deciding what a crash
+/// report may contain, where it is stored, and how it is covered by the privacy
+/// copy — the same three questions as any other retained data. Until then these
+/// stay on the device, capped, and are read off it for support.
 final class CrashReporter {
     static let shared = CrashReporter()
 

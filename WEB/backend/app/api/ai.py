@@ -398,6 +398,13 @@ async def vision_understand(
         "image_count": len(images),
         # Echoed so the client can post the user's correction back against it.
         "sample_id": sample.id if sample else None,
+        # Where the captured photo now lives. The client stores this on the
+        # meal (`food_image_uris`) so opening that meal later shows the picture
+        # it was estimated from — retention is worthless without retrieval.
+        "image_url": (
+            f"/api/v1/media/{sample.media_asset_id}"
+            if sample and sample.media_asset_id else None
+        ),
     }
 
 
@@ -500,7 +507,9 @@ async def vision_feedback(
         "ok": True,
         "sample_id": sample.id,
         "correction_kind": sample.correction_kind,
-        "image_retained": sample.image_retained,
+        # Storage is unconditional; this says the patient allowed
+        # the photo to train the shared model.
+        "training_consented": sample.training_consented,
         # So the UI can say what was actually learned rather than implying more.
         "nutrients_learned": learned_foods,
     }
@@ -1197,6 +1206,54 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
     lines.append(f"Occupation    : {_v(user.occupation)}")
     lines.append(f"Stress Level  : {_v(user.stress_level)}")
     lines.append("")
+
+    # ── 1a. THIS PATIENT'S NUTRIENT LIMITS AND TARGETS ────────────
+    #
+    # Without these the model INVENTS them, and it invents them wrong in a
+    # specific, dangerous way: it reaches for a SERUM reference value and
+    # presents it as a DIETARY limit. A production answer capped potassium at
+    # "4.8" — that is a serum figure in mmol/L; the dietary limit for this
+    # patient is on the order of 2,000-3,000 mg/day. An earlier answer from the
+    # local 20B model was ~10x too strict the same way.
+    #
+    # 4.8 exists nowhere in this codebase or the database: HEBCS bands
+    # potassium 3.5-5.5 and the stored lab reference ranges are 3.5-5.5 and
+    # 3.5-5.1. It was fabricated. The fix is not prompt scolding — it is giving
+    # the model the numbers we already compute, from the same
+    # `compute_goals` the Nutrition screen and the health score use (KDOQI 2020
+    # for CKD). Canon 3c: if a lookup is wrong, fix what blocks the lookup.
+    try:
+        from app.services.nutrient_goals_service import compute_goals
+        goals_payload = compute_goals(
+            date_of_birth=str(user.date_of_birth) if user.date_of_birth else None,
+            sex=user.gender,
+            height_cm=user.height_cm,
+            current_weight_kg=user.current_weight_kg,
+            target_weight_kg=user.target_weight_kg,
+            activity_level=user.activity_level,
+            conditions=cc_list,
+        )
+        goal_rows = goals_payload.get("goals") or []
+        if goal_rows:
+            lines.append("=== DAILY NUTRIENT TARGETS AND LIMITS (authoritative) ===")
+            lines.append("These are computed for THIS patient from their biology and")
+            lines.append("conditions. Use these exact figures. Do not substitute a")
+            lines.append("remembered guideline, and never quote a SERUM reference range")
+            lines.append("(mmol/L, mEq/L) as if it were a dietary intake limit.")
+            for g in goal_rows:
+                kind = "max/day" if g.get("kind") == "limit" else "aim/day"
+                lines.append(
+                    f"  • {g.get('name') or g.get('key')}: "
+                    f"{g.get('goal')} {g.get('unit') or ''} ({kind})".rstrip())
+            if goals_payload.get("energy_kcal"):
+                lines.append(f"  • Energy: {goals_payload['energy_kcal']} kcal (aim/day)")
+            if not goals_payload.get("profile_complete"):
+                # Say so rather than letting a default read as a prescription.
+                lines.append("  NOTE: the profile is incomplete, so these are")
+                lines.append("  reference-adult defaults, not personalised figures.")
+            lines.append("")
+    except Exception:
+        logger.warning("Could not compute nutrient goals for AI context", exc_info=True)
 
     # ── 2. MEDICATIONS ────────────────────────────────────────────
     med_q = await db.execute(
