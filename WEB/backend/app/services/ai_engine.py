@@ -252,12 +252,35 @@ class AIPersonalizationEngine:
         avg_carbs = sum(log.carbs_g or 0 for log in logs) / total_days if total_days > 0 else 0
         avg_fat = sum(log.fat_g or 0 for log in logs) / total_days if total_days > 0 else 0
         
+        # The renal four decide adherence for a CKD patient, and none of them
+        # were summarised: the health score could only ever compare calories and
+        # macros, which is why it fell back to counting the days somebody logged.
+        # Averaged over days WITH data, not over the window — a patient who logs
+        # twice a week should not read as eating a seventh of their potassium.
+        def _daily_mean(attr: str) -> float | None:
+            vals = [getattr(log, attr, None) for log in logs]
+            vals = [v for v in vals if v is not None]
+            if not vals:
+                return None
+            by_day: dict = {}
+            for log in logs:
+                v = getattr(log, attr, None)
+                if v is not None:
+                    by_day[log.log_date] = by_day.get(log.log_date, 0.0) + float(v)
+            return sum(by_day.values()) / len(by_day) if by_day else None
+
         return {
             "days_tracked": total_days,
             "avg_daily_calories": round(avg_calories, 0),
             "avg_daily_protein_g": round(avg_protein, 1),
             "avg_daily_carbs_g": round(avg_carbs, 1),
             "avg_daily_fat_g": round(avg_fat, 1),
+            "avg_daily_sodium_mg": _daily_mean("sodium_mg"),
+            "avg_daily_potassium_mg": _daily_mean("potassium_mg"),
+            "avg_daily_phosphorus_mg": _daily_mean("phosphorus_mg"),
+            "avg_daily_calcium_mg": _daily_mean("calcium_mg"),
+            "avg_daily_fiber_g": _daily_mean("fiber_g"),
+            "avg_daily_saturated_fat_g": _daily_mean("saturated_fat_g"),
             "macros_ratio": f"{round(avg_protein*4/avg_calories*100 if avg_calories else 0)}% protein, "
                            f"{round(avg_carbs*4/avg_calories*100 if avg_calories else 0)}% carbs, "
                            f"{round(avg_fat*9/avg_calories*100 if avg_calories else 0)}% fat"
@@ -378,7 +401,7 @@ class AIPersonalizationEngine:
         
         return [
             {
-                "name": m.medication_name,
+                "name": m.name,
                 "dosage": m.dosage,
                 "frequency": m.frequency
             }

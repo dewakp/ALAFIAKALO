@@ -147,7 +147,13 @@ function WellnessScoreCard() {
       .catch(() => setFailed(true));
   }, []);
 
-  const value = score ? Math.round(score.overall_score) : null;
+  // `overall_score` is null when NOTHING could be measured. Math.round(null)
+  // is 0, which would print a confident zero for a patient we know nothing
+  // about — the empty-state lie with a number on it.
+  const loaded = score != null;
+  const value = loaded && score.overall_score != null
+    ? Math.round(score.overall_score) : null;
+  const nothingMeasured = loaded && score.overall_score == null;
   return (
     <div className="card" style={{ marginBottom: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.75rem' }}>
@@ -157,6 +163,12 @@ function WellnessScoreCard() {
       {failed ? (
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
           Score unavailable right now. <Link to="/wellness" style={{ color: 'var(--color-primary)' }}>Open Wellness Score</Link>
+        </p>
+      ) : nothingMeasured ? (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
+          Not enough data yet to score. Log a meal, a set of vitals or a
+          check-in and this fills in.{' '}
+          <Link to="/wellness" style={{ color: 'var(--color-primary)' }}>Open Wellness Score</Link>
         </p>
       ) : value == null ? (
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>Calculating…</p>
@@ -172,6 +184,11 @@ function WellnessScoreCard() {
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '.82rem', margin: 0 }}>
             {score.explanation || 'Calculated from your recent nutrition, vitals, sleep, mood and medication data.'}
           </p>
+          {score.confidence != null && score.confidence < 1 && (
+            <p style={{ color: 'var(--color-text-tertiary)', fontSize: '.72rem', margin: '.35rem 0 0' }}>
+              Based on {Math.round(score.confidence * 100)}% of the usual picture.
+            </p>
+          )}
         </>
       )}
     </div>

@@ -281,6 +281,86 @@ def test_ai_engine_references_only_real_model_columns():
     assert not bad, "ai_engine references columns that do not exist:\n  " + "\n  ".join(bad)
 
 
+def test_ai_engine_reads_only_real_columns_off_query_results():
+    """Every `row.attribute` must exist too, not just `Model.attribute`.
+
+    The class-level check above matches `Medication.is_active` but not
+    `m.medication_name`, and that is exactly where the tenth wrong name hid:
+
+        for m in db.query(Medication)...:  m.medication_name   -> name
+
+    `/personalization/health-score` therefore raised AttributeError for any user
+    holding an ACTIVE prescription, and looked healthy only because the
+    reference account had none. `POST /medications/promote-logged` creates
+    precisely those rows, so using that feature broke the health score.
+
+    Each loop or comprehension variable is resolved back to the model its
+    `db.query(...)` named, then every attribute read off it is checked.
+    """
+    import ast
+    import app.services.ai_engine as engine_module
+
+    src = Path(engine_module.__file__).read_text()
+    tree = ast.parse(src)
+
+    def queried_model(node):
+        """The model in a `db.query(Model)` chain anywhere inside `node`."""
+        for n in ast.walk(node):
+            if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                    and n.func.attr == "query" and n.args
+                    and isinstance(n.args[0], ast.Name)):
+                return n.args[0].id
+        return None
+
+    reads: dict[tuple[str, str], str] = {}
+    for fn in ast.walk(tree):
+        if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        rowvars: dict[str, str] = {}
+        for n in ast.walk(fn):
+            if (isinstance(n, ast.Assign) and len(n.targets) == 1
+                    and isinstance(n.targets[0], ast.Name)):
+                model = queried_model(n.value)
+                if model:
+                    rowvars[n.targets[0].id] = model
+        for n in ast.walk(fn):
+            if isinstance(n, ast.For):
+                gens = [(n.target, n.iter)]
+            elif isinstance(n, (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)):
+                gens = [(g.target, g.iter) for g in n.generators]
+            else:
+                continue
+            for target, it in gens:
+                if not isinstance(target, ast.Name):
+                    continue
+                model = rowvars.get(it.id) if isinstance(it, ast.Name) else queried_model(it)
+                if model:
+                    rowvars[target.id] = model
+        for n in ast.walk(fn):
+            if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name):
+                model = rowvars.get(n.value.id)
+                if model:
+                    reads.setdefault((model, n.attr), fn.name)
+
+    # A resolver that resolves nothing would pass this test while checking
+    # nothing at all — the empty-state lie in test form. Refuse to be vacuous.
+    assert len(reads) >= 20, (
+        f"the attribute resolver found only {len(reads)} reads; it has stopped "
+        "tracking query results and is no longer checking anything"
+    )
+
+    bad = []
+    for (model_name, attr), fname in sorted(reads.items()):
+        model = getattr(engine_module, model_name, None)
+        if model is None or not hasattr(model, "__table__"):
+            continue
+        if not hasattr(model, attr):
+            cols = sorted(c.name for c in model.__table__.columns)
+            bad.append(f"{fname}(): {model_name} row has no .{attr} "
+                       f"(real columns include: {cols[:6]})")
+    assert not bad, "ai_engine reads columns that do not exist:\n  " + "\n  ".join(bad)
+
+
 def test_profile_list_fields_survive_comma_separated_text():
     """Allergies are stored as "Penicilin, Latex, Heparine", not JSON.
 

@@ -289,116 +289,100 @@ async def get_health_score(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_sync_db)
 ):
+    """Health score from measured values against this patient's own targets.
+
+    Nutrition used to be `(days_tracked / 30) * 100` — pure logging frequency,
+    so a malnourished patient who logged daily read 100%. It is now adherence:
+    mean daily intake scored against the limits and requirements
+    `compute_goals` derives from their biology and conditions (KDOQI 2020 for
+    CKD), which is the same source the Nutrition screen already shows them.
+
+    Domains with no data are UNKNOWN, never zero, and the weights renormalise
+    over what was measured. `confidence` says how much of the intended picture
+    was available, and `components_unknown` names what was missing — a number
+    built from two domains out of five should not look like a verdict on all
+    five (canon 3aa).
+
+    The arithmetic is deterministic on purpose: reproducible, explainable to a
+    clinician, and identical for identical inputs. No model decides a number
+    here.
     """
-    Calculate overall health score based on recent tracking data.
-    
-    Score components:
-    - Nutrition adherence (25%)
-    - Fitness consistency (25%)
-    - Sleep quality (20%)
-    - Mood stability (15%)
-    - Vital signs (15%)
-    """
+    from app.services import health_score as hs
+    from app.services.nutrient_goals_service import compute_goals
+
     ai_engine = AIPersonalizationEngine(db=db)
     context = ai_engine._build_user_context(current_user, db, days=30)
-    
-    scores = {
-        "nutrition": 0,
-        "fitness": 0,
-        "sleep": 0,
-        "mood": 0,
-        "vitals": 0
-    }
-    
-    # Nutrition score (0-100)
-    nutrition_data = context["recent_data"]["nutrition"]
-    if nutrition_data.get("status") != "no_data":
-        # Score based on consistency and balance
-        days_tracked = nutrition_data.get("days_tracked", 0)
-        scores["nutrition"] = min(100, (days_tracked / 30) * 100)
-    
-    # Fitness score (0-100)
-    fitness_data = context["recent_data"]["fitness"]
-    if fitness_data.get("status") != "no_data":
-        workouts_per_week = fitness_data.get("workouts_per_week", 0)
-        # Optimal is 3-5 workouts per week
-        if workouts_per_week >= 3 and workouts_per_week <= 5:
-            scores["fitness"] = 100
-        elif workouts_per_week < 3:
-            scores["fitness"] = (workouts_per_week / 3) * 100
-        else:
-            scores["fitness"] = max(60, 100 - ((workouts_per_week - 5) * 10))
-    
-    # Sleep score (0-100)
-    sleep_data = context["recent_data"]["sleep"]
-    if sleep_data.get("status") != "no_data":
-        avg_hours = sleep_data.get("avg_hours_per_night", 0)
-        quality = sleep_data.get("avg_quality_score", 0)
-        # Optimal is 7-9 hours
-        if avg_hours >= 7 and avg_hours <= 9:
-            hours_score = 100
-        elif avg_hours < 7:
-            hours_score = (avg_hours / 7) * 100
-        else:
-            hours_score = max(60, 100 - ((avg_hours - 9) * 20))
-        
-        scores["sleep"] = (hours_score * 0.6) + (quality * 10 * 0.4)
-    
-    # Mood score (0-100)
-    mood_data = context["recent_data"]["mood"]
-    if mood_data.get("status") != "no_data":
-        avg_mood = mood_data.get("avg_mood_score", 0)
-        avg_energy = mood_data.get("avg_energy_level", 0)
-        avg_stress = mood_data.get("avg_stress_level", 0)
-        
-        scores["mood"] = (avg_mood * 10 * 0.4) + (avg_energy * 10 * 0.3) + ((10 - avg_stress) * 10 * 0.3)
-    
-    # Vitals score (0-100)
-    vitals_data = context["recent_data"]["vitals"]
-    if vitals_data.get("status") != "no_data":
-        # Simple score based on BMI being in healthy range
-        bmi = vitals_data.get("bmi")
-        if bmi:
-            if bmi >= 18.5 and bmi < 25:
-                scores["vitals"] = 100
-            elif bmi >= 25 and bmi < 30:
-                scores["vitals"] = 75
-            elif bmi >= 17 and bmi < 18.5:
-                scores["vitals"] = 75
-            else:
-                scores["vitals"] = 50
-    
-    # Calculate weighted overall score
-    weights = {
-        "nutrition": 0.25,
-        "fitness": 0.25,
-        "sleep": 0.20,
-        "mood": 0.15,
-        "vitals": 0.15
-    }
-    
-    overall_score = sum(scores[key] * weights[key] for key in scores)
-    
-    return {
-        "overall_score": round(overall_score, 1),
-        "component_scores": {k: round(v, 1) for k, v in scores.items()},
-        "grade": _get_grade(overall_score),
-        "calculated_at": datetime.now().isoformat()
-    }
+    recent = context["recent_data"]
 
+    # ── The patient's own goals ───────────────────────────────────────────
+    conditions = context.get("chronic_conditions") or []
+    goals_payload = compute_goals(
+        date_of_birth=str(current_user.date_of_birth) if current_user.date_of_birth else None,
+        sex=current_user.gender,
+        height_cm=current_user.height_cm,
+        current_weight_kg=current_user.current_weight_kg,
+        target_weight_kg=current_user.target_weight_kg,
+        activity_level=current_user.activity_level,
+        conditions=conditions,
+    )
 
-def _get_grade(score: float) -> str:
-    """Convert score to letter grade."""
-    if score >= 90:
-        return "A"
-    elif score >= 80:
-        return "B"
-    elif score >= 70:
-        return "C"
-    elif score >= 60:
-        return "D"
-    else:
-        return "F"
+    nutrition = recent.get("nutrition") or {}
+    intake = {
+        "calories": nutrition.get("avg_daily_calories"),
+        "protein_g": nutrition.get("avg_daily_protein_g"),
+        "sodium_mg": nutrition.get("avg_daily_sodium_mg"),
+        "potassium_mg": nutrition.get("avg_daily_potassium_mg"),
+        "phosphorus_mg": nutrition.get("avg_daily_phosphorus_mg"),
+        "calcium_mg": nutrition.get("avg_daily_calcium_mg"),
+        "fiber_g": nutrition.get("avg_daily_fiber_g"),
+        "saturated_fat_g": nutrition.get("avg_daily_saturated_fat_g"),
+    } if nutrition.get("status") != "no_data" else {}
+
+    fitness = recent.get("fitness") or {}
+    sleep = recent.get("sleep") or {}
+    mood = recent.get("mood") or {}
+    vitals = recent.get("vitals") or {}
+
+    def _val(source: dict, key: str):
+        """None unless the domain actually reported the field."""
+        if source.get("status") == "no_data":
+            return None
+        return source.get(key)
+
+    # Dialysis makes BMI a fluid measurement rather than a body-composition one.
+    on_dialysis = any(
+        "dialysis" in str(c.get("name", "")).lower()
+        or "renal" in str(c.get("name", "")).lower()
+        or str(c.get("icd11", "")).upper().startswith("GB6")
+        for c in conditions
+    )
+
+    components = [
+        hs.nutrition_adherence(intake, goals_payload.get("goals") or []),
+        hs.vitals_component(
+            bmi=_val(vitals, "bmi"),
+            systolic=_val(vitals, "blood_pressure_systolic"),
+            diastolic=_val(vitals, "blood_pressure_diastolic"),
+            on_dialysis=on_dialysis,
+        ),
+        hs.sleep_component(
+            avg_hours=_val(sleep, "avg_hours_per_night"),
+            avg_quality=_val(sleep, "avg_quality_score"),
+        ),
+        hs.mood_component(
+            avg_mood=_val(mood, "avg_mood_score"),
+            avg_energy=_val(mood, "avg_energy_level"),
+            avg_stress=_val(mood, "avg_stress_level"),
+        ),
+        hs.fitness_component(_val(fitness, "workouts_per_week")),
+    ]
+
+    result = hs.overall_score(components)
+    result["calculated_at"] = datetime.now().isoformat()
+    result["basis"] = "measured intake and vitals scored against this patient's goals"
+    result["energy_goal_kcal"] = goals_payload.get("energy_kcal")
+    result["on_dialysis"] = on_dialysis
+    return result
 
 
 # ==================== AI MEMORY & LEARNING ENDPOINTS ====================

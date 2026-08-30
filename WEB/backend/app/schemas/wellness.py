@@ -12,11 +12,31 @@ class HEBCSBiomarkerDetail(BaseModel):
     score: float | None = None
     weight: float
     opt_range: list[float | None]
+    #: "measured" (a lab reported it) or "derived" (computed from other labs —
+    #: nPCR from urea kinetics). A computed marker must never be shown to a
+    #: clinician as though a lab had reported it.
+    source: str | None = None
+    #: "reported" (a lab stated this range) or "published_band" (the framework's
+    #: constant, specific to no one). A constant must never pass for a range
+    #: someone measured.
+    band_source: str | None = None
 
 
 class HEBCSPathwayResult(BaseModel):
     score: float | None = None
     weight: float
+    #: Fraction of this pathway's biomarker WEIGHT that was actually measured.
+    #: A pathway renormalised over part of its evidence is not the same claim as
+    #: one computed from all of it — Nutritional reading 100% off albumin and BUN
+    #: alone, with nPCR missing, is how a malnourished patient saw "Nutrition
+    #: 100%". The number now travels with what it rests on.
+    coverage: float = 0.0
+    #: Coverage once computed markers count. Kept separate so `coverage` never
+    #: quietly absorbs an estimate.
+    coverage_with_derived: float = 0.0
+    measured: int = 0
+    derived: int = 0
+    expected: int = 0
     biomarkers: list[HEBCSBiomarkerDetail] = []
 
 
@@ -28,6 +48,11 @@ class HEBCSScoreResponse(BaseModel):
     omega_pct: float                          # Ω × 100, interpretable 0–100
     data_coverage: float                      # fraction of expected biomarkers with values
     pathways: dict[str, HEBCSPathwayResult]
+    #: Pathways with no usable biomarker at all. Omega is a weighted geometric
+    #: mean over the pathways that scored, so an unmeasured one simply vanishes
+    #: from a number presented as whole-patient. Naming them is the difference
+    #: between a score and a claim.
+    unscored_pathways: list[str] = []
     interpretation: str
 
 
@@ -91,13 +116,24 @@ class WellnessScoreResponse(BaseModel):
     id: int | None = None
     user_id: int | None = None
     score_date: date
-    overall_score: float
+    #: None when NOTHING was measured. A 0 — or the old default of ~50 — for a
+    #: patient we have no data on is a claim we cannot support.
+    overall_score: float | None = None
     nutrition_score: float | None = None
     fitness_score: float | None = None
     sleep_score: float | None = None
     mood_score: float | None = None
     vitals_score: float | None = None
     medication_adherence_score: float | None = None
+    #: Fraction of the intended picture that had data behind it.
+    confidence: float | None = None
+    #: Domains with no data. They are excluded from the score rather than
+    #: scored 0, so naming them is what stops the number reading as a verdict
+    #: on domains nobody measured.
+    components_unknown: list[str] = []
+    #: Per-domain working: which nutrients fell short, which drugs were not
+    #: logged, why BMI was excluded. A number is never the whole message.
+    detail: dict | None = None
     explanation: str | None = None
     recommendations: str | None = None
     created_at: datetime | None = None

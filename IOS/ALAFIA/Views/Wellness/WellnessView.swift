@@ -134,12 +134,25 @@ private struct ScoreSection: View {
                 VStack(spacing: 24) {
                     // Overall Score
                     VStack(spacing: 4) {
-                        Text("\(Int(s.overallScore))")
-                            .font(.system(size: 72, weight: .black))
-                            .foregroundStyle(scoreColor(s.overallScore))
+                        // nil means nothing could be measured — not zero.
+                        if let overall = s.overallScore {
+                            Text("\(Int(overall))")
+                                .font(.system(size: 72, weight: .black))
+                                .foregroundStyle(scoreColor(overall))
+                        } else {
+                            Text("Not enough data yet")
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
                         Text("Overall Wellness Score")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                        if let c = s.confidence, c < 1 {
+                            Text("Based on \(Int(c * 100))% of the usual picture.")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     .padding(.top, 12)
 
@@ -207,10 +220,13 @@ private struct ScoreSection: View {
 
 private struct SubScoreBar: View {
     let label: String
-    let value: Double
+    /// nil when this domain had no data. An empty bar would read as a zero
+    /// score, which is a different claim from "we did not measure this".
+    let value: Double?
     let icon: String
 
     private var color: Color {
+        guard let value else { return .secondary }
         if value > 70 { return .green }
         if value > 40 { return .orange }
         return .red
@@ -225,12 +241,20 @@ private struct SubScoreBar: View {
                 Text(label)
                     .font(.subheadline)
                 Spacer()
-                Text("\(Int(value))")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(color)
+                if let value {
+                    Text("\(Int(value))")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(color)
+                } else {
+                    Text("not measured")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            ProgressView(value: value, total: 100)
-                .tint(color)
+            if let value {
+                ProgressView(value: value, total: 100)
+                    .tint(color)
+            }
         }
     }
 }

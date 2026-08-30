@@ -1,3 +1,4 @@
+import logging
 """Wellness endpoints — score, trends, daily recs, health improvements."""
 
 import json
@@ -9,6 +10,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.labs import LabResult
+from app.models.chronic_conditions import TherapySession, IntradialyticReading
 from app.models.nutrition import NutritionLog
 from app.models.fitness import FitnessLog
 from app.models.mood import MoodEntry
@@ -23,85 +25,182 @@ from app.schemas.wellness import (
 )
 from app.services.hebcs_engine import compute_hebcs, ESRD_PATHWAYS
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
 async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
-    """Compute wellness score from all available health data (deterministic, keyword-driven)."""
+    """Wellness score from measured values, not from how often the user logged.
+
+    What this replaces, component by component — every one of them counted
+    attendance and none of them looked at a value:
+
+        nutrition            min(100, entry_count * 3.3)   30 entries = 100%
+        fitness              min(100, workout_count * 8.3)
+        vitals               min(100, vitals_count * 10)   no reading was read
+        medication_adherence 80 if any active med row else 50
+        sleep / mood         defaulted to 50 when absent
+
+    …then averaged flat, so an account with no data landed near 50 whatever the
+    patient's actual condition — which is exactly how a score of 50 appeared
+    beside a page full of bad signs. Worse, the explanation said "Great
+    nutrition tracking consistency", naming what it really measured while being
+    presented as health.
+
+    Now: intake scored against this patient's own goals, blood pressure read as
+    a value, adherence measured against the prescription, and anything with no
+    data reported as UNKNOWN rather than defaulted. `overall_score` is None when
+    nothing at all was measured.
+    """
+    from app.services import health_score as hs
+    from app.services import clinical_sources as sources
+    from app.services.nutrient_goals_service import compute_goals
+    from app.models.user import User as UserModel
+
     today = date.today()
     cutoff = today - timedelta(days=30)
-    scores = {}
 
-    # Nutrition score (based on logging consistency)
-    result = await db.execute(
-        select(func.count(NutritionLog.id)).where(NutritionLog.user_id == user_id, NutritionLog.log_date >= cutoff)
+    user = (await db.execute(select(UserModel).where(UserModel.id == user_id))).scalar_one_or_none()
+
+    # ── This patient's goals decide WHICH nutrients are worth averaging ───
+    conditions = list(await sources.conditions(db, user_id, active_only=True))
+    _goals_preview = compute_goals(
+        date_of_birth=str(user.date_of_birth) if user and user.date_of_birth else None,
+        sex=user.gender if user else None,
+        height_cm=user.height_cm if user else None,
+        current_weight_kg=user.current_weight_kg if user else None,
+        target_weight_kg=user.target_weight_kg if user else None,
+        activity_level=user.activity_level if user else None,
+        conditions=conditions,
     )
-    nutr_count = result.scalar() or 0
-    scores["nutrition"] = min(100, nutr_count * 3.3)  # ~30 entries for 100
 
-    # Fitness score
-    result = await db.execute(
-        select(func.count(FitnessLog.id)).where(FitnessLog.user_id == user_id, FitnessLog.log_date >= cutoff)
+    # ── Nutrition: mean daily intake vs this patient's own goals ──────────
+    # Which nutrients to average is decided by the GOALS, not by a list typed
+    # here: whatever `compute_goals` produces for this patient is what gets
+    # scored, so adding a goal needs no second edit. Goal keys are already the
+    # column names.
+    goal_keys = [str(g.get("key") or "") for g in (_goals_preview.get("goals") or [])]
+    nutrient_cols = {
+        key: getattr(NutritionLog, key)
+        for key in goal_keys
+        if key and hasattr(NutritionLog, key)
+    }
+    intake: dict[str, float | None] = {}
+    for key, col in nutrient_cols.items():
+        # Per-day totals first, then the mean over days that HAVE data — a
+        # patient who logs twice a week must not read as eating a seventh of
+        # their potassium.
+        daily = (await db.execute(
+            select(func.sum(col)).where(
+                NutritionLog.user_id == user_id,
+                NutritionLog.log_date >= cutoff,
+                col.isnot(None),
+            ).group_by(NutritionLog.log_date)
+        )).scalars().all()
+        vals = [float(v) for v in daily if v is not None]
+        intake[key] = sum(vals) / len(vals) if vals else None
+
+    goals_payload = _goals_preview
+    on_dialysis = any(
+        "dialysis" in (getattr(c, "name", "") or "").lower()
+        or "renal" in (getattr(c, "name", "") or "").lower()
+        or str(getattr(c, "icd11_code", "") or "").upper().startswith("GB6")
+        for c in conditions
     )
-    fit_count = result.scalar() or 0
-    scores["fitness"] = min(100, fit_count * 8.3)  # ~12 workouts for 100
 
-    # Sleep score
-    result = await db.execute(
-        select(func.avg(SleepLog.total_hours)).where(SleepLog.user_id == user_id, SleepLog.sleep_date >= cutoff)
-    )
-    avg_sleep = result.scalar()
-    scores["sleep"] = min(100, max(0, (avg_sleep or 0) / 8 * 100)) if avg_sleep else 50
+    # ── Fitness ──────────────────────────────────────────────────────────
+    fit_count = (await db.execute(
+        select(func.count(FitnessLog.id)).where(
+            FitnessLog.user_id == user_id, FitnessLog.log_date >= cutoff)
+    )).scalar() or 0
+    any_fitness = (await db.execute(
+        select(func.count(FitnessLog.id)).where(FitnessLog.user_id == user_id)
+    )).scalar() or 0
+    # No activity EVER is unknown; none in the window on an active logger is a
+    # real zero.
+    workouts_per_week = (fit_count / (30 / 7)) if any_fitness else None
 
-    # Mood score
-    result = await db.execute(
-        select(func.avg(MoodEntry.mood_score)).where(MoodEntry.user_id == user_id, MoodEntry.entry_date >= cutoff)
-    )
-    avg_mood = result.scalar()
-    scores["mood"] = min(100, (avg_mood or 5) / 10 * 100) if avg_mood else 50
+    # ── Sleep ────────────────────────────────────────────────────────────
+    sleep_row = (await db.execute(
+        select(func.avg(SleepLog.total_hours), func.avg(SleepLog.quality_score))
+        .where(SleepLog.user_id == user_id, SleepLog.sleep_date >= cutoff)
+    )).first()
+    avg_sleep = float(sleep_row[0]) if sleep_row and sleep_row[0] is not None else None
+    avg_quality = float(sleep_row[1]) if sleep_row and sleep_row[1] is not None else None
 
-    # Vitals score (based on presence of recent vitals)
-    result = await db.execute(
-        select(func.count(VitalsLog.id)).where(VitalsLog.user_id == user_id, VitalsLog.log_date >= cutoff)
-    )
-    vitals_count = result.scalar() or 0
-    scores["vitals"] = min(100, vitals_count * 10)
+    # ── Mood ─────────────────────────────────────────────────────────────
+    mood_row = (await db.execute(
+        select(func.avg(MoodEntry.mood_score), func.avg(MoodEntry.energy_level),
+               func.avg(MoodEntry.stress_level))
+        .where(MoodEntry.user_id == user_id, MoodEntry.entry_date >= cutoff)
+    )).first()
+    avg_mood = float(mood_row[0]) if mood_row and mood_row[0] is not None else None
+    avg_energy = float(mood_row[1]) if mood_row and mood_row[1] is not None else None
+    avg_stress = float(mood_row[2]) if mood_row and mood_row[2] is not None else None
 
-    # Medication adherence (placeholder: based on having active meds logged)
-    result = await db.execute(
-        select(func.count(Medication.id)).where(Medication.user_id == user_id, Medication.is_active == True)
-    )
-    med_count = result.scalar() or 0
-    scores["medication_adherence"] = 80 if med_count > 0 else 50
+    # ── Vitals: the reading, not the fact that one exists ────────────────
+    vitals = (await db.execute(
+        select(VitalsLog).where(
+            VitalsLog.user_id == user_id, VitalsLog.log_date >= cutoff)
+        .order_by(VitalsLog.log_date.desc()).limit(1)
+    )).scalar_one_or_none()
 
-    # SQL AVG() returns Decimal (sleep, mood); the rest are Python floats/ints.
-    # Normalise to float so sum()/round()/comparisons don't hit Decimal+float.
-    scores = {k: float(v) for k, v in scores.items()}
-    overall = sum(scores.values()) / len(scores)
+    # ── Medication adherence vs the prescription ─────────────────────────
+    # Through clinical_sources, never the models directly: prescribed and taken
+    # live in different tables and reading one alone is how a physician saw two
+    # drugs stopped in 2017 beside 921 dose logs (canon 3aa).
+    prescribed = [m.name for m in
+                  await sources.medications_prescribed(db, user_id, active_only=True)]
+    logged = [m.name for m in await sources.medications_taken(db, user_id, since=cutoff)]
 
-    # Explanation
-    parts = []
-    if scores["nutrition"] >= 70:
-        parts.append("Great nutrition tracking consistency.")
+    components = [
+        hs.nutrition_adherence(intake, goals_payload.get("goals") or []),
+        hs.medication_adherence(list(prescribed), list(logged)),
+        hs.vitals_component(
+            bmi=getattr(vitals, "bmi", None) if vitals else None,
+            systolic=getattr(vitals, "blood_pressure_systolic", None) if vitals else None,
+            diastolic=getattr(vitals, "blood_pressure_diastolic", None) if vitals else None,
+            on_dialysis=on_dialysis,
+        ),
+        hs.sleep_component(avg_hours=avg_sleep, avg_quality=avg_quality),
+        hs.mood_component(avg_mood=avg_mood, avg_energy=avg_energy, avg_stress=avg_stress),
+        hs.fitness_component(workouts_per_week),
+    ]
+    result = hs.overall_score(components)
+    by_key = result["component_scores"]
+
+    # ── Explanation: say what was measured AND what was not ──────────────
+    parts: list[str] = []
+    nutrition_detail = result["detail"].get("nutrition") or {}
+    shortfalls = nutrition_detail.get("shortfalls") or []
+    if by_key.get("nutrition") is None:
+        parts.append("No meals with nutrient data in the last 30 days, so "
+                     "nutrition could not be assessed.")
+    elif shortfalls:
+        parts.append("Nutrition is short on " + ", ".join(shortfalls) + ".")
     else:
-        parts.append("Consider logging meals more consistently.")
-    if scores["fitness"] >= 70:
-        parts.append("Excellent fitness activity level.")
-    else:
-        parts.append("Try to add more physical activity.")
-    if scores["sleep"] >= 70:
-        parts.append("Good sleep patterns.")
-    else:
-        parts.append("Focus on improving sleep quality and duration.")
+        parts.append("Intake is within your targets.")
+
+    med_detail = result["detail"].get("medication_adherence") or {}
+    if med_detail.get("not_logged"):
+        parts.append("No doses logged for " + ", ".join(med_detail["not_logged"]) + ".")
+
+    if result["components_unknown"]:
+        parts.append("Not assessed for lack of data: "
+                     + ", ".join(result["components_unknown"]) + ".")
 
     return {
-        "overall_score": round(overall, 1),
-        "nutrition_score": round(scores["nutrition"], 1),
-        "fitness_score": round(scores["fitness"], 1),
-        "sleep_score": round(scores["sleep"], 1),
-        "mood_score": round(scores["mood"], 1),
-        "vitals_score": round(scores["vitals"], 1),
-        "medication_adherence_score": round(scores["medication_adherence"], 1),
+        "overall_score": result["overall_score"],
+        "nutrition_score": by_key.get("nutrition"),
+        "fitness_score": by_key.get("fitness"),
+        "sleep_score": by_key.get("sleep"),
+        "mood_score": by_key.get("mood"),
+        "vitals_score": by_key.get("vitals"),
+        "medication_adherence_score": by_key.get("medication_adherence"),
+        "confidence": result["confidence"],
+        "components_unknown": result["components_unknown"],
+        "detail": result["detail"],
         "explanation": " ".join(parts),
         "recommendations": json.dumps(parts),
     }
@@ -117,12 +216,16 @@ async def get_hebcs_omega_score(
 
     Returns Ω ∈ (0, 1) with per-pathway and per-biomarker breakdown.
     """
-    # Fetch each user's most recent lab value per test_name
+    # Fetch each user's most recent lab value per test_name, WITH the range the
+    # lab reported for it — there is no single optimal BUN, so the band has to
+    # come from the report rather than from a number written into the engine.
     result = await db.execute(
         select(
             LabResult.test_name,
             LabResult.value,
             LabResult.test_date,
+            LabResult.reference_range_low,
+            LabResult.reference_range_high,
         )
         .where(LabResult.user_id == current_user.id, LabResult.value.isnot(None))
         .order_by(LabResult.test_name, LabResult.test_date.desc())
@@ -131,16 +234,89 @@ async def get_hebcs_omega_score(
 
     # Keep only the most recent value per analyte
     biomarker_values: dict[str, float] = {}
+    lab_ranges: dict[str, tuple[float | None, float | None]] = {}
     latest_date: date | None = None
     seen: set[str] = set()
-    for test_name, value, test_date in rows:
+    for test_name, value, test_date, ref_low, ref_high in rows:
         if test_name not in seen:
             biomarker_values[test_name] = value
+            if ref_low is not None and ref_high is not None:
+                lab_ranges[test_name] = (ref_low, ref_high)
             seen.add(test_name)
             if latest_date is None or test_date > latest_date:
                 latest_date = test_date
 
-    result_data = compute_hebcs(biomarker_values)
+    # nPCR carries 40% of the Nutritional pathway and this lab reports it as
+    # N/A on every date, so the pathway has always scored on albumin and BUN
+    # alone. It is computable from urea kinetics — see services/urea_kinetics.py
+    # — and is passed in as DERIVED so it is scored without being counted as
+    # measured.
+    derived: dict[str, float] = {}
+    try:
+        from app.services import urea_kinetics as uk
+
+        pre_bun = biomarker_values.get("BUN")
+        post_bun = next((biomarker_values.get(k) for k in
+                         ("BUN Post", "BUN-P", "BUN - Post")
+                         if biomarker_values.get(k) is not None), None)
+
+        # Kt/V and URR are CALCULATED, not looked up — a lab reports them only
+        # when it chooses to, and this record has them on 6 of 12 dates. Both
+        # come from the two BUN draws the lab does report, plus the session.
+        # Validated against every date that has both inputs and a reported
+        # value: 1.61/1.62, 1.34/1.35, 1.44/1.44, 0.90/0.90.
+        if biomarker_values.get("spKt/V") is None:
+            session = (await db.execute(
+                select(TherapySession)
+                .where(TherapySession.user_id == user_id,
+                       TherapySession.duration_minutes.isnot(None))
+                .order_by(TherapySession.scheduled_date.desc()).limit(1)
+            )).scalar_one_or_none()
+            if session is not None:
+                # UF comes from the MACHINE minus saline returned, never from
+                # pre-minus-post weight: that figure inherits every scale error
+                # and averages -0.02 L across this record, against +0.87 L from
+                # the readings. A post-dialysis weight of 0.3 kg in this data
+                # produced a "60,900 ml removed".
+                readings = (await db.execute(
+                    select(IntradialyticReading)
+                    .where(IntradialyticReading.session_id == session.id)
+                    .order_by(IntradialyticReading.reading_number)
+                )).scalars().all()
+                uf_l = uk.net_ultrafiltration_litres(readings)
+                if uf_l is None:
+                    uf_l = session.total_uf_liters
+                if uf_l is None and session.fluid_removed_ml is not None:
+                    uf_l = session.fluid_removed_ml / 1000.0
+                ktv = uk.single_pool_ktv(
+                    pre_bun, post_bun, session.duration_minutes, uf_l,
+                    session.post_dialysis_weight_kg)
+                if ktv is not None:
+                    derived["KtV (Dialysis Adequacy)"] = ktv.value
+
+        if biomarker_values.get("URR") is None and biomarker_values.get("URR%") is None:
+            urr = uk.urea_reduction_ratio(pre_bun, post_bun)
+            if urr is not None:
+                derived["URR (Urea Reduction Ratio)"] = urr.value
+
+        # nPCR needs a Kt/V, computed or reported.
+        npcr = uk.estimate_npcr(
+            pre_bun,
+            biomarker_values.get("spKt/V") or derived.get("KtV (Dialysis Adequacy)"))
+        if npcr is not None:
+            derived["nPCR (Protein Catabolic Rate)"] = npcr.value
+    except Exception:  # noqa: BLE001 - a derivation must not break the score
+        logger.warning("Could not derive urea kinetics", exc_info=True)
+
+    # Ranges the labs actually reported — this patient's own first, then the
+    # range most commonly reported for that analyte across the population.
+    # Anything with neither keeps the framework's published band, and says so.
+    from app.services import reference_ranges as refs
+    resolved_ranges = await refs.resolve(db, current_user.id)
+    resolved_ranges.update(lab_ranges)      # the latest row for this patient wins
+
+    result_data = compute_hebcs(biomarker_values, derived_values=derived,
+                                reference_ranges=resolved_ranges)
     omega = result_data["omega"]
 
     # Build plain-language interpretation
@@ -161,11 +337,29 @@ async def get_hebcs_omega_score(
     if low_pathways:
         interp += f" Critical pathways: {', '.join(low_pathways)}."
 
+    # Say what could NOT be assessed. A pathway with no biomarker drops out of
+    # the geometric mean silently, so without this the score reads as a
+    # whole-patient verdict when part of the patient was never looked at.
+    if result_data["unscored_pathways"]:
+        interp += (" Not assessed for lack of recent results: "
+                   + ", ".join(result_data["unscored_pathways"]) + ".")
+
+    # A pathway scored on less than half its evidence is worth saying out loud.
+    thin = [name for name, pdata in result_data["pathways"].items()
+            if pdata["score"] is not None and pdata["coverage"] < 0.5]
+    if thin:
+        interp += (" Based on limited results: " + ", ".join(thin) + ".")
+
     from app.schemas.wellness import HEBCSPathwayResult, HEBCSBiomarkerDetail
     pathway_response = {
         name: HEBCSPathwayResult(
             score=pdata["score"],
             weight=pdata["weight"],
+            coverage=pdata["coverage"],
+            coverage_with_derived=pdata["coverage_with_derived"],
+            measured=pdata["measured"],
+            derived=pdata["derived"],
+            expected=pdata["expected"],
             biomarkers=[HEBCSBiomarkerDetail(**b) for b in pdata["biomarkers"]],
         )
         for name, pdata in result_data["pathways"].items()
@@ -178,6 +372,7 @@ async def get_hebcs_omega_score(
         omega_pct=result_data["omega_pct"],
         data_coverage=result_data["data_coverage"],
         pathways=pathway_response,
+        unscored_pathways=result_data["unscored_pathways"],
         interpretation=interp,
     )
 
@@ -191,16 +386,26 @@ async def get_wellness_score(
     data = await _compute_wellness_score(current_user.id, db)
     today = date.today()
 
-    # Save score
+    # `confidence`, `components_unknown` and `detail` are computed per request
+    # and have no column — the stored row is the history series. Splitting on
+    # the model's real columns keeps them out of the constructor rather than
+    # relying on the dict happening to match the table.
+    columns = {c.name for c in WellnessScoreModel.__table__.columns}
+    persisted = {k: v for k, v in data.items() if k in columns}
+
     score_obj = WellnessScoreModel(
-        user_id=current_user.id,
-        score_date=today,
-        **{k: v for k, v in data.items()},
+        user_id=current_user.id, score_date=today, **persisted,
     )
     db.add(score_obj)
     await db.flush()
     await db.refresh(score_obj)
-    return score_obj
+
+    return WellnessScoreResponse(
+        **{c: getattr(score_obj, c) for c in columns},
+        confidence=data.get("confidence"),
+        components_unknown=data.get("components_unknown") or [],
+        detail=data.get("detail"),
+    )
 
 
 @router.get("/score/history", response_model=list[WellnessScoreResponse])

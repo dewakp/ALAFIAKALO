@@ -30,13 +30,21 @@ data class WellnessScore(
     val id: Int,
     @SerializedName("user_id") val userId: Int? = null,
     @SerializedName("score_date") val scoreDate: String? = null,
-    @SerializedName("overall_score") val overallScore: Double,
+    // Nullable because the API returns null when NOTHING could be measured —
+    // unknown is not a score of zero. Gson writes null into a non-null Kotlin
+    // field regardless, so the old declaration bought nothing and hid the risk
+    // (canon 3aj).
+    @SerializedName("overall_score") val overallScore: Double? = null,
     @SerializedName("nutrition_score") val nutritionScore: Double? = null,
     @SerializedName("fitness_score") val fitnessScore: Double? = null,
     @SerializedName("sleep_score") val sleepScore: Double? = null,
     @SerializedName("mood_score") val moodScore: Double? = null,
     @SerializedName("vitals_score") val vitalsScore: Double? = null,
     @SerializedName("medication_adherence_score") val medicationAdherenceScore: Double? = null,
+    /** How much of the intended picture had data behind it (0-1). */
+    val confidence: Double? = null,
+    /** Domains excluded from the score for lack of data. */
+    @SerializedName("components_unknown") val componentsUnknown: List<String>? = null,
     val explanation: String? = null,
     val recommendations: String? = null
 )
@@ -1159,7 +1167,13 @@ data class FlowsheetCarriedForward(
     @SerializedName("sak_number") val sakNumber: Int? = null,
     @SerializedName("cycler_number") val cyclerNumber: String? = null,
     @SerializedName("warmer_serial") val warmerSerial: String? = null,
-    @SerializedName("control_panel_serial") val controlPanelSerial: String? = null
+    @SerializedName("control_panel_serial") val controlPanelSerial: String? = null,
+    /**
+     * Last treatment's POST weight — this treatment's PREVIOUS weight, and how
+     * the unit computes today's fluid target. The patient was re-typing a
+     * number the record already held.
+     */
+    @SerializedName("previous_post_weight_kg") val previousPostWeightKg: Float? = null
 )
 
 data class FlowsheetDefaults(

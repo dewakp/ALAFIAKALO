@@ -112,18 +112,40 @@ private fun ScoreTab() {
                     ) {
                         Text("Overall Wellness Score", style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            String.format("%.0f", s.overallScore),
-                            style = MaterialTheme.typography.displayLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = { (s.overallScore / 100.0).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(8.dp),
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        )
+                        // null means nothing could be measured. Formatting it as
+                        // a number would print a confident 0 for a patient we
+                        // have no data on.
+                        val overall = s.overallScore
+                        if (overall == null) {
+                            Text(
+                                "Not enough data yet",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Text(
+                                String.format("%.0f", overall),
+                                style = MaterialTheme.typography.displayLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = { (overall / 100.0).toFloat().coerceIn(0f, 1f) },
+                                modifier = Modifier.fillMaxWidth().height(8.dp),
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                        }
+                        s.confidence?.let { c ->
+                            if (c < 1.0) {
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    "Based on ${(c * 100).toInt()}% of the usual picture.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                         if (s.explanation != null) {
                             Spacer(Modifier.height(12.dp))
                             Text(s.explanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -163,11 +185,18 @@ private fun SubScoreRow(label: String, value: Double?) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = { ((value ?: 0.0) / 100.0).toFloat().coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().height(6.dp),
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
+                // An empty bar reads as a zero score. Where the domain was
+                // never measured, say so instead of drawing one.
+                if (value == null) {
+                    Text("not measured", style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    LinearProgressIndicator(
+                        progress = { (value / 100.0).toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(6.dp),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                }
             }
             Spacer(Modifier.width(12.dp))
             Text(

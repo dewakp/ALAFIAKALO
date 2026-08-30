@@ -231,7 +231,14 @@ function ScoreTab() {
     <div>
       {/* Overall score */}
       <div className="card" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 32, marginBottom: 20 }}>
-        <CircularScore score={score.overall_score} />
+        {/* null means nothing could be measured — not a score of zero. */}
+        {score.overall_score == null ? (
+          <div style={{ minWidth: 140, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+            Not enough<br/>data to score
+          </div>
+        ) : (
+          <CircularScore score={score.overall_score} />
+        )}
         <div style={{ flex: 1, minWidth: 240 }}>
           <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
             Overall Wellness Score

@@ -46,13 +46,23 @@ struct WellnessScore: Codable, Identifiable {
     let id: Int
     let userId: Int
     let scoreDate: String
-    let overallScore: Double
-    let nutritionScore: Double
-    let fitnessScore: Double
-    let sleepScore: Double
-    let moodScore: Double
-    let vitalsScore: Double
-    let medicationAdherenceScore: Double
+    // Every score is OPTIONAL because the API has always allowed null, and now
+    // returns it deliberately: a domain with no data is UNKNOWN, not zero.
+    // Declared non-null, one null failed the decode for the whole response —
+    // the score screen would have gone blank rather than saying what was
+    // missing. Match the model to the schema, not to the rows you happened to
+    // see (canon 3aj).
+    let overallScore: Double?
+    let nutritionScore: Double?
+    let fitnessScore: Double?
+    let sleepScore: Double?
+    let moodScore: Double?
+    let vitalsScore: Double?
+    let medicationAdherenceScore: Double?
+    /// How much of the intended picture had data behind it (0-1).
+    let confidence: Double?
+    /// Domains excluded from the score for lack of data.
+    let componentsUnknown: [String]?
     let explanation: String?
     let recommendations: String?
     let createdAt: String?
@@ -68,6 +78,8 @@ struct WellnessScore: Codable, Identifiable {
         case moodScore = "mood_score"
         case vitalsScore = "vitals_score"
         case medicationAdherenceScore = "medication_adherence_score"
+        case confidence
+        case componentsUnknown = "components_unknown"
         case explanation, recommendations
         case createdAt = "created_at"
     }
