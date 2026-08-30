@@ -423,6 +423,20 @@ function HEBCSTab() {
   if (error) return <ErrorState message={error} onRetry={fetchOmega} />;
   if (!omega) return null;
 
+  // omega_pct is null when NO pathway scored. The gauge used to fall back to
+  // 0.5, painting a confident 50% for a patient holding no lab results at all.
+  if (omega.omega_pct == null) {
+    return (
+      <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
+        <h3 style={{ margin: '0 0 .5rem', fontSize: '1.05rem' }}>No wellness score yet</h3>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
+          {omega.interpretation
+            || 'There are no lab results on file yet, so a score cannot be calculated. This is not a score of zero — nothing has been measured.'}
+        </p>
+      </div>
+    );
+  }
+
   const pathways = omega.pathways || {};
   const covPct = Math.round((omega.data_coverage || 0) * 100);
 

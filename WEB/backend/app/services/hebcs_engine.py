@@ -99,11 +99,16 @@ def pathway_score(values: dict[str, float], pathway: Pathway) -> Optional[float]
 # ── Overall Ω — weighted geometric mean ─────────────────────────────────────
 
 def omega_score(pathway_scores: dict[str, Optional[float]],
-                pathways: list[Pathway]) -> float:
-    """Weighted geometric mean of available pathway scores.
+                pathways: list[Pathway]) -> Optional[float]:
+    """Weighted geometric mean of available pathway scores, or None.
 
     Ω = exp( Σ w_k·ln(s_k) / Σ w_k )   for pathways with scores.
     Clipped to (0.001, 0.999) per open-interval principle.
+
+    Returns **None** when no pathway scored. This used to return 0.5, so a
+    patient with no labs at all was shown a wellness score of 50% — a number
+    that describes nobody, sitting where a clinician reads a measurement. Found
+    on the deployed service, against an account holding zero results.
     """
     log_sum = 0.0
     w_sum = 0.0
@@ -114,7 +119,7 @@ def omega_score(pathway_scores: dict[str, Optional[float]],
         log_sum += p.weight * math.log(max(s, 1e-6))
         w_sum += p.weight
     if w_sum == 0:
-        return 0.5
+        return None
     raw = math.exp(log_sum / w_sum)
     return max(0.001, min(0.999, raw))
 
@@ -489,8 +494,8 @@ def compute_hebcs(biomarker_values: dict[str, float],
     unscored = [name for name, r in pathway_results.items() if r["score"] is None]
 
     return {
-        "omega": round(omega, 4),
-        "omega_pct": round(omega * 100, 2),
+        "omega": round(omega, 4) if omega is not None else None,
+        "omega_pct": round(omega * 100, 2) if omega is not None else None,
         "pathways": pathway_results,
         "data_coverage": round(all_present / all_expected, 3) if all_expected else 0,
         "unscored_pathways": unscored,

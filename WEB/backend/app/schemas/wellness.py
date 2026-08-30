@@ -44,8 +44,10 @@ class HEBCSScoreResponse(BaseModel):
     """HEBCS Ω score — trapezoidal biomarker scoring across 7 ESRD pathways."""
     computed_at: datetime
     lab_date_used: date | None = None
-    omega: float                              # ∈ (0, 1)
-    omega_pct: float                          # Ω × 100, interpretable 0–100
+    #: None when NO pathway scored. A patient with no labs must not be handed a
+    #: number; 0.5 used to be returned, which reads as "50% well".
+    omega: float | None = None                # ∈ (0, 1)
+    omega_pct: float | None = None            # Ω × 100, interpretable 0–100
     data_coverage: float                      # fraction of expected biomarkers with values
     pathways: dict[str, HEBCSPathwayResult]
     #: Pathways with no usable biomarker at all. Omega is a weighted geometric

@@ -238,3 +238,22 @@ def test_reference_ranges_reach_the_score():
                             reference_ranges={"BUN": (9.0, 23.0)})
     assert per_lab["pathways"]["Nutritional"]["score"] > \
         strict["pathways"]["Nutritional"]["score"]
+
+
+def test_a_patient_with_no_labs_gets_no_score_rather_than_fifty():
+    """omega_score returned 0.5 when nothing scored, so an account holding zero
+    results was shown a wellness score of 50% — a number describing nobody,
+    where a clinician reads a measurement.
+
+    Found on the DEPLOYED service against a real account, not by a unit test.
+    """
+    from app.services.hebcs_engine import compute_hebcs
+
+    empty = compute_hebcs({})
+    assert empty["omega"] is None
+    assert empty["omega_pct"] is None
+    assert len(empty["unscored_pathways"]) == 7
+
+    # …and a patient who does have results still scores.
+    scored = compute_hebcs({"Albumin": 4.1, "BUN": 17.0})
+    assert scored["omega_pct"] is not None

@@ -867,7 +867,9 @@ data class HEBCSScoreResponse(
     @SerializedName("computed_at") val computedAt: String? = null,
     @SerializedName("lab_date_used") val labDateUsed: String? = null,
     val omega: Double,
-    @SerializedName("omega_pct") val omegaPct: Double,
+    /** null when NO pathway scored — Gson would otherwise write 0.0, which
+     *  reads as a wellness score of zero rather than "not measured". */
+    @SerializedName("omega_pct") val omegaPct: Double? = null,
     @SerializedName("data_coverage") val dataCoverage: Double,
     val pathways: Map<String, HEBCSPathwayScore> = emptyMap(),
     val interpretation: String? = null

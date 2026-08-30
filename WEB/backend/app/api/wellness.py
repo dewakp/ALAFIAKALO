@@ -320,7 +320,12 @@ async def get_hebcs_omega_score(
     omega = result_data["omega"]
 
     # Build plain-language interpretation
-    if omega >= 0.70:
+    if omega is None:
+        interp = (
+            "There are no lab results on file yet, so a wellness score cannot be "
+            "calculated. This is not a score of zero — nothing has been measured."
+        )
+    elif omega >= 0.70:
         interp = f"Your wellness score is {omega:.3f} (Ω), which is above 0.70 — indicating relatively well-managed health given your ESRD diagnosis."
     elif omega >= 0.50:
         interp = f"Your wellness score is {omega:.3f} (Ω). Several pathways are sub-optimal. Review your Bone Mineral, Hematologic, and Dialysis Adequacy pathways for priority areas."
@@ -330,7 +335,7 @@ async def get_hebcs_omega_score(
         interp = f"Your wellness score is {omega:.3f} (Ω), indicating high clinical burden. Immediate clinical review is advised."
 
     # Add specific pathway flags
-    low_pathways = [
+    low_pathways = [] if omega is None else [
         name for name, pdata in result_data["pathways"].items()
         if pdata["score"] is not None and pdata["score"] < 0.5
     ]

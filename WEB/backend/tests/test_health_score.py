@@ -205,3 +205,35 @@ def test_having_a_prescription_and_logging_nothing_is_zero_not_unknown():
     measurement, and the old rule scored it 80 for merely having the row."""
     c = hs.medication_adherence(["Calcitriol"], [])
     assert c.score == 0.0
+
+
+@pytest.mark.asyncio
+async def test_a_user_with_no_data_gets_a_score_row_not_a_500(client, db):
+    """The regression this file's own unit tests could not see.
+
+    `overall_score` became legitimately None once absent domains stopped
+    defaulting to 50 — but the COLUMN was still NOT NULL, so
+    GET /wellness/score raised NotNullViolationError for any user with no data,
+    including every newly registered one. Nothing exercised a zero-data user
+    through the path that PERSISTS, so it took calling the deployed endpoint to
+    find it.
+    """
+    from app.core.security import get_current_user
+    from app.main import app
+    from app.models.user import User
+
+    user = User(email="nodata@example.com", hashed_password="x", full_name="New")
+    db.add(user)
+    await db.commit()
+
+    app.dependency_overrides[get_current_user] = lambda: user
+    try:
+        resp = await client.get("/api/v1/wellness/score")
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        # No data means no score — never a fabricated one.
+        assert body["overall_score"] is None
+        assert body["confidence"] == 0.0
+        assert body["components_unknown"]
+    finally:
+        app.dependency_overrides.clear()

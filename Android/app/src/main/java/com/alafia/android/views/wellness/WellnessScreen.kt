@@ -639,13 +639,20 @@ private fun HEBCSTab() {
                     Spacer(Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            // null means no pathway scored — not a score of zero.
+                            val pct = d.omegaPct
                             Text(
-                                String.format("%.0f%%", d.omegaPct),
+                                if (pct != null) String.format("%.0f%%", pct) else "—",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = if (pct != null) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Text("Score 0–100", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                if (pct != null) "Score 0–100" else "no results yet",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             val covColor = if (d.dataCoverage >= 0.6) Color(0xFF10B981) else Color(0xFFF59E0B)

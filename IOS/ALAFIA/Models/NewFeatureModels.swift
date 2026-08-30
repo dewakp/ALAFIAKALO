@@ -1652,7 +1652,9 @@ struct HEBCSScoreResponse: Codable {
     let computedAt: String?
     let labDateUsed: String?
     let omega: Double
-    let omegaPct: Double
+    /// nil when NO pathway scored — a patient with no labs must not be handed
+    /// a number. Declared non-optional, one null failed the whole decode.
+    let omegaPct: Double?
     let dataCoverage: Double
     let pathways: [String: HEBCSPathwayScore]
     let interpretation: String?

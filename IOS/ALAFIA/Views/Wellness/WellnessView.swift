@@ -624,10 +624,18 @@ private struct HEBCSSection: View {
 
                         HStack(spacing: 24) {
                             VStack {
-                                Text(String(format: "%.0f%%", d.omegaPct))
-                                    .font(.title2).bold().foregroundStyle(.blue)
-                                Text("Score 0–100")
-                                    .font(.caption2).foregroundStyle(.secondary)
+                                // nil means no pathway scored — not zero.
+                                if let pct = d.omegaPct {
+                                    Text(String(format: "%.0f%%", pct))
+                                        .font(.title2).bold().foregroundStyle(.blue)
+                                    Text("Score 0–100")
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                } else {
+                                    Text("—")
+                                        .font(.title2).bold().foregroundStyle(.secondary)
+                                    Text("no results yet")
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
                             }
                             VStack {
                                 Text(String(format: "%.0f%%", d.dataCoverage * 100))

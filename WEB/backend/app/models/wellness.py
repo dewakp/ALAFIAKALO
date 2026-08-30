@@ -12,7 +12,11 @@ class WellnessScore(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     score_date: Mapped[date] = mapped_column(Date, nullable=False)
-    overall_score: Mapped[float] = mapped_column(Float, nullable=False)  # 0-100
+    # NULL when nothing could be measured. The score used to default absent
+    # domains to 50, so a patient with no data still got a number; removing that
+    # default made None a real outcome, and the column has to allow it or the
+    # endpoint 500s for every new user.
+    overall_score: Mapped[float | None] = mapped_column(Float, nullable=True)  # 0-100
 
     # Sub-scores  
     nutrition_score: Mapped[float | None] = mapped_column(Float)
