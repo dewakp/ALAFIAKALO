@@ -30,6 +30,7 @@ from app.schemas.nutrition import (
     USDAFoodResult,
     USDAFoodDetail,
     NutrientCatalogItem,
+    NutrientCatalogPage,
     DailySummary,
     NutrientEstimateRequest,
     NutrientEstimateResponse,
@@ -328,12 +329,86 @@ async def get_food_detail(
     return detail
 
 
-@router.get("/nutrient-catalog", response_model=list[NutrientCatalogItem])
+@router.get("/nutrient-catalog", response_model=NutrientCatalogPage)
 async def list_nutrient_catalog(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    category: str | None = Query(None, description="Filter to one category"),
+    search: str | None = Query(None, description="Match on nutrient name or key"),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Return the full 150+ nutrient reference catalog with RDAs."""
-    return get_nutrient_catalog()
+    """The nutrient reference catalog, paginated, with this patient's own goals.
+
+    116 nutrients across 11 categories, each carrying its USDA FoodData Central
+    id — the same catalog the estimator fills from, so there is ONE list rather
+    than a second one maintained by hand. The meals diary previously rendered 15
+    nutrients from a literal in the page, with fixed colour thresholds
+    (`phosphorus danger: 1000`) applied to every patient regardless of whether
+    they were on dialysis.
+
+    `goal`/`goal_kind` come from `compute_goals`, so the figure a nutrient is
+    judged against is the patient's own — the same one the Nutrition screen and
+    the health score use.
+    """
+    from app.services.nutrient_goals_service import compute_goals
+    from app.services import clinical_sources as sources
+
+    items = get_nutrient_catalog()
+
+    # This patient's goals, keyed the same way the catalog is. `compute_goals`
+    # already emits canonical nutrient keys (`potassium_mg`, `protein_g`), so
+    # no translation table is needed — and one that existed was silently
+    # dropping potassium.
+    goals_by_key: dict[str, dict] = {}
+    try:
+        conditions = list(await sources.conditions(db, current_user.id, active_only=True))
+        payload = compute_goals(
+            date_of_birth=str(current_user.date_of_birth) if current_user.date_of_birth else None,
+            sex=current_user.gender,
+            height_cm=current_user.height_cm,
+            current_weight_kg=current_user.current_weight_kg,
+            target_weight_kg=current_user.target_weight_kg,
+            activity_level=current_user.activity_level,
+            conditions=conditions,
+        )
+        for g in payload.get("goals") or []:
+            key = str(g.get("key") or "").strip()
+            if key:
+                goals_by_key[key] = g
+    except Exception:  # noqa: BLE001 - a missing goal must not hide the catalog
+        logger.warning("Could not compute nutrient goals for the catalog", exc_info=True)
+
+    categories = sorted({i["category"] for i in items if i.get("category")})
+
+    if category:
+        items = [i for i in items if (i.get("category") or "").lower() == category.lower()]
+    if search:
+        needle = search.strip().lower()
+        items = [i for i in items
+                 if needle in i["name"].lower() or needle in i["key"].lower()]
+
+    total = len(items)
+    start = (page - 1) * page_size
+    window = items[start:start + page_size]
+
+    enriched = []
+    for i in window:
+        goal = goals_by_key.get(i["key"])
+        enriched.append({
+            **i,
+            "goal": goal.get("goal") if goal else None,
+            "goal_kind": goal.get("kind") if goal else None,
+        })
+
+    return {
+        "items": enriched,
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": max(1, -(-total // page_size)),
+        "categories": categories,
+    }
 
 
 @router.get("/daily-summary", response_model=DailySummary)
@@ -631,24 +706,85 @@ async def get_log_nutrient_breakdown(
     }
 
 
+#: Every column the enricher fills, derived FROM THE MODEL rather than typed
+#: out. A hand-written list goes stale the moment a nutrient is added, and the
+#: stale one would be the value left sitting on an edited row — the exact
+#: failure this clearing exists to prevent.
+_NON_NUTRIENT_COLUMNS = {
+    "id", "user_id", "log_date", "meal_type", "food_name", "serving_size",
+    "fdc_id", "notes", "created_at", "start_time", "end_time",
+    "pre_meal_weight_kg", "post_meal_weight_kg", "recipe_url",
+    "food_image_uris", "nutrient_status", "extended_nutrients",
+}
+_ENRICHED_NUTRIENT_COLUMNS = tuple(
+    c.name for c in NutritionLog.__table__.columns
+    if c.name not in _NON_NUTRIENT_COLUMNS
+)
+
+
 @router.patch("/{log_id}", response_model=NutritionLogResponse)
 async def update_nutrition_log(
     log_id: int,
     updates: NutritionLogUpdate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a nutrition log."""
+    """Update a nutrition log, re-estimating when the food itself changed.
+
+    This used to apply the fields and stop, so editing the DESCRIPTION left the
+    previous nutrients attached to it. A patient who corrected
+
+        "1 ripe plantain, 2 eggs, 4 olives …"        413 kcal
+
+    to a quarter portion
+
+        "0.25 x (1 ripe plantain, 2 eggs, 4 olives …)"
+
+    saw the same 413 kcal, 697 mg of potassium and 372 mg of cholesterol — the
+    old meal's numbers, displayed against the new text as though they had been
+    recalculated. Stale values that look computed are worse than none, and on a
+    dialysis patient a 4x overstatement of potassium is a clinical error.
+
+    Server-side on purpose: web, iOS and Android all PATCH this route, so the
+    guarantee belongs here rather than in three clients (canon 3).
+    """
     result = await db.execute(
         select(NutritionLog).where(NutritionLog.id == log_id, NutritionLog.user_id == current_user.id)
     )
     log = result.scalar_one_or_none()
     if not log:
         raise HTTPException(status_code=404, detail="Nutrition log not found")
-    for field, value in updates.model_dump(exclude_unset=True).items():
+
+    fields = updates.model_dump(exclude_unset=True)
+    previous_name = log.food_name
+
+    for field, value in fields.items():
         setattr(log, field, value)
+
+    # Did the food itself change, without the caller supplying fresh numbers?
+    new_name = fields.get("food_name")
+    name_changed = bool(new_name) and (new_name or "").strip() != (previous_name or "").strip()
+    supplied_nutrients = any(
+        fields.get(k) is not None for k in ("calories", "protein_g", "carbs_g", "fat_g")
+    )
+
+    if name_changed and not supplied_nutrients and not fields.get("fdc_id"):
+        # Clear what no longer describes this row rather than leaving it to be
+        # read as fact. `pending` is what the clients already render as
+        # "estimating…", so this reuses the path the create flow established
+        # instead of inventing a second one.
+        for column in _ENRICHED_NUTRIENT_COLUMNS:
+            if hasattr(log, column):
+                setattr(log, column, None)
+        log.nutrient_status = "pending"
+
     await db.flush()
     await db.refresh(log)
+
+    if log.nutrient_status == "pending":
+        background_tasks.add_task(enrich_log, log.id)
+
     return log
 
 

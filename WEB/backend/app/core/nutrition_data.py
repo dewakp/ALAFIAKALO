@@ -221,6 +221,9 @@ async def search_usda_foods(query: str, page_size: int = 25) -> list[dict]:
             "description": f.get("description", ""),
             "brand_owner": f.get("brandOwner"),
             "data_type": f.get("dataType"),
+            # USDA's own classification of the food. It was being discarded,
+            # which is why the food's TYPE had to be guessed from its name.
+            "food_category": f.get("foodCategory"),
             "serving_size": f.get("servingSize"),
             "serving_size_unit": f.get("servingSizeUnit"),
             "nutrients": nutrients_map,

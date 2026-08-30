@@ -987,7 +987,73 @@ def parse_meal_text(description: str, vol_factors: dict | None = None) -> list[F
         _VOL_FACTORS.reset(token)
 
 
+#: A whole-meal multiplier written in front of the description:
+#:
+#:     0.25 x (1 ripe plantain boiled, 2 eggs fried, 4 pitted olives)
+#:     1/2 × (...)          2x (...)          0.5 x 1 plantain
+#:
+#: Requires an explicit x/× token, so "6 cherry tomatoes" and "2 teaspoons"
+#: are untouched. Anchored to the START of the string: this scales the whole
+#: meal, not one item.
+_MEAL_MULTIPLIER_RE = re.compile(
+    r"^\s*(?P<whole>\d+(?:\.\d+)?|\d+\s*/\s*\d+)\s*[x×]\s*(?P<rest>\S.*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _extract_meal_multiplier(description: str) -> tuple[float, str]:
+    """Split a leading "0.25 x (…)" into its factor and the inner description.
+
+    A patient who eats a quarter of what they cooked writes exactly this, and
+    it used to defeat the parser COMPLETELY — not merely go unscaled. The
+    parenthesis made `_split_top_level` yield nothing, so the estimate came
+    back with zero components and every nutrient None. The UI then kept the
+    previous values on screen, so a quarter portion displayed the full meal's
+    numbers and looked like it had been recalculated: 697 mg of potassium and
+    372 mg of cholesterol recorded for 174 and 93.
+
+    Returns (1.0, description) when there is no multiplier.
+    """
+    if not description:
+        return 1.0, description
+
+    m = _MEAL_MULTIPLIER_RE.match(description)
+    if not m:
+        return 1.0, description
+
+    raw = m.group("whole").replace(" ", "")
+    try:
+        factor = (float(raw.split("/")[0]) / float(raw.split("/")[1])
+                  if "/" in raw else float(raw))
+    except (ValueError, ZeroDivisionError):
+        return 1.0, description
+
+    # A factor of 0 would silently erase the meal; absurd factors are far more
+    # likely a typo than a real portion.
+    if not (0 < factor <= 100):
+        return 1.0, description
+
+    rest = m.group("rest").strip()
+    # Drop one balanced wrapping paren pair: "(a, b, c)" → "a, b, c".
+    if rest.startswith("(") and rest.endswith(")"):
+        depth = 0
+        for i, ch in enumerate(rest):
+            depth += (ch == "(") - (ch == ")")
+            if depth == 0 and i < len(rest) - 1:
+                break            # the opening paren closed early — not a wrapper
+        else:
+            rest = rest[1:-1].strip()
+
+    return (factor, rest) if rest else (1.0, description)
+
+
 def _parse_meal_text_impl(description: str) -> list[FoodComponent]:
+    # Scaling the GRAMS scales every nutrient with them: the estimator works
+    # from a per-100 g profile times qty_g, so one multiplication here gives
+    # "0.25 of each nutrient" for all 150+ of them, with no second code path
+    # that could disagree.
+    factor, description = _extract_meal_multiplier(description)
+
     segments = _split_top_level(description)
     components: list[FoodComponent] = []
     seen: set[str] = set()
@@ -1037,4 +1103,24 @@ def _parse_meal_text_impl(description: str) -> list[FoodComponent]:
                     )
                 )
 
+    if factor != 1.0:
+        # Applied once, at the end, so every component — including ones expanded
+        # out of a parenthetical recipe — is scaled by the same figure. The
+        # quantity TEXT is rewritten too, or the meal would read "2 eggs" while
+        # carrying the grams of half an egg.
+        components = [
+            FoodComponent(
+                food_name=c.food_name,
+                qty_g=round(c.qty_g * factor, 3),
+                qty_text=f"{_fmt_factor(factor)} × {c.qty_text}" if c.qty_text else c.qty_text,
+                source_text=c.source_text,
+            )
+            for c in components
+        ]
+
     return components
+
+
+def _fmt_factor(factor: float) -> str:
+    """Render 0.25 as "0.25" and 2.0 as "2" — no trailing ".0" in the UI."""
+    return f"{factor:g}"

@@ -30,7 +30,9 @@ def _num(v) -> float | None:
         return None
 
 
-def review(food_name: str, nutrients: dict) -> tuple[dict, list[str], bool]:
+def review(food_name: str, nutrients: dict,
+           category: str | None = None,
+           reference_kcal: float | None = None) -> tuple[dict, list[str], bool]:
     """Review a per-100 g nutrient profile. Returns (corrected, warnings, believable)."""
     n = dict(nutrients or {})
     warnings: list[str] = []
@@ -99,9 +101,20 @@ def review(food_name: str, nutrients: dict) -> tuple[dict, list[str], bool]:
     # suya→peanut 589) without per-food code. Flag, don't fabricate.
     cal_final = _num(n.get("calories"))
     if cal_final and cal_final > 0:
-        lo, hi = nutrition_reference.expected_kcal_band(food_name)
+        # A category RESOLVED from USDA beats one guessed from the name. The
+        # keyword fallback is what called "hard boiled eggs" an oil and judged
+        # 155 kcal/100 g against 700-902.
+        cat = category or nutrition_reference.classify(food_name)
+        if reference_kcal:
+            # The authority's own figure for THIS food beats a band covering a
+            # whole category. Olives at 289 kcal are a correct olive and a
+            # failing "vegetable"; judged against USDA's own olive they pass.
+            # A wide tolerance still catches a genuinely wrong match (rice at
+            # 360 dry, Boost at 522/serving) without punishing a right one.
+            lo, hi = reference_kcal * 0.4, reference_kcal * 2.0
+        else:
+            lo, hi = nutrition_reference.band(cat)["kcal"]
         if cal_final > hi * 1.3 or cal_final < lo * 0.5:
-            cat = nutrition_reference.classify(food_name)
             warnings.append(
                 f"{cal_final:.0f} kcal/100g is outside the expected {lo:.0f}–{hi:.0f} "
                 f"for '{cat}' foods — likely a wrong match")

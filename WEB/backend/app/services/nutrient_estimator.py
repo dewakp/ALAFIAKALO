@@ -664,7 +664,19 @@ async def estimate_nutrients(
         result["stated_nutrients"] = dict(stated)
         result["stated_food_name"] = display_name
     if isinstance(result, dict) and isinstance(result.get("nutrients"), dict):
-        corrected, warnings, believable = plausibility.review(lookup_name, result["nutrients"])
+        # Resolve what this food IS before judging its calories: know it? ->
+        # check USDA -> store -> learn (services/food_category_service.py).
+        from app.services.food_category_service import (
+            resolve_band_category, reference_kcal_per_100g,
+        )
+        try:
+            resolved_category, _src = await resolve_band_category(db, lookup_name)
+            reference_kcal = await reference_kcal_per_100g(db, lookup_name)
+        except Exception:  # noqa: BLE001 - never fail a lookup over a category
+            resolved_category, reference_kcal = None, None
+        corrected, warnings, believable = plausibility.review(
+            lookup_name, result["nutrients"],
+            category=resolved_category, reference_kcal=reference_kcal)
         result["nutrients"] = corrected
         if warnings:
             result["plausibility_warnings"] = warnings

@@ -84,12 +84,69 @@ _PREP_CLAUSE = re.compile(
 )
 
 
+#: Keyword matchers, compiled once. A keyword matches as a WORD, not as a
+#: substring — that distinction is the whole point:
+#:
+#:     "ripe plantain boiled"      contains "oil"  -> was oil_fat (700-902 kcal)
+#:     "broiled chicken"           contains "oil"  -> was oil_fat, not meat
+#:     "2 teaspoons of canola oil" contains "tea " -> was tea_coffee
+#:
+#: The plantain case reached a patient: 116 kcal/100 g was judged against an
+#: oil's band and flagged as a wrong match. The category also picks the default
+#: portion, so a mis-classification silently changes grams too.
+#:
+#: A trailing "s" is allowed so "nuts" matches "nut" without "peanut" doing so.
+_COMPILED_RULES: list[tuple[re.Pattern, str]] = [
+    (
+        re.compile(
+            # A keyword must END a word, with any prefix and an optional plural.
+            # That is what separates a real occurrence from an accident:
+            #
+            #   peanuts    pea+NUT+s      -> matches "nut"      (wanted)
+            #   tomatoes   TOMATO+es      -> matches "tomato"   (wanted)
+            #   watermelon water+MELON    -> matches "melon"    (wanted)
+            #   boiled     b+oil+ed       -> no match           (the bug)
+            #   teaspoons  TEA+spoons     -> no match           (the bug)
+            #
+            # Requiring a whole word instead lost the first three; allowing any
+            # substring gave the last two. Ending a word is the line between
+            # morphology and coincidence.
+            "|".join(rf"\b\w*?{re.escape(k.strip())}(?:e?s)?\b" for k in keywords),
+            re.IGNORECASE,
+        ),
+        category,
+    )
+    for keywords, category in _RULES
+]
+
+
 def _classify_full(name: str) -> str:
-    n = " " + name + " "
-    for keywords, category in _RULES:
-        if any(k in n for k in keywords):
-            return category
-    return "unknown"
+    """First matching rule wins — unless a later rule matched a SUPERSTRING.
+
+    Declaration order encodes real intent and must be preserved: `diet_beverage`
+    sits above `beverage`, and `nutrition_drink` above `sugar_sweet` so that
+    "Boost fiber chocolate" is a nutrition drink rather than a confection.
+    Sorting purely by match length destroyed both — "chocolate" is longer than
+    "boost", and "pineapple" longer than "juice".
+
+    The one case order gets wrong is a vaguer keyword shadowing a more specific
+    one that CONTAINS it: `butter` (oil_fat) beating `peanut butter`
+    (nut_seed). That is decidable without weakening priority — prefer the later
+    rule only when its matched text strictly contains the earlier match.
+    """
+    winner: tuple[str, str] | None = None      # (matched_text, category)
+    for pattern, category in _COMPILED_RULES:
+        match = pattern.search(name)
+        if not match:
+            continue
+        text = match.group(0).lower()
+        if winner is None:
+            winner = (text, category)
+            continue
+        # Only a strictly more specific phrase may displace the earlier rule.
+        if winner[0] in text and winner[0] != text:
+            winner = (text, category)
+    return winner[1] if winner else "unknown"
 
 
 def head_phrase(food_name: str) -> str:

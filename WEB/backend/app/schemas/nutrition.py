@@ -284,6 +284,30 @@ class NutrientCatalogItem(BaseModel):
     usda_id: int | None = None
     rda: float | None = None
     category: str
+    #: THIS patient's own daily figure, from `compute_goals` (KDOQI 2020 for
+    #: CKD). Distinct from `rda`, which is the general-population reference —
+    #: a dialysis patient's potassium ceiling is nothing like the DV, and the
+    #: diary used to colour cells against hardcoded thresholds like 1000 mg of
+    #: phosphorus for everyone.
+    goal: float | None = None
+    #: "target" (aim to reach) or "limit" (stay under). None when no goal.
+    goal_kind: str | None = None
+
+
+class NutrientCatalogPage(BaseModel):
+    """One page of the nutrient catalog.
+
+    The catalog is 116 nutrients and grows with USDA's; the diary was rendering
+    a hand-written list of 15. Paginated so a client can show all of them
+    without a single enormous response or a second, divergent list.
+    """
+    items: list[NutrientCatalogItem]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+    #: Every category present, so a client can offer them without hardcoding.
+    categories: list[str]
 
 
 class DailySummary(BaseModel):

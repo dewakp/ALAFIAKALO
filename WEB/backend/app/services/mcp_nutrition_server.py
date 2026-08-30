@@ -215,6 +215,10 @@ async def search_branded_food(
             "description": f.get("description", ""),
             "brand_owner": f.get("brandOwner"),
             "brand_name": f.get("brandName"),
+            # USDA's own category for the product. Branded entries carry it on
+            # `foodCategory` ("Tea Bags"), and it was being discarded — which is
+            # why a packaged food's TYPE had to be guessed from its name.
+            "food_category": f.get("foodCategory") or f.get("brandedFoodCategory"),
             "data_type": "Branded",
             "serving_size": f.get("servingSize"),
             "serving_size_unit": f.get("servingSizeUnit"),

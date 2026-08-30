@@ -2,6 +2,7 @@ import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import NutrientPanel from '../components/NutrientPanel';
 import { ChevronLeft, ChevronRight, Clock, Weight, Plus, RefreshCw, Edit2 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
@@ -11,7 +12,14 @@ const fmt = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month
 const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'other'];
 const MEAL_EMOJI = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', other: '🍽️' };
 
-/* Macro pills shown on each meal card (matches Firebase app) */
+/* The four headline figures shown inline on every card. Everything else —
+   all 116 catalogued nutrients, with this patient's own goals — is in
+   <NutrientPanel/>, which reads names, units and thresholds from
+   /nutrition/nutrient-catalog rather than from a list kept here.
+
+   The `danger:` numbers below are gone from the expanded view for a reason:
+   they were fixed for every patient (phosphorus 1000 mg, sodium 2300 mg),
+   which is not a dialysis patient's limit. */
 const MACRO_PILLS = [
   { key: 'calories',      label: 'Cal',   unit: 'kcal', danger: null },
   { key: 'protein_g',     label: 'P',     unit: 'g',    danger: null },
@@ -50,6 +58,24 @@ function buildCalendar(year, month) {
   for (let d = 1; d <= days; d++) cells.push(d);
   return cells;
 }
+/* Collapsed by default: a day can hold several meals and each carries ~109
+   nutrient values. Mounting them all would make the diary enormous for a
+   patient who only wanted to see their calories. */
+function NutrientDisclosure({ log }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginTop: '.35rem' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                 fontSize: '.7rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+        {open ? 'Hide all nutrients' : 'All nutrients'}
+      </button>
+      {open && <NutrientPanel log={log} />}
+    </div>
+  );
+}
+
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -278,6 +304,8 @@ export default function MealsDiary() {
                       );
                     })}
                   </div>
+
+                  <NutrientDisclosure log={log} />
                 </div>
               ))}
             </div>

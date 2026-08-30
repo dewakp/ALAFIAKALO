@@ -38,6 +38,14 @@ class FoodNutrientCache(Base):
     nutrients: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     # Confidence: 1.0 for USDA, 0.0-1.0 for AI self-reported confidence
+    # What the food IS, learned once and remembered. USDA publishes a
+    # `foodCategory` for every food; deriving the category from a keyword list
+    # instead is what made "hard boiled eggs" an oil (b-OIL-ed).
+    usda_food_category: Mapped[str | None] = mapped_column(String(120))
+    band_category: Mapped[str | None] = mapped_column(String(40))
+    #: "usda" | "keyword" | "user" — so a guess is never mistaken for a lookup.
+    category_source: Mapped[str | None] = mapped_column(String(20))
+
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
 
     # How many times this cache entry was used
