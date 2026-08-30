@@ -188,6 +188,19 @@ final class HemodialysisViewModel {
                 dialysatePotassiumMeq = String(potassium)
             }
             if let sak = d.carriedForward?.sakNumber { sakNumber = String(sak) }
+
+            // These were decoded and then dropped on the floor — the patient
+            // re-typed a cycler and warmer serial the record already held.
+            if let weight = d.carriedForward?.previousPostWeightKg, previousPostWeightKg.isEmpty {
+                previousPostWeightKg = String(weight)
+            }
+            if let lot = d.carriedForward?.cartridgeLot, cartridgeLot.isEmpty { cartridgeLot = lot }
+            if let lot = d.carriedForward?.sakLot, sakLot.isEmpty { sakLot = lot }
+            if let cycler = d.carriedForward?.cyclerNumber, cyclerNumber.isEmpty { cyclerNumber = cycler }
+            if let warmer = d.carriedForward?.warmerSerial, warmerSerial.isEmpty { warmerSerial = warmer }
+            if let flow = d.carriedForward?.bloodFlowRate, bloodFlowRate.isEmpty {
+                bloodFlowRate = String(flow)
+            }
         } catch {
             defaults = nil
         }

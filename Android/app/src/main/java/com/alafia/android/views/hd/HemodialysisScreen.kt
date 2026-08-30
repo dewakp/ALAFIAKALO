@@ -543,6 +543,15 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             c.dialysateLactateMeq?.let { if (dialLact.isBlank()) dialLact = it.toString() }
             c.sakLot?.let { if (sakLot.isBlank()) sakLot = it }
             c.sakNumber?.let { if (sakNum.isBlank()) sakNum = it.toString() }
+
+            // Decoded and then dropped on the floor until now — the patient
+            // re-typed a cycler and warmer serial the record already held, and
+            // a previous weight it could compute.
+            c.previousPostWeightKg?.let { if (prevPostWeight.isBlank()) prevPostWeight = it.toString() }
+            c.cartridgeLot?.let { if (cartLot.isBlank()) cartLot = it }
+            c.cyclerNumber?.let { if (cycler.isBlank()) cycler = it }
+            c.warmerSerial?.let { if (warmer.isBlank()) warmer = it }
+            c.bloodFlowRate?.let { if (bfr.isBlank()) bfr = it.toInt().toString() }
         }
     }
     val statuses = listOf("SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED")

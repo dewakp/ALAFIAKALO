@@ -3,8 +3,11 @@
 Three things a flowsheet should already know when it opens:
 
 * today's **target weight**, from the mean of recent post-treatment weights;
-* the **settings that rarely change** — physician, nurse, equipment, dialysate
-  prescription — carried from the last completed session;
+* the **settings that rarely change** — physician, nurse, equipment lot and
+  serial numbers, dialysate prescription — carried from the last completed
+  session;
+* **last treatment's post weight**, which is this treatment's *previous*
+  weight and is how the unit computes today's fluid target;
 * which **access-specific fields apply**, because a catheter has no needles.
 
 Everything here is a *default*. Nothing is silently submitted: the caller shows
@@ -63,6 +66,23 @@ CARRY_FORWARD_FIELDS = (
     "control_panel_serial",
 )
 
+#: Defaults whose value comes from a DIFFERENT field on the last session.
+#:
+#: `previous_post_weight_kg` is not "the same as last time" — it IS last time's
+#: post-treatment weight, which is how a unit computes today's fluid target.
+#: The patient was re-typing a number the record already held: of 1,940
+#: sessions carrying it, only 1,432 match the prior session's post weight, so
+#: 508 were entered by hand and drifted.
+CARRY_FORWARD_MAPPED = {
+    "previous_post_weight_kg": "post_dialysis_weight_kg",
+}
+
+#: A weight has to be a person's before it can be a default. This record holds a
+#: post-dialysis weight of 0.3 kg and pre-dialysis weights of 3.5 and 4.7 kg —
+#: weighing-machine faults. Carrying one forward would seed the next treatment's
+#: fluid target from garbage.
+WEIGHT_PLAUSIBLE_KG = (20.0, 300.0)
+
 #: Bath potassium outside this band is another field's value. 11 sessions record
 #: 45 mEq/L, which is the lactate. Carrying that forward would seed a new
 #: treatment with an impossible prescription AND skew the dialysis balance
@@ -115,6 +135,10 @@ class FlowsheetDefaults:
 
     carried_forward: dict = field(default_factory=dict)
     carried_from_date: str | None = None
+    #: {field: date it was last recorded}. Fields are carried from the most
+    #: recent session that HAS them, which is not always the same session, so a
+    #: single date would be wrong for most of them.
+    carried_sources: dict = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
 
 
@@ -199,8 +223,26 @@ async def defaults_for(db: AsyncSession, user_id: int, today: date) -> Flowsheet
     defaults.carried_from_date = str(last.scheduled_date)[:10]
 
     carried: dict = {}
+    sources: dict = {}
+
+    def _last_recorded(field_name: str):
+        """The most recent session that actually HAS this field, and its date.
+
+        Scanning only the latest session loses anything that session left
+        blank — and on this record the last treatment recorded no cycler,
+        warmer, cartridge lot or control panel, though all four are recorded
+        1,833-1,964 times and were present a fortnight earlier. "Default to the
+        last recorded value" means the last time it was recorded, not the last
+        time anything was.
+        """
+        for candidate in sessions:
+            found = getattr(candidate, field_name, None)
+            if found is not None and str(found).strip() != "":
+                return found, str(candidate.scheduled_date)[:10]
+        return None, None
+
     for name in CARRY_FORWARD_FIELDS:
-        value = getattr(last, name, None)
+        value, seen_on = _last_recorded(name)
         if value is None:
             continue
         if name == "dialysate_potassium_meq":
@@ -212,7 +254,34 @@ async def defaults_for(db: AsyncSession, user_id: int, today: date) -> Flowsheet
                 )
                 continue
         carried[name] = value
+        sources[name] = seen_on
+
+    for target, source in CARRY_FORWARD_MAPPED.items():
+        value, seen_on = _last_recorded(source)
+        if value is None:
+            continue
+        low, high = WEIGHT_PLAUSIBLE_KG
+        if target.endswith("_kg") and not (low <= float(value) <= high):
+            defaults.notes.append(
+                f"Last treatment recorded a weight of {value:g} kg, which is not "
+                "a plausible body weight, so it was not carried forward."
+            )
+            continue
+        carried[target] = value
+        sources[target] = seen_on
+
     defaults.carried_forward = carried
+    defaults.carried_sources = sources
+
+    # Say so where a value is not from the last treatment, or the patient has no
+    # way to know they are looking at a fortnight-old cycler number.
+    stale = sorted(f for f, d in sources.items()
+                   if d and d != defaults.carried_from_date)
+    if stale:
+        defaults.notes.append(
+            "Some settings came from an earlier treatment because the last one "
+            "did not record them: " + ", ".join(stale.replace("_", " ") for stale in stale) + "."
+        )
 
     defaults.access_type = last.dialysis_access_type
     defaults.access_kind = classify_access(last.dialysis_access_type)

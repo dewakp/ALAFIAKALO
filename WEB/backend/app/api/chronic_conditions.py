@@ -383,6 +383,7 @@ async def get_flowsheet_defaults(
         disabled_fields=defaults.disabled_fields,
         carried_forward=defaults.carried_forward,
         carried_from_date=defaults.carried_from_date,
+        carried_sources=defaults.carried_sources,
         notes=defaults.notes,
     )
 

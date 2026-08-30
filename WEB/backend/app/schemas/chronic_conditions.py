@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 from datetime import datetime, time
 
@@ -87,12 +87,52 @@ class TherapySessionBase(BaseModel):
     
     # Dialysis-specific
     dialysis_access_type: Optional[str] = Field(None, max_length=100)
-    pre_dialysis_weight_kg: Optional[float] = None
-    post_dialysis_weight_kg: Optional[float] = None
+    # Bounded because nothing bounded them before, and the record still carries
+    # what got in: a POST-dialysis weight of 0.3 kg, and pre-dialysis weights of
+    # 3.5 and 4.7 kg. These are not people.
+    #
+    # `fluid_removed_ml` is (pre - post) x 1000, so a bad weight becomes a bad
+    # fluid figure and then a bad average: the clinician dashboard's
+    # "avg fluid removed" reads 608 ml against a true 663 ml on this record,
+    # because nine rows of garbage are inside the mean.
+    #
+    # These are PHYSICAL plausibility bounds — "is this a human being" — not
+    # clinical reference ranges. Clinical thresholds live in
+    # `clinical_thresholds` and are resolved from reported data.
+    pre_dialysis_weight_kg: Optional[float] = Field(None, gt=20, lt=300)
+    post_dialysis_weight_kg: Optional[float] = Field(None, gt=20, lt=300)
+    # Net fluid may be NEGATIVE: saline returned to the patient during a session
+    # — boluses for intradialytic hypotension, and the rinse-back — can outweigh
+    # what was removed. That is 365 of 1775 sessions here, not an anomaly.
     fluid_removed_ml: Optional[float] = None
     blood_flow_rate: Optional[float] = None
     dialysate_flow_rate: Optional[float] = None
-    
+
+    @model_validator(mode="after")
+    def _fluid_must_match_the_weights(self):
+        """A session cannot change body mass by more than about a tenth.
+
+        Checked against the patient's own weight rather than a fixed number of
+        litres, and applied in BOTH directions — removal and saline return.
+        """
+        pre = self.pre_dialysis_weight_kg
+        post = self.post_dialysis_weight_kg
+        fluid = self.fluid_removed_ml
+
+        reference = post or pre
+        if fluid is not None and reference:
+            if abs(fluid) / 1000.0 > 0.10 * reference:
+                raise ValueError(
+                    f"fluid_removed_ml {fluid:.0f} is more than a tenth of body "
+                    f"mass ({reference:.1f} kg) — check the weights"
+                )
+        if pre and post and abs(pre - post) > 0.10 * post:
+            raise ValueError(
+                f"pre/post weights differ by {abs(pre - post):.1f} kg, more than "
+                f"a tenth of body mass — one of them is wrong"
+            )
+        return self
+
     # Enhanced Dialysis Fields
     dry_weight_kg: Optional[float] = None
     previous_post_weight_kg: Optional[float] = None
@@ -470,6 +510,12 @@ class FlowsheetDefaultsResponse(BaseModel):
     #: Fields the client should DISABLE (not hide) for this access type. A
     #: catheter has no needles and no bruit.
     disabled_fields: list[str] = []
+
+    #: {field: the date it was last recorded}. Carried per field from the most
+    #: recent session that HAS it, which is often not the last session: on this
+    #: record the cycler and warmer were last written a fortnight before the
+    #: latest treatment. A single date would be wrong for most of them.
+    carried_sources: dict = {}
 
     #: Settings carried from the last completed session, all editable.
     carried_forward: dict = {}

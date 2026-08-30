@@ -224,6 +224,10 @@ struct FlowsheetCarriedForward: Codable {
     let cyclerNumber: String?
     let warmerSerial: String?
     let controlPanelSerial: String?
+    /// Last treatment's POST weight — this treatment's PREVIOUS weight, and how
+    /// the unit computes today's fluid target. The patient was re-typing a
+    /// number the record already held.
+    let previousPostWeightKg: Double?
 
     enum CodingKeys: String, CodingKey {
         case attendingPhysician = "attending_physician"
@@ -241,6 +245,7 @@ struct FlowsheetCarriedForward: Codable {
         case cyclerNumber = "cycler_number"
         case warmerSerial = "warmer_serial"
         case controlPanelSerial = "control_panel_serial"
+        case previousPostWeightKg = "previous_post_weight_kg"
     }
 }
 
