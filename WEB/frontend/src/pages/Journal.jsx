@@ -14,7 +14,10 @@ const shiftDay = (d, n) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt
 const MOOD_LABELS = { 1: 'Very Low', 2: 'Low', 3: 'Below Average', 4: 'Slightly Low', 5: 'Neutral', 6: 'Slightly Good', 7: 'Good', 8: 'Very Good', 9: 'Excellent', 10: 'Outstanding' };
 const MOOD_COLOR = (s) => s >= 8 ? '#22c55e' : s >= 6 ? '#3b82f6' : s >= 4 ? '#f59e0b' : '#ef4444';
 
-const EMPTY = { entry_date: todayStr(), mood_score: 7, energy_level: '', notes: '', tags: '' };
+// The slider's resting position is NEUTRAL, not 7/10 "Good". An entry nobody
+// scored should read as the middle of the scale — claiming a good day on the
+// patient's behalf is what made "exhausted and fatigued" come out as Good.
+const EMPTY = { entry_date: todayStr(), mood_score: 5, energy_level: '', notes: '', tags: '' };
 
 export default function Journal() {
   const navigate = useNavigate();
@@ -23,6 +26,39 @@ export default function Journal() {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...EMPTY, entry_date: todayStr() });
+  // Whether the number came from the person or from a default nobody chose.
+  // The form used to pre-fill 7/10 — "Good" — and save that for anyone who
+  // wrote their entry without dragging the slider, so "exhausted and fatigued"
+  // was filed as Good. A default is not a measurement.
+  const [moodTouched, setMoodTouched] = useState(false);
+  const [moodSuggestion, setMoodSuggestion] = useState(null);  // { mood_score, rationale, available }
+  const [suggestingMood, setSuggestingMood] = useState(false);
+
+  /* Ask the model to read the entry and propose a score. It only ever
+     proposes: the number lands on the slider with the reason beside it and the
+     user still presses save, so a wrong read is visible instead of silent. */
+  const suggestMood = async () => {
+    const notes = form.notes.trim();
+    if (!notes || suggestingMood) return;
+    setSuggestingMood(true);
+    try {
+      const { data } = await api.post('/mood/suggest-score', { notes });
+      setMoodSuggestion(data);
+      if (data.available && data.mood_score) {
+        setForm(prev => ({
+          ...prev,
+          mood_score: data.mood_score,
+          energy_level: prev.energy_level || (data.energy_level ?? ''),
+        }));
+      }
+    } catch {
+      // Unreachable is not a score. Say so and leave the slider to the user.
+      setMoodSuggestion({ available: false,
+        rationale: 'Scoring is unavailable right now — set the slider yourself.' });
+    } finally {
+      setSuggestingMood(false);
+    }
+  };
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async (d) => {
@@ -40,16 +76,27 @@ export default function Journal() {
     if (nd > todayStr()) return; // no future
     setSelDate(nd);
     setShowForm(false);
+    resetMoodProvenance();
   }
 
   function openForm() {
     setForm({ ...EMPTY, entry_date: selDate });
+    resetMoodProvenance();
     setShowForm(true);
+  }
+
+  /* A new entry starts with no score and no explanation of one. Carrying the
+     last entry's suggestion forward would attach yesterday's reasoning to
+     today's words. */
+  function resetMoodProvenance() {
+    setMoodTouched(false);
+    setMoodSuggestion(null);
   }
 
   // Prompt Hub hand-off: open a new journal entry pre-filled with the prompt text.
   usePromptPrefill((prefill) => {
     setForm({ ...EMPTY, entry_date: selDate, notes: prefill.text || prefill.notes || '' });
+    resetMoodProvenance();
     setShowForm(true);
   });
 
@@ -115,11 +162,29 @@ export default function Journal() {
                 How are you feeling? ({form.mood_score}/10 — {MOOD_LABELS[form.mood_score] || ''})
               </label>
               <input type="range" min="1" max="10" value={form.mood_score}
-                onChange={e => setForm({ ...form, mood_score: Number(e.target.value) })}
+                onChange={e => { setMoodTouched(true); setMoodSuggestion(null);
+                                 setForm({ ...form, mood_score: Number(e.target.value) }); }}
                 style={{ width: '100%', accentColor: MOOD_COLOR(form.mood_score) }}/>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.68rem', color: 'var(--color-text-tertiary)' }}>
                 <span>1 — Very Low</span><span>10 — Outstanding</span>
               </div>
+              {/* Provenance: say where the number came from, always. */}
+              {moodSuggestion?.available && moodSuggestion.mood_score ? (
+                <div style={{ fontSize: '.72rem', color: 'var(--color-text-secondary)', marginTop: '.35rem' }}>
+                  Read from what you wrote: <strong>{moodSuggestion.mood_score}/10</strong>
+                  {moodSuggestion.rationale ? ` — ${moodSuggestion.rationale}` : ''}
+                  {' '}Drag the slider if that is not right.
+                </div>
+              ) : moodSuggestion && !moodSuggestion.available ? (
+                <div style={{ fontSize: '.72rem', color: '#f59e0b', marginTop: '.35rem' }}>
+                  {moodSuggestion.rationale}
+                </div>
+              ) : !moodTouched && (
+                <div style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)', marginTop: '.35rem' }}>
+                  Neutral by default — write below and this is scored from your
+                  own words, or drag the slider.
+                </div>
+              )}
             </div>
             <div style={{ marginBottom: '.75rem' }}>
               <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>Energy Level (1–10)</label>
@@ -132,8 +197,16 @@ export default function Journal() {
               <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>Write your thoughts…</label>
               <textarea className="form-input" rows={5} value={form.notes}
                 onChange={e => setForm({ ...form, notes: e.target.value })}
+                onBlur={() => { if (!moodTouched) suggestMood(); }}
                 placeholder="How was your day? Any symptoms, reflections, or things you're grateful for?"
                 style={{ resize: 'vertical', fontFamily: 'inherit' }}/>
+              {form.notes.trim() && (
+                <button type="button" onClick={suggestMood} disabled={suggestingMood}
+                  style={{ marginTop: '.35rem', background: 'none', border: 'none', padding: 0,
+                           cursor: 'pointer', color: 'var(--color-primary)', fontSize: '.72rem', fontWeight: 600 }}>
+                  {suggestingMood ? 'Reading your entry…' : 'Score this from what I wrote'}
+                </button>
+              )}
             </div>
             <div style={{ marginBottom: '.75rem' }}>
               <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>Tags (comma-separated, optional)</label>

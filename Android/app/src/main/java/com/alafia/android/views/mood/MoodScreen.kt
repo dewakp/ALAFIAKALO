@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.MoodEntry
 import com.alafia.android.schemas.MoodEntryRequest
+import com.alafia.android.schemas.MoodScoreRequest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -206,6 +207,8 @@ fun AddMoodDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
     var gratitude by remember { mutableStateOf("") }
     var journalEntry by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
+    var moodRationale by remember { mutableStateOf<String?>(null) }
+    var scoring by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -231,7 +234,14 @@ fun AddMoodDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
 
             // Mood slider
             Text("Mood: $moodScore/10", fontWeight = FontWeight.SemiBold)
-            Slider(value = moodScore.toFloat(), onValueChange = { moodScore = it.toInt() }, valueRange = 1f..10f, steps = 8)
+            Slider(value = moodScore.toFloat(),
+                onValueChange = { moodRationale = null; moodScore = it.toInt() },
+                valueRange = 1f..10f, steps = 8)
+            // Provenance: say where the number came from, always.
+            moodRationale?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
 
             // Energy slider
             Text("Energy: $energyLevel/10", fontWeight = FontWeight.SemiBold)
@@ -286,6 +296,39 @@ fun AddMoodDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
                 label = { Text("Journal entry") }, modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
+            /* Read the entry and propose a score for it. It only ever proposes:
+               the number lands on the slider with its reason beside it and the
+               user still presses save, so a wrong read is visible rather than
+               silent (canon 3aj). Their own slider always wins. */
+            if (journalEntry.isNotBlank()) {
+                TextButton(
+                    onClick = {
+                        scoring = true
+                        scope.launch {
+                            try {
+                                val s = ApiClient.getApiService()
+                                    .suggestMoodScore(MoodScoreRequest(journalEntry.trim()))
+                                if (s.available && s.moodScore != null) {
+                                    moodScore = s.moodScore
+                                    s.energyLevel?.let { e -> energyLevel = e }
+                                    moodRationale = "Read from what you wrote: ${s.moodScore}/10" +
+                                        if (s.rationale.isNotBlank()) " — ${s.rationale}" else ""
+                                } else {
+                                    // Unavailable is not a score.
+                                    moodRationale = s.rationale.ifBlank {
+                                        "Scoring is unavailable — set the slider yourself." }
+                                }
+                            } catch (e: Exception) {
+                                moodRationale = "Scoring is unavailable — set the slider yourself."
+                            }
+                            scoring = false
+                        }
+                    },
+                    enabled = !scoring
+                ) {
+                    Text(if (scoring) "Reading your entry…" else "Score this from what I wrote")
+                }
+            }
             Spacer(Modifier.height(16.dp))
 
             Button(

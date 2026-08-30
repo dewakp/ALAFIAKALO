@@ -133,6 +133,8 @@ struct AddMoodSheet: View {
     @State private var triggers = ""
     @State private var copingStrategies = ""
     @State private var saving = false
+    @State private var moodRationale: String?
+    @State private var scoringMood = false
     
     var moodEmoji: String {
         let s = Int(moodScore)
@@ -164,6 +166,12 @@ struct AddMoodSheet: View {
                         Text("Mood: \(Int(moodScore))/10")
                         Slider(value: $moodScore, in: 0...10, step: 1)
                             .tint(.green)
+                            .onChange(of: moodScore) { _, _ in moodRationale = nil }
+                        // Provenance: say where the number came from, always.
+                        if let moodRationale {
+                            Text(moodRationale)
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
                     }
                     VStack(alignment: .leading) {
                         Text("Anxiety: \(Int(anxietyLevel))/10")
@@ -194,6 +202,20 @@ struct AddMoodSheet: View {
                 Section("Journal") {
                     TextField("How's your day going?", text: $notes, axis: .vertical)
                         .lineLimit(4...8)
+                    // Reads the entry and PROPOSES a score: it lands on the
+                    // slider with its reason beside it and the user still
+                    // presses Save, so a wrong read is visible, not silent
+                    // (canon 3aj — inference proposes, it never writes).
+                    if !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button {
+                            Task { await scoreFromNotes() }
+                        } label: {
+                            Text(scoringMood ? "Reading your entry…"
+                                             : "Score this from what I wrote")
+                                .font(.caption)
+                        }
+                        .disabled(scoringMood)
+                    }
                 }
                 
                 Section("Emotions & Coping") {
@@ -220,6 +242,34 @@ struct AddMoodSheet: View {
         }
     }
     
+    /// Ask the backend to read the entry and propose a score for it.
+    ///
+    /// `available == false` means the model could not be reached or answered
+    /// unusably. The slider then goes back to the user — an unreachable scorer
+    /// must never become a number.
+    private func scoreFromNotes() async {
+        let text = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !scoringMood else { return }
+        scoringMood = true
+        defer { scoringMood = false }
+        do {
+            let s: MoodScoreSuggestion = try await APIClient.shared.post(
+                "/mood/suggest-score", body: MoodScoreRequest(notes: text))
+            if s.available, let score = s.moodScore {
+                moodScore = Double(score)
+                if let energy = s.energyLevel { energyLevel = Double(energy) }
+                moodRationale = "Read from what you wrote: \(score)/10"
+                    + (s.rationale.isEmpty ? "" : " — \(s.rationale)")
+            } else {
+                moodRationale = s.rationale.isEmpty
+                    ? "Scoring is unavailable — set the slider yourself."
+                    : s.rationale
+            }
+        } catch {
+            moodRationale = "Scoring is unavailable — set the slider yourself."
+        }
+    }
+
     private func save() {
         saving = true
         let entry = MoodEntryCreate(

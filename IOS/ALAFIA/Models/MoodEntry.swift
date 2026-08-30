@@ -71,3 +71,30 @@ struct MoodEntryCreate: Encodable {
         case journalEntry = "journal_entry"
     }
 }
+
+// MARK: - AI-proposed mood score
+
+struct MoodScoreRequest: Encodable {
+    let notes: String
+}
+
+/// A PROPOSED mood score, read from what the patient wrote.
+///
+/// The web form used to pre-fill 7/10 — "Good" — and save that for anyone who
+/// typed an entry without moving the slider, so "exhausted and fatigued" was
+/// filed as Good. This proposes a number WITH its reason; the user still saves.
+///
+/// `available == false` means the model was unreachable or unusable. That is
+/// not a score: the client falls back to asking, never to a made-up value.
+struct MoodScoreSuggestion: Decodable {
+    let moodScore: Int?
+    let energyLevel: Int?
+    let rationale: String
+    let available: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case moodScore = "mood_score"
+        case energyLevel = "energy_level"
+        case rationale, available
+    }
+}
