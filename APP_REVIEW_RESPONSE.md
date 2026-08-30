@@ -47,6 +47,20 @@ than to a person. A representative request captured in full:
                   record [id]. [name] put me on calcitriol 0.5 mcg.
                   My potassium was 5.2..."
 
+**Meal photographs are the one case where an image leaves.** A photo the user
+takes to estimate nutrition is analysed first by ALAFIA's own self-hosted vision
+model. If that model is unavailable, the photo is sent to OpenAI's vision API
+instead. Nothing accompanies it but a fixed food-recognition instruction — no
+subject token, no name, no notes the user typed, and no other field from their
+record. The provider receives an unlabelled photograph of a plate of food and
+returns a list of foods.
+
+The photo is kept with that meal in the user's own record, so they and any
+clinician they have chosen to share with can open the entry later and see it.
+Using those photos to train ALAFIA's shared food-recognition model is a separate
+question, is off by default, and happens only if the user turns on collective
+insights in Privacy Settings.
+
 Providers are used under their API terms, which do not permit training on
 submitted data, and no user data is used to train any third party's models.
 

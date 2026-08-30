@@ -27,7 +27,7 @@ const COLLECTED = [
   {
     icon: '📷',
     title: 'Photos you attach',
-    desc: 'Meal photos you add so ALAFIA can estimate nutrition, and any documents you upload such as lab reports.',
+    desc: 'Meal photos you add so ALAFIA can estimate nutrition, and any documents you upload such as lab reports. A meal photo is read first by ALAFIA\'s own vision model; if that is unavailable it is sent to a third-party vision provider with nothing attached to it — no name, no account, no notes.',
   },
   {
     icon: '📝',
@@ -130,9 +130,15 @@ export default function Privacy() {
 
         <h3>Improving ALAFIA</h3>
         <p>
-          Meal photos and their corrections can help ALAFIA get better at recognising food. This is
-          <strong> off by default</strong>. Your photos are only retained for that purpose if you
-          explicitly turn on collective insights in Privacy Settings, and turning it off stops it.
+          A meal photo you take is kept with that meal, so you — and any clinician you have chosen
+          to share with — can open the entry later and see what was actually eaten. That is part of
+          your own record.
+        </p>
+        <p>
+          Using those photos to <strong>train a shared model</strong> is a separate question, and it
+          is <strong>off by default</strong>. Your photos and corrections only help ALAFIA get
+          better at recognising food for everyone if you explicitly turn on collective insights in
+          Privacy Settings, and turning it off stops it.
         </p>
 
         <h3>Children and families</h3>

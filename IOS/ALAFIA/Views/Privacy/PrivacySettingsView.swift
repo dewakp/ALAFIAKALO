@@ -21,7 +21,9 @@ struct PrivacySettingsView: View {
                     .onChange(of: viewModel.settings.allowCollectiveInsights) { oldValue, newValue in
                         viewModel.updateSetting(key: "allow_collective_insights", value: newValue)
                     }
-                Text("Share anonymized data to improve AI recommendations for everyone")
+                Text("Let your meal photos and corrections train ALAFIA's food recognition "
+                     + "for everyone. Your photos stay with your meals either way — this only "
+                     + "controls whether they improve the shared model.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 

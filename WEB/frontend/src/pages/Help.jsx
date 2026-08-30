@@ -66,9 +66,9 @@ const FAQ = [
     a: (
       <>
         You, and whoever you deliberately share it with. Sharing with a clinician is something you
-        switch on per recipient, and it can be switched off again. Meal photos are only kept for
-        model training if you have opted in to collective insights — that setting is off unless you
-        turn it on.
+        switch on per recipient, and it can be switched off again. A meal photo stays with your meal
+        so you can see it later; it is only used to train a shared model if you have opted in to
+        collective insights — that setting is off unless you turn it on.
       </>
     ),
   },

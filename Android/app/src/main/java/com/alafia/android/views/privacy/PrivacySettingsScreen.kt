@@ -100,7 +100,9 @@ fun PrivacySettingsScreen(
                     
                     SwitchSetting(
                         title = "Collective Insights",
-                        description = "Contribute to anonymized health trends and insights",
+                        description = "Let your meal photos and corrections train ALAFIA's " +
+                            "food recognition for everyone. Your photos stay with your meals " +
+                            "either way — this only controls whether they improve the shared model.",
                         checked = currentSettings.allowCollectiveInsights,
                         onCheckedChange = { updateSetting("allow_collective_insights", it) }
                     )
