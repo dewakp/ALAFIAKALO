@@ -317,6 +317,36 @@ data class VisionItem(
 )
 
 /** One corrected food sent back as ground truth for the Phase 5 classifier. */
+/**
+ * One nutrient as the backend describes it — name, unit, USDA FoodData Central
+ * id, and THIS patient's own goal.
+ *
+ * The diary showed a handful from a list written into the screen. The backend
+ * holds 116 with their USDA ids, so the list lives there and the screen renders
+ * whatever it is given.
+ */
+data class NutrientCatalogItem(
+    val key: String,
+    val name: String,
+    val unit: String,
+    @SerializedName("usda_id") val usdaId: Int? = null,
+    val rda: Double? = null,
+    val category: String,
+    /** This patient's own daily figure, not a general-population reference. */
+    val goal: Double? = null,
+    /** "target" (aim to reach) or "limit" (stay under). */
+    @SerializedName("goal_kind") val goalKind: String? = null
+)
+
+data class NutrientCatalogPage(
+    val items: List<NutrientCatalogItem> = emptyList(),
+    val page: Int = 1,
+    @SerializedName("page_size") val pageSize: Int = 25,
+    val total: Int = 0,
+    @SerializedName("total_pages") val totalPages: Int = 1,
+    val categories: List<String> = emptyList()
+)
+
 data class MoodScoreRequest(val notes: String)
 
 /**

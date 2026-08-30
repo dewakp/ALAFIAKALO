@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -35,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import com.alafia.android.api.ApiClient
 import com.alafia.android.util.ErrorUtil
 import com.alafia.android.models.*
+import com.alafia.android.schemas.NutrientCatalogItem
 import com.alafia.android.schemas.NutritionLogRequest
 import com.alafia.android.schemas.VisionItem
 import com.alafia.android.schemas.VisionFeedbackItem
@@ -349,6 +351,164 @@ private fun MealPhotoDialog(mediaPath: String, title: String, onDismiss: () -> U
     )
 }
 
+/**
+ * Every nutrient value this log carries, keyed the way the catalog keys them.
+ *
+ * Built by serialising the model rather than listing 41 properties by hand: a
+ * column added upstream turns up here with no second list to keep in step.
+ */
+private fun NutritionLog.nutrientValues(): Map<String, Double> {
+    val out = mutableMapOf<String, Double>()
+    runCatching {
+        val obj = com.google.gson.Gson().toJsonTree(this).asJsonObject
+        for ((k, v) in obj.entrySet()) {
+            if (v.isJsonPrimitive && v.asJsonPrimitive.isNumber) out[k] = v.asDouble
+        }
+    }
+    extendedNutrients?.forEach { (k, v) -> out[k] = v.toDouble() }
+    return out
+}
+
+/**
+ * Every nutrient recorded for one meal, paginated.
+ *
+ * The diary showed a handful from a literal in the screen. The backend holds a
+ * 116-nutrient catalog carrying each one's USDA FoodData Central id, and a log
+ * carries ~109 values across its typed columns and `extended_nutrients` — so
+ * most were unreachable on this client.
+ *
+ * Names, units, categories and thresholds all come from
+ * /nutrition/nutrient-catalog, which computes the goal for THIS patient.
+ */
+@Composable
+private fun NutrientPanel(log: NutritionLog) {
+    var catalog by remember { mutableStateOf<List<NutrientCatalogItem>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var category by remember { mutableStateOf<String?>(null) }
+    var page by remember { mutableIntStateOf(0) }
+    val pageSize = 12
+
+    LaunchedEffect(Unit) {
+        try {
+            catalog = ApiClient.getApiService().getNutrientCatalog().items
+        } catch (e: Exception) {
+            // Falling back to raw keys would show "fa_20_5_epa_g" to a patient
+            // as though that were the nutrient's name.
+            loadError = "Could not load the nutrient reference."
+        }
+        loading = false
+    }
+
+    val values = remember(log.id) { log.nutrientValues() }
+    // An absent nutrient is not zero — it was never measured for this food.
+    val present = catalog.mapNotNull { item ->
+        values[item.key]?.let { item to it }
+    }
+    val filtered = if (category == null) present else present.filter { it.first.category == category }
+    val totalPages = maxOf(1, kotlin.math.ceil(filtered.size / pageSize.toDouble()).toInt())
+    val safePage = page.coerceIn(0, totalPages - 1)
+    val window = filtered.drop(safePage * pageSize).take(pageSize)
+
+    Column(Modifier.padding(top = 6.dp)) {
+        when {
+            loading -> Text("Loading nutrients…", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+            loadError != null -> Text(loadError!!, style = MaterialTheme.typography.bodySmall,
+                                      color = MaterialTheme.colorScheme.error)
+            present.isEmpty() -> Text("No nutrient values recorded for this meal yet.",
+                                      style = MaterialTheme.typography.bodySmall,
+                                      color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> {
+                Row(Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    NutrientChip("All (${present.size})", category == null) { category = null; page = 0 }
+                    present.map { it.first.category }.distinct().sorted().forEach { c ->
+                        NutrientChip(c, category == c) { category = c; page = 0 }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                window.forEach { (item, value) ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(item.name, style = MaterialTheme.typography.bodySmall,
+                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row {
+                            Text(formatNutrient(value, item.unit),
+                                 style = MaterialTheme.typography.bodySmall,
+                                 fontWeight = FontWeight.SemiBold,
+                                 color = nutrientTone(item, value))
+                            item.goal?.let {
+                                Text(" / " + formatNutrient(it, null),
+                                     style = MaterialTheme.typography.bodySmall,
+                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+                if (totalPages > 1) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        TextButton(onClick = { page = safePage - 1 }, enabled = safePage > 0,
+                                   contentPadding = PaddingValues(4.dp)) { Text("‹ Prev", fontSize = 11.sp) }
+                        Text("Page ${safePage + 1} of $totalPages · ${filtered.size} nutrients",
+                             style = MaterialTheme.typography.labelSmall,
+                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(onClick = { page = safePage + 1 }, enabled = safePage < totalPages - 1,
+                                   contentPadding = PaddingValues(4.dp)) { Text("Next ›", fontSize = 11.sp) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NutrientChip(label: String, active: Boolean, onClick: () -> Unit) {
+    Text(
+        label, fontSize = 10.sp,
+        color = if (active) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .background(
+                if (active) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    )
+}
+
+/** Coloured against the patient's OWN figure, or neutral when they have none. */
+@Composable
+private fun nutrientTone(item: NutrientCatalogItem, value: Double): Color {
+    val goal = item.goal ?: return MaterialTheme.colorScheme.onSurface
+    if (goal <= 0) return MaterialTheme.colorScheme.onSurface
+    val ratio = value / goal
+    return if (item.goalKind == "limit") {
+        when {
+            ratio > 1.0 -> Color(0xFFDC2626)
+            ratio > 0.8 -> Color(0xFFD97706)
+            else -> Color(0xFF16A34A)
+        }
+    } else {
+        when {
+            ratio >= 0.8 -> Color(0xFF16A34A)
+            ratio >= 0.4 -> Color(0xFFD97706)
+            else -> Color(0xFFDC2626)
+        }
+    }
+}
+
+private fun formatNutrient(value: Double, unit: String?): String {
+    val rounded = if (value >= 100) Math.round(value).toDouble() else Math.round(value * 100) / 100.0
+    val number = if (rounded == Math.floor(rounded)) rounded.toInt().toString()
+                 else String.format("%.2f", rounded)
+    return if (unit.isNullOrEmpty()) number else "$number $unit"
+}
+
 // ─── Nutrition Log Card ───
 
 @Composable
@@ -359,6 +519,7 @@ private fun NutritionLogCard(
     onEdit: () -> Unit = {},
 ) {
     var showPhoto by remember { mutableStateOf(false) }
+    var showNutrients by remember { mutableStateOf(false) }
     if (showPhoto) {
         MealPhotoDialog(mediaPath = log.foodImageUris ?: "", title = log.foodName) { showPhoto = false }
     }
@@ -428,6 +589,14 @@ private fun NutritionLogCard(
                 log.fatG?.let { NutrientPill("F", it, Color(0xFFEF4444)) }
                 log.fiberG?.let { NutrientPill("Fiber", it, Color(0xFF78350F)) }
             }
+
+            // Collapsed by default: a day holds several meals and each carries
+            // ~109 nutrient values.
+            TextButton(onClick = { showNutrients = !showNutrients },
+                       contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)) {
+                Text(if (showNutrients) "Hide all nutrients" else "All nutrients", fontSize = 11.sp)
+            }
+            if (showNutrients) NutrientPanel(log)
         }
     }
 }

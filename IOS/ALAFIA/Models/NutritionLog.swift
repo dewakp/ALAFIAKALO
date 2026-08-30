@@ -368,3 +368,70 @@ struct GoalProgressResponse: Codable {
 }
 
 
+
+// MARK: - Nutrient catalog
+
+/// One nutrient as the backend describes it — name, unit, USDA FoodData
+/// Central id, and THIS patient's own goal.
+///
+/// The diary used to show a handful of nutrients from a list written into the
+/// screen, with fixed colour thresholds applied to every patient. The backend
+/// holds 116 with their USDA ids, so the list belongs there and the screen
+/// renders whatever it is given.
+struct NutrientCatalogItem: Codable, Identifiable {
+    let key: String
+    let name: String
+    let unit: String
+    let usdaId: Int?
+    let rda: Double?
+    let category: String
+    /// This patient's own daily figure, not a general-population reference.
+    let goal: Double?
+    /// "target" (aim to reach) or "limit" (stay under).
+    let goalKind: String?
+
+    var id: String { key }
+
+    enum CodingKeys: String, CodingKey {
+        case key, name, unit, rda, category, goal
+        case usdaId = "usda_id"
+        case goalKind = "goal_kind"
+    }
+}
+
+struct NutrientCatalogPage: Codable {
+    let items: [NutrientCatalogItem]
+    let page: Int
+    let pageSize: Int
+    let total: Int
+    let totalPages: Int
+    let categories: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case items, page, total, categories
+        case pageSize = "page_size"
+        case totalPages = "total_pages"
+    }
+}
+
+extension NutritionLog {
+    /// Every nutrient value this log carries, keyed the way the catalog keys
+    /// them.
+    ///
+    /// Built by re-encoding through the existing `CodingKeys` rather than
+    /// listing 41 properties by hand: a column added upstream turns up here
+    /// with no second list to keep in step.
+    var nutrientValues: [String: Double] {
+        var out: [String: Double] = [:]
+        if let data = try? JSONEncoder().encode(self),
+           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            for (key, raw) in obj {
+                if let number = raw as? NSNumber, !(raw is Bool) {
+                    out[key] = number.doubleValue
+                }
+            }
+        }
+        for (key, value) in extendedNutrients ?? [:] { out[key] = value }
+        return out
+    }
+}

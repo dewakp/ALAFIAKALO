@@ -546,6 +546,7 @@ struct NutritionRow: View {
     let log: NutritionLog
     var onTapUSDA: () -> Void = {}
     @State private var showPhoto = false
+    @State private var showNutrients = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -595,6 +596,21 @@ struct NutritionRow: View {
                 if let s = log.servingSize {
                     Text("· \(s)").font(.caption).foregroundStyle(.tertiary)
                 }
+            }
+            // Collapsed by default: a day holds several meals and each carries
+            // ~109 nutrient values.
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { showNutrients.toggle() }
+            } label: {
+                Text(showNutrients ? "Hide all nutrients" : "All nutrients")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 2)
+
+            if showNutrients {
+                NutrientPanelView(log: log)
             }
         }
         .padding(.vertical, 4)
@@ -1249,6 +1265,181 @@ struct EditMealSheet: View {
             }
             .onAppear { if description.isEmpty { description = log.foodName } }
         }
+    }
+}
+
+/// Every nutrient recorded for one meal, paginated.
+///
+/// The diary showed a handful from a list written into the screen. The backend
+/// holds a 116-nutrient catalog carrying each one's USDA FoodData Central id,
+/// and a log carries ~109 values across its typed columns and
+/// `extended_nutrients` — so most of them were unreachable on this client.
+///
+/// Names, units, categories and thresholds all come from
+/// `/nutrition/nutrient-catalog`, which computes the goal for THIS patient.
+/// Nothing about which nutrients exist is decided here.
+struct NutrientPanelView: View {
+    let log: NutritionLog
+
+    @State private var catalog: [NutrientCatalogItem] = []
+    @State private var loadError: String?
+    @State private var loading = true
+    @State private var category: String?
+    @State private var page = 0
+
+    private let pageSize = 12
+
+    /// Only nutrients this meal actually has a value for. An absent nutrient is
+    /// not zero — it was never measured for this food.
+    private var present: [(item: NutrientCatalogItem, value: Double)] {
+        let values = log.nutrientValues
+        return catalog.compactMap { item in
+            guard let v = values[item.key] else { return nil }
+            return (item, v)
+        }
+    }
+
+    private var filtered: [(item: NutrientCatalogItem, value: Double)] {
+        guard let category else { return present }
+        return present.filter { $0.item.category == category }
+    }
+
+    private var categories: [String] {
+        Array(Set(present.map(\.item.category))).sorted()
+    }
+
+    private var totalPages: Int {
+        max(1, Int(ceil(Double(filtered.count) / Double(pageSize))))
+    }
+
+    private var window: [(item: NutrientCatalogItem, value: Double)] {
+        let start = min(page, totalPages - 1) * pageSize
+        return Array(filtered.dropFirst(start).prefix(pageSize))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if loading {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text("Loading nutrients…").font(.caption).foregroundStyle(.secondary)
+                }
+            } else if let loadError {
+                // A failed catalog fetch must say so. Falling back to raw keys
+                // would show "fa_20_5_epa_g" to a patient as though it were a name.
+                Text(loadError).font(.caption).foregroundStyle(.orange)
+            } else if present.isEmpty {
+                Text("No nutrient values recorded for this meal yet.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                categoryChips
+                nutrientGrid
+                if totalPages > 1 { pager }
+            }
+        }
+        .task { await load() }
+    }
+
+    private var categoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                chip("All (\(present.count))", active: category == nil) {
+                    category = nil; page = 0
+                }
+                ForEach(categories, id: \.self) { name in
+                    chip(name, active: category == name) { category = name; page = 0 }
+                }
+            }
+        }
+    }
+
+    private func chip(_ label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.caption2)
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .background(active ? Color.accentColor : Color.secondary.opacity(0.15))
+                .foregroundStyle(active ? .white : .secondary)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var nutrientGrid: some View {
+        VStack(spacing: 4) {
+            ForEach(window, id: \.item.key) { row in
+                HStack {
+                    Text(row.item.name)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(format(row.value, unit: row.item.unit))
+                        .font(.caption.monospaced())
+                        .foregroundStyle(tone(for: row.item, value: row.value))
+                    if let goal = row.item.goal {
+                        Text("/ \(format(goal, unit: nil))")
+                            .font(.caption2).foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(.vertical, 3).padding(.horizontal, 6)
+                .background(Color.secondary.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                // The USDA id makes the figure traceable to its source.
+                .accessibilityLabel(row.item.usdaId.map {
+                    "\(row.item.name), USDA nutrient \($0)" } ?? row.item.name)
+            }
+        }
+    }
+
+    private var pager: some View {
+        HStack(spacing: 10) {
+            Button("‹ Prev") { page = max(0, page - 1) }
+                .disabled(page == 0)
+            Text("Page \(min(page, totalPages - 1) + 1) of \(totalPages) · \(filtered.count) nutrients")
+                .font(.caption2).foregroundStyle(.secondary)
+            Button("Next ›") { page = min(totalPages - 1, page + 1) }
+                .disabled(page >= totalPages - 1)
+        }
+        .font(.caption2)
+        .buttonStyle(.plain)
+        .foregroundStyle(Color.accentColor)
+    }
+
+    /// Coloured against the patient's OWN figure, or neutral when they have none.
+    private func tone(for item: NutrientCatalogItem, value: Double) -> Color {
+        guard let goal = item.goal, goal > 0 else { return .primary }
+        let ratio = value / goal
+        if item.goalKind == "limit" {
+            if ratio > 1 { return .red }
+            if ratio > 0.8 { return .orange }
+            return .green
+        }
+        if ratio >= 0.8 { return .green }
+        if ratio >= 0.4 { return .orange }
+        return .red
+    }
+
+    private func format(_ value: Double, unit: String?) -> String {
+        let rounded = value >= 100 ? (value).rounded() : (value * 100).rounded() / 100
+        let number = rounded == rounded.rounded()
+            ? String(Int(rounded)) : String(format: "%.2f", rounded)
+        guard let unit, !unit.isEmpty else { return number }
+        return "\(number) \(unit)"
+    }
+
+    private func load() async {
+        guard catalog.isEmpty else { return }
+        do {
+            // page_size covers the whole catalog in one call; the endpoint is
+            // paginated so a larger catalog stays affordable.
+            let page: NutrientCatalogPage = try await APIClient.shared.get(
+                "/nutrition/nutrient-catalog?page=1&page_size=200")
+            catalog = page.items
+        } catch {
+            loadError = "Could not load the nutrient reference."
+        }
+        loading = false
     }
 }
 

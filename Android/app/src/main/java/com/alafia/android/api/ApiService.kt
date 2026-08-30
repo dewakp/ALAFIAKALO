@@ -94,6 +94,12 @@ interface ApiService {
         @Query("limit") limit: Int = 50
     ): List<NutritionLog>
 
+    @GET("nutrition/nutrient-catalog")
+    suspend fun getNutrientCatalog(
+        @Query("page") page: Int = 1,
+        @Query("page_size") pageSize: Int = 200,
+    ): NutrientCatalogPage
+
     @POST("mood/suggest-score")
     suspend fun suggestMoodScore(@Body request: MoodScoreRequest): MoodScoreSuggestion
 
