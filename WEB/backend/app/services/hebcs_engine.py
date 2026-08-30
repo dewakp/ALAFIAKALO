@@ -13,7 +13,7 @@ Algorithm:
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Optional
 
 
@@ -22,11 +22,16 @@ from typing import Optional
 @dataclass
 class Biomarker:
     name: str          # matches test_name in lab_results
-    crit_low: Optional[float]   # a — below this → score 0 (NaN = no lower penalty)
+    crit_low: Optional[float]   # a — below this → score 0 (None = no lower penalty)
     opt_low: float              # b — below this → linear ramp up
     opt_high: float             # c — above b and ≤ c → score 1
-    crit_high: Optional[float]  # d — above this → score 0 (NaN = no upper penalty)
+    crit_high: Optional[float]  # d — above this → score 0 (None = no upper penalty)
     weight: float = 1.0
+    #: True when a LOW value is itself a clinical finding, so the lower bound
+    #: must be anchored to the reporting lab's reference range rather than left
+    #: open. Without this a marker declared `crit_low=None, opt_low=0` scores
+    #: any value up to `opt_high` as perfect — including zero.
+    low_is_deficiency: bool = False
 
 
 @dataclass
@@ -170,7 +175,41 @@ ESRD_PATHWAYS: list[Pathway] = [
     Pathway(name="Nutritional", weight=0.15, biomarkers=[
         Biomarker("Albumin",       crit_low=1.5,  opt_low=4.0,  opt_high=5.0,  crit_high=None, weight=0.40),
         Biomarker("nPCR (Protein Catabolic Rate)", crit_low=0.5, opt_low=1.0, opt_high=1.4, crit_high=2.0, weight=0.40),
-        Biomarker("BUN",           crit_low=None, opt_low=0,    opt_high=80,   crit_high=150,  weight=0.20),
+        # BUN is a TOXICITY marker. Above 21 mg/dL urea is considered toxic, so
+        # that is the top of the optimal window — not the lab's reference
+        # ceiling of 23, and emphatically not 80.
+        #
+        # Three wrong bands preceded this one:
+        #   crit_low=None, opt_low=0, opt_high=80  — any BUN 0-80 was perfect;
+        #                                            a BUN of 5 is starvation.
+        #   opt_low=23,  opt_high=80               — asserted a PRE-dialysis 70
+        #                                            is optimal. 70 is uraemia.
+        #   opt_high=23                            — scored a residual 22 as
+        #                                            optimal. 22 is toxic.
+        #
+        # `resolve_biomarkers` prefers the POST-dialysis draw because the
+        # RESIDUAL is what the patient lives with between sessions. Clearing
+        # urea is not the same as clearing enough of it: pre-minus-post measures
+        # clearance, and URR/Kt/V already score that in Dialysis_Adequacy. A
+        # session can hit its adequacy target and still leave a toxic patient —
+        # on this record 2025-08-18 had URR 74% and a post-dialysis BUN of 25,
+        # and 8 of 11 post draws sit above 21.
+        #
+        # These numbers are a FALLBACK, used only when the lab reported no
+        # reference range. There is no single optimal BUN: 7-20 in children,
+        # 6-21 in adult females, 8-24 in adult males, and this record's lab
+        # states 9-23. `apply_reference_range` replaces the optimal window with
+        # whatever the lab actually reported for this patient, and scales the
+        # critical bounds with it — so the general-adult 7-20 below is a
+        # starting point, never an assertion about a particular person.
+        #
+        # `crit_high` is the one figure not taken from a stated range: twice the
+        # upper bound, so that exceeding it registers. With the classical
+        # uraemia ceiling of 100 the ramp spans 80 units and a residual of 31
+        # scored 0.87 — a band that calls the top of range a threshold and then
+        # treats 50% above it as near-perfect is not saying anything.
+        Biomarker("BUN", crit_low=3, opt_low=7, opt_high=20, crit_high=40,
+                  weight=0.20, low_is_deficiency=True),
     ]),
 
     Pathway(name="Dialysis_Adequacy", weight=0.10, biomarkers=[
@@ -193,8 +232,140 @@ ESRD_PATHWAYS: list[Pathway] = [
 
 # ── Public API ───────────────────────────────────────────────────────────────
 
+# ── Matching stored lab names to biomarkers ────────────────────────────────
+#
+# `compute_hebcs` used to look up `b.name` in the caller's dict verbatim, and the
+# caller keys that dict by the RAW `lab_results.test_name`. Seven of the 23
+# biomarkers could therefore never match on real data — the values were in the
+# table the whole time under a different spelling:
+#
+#     HEBC expects                      actually stored
+#     KtV (Dialysis Adequacy)           spKt/V, eKt/V, stdKt/V …
+#     URR (Urea Reduction Ratio)        URR, URR%
+#     nPCR (Protein Catabolic Rate)     nPCR, NPCR
+#     CO2 (Bicarbonate)                 CO2
+#     Iron (Serum)                      Iron
+#     Iron Saturation (TSAT)            Iron Saturation
+#
+# The effect was worst where it matters most: **Dialysis_Adequacy matched
+# nothing at all** on a patient with 730 sessions, so the one pathway that says
+# whether dialysis is working was silently dropped from a score still presented
+# as whole. Nutritional lost nPCR — 40% of its weight — leaving albumin and BUN
+# to renormalise to ~100% for a patient who may well be malnourished.
+#
+# Matching is by shape, not by a per-name list: a name is normalised to its
+# letters and digits, and each biomarker is also indexed by its pre-parenthesis
+# base and its parenthetical. Only genuinely different WORDS need an alias.
+
+_OVERGENERIC = {"serum", "intact", "dialysisadequacy", "ureareductionratio",
+                "proteincatabolicrate"}
+
+#: Different words for the same analyte. Deliberately small.
+_SYNONYMS = {
+    # Delivered single-pool Kt/V. NOT `KT/V PRESCRIBED` (that is the
+    # prescription, not what the patient received — the same trap as
+    # therapy_sessions.blood_flow_rate being a flat 350), and NOT eKt/V or
+    # stdKt/V, whose adequacy targets are different numbers on different scales.
+    # The POST-dialysis draw is the value comparable to a normal reference
+    # range; the pre-dialysis one is the uraemic burden before treatment.
+    "bunpost": "BUN",
+    "bunp": "BUN",
+    "spktv": "KtV (Dialysis Adequacy)",
+    "ktv": "KtV (Dialysis Adequacy)",
+    "tsat": "Iron Saturation (TSAT)",
+    "transferrinsaturation": "Iron Saturation (TSAT)",
+    "hco3": "CO2 (Bicarbonate)",
+    "bicarbonate": "CO2 (Bicarbonate)",
+    "pcr": "nPCR (Protein Catabolic Rate)",
+}
+
+
+def _norm(name: str) -> str:
+    """Letters and digits only, lowercased: 'URR%' and 'urr' become one key."""
+    return "".join(ch for ch in str(name).lower() if ch.isalnum())
+
+
+def resolve_biomarkers(raw: dict[str, float],
+                       pathways: list[Pathway] | None = None) -> dict[str, float]:
+    """Map stored lab names onto canonical biomarker names.
+
+    An unrecognised name is passed through unchanged rather than dropped, so a
+    caller that already speaks canonical names is unaffected. Where several
+    stored names resolve to one biomarker the first is kept — callers hand us
+    the most recent value per analyte already.
+    """
+    if pathways is None:
+        pathways = ESRD_PATHWAYS
+
+    index: dict[str, str] = {}
+    for p in pathways:
+        for b in p.biomarkers:
+            base, sep, rest = b.name.partition("(")
+            keys = {_norm(b.name), _norm(base)}
+            if sep:
+                paren = _norm(rest.rstrip(")"))
+                if paren and paren not in _OVERGENERIC:
+                    keys.add(paren)
+            for k in keys:
+                if k and k not in _OVERGENERIC:
+                    index.setdefault(k, b.name)
+    for alias, canonical in _SYNONYMS.items():
+        index.setdefault(alias, canonical)
+
+    #: Where two stored names resolve to one biomarker, these win. Order in the
+    #: caller's dict is arbitrary, so `setdefault` alone would pick whichever
+    #: happened to come first — and for BUN that decides whether the score sees
+    #: 71.6 (pre-dialysis uraemia) or 20.4 (post, inside the reference range).
+    preferred = {"bunpost", "bunp"}
+
+    resolved: dict[str, float] = {}
+    claimed_by_preferred: set[str] = set()
+    for name, value in (raw or {}).items():
+        if value is None:
+            continue
+        key = _norm(name)
+        canonical = index.get(key, name)
+        if key in preferred:
+            resolved[canonical] = value
+            claimed_by_preferred.add(canonical)
+        elif canonical not in claimed_by_preferred:
+            resolved.setdefault(canonical, value)
+    return resolved
+
+
+def apply_reference_range(b: Biomarker,
+                          ref: tuple[float | None, float | None]) -> Biomarker:
+    """Re-anchor a biomarker's optimal window to a REPORTED reference range.
+
+    There is no single optimal BUN. The normal range is 7-20 in children, 6-21
+    in adult females and 8-24 in adult males, and a reporting lab states its own
+    (9-23 on this record). Writing one number into the band picks a population
+    the patient may not belong to — an earlier attempt used 21, which is the
+    adult FEMALE ceiling, for a male patient.
+
+    So the lab's own range becomes the optimal window, and the critical bounds
+    scale with it, preserving the margins the static band expressed. A biomarker
+    with no reported range keeps its published definition.
+    """
+    low, high = ref
+    if low is None or high is None or low <= 0 or high <= low:
+        return b
+
+    crit_low = b.crit_low
+    if crit_low is not None and b.opt_low:
+        crit_low = round(low * (b.crit_low / b.opt_low), 3)
+    crit_high = b.crit_high
+    if crit_high is not None and b.opt_high:
+        crit_high = round(high * (b.crit_high / b.opt_high), 3)
+
+    return replace(b, crit_low=crit_low, opt_low=float(low),
+                   opt_high=float(high), crit_high=crit_high)
+
+
 def compute_hebcs(biomarker_values: dict[str, float],
-                  pathways: list[Pathway] = None) -> dict:
+                  pathways: list[Pathway] = None,
+                  derived_values: dict[str, float] | None = None,
+                  reference_ranges: dict[str, tuple[float | None, float | None]] | None = None) -> dict:
     """Compute HEBCS Ω and per-pathway scores from a dict of {test_name: value}.
 
     Args:
@@ -211,11 +382,48 @@ def compute_hebcs(biomarker_values: dict[str, float],
     if pathways is None:
         pathways = ESRD_PATHWAYS
 
+    biomarker_values = resolve_biomarkers(biomarker_values, pathways)
+
+    # Values COMPUTED from other labs rather than reported by one — nPCR from
+    # urea kinetics, for instance, which this lab prints as N/A on every date.
+    # They are scored, because a pathway missing 40% of its weight is worse than
+    # one carrying a clearly-labelled estimate. They are NOT counted as measured:
+    # `coverage` keeps meaning "how much of this was actually reported", and each
+    # biomarker carries its own `source`.
+    derived = {k: v for k, v in (derived_values or {}).items() if v is not None}
+    derived = resolve_biomarkers(derived, pathways)
+    for name, value in derived.items():
+        biomarker_values.setdefault(name, value)
+
+    # Ca×P is a PRODUCT, never a row in a lab report — derive it when both
+    # factors are present. Bone_Mineral was scoring without it for that reason
+    # alone, on the pathway where it is the marker of vascular calcification
+    # risk.
+    if ("CaxP Product" not in biomarker_values
+            and biomarker_values.get("Calcium") is not None
+            and biomarker_values.get("Phosphorus") is not None):
+        biomarker_values["CaxP Product"] = (
+            biomarker_values["Calcium"] * biomarker_values["Phosphorus"])
+
     all_expected = sum(len(p.biomarkers) for p in pathways)
     all_present = sum(
         1 for p in pathways for b in p.biomarkers
         if b.name in biomarker_values and biomarker_values[b.name] is not None
     )
+
+    # A range the LAB reported for this patient beats a number written here.
+    ranges = resolve_biomarkers(
+        {k: v for k, v in (reference_ranges or {}).items() if v},
+        pathways,
+    ) if reference_ranges else {}
+    if ranges:
+        pathways = [
+            Pathway(name=p.name, weight=p.weight, biomarkers=[
+                apply_reference_range(b, ranges[b.name]) if b.name in ranges else b
+                for b in p.biomarkers
+            ])
+            for p in pathways
+        ]
 
     pathway_results = {}
     for p in pathways:
@@ -230,10 +438,42 @@ def compute_hebcs(biomarker_values: dict[str, float],
                 "score": round(bs, 4) if bs is not None else None,
                 "weight": b.weight,
                 "opt_range": [b.opt_low, b.opt_high],
+                # Where the band came from. "reported" = a range the lab printed
+                # for this patient or their population; "published_band" = the
+                # framework's own figure, which is a constant and therefore not
+                # specific to anyone. Visible so a constant can never pass for a
+                # measurement.
+                "band_source": ("reported" if b.name in ranges
+                                else "published_band"),
+                # "measured" | "derived" — a computed marker must never be
+                # shown to a clinician as though a lab had reported it.
+                "source": ("derived" if b.name in derived and val is not None
+                           else ("measured" if val is not None else None)),
             })
+        # How much of this pathway's evidence was actually measured. A score
+        # renormalised over 20% of its biomarkers is not the same claim as one
+        # computed from all of them, and presenting both as a bare number is how
+        # "Nutritional 100%" reached a malnourished patient: with nPCR unmatched,
+        # albumin and BUN carried the whole pathway.
+        total_w = sum(b.weight for b in p.biomarkers) or 1.0
+        measured_w = sum(b.weight for b in p.biomarkers
+                         if biomarker_values.get(b.name) is not None
+                         and b.name not in derived)
+        derived_w = sum(b.weight for b in p.biomarkers
+                        if b.name in derived and biomarker_values.get(b.name) is not None)
         pathway_results[p.name] = {
             "score": round(s, 4) if s is not None else None,
             "weight": p.weight,
+            "coverage": round(measured_w / total_w, 3),
+            #: Coverage once computed markers are allowed to count. Reported
+            #: separately so "measured" never quietly absorbs an estimate.
+            "coverage_with_derived": round((measured_w + derived_w) / total_w, 3),
+            "measured": sum(1 for b in p.biomarkers
+                            if biomarker_values.get(b.name) is not None
+                            and b.name not in derived),
+            "derived": sum(1 for b in p.biomarkers
+                           if b.name in derived and biomarker_values.get(b.name) is not None),
+            "expected": len(p.biomarkers),
             "biomarkers": biomarker_detail,
         }
 
@@ -242,9 +482,16 @@ def compute_hebcs(biomarker_values: dict[str, float],
         pathways,
     )
 
+    # Name the pathways that contributed NOTHING. Omega is a weighted geometric
+    # mean over the pathways that scored, so an unmeasured one simply vanishes
+    # from a number still presented as whole-patient. Saying which ones were
+    # blank is the difference between a score and a claim (canon 3aa).
+    unscored = [name for name, r in pathway_results.items() if r["score"] is None]
+
     return {
         "omega": round(omega, 4),
         "omega_pct": round(omega * 100, 2),
         "pathways": pathway_results,
         "data_coverage": round(all_present / all_expected, 3) if all_expected else 0,
+        "unscored_pathways": unscored,
     }

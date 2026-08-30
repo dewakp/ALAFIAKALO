@@ -1,6 +1,7 @@
 """Models package."""
 
 from app.models.user import User
+from app.models.clinical_threshold import ClinicalThreshold
 from app.models.nutrition import NutritionLog
 from app.models.fitness import FitnessLog
 from app.models.labs import LabResult
