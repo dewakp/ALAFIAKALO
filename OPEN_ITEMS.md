@@ -274,10 +274,20 @@ and only last to the weight-derived one.
 `tests/test_dialysis_weight_validation.py` (8) and the UF cases in
 `tests/test_urea_kinetics.py`.
 
-> ⚠️ **Not fixed: the garbage is still in production.** Nine sessions carry
-> impossible weights and the dashboard average is wrong today. The validation
-> stops new ones; existing rows need a cleanup pass, and per §3ab that is a
-> delete-and-reimport decision rather than something to patch silently.
+> ✅ **Cleaned in production 2026-08-30**, `scripts/db/cleanup_impossible_weights.sh`
+> (dry-run by default; the dry run executes the identical statements and rolls
+> back, so what it prints is what `--apply` writes).
+>
+> It found **10** rows, not the 9 previously reported: id 869 carries a
+> pre-dialysis weight of 6.9 kg with no fluid figure, which a fluid-based count
+> missed. The weights and the fluid derived from them are set to NULL — the
+> SESSION stays, because the treatment happened and only the weighing was wrong.
+>
+> Selection is by physiology, using the same bounds `TherapySessionBase` now
+> enforces on the way in, so it cleaned exactly what the validation would refuse
+> today. Verified by reading the rows back, not by the COMMIT line:
+> **0 impossible weights remain**, and the clinician dashboard average is
+> **663.2 ml** where it read 608.2.
 
 ## 4h. Clinical thresholds are DATA now — CANON 2026-08-30
 
