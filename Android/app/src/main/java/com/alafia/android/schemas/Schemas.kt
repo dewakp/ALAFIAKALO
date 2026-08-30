@@ -200,7 +200,9 @@ data class NutritionLogRequest(
     @SerializedName("end_time") val endTime: String? = null,
     @SerializedName("pre_meal_weight_kg") val preMealWeightKg: Float? = null,
     @SerializedName("post_meal_weight_kg") val postMealWeightKg: Float? = null,
-    @SerializedName("recipe_url") val recipeUrl: String? = null
+    @SerializedName("recipe_url") val recipeUrl: String? = null,
+    /** API path of the photo this meal was estimated from, so history can show it. */
+    @SerializedName("food_image_uris") val foodImageUris: String? = null
 )
 
 // Medications Schemas
@@ -315,6 +317,30 @@ data class VisionItem(
 )
 
 /** One corrected food sent back as ground truth for the Phase 5 classifier. */
+data class MoodScoreRequest(val notes: String)
+
+/**
+ * A PROPOSED mood score read from what the patient wrote.
+ *
+ * `available` false means the model could not be reached or answered unusably —
+ * the slider then goes back to the user. An unreachable scorer must never
+ * become a number.
+ */
+data class MoodScoreSuggestion(
+    @SerializedName("mood_score") val moodScore: Int? = null,
+    @SerializedName("energy_level") val energyLevel: Int? = null,
+    val rationale: String = "",
+    val available: Boolean = true
+)
+
+/** One stored asset, as returned by GET /media/{id}. */
+data class MediaAssetResponse(
+    val id: Int,
+    @SerializedName("content_type") val contentType: String? = null,
+    @SerializedName("storage_url") val storageUrl: String? = null,
+    @SerializedName("image_base64") val imageBase64: String? = null
+)
+
 data class VisionFeedbackItem(
     val name: String,
     @SerializedName("estimated_grams") val estimatedGrams: Double? = null
@@ -345,7 +371,10 @@ data class AIVisionResponse(
     @SerializedName("estimated_nutrition") val estimatedNutrition: VisionNutrition? = null,
     val notes: String? = null,
     // Identifies this analysis so a correction can be posted back against it.
-    @SerializedName("sample_id") val sampleId: Int? = null
+    @SerializedName("sample_id") val sampleId: Int? = null,
+    // Where the captured photo was stored; saved onto the meal so opening it
+    // later shows the picture and not just the numbers.
+    @SerializedName("image_url") val imageUrl: String? = null
 ) {
     /** Answered from the user's own earlier label — instant and already correct. */
     val isRecall: Boolean get() = source == "learned-recall"

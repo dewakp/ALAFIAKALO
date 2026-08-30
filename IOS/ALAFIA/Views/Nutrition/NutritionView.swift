@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - ViewModel
 
@@ -36,6 +37,22 @@ final class NutritionViewModel {
     func addLog(_ log: NutritionLogCreate) async -> Bool {
         do {
             let _: NutritionLog = try await APIClient.shared.post("/nutrition/", body: log)
+            await fetchLogs()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Correct an already-logged meal.
+    ///
+    /// iOS had no update path at all — the patient could delete a meal but not
+    /// fix it, so recording "I only ate a quarter of that" was impossible.
+    func updateLog(id: Int, description: String) async -> Bool {
+        do {
+            let _: NutritionLog = try await APIClient.shared.patch(
+                "/nutrition/\(id)", body: NutritionLogUpdate(foodName: description))
             await fetchLogs()
             return true
         } catch {
@@ -237,6 +254,9 @@ struct FoodVisionResponse: Decodable {
     let source: String?
     /// Identifies this analysis so a correction can be posted back against it.
     let sampleId: Int?
+    /// Where the captured photo was stored; saved onto the meal so history can
+    /// show it. Nil when no image was retained.
+    let imageUrl: String?
 
     /// True when the backend answered from the user's own earlier label instead
     /// of running a model — instant, free, and already ground truth.
@@ -246,6 +266,7 @@ struct FoodVisionResponse: Decodable {
         case items, notes, source
         case estimatedNutrition = "estimated_nutrition"
         case sampleId = "sample_id"
+        case imageUrl = "image_url"
     }
 }
 
@@ -257,6 +278,7 @@ struct NutritionView: View {
     @State private var selectedTab = 0  // 0=log, 1=summary
     @State private var summaryDate = Date()
     @State private var detailFdcId: Int?
+    @State private var editingLog: NutritionLog?
 
     var body: some View {
         NavigationStack {
@@ -286,6 +308,11 @@ struct NutritionView: View {
             .sheet(isPresented: $showAdd) {
                 AddNutritionSheet(vm: vm)
             }
+            .sheet(item: $editingLog) { target in
+                EditMealSheet(log: target) { description in
+                    await vm.updateLog(id: target.id, description: description)
+                }
+            }
             .sheet(item: $detailFdcId) { fdcId in
                 FoodDetailSheet(vm: vm, fdcId: fdcId)
             }
@@ -306,6 +333,14 @@ struct NutritionView: View {
                     ForEach(vm.logs) { log in
                         NutritionRow(log: log) {
                             if let fdc = log.fdcId { detailFdcId = fdc }
+                        }
+                        // Swipe to correct a meal. Deleting one was already
+                        // possible; fixing it was not.
+                        .swipeActions(edge: .leading) {
+                            Button { editingLog = log } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(.blue)
                         }
                     }
                     .onDelete { indexSet in
@@ -510,11 +545,20 @@ struct DailyTargetsCard: View {
 struct NutritionRow: View {
     let log: NutritionLog
     var onTapUSDA: () -> Void = {}
+    @State private var showPhoto = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(log.foodName).font(.headline)
+                if let uri = log.foodImageUris, !uri.isEmpty {
+                    Button { showPhoto = true } label: {
+                        Image(systemName: "photo").font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("See the photo of this meal")
+                }
                 if log.fdcId != nil {
                     Button { onTapUSDA() } label: {
                         Text("USDA").font(.system(size: 9, weight: .bold))
@@ -554,6 +598,85 @@ struct NutritionRow: View {
             }
         }
         .padding(.vertical, 4)
+        .sheet(isPresented: $showPhoto) {
+            MealPhotoView(mediaPath: log.foodImageUris ?? "", title: log.foodName)
+        }
+    }
+}
+
+/// The picture a meal was estimated from.
+///
+/// Fetched when opened rather than with the list: the bytes come back base64 in
+/// the row, so loading every meal's photo up front would make the history call
+/// enormous. A failure says so — a blank sheet would read as "no photo taken",
+/// which is the empty-state lie this codebase keeps re-learning.
+struct MealPhotoView: View {
+    let mediaPath: String
+    let title: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var image: UIImage?
+    @State private var loadError: String?
+    @State private var loading = true
+
+    private struct MediaAsset: Decodable {
+        let storage_url: String?
+        let image_base64: String?
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if loading {
+                    ProgressView("Loading photo…")
+                } else if let image {
+                    ScrollView {
+                        Image(uiImage: image).resizable().scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding()
+                    }
+                } else {
+                    ContentUnavailableView("Photo unavailable",
+                                           systemImage: "exclamationmark.triangle",
+                                           description: Text(loadError ?? "Could not load this photo."))
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        // The stored value is a full API path; take the id off its tail so the
+        // call is correct whatever base URL the client is pointed at.
+        guard let id = mediaPath.split(separator: "/").last.map(String.init), !id.isEmpty else {
+            loading = false
+            loadError = "This meal has no photo reference."
+            return
+        }
+        do {
+            let asset: MediaAsset = try await APIClient.shared.get("/media/\(id)")
+            if let b64 = asset.image_base64,
+               let data = Data(base64Encoded: b64),
+               let ui = UIImage(data: data) {
+                image = ui
+            } else if let urlStr = asset.storage_url, let url = URL(string: urlStr) {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                image = UIImage(data: data)
+                if image == nil { loadError = "The stored photo could not be decoded." }
+            } else {
+                loadError = "This photo could not be read from storage."
+            }
+        } catch {
+            loadError = error.localizedDescription
+        }
+        loading = false
     }
 }
 
@@ -712,6 +835,7 @@ struct AddNutritionSheet: View {
     @State private var visionItems: [FoodVisionItem] = []
     @State private var visionEdits: [FoodVisionEdit] = []
     @State private var visionSampleId: Int?
+    @State private var visionImageUrl: String?
     @State private var visionWasRecall = false
     @State private var teachState = ""
     @State private var teaching = false
@@ -954,6 +1078,7 @@ struct AddNutritionSheet: View {
         visionItems = []
         visionEdits = []
         visionSampleId = nil
+        visionImageUrl = nil
         visionWasRecall = false
         teachState = ""
 
@@ -979,6 +1104,7 @@ struct AddNutritionSheet: View {
             // because a vision estimate is not a USDA-linked food.
             visionItems = items
             visionSampleId = result.sampleId
+            visionImageUrl = result.imageUrl
             visionWasRecall = result.isRecall
             // Seed the correction rows — editing these is what teaches ALAFIA.
             visionEdits = items.map { item in
@@ -1060,9 +1186,68 @@ struct AddNutritionSheet: View {
         log.preMealWeightKg = Double(preMealWeightKg)
         log.postMealWeightKg = Double(postMealWeightKg)
         log.recipeUrl = recipeUrl.isEmpty ? nil : recipeUrl
+        log.foodImageUris = visionImageUrl
         Task {
             if await vm.addLog(log) { dismiss() }
             saving = false
+        }
+    }
+}
+
+/// Correct a meal that was already logged.
+///
+/// The description is the whole input: the backend re-estimates from it, clears
+/// the previous nutrients and returns `nutrient_status = "pending"`, so the row
+/// shows "estimating…" instead of the old meal's numbers.
+struct EditMealSheet: View {
+    let log: NutritionLog
+    let onSave: (String) async -> Bool
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var description: String = ""
+    @State private var saving = false
+    @State private var failed = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("What did you eat?") {
+                    TextField("Meal description", text: $description, axis: .vertical)
+                        .lineLimit(3...8)
+                }
+                Section {
+                    Text("Ate part of it? Write it as a multiplier, e.g. "
+                         + "0.25 x (your meal) — every nutrient scales with it.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if failed {
+                    // An error is not a silent no-op: the correction did not land.
+                    Text("Could not save that change. Please try again.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+            .navigationTitle("Edit meal")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.disabled(saving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(saving ? "Saving…" : "Save") {
+                        saving = true
+                        Task {
+                            let ok = await onSave(
+                                description.trimmingCharacters(in: .whitespacesAndNewlines))
+                            saving = false
+                            if ok { dismiss() } else { failed = true }
+                        }
+                    }
+                    .disabled(saving || description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .onAppear { if description.isEmpty { description = log.foodName } }
         }
     }
 }

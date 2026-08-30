@@ -37,6 +37,36 @@ async def list_media(
     return result.scalars().all()
 
 
+@router.get("/{media_id}", response_model=MediaAssetResponse)
+async def get_media(
+    media_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """One stored asset, so a past meal can show the photo that was captured.
+
+    Retention is pointless without retrieval: photos were being kept and there
+    was no route that returned one — only list, create and delete. A patient
+    opening last Tuesday's meal could not see the picture behind the numbers.
+
+    Ownership is part of the lookup rather than a separate check, so another
+    user's valid id is a 404 and never a disclosure. A clinician reading a
+    shared record therefore does NOT come through here — they use
+    `/clinician-dashboard/patient/{patient_id}/media/{media_id}`, which goes through
+    `_permissions_for` so the access is authorized against the grant and the
+    patient is told their chart was opened.
+    """
+    asset = (await db.execute(
+        select(MediaAsset).where(
+            MediaAsset.id == media_id,
+            MediaAsset.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Media not found")
+    return asset
+
+
 @router.post("/upload", response_model=MediaAssetResponse, status_code=status.HTTP_201_CREATED)
 async def upload_media(
     file: UploadFile = File(...),

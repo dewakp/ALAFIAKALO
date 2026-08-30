@@ -157,6 +157,9 @@ struct NutritionLogCreate: Encodable {
     var preMealWeightKg: Double?
     var postMealWeightKg: Double?
     var recipeUrl: String?
+    /// API path of the photo this meal was estimated from, so opening the meal
+    /// later shows the picture and not just the numbers.
+    var foodImageUris: String?
 
     enum CodingKeys: String, CodingKey {
         case logDate = "log_date"
@@ -174,6 +177,21 @@ struct NutritionLogCreate: Encodable {
         case preMealWeightKg = "pre_meal_weight_kg"
         case postMealWeightKg = "post_meal_weight_kg"
         case recipeUrl = "recipe_url"
+        case foodImageUris = "food_image_uris"
+    }
+}
+
+/// Body for PATCH /nutrition/{id}.
+///
+/// Only the description is sent. The backend re-estimates from it and clears
+/// the previous nutrients, so a patient can write `0.25 x (…)` for a part
+/// portion and every nutrient scales — rather than the old numbers staying
+/// attached to the new text.
+struct NutritionLogUpdate: Encodable {
+    let foodName: String
+
+    enum CodingKeys: String, CodingKey {
+        case foodName = "food_name"
     }
 }
 

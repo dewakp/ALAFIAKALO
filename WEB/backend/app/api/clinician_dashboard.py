@@ -21,13 +21,16 @@ from app.models.chronic_conditions import (
 )
 from app.models.user import User
 from app.models.data_sharing import DataGrant, grant_covers
+from app.models.media import MediaAsset
 from app.models.vitals import VitalsLog
 from app.models.mood import MoodEntry
 from app.models.labs import LabResult
 from app.models.medications import Medication
 from app.models.user_roles import UserRoleAssignment
+from app.schemas.media import MediaAssetResponse
 from app.schemas.wellness import ClinicianDashboardResponse, PatientSummary
 from app.services import clinical_sources as sources
+from app.services import food_vision_store
 from app.services import patient_board as board
 
 logger = logging.getLogger(__name__)
@@ -241,6 +244,42 @@ async def get_patient_detail(
 # category plus the patient's current score — and opening a card gives trends
 # and the rows behind them. Both routes re-check the grant on every request:
 # a patient revoking access must take effect immediately, not at next login.
+
+@router.get("/patient/{patient_id}/media/{media_id}", response_model=MediaAssetResponse)
+async def get_patient_meal_photo(
+    patient_id: int,
+    media_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """The photo behind one of this patient's meals.
+
+    Deliberately here and not on `/media/{id}`, which is owner-scoped: routing a
+    clinician through `_permissions_for` is what keeps ONE authorization path,
+    and therefore one place that tells the patient their record was opened. A
+    second lookup elsewhere is a route that reads a chart silently.
+
+    A nutrition grant buys the patient's MEAL photos and nothing else — the
+    category is checked, so sharing food logs never hands over an unrelated
+    image the patient uploaded for some other purpose.
+    """
+    permissions = await _permissions_for(current_user.id, patient_id, db)
+    if not grant_covers(permissions, "nutrition"):
+        raise HTTPException(status_code=403,
+                            detail="This patient has not shared nutrition data")
+
+    asset = (await db.execute(
+        select(MediaAsset).where(
+            MediaAsset.id == media_id,
+            MediaAsset.user_id == patient_id,
+            MediaAsset.category.in_(
+                (food_vision_store.MEAL_CATEGORY, food_vision_store.TRAINING_CATEGORY)),
+        )
+    )).scalar_one_or_none()
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Media not found")
+    return asset
+
 
 async def _permissions_for(clinician_id: int, patient_id: int, db: AsyncSession) -> list[str]:
     """The data types this clinician may see for this patient, or 403.

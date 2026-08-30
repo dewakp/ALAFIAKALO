@@ -2,6 +2,7 @@ package com.alafia.android.views.nutrition
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.alafia.android.api.ApiClient
+import com.alafia.android.util.ErrorUtil
 import com.alafia.android.models.*
 import com.alafia.android.schemas.NutritionLogRequest
 import com.alafia.android.schemas.VisionItem
@@ -53,6 +56,7 @@ fun NutritionScreen() {
     var isLoading by remember { mutableStateOf(true) }
     var showAddSheet by remember { mutableStateOf(false) }
     var detailFdcId by remember { mutableIntStateOf(-1) }
+    var editingLog by remember { mutableStateOf<NutritionLog?>(null) }
 
     // Daily summary
     var summaryDate by remember { mutableStateOf(LocalDate.now().toString()) }
@@ -113,9 +117,21 @@ fun NutritionScreen() {
                                 scope.launch {
                                     try { api.deleteNutritionLog(log.id); loadLogs() } catch (_: Exception) {}
                                 }
-                            }, onViewDetail = { fdcId -> detailFdcId = fdcId })
+                            }, onViewDetail = { fdcId -> detailFdcId = fdcId },
+                               onEdit = { editingLog = log })
                         }
                     }
+                }
+
+                editingLog?.let { target ->
+                    EditMealDialog(
+                        log = target,
+                        onDismiss = { editingLog = null },
+                        onSaved = {
+                            editingLog = null
+                            scope.launch { loadLogs() }
+                        },
+                    )
                 }
 
                 // FAB
@@ -200,6 +216,139 @@ fun NutritionScreen() {
     }
 }
 
+/**
+ * Correct a meal that was already logged.
+ *
+ * The description is the whole input: the backend re-estimates from it, so a
+ * patient can write `0.25 x (…)` to record that they ate a quarter of what they
+ * cooked and every nutrient scales with it. Editing the food clears the old
+ * numbers server-side and returns `nutrient_status = "pending"`, so this screen
+ * shows "estimating…" rather than the previous meal's values.
+ */
+@Composable
+private fun EditMealDialog(log: NutritionLog, onDismiss: () -> Unit, onSaved: () -> Unit) {
+    var description by remember(log.id) { mutableStateOf(log.foodName) }
+    var saving by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = { if (!saving) onDismiss() },
+        title = { Text("Edit meal") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it; error = null },
+                    label = { Text("What did you eat?") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Ate part of it? Write it as a multiplier, e.g. " +
+                        "0.25 x (your meal) — every nutrient scales with it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                error?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(it, style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !saving && description.isNotBlank(),
+                onClick = {
+                    saving = true
+                    scope.launch {
+                        try {
+                            ApiClient.getApiService().updateNutritionLog(
+                                log.id,
+                                NutritionLogRequest(
+                                    logDate = log.logDate,
+                                    mealType = log.mealType,
+                                    foodName = description.trim(),
+                                ),
+                            )
+                            onSaved()
+                        } catch (e: Exception) {
+                            // An error is not a silent no-op: the patient must
+                            // know the correction did not land.
+                            error = ErrorUtil.userMessage(e)
+                        }
+                        saving = false
+                    }
+                },
+            ) { Text(if (saving) "Saving…" else "Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
+    )
+}
+
+/**
+ * The picture a meal was estimated from.
+ *
+ * Loaded when opened rather than with the list: the bytes come back base64 in
+ * the row, so fetching every meal's photo up front would make the history call
+ * enormous. A failure is stated — a blank dialog would read as "no photo was
+ * taken", which is the empty-state lie this codebase keeps re-learning.
+ */
+@Composable
+private fun MealPhotoDialog(mediaPath: String, title: String, onDismiss: () -> Unit) {
+    var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var loading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(mediaPath) {
+        // The stored value is a full API path; take the id off its tail so the
+        // call is right whatever base URL the build points at.
+        val id = mediaPath.trim('/').substringAfterLast('/').toIntOrNull()
+        if (id == null) {
+            loadError = "This meal has no photo reference."
+            loading = false
+            return@LaunchedEffect
+        }
+        try {
+            val asset = ApiClient.getApiService().getMediaAsset(id)
+            val b64 = asset.imageBase64
+            if (!b64.isNullOrBlank()) {
+                val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                if (bitmap == null) loadError = "The stored photo could not be decoded."
+            } else {
+                loadError = "This photo could not be read from storage."
+            }
+        } catch (e: Exception) {
+            loadError = e.message ?: "Could not load this photo."
+        }
+        loading = false
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        title = { Text(title, style = MaterialTheme.typography.titleSmall) },
+        text = {
+            when {
+                loading -> Row(verticalAlignment = Alignment.CenterVertically,
+                               horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Text("Loading photo…")
+                }
+                bitmap != null -> Image(
+                    bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = "Photo of $title",
+                    modifier = Modifier.fillMaxWidth())
+                else -> Text(loadError ?: "Could not load this photo.",
+                             color = MaterialTheme.colorScheme.error)
+            }
+        }
+    )
+}
+
 // ─── Nutrition Log Card ───
 
 @Composable
@@ -207,13 +356,24 @@ private fun NutritionLogCard(
     log: NutritionLog,
     onDelete: () -> Unit,
     onViewDetail: (Int) -> Unit,
+    onEdit: () -> Unit = {},
 ) {
+    var showPhoto by remember { mutableStateOf(false) }
+    if (showPhoto) {
+        MealPhotoDialog(mediaPath = log.foodImageUris ?: "", title = log.foodName) { showPhoto = false }
+    }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(log.foodName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        if (!log.foodImageUris.isNullOrBlank()) {
+                            Spacer(Modifier.width(6.dp))
+                            Icon(Icons.Default.Photo, contentDescription = "See the photo of this meal",
+                                modifier = Modifier.size(14.dp).clickable { showPhoto = true },
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        }
                         if (log.fdcId != null) {
                             Spacer(Modifier.width(6.dp))
                             Text("USDA", fontSize = 9.sp, fontWeight = FontWeight.Bold,
@@ -247,6 +407,14 @@ private fun NutritionLogCard(
                 } else if (log.nutrientStatus == "failed") {
                     Text("unavailable", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error)
+                }
+                // Correcting a meal was impossible on this client: the API
+                // method existed but no screen ever called it, so a patient who
+                // ate a quarter of what they logged had no way to say so.
+                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Edit this meal",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp),
@@ -394,6 +562,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     // Editable correction rows (name, grams, basis) — editing these teaches ALAFIA.
     var visionEdits by remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
     var visionSampleId by remember { mutableStateOf<Int?>(null) }
+    var visionImageUrl by remember { mutableStateOf<String?>(null) }
     var visionWasRecall by remember { mutableStateOf(false) }
     var teachState by remember { mutableStateOf("") }
     var teaching by remember { mutableStateOf(false) }
@@ -492,6 +661,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                             visionItems = emptyList()
                             visionEdits = emptyList()
                             visionSampleId = null
+                            visionImageUrl = null
                             visionWasRecall = false
                             teachState = ""
                             scope.launch {
@@ -515,6 +685,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                         // because a vision estimate is not a USDA-linked food.
                                         visionItems = items
                                         visionSampleId = res.sampleId
+                                        visionImageUrl = res.imageUrl
                                         visionWasRecall = res.isRecall
                                         visionEdits = items.map {
                                             Triple(
@@ -828,7 +999,9 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                     endTime = endTime.ifBlank { null },
                                     preMealWeightKg = preMealWeight.toFloatOrNull(),
                                     postMealWeightKg = postMealWeight.toFloatOrNull(),
-                                    recipeUrl = recipeUrl.ifBlank { null }
+                                    recipeUrl = recipeUrl.ifBlank { null },
+                                    // Keep the photo with the meal it produced.
+                                    foodImageUris = visionImageUrl
                                 )
                             )
                             onSaved(); onDismiss()

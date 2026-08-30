@@ -33,6 +33,10 @@ from app.models.privacy import PrivacySettings
 logger = logging.getLogger(__name__)
 
 TRAINING_CATEGORY = "food_training"
+# A meal photo kept for the patient's own history. Same table, different
+# category, so a corpus query cannot accidentally sweep in photos whose owner
+# never consented to cross-user training.
+MEAL_CATEGORY = "meal_photo"
 # Refuse absurd payloads outright rather than filling the DB with them.
 MAX_RETAINED_BYTES = 8 * 1024 * 1024
 
@@ -41,11 +45,18 @@ def sha256_of(image_bytes: bytes) -> str:
     return hashlib.sha256(image_bytes).hexdigest()
 
 
-async def may_retain_images(db: AsyncSession, user_id: int) -> bool:
-    """True when this user has opted into cross-user AI learning.
+async def may_use_for_training(db: AsyncSession, user_id: int) -> bool:
+    """True when this user's photo may be used for CROSS-USER AI learning.
 
-    Defaults to False: absent settings means no consent on record, and a meal
-    photo is health data. Never retain by default.
+    This is not the same question as whether to keep the photo. A meal photo the
+    patient took is part of their own record: they expect to see it when they
+    open that meal again, and so does the clinician they shared it with.
+    Discarding it made the history poorer without protecting anyone — the
+    nutrition it produced was stored regardless.
+
+    What needs consent is the photo leaving that patient's own record to improve
+    a model used for everyone. That is what `allow_collective_insights` means,
+    and it still defaults to False.
     """
     row = (await db.execute(
         select(PrivacySettings).where(PrivacySettings.user_id == user_id)
@@ -55,14 +66,21 @@ async def may_retain_images(db: AsyncSession, user_id: int) -> bool:
 
 async def _store_image(
     db: AsyncSession, user_id: int, image_bytes: bytes, content_type: str,
+    *, trainable: bool = False,
 ) -> MediaAsset | None:
-    """Persist one photo as a MediaAsset, or None if it is unusable."""
+    """Persist one photo as a MediaAsset, or None if it is unusable.
+
+    `trainable` records whether this photo may be used beyond the patient's own
+    record. It is a property of the photo, not of the user's settings today: a
+    consent withdrawn tomorrow must not silently re-license what was captured
+    under yesterday's answer, and a corpus query must be able to select on it.
+    """
     if not image_bytes or len(image_bytes) > MAX_RETAINED_BYTES:
         return None
     asset = MediaAsset(
         user_id=user_id,
-        category=TRAINING_CATEGORY,
-        title="Meal photo (training)",
+        category=TRAINING_CATEGORY if trainable else MEAL_CATEGORY,
+        title="Meal photo" + (" (training)" if trainable else ""),
         content_type=content_type or "image/jpeg",
         file_size_bytes=len(image_bytes),
         # TODO(media): move to GCS and store storage_url instead once the media
@@ -109,12 +127,18 @@ async def record_prediction(
     # user's analysis 500s — logging training data would take down the feature it
     # was meant to support. A nested transaction rolls back only the failed part
     # and leaves the outer transaction usable.
+    # The photo is kept for the PATIENT'S OWN record, always. Consent decides
+    # whether it may additionally train a shared model, not whether their own
+    # meal keeps its picture.
+    trainable = False
     asset_id = None
     try:
-        if await may_retain_images(db, user_id):
-            async with db.begin_nested():
-                asset = await _store_image(db, user_id, first_bytes, first_type)
-                asset_id = asset.id if asset else None
+        trainable = await may_use_for_training(db, user_id)
+        async with db.begin_nested():
+            asset = await _store_image(
+                db, user_id, first_bytes, first_type, trainable=trainable,
+            )
+            asset_id = asset.id if asset else None
     except Exception:
         logger.exception("Could not retain meal photo; continuing without it")
         asset_id = None
@@ -126,7 +150,9 @@ async def record_prediction(
                 image_sha256=digest,
                 phash=phash,
                 media_asset_id=asset_id,
-                image_retained=asset_id is not None,
+                # Retained for the CORPUS — which needs consent — not merely
+                # retained for the patient, which now always happens.
+                training_consented=bool(asset_id and trainable),
                 image_count=len(images),
                 source_model=source_model,
                 predicted_items=items or [],
@@ -242,7 +268,7 @@ async def corpus_stats(db: AsyncSession) -> dict:
     total, retained, corrected, users = (await db.execute(
         select(
             func.count(FoodTrainingSample.id),
-            func.count().filter(FoodTrainingSample.image_retained.is_(True)),
+            func.count().filter(FoodTrainingSample.training_consented.is_(True)),
             func.count().filter(FoodTrainingSample.corrected_items.isnot(None)),
             func.count(func.distinct(FoodTrainingSample.user_id)),
         )

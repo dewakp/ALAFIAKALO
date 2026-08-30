@@ -59,7 +59,7 @@ interface ApiService {
     @GET("fitness/{id}")
     suspend fun getFitnessLog(@Path("id") id: Int): FitnessLogResponse
 
-    @PUT("fitness/{id}")
+    @PATCH("fitness/{id}")
     suspend fun updateFitnessLog(
         @Path("id") id: Int,
         @Body request: FitnessLogRequest
@@ -78,7 +78,7 @@ interface ApiService {
     @POST("mood/")
     suspend fun createMoodEntry(@Body request: MoodEntryRequest): MoodEntry
 
-    @PUT("mood/{id}")
+    @PATCH("mood/{id}")
     suspend fun updateMoodEntry(
         @Path("id") id: Int,
         @Body request: MoodEntryRequest
@@ -94,10 +94,16 @@ interface ApiService {
         @Query("limit") limit: Int = 50
     ): List<NutritionLog>
 
+    @POST("mood/suggest-score")
+    suspend fun suggestMoodScore(@Body request: MoodScoreRequest): MoodScoreSuggestion
+
+    @GET("media/{mediaId}")
+    suspend fun getMediaAsset(@Path("mediaId") mediaId: Int): MediaAssetResponse
+
     @POST("nutrition/")
     suspend fun createNutritionLog(@Body request: NutritionLogRequest): NutritionLog
 
-    @PUT("nutrition/{id}")
+    @PATCH("nutrition/{id}")
     suspend fun updateNutritionLog(
         @Path("id") id: Int,
         @Body request: NutritionLogRequest
@@ -131,7 +137,7 @@ interface ApiService {
     @POST("labs/")
     suspend fun createLabResult(@Body request: LabResultRequest): LabResult
 
-    @PUT("labs/{id}")
+    @PATCH("labs/{id}")
     suspend fun updateLabResult(
         @Path("id") id: Int,
         @Body request: LabResultRequest
@@ -150,7 +156,7 @@ interface ApiService {
     @POST("medications/")
     suspend fun createMedication(@Body request: MedicationRequest): Medication
 
-    @PUT("medications/{id}")
+    @PATCH("medications/{id}")
     suspend fun updateMedication(
         @Path("id") id: Int,
         @Body request: MedicationRequest
@@ -201,7 +207,7 @@ interface ApiService {
     @POST("lifestyle/")
     suspend fun createLifestyleEntry(@Body request: LifestyleEntryRequest): LifestyleEntry
 
-    @PUT("lifestyle/{id}")
+    @PATCH("lifestyle/{id}")
     suspend fun updateLifestyleEntry(
         @Path("id") id: Int,
         @Body request: LifestyleEntryRequest

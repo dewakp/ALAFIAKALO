@@ -14,10 +14,22 @@ Each row is a (photo, prediction, correction) triple. A row whose
 `corrected_items` is set is a supervised example: the model said X, the human
 said Y. Those are the rows worth the most at training time.
 
-Image bytes are retained only with consent
-(`PrivacySettings.allow_collective_insights`). Without it the row is still
-recorded — prediction, correction and metrics stay useful for measuring
-accuracy — but `media_asset_id` is NULL and no photo is kept.
+Consent governs TRAINING use, not whether the patient keeps their own photo.
+The picture of your meal is part of your record: history shows it, and a
+clinician reading that record sees what you actually ate. So the image is
+STORED either way and `media_asset_id` is set.
+
+`training_consented` is the corpus flag — true only when
+`PrivacySettings.allow_collective_insights` was granted, meaning the photo may
+train a SHARED model. Without it the row is still recorded (prediction,
+correction and metrics stay useful for measuring accuracy) and the photo is
+still stored and still the patient's, but it is filed under the patient's own
+category and is not corpus material.
+
+The flag used to be called `image_retained`, which was a contradiction: retained
+and stored mean the same thing, so one name could not carry "kept at all" while
+the other carried "kept for training". Storage is `media_asset_id`; permission
+is this.
 """
 
 from datetime import datetime, timezone
@@ -40,10 +52,14 @@ class FoodTrainingSample(Base):
     # 64-bit dHash, so the corpus can be grouped by near-duplicate meal.
     phash: Mapped[str | None] = mapped_column(String(32), index=True, nullable=True)
 
-    # The retained photo. NULL when consent was not granted.
+    # The stored photo, so a past meal can show what was captured. Set
+    # regardless of consent — consent decides `training_consented` below.
     media_asset_id: Mapped[int | None] = mapped_column(
         ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True, index=True)
-    image_retained: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # May this photo train a SHARED model? Permission, not storage — the photo
+    # is stored either way (see media_asset_id).
+    training_consented: Mapped[bool] = mapped_column(
+        "training_consented", Boolean, default=False, nullable=False)
 
     # How many photos were analysed together for this sample (one plate,
     # several angles — see the multi-image path in the vision capability).

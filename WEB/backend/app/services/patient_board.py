@@ -557,9 +557,23 @@ async def _nutrition_detail(db: AsyncSession, uid: int, days: int) -> Detail:
         columns=[{"key": "date", "label": "Date"}, {"key": "meal", "label": "Meal"},
                  {"key": "food", "label": "Food"}, {"key": "calories", "label": "kcal"},
                  {"key": "protein", "label": "Protein"}],
+        # `photo` carries the meal's media id so the board can show the picture
+        # the patient captured. A description of a meal is not the meal: seeing
+        # the plate is often the difference between "rice" and a portion twice
+        # what was assumed. Fetched through the clinician media route, which
+        # checks the grant and tells the patient their record was opened.
         rows=[{"date": str(r.log_date), "meal": r.meal_type, "food": r.food_name,
-               "calories": _round(r.calories, 0), "protein": _round(r.protein_g)} for r in rows],
+               "calories": _round(r.calories, 0), "protein": _round(r.protein_g),
+               "photo": _media_id(r.food_image_uris)} for r in rows],
     )
+
+
+def _media_id(uri: str | None) -> int | None:
+    """The media id at the tail of a stored `/api/v1/media/{id}` path."""
+    if not uri:
+        return None
+    tail = str(uri).strip().rstrip("/").rsplit("/", 1)[-1]
+    return int(tail) if tail.isdigit() else None
 
 
 #: Daily reference intakes used only to say how far a mean sits from typical.

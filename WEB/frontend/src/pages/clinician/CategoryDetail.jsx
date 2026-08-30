@@ -202,7 +202,8 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
           showed its Detail and Session columns as em-dashes. */}
       {categoryKey === 'dialysis'
         ? <TherapyReport patientId={patientId} rows={data.rows} days={days} />
-        : <DataTable columns={data.columns} rows={data.rows} label={data.label} />}
+        : <DataTable columns={data.columns} rows={data.rows} label={data.label}
+                     patientId={patientId} />}
     </div>
   );
 }
@@ -339,7 +340,30 @@ function TrendChart({ group, isDark }) {
   );
 }
 
-function DataTable({ columns, rows, label }) {
+function DataTable({ columns, rows, label, patientId }) {
+  const [photo, setPhoto] = useState(null);   // { src, loading, error }
+  // Only meals carry a photo today, so the column appears only where there is
+  // one to show rather than adding a dead cell to every other category.
+  const hasPhotos = rows?.some(r => r.photo != null);
+
+  const openPhoto = async (mediaId) => {
+    setPhoto({ loading: true, src: null, error: '' });
+    try {
+      const { data } = await api.get(`/clinician-dashboard/patient/${patientId}/media/${mediaId}`);
+      const src = data.storage_url
+        || (data.image_base64
+            ? `data:${data.content_type || 'image/jpeg'};base64,${data.image_base64}`
+            : null);
+      setPhoto({ loading: false, src,
+        error: src ? '' : 'This photo could not be read from storage.' });
+    } catch (e) {
+      // A failed fetch must say so. Rendered as "no photo" it would read as a
+      // meal the patient never photographed.
+      setPhoto({ loading: false, src: null,
+        error: e?.response?.data?.detail || 'Could not load this photo.' });
+    }
+  };
+
   if (!rows?.length) {
     return (
       <div className="card" style={{ padding: '1.25rem', color: 'var(--color-text-secondary)' }}>
@@ -361,6 +385,13 @@ function DataTable({ columns, rows, label }) {
                 {c.label}
               </th>
             ))}
+            {hasPhotos && (
+              <th style={{
+                textAlign: 'left', padding: '0.6rem 0.9rem',
+                borderBottom: '1px solid var(--color-border)',
+                color: 'var(--color-text-secondary)', fontWeight: 600,
+              }}>Photo</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -375,10 +406,49 @@ function DataTable({ columns, rows, label }) {
                   {r[c.key] == null || r[c.key] === '' ? '—' : String(r[c.key])}
                 </td>
               ))}
+              {hasPhotos && (
+                <td style={{
+                  padding: '0.55rem 0.9rem',
+                  borderBottom: '1px solid var(--color-border)',
+                  verticalAlign: 'top',
+                }}>
+                  {r.photo != null ? (
+                    <button onClick={() => openPhoto(r.photo)}
+                      title="See the photo the patient captured"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '.9rem' }}>
+                      📷
+                    </button>
+                  ) : '—'}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
+
+      {photo && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}
+          onClick={() => setPhoto(null)}>
+          <div className="card" style={{ maxWidth: 640, width: '92vw', maxHeight: '88vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '.5rem' }}>
+              <button onClick={() => setPhoto(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
+            </div>
+            {photo.loading && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>Loading photo…</div>
+            )}
+            {photo.error && (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-danger)' }}>{photo.error}</div>
+            )}
+            {photo.src && (
+              <img src={photo.src} alt="Meal photographed by the patient"
+                style={{ width: '100%', borderRadius: 8, display: 'block' }} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

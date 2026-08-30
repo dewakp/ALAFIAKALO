@@ -48,7 +48,7 @@ export default function Nutrition() {
     log_date: today(), meal_type: 'breakfast', food_name: '',
     serving_size: '', fdc_id: null, notes: '',
     start_time: '', end_time: '', pre_meal_weight_kg: '', post_meal_weight_kg: '',
-    recipe_url: '',
+    recipe_url: '', food_image_uris: '',
   });
 
   // Prompt Hub hand-off: open the add-food form pre-filled from the prompt.
@@ -97,6 +97,10 @@ export default function Nutrition() {
   // Nutrient detail panel (for a single food)
   const [selectedFood, setSelectedFood] = useState(null);
   const [foodDetail, setFoodDetail] = useState(null);
+  // The photo a meal was estimated from. Fetched on demand rather than with the
+  // list: the bytes are base64 in the row, so eagerly loading every meal's photo
+  // would make the history page enormous.
+  const [mealPhoto, setMealPhoto] = useState(null);   // { name, src, loading, error }
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Daily summary
@@ -173,6 +177,28 @@ export default function Nutrition() {
     } catch { setFoodDetail(null); } finally { setLoadingDetail(false); }
   };
 
+  /* Open the picture this meal was estimated from. `food_image_uris` holds the
+     API path recorded at capture time; the id is taken from its tail so the
+     call works whatever the client's API base happens to be. */
+  const openMealPhoto = async (log) => {
+    const id = String(log.food_image_uris || '').trim().split('/').filter(Boolean).pop();
+    if (!id) return;
+    setMealPhoto({ name: log.food_name || 'Meal photo', loading: true, src: null, error: '' });
+    try {
+      const { data } = await api.get(`/media/${id}`);
+      const src = data.storage_url
+        || (data.image_base64
+            ? `data:${data.content_type || 'image/jpeg'};base64,${data.image_base64}`
+            : null);
+      // A stored row with no bytes is a fault, not an empty meal — say so.
+      setMealPhoto((prev) => ({ ...prev, loading: false, src,
+        error: src ? '' : 'This photo could not be read from storage.' }));
+    } catch (err) {
+      setMealPhoto((prev) => ({ ...prev, loading: false, src: null,
+        error: apiErrorMessage(err, 'Could not load this photo.') }));
+    }
+  };
+
   /* Analyze a recipe link: parse the page's structured recipe, price the
      ingredients, prefill the entry with per-serving nutrition. Published
      nutrition is learned server-side under the dish name. */
@@ -242,6 +268,9 @@ export default function Nutrition() {
         food_name: items.map((i) => i.name).join(', '),
         serving_size: prev.serving_size?.trim() || items[0].estimated_portion || '',
         fdc_id: null,
+        // Keep the photo with the meal, so opening it later shows the picture
+        // the estimate came from rather than just the numbers.
+        food_image_uris: data.image_url || '',
       }));
       setEstimatePreview(null);
       setEstimateError('');
@@ -325,7 +354,8 @@ export default function Nutrition() {
     setEditingId(null);
     setEditOriginalFood('');
     setForm({ log_date: today(), meal_type: 'breakfast', food_name: '', serving_size: '', fdc_id: null, notes: '',
-      start_time: '', end_time: '', pre_meal_weight_kg: '', post_meal_weight_kg: '', recipe_url: '' });
+      start_time: '', end_time: '', pre_meal_weight_kg: '', post_meal_weight_kg: '', recipe_url: '',
+      food_image_uris: '' });
     setEstimatePreview(null);
     setImageFiles([]);
     setImageAnalysisResult('');
@@ -349,6 +379,9 @@ export default function Nutrition() {
       pre_meal_weight_kg: log.pre_meal_weight_kg ?? '',
       post_meal_weight_kg: log.post_meal_weight_kg ?? '',
       recipe_url: log.recipe_url || '',
+      // Carried through the edit: the PATCH sends the whole form, so dropping
+      // this would silently detach the photo from a meal being corrected.
+      food_image_uris: log.food_image_uris || '',
     });
     setEditOriginalFood(log.food_name || '');
     setEditingId(log.id);
@@ -383,7 +416,7 @@ export default function Nutrition() {
     try {
       const payload = { ...form };
       for (const k of ['serving_size', 'notes', 'recipe_url', 'start_time', 'end_time',
-                       'pre_meal_weight_kg', 'post_meal_weight_kg']) {
+                       'pre_meal_weight_kg', 'post_meal_weight_kg', 'food_image_uris']) {
         if (!payload[k]) delete payload[k];
       }
 
@@ -885,6 +918,12 @@ export default function Nutrition() {
                     <td style={{ textTransform: 'capitalize' }}>{log.meal_type}</td>
                     <td>
                       <span style={{ fontWeight: 500 }}>{log.food_name}</span>
+                      {log.food_image_uris && (
+                        <button onClick={() => openMealPhoto(log)} title="See the photo this meal was estimated from"
+                          style={{ marginLeft: '.35rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.8rem' }}>
+                          📷
+                        </button>
+                      )}
                       {log.fdc_id && (
                         <button onClick={() => openFoodDetail(log.fdc_id, log.food_name)}
                           style={{ marginLeft: '.35rem', background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontSize: '.7rem', fontWeight: 600 }}>
@@ -1024,6 +1063,32 @@ export default function Nutrition() {
               </>
             ) : (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>Failed to load nutrient data.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ MEAL PHOTO ═══════════ */}
+      {mealPhoto && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}
+          onClick={() => setMealPhoto(null)}>
+          <div className="card" style={{ maxWidth: 640, width: '92vw', maxHeight: '88vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1rem' }}>{mealPhoto.name}</h2>
+              <button onClick={() => setMealPhoto(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
+            </div>
+            {mealPhoto.loading && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>Loading photo…</div>
+            )}
+            {mealPhoto.error && (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: '#ef4444' }}>{mealPhoto.error}</div>
+            )}
+            {mealPhoto.src && (
+              <img src={mealPhoto.src} alt={`Photo of ${mealPhoto.name}`}
+                style={{ width: '100%', borderRadius: 8, display: 'block' }} />
             )}
           </div>
         </div>
