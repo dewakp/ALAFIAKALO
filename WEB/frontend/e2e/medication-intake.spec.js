@@ -86,7 +86,11 @@ test.describe('Medication intake, against the real backend', () => {
     });
 
     await page.getByRole('button', { name: /use this/i }).click();
-    await expect(page.locator('input[list="med-catalog"]')).toHaveValue(/Calcitriol/i);
+    // The <datalist> this used to query is gone — it was replaced by a real
+    // combobox (MedicationPicker) because datalist matching differs between
+    // browsers, cannot show provenance, and is unreliable on mobile. The spec
+    // kept asserting on the old selector and so could only ever fail.
+    await expect(page.getByTestId('medication-picker-input')).toHaveValue(/Calcitriol/i);
     expect(wrote).toBe(false);
   });
 
@@ -95,8 +99,22 @@ test.describe('Medication intake, against the real backend', () => {
     await page.goto('/medications');
     await expect(page.getByTestId('intake-intent')).toBeVisible();
 
-    // Whatever the datalist offers, none of it may be an inactive prescription.
-    const offered = await page.locator('#med-catalog option').allTextContents();
+    // This asserted on `#med-catalog option` — a <datalist> that no longer
+    // exists. `allTextContents()` returned [], the loop body never ran, and the
+    // test PASSED having checked nothing, while the picker it guards is a
+    // safety control: a stopped 2017 prescription must never be offered as
+    // "what am I taking today".
+    const picker = page.getByTestId('medication-picker-input');
+    await picker.click();
+    await picker.fill('i');
+
+    const list = page.getByTestId('medication-suggestions');
+    await expect(list).toBeVisible({ timeout: 10_000 });
+
+    const offered = await list.getByRole('option').allTextContents();
+    // Refuse to be vacuous: an empty list would pass the check below trivially,
+    // which is exactly how this test hid for so long.
+    expect(offered.length).toBeGreaterThan(0);
     for (const name of offered) {
       expect(name).not.toMatch(/Meperidine|Ibuprofen 200 MG/i);
     }

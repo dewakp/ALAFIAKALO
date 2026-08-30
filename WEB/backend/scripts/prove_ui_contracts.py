@@ -100,10 +100,16 @@ check("refused with 422", status == 422, status)
 check("names the reason", bool(codes), codes)
 
 print("\n2. a real calcitriol dose is accepted")
-for amount in (0.5, 0.5, 0.5):
+# log_time is part of `uq_dose_log_per_user_date_med_dose`, so three identical
+# doses need three distinct times. This used to derive the minute from
+# `int(time.time()) % 60` — the seconds hand — so three fast calls landed in the
+# same second and the 2nd was refused 409 as a duplicate. It passed only when
+# the run happened to straddle a second boundary: a race that reported itself
+# as "0.5 mcg accepted — 409", i.e. as a broken dose guard.
+for i, amount in enumerate((0.5, 0.5, 0.5)):
     status, body = call("POST", "/medications/dose-logs", {
         "medication_name": "Calcitriol", "log_date": today,
-        "log_time": f"{7 + int(amount * 10) % 12:02d}:{int(time.time()) % 60:02d}",
+        "log_time": f"{8 + i:02d}:15",
         "dose_amount": amount, "dose_unit": "mcg",
     }, token=token)
     if status != 201:

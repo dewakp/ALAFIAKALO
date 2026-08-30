@@ -24,6 +24,7 @@ wrapper, and its literals are listed in KNOWN_INDIRECT below.
 from __future__ import annotations
 
 import collections
+import json
 import re
 import subprocess
 import sys
@@ -56,6 +57,34 @@ def normalise(p: str) -> str:
     return p.rstrip("/") or "/"
 
 
+def backend_route_methods() -> dict[str, set[str]]:
+    """{normalised path: {METHOD, ...}} as the running app actually serves it.
+
+    The path-only check below reported "every client call resolves to a real
+    route" while Android declared `@PUT("nutrition/{id}")` against a path the
+    server serves only as PATCH. A call that reaches a real path with a method
+    nobody handles is a 405, which is exactly the class of dead client call this
+    script exists to catch — its own docstring cites two of them.
+    """
+    code = (
+        "from app.main import app;"
+        "import json;"
+        "print(json.dumps([[r.path, sorted(getattr(r,'methods',None) or [])] "
+        "for r in app.routes if getattr(r,'path','').startswith('/api/v1')]))"
+    )
+    out = subprocess.run(
+        ["docker", "compose", "exec", "-T", "-e", "PYTHONPATH=/app", "backend", "python", "-c", code],
+        cwd=ROOT / "WEB", capture_output=True, text=True,
+    )
+    line = next((l for l in out.stdout.splitlines() if l.startswith("[")), None)
+    if not line:
+        return {}
+    table: dict[str, set[str]] = collections.defaultdict(set)
+    for path, methods in json.loads(line):
+        table[normalise(path)].update(m.upper() for m in methods)
+    return table
+
+
 def backend_routes() -> set[str]:
     """Ask the running app, never grep for @router — prefixes live elsewhere."""
     code = (
@@ -74,15 +103,22 @@ def backend_routes() -> set[str]:
     return {normalise(p) for p in paths}
 
 
+#: {normalised path: {METHOD, ...}} the clients actually use.
+CALL_METHODS: dict[str, set[str]] = collections.defaultdict(set)
+#: {(path, METHOD): {file, ...}} — so a wrong-method report names the client
+#: that actually used that verb, not every client that touches the path.
+CALL_METHOD_FILES: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
+
+
 def client_calls() -> dict[str, set[str]]:
     calls: dict[str, set[str]] = collections.defaultdict(set)
     sources = [
         (ROOT / "WEB/frontend/src", ("*.jsx", "*.js"),
-         r"""api\.(?:get|post|put|patch|delete)\(\s*[`'"](?P<path>[^`'"]+)""", "web"),
+         r"""api\.(?P<verb>get|post|put|patch|delete)\(\s*[`'"](?P<path>[^`'"]+)""", "web"),
         (ROOT / "IOS/ALAFIA", ("*.swift",),
-         r"""APIClient\.shared\.\w+\(\s*"(?P<path>[^"]+)""", "ios"),
+         r"""APIClient\.shared\.(?P<verb>\w+)\(\s*"(?P<path>[^"]+)""", "ios"),
         (ROOT / "Android/app/src/main", ("*.kt",),
-         r"""@(?:GET|POST|PUT|PATCH|DELETE)\(\s*"(?P<path>[^"]+)""", "android"),
+         r"""@(?P<verb>GET|POST|PUT|PATCH|DELETE)\(\s*"(?P<path>[^"]+)""", "android"),
     ]
     for root, globs, pattern, label in sources:
         for g in globs:
@@ -96,9 +132,27 @@ def client_calls() -> dict[str, set[str]]:
                         continue
                     # A partial template literal (`/nutrition/${qs`) is a parse
                     # artifact of a path assembled from a variable, not a call.
-                    if raw.count("${") != raw.count("}"):
+                    #
+                    # Only when there IS a `${`. Without that guard the test was
+                    # `count("${") != count("}")`, which is 0 != 1 for a Kotlin
+                    # or Swift path parameter — so EVERY Android route written
+                    # `"nutrition/{id}"` was silently discarded, along with
+                    # mood/{id}, labs/{id}, medications/{id} and the rest. The
+                    # checker reported "every client call resolves" while never
+                    # having looked at them.
+                    if "${" in raw and raw.count("${") != raw.count("}"):
                         continue
-                    calls[normalise(raw)].add(f"{label}:{f.relative_to(ROOT)}")
+                    key = normalise(raw)
+                    calls[key].add(f"{label}:{f.relative_to(ROOT)}")
+                    verb = (m.groupdict().get("verb") or "").upper()
+                    # iOS wraps verbs (getWithCache, postForm, postImages…);
+                    # take the leading HTTP verb off the method name.
+                    for known in ("DELETE", "PATCH", "POST", "PUT", "GET"):
+                        if verb.startswith(known):
+                            CALL_METHODS[key].add(known)
+                            CALL_METHOD_FILES[(key, known)].add(
+                                f"{label}:{f.relative_to(ROOT)}")
+                            break
     return calls
 
 
@@ -134,6 +188,32 @@ def main() -> None:
             for w in sorted(who):
                 print(f"      {w}")
         sys.exit(f"\n{len(broken)} broken client call(s).")
+
+    # A real path reached with a method nobody serves is a 405 — just as dead as
+    # a missing path, and invisible to the check above. Android declared
+    # `@PUT("nutrition/{id}")` against a route served only as PATCH.
+    served_methods = backend_route_methods()
+    wrong_method: list[str] = []
+    for path, verbs in sorted(CALL_METHODS.items()):
+        if path in KNOWN_INDIRECT:
+            continue
+        allowed: set[str] = set()
+        for route, methods in served_methods.items():
+            if matches(path, route):
+                allowed |= methods
+        if not allowed:
+            continue                       # path check above already covered it
+        for verb in sorted(verbs):
+            if verb not in allowed:
+                wrong_method.append(
+                    f"  {verb:6s} {path}\n"
+                    f"      served as: {', '.join(sorted(allowed))}\n"
+                    f"      " + "\n      ".join(
+                        sorted(CALL_METHOD_FILES.get((path, verb), ()))))
+    if wrong_method:
+        print("Client calls using a method the route does NOT serve (405):\n")
+        print("\n".join(wrong_method))
+        sys.exit(f"\n{len(wrong_method)} client call(s) with the wrong method.")
 
     uncalled = sorted(
         p for p in served
