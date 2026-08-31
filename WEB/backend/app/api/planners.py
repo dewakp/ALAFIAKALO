@@ -22,6 +22,7 @@ from app.models.pantry import PantryItem
 # and a function-local import leaves the name unbound in the handler above.
 # alafia_model_service imports nothing from app, so there is no cycle.
 from app.services.alafia_model_service import ALAFIAModelError
+from app.services import food_safety
 from app.schemas.wellness import (
     MealPlanRequest, MealPlanResponse, MealItem, DayMeals,
     ExercisePlanRequest, ExercisePlanResponse, ExerciseItem, DayWorkout,
@@ -255,14 +256,145 @@ async def _gather_planner_context(user_id: int, db: AsyncSession) -> dict:
         select(PantryItem).where(PantryItem.user_id == user_id).limit(100)
     )).scalars().all()
 
+    # The patient themselves. Without these a "personalised" plan cannot size a
+    # single portion: protein is prescribed per kg, energy per kg and age/sex,
+    # and both were absent here while the chat surface had them all along.
+    user_row = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+
+    # The SAME authoritative targets the chat surface and the Nutrition screen
+    # use, rather than letting the model recall a guideline. A production plan
+    # told a haemodialysis patient "~0.6 g/kg" — the PRE-dialysis figure, and
+    # roughly half of what `compute_goals` computes for them.
+    goals: dict = {}
+    if user_row is not None:
+        try:
+            from app.services.nutrient_goals_service import compute_goals
+            goals = compute_goals(
+                date_of_birth=str(user_row.date_of_birth) if user_row.date_of_birth else None,
+                sex=user_row.gender,
+                height_cm=user_row.height_cm,
+                current_weight_kg=user_row.current_weight_kg,
+                target_weight_kg=user_row.target_weight_kg,
+                activity_level=user_row.activity_level,
+                conditions=cond_rows,
+            )
+        except Exception:  # noqa: BLE001 - a plan without targets beats no plan
+            logger.warning("Planner: nutrient goals unavailable", exc_info=True)
+
     return {
+        "user": user_row,
         "conditions": cond_rows,
         "medications": med_rows,
         "nutrition_logs": nutrition_rows,
         "therapy_sessions": therapy_rows,
         "labs": list(latest_labs.values()),
         "pantry": pantry_rows,
+        "goals": goals,
+        "forbidden": food_safety.forbidden_for(user_row, cond_rows) if user_row else [],
     }
+
+
+def _subject_for(user: "User") -> str:
+    """Our handle for the patient, as sent to a model provider.
+
+    NOT the name. Both planner prompts used to open with
+    `PATIENT: {user.full_name}` while the chat surface deliberately sent an
+    HMAC token — canon §3al: identity never leaves, and not putting the name in
+    the payload is stronger than trusting the egress scrubber to recognise it,
+    because it also holds on the Ollama path where no scrubbing runs.
+    """
+    from app.services.prompt_identity import subject_reference
+    return subject_reference(user)
+
+
+def _dialysis_summary(therapy_rows: list) -> str:
+    """How often this patient is treated, and when — stated as fact, not schedule.
+
+    Do NOT collapse the gathered sessions into "the days they dialyse". This
+    patient's last twelve sessions cover Mon/Wed/Fri *and* Tue/Thu/Sat/Sun,
+    because the schedule changed part-way through the window: naively unioning
+    the weekdays says "dialysis every day", which would have the exercise
+    planner prescribe rest seven days a week.
+
+    The recent DATES are unambiguous and need no inference, so that is what is
+    reported, alongside an observed frequency.
+    """
+    dated = [t for t in (therapy_rows or []) if getattr(t, "scheduled_date", None)]
+    if not dated:
+        return ""
+    dated.sort(key=lambda t: t.scheduled_date, reverse=True)
+
+    recent = dated[:6]
+    spans = (recent[0].scheduled_date - recent[-1].scheduled_date).days if len(recent) > 1 else 0
+    # n sessions span n-1 intervals: 6 sessions over 11 days is 3/week, not 4.
+    per_week = ((len(recent) - 1) / (spans / 7)) if spans >= 7 else None
+
+    parts = []
+    if per_week:
+        parts.append(f"about {per_week:.0f} sessions/week")
+    latest = "; ".join(
+        f"{_DAYS[t.scheduled_date.weekday()]} {t.scheduled_date.date()}"
+        for t in recent[:3]
+    )
+    parts.append(f"most recent: {latest}")
+    return " — ".join(parts)
+
+
+def _patient_block(user: "User", ctx: dict) -> str:
+    """Who the patient is, and the numbers a plan has to hit.
+
+    Age, sex and weight are not optional colour: a renal protein target is
+    prescribed per kg of body weight, so a planner without them is guessing.
+    """
+    u = ctx.get("user") or user
+    lines: list[str] = [f"PATIENT REFERENCE: {_subject_for(u)}"]
+
+    # date_of_birth is a String(10) column, not a Date — parse it with the same
+    # helper compute_goals uses rather than a second, subtly different one.
+    from app.services.nutrient_goals_service import _calc_age
+    age = _calc_age(getattr(u, "date_of_birth", None))
+    if age is not None:
+        lines.append(f"AGE: {age}")
+    if getattr(u, "gender", None):
+        lines.append(f"SEX: {u.gender}")
+    if getattr(u, "current_weight_kg", None):
+        lines.append(f"BODY WEIGHT: {u.current_weight_kg} kg")
+    if getattr(u, "height_cm", None):
+        lines.append(f"HEIGHT: {u.height_cm} cm")
+    if getattr(u, "activity_level", None):
+        lines.append(f"ACTIVITY LEVEL: {u.activity_level}")
+
+    dialysis = _dialysis_summary(ctx.get("therapy_sessions") or [])
+    if dialysis:
+        lines.append(f"DIALYSIS: {dialysis}")
+        lines.append(
+            "A dialysis session removes potassium and phosphorus from the BLOOD. "
+            "It does not raise the dietary limits below — those already assume "
+            "a patient on dialysis."
+        )
+
+    goal_rows = (ctx.get("goals") or {}).get("goals") or []
+    if goal_rows:
+        lines.append("")
+        lines.append("DAILY TARGETS FOR THIS PATIENT (authoritative — use these exact figures,")
+        lines.append("do not substitute a remembered guideline, and never quote a SERUM")
+        lines.append("reference range (mmol/L, mEq/L) as a dietary intake limit):")
+        for g in goal_rows:
+            kind = "max/day" if g.get("kind") == "limit" else "aim/day"
+            lines.append(
+                f"  - {g.get('name') or g.get('key')}: "
+                f"{g.get('goal')} {g.get('unit') or ''} ({kind})".rstrip()
+            )
+        energy = (ctx.get("goals") or {}).get("energy_kcal")
+        if energy:
+            lines.append(f"  - Energy: {energy} kcal (aim/day)")
+
+    forbidden_block = food_safety.prompt_block(ctx.get("forbidden") or [])
+    if forbidden_block:
+        lines.append("")
+        lines.append(forbidden_block)
+
+    return "\n".join(lines)
 
 
 _DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -300,11 +432,13 @@ async def _ollama_generate_meal_plan(
         f'{{"day":"Monday","breakfast":{meal_schema},'
         f'"lunch":{meal_schema},"dinner":{meal_schema},"snack":{meal_schema}}}'
     )
+    labs_str = _labs_summary(ctx.get("labs", []))
     prompt = (
         f"You are a clinical dietitian. Generate a personalized 7-day meal plan.\n\n"
-        f"PATIENT: {user.full_name or 'Patient'}\n"
+        f"{_patient_block(user, ctx)}\n\n"
         f"CHRONIC CONDITIONS: {conditions_str}\n"
         f"ACTIVE MEDICATIONS: {meds_str}\n"
+        f"RECENT LAB RESULTS: {labs_str}\n"
         f"DIETARY RESTRICTIONS / ALLERGIES: {restrictions}\n"
         f"DIETARY PATTERN: {pattern}\n"
         f"RECENT FOODS PATIENT EATS: {recent_foods}\n\n"
@@ -315,8 +449,11 @@ async def _ollama_generate_meal_plan(
         f"4. If pattern is 'renal': low potassium (avoid bananas, oranges, potatoes, tomatoes), "
         f"low phosphorus (avoid nuts, whole grains, cola), sodium <1500 mg/day, moderate protein.\n"
         f"5. If pattern is 'diabetic': low glycemic index, limit simple carbs, even carb distribution.\n"
-        f"6. Respect all allergies and restrictions listed above.\n"
-        f"7. Personalise based on recent foods the patient eats.\n\n"
+        f"6. Respect all allergies and restrictions listed above. Never include a "
+        f"FORBIDDEN item, in any form or as a substitution.\n"
+        f"7. Personalise based on recent foods the patient eats.\n"
+        f"8. The whole day's totals must land on the DAILY TARGETS above — protein "
+        f"and energy in particular. Size portions to this patient's body weight.\n\n"
         f"Output only the JSON array:"
     )
 
@@ -374,6 +511,35 @@ async def _ollama_generate_meal_plan(
         return None
 
 
+def _sanitize_week(weekly: list, forbidden: list) -> tuple[list, list[str]]:
+    """Strip any meal that offers a forbidden food. Returns (plan, what went).
+
+    Applied to the AI plan AND to the deterministic template, because the
+    template is static text that was never checked against a patient profile:
+    its renal week serves "Cream of wheat with blueberries" and "Waffles with
+    strawberries" to whoever asks.
+
+    A removed slot is reported, never left as a silent blank — the patient has
+    to know the plan is short because of their allergy, not because the app
+    lost a meal.
+    """
+    if not forbidden:
+        return weekly, []
+
+    removed: list[str] = []
+    for day in weekly:
+        for slot in ("breakfast", "lunch", "dinner", "snack"):
+            meal = getattr(day, slot, None)
+            name = getattr(meal, "name", None)
+            if not name:
+                continue
+            hits = food_safety.violations(name, forbidden)
+            if hits:
+                removed.append(f"{day.day} {slot}: {name} ({hits[0].reason})")
+                setattr(day, slot, None)
+    return weekly, removed
+
+
 async def _ollama_generate_exercise_plan(
     user: "User",
     ctx: dict,
@@ -382,18 +548,23 @@ async def _ollama_generate_exercise_plan(
     """Ask Ollama to generate a personalised 7-day exercise plan. Returns None on any failure."""
     conditions_str = "; ".join(c.name for c in ctx["conditions"]) or "None reported"
 
+    # Case-insensitively: this column holds both "THURSDAY" and "Thursday", so
+    # a case-sensitive check lists the same weekday twice (canon §3aa, which
+    # learned it from "Calcium Carbonate" vs "Calcium carbonate").
     dialysis_days: list[str] = []
+    seen_days: set[str] = set()
     for ts in ctx["therapy_sessions"]:
-        dw = getattr(ts, "day_of_week", None)
-        if dw and dw not in dialysis_days:
-            dialysis_days.append(dw)
+        dw = (getattr(ts, "day_of_week", None) or "").strip()
+        if dw and dw.lower() not in seen_days:
+            seen_days.add(dw.lower())
+            dialysis_days.append(dw.title())
     dialysis_str = ", ".join(dialysis_days) if dialysis_days else "none detected"
 
     ex_schema = '{"name":"Push-ups","type":"strength","sets":3,"reps":10}'
     day_schema = f'{{"day":"Monday","focus":"upper_body","total_minutes":45,"exercises":[{ex_schema}]}}'
     prompt = (
         f"You are a certified exercise physiologist. Generate a personalized 7-day exercise plan.\n\n"
-        f"PATIENT: {user.full_name or 'Patient'}\n"
+        f"{_patient_block(user, ctx)}\n\n"
         f"CHRONIC CONDITIONS: {conditions_str}\n"
         f"FITNESS LEVEL: {level}\n"
         f"DIALYSIS DAYS (if applicable): {dialysis_str}\n\n"
@@ -544,7 +715,7 @@ async def _generate_meal_suggestions(
     )
     prompt = (
         "You are ALAFIA's clinical dietitian. Suggest meals personalised to this patient.\n\n"
-        f"PATIENT: {user.full_name or 'Patient'}\n"
+        f"{_patient_block(user, ctx)}\n\n"
         f"CHRONIC CONDITIONS: {conditions_str}\n"
         f"ACTIVE MEDICATIONS: {meds_str}\n"
         f"RECENT LAB RESULTS: {labs_str}\n"
@@ -557,7 +728,8 @@ async def _generate_meal_suggestions(
         f"1. Output ONLY a valid JSON array of EXACTLY {count} objects, each matching: {item_schema}\n"
         "2. PREFER recipes that use the pantry items on hand; list those exact items in 'pantry_used'.\n"
         "3. Put every ingredient NOT already in the pantry into 'missing_items' (a shopping recommendation).\n"
-        "4. Respect ALL allergies/restrictions absolutely; honour the stated preferences.\n"
+        "4. Respect ALL allergies/restrictions absolutely; never include a FORBIDDEN "
+        "item, in any form or as a substitution. Honour the stated preferences.\n"
         "5. Tailor to the conditions & labs (e.g. renal/CKD -> limit potassium, phosphorus, sodium; "
         "low hemoglobin -> iron-rich foods + vitamin C; low vitamin D / calcium -> fortified or dairy options).\n"
         "6. All calorie/macro fields are numbers; keep ingredient names simple.\n\n"
@@ -656,6 +828,44 @@ async def generate_meal_suggestions(
             detail="The AI meal engine returned no usable suggestions. Please try again.",
         )
 
+    # A suggestion naming a food the patient reacts to must not be shown. The
+    # name, description and the ingredient list are all checked: the allergen
+    # is as likely to be an ingredient as it is to be in the title.
+    forbidden = ctx.get("forbidden") or []
+    blocked: list[str] = []
+    if forbidden:
+        kept = []
+        for sg in suggestions:
+            text = " ".join([
+                sg.name or "",
+                sg.description or "",
+                " ".join(sg.ingredients or []),
+                " ".join(sg.missing_items or []),
+            ])
+            hits = food_safety.violations(text, forbidden)
+            if hits:
+                blocked.append(f"{sg.name} ({hits[0].reason})")
+            else:
+                kept.append(sg)
+        suggestions = kept
+
+    if blocked:
+        logger.warning(
+            "Planner: blocked %d unsafe suggestion(s) for user %s: %s",
+            len(blocked), current_user.id, "; ".join(blocked),
+        )
+    if not suggestions:
+        # Every suggestion was unsafe. Saying "no suggestions" here would be the
+        # empty state hiding a real finding — the patient is owed the reason.
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Every suggestion returned contained something you react to, "
+                           "so none could be shown. Please try again.",
+                "blocked": blocked,
+            },
+        )
+
     # Aggregate unique missing items into one shopping list
     shopping: list[str] = []
     seen: set[str] = set()
@@ -667,6 +877,7 @@ async def generate_meal_suggestions(
 
     advice = (
         f"{len(suggestions)} suggestions tuned to your goals"
+        + (f" ({len(blocked)} removed for your allergies)" if blocked else "")
         + (" and active conditions" if ctx["conditions"] else "")
         + ". Items you already have are used first; the shopping list covers what's missing."
     )
@@ -700,9 +911,25 @@ async def generate_meal_plan(
     # Fall back to template
     if not weekly_plan:
         tmpl = MEAL_TEMPLATES.get(pattern) or MEAL_TEMPLATES["balanced"]
-        weekly_plan = list(tmpl.values())
+        # deepcopy: the templates are module-level singletons, and sanitising
+        # in place would permanently delete a meal from every future patient's
+        # plan for the lifetime of the process.
+        weekly_plan = [d.model_copy(deep=True) for d in tmpl.values()]
 
-    shopping = SHOPPING_LISTS.get(pattern, SHOPPING_LISTS["balanced"])
+    forbidden = ctx.get("forbidden") or []
+    weekly_plan, removed = _sanitize_week(weekly_plan, forbidden)
+    if removed:
+        # The model was handed an explicit FORBIDDEN list and used one anyway
+        # (or the static template did). Worth a log line either way.
+        logger.warning(
+            "Planner: removed %d unsafe meal(s) for user %s: %s",
+            len(removed), current_user.id, "; ".join(removed),
+        )
+
+    shopping = [
+        item for item in SHOPPING_LISTS.get(pattern, SHOPPING_LISTS["balanced"])
+        if food_safety.is_safe(item, forbidden)
+    ]
     avg_cal = sum(
         (d.breakfast.calories or 0) + (d.lunch.calories or 0) + (d.dinner.calories or 0)
         for d in weekly_plan
@@ -726,6 +953,12 @@ async def generate_meal_plan(
     if used_ai:
         advice_parts.append(
             "This plan was personalised by AI based on your health conditions and medications."
+        )
+    if removed:
+        advice_parts.append(
+            f"{len(removed)} suggested item(s) were removed because they contain "
+            f"something you react to: " + "; ".join(removed) + ". "
+            "Those meal slots are empty for that reason, not by mistake."
         )
 
     plan_obj = MealPlanModel(

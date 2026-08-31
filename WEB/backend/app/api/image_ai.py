@@ -567,7 +567,10 @@ async def verify_dosage(
             f"You are a clinical pharmacist. A patient is taking:\n\n"
             f"NEW MEDICATION: {request.medication_name} {request.dosage}\n"
             f"CURRENT MEDICATIONS: {other_meds_str}\n"
-            f"PATIENT: {current_user.full_name or 'Patient'}\n\n"
+            # No patient identifier at all: a drug-drug interaction depends on
+            # the drugs, not on who is taking them. Canon §3al — identity never
+            # leaves, and the strongest form of that is not assembling it.
+
             f"In 2-3 concise sentences, identify any clinically significant drug-drug interactions "
             f"or warnings between the new medication and the current medications. "
             f"If no significant interactions exist, say so briefly. "

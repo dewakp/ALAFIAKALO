@@ -66,7 +66,8 @@ GITHUB_MODELS_TOKEN:github-models-token NVIDIA_API_KEY:nvidia-api-key DASHSCOPE_
 ZHIPU_API_KEY:zhipu-api-key CLOUDFLARE_API_TOKEN:cloudflare-api-token CLOUDFLARE_ACCOUNT_ID:cloudflare-account-id \
 DEEPSEEK_API_KEY:deepseek-api-key MOONSHOT_API_KEY:moonshot-api-key TOGETHER_API_KEY:together-api-key \
 FIREWORKS_API_KEY:fireworks-api-key DEEPINFRA_API_KEY:deepinfra-api-key XAI_API_KEY:xai-api-key \
-OPENAI_API_KEY:openai-api-key PERPLEXITY_API_KEY:perplexity-api-key ANTHROPIC_API_KEY:anthropic-api-key"
+OPENAI_API_KEY:openai-api-key PERPLEXITY_API_KEY:perplexity-api-key ANTHROPIC_API_KEY:anthropic-api-key \
+ANTHROPIC_WORKSPACE_ID:anthropic-workspace-id"
 
 for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \

@@ -128,8 +128,13 @@ async def refresh_provider_models(spec: "ProviderSpec", *, timeout: float = 10.0
         return ""
     try:
         if spec.kind == "anthropic":
+            # Same builder the adapter uses, so an identity-linked key's
+            # workspace header is never present on chat but missing on
+            # discovery — which would silently pin the model to the fallback.
+            from alafia_model.adapters.anthropic_adapter import anthropic_headers
+
             url = "https://api.anthropic.com/v1/models"
-            headers = {"x-api-key": spec.api_key, "anthropic-version": "2023-06-01"}
+            headers = anthropic_headers(spec.api_key)
         else:
             url = f"{_resolve_base_url(spec).rstrip('/')}/models"
             headers = {"Authorization": f"Bearer {spec.api_key}", **spec.extra_headers}

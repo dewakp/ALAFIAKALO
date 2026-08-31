@@ -1102,12 +1102,8 @@ def _subject_token_for(user: User) -> str:
     Falls back to a plainly non-identifying string rather than to the name: a
     failure here must never degrade into leaking the thing it exists to hide.
     """
-    try:
-        from alafia_model import privacy
-        return privacy.subject_token(user.id)
-    except Exception:  # noqa: BLE001 - never fail a chat over the pseudonym
-        logger.warning("subject_token unavailable; sending an opaque id", exc_info=True)
-        return f"alafia-user-{user.id}"
+    from app.services.prompt_identity import subject_reference
+    return subject_reference(user)
 
 
 async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
@@ -1206,6 +1202,30 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
     lines.append(f"Occupation    : {_v(user.occupation)}")
     lines.append(f"Stress Level  : {_v(user.stress_level)}")
     lines.append("")
+
+    # ── 1aa. FOODS THIS PATIENT MUST NEVER BE OFFERED ─────────────
+    #
+    # The Allergies line above was already here and was not enough: a
+    # production plan for a patient whose profile reads "Raw Apples, Raw
+    # Berries" opened with "1 small apple" and closed by recommending apples
+    # again. An allergy listed among fifteen other profile fields reads as
+    # background; stated as a prohibition with its reason, it is an
+    # instruction. This block also carries contraindications implied by a
+    # DIAGNOSIS rather than by an allergy row — fava beans in G6PD deficiency.
+    #
+    # Unlike the planner, a prose answer cannot be filtered after the fact, so
+    # here this is a prompt-level control only. `app/services/food_safety.py`
+    # is the single place that decides what is forbidden, for both surfaces.
+    try:
+        from app.services import food_safety
+        forbidden = food_safety.forbidden_for(user, cc_list)
+        block = food_safety.prompt_block(forbidden)
+        if block:
+            lines.append("=== FOODS THIS PATIENT MUST NEVER BE OFFERED ===")
+            lines.append(block)
+            lines.append("")
+    except Exception:  # noqa: BLE001 - never fail a chat over the guard
+        logger.warning("food safety block unavailable", exc_info=True)
 
     # ── 1a. THIS PATIENT'S NUTRIENT LIMITS AND TARGETS ────────────
     #

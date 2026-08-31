@@ -8,6 +8,7 @@ one. Same {content, model, tokens_used} return contract as every other adapter.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import json
@@ -18,6 +19,47 @@ from alafia_model.adapters.base_adapter import BaseAdapter
 logger = logging.getLogger(__name__)
 
 _MESSAGES_URL = "https://api.anthropic.com/v1/messages"
+
+
+def anthropic_headers(api_key: str, *, json_content: bool = False) -> dict[str, str]:
+    """The headers EVERY Anthropic call needs — one builder, three call sites.
+
+    An *identity-linked* API key additionally requires `anthropic-workspace-id`;
+    without it every request is refused with a 400 invalid_request_error, which
+    in a provider pool reads as "Anthropic is down" rather than "Anthropic is
+    misconfigured". The header is sent only when ANTHROPIC_WORKSPACE_ID is set,
+    so a classic org-scoped key keeps working with no configuration at all.
+    """
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+    }
+    workspace = os.environ.get("ANTHROPIC_WORKSPACE_ID", "").strip()
+    if workspace:
+        headers["anthropic-workspace-id"] = workspace
+    if json_content:
+        headers["content-type"] = "application/json"
+    return headers
+
+
+def _name_config_error(exc: httpx.HTTPStatusError) -> None:
+    """Turn Anthropic's workspace-id 400 into a message that names the fix.
+
+    Canon: an error is not an empty state. A bare 400 here sends the pool to the
+    next provider and the real cause — an unset env var — never surfaces.
+    """
+    if exc.response.status_code != 400:
+        return
+    try:
+        message = (exc.response.json().get("error") or {}).get("message", "")
+    except ValueError:
+        return
+    if "anthropic-workspace-id" in message:
+        raise RuntimeError(
+            "anthropic: this API key is identity-linked and requires a workspace "
+            "id. Set ANTHROPIC_WORKSPACE_ID (Anthropic Console -> Settings -> "
+            "Workspaces; the id is the wrkspc_... in the URL)."
+        ) from exc
 
 
 class AnthropicAdapter(BaseAdapter):
@@ -64,14 +106,14 @@ class AnthropicAdapter(BaseAdapter):
         }
         if system:
             body["system"] = system
-        headers = {
-            "x-api-key": self._api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        }
+        headers = anthropic_headers(self._api_key, json_content=True)
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(_MESSAGES_URL, headers=headers, json=body)
-            resp.raise_for_status()
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                _name_config_error(exc)
+                raise
             data = resp.json()
 
         content = "".join(
@@ -114,14 +156,15 @@ class AnthropicAdapter(BaseAdapter):
         }
         if system:
             body["system"] = system
-        headers = {
-            "x-api-key": self._api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        }
+        headers = anthropic_headers(self._api_key, json_content=True)
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             async with client.stream("POST", _MESSAGES_URL, headers=headers, json=body) as resp:
-                resp.raise_for_status()
+                try:
+                    resp.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    await exc.response.aread()
+                    _name_config_error(exc)
+                    raise
                 async for line in resp.aiter_lines():
                     if not line.startswith("data:"):
                         continue
