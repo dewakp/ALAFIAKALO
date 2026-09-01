@@ -248,8 +248,25 @@ private fun InfoRow(label: String, value: String) {
 private fun ProfileEditDialog(user: UserSchema?, onDismiss: () -> Unit, onSave: (UserUpdateRequest) -> Unit) {
     var fullName by remember { mutableStateOf(user?.full_name ?: "") }
     var bloodType by remember { mutableStateOf(user?.blood_type ?: "") }
-    var heightCm by remember { mutableStateOf(user?.height_cm?.toString() ?: "") }
-    var weightKg by remember { mutableStateOf(user?.current_weight_kg?.toString() ?: "") }
+    // The patient reads their height off whatever is in front of them. Their
+    // profile says which system they use (locale picks the default; they can
+    // change and toggle it), so the field is LABELLED in that unit, prefilled
+    // in it, and the unit is sent with the value for the backend to convert.
+    // Previously this was labelled "(cm)" for everyone and sent the raw number,
+    // so an imperial patient entering 70 was stored as a 70 cm adult.
+    val imperial = user?.preferred_units.equals("imperial", ignoreCase = true)
+    val heightUnit = if (imperial) "in" else "cm"
+    val weightUnit = if (imperial) "lb" else "kg"
+
+    fun cmToIn(v: Double) = Math.round(v / 2.54 * 10.0) / 10.0
+    fun kgToLb(v: Double) = Math.round(v / 0.45359237 * 10.0) / 10.0
+
+    var heightCm by remember {
+        mutableStateOf(user?.height_cm?.let { if (imperial) cmToIn(it).toString() else it.toString() } ?: "")
+    }
+    var weightKg by remember {
+        mutableStateOf(user?.current_weight_kg?.let { if (imperial) kgToLb(it).toString() else it.toString() } ?: "")
+    }
     var allergies by remember { mutableStateOf(user?.allergies ?: "") }
     var activityLevel by remember { mutableStateOf(user?.activity_level ?: "") }
 
@@ -263,8 +280,8 @@ private fun ProfileEditDialog(user: UserSchema?, onDismiss: () -> Unit, onSave: 
             ) {
                 OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = bloodType, onValueChange = { bloodType = it }, label = { Text("Blood Type") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = heightCm, onValueChange = { heightCm = it }, label = { Text("Height (cm)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = weightKg, onValueChange = { weightKg = it }, label = { Text("Weight (kg)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = heightCm, onValueChange = { heightCm = it }, label = { Text("Height ($heightUnit)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = weightKg, onValueChange = { weightKg = it }, label = { Text("Weight ($weightUnit)") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = allergies, onValueChange = { allergies = it }, label = { Text("Allergies") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = activityLevel, onValueChange = { activityLevel = it }, label = { Text("Activity Level") }, modifier = Modifier.fillMaxWidth())
             }
@@ -276,6 +293,9 @@ private fun ProfileEditDialog(user: UserSchema?, onDismiss: () -> Unit, onSave: 
                     blood_type = bloodType.ifBlank { null },
                     height_cm = heightCm.toDoubleOrNull(),
                     current_weight_kg = weightKg.toDoubleOrNull(),
+                    // Say which unit the numbers above are in; the backend converts.
+                    height_unit = heightCm.toDoubleOrNull()?.let { heightUnit },
+                    weight_unit = weightKg.toDoubleOrNull()?.let { weightUnit },
                     allergies = allergies.ifBlank { null },
                     activity_level = activityLevel.ifBlank { null }
                 ))

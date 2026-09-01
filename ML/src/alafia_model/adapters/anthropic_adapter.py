@@ -8,7 +8,6 @@ one. Same {content, model, tokens_used} return contract as every other adapter.
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any
 
 import json
@@ -24,19 +23,13 @@ _MESSAGES_URL = "https://api.anthropic.com/v1/messages"
 def anthropic_headers(api_key: str, *, json_content: bool = False) -> dict[str, str]:
     """The headers EVERY Anthropic call needs — one builder, three call sites.
 
-    An *identity-linked* API key additionally requires `anthropic-workspace-id`;
-    without it every request is refused with a 400 invalid_request_error, which
-    in a provider pool reads as "Anthropic is down" rather than "Anthropic is
-    misconfigured". The header is sent only when ANTHROPIC_WORKSPACE_ID is set,
-    so a classic org-scoped key keeps working with no configuration at all.
+    Chat, streaming and model discovery each used to build these independently,
+    so a change to one could silently miss the others.
     """
     headers = {
         "x-api-key": api_key,
         "anthropic-version": "2023-06-01",
     }
-    workspace = os.environ.get("ANTHROPIC_WORKSPACE_ID", "").strip()
-    if workspace:
-        headers["anthropic-workspace-id"] = workspace
     if json_content:
         headers["content-type"] = "application/json"
     return headers
@@ -56,9 +49,10 @@ def _name_config_error(exc: httpx.HTTPStatusError) -> None:
         return
     if "anthropic-workspace-id" in message:
         raise RuntimeError(
-            "anthropic: this API key is identity-linked and requires a workspace "
-            "id. Set ANTHROPIC_WORKSPACE_ID (Anthropic Console -> Settings -> "
-            "Workspaces; the id is the wrkspc_... in the URL)."
+            "anthropic: this API key is identity-linked (a Personal key scoped to "
+            "'All workspaces'), so every request is refused. Issue a key whose "
+            "Scope is a single workspace instead — those carry the workspace "
+            "implicitly and need no extra header."
         ) from exc
 
 

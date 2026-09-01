@@ -44,10 +44,25 @@ class UserUpdate(BaseModel):
     insurance_provider: str | None = None
     insurance_country: str | None = None
 
-    # Physical (mutable)
+    # Physical (mutable).
+    #
+    # The column names carry the canonical unit, but the patient reads their
+    # weight off whatever scale is in front of them — so the client may name
+    # the unit the value is in and the backend converts (app/core/units.py).
+    # Bounds are enforced on the CANONICAL value after conversion, in the
+    # endpoint: a bare unbounded float is how 70 inches became a 70 cm adult.
     height_cm: float | None = None
     current_weight_kg: float | None = None
     target_weight_kg: float | None = None
+    # "cm"/"in" and "kg"/"lb" (spellings in units._INTAKE_ALIASES). Omit to
+    # send the canonical unit the field name already states.
+    height_unit: str | None = None
+    weight_unit: str | None = None
+    # Record a value the plausibility check calls impossible. Some patients
+    # genuinely are outside it (severe skeletal dysplasia), and a guard with no
+    # route forward blocks a true clinical record — canon §3aj, same name as
+    # the dose guard's escape hatch.
+    acknowledge_unusual: bool | None = None
 
     # Location & Culture (mutable)
     locale: str | None = None
@@ -105,7 +120,7 @@ class UserResponse(BaseModel):
     insurance_provider: str | None = None
     insurance_country: str | None = None
 
-    # Physical
+    # Physical (always canonical — cm and kg)
     height_cm: float | None = None
     current_weight_kg: float | None = None
     target_weight_kg: float | None = None

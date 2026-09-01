@@ -162,8 +162,20 @@ def violations(text: str, forbidden: Iterable[Forbidden]) -> list[Forbidden]:
         term = parts[0]
         if len(term) < 3:
             continue
-        # Equality, or suffix so "berry" catches "blueberry"/"strawberry".
-        if any(w == term or (len(term) >= 4 and w.endswith(term)) for w in words):
+        # Equality, or the term appearing as either half of a compound:
+        # suffix catches "blueberry"/"strawberry", prefix catches "applesauce".
+        # A live plan offered "Pork tenderloin with applesauce" to an
+        # apple-allergic patient because only the suffix case was handled.
+        #
+        # The >= 4 guard is what keeps this from over-reaching: "egg" is three
+        # characters, so an egg allergy still does not reject "eggplant", while
+        # "apple" is five and does reject "applesauce" — which is correct, that
+        # is what applesauce is made of.
+        if any(
+            w == term
+            or (len(term) >= 4 and (w.endswith(term) or w.startswith(term)))
+            for w in words
+        ):
             hits.append(f)
     return hits
 

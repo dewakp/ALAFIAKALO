@@ -132,6 +132,13 @@ struct ProfileSheet: View {
     @State private var insuranceCountry = ""
 
     // ── Physical ──
+    //
+    // Held in the unit the PATIENT uses, not always metric. Their profile says
+    // which system that is (locale picks the default; they can change it and
+    // toggle freely), the fields are labelled and prefilled in it, and the unit
+    // travels with the value so the backend converts. This was labelled "(cm)"
+    // for everyone and sent the bare number, so an imperial patient entering a
+    // height of 70 was stored as a 70 cm adult.
     @State private var heightCm = ""
     @State private var currentWeightKg = ""
     @State private var targetWeightKg = ""
@@ -170,6 +177,18 @@ struct ProfileSheet: View {
     // ── Privacy ──
     @State private var dataSharingConsent = false
     @State private var aiTrainingConsent = false
+
+    // The patient's own system, from their profile.
+    private var usesImperial: Bool { preferredUnits.lowercased() == "imperial" }
+    private var heightUnit: String { usesImperial ? "in" : "cm" }
+    private var weightUnit: String { usesImperial ? "lb" : "kg" }
+
+    private func toDisplayLength(_ cm: Double) -> Double {
+        usesImperial ? (cm / 2.54 * 10).rounded() / 10 : cm
+    }
+    private func toDisplayMass(_ kg: Double) -> Double {
+        usesImperial ? (kg / 0.45359237 * 10).rounded() / 10 : kg
+    }
 
     // ── UI State ──
     @State private var isSaving = false
@@ -240,11 +259,11 @@ struct ProfileSheet: View {
 
                 // ── Physical ──
                 Section("Physical") {
-                    LKTextField(title: "Height (cm)", text: $heightCm)
+                    LKTextField(title: "Height (\(heightUnit))", text: $heightCm)
                         .keyboardType(.decimalPad)
-                    LKTextField(title: "Current Weight (kg)", text: $currentWeightKg)
+                    LKTextField(title: "Current Weight (\(weightUnit))", text: $currentWeightKg)
                         .keyboardType(.decimalPad)
-                    LKTextField(title: "Target Weight (kg)", text: $targetWeightKg)
+                    LKTextField(title: "Target Weight (\(weightUnit))", text: $targetWeightKg)
                         .keyboardType(.decimalPad)
                 }
 
@@ -379,9 +398,10 @@ struct ProfileSheet: View {
         insuranceId = u.insuranceId ?? ""
         insuranceProvider = u.insuranceProvider ?? ""
         insuranceCountry = u.insuranceCountry ?? ""
-        heightCm = u.heightCm.map { String($0) } ?? ""
-        currentWeightKg = u.currentWeightKg.map { String($0) } ?? ""
-        targetWeightKg = u.targetWeightKg.map { String($0) } ?? ""
+        preferredUnits = u.preferredUnits ?? ""
+        heightCm = u.heightCm.map { String(toDisplayLength($0)) } ?? ""
+        currentWeightKg = u.currentWeightKg.map { String(toDisplayMass($0)) } ?? ""
+        targetWeightKg = u.targetWeightKg.map { String(toDisplayMass($0)) } ?? ""
         country = u.country ?? ""
         tz = u.timezone ?? ""
         preferredLanguage = u.preferredLanguage ?? ""
@@ -429,6 +449,11 @@ struct ProfileSheet: View {
                 payload.heightCm = Double(heightCm)
                 payload.currentWeightKg = Double(currentWeightKg)
                 payload.targetWeightKg = Double(targetWeightKg)
+                // Name the unit the numbers are in; the backend converts.
+                payload.heightUnit = payload.heightCm == nil ? nil : heightUnit
+                payload.weightUnit =
+                    (payload.currentWeightKg == nil && payload.targetWeightKg == nil)
+                    ? nil : weightUnit
                 payload.country = country.isEmpty ? nil : country
                 payload.timezone = tz.isEmpty ? nil : tz
                 payload.preferredLanguage = preferredLanguage.isEmpty ? nil : preferredLanguage

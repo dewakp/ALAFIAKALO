@@ -174,6 +174,11 @@ struct UserUpdate: Encodable {
     var heightCm: Double?
     var currentWeightKg: Double?
     var targetWeightKg: Double?
+    /// The unit the values above are in ("cm"/"in", "kg"/"lb"). The backend
+    /// converts to what it stores. Omitting these means "already metric",
+    /// which is how an imperial patient's height of 70 was stored as 70 cm.
+    var heightUnit: String?
+    var weightUnit: String?
     var locale: String?
     var timezone: String?
     var country: String?
@@ -212,6 +217,8 @@ struct UserUpdate: Encodable {
         case heightCm = "height_cm"
         case currentWeightKg = "current_weight_kg"
         case targetWeightKg = "target_weight_kg"
+        case heightUnit = "height_unit"
+        case weightUnit = "weight_unit"
         case preferredUnits = "preferred_units"
         case preferredLanguage = "preferred_language"
         case foodIntolerances = "food_intolerances"

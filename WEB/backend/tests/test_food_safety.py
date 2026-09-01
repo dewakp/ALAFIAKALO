@@ -61,6 +61,17 @@ def test_the_general_tip_that_shipped_is_blocked():
     )
 
 
+def test_compound_words_match_either_half():
+    """Found live: "Pork tenderloin with applesauce" reached an allergic patient.
+
+    The suffix case ("blueberries") was handled and the prefix case was not.
+    """
+    forbidden = fs.forbidden_for(_patient())
+    assert fs.violations("Pork tenderloin with applesauce", forbidden)
+    assert fs.violations("apple juice", forbidden)
+    assert fs.violations("blueberry muffin", forbidden)
+
+
 def test_plural_and_qualifier_forms_match():
     forbidden = fs.forbidden_for(_patient())
     for text in ("apple", "Apples", "raw apple", "baked apples"):

@@ -83,6 +83,12 @@ data class UserUpdateRequest(
     val height_cm: Double? = null,
     val current_weight_kg: Double? = null,
     val target_weight_kg: Double? = null,
+    // The unit the value above is in ("cm"/"in", "kg"/"lb"). The backend
+    // converts to what it stores. Sending the number alone means "already
+    // metric" — which is how an imperial patient's height of 70 was stored
+    // as 70 cm.
+    val height_unit: String? = null,
+    val weight_unit: String? = null,
     val locale: String? = null,
     val timezone: String? = null,
     val country: String? = null,
