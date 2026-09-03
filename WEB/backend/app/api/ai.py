@@ -1218,14 +1218,41 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
     # is the single place that decides what is forbidden, for both surfaces.
     try:
         from app.services import food_safety
-        forbidden = food_safety.forbidden_for(user, cc_list)
-        block = food_safety.prompt_block(forbidden)
+        from app.services import condition_nutrition_service as cns
+        # What their DIAGNOSES mean for food, resolved once and stored — both
+        # the triggers to avoid and the mitigators to prioritise. Answering
+        # only the first half makes the advisor a list of prohibitions.
+        facts = await cns.facts_for_conditions(db, cc_list)
+        # Capped nutrients arbitrate between conditions that disagree; computed
+        # below into `goals_payload`, so resolve them the same way here.
+        from app.services.nutrient_goals_service import compute_goals as _cg
+        try:
+            _caps = [
+                (g.get("name") or g.get("key") or "")
+                for g in (_cg(
+                    date_of_birth=str(user.date_of_birth) if user.date_of_birth else None,
+                    sex=user.gender, height_cm=user.height_cm,
+                    current_weight_kg=user.current_weight_kg,
+                    target_weight_kg=user.target_weight_kg,
+                    activity_level=user.activity_level, conditions=cc_list,
+                ).get("goals") or [])
+                if g.get("kind") == "limit"
+            ]
+        except Exception:  # noqa: BLE001
+            _caps = []
+        _g = food_safety.build_guidance(user, facts, nutrient_limits=_caps)
+        _state = await cns.measured_state(db, uid, cc_list)
+        _g = food_safety.Guidance(
+            avoid=_g.avoid, favour=_g.favour, tensions=_g.tensions,
+            observations=_state.observations,
+            contradictions=_state.contradictions)
+        block = food_safety.prompt_block(_g)
         if block:
-            lines.append("=== FOODS THIS PATIENT MUST NEVER BE OFFERED ===")
+            lines.append("=== FOOD GUIDANCE FOR THIS PATIENT ===")
             lines.append(block)
             lines.append("")
     except Exception:  # noqa: BLE001 - never fail a chat over the guard
-        logger.warning("food safety block unavailable", exc_info=True)
+        logger.warning("food guidance unavailable", exc_info=True)
 
     # ── 1a. THIS PATIENT'S NUTRIENT LIMITS AND TARGETS ────────────
     #

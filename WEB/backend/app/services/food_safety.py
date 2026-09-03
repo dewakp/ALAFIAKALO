@@ -1,33 +1,40 @@
-"""Foods this patient must never be offered — the one place that decides.
+"""What this patient should avoid, and what would help them — one decider.
 
-A meal plan is a recommendation the patient is meant to act on, so a food they
-are allergic to must not reach them. Relying on the model to honour an
-`ALLERGIES:` line in a prompt is not a control: a production plan recommended
-"1 small apple" at breakfast, and then "choose low-potassium fruits (apples,
-grapes)", to a patient whose profile reads `Raw Apples, Raw Berries`.
+Two corrections are baked into this module's shape, both of which the first
+version got wrong.
 
-So this module is used TWICE on every generated plan:
+**A condition trigger is not an allergy.** An allergy is immune-mediated and is
+declared by the patient in their profile. Favism is enzymatic. Coeliac disease
+is autoimmune. Sickle cell has its own precipitants. They are all enforced the
+same way — the food does not reach the patient — but they must be EXPLAINED
+differently, so `kind` and `mechanism` travel with every restriction instead of
+collapsing into one undifferentiated "forbidden" list.
 
-  1. in the prompt, as an explicit forbidden list (helps a good model), and
-  2. on the output, as a filter (catches a bad one) — including the
-     deterministic TEMPLATE fallback, which is static text nobody had checked
-     against a patient profile at all. The renal template serves "Cream of
-     wheat with blueberries" and "Waffles with strawberries".
+**Avoidance is only half of nutrition.** The first version modelled restriction
+and nothing else, which makes ALAFIA a list of prohibitions rather than an
+advisor. Conditions also have MITIGATORS: antioxidants that reduce oxidative
+stress in G6PD deficiency; B12, folate and iron — with vitamin C for absorption
+— that support red cell production in anaemia. Those belong in a plan as
+positive guidance, so `Guidance` carries `favour` beside `avoid`.
 
-Canon §3aj's dose guard is the model: a guard states WHAT it blocked and WHY,
-because one that cannot explain itself gets blamed for the thing it did not do.
+**Nothing here is hardcoded.** An earlier version held a nine-line dict mapping
+"g6pd" to four bean names. That is the mistake §3ad and §3c already name: it
+covers only the condition someone thought of, cannot say why, has no source and
+never improves. Condition knowledge is resolved once and stored by
+`condition_nutrition_service`; this module only decides what to do with it.
 
-Matching deliberately errs toward flagging. A false positive costs the patient
-one menu option; a false negative is the thing this module exists to prevent.
-Single-word terms match on word equality OR suffix, so "berry" catches
-"blueberries" and "strawberries" — and, yes, "apple" catches "pineapple".
+Matching errs toward flagging. A false positive costs the patient one menu
+option; a false negative is the thing this module exists to prevent. Terms match
+on word equality or as either half of a compound, so "berry" catches
+"blueberries" and "apple" catches "applesauce" — the latter found only by
+driving a real plan against a real profile.
 """
 
 from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Iterable
 
 # Words that qualify a food without changing what it is. "Raw Apples" is an
@@ -38,29 +45,55 @@ _QUALIFIERS = frozenset({
     "steamed", "baked", "boiled", "grilled", "roasted", "plain", "unsweetened",
 })
 
-# Food contraindications implied by a DIAGNOSIS rather than by an allergy row.
-#
-# Kept deliberately small and specific. Fava beans are the classic, established
-# trigger for acute haemolysis in G6PD deficiency — "favism" is named for it —
-# and it is a food contraindication that follows from the diagnosis itself, so
-# a patient who never listed it as an allergy is still owed the warning.
-# Legumes in general are NOT contraindicated in G6PD, and adding them here
-# would restrict a renal patient's protein options for no clinical reason.
-_CONDITION_FORBIDDEN: dict[str, tuple[tuple[str, ...], str]] = {
-    "g6pd": (
-        ("fava bean", "broad bean", "faba bean", "ful medames"),
-        "G6PD deficiency — fava beans can trigger acute haemolysis (favism)",
-    ),
-}
+# Restriction kinds, in the order a clinician would rank their certainty.
+ALLERGY = "allergy"
+INTOLERANCE = "intolerance"
+CONDITION_TRIGGER = "condition_trigger"
 
 
 @dataclass(frozen=True)
-class Forbidden:
-    """One thing the patient must not be offered, and why."""
+class Restriction:
+    """Something the patient must not be offered, and why."""
 
-    term: str      # normalised, singular, lowercase — what we match on
-    reason: str    # patient-facing explanation
-    source: str    # "allergy" | "intolerance" | "condition"
+    term: str            # normalised, singular, lowercase — what we match on
+    label: str           # what the patient wrote or the fact named
+    kind: str            # allergy | intolerance | condition_trigger
+    reason: str          # patient-facing explanation
+    mechanism: str | None = None
+
+    @property
+    def source(self) -> str:  # kept for callers written against the old field
+        return self.kind
+
+
+@dataclass(frozen=True)
+class Encouragement:
+    """Something that would help this patient, and why."""
+
+    subject: str
+    subject_kind: str    # food | nutrient | ingredient
+    reason: str
+    mechanism: str | None = None
+
+
+@dataclass(frozen=True)
+class Guidance:
+    """Both directions. A plan needs each."""
+
+    avoid: list[Restriction] = field(default_factory=list)
+    favour: list[Encouragement] = field(default_factory=list)
+    # Guidance that one condition asks for and another limits. NOT hidden:
+    # silently dropping it left the model unable to reason about a real
+    # clinical trade-off, and the resolution often depends on the patient's
+    # measured state rather than on their diagnosis labels.
+    tensions: list[str] = field(default_factory=list)
+    # What the record actually measures, and where it contradicts a label.
+    observations: list[str] = field(default_factory=list)
+    contradictions: list[str] = field(default_factory=list)
+
+    def __bool__(self) -> bool:
+        return bool(self.avoid or self.favour or self.tensions
+                    or self.observations or self.contradictions)
 
 
 def profile_list(value: Any) -> list[str]:
@@ -88,12 +121,18 @@ def profile_list(value: Any) -> list[str]:
     return [part.strip() for part in text.split(",") if part.strip()]
 
 
+# Words ending in -us/-is/-ss are not plurals. Stripping the s produced
+# "citru" and "phosphoru" in real resolved guidance.
+_NOT_PLURAL_SUFFIXES = ("ss", "us", "is", "as", "os")
+
+
 def _singular(word: str) -> str:
     if len(word) > 3 and word.endswith("ies"):
         return word[:-3] + "y"
     if len(word) > 3 and word.endswith("oes"):
         return word[:-2]
-    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+    if (len(word) > 3 and word.endswith("s")
+            and not word.endswith(_NOT_PLURAL_SUFFIXES)):
         return word[:-1]
     return word
 
@@ -105,46 +144,118 @@ def _normalise(phrase: str) -> str:
     return " ".join(kept)
 
 
-def _condition_names(conditions: Iterable[Any] | None) -> list[str]:
-    out: list[str] = []
-    for c in conditions or []:
-        name = getattr(c, "name", None) or getattr(c, "condition_name", None) or str(c)
-        if name:
-            out.append(str(name))
-    return out
+# Subjects that are not food and must never appear as meal guidance. Matched
+# by shape, not by a list of drug names: anything the resolver returns that is
+# really a THERAPY belongs on the medication screen, not in a meal plan.
+_NOT_FOOD_MARKERS = ("binder", "supplement tablet", "injection", "infusion",
+                     "medication", "drug", "therapy")
 
 
-def forbidden_for(user: Any, conditions: Iterable[Any] | None = None) -> list[Forbidden]:
-    """Everything this patient must not be offered, from profile + diagnoses."""
-    found: dict[str, Forbidden] = {}
+def _is_food_advice(subject: str) -> bool:
+    low = subject.lower()
+    return not any(m in low for m in _NOT_FOOD_MARKERS)
 
-    def _add(raw: str, reason: str, source: str) -> None:
+
+def _conditional(subject: str) -> bool:
+    """Advice the system cannot evaluate for this patient.
+
+    "Potassium (in non-CKD stage 5 patients)" is a clinician's caveat, not an
+    instruction. Surfacing it to a planner invites it to guess which side of
+    the caveat the patient falls on.
+    """
+    low = subject.lower()
+    return any(m in low for m in ("in non-", "if not", "unless", "stage-dependent",
+                                  "patients)", "when not"))
+
+
+def build_guidance(user: Any, facts: Iterable[Any] = (),
+                   nutrient_limits: Iterable[str] = ()) -> Guidance:
+    """Everything this patient should avoid and should favour.
+
+    `facts` are `NutritionFact`s from `condition_nutrition_service` — resolved
+    from their diagnoses and stored, never written here. Passing none yields
+    profile-declared allergies and intolerances only, which is the correct
+    behaviour when the knowledge tier is unavailable: a degraded guard that
+    still honours what the patient told us beats no guard.
+
+    `nutrient_limits` are the nutrients CAPPED for this patient by
+    `compute_goals` ("potassium", "phosphorus", "sodium"…), and they arbitrate
+    between conditions that disagree.
+
+    They disagree often, and dangerously. This patient carries both
+    hypertension and ESRD: hypertension resolves to "prioritise potassium,
+    fruit, legumes, nuts" — textbook DASH — while ESRD resolves to "avoid
+    fruit, avoid nuts, potassium is a hyperkalemia risk". Taking the union
+    would hand the planner an instruction to load a dialysis patient with
+    potassium. The patient's own computed limit is the tie-break, because it
+    already accounts for every condition they have.
+    """
+    avoid: dict[str, Restriction] = {}
+    favour: dict[str, Encouragement] = {}
+
+    def _add_avoid(raw: str, kind: str, reason: str, mechanism: str | None = None) -> None:
         term = _normalise(raw)
-        if term and term not in found:
-            found[term] = Forbidden(term=term, reason=reason, source=source)
+        if term and term not in avoid:
+            avoid[term] = Restriction(term=term, label=raw, kind=kind,
+                                      reason=reason, mechanism=mechanism)
 
     for item in profile_list(getattr(user, "allergies", None)):
-        _add(item, f"allergy: {item}", "allergy")
+        _add_avoid(item, ALLERGY, f"allergy: {item}")
     for item in profile_list(getattr(user, "food_intolerances", None)):
-        _add(item, f"food intolerance: {item}", "intolerance")
+        _add_avoid(item, INTOLERANCE, f"food intolerance: {item}")
 
-    haystack = " ".join(_condition_names(conditions)).lower()
-    # The profile's own free-text fields can name the condition too — this
-    # patient carries "G6PD Deficiency" under food intolerances, not diagnoses.
-    haystack += " " + " ".join(
-        profile_list(getattr(user, "food_intolerances", None))
-        + profile_list(getattr(user, "dietary_restrictions", None))
-    ).lower()
-    for key, (terms, reason) in _CONDITION_FORBIDDEN.items():
-        if key in haystack:
-            for t in terms:
-                _add(t, reason, "condition")
+    for f in facts or ():
+        relation = getattr(f, "relation", None)
+        subject = getattr(f, "subject", None)
+        if not subject:
+            continue
+        mechanism = getattr(f, "mechanism", None)
+        if relation == "avoid":
+            # A trigger is stated as what it is — the mechanism, not "allergy".
+            _add_avoid(subject, CONDITION_TRIGGER,
+                       getattr(f, "reason", None) or str(subject), mechanism)
+        elif relation == "favour":
+            if not _is_food_advice(subject) or _conditional(subject):
+                continue
+            key = _normalise(subject)
+            if key and key not in favour:
+                favour[key] = Encouragement(
+                    subject=subject,
+                    subject_kind=getattr(f, "subject_kind", "food"),
+                    reason=getattr(f, "reason", None) or str(subject),
+                    mechanism=mechanism,
+                )
 
-    return list(found.values())
+    # A restriction always outranks an encouragement. One condition's mitigator
+    # is another's trigger, and the safe direction is never in doubt.
+    for term in list(favour):
+        if term in avoid or violations(term, avoid.values()):
+            favour.pop(term, None)
+
+    # A nutrient this patient is CAPPED on is not presented as "prioritise" —
+    # but it is not deleted either. It becomes a stated tension, because which
+    # way it resolves depends on measurements, not on the label that produced
+    # the cap. A patient labelled hypertensive whose 1,840 sessions average
+    # 118/77 and end below 90 systolic 43% of the time is not a DASH candidate,
+    # and no amount of reasoning from the label would discover that.
+    tensions: list[str] = []
+    capped = {_normalise(n) for n in (nutrient_limits or ()) if n}
+    if capped:
+        for term in list(favour):
+            if any(c and (c in term or term in c) for c in capped):
+                enc = favour.pop(term)
+                tensions.append(
+                    f"{enc.subject} helps one of this patient's conditions "
+                    f"({enc.mechanism or enc.reason}) but is capped for another. "
+                    "Weigh it against the measurements below rather than "
+                    "applying either rule blindly.")
+
+    return Guidance(avoid=list(avoid.values()), favour=list(favour.values()),
+                    tensions=tensions)
 
 
-def violations(text: str, forbidden: Iterable[Forbidden]) -> list[Forbidden]:
-    """Which forbidden items this text offers. Empty list means safe."""
+def violations(text: str, restrictions: Iterable[Restriction]) -> list[Restriction]:
+    """Which restricted items this text offers. Empty list means safe."""
     if not text:
         return []
     words = [_singular(w) for w in re.split(r"[^a-z0-9]+", text.lower()) if w]
@@ -152,47 +263,79 @@ def violations(text: str, forbidden: Iterable[Forbidden]) -> list[Forbidden]:
         return []
     joined = " ".join(words)
 
-    hits: list[Forbidden] = []
-    for f in forbidden:
-        parts = f.term.split()
+    hits: list[Restriction] = []
+    for r in restrictions or ():
+        parts = r.term.split()
         if len(parts) > 1:
-            if re.search(rf"\b{re.escape(f.term)}\b", joined):
-                hits.append(f)
+            if re.search(rf"\b{re.escape(r.term)}\b", joined):
+                hits.append(r)
             continue
         term = parts[0]
         if len(term) < 3:
             continue
-        # Equality, or the term appearing as either half of a compound:
-        # suffix catches "blueberry"/"strawberry", prefix catches "applesauce".
-        # A live plan offered "Pork tenderloin with applesauce" to an
-        # apple-allergic patient because only the suffix case was handled.
-        #
-        # The >= 4 guard is what keeps this from over-reaching: "egg" is three
-        # characters, so an egg allergy still does not reject "eggplant", while
-        # "apple" is five and does reject "applesauce" — which is correct, that
-        # is what applesauce is made of.
+        # Equality, or the term as either half of a compound: suffix catches
+        # "blueberry", prefix catches "applesauce". The >= 4 guard is what
+        # keeps this from over-reaching — "egg" is three characters, so an egg
+        # allergy still does not reject "eggplant".
         if any(
             w == term
             or (len(term) >= 4 and (w.endswith(term) or w.startswith(term)))
             for w in words
         ):
-            hits.append(f)
+            hits.append(r)
     return hits
 
 
-def is_safe(text: str, forbidden: Iterable[Forbidden]) -> bool:
-    return not violations(text, forbidden)
+def is_safe(text: str, restrictions: Iterable[Restriction]) -> bool:
+    return not violations(text, restrictions)
 
 
-def prompt_block(forbidden: Iterable[Forbidden]) -> str:
-    """The forbidden list as prompt text. Empty string when nothing applies."""
-    items = list(forbidden)
-    if not items:
+def prompt_block(guidance: Guidance) -> str:
+    """Both halves as prompt text. Empty string when nothing applies."""
+    if not guidance:
         return ""
-    lines = [
-        "FORBIDDEN — NEVER include any of these, in any form, "
-        "and never suggest them as an alternative:",
-    ]
-    for f in items:
-        lines.append(f"  - {f.term} ({f.reason})")
+    lines: list[str] = []
+
+    if guidance.avoid:
+        lines.append(
+            "MUST NOT BE OFFERED — never include these, in any form, and never "
+            "suggest them as an alternative:")
+        for r in guidance.avoid:
+            detail = r.mechanism or r.reason
+            lines.append(f"  - {r.term} ({detail})")
+
+    if guidance.favour:
+        if lines:
+            lines.append("")
+        lines.append(
+            "PRIORITISE — these actively help this patient's conditions; work "
+            "them into meals wherever they fit:")
+        for e in guidance.favour:
+            detail = e.mechanism or e.reason
+            lines.append(f"  - {e.subject} ({detail})")
+
+    if guidance.tensions:
+        if lines:
+            lines.append("")
+        lines.append(
+            "UNRESOLVED — one condition asks for these and another limits them. "
+            "Decide using the measurements below, and say which way you went:")
+        for t in guidance.tensions:
+            lines.append(f"  - {t}")
+
+    if guidance.observations:
+        if lines:
+            lines.append("")
+        lines.append("WHAT THIS PATIENT'S RECORD ACTUALLY MEASURES:")
+        for o in guidance.observations:
+            lines.append(f"  - {o}")
+
+    if guidance.contradictions:
+        if lines:
+            lines.append("")
+        lines.append(
+            "⚠ THE RECORD CONTRADICTS A DIAGNOSIS — trust the measurements:")
+        for c in guidance.contradictions:
+            lines.append(f"  - {c}")
+
     return "\n".join(lines)

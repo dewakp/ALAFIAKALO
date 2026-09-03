@@ -69,6 +69,18 @@ class Settings(BaseSettings):
     # Resend, so it is the only domain we can send from. Do not reintroduce
     # alafia.com anywhere — it belongs to someone else.
     SMTP_FROM_EMAIL: str = "noreply@alafia.app"
+
+    # Where contact-form submissions are DELIVERED.
+    #
+    # `alafia.app` publishes DKIM and SPF but has no MX records — it can send
+    # and cannot receive — so the per-desk @alafia.app addresses would bounce.
+    # Set this to a mailbox that actually exists and every desk routes there,
+    # with the desk name in the subject line for filtering. Receiving needs no
+    # DNS change: only SENDING requires the domain to be verified, and it is.
+    #
+    # Leave blank to use the per-desk @alafia.app addresses (correct once MX
+    # records exist and those mailboxes are real).
+    CONTACT_DELIVERY_EMAIL: str = ""
     SMTP_FROM_NAME: str = "ALAFIA"
     SMTP_TLS: bool = True
 

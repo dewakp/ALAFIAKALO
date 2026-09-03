@@ -2419,3 +2419,70 @@ returns **201** (the row was deleted again).
 **Not verified:** neither UI was exercised in a running simulator or emulator —
 both platforms were verified by building and by unit tests, not by driving the
 screen. Web was not touched this session.
+
+---
+
+## Session 2026-09-01/02 — A dead API key, a meal plan that ignored the record, and units nobody converted
+
+**Instruction (in sequence):** rotate the Anthropic key; explain why a meal plan
+did not know the patient's weight or use their G6PD; fix three defects found
+doing so; deploy; explain `height_cm`; remove dead keys and unused config;
+rebuild the contact page as a form; make condition→food knowledge learned rather
+than hardcoded; correct the measured-state reporting; update the documentation.
+
+**Work done:**
+
+- **Anthropic key.** Both keys issued were **Personal / "All workspaces"** —
+  *identity-linked*, so every request 400s asking for `anthropic-workspace-id`.
+  A **workspace-scoped service-account key** carries it implicitly. Verified by
+  asking the API, not by reading the key. Consolidated three header-building
+  sites (chat, streaming, model discovery) into one `anthropic_headers()`.
+  Prod secret rotated, revision rolled — the old key was returning 401 in
+  production and every AI call was silently falling back to Ollama.
+- **The meal plan.** The premise was inverted: the chat context already carried
+  weight, age, sex, conditions, allergies, medications, elimination and 14 days
+  of meals. The bad plan was produced by the **Ollama fallback** during the key
+  outage. Three real defects were found underneath: `/planners/*` genuinely
+  lacked weight/age/sex; four prompts sent the patient's real name; nothing
+  hard-blocked an allergen.
+- **Allergy guard** (`app/services/food_safety.py`) — prompt block + output
+  filter + template filter. Found live against the seeded demo patient:
+  suffix matching caught "blueberries" but not **"applesauce"** (allergen as
+  prefix); sixteen unit tests had not.
+- **PII in prompts** — four sites fixed, `prompt_identity.py` added,
+  `tests/test_no_pii_in_prompts.py` fails the build on any identifier
+  interpolated into a string. Verified the egress scrubber DID catch the name on
+  the hosted path, so no vendor received it; the Ollama path was unprotected.
+- **Units** (§3am) — `to_canonical()`, age-aware plausibility,
+  `acknowledge_unusual`, iOS + Android sending the unit, and
+  `cleanup_imperial_heights.sh` for history.
+- **Condition nutrition** (§3an) — `condition_nutrition_facts` +
+  `condition_nutrition_service`; the hardcoded G6PD dict is gone and a
+  build-failing test keeps it gone. Guidance now runs both directions
+  (avoid + favour) and defers to measurements over labels.
+- **Contact page** — rewritten as a routing form over a new public
+  `POST /api/v1/contact`, mounted outside the paywall. Deliberately NOT
+  FormSubmit (as the CRAM site uses): the Privacy and DPO desks can receive
+  health details.
+
+**Corrections made during the session (all user-caught):**
+
+- Called a 70 cm height on a 52-year-old "a legitimate toddler height" — the age
+  was on the record and settles it.
+- Framed the imperial height as user error when the mandate is that the system
+  converts.
+- Reported an **all-time** BP mean (119 systolic) that hid a patient whose last
+  7 days average **86/59 pre, 67/46 post**.
+- Rendered pre-systolic over post-systolic as `91/83`, which reads as a pulse
+  pressure of 8 rather than two ordinary means.
+- Worked from a day-old dev copy, putting the last dialysis at 3 days when it
+  was 28 hours — compounded by measuring from `scheduled_date` (stored at
+  midnight) instead of `actual_end_time`.
+- Invented a 45-day lab-staleness window when `dialysis_day_adjustment` already
+  defines 14/30 against a monthly draw cadence.
+- Left the allergy guard's own `_CONDITION_FORBIDDEN` dict in place — the exact
+  hardcoding §3ad and §3c warn about — and had to be told.
+
+**Near-miss worth recording:** `alembic revision --autogenerate` for one new
+table generated ~200 further lines that would have **dropped five live tables**
+and a `users` column. Written by hand instead (§3ao).

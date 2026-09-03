@@ -212,3 +212,29 @@ Running upgrade mm001_dialysis_coefficients -> nn001_condition_icd11
 DEPLOY.md had claimed `cc002_reconcile_drift` — four weeks stale. Canon §5's
 "ask `alembic heads`, never a doc" applies to the deployed side too, and the
 migration log is the only place that answers it honestly.
+
+---
+
+## 7. A condition now drives what the patient is offered to eat
+
+Conditions stopped being a display-only list. `condition_nutrition_facts`
+(canon §3an) holds what each diagnosis means for food, in both directions —
+triggers to avoid and mitigators to favour — resolved once from the knowledge
+tier and stored with mechanism, evidence level and provenance.
+
+Two consequences for anything touching this table:
+
+- **`icd11_code` is now load-bearing, not decorative.** It is what reunites a
+  misspelled condition with its facts. The production record carries
+  "G6PD Deficitency"; its code `3A10.00` is exact, and the lookup matches on
+  either. Names are deliberately NOT fuzzy-matched — §3aj learned what string
+  similarity does to clinical names when difflib flagged "Calcitriol" as a
+  misspelling of calcitriol.
+- **`severity` travels with the guidance.** When two of a patient's conditions
+  disagree — hypertension asking for potassium, ESRD capping it — the
+  disagreement is surfaced as a tension for the model to resolve against
+  measurements, not silently decided. Read `app/services/food_safety.py` before
+  changing how conditions are ranked.
+
+> A condition's dietary rules are never typed into source. A build-failing test
+> (`tests/test_condition_nutrition.py`) enforces it.

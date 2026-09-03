@@ -998,5 +998,73 @@
   .hero-actions { flex-direction: column; align-items: stretch; }
   .btn-primary-lg, .btn-ghost-lg { text-align: center; }
   .cta-angels { display: none; }
+
+/* ── Contact form ──────────────────────────────────────────────────────
+   Reuses .form-group / .form-row / .form-input from index.css; only what
+   the marketing pages lacked is defined here. */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin: 2rem auto 2.5rem;
+  max-width: 640px;
+  text-align: left;
+}
+
+.contact-form label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  font-size: 0.93rem;
+}
+
+.contact-form select.form-input {
+  /* Native selects ignore the shared padding on some platforms. */
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2.2rem;
+}
+
+.contact-form textarea.form-input {
+  resize: vertical;
+  min-height: 8rem;
+}
+
+.form-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  opacity: 0.72;
+  line-height: 1.45;
+}
+
+.contact-form .opt {
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.contact-form .btn-primary-lg {
+  align-self: flex-start;
+}
+
+.contact-form .btn-primary-lg[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Honeypot. Moved off-screen rather than display:none — a bot that parses
+   CSS skips hidden inputs, and this one is meant to be filled. It stays out
+   of the tab order and out of the accessibility tree via the markup. */
+.hp-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
   .features-grid { grid-template-columns: 1fr; }
 }

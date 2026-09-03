@@ -172,6 +172,17 @@ fi
 # Either way no new account can be created. Flip to true ONLY after a domain is
 # verified at resend.com/domains and a test signup completes end to end.
 BACKEND_ENV="${BACKEND_ENV},TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:-false}"
+# Where contact-form submissions are DELIVERED.
+#
+# `alafia.app` publishes DKIM and SPF but has NO MX RECORDS — it can send and
+# cannot receive — so the per-desk contact@/privacy@/dpo@/security@alafia.app
+# addresses bounce. Every desk therefore delivers to one real mailbox, with the
+# desk name in the subject for filtering. The submission is written to
+# `contact_submissions` regardless, so a bounced notification never loses a
+# message; this only decides who gets TOLD.
+#
+# Clear this (and add MX records) once those mailboxes actually exist.
+BACKEND_ENV="${BACKEND_ENV},CONTACT_DELIVERY_EMAIL=${CONTACT_DELIVERY_EMAIL:-woleakpose@outlook.com}"
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
 # Private GPU Ollama LLM + the deployed commit stamp (surfaced by /api/health).

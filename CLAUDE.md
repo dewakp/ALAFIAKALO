@@ -738,6 +738,22 @@ incapable of catching the trailing-slash redirect of §3ai. Both `server` and
   (`TWO_STEP_SIGNUP_REQUIRED` defaults ON), so the account is seeded by
   `scripts/make_proof_user.py`.
 
+### An Anthropic key's TYPE decides whether it works at all
+
+A Console key created as **Personal / "All workspaces"** is *identity-linked*
+and every request is refused with a 400 — `anthropic-workspace-id is required`.
+A key scoped to a single **workspace** carries it implicitly and needs no extra
+header. Both look identical in `.env`; only the Console's Type column tells you
+which you have. Creating a replacement does not help if the dialog defaults to
+Personal, which it does.
+
+The adapter's three header sites — chat, streaming, and model discovery in
+`registry/providers.py` — now share one `anthropic_headers()` builder, so a
+change cannot land on chat and miss discovery, which would silently pin the
+model to the fallback. A 400 naming the workspace header is turned into a
+message that names the fix rather than reaching the provider pool as
+"Anthropic is down".
+
 ### Model ids must be discovered, not pinned
 
 `claude-3-5-haiku-latest` was pinned in the provider registry and retired
@@ -849,6 +865,24 @@ records this deliberately. Closing it needs a named-entity model. Until then, a
 feature that sends a NEW kind of free text must weigh that gap, and anything
 sending structured fields should send those rather than prose.
 
+**Do not ASSEMBLE the identifier, and a test enforces it.** Redaction is a
+backstop with two real limits: it runs only on the hosted path (`try_hosted()` /
+`_stream_hosted()`), so the Ollama path — which dev PREFERS (§3ak) — is
+unprotected, and it can only redact what it recognises. Four prompt builders
+opened with `PATIENT: {user.full_name}`:
+
+    app/api/planners.py   meal plan, meal suggestions, exercise plan
+    app/api/image_ai.py   drug-drug interaction check
+
+`scrub_payload` did catch the name on the hosted path — verified, so no vendor
+received it — but nothing protected the Ollama path, and
+`_register_identity_for_redaction` is best-effort inside a `try/except`: if it
+fails, redaction degrades to pattern-only, which §3al's own passing test records
+as unable to catch a bare name. `app/services/prompt_identity.py` is the one way
+to name a patient in a prompt, and `tests/test_no_pii_in_prompts.py` **fails the
+build** on any direct identifier interpolated into a string, with an allow-list
+carrying a reason per entry.
+
 **Consent is asked for anyway.** "We removed your name" is our assurance, not the
 user's decision. iOS `AIConsentGate` / Android `AiConsentGate` block the Ask tab
 until *Accept & Enable AI Features*, and Profile → AI & Your Data withdraws it.
@@ -857,6 +891,132 @@ Review reply — states third-party processing plainly. **They were all rewritte
 once already**, because they described the previous local-only architecture and
 became false the moment the decision changed. **When the data path changes, the
 copy is part of the change.**
+
+## 3am. Units follow the patient — the system does the arithmetic
+
+The patient's locale sets their default measurement system, they choose and may
+freely toggle a preferred one in Profile, and a reading may arrive in whatever
+unit the facility's device printed. **The patient is never expected to convert.**
+
+What existed instead: `PATCH /users/me` took a bare `height_cm: float` with no
+unit and no bounds, while `app/core/units.py`'s `inches_to_cm` and
+`pounds_to_kg` had **no callers anywhere in the codebase**. The policy was
+written in that module's own docstring and enforced nowhere. A patient whose
+locale is imperial entered a height of 70 and it was stored as a 70 cm adult,
+then fed BMI and every weight-derived nutrient target.
+
+- `to_canonical(value, measurement, unit)` is the one intake door, and gives
+  those helpers their first callers. An unreadable unit **raises** rather than
+  assuming metric — guessing is how a number lands in the wrong column.
+- Plausibility is judged against the **patient**, not a constant. 70 cm is a
+  real height for a one-year-old and impossible for the 52-year-old it was
+  found on, where 70 inches is unremarkable. This is the idiom `to_celsius`
+  already used: it reads >45 as Fahrenheit because nobody is 98.6 °C.
+- **Naming a unit is deliberately NOT an override.** "70 cm" stated
+  confidently is still wrong far more often than right. The way through an
+  implausible-but-true value is `acknowledge_unusual` — the dose guard's escape
+  hatch (§3aj), because a guard with no route forward blocks a true record.
+- iOS and Android label and prefill in the patient's own system and send the
+  unit with the value. Web already converted client-side and was never affected,
+  which is why the bad rows all came from mobile.
+- `scripts/db/cleanup_imperial_heights.sh` corrects history, dry-run by default.
+  It touches a row only when the value is impossible **for that age** AND the
+  patient's own `vitals_logs` corroborate it read as inches, and it writes their
+  MEASURED height rather than the arithmetic conversion — 176.35 is what they
+  were measured at; 177.8 is only what 70 inches equals.
+
+> ⚠️ Any new measurement field takes an optional unit and converts server-side.
+> Adding one that does not is re-opening this bug for a different column.
+
+---
+
+## 3an. A condition's food rules are LEARNED, and they run BOTH ways
+
+A diagnosis changes what a patient should eat in two directions, and only one
+of them was ever modelled.
+
+The first version of the food guard held a nine-line Python dict mapping
+`"g6pd"` to four bean names. That is the mistake §3ad and §3c already name: it
+covers only the condition someone happened to think of, cannot say why, has no
+source, never improves, and goes stale silently. ALAFIA carries thousands of
+possible diagnoses — sickle cell, coeliac, gout, PKU, hereditary fructose
+intolerance — and a dict will never hold them.
+
+- Facts are **resolved once per condition and stored** in
+  `condition_nutrition_facts` with mechanism, evidence level, provenance and
+  confidence — the "look it up once, remember it after" shape of
+  `learned_food_nutrients` (§3c). Re-resolution **sharpens** the existing row
+  (`times_confirmed`, `confidence`) rather than inserting beside it (§3ab).
+- **A trigger is not an allergy.** An allergy is immune-mediated and
+  patient-declared; favism is enzymatic; coeliac is autoimmune. They are
+  enforced alike but must be EXPLAINED differently, so `kind` and `mechanism`
+  travel with every restriction.
+- **Avoidance is half of nutrition.** Conditions have MITIGATORS —
+  antioxidants in G6PD, B12/folate/iron with vitamin C for erythropoiesis in
+  anaemia. A module that only removes food is a restriction list, not an
+  advisor. `Guidance` carries `favour` beside `avoid`.
+- `tests/test_condition_nutrition.py` **fails the build** if a condition→food
+  literal reappears in executable code. The check inspects the AST and skips
+  docstrings, so documentation explaining the design is allowed and a lookup
+  table is not. The resolution prompt carries a SHAPE, not an example pair —
+  showing the model "fava beans" both hardcodes a mapping and biases the answer.
+
+### Conditions contradict each other, and the label is not the patient
+
+Resolving each condition independently and taking the union is **clinically
+unsafe**. On one record, hypertension resolved to "prioritise potassium, fruit,
+legumes, nuts" — textbook DASH — while ESRD resolved to "avoid fruit, avoid
+nuts, potassium is a hyperkalemia risk". The union tells a planner to load a
+dialysis patient with potassium.
+
+Worse, that patient's hypertension **label was contradicted by their own
+readings**. So guidance does not decide from labels:
+
+- capped-versus-favoured items become stated **tensions**, never silent drops —
+  which way they resolve depends on measurements;
+- `measured_state()` reports what the record actually measures and flags where
+  it contradicts a diagnosis, and the model reasons with that.
+
+> **Windows, not lifetimes.** An all-time mean over ten years of dialysis is not
+> a clinical observation. Reported that way, one record showed "mean 119
+> systolic" — which buried the fact that its last 7 days average **86/59 pre and
+> 67/46 post, every session ending below 90**. Use 7-day / 30-day / 1-year.
+
+> **Print a blood pressure as a blood pressure.** Rendering pre-systolic over
+> post-systolic in the `sys/dia` idiom produced "91/83" — a pulse pressure of 8,
+> which reads as a catastrophic finding rather than the two ordinary means it
+> was. State pre and post separately, each as systolic/diastolic.
+
+> **Lab recency is already defined — do not invent a second window.**
+> `dialysis_day_adjustment.FRESH_DAYS/STALE_DAYS` is 14/30, scaled to a monthly
+> draw cadence (DIALYSIS_BALANCE.md §3). A 147-day-old draw is reported as
+> **absent**, not as "latest": offering it as a current value invites advice
+> built on a number nobody has checked in five months.
+
+> **Measure dialysis recency from `actual_end_time`.** `scheduled_date` is
+> stored at midnight, so measuring from it invents up to a day of error — and
+> reports it to the hour — on the one number that decides whether potassium is
+> at its trough.
+
+---
+
+## 3ao. `alembic revision --autogenerate` will delete your database
+
+Autogenerating a migration for ONE new table produced that table plus ~200
+lines that would have **dropped five live tables** (`facilities`,
+`physician_facilities`, `deactivated_accounts`, `deactivated_identity_only`),
+dropped `users.chronic_conditions`, and rewritten indexes across the schema.
+
+The models in code do not describe the deployed database exactly — that is the
+drift §5 has always referred to — so autogenerate reads every unmodelled table
+as one to delete.
+
+**Every `upgrade()` in this project's history is additive: no drops, no
+deletes.** Write the migration by hand, or read every line of the generated
+output before keeping any of it. `ww001_condition_nutrition` is the worked
+example.
+
+---
 
 ## 3b. Admin console
 
@@ -941,6 +1101,30 @@ was one `git add .` from being committed.
   `GET /domains` returns `401 restricted_api_key` — an error that reads exactly
   like "no domains verified" if you do not look at the status code.
   `dig +short TXT resend._domainkey.alafia.app`
+
+### The contact form's record is the ROW, not the email
+
+`alafia.app` publishes DKIM and SPF and has **no MX records** — it can send and
+cannot receive. So the four addresses the old contact page listed as `mailto:`
+links (`contact@`, `privacy@`, `dpo@`, `security@alafia.app`) are not mailboxes:
+mail to them is accepted by the sender and bounces where nobody looks.
+
+- Every submission is written to `contact_submissions` first and the request
+  succeeds on **that write**. The notification is attempted afterwards and its
+  outcome recorded on the row (`notified_at`, `notify_error`). A form that only
+  emailed would tell the sender "we have it" and keep nothing — §3d's
+  unsubscribe failure again, where 17 links rendered "You're unsubscribed" and
+  recorded nothing.
+- Delivery goes to `CONTACT_DELIVERY_EMAIL`, one real mailbox, desk named in the
+  subject. **Receiving needs no DNS change** — only sending requires the
+  verified domain. Confirmed delivering to an external inbox 2026-09-03.
+- The client sends a topic KEY; the server resolves the address. Posting a `to`
+  of your choosing cannot turn this into an open relay.
+- ⚠️ `from __future__ import annotations` in a router module **breaks
+  rate-limited body routes**: it stringifies annotations, the `@limiter.limit`
+  wrapper leaves FastAPI unable to resolve the Pydantic model, and the body is
+  demoted to a QUERY parameter — every POST 422s with `{"loc":["query",…]}`.
+  `auth.py`'s identical routes work only because they lack that import.
 
 ### Bulk mail: consent, and a secret that is not what the shell says it is
 
@@ -1104,18 +1288,23 @@ Other notes:
 - `ML/src/alafia_model` is the canonical ALAFIAModel source; `deploy.sh` vendors
   it into the backend image at build time. Edit it there, not in a copy.
 
-## 5. Known drift to fix (as of 2026-08-22)
+## 5. Known drift to fix (as of 2026-09-02)
 
-- **Head is `nn001_condition_icd11`**, applied to dev and to prod
-  (2026-08-22, `mm001_dialysis_coefficients -> nn001_condition_icd11`).
+- **Code head is `ww001_condition_nutrition`** (`vv001_food_category_store ->
+  ww001_condition_nutrition`), applied to **dev only**. Production is still on
+  `vv001` until that migration deploys.
   This line is dated because it goes stale: **ask `alembic heads`, never a doc
   and never a grep.** DEPLOY.md claimed prod sat at `cc002_reconcile_drift`
   while it was actually on `mm001` — four weeks out of date, and only the
   migration job's own output settled it.
-- ⚠️ **Dev parity is unverified since the ICD-11 work.** Reads were run against
-  the dev copy while debugging, and a handful of test conditions were created
-  and deleted through the API. Run `scripts/db/verify_parity.sh` before trusting
-  dev for anything, and re-pull rather than hand-editing a difference.
+- ⚠️ **Dev differs from prod by exactly that one table.** `pull_prod.sh` reports
+  a SCHEMA MISMATCH for it, which is expected while the migration is unshipped —
+  the DATA restore itself succeeded. Do not "fix" it by dropping the table; ship
+  the migration or re-pull and re-apply.
+- ⚠️ **A dev copy goes stale within a day.** Working from yesterday's pull put a
+  patient's last dialysis three days in the past when it was 28 hours, on a
+  record that gains sessions continuously. Re-pull before reasoning about
+  recency, not just before trusting a screenshot.
 - **The migration graph has exactly ONE head** — verified with `alembic heads`,
   which is the only trustworthy way to ask. A hand-rolled scan reported five
   because many revisions use the annotated form

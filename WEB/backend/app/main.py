@@ -501,3 +501,10 @@ app.include_router(ws_messaging_router)
 # asked to leave. Public and unauthenticated by design.
 from app.api.marketing import router as marketing_router  # noqa: E402
 app.include_router(marketing_router)
+
+# Contact form — also NOT under api_router, and for the same reason: the people
+# most likely to need it are the ones who cannot get in (a lapsed subscription,
+# an account that will not authenticate, a privacy request from someone who has
+# already deleted theirs). A paywalled contact form is not a contact form.
+from app.api.contact import router as contact_router  # noqa: E402
+app.include_router(contact_router, prefix="/api/v1")

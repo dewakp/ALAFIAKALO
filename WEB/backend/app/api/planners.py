@@ -281,6 +281,37 @@ async def _gather_planner_context(user_id: int, db: AsyncSession) -> dict:
         except Exception:  # noqa: BLE001 - a plan without targets beats no plan
             logger.warning("Planner: nutrient goals unavailable", exc_info=True)
 
+    # What this patient's DIAGNOSES mean for food — resolved once from the
+    # knowledge tier and stored, never a hardcoded list (§3ad, §3c). Carries
+    # both directions: triggers to avoid AND mitigators to prioritise.
+    guidance = food_safety.Guidance()
+    if user_row is not None:
+        facts = []
+        try:
+            from app.services import condition_nutrition_service as cns
+            facts = await cns.facts_for_conditions(db, cond_rows)
+        except Exception:  # noqa: BLE001 - a plan must not fail over knowledge
+            logger.warning("Planner: condition nutrition unavailable", exc_info=True)
+        # The nutrients this patient is CAPPED on arbitrate when two of their
+        # conditions disagree — hypertension asks for potassium, ESRD forbids it.
+        capped = [
+            (g.get("name") or g.get("key") or "")
+            for g in ((goals or {}).get("goals") or [])
+            if g.get("kind") == "limit"
+        ]
+        guidance = food_safety.build_guidance(user_row, facts, nutrient_limits=capped)
+        # What the record MEASURES, and where it contradicts a diagnosis. A
+        # label is a claim; the readings are the evidence.
+        try:
+            state = await cns.measured_state(db, user_id, cond_rows)
+            guidance = food_safety.Guidance(
+                avoid=guidance.avoid, favour=guidance.favour,
+                tensions=guidance.tensions,
+                observations=state.observations,
+                contradictions=state.contradictions)
+        except Exception:  # noqa: BLE001
+            logger.warning("Planner: measured state unavailable", exc_info=True)
+
     return {
         "user": user_row,
         "conditions": cond_rows,
@@ -290,7 +321,7 @@ async def _gather_planner_context(user_id: int, db: AsyncSession) -> dict:
         "labs": list(latest_labs.values()),
         "pantry": pantry_rows,
         "goals": goals,
-        "forbidden": food_safety.forbidden_for(user_row, cond_rows) if user_row else [],
+        "guidance": guidance,
     }
 
 
@@ -389,7 +420,8 @@ def _patient_block(user: "User", ctx: dict) -> str:
         if energy:
             lines.append(f"  - Energy: {energy} kcal (aim/day)")
 
-    forbidden_block = food_safety.prompt_block(ctx.get("forbidden") or [])
+    forbidden_block = food_safety.prompt_block(
+        ctx.get("guidance") or food_safety.Guidance())
     if forbidden_block:
         lines.append("")
         lines.append(forbidden_block)
@@ -831,7 +863,7 @@ async def generate_meal_suggestions(
     # A suggestion naming a food the patient reacts to must not be shown. The
     # name, description and the ingredient list are all checked: the allergen
     # is as likely to be an ingredient as it is to be in the title.
-    forbidden = ctx.get("forbidden") or []
+    forbidden = (ctx.get("guidance") or food_safety.Guidance()).avoid
     blocked: list[str] = []
     if forbidden:
         kept = []
@@ -916,7 +948,7 @@ async def generate_meal_plan(
         # plan for the lifetime of the process.
         weekly_plan = [d.model_copy(deep=True) for d in tmpl.values()]
 
-    forbidden = ctx.get("forbidden") or []
+    forbidden = (ctx.get("guidance") or food_safety.Guidance()).avoid
     weekly_plan, removed = _sanitize_week(weekly_plan, forbidden)
     if removed:
         # The model was handed an explicit FORBIDDEN list and used one anyway
