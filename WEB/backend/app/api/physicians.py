@@ -32,7 +32,7 @@ All geo powered by free OpenStreetMap / Nominatim — no Google, no API keys.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func, and_, or_, cast, Float
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -42,7 +42,7 @@ from app.models.user import User
 from app.models.physicians import (
     Physician, SavedPhysician, PhysicianReview,
     PhysicianSource, PhysicianStatus,
-    SPECIALTY_CATEGORIES, ALL_SPECIALTIES,
+    SPECIALTY_CATEGORIES,
 )
 from app.schemas.physicians import (
     PhysicianCreate, PhysicianUpdate, PhysicianResponse,
@@ -52,7 +52,7 @@ from app.schemas.physicians import (
     SpecialtyCategoryResponse,
 )
 from app.services.geocoding import (
-    geocode_address, reverse_geocode, search_nearby_healthcare,
+    geocode_address, search_nearby_healthcare,
     haversine, bounding_box,
 )
 

@@ -205,7 +205,6 @@ async def materialise(db: AsyncSession, pending: PendingRegistration) -> User | 
     # IdP first) works immediately. Failure is logged, not fatal: the local hash
     # still authenticates via the fallback path.
     try:
-        from app.services.identity_client import migrate_password_into_identity
         # The plaintext is gone by design, so the IdP is seeded on first login
         # instead. Recorded so the gap is visible rather than silent.
         pending.notes = (pending.notes or "") + "[identity seeded on first login]"

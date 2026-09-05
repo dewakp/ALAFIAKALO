@@ -1,6 +1,5 @@
 """Nutrition CRUD endpoints with USDA FoodData Central + AI nutrient estimation."""
 
-import asyncio
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
@@ -29,7 +28,6 @@ from app.schemas.nutrition import (
     NutritionLogResponse,
     USDAFoodResult,
     USDAFoodDetail,
-    NutrientCatalogItem,
     NutrientCatalogPage,
     DailySummary,
     NutrientEstimateRequest,

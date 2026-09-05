@@ -15,7 +15,7 @@ import enum
 
 from sqlalchemy import (
     String, Integer, DateTime, Date, Time, ForeignKey, Text, Boolean,
-    Float, Enum as SAEnum, UniqueConstraint, Index,
+    Float, UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

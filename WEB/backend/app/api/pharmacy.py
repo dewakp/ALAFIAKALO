@@ -8,7 +8,7 @@ from datetime import datetime, timezone, date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, or_
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -16,7 +16,6 @@ from app.core.notification_engine import (
     notify_prescription_created,
     notify_prescription_ready,
     notify_dispense_complete,
-    notify_adherence_missed,
     notify_refill_reminder,
 )
 from app.models.user import User

@@ -149,13 +149,19 @@ export default function HealthInsights() {
                     <div style={{ flex: 1, minWidth: 220 }}>
                       <span style={{ fontWeight: 600 }}>{e.source_label}</span>
                       <span style={{ color: 'var(--text-secondary)', margin: '0 6px' }}>
-                        {e.direction === 'leads'
-                          ? `→ leads by ${e.lag_days}d →`
-                          : '↔ co-occurs with'}
+                        {/* NOT "leads by". The banner above says these are
+                            associations rather than cause and effect, and this
+                            line then drew a directional arrow that says the
+                            opposite. A lag is an offset that was tested, not a
+                            direction of effect. */}
+                        {e.direction === 'offset'
+                          ? `↔ at a ${e.lag_days}-day offset`
+                          : '↔ same day as'}
                       </span>
                       <span style={{ fontWeight: 600 }}>{e.target_label}</span>
                       <div style={{ fontSize: '.72rem', color: 'var(--text-secondary)' }}>
                         {e.strength > 0 ? 'positive' : 'inverse'} association · n={e.sample_size} days
+                        {typeof e.p_value === 'number' && ` · p=${e.p_value < 0.001 ? '<0.001' : e.p_value.toFixed(3)}`}
                       </div>
                     </div>
                     <StrengthBar value={e.strength} />

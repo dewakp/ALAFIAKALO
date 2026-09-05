@@ -19,6 +19,14 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 // Admin console at /minister. Server-side require_admin is the
 // real gate; this route simply renders 'not authorised' for everyone else.
 const Admin = lazy(() => import('./pages/Admin'));
+// Built, backed by live endpoints, and unreachable until now — the same class
+// of defect as the conditions screen (canon §3ad): a finished page with no
+// import here and no link anywhere. PrivacySettings is the serious one; it is
+// the only surface that manages data-sharing consent, including the flag that
+// governs whether meal photos are retained (§3a).
+const PrivacySettings = lazy(() => import('./pages/PrivacySettings'));
+const Mood = lazy(() => import('./pages/Mood'));
+const Lifestyle = lazy(() => import('./pages/Lifestyle'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -120,6 +128,9 @@ export default function App() {
           <Route path="capture" element={<Capture />} />
           <Route path="profile" element={<Profile />} />
           <Route path="chronic-conditions" element={<ChronicConditions />} />
+          <Route path="privacy-settings" element={<PrivacySettings />} />
+          <Route path="mood" element={<Mood />} />
+          <Route path="lifestyle" element={<Lifestyle />} />
           {/* Matches the Android route name and the iOS "Health Conditions"
               entry so a link is the same everywhere. */}
           <Route path="conditions" element={<Navigate to="/chronic-conditions" replace />} />

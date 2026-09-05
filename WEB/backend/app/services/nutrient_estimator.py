@@ -13,15 +13,12 @@ import logging
 import re
 from typing import Any
 
-import httpx
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.nutrition_data import (
     search_usda_foods,
     get_usda_food_detail,
-    DB_COLUMN_KEYS,
     NUTRIENT_CATALOG,
     EXTENDED_NUTRIENTS,
 )

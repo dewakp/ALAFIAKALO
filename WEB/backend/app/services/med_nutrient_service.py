@@ -13,7 +13,6 @@ ALAFIAModel.resolve_medication_nutrients() once Phase 2 is scaffolded.
 
 import logging
 import re
-from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

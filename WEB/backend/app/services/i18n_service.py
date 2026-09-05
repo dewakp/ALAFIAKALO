@@ -3,9 +3,8 @@ Internationalization (i18n) Service
 Multi-language support for global audience
 """
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import or_, and_
 from typing import Optional, Dict, List
-from functools import lru_cache
 
 from app.models.privacy import Translation
 

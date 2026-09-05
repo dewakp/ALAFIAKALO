@@ -12,7 +12,6 @@ from __future__ import annotations
 import logging
 import mimetypes
 import uuid
-from pathlib import PurePosixPath
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError

@@ -12,7 +12,7 @@ Unified calendar for scheduling, tracking, and planning:
 from datetime import datetime, timezone, date, time
 
 from sqlalchemy import (
-    String, Integer, DateTime, Date, Time, ForeignKey, Text, Boolean, Float,
+    String, Integer, DateTime, Date, Time, ForeignKey, Text, Boolean,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

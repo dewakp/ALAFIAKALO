@@ -198,7 +198,7 @@ async def resolve_condition(
         condition=condition_label, limit=_MAX_SUBJECTS_PER_RELATION)
 
     try:
-        from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
+        from app.services.alafia_model_service import alafia_chat
         raw = (await alafia_chat(
             [{"role": "user", "content": prompt}], temperature=0.2, max_tokens=1400,
         )).strip()

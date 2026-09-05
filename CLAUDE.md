@@ -1018,6 +1018,65 @@ example.
 
 ---
 
+## 3ap. What a static sweep finds that 1,197 tests do not
+
+A `ruff --select F,E9` pass over 250 backend modules, plus FastAPI's own route
+table diffed against every client call site. The tests were green throughout —
+these are all paths no test exercises.
+
+**Two live faults, both reachable in production:**
+
+- `GET /wellness/omega` used a bare `user_id` where the route binds
+  `current_user` (the same function says `current_user.id` correctly forty
+  lines earlier). It sits inside
+  `except Exception: logger.warning("Could not derive urea kinetics")`, so it
+  never surfaced — **Kt/V and URR were silently never derived** on any date
+  where the lab did not report spKt/V, which is about half of them. Dialysis
+  adequacy, missing from the wellness score, logged as if it were a data gap.
+  Confirmed firing in production on 2026-08-30 before the fix.
+- `GET /privacy/translations/{lang}` called `i18n_service.or_(…)` with `or_`
+  never imported — an unguarded 500.
+
+**Three finished pages were unreachable** — §3ad again, and it recurs because a
+page needs BOTH a route and a link:
+
+| Page | Lines | Live endpoints behind it |
+|---|---|---|
+| `PrivacySettings.jsx` | 602 | 3 |
+| `Mood.jsx` | 181 | 3 |
+| `Lifestyle.jsx` | 159 | 2 |
+
+`PrivacySettings` is the one that mattered: it is the **only** web surface that
+manages data-sharing consent, including the flag that decides whether meal
+photos are retained as training data (§3a). The control existed, the API
+existed, and no user could reach it.
+
+**What the sweep got WRONG, and why you must classify before fixing:**
+
+- 16 `blockchain_ledger` "undefined names" are quoted return annotations
+  (`-> "BlockRecord"`). Strings. Never evaluated. Not bugs — they need a
+  `TYPE_CHECKING` import so tooling can resolve them, nothing more.
+- `health_sync._parse_date(v) -> "date | None"` is the same shape.
+- `patient_board._dose_rollup` really did reference an unimported model, but it
+  has **zero callers** — a latent crash, not a live one.
+- The 9 remaining unused imports in `app/models/__init__.py` are **deliberate**:
+  models must be imported for SQLAlchemy to register them and for alembic to
+  see them. Ruff flags them and refuses to auto-remove them. Do not remove them.
+
+> **`--fix` is not free.** Removing 138 unused imports across 72 files changed no
+> behaviour — but the manual fix beside it did: `MedicationDoseLog` lives in
+> `app/models/med_nutrient.py`, not `app/models/medications.py`, and guessing
+> the module from the class name broke SIX test modules at collection. The
+> suite caught it; a compile check would not have. Run the suite after an
+> import sweep, every time.
+
+**Clean, and worth knowing:** every module with routes is mounted; all 133
+frontend call sites resolve against the 377 real routes (no 404s waiting); every
+outbound HTTP call carries a timeout; no identifier is interpolated into a log
+line; no response schema exposes a credential.
+
+---
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

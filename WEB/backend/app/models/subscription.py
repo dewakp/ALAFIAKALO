@@ -15,7 +15,7 @@ never applied twice (webhooks retry, and users can re-submit a receipt).
 from datetime import datetime, timezone, timedelta
 from enum import Enum as PyEnum
 
-from sqlalchemy import String, Integer, Float, Boolean, DateTime, Text, ForeignKey, Index
+from sqlalchemy import String, Float, Boolean, DateTime, Text, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base

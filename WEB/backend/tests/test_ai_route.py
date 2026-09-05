@@ -118,3 +118,32 @@ async def test_route_bare_image_goes_to_capture(client: AsyncClient):
 async def test_route_requires_auth(client: AsyncClient):
     r = await client.post("/api/v1/ai/route", json={"text": "hello"})
     assert r.status_code == 401
+
+
+# ── a question without a question mark is still a question ────────────
+
+
+def test_question_without_a_question_mark_is_detected():
+    """The reported failure: "What food contributed most to sugar today" has no
+    "?", so the only guard never fired, the model's `view_trends` label stood,
+    and the user was routed to a correlation chart instead of being answered."""
+    from app.api.ai import _looks_like_question as q
+
+    assert q("What food contributed most to sugar today")
+    assert q("what did i eat yesterday")
+    assert q("How many carbs today")
+    assert q("Is my potassium high")
+    assert q("what foods lower potassium?")
+
+
+def test_statements_are_not_mistaken_for_questions():
+    """The guard outranks navigation intents, so a false positive would stop
+    someone reaching a screen they asked for."""
+    from app.api.ai import _looks_like_question as q
+
+    assert not q("Show me my labs")
+    assert not q("I ate rice and stew")
+    assert not q("log 2 eggs")
+    assert not q("I ate what was left over")   # mid-sentence "what"
+    assert not q("")
+    assert not q("   ")

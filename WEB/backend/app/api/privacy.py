@@ -17,7 +17,6 @@ from app.models.privacy import (
     ConsentType,
     DataAccessPurpose,
     ExportStatus,
-    DeletionStatus,
 )
 
 
@@ -523,4 +522,3 @@ def get_supported_languages(
 
 
 from app.models.privacy import DataExportRequest, DataDeletionRequest
-from sqlalchemy import or_

@@ -89,7 +89,8 @@ def _render(html: str, *, name: str | None, unsubscribe_url: str,
 
 
 async def _send_one(client: httpx.AsyncClient, api_key: str, sender: str,
-                    to: str, html: str, unsubscribe_url: str) -> tuple[bool, str]:
+                    to: str, html: str, unsubscribe_url: str,
+                    subject: str = SUBJECT) -> tuple[bool, str]:
     """One Resend call, with the unsubscribe headers a bulk send requires."""
     resp = await client.post(
         "https://api.resend.com/emails",
@@ -97,7 +98,7 @@ async def _send_one(client: httpx.AsyncClient, api_key: str, sender: str,
         json={
             "from": sender,
             "to": [to],
-            "subject": SUBJECT,
+            "subject": subject,
             "html": html,
             # RFC 8058. Without List-Unsubscribe-Post the mail client shows no
             # native unsubscribe button and recipients reach for "spam" instead,
@@ -120,7 +121,13 @@ async def main() -> int:
     ap.add_argument("--days", type=int, default=7, help="dormant threshold in days (default 7)")
     ap.add_argument("--include-never-seen", action="store_true",
                     help="also mail accounts whose last_login is NULL — read the note above first")
-    ap.add_argument("--to", help="send a single test copy to this address and exit")
+    ap.add_argument("--to", help="send a single test copy to this address and exit "
+                                 "(unsubscribe token is a placeholder — test only)")
+    ap.add_argument("--only-email", help="send to exactly this REGISTERED user, with "
+                                         "their own working unsubscribe token")
+    ap.add_argument("--template", help="path to an HTML template (default: the "
+                                       "return-to-ALAFIA announcement)")
+    ap.add_argument("--subject", help="override the subject line")
     ap.add_argument("--app-url", default=os.environ.get("APP_URL", "https://alafia.app"))
     ap.add_argument("--api-url", default=os.environ.get("API_URL", "https://api.alafia.app"))
     ap.add_argument("--limit", type=int, help="cap the audience (for a staged send)")
@@ -139,7 +146,12 @@ async def main() -> int:
         print("ERROR: RESEND_API_KEY is not set; refusing to --apply.", file=sys.stderr)
         return 2
 
-    html_template = TEMPLATE.read_text()
+    template_path = Path(args.template) if args.template else TEMPLATE
+    if not template_path.exists():
+        print(f"ERROR: template not found: {template_path}", file=sys.stderr)
+        return 2
+    html_template = template_path.read_text()
+    subject = args.subject or SUBJECT
 
     # Imported here so --help works without a database or app config.
     from sqlalchemy import select
@@ -161,8 +173,50 @@ async def main() -> int:
             print(f"rendered preview: {out}")
             return 0
         async with httpx.AsyncClient(timeout=30.0) as c:
-            ok, info = await _send_one(c, api_key, sender, args.to, html, unsub_url(0))
+            ok, info = await _send_one(c, api_key, sender, args.to, html,
+                                       unsub_url(0), subject=subject)
         print(("sent " if ok else "FAILED ") + f"{args.to}: {info}")
+        return 0 if ok else 1
+
+    # ── One named, registered recipient ─────────────────────────────────
+    #
+    # Distinct from --to, which signs the unsubscribe link for user id 0: fine
+    # for a preview, wrong for a real person, whose opt-out must actually work
+    # against their own account. This path resolves the user, honours their
+    # marketing_opt_out_at, and mints THEIR token.
+    if args.only_email:
+        from sqlalchemy import func as _func
+        async with async_session() as db:
+            user = (await db.execute(
+                select(User).where(
+                    _func.lower(User.email) == args.only_email.strip().lower())
+            )).scalar_one_or_none()
+        if user is None:
+            print(f"ERROR: no account with email {args.only_email}", file=sys.stderr)
+            return 2
+        if not user.is_active:
+            print(f"ERROR: {user.email} is not active; refusing.", file=sys.stderr)
+            return 2
+        if user.marketing_opt_out_at is not None:
+            print(f"REFUSING: {user.email} opted out of marketing on "
+                  f"{user.marketing_opt_out_at}.", file=sys.stderr)
+            return 2
+        html = _render(html_template, name=user.full_name,
+                       unsubscribe_url=unsub_url(user.id),
+                       app_url=args.app_url, postal_address=postal_address)
+        if not args.apply:
+            out = Path("/tmp/alafia_targeted_preview.html")
+            out.write_text(html)
+            print(f"DRY RUN — would send to {user.email} (user {user.id})")
+            print(f"  subject : {subject}")
+            print(f"  template: {template_path.name}")
+            print(f"  unsub   : {unsub_url(user.id)[:72]}…")
+            print(f"  preview : {out}")
+            return 0
+        async with httpx.AsyncClient(timeout=30.0) as c:
+            ok, info = await _send_one(c, api_key, sender, user.email, html,
+                                       unsub_url(user.id), subject=subject)
+        print(("sent " if ok else "FAILED ") + f"{user.email}: {info}")
         return 0 if ok else 1
 
     # ── Resolve the audience ────────────────────────────────────────────

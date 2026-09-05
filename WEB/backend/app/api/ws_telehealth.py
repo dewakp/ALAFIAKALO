@@ -13,7 +13,6 @@ from collections import defaultdict
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 import jwt  # PyJWT
 from sqlalchemy import select, or_, func
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import async_session
@@ -198,6 +197,16 @@ async def ws_signaling(
         await ws.close(code=4001, reason="Invalid token")
         return
 
+    # Paywall. `require_active_subscription` is a Request dependency and cannot
+    # be applied to a WebSocket route, so these sockets were mounted with no
+    # gate at all — an unpaid account with a valid token could use real-time
+    # telehealth while every HTTP path returned 402. Close code 4402 mirrors the
+    # HTTP 402 so a client can tell "not paid" from "not allowed" (4003).
+    from app.core.entitlement import is_user_entitled
+    if not await is_user_entitled(user_id):
+        await ws.close(code=4402, reason="Membership required")
+        return
+
     if not await _verify_session_access(session_code, user_id):
         await ws.close(code=4003, reason="Access denied")
         return
@@ -260,6 +269,16 @@ async def ws_chat(
     user_id = await _authenticate_ws(token)
     if not user_id:
         await ws.close(code=4001, reason="Invalid token")
+        return
+
+    # Paywall. `require_active_subscription` is a Request dependency and cannot
+    # be applied to a WebSocket route, so these sockets were mounted with no
+    # gate at all — an unpaid account with a valid token could use real-time
+    # telehealth while every HTTP path returned 402. Close code 4402 mirrors the
+    # HTTP 402 so a client can tell "not paid" from "not allowed" (4003).
+    from app.core.entitlement import is_user_entitled
+    if not await is_user_entitled(user_id):
+        await ws.close(code=4402, reason="Membership required")
         return
 
     if not await _verify_session_access(session_code, user_id):

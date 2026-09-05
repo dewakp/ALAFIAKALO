@@ -1,7 +1,6 @@
 """Pydantic schemas for the blockchain / immutable ledger API."""
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 

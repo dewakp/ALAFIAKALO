@@ -13,6 +13,7 @@ Pure-Python; no numpy.
 
 from __future__ import annotations
 
+import math
 from datetime import timedelta
 from typing import Any
 
@@ -49,11 +50,112 @@ def _aligned(
     return xs, ys
 
 
+# ── Significance ──────────────────────────────────────────────────────
+#
+# The first version kept any |r| >= 0.35 computed over as few as FIVE daily
+# points, with no p-value and no correction. That is data dredging, and it
+# showed: one page load tests roughly 460 hypotheses (12 signals x lags 0-3),
+# the 5% critical |r| at n=5 is 0.878, and the screen filled with rows like
+# "Sugar leads by 3d -> Mood, +0.85, n=5". Mood appeared in eight of twelve
+# rows, correlating with potassium, carbs, sodium, sugar, calories and
+# phosphorus at once, in both directions — the signature of five data points,
+# not of physiology.
+#
+# So an edge must now survive a two-sided t-test AND a Benjamini-Hochberg
+# correction across every hypothesis the run tested. Most days that leaves
+# nothing, which is the honest answer for a fortnight of logs.
+
+#: Below this, a correlation cannot be assessed at all, whatever its value.
+MIN_SAMPLES_FLOOR = 10
+
+#: False-discovery rate for the Benjamini-Hochberg step.
+FDR_Q = 0.10
+
+
+def _p_value(r: float, n: int) -> float:
+    """Two-sided p for a Pearson r under the usual t transform."""
+    if n < 3 or abs(r) >= 1.0:
+        return 0.0 if abs(r) >= 1.0 else 1.0
+    df = n - 2
+    t = abs(r) * math.sqrt(df / max(1e-12, 1.0 - r * r))
+    # Student-t survival via the regularised incomplete beta, two-sided.
+    x = df / (df + t * t)
+    return max(0.0, min(1.0, _betainc(df / 2.0, 0.5, x)))
+
+
+def _betainc(a: float, b: float, x: float) -> float:
+    """Regularised incomplete beta I_x(a, b), continued fraction (Lentz)."""
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    lbeta = math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
+    front = math.exp(lbeta + a * math.log(x) + b * math.log(1.0 - x))
+    if x < (a + 1.0) / (a + b + 2.0):
+        return front * _betacf(a, b, x) / a
+    return 1.0 - math.exp(
+        lbeta + b * math.log(1.0 - x) + a * math.log(x)
+    ) * _betacf(b, a, 1.0 - x) / b
+
+
+def _betacf(a: float, b: float, x: float, iters: int = 200) -> float:
+    tiny = 1e-30
+    qab, qap, qam = a + b, a + 1.0, a - 1.0
+    c, d = 1.0, 1.0 - qab * x / qap
+    if abs(d) < tiny:
+        d = tiny
+    d = 1.0 / d
+    h = d
+    for m in range(1, iters + 1):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1.0 + aa * d
+        c = 1.0 + aa / c
+        if abs(d) < tiny:
+            d = tiny
+        if abs(c) < tiny:
+            c = tiny
+        d = 1.0 / d
+        h *= d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1.0 + aa * d
+        c = 1.0 + aa / c
+        if abs(d) < tiny:
+            d = tiny
+        if abs(c) < tiny:
+            c = tiny
+        d = 1.0 / d
+        delta = d * c
+        h *= delta
+        if abs(delta - 1.0) < 3e-7:
+            break
+    return h
+
+
+def _survives_fdr(edges: list[dict], *, m_total: int | None = None,
+                  q: float = FDR_Q) -> list[dict]:
+    """Benjamini-Hochberg across every hypothesis this run tested.
+
+    The correction must count ALL tests performed, not just the ones that
+    happened to clear a strength threshold — otherwise the multiple-comparison
+    problem is simply hidden rather than corrected.
+    """
+    if not edges:
+        return []
+    m = max(m_total or len(edges), len(edges))
+    ranked = sorted(edges, key=lambda e: e["p_value"])
+    cutoff = 0
+    for i, e in enumerate(ranked, start=1):
+        if e["p_value"] <= (i / m) * q:
+            cutoff = i
+    return ranked[:cutoff]
+
+
 def compute_relationships(
     signals: dict[str, dict],
     *,
     max_lag: int = 3,
-    min_samples: int = 5,
+    min_samples: int = MIN_SAMPLES_FLOOR,
     min_strength: float = 0.35,
     cross_domain_only: bool = True,
     top_k: int = 30,
@@ -64,8 +166,12 @@ def compute_relationships(
       {source, target, source_label, target_label, strength, direction,
        lag_days, sample_size, caveat}
     """
+    # Never below the floor, whatever the caller asks for. Five points cannot
+    # support a correlation and no threshold on |r| repairs that.
+    min_samples = max(min_samples, MIN_SAMPLES_FLOOR)
     keys = [k for k, v in signals.items() if len(v) >= min_samples]
     edges: list[dict[str, Any]] = []
+    tested = 0   # every correlation computed, for the FDR denominator
 
     for i, a in enumerate(keys):
         for b in keys:
@@ -81,7 +187,14 @@ def compute_relationships(
                 if len(xs) < min_samples:
                     continue
                 r = _pearson(xs, ys)
-                if r is None or abs(r) < min_strength:
+                if r is None:
+                    continue
+                # EVERY hypothesis tested is recorded, including the weak ones —
+                # Benjamini-Hochberg needs the true denominator. Filtering by
+                # |r| first would hide the multiple-comparison problem rather
+                # than correct it.
+                tested += 1
+                if abs(r) < min_strength:
                     continue
                 edges.append({
                     "source": a,
@@ -89,9 +202,13 @@ def compute_relationships(
                     "source_label": signal_label(a),
                     "target_label": signal_label(b),
                     "strength": round(r, 3),
-                    "direction": "co-occurs" if lag == 0 else "leads",
+                    # NOT "leads". The banner says these are associations, not
+                    # cause and effect, and then the UI drew a causal arrow.
+                    # A lag is an offset we tested, not a direction of effect.
+                    "direction": "same-day" if lag == 0 else "offset",
                     "lag_days": lag,
                     "sample_size": len(xs),
+                    "p_value": _p_value(r, len(xs)),
                     "caveat": CAVEAT,
                 })
 
@@ -103,5 +220,10 @@ def compute_relationships(
         if cur is None or abs(e["strength"]) > abs(cur["strength"]):
             best[pair] = e
 
-    ranked = sorted(best.values(), key=lambda e: abs(e["strength"]), reverse=True)
+    # Benjamini-Hochberg over the FULL set of hypotheses this run tested —
+    # `tested`, not `len(best)`. Correcting only against the survivors would
+    # understate the denominator by an order of magnitude.
+    survivors = _survives_fdr(list(best.values()), m_total=tested)
+
+    ranked = sorted(survivors, key=lambda e: abs(e["strength"]), reverse=True)
     return ranked[:top_k]

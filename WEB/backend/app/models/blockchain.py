@@ -11,8 +11,6 @@ from sqlalchemy import (
     String,
     DateTime,
     Integer,
-    Float,
-    Text,
     ForeignKey,
     Index,
     JSON,

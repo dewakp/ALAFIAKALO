@@ -25,7 +25,6 @@ import logging
 import os
 from typing import Optional, Tuple
 
-import alafia_crypto as _rc  # Rust crypto backend
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ check quantities and push orders through the grocer's API.
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.security import get_current_user

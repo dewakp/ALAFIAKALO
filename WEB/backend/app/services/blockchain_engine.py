@@ -343,7 +343,7 @@ class BlockchainEngine:
         if genesis.previous_hash != GENESIS_PREVIOUS_HASH:
             return False, "Genesis block has invalid previous_hash"
         if not cls.verify_block_hash(genesis):
-            return False, f"Genesis block hash mismatch at index 0"
+            return False, "Genesis block hash mismatch at index 0"
 
         # Walk the chain
         for i in range(1, len(blocks)):

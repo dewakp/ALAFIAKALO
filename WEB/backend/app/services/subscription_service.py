@@ -1018,7 +1018,7 @@ async def signup_stripe_verify(email: str, session_id: str) -> dict:
 
     if _test_mode(settings.STRIPE_SECRET_KEY):
         return {"paid": True, "test_mode": True, "customer_id": None,
-                "subscription_id": f"sub_test_signup", "session_id": session_id}
+                "subscription_id": "sub_test_signup", "session_id": session_id}
 
     _require_configured(settings.STRIPE_SECRET_KEY, "Stripe")
     session = await _stripe_request("GET", f"/v1/checkout/sessions/{session_id}")

@@ -4,8 +4,8 @@ import enum
 from datetime import datetime, timezone, date
 
 from sqlalchemy import (
-    String, Float, Integer, DateTime, Date, ForeignKey,
-    Text, Boolean, Enum, func,
+    String, Integer, DateTime, Date, ForeignKey,
+    Text, Boolean, Enum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

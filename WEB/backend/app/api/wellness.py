@@ -5,7 +5,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
@@ -23,7 +23,7 @@ from app.schemas.wellness import (
     DailyRecommendationsResponse, RecommendationItem, HealthImprovementsResponse,
     HEBCSScoreResponse, WhatIfRequest, WhatIfResponse, WhatIfPathwayDelta,
 )
-from app.services.hebcs_engine import compute_hebcs, ESRD_PATHWAYS
+from app.services.hebcs_engine import compute_hebcs
 
 logger = logging.getLogger(__name__)
 
@@ -268,7 +268,14 @@ async def get_hebcs_omega_score(
         if biomarker_values.get("spKt/V") is None:
             session = (await db.execute(
                 select(TherapySession)
-                .where(TherapySession.user_id == user_id,
+                # current_user.id, NOT a bare `user_id` — this route binds
+                # `current_user` and there is no `user_id` in scope. The
+                # NameError was swallowed by the `except Exception` below and
+                # logged as "Could not derive urea kinetics", which reads like
+                # missing data rather than a typo. Kt/V and URR were therefore
+                # silently never derived on any date where the lab did not
+                # report spKt/V — about half of them.
+                .where(TherapySession.user_id == current_user.id,
                        TherapySession.duration_minutes.isnot(None))
                 .order_by(TherapySession.scheduled_date.desc()).limit(1)
             )).scalar_one_or_none()

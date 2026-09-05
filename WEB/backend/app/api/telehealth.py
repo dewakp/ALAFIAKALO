@@ -3,9 +3,9 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, update, delete
+from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
@@ -828,7 +828,6 @@ async def session_history_summary(
     db: AsyncSession = Depends(get_db),
 ):
     """Get a summary of the user's telehealth usage."""
-    from sqlalchemy import func
 
     participant_sub = select(SessionParticipant.session_id).where(
         SessionParticipant.user_id == current_user.id

@@ -2,18 +2,16 @@
 
 import json
 import logging
-import httpx
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.wellness import MealPlan as MealPlanModel, ExercisePlan as ExercisePlanModel
-from app.models.chronic_conditions import ChronicCondition, TherapySession
+from app.models.chronic_conditions import TherapySession
 from app.models.medications import Medication
 from app.models.nutrition import NutritionLog
 from app.models.labs import LabResult

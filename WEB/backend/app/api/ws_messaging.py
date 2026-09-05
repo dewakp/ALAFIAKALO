@@ -18,7 +18,6 @@ import asyncio
 import json
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 import jwt  # PyJWT
@@ -31,7 +30,6 @@ from app.models.messaging import (
     Conversation,
     ConversationMember,
     Message,
-    MessageType,
 )
 
 router = APIRouter()
@@ -225,6 +223,16 @@ async def ws_conversation(
         await websocket.close(code=4001, reason="Invalid token")
         return
 
+    # Paywall. `require_active_subscription` is a Request dependency and cannot
+    # be applied to a WebSocket route, so these sockets were mounted with no
+    # gate at all — an unpaid account with a valid token could use real-time
+    # messaging while every HTTP path returned 402. Close code 4402 mirrors the
+    # HTTP 402 so a client can tell "not paid" from "not allowed" (4003).
+    from app.core.entitlement import is_user_entitled
+    if not await is_user_entitled(user_id):
+        await websocket.close(code=4402, reason="Membership required")
+        return
+
     if not await _verify_conv_access(conversation_id, user_id):
         await websocket.close(code=4003, reason="Not a member")
         return
@@ -336,6 +344,16 @@ async def ws_feed(
     user_id = await _authenticate_ws(token)
     if not user_id:
         await websocket.close(code=4001, reason="Invalid token")
+        return
+
+    # Paywall. `require_active_subscription` is a Request dependency and cannot
+    # be applied to a WebSocket route, so these sockets were mounted with no
+    # gate at all — an unpaid account with a valid token could use real-time
+    # messaging while every HTTP path returned 402. Close code 4402 mirrors the
+    # HTTP 402 so a client can tell "not paid" from "not allowed" (4003).
+    from app.core.entitlement import is_user_entitled
+    if not await is_user_entitled(user_id):
+        await websocket.close(code=4402, reason="Membership required")
         return
 
     await manager.connect_feed(user_id, websocket)

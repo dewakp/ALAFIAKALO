@@ -7,7 +7,7 @@ devices, so this is a per-token table keyed by the unique device token.
 
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Integer, DateTime, ForeignKey
+from sqlalchemy import String, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base

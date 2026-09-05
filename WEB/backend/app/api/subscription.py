@@ -24,7 +24,7 @@ from app.core.logging import get_logger
 from app.core.security import get_current_user
 from app.core.config import settings
 from app.models.user import User
-from app.models.subscription import Subscription, SubscriptionProvider
+from app.models.subscription import Subscription
 from app.schemas.subscription import (
     PlansResponse, PlanOption, RailPrice, SubscriptionStatusResponse,
     CheckoutRequest, CheckoutResponse, ConfirmRequest,

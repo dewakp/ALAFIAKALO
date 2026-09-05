@@ -1,17 +1,16 @@
 """AI Memory and Learning Service."""
 
-import json
 from datetime import datetime, timedelta, date, timezone
 from typing import List, Dict, Any, Optional
 from collections import Counter
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, and_
+from sqlalchemy import desc
 
 from app.models.user import User
 from app.models.ai_memory import (
     UserMemory, CollectiveInsight, GlobalKnowledge,
-    AIInteraction, LearningEvent
+    AIInteraction
 )
 from app.models.nutrition import NutritionLog
 from app.models.fitness import FitnessLog

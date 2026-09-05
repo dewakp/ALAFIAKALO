@@ -91,6 +91,8 @@ const navGroups = [
       { to: '/elimination', icon: FlaskRound, label: 'Elimination Log' },
       { to: '/symptoms', icon: Activity, label: 'Symptoms' },
       { to: '/sleep', icon: Moon, label: 'Sleep' },
+      { to: '/mood', icon: HeartPulse, label: 'Mood' },
+      { to: '/lifestyle', icon: Activity, label: 'Lifestyle' },
     ],
   },
   {

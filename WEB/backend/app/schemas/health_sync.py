@@ -1,8 +1,7 @@
 """Schemas for health data sync from external platforms."""
 
-from datetime import datetime, date
+from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 # ── Connection Management ─────────────────────────────────────────────

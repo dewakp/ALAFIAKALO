@@ -2,7 +2,6 @@
 
 from datetime import date, timedelta
 from statistics import mean, stdev
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, cast, or_, Date as SADate

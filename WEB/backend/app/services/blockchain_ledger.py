@@ -20,18 +20,22 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import and_, asc, desc, func, select
+from sqlalchemy import and_, asc, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+if TYPE_CHECKING:  # hints only — these are quoted, so nothing evaluates them at
+    # runtime, but without the import no type checker or IDE can resolve
+    # `-> "BlockRecord"`, and a future `response_model=` on one of these would
+    # fail at import time instead of in review.
+    from app.models.blockchain import BlockRecord, ChainMeta
 
 from app.services.blockchain_engine import (
     Block,
     BlockchainEngine,
     ChainType,
     EventAction,
-    GENESIS_PREVIOUS_HASH,
-    MerkleTree,
 )
 
 logger = logging.getLogger(__name__)
@@ -83,7 +87,6 @@ class BlockchainLedger:
 
         Automatically creates the genesis block if the chain does not exist.
         """
-        from app.models.blockchain import BlockRecord, ChainMeta
 
         chain_str = chain_type.value if isinstance(chain_type, ChainType) else chain_type
         action_str = action.value if isinstance(action, EventAction) else action
@@ -142,7 +145,6 @@ class BlockchainLedger:
         All blocks in the batch share the same merkle_root computed
         over the entire batch.
         """
-        from app.models.blockchain import ChainMeta
 
         if not events:
             return []
@@ -551,7 +553,7 @@ class BlockchainLedger:
 
     async def _get_or_create_chain(self, chain_type: str) -> "ChainMeta":
         """Get existing chain metadata or create it with a genesis block."""
-        from app.models.blockchain import BlockRecord, ChainMeta
+        from app.models.blockchain import ChainMeta
 
         stmt = select(ChainMeta).where(ChainMeta.chain_type == chain_type)
         result = await self.db.execute(stmt)

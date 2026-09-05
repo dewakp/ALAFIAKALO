@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import get_logger
 from app.models.med_nutrient import MedicationDoseLog
 from app.models.medications import Medication
-from app.services.med_dose_validation import DoseFinding, validate_dose
+from app.services.med_dose_validation import validate_dose
 
 logger = get_logger(__name__)
 

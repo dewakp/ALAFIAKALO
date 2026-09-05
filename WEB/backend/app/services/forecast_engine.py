@@ -14,7 +14,6 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from app.services.health_signals import signal_label, SIGNAL_META
 
 CAVEAT = "Projection from your recent trend — not a clinical prediction."
 

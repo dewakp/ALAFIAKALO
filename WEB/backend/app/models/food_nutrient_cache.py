@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Float, Integer, DateTime, Text, JSON, Index
+from sqlalchemy import String, Float, Integer, DateTime, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base

@@ -48,9 +48,13 @@ def test_compute_relationships_finds_lagged_cross_domain_edge():
 
 
 def test_compute_relationships_skips_same_domain_when_cross_only():
+    # 14 days, not 8: `MIN_SAMPLES_FLOOR` is 10 because a correlation over
+    # fewer points cannot be assessed at all. This test is about DOMAIN
+    # filtering, so it needs a fixture large enough to reach that check —
+    # otherwise it passes for the wrong reason (empty because too short).
     base = date(2026, 1, 1)
-    a = {base + timedelta(days=i): float(i) for i in range(8)}
-    b = {base + timedelta(days=i): float(i) * 3 for i in range(8)}
+    a = {base + timedelta(days=i): float(i) for i in range(14)}
+    b = {base + timedelta(days=i): float(i) * 3 for i in range(14)}
     # both in the "diet" domain → skipped when cross_domain_only
     signals = {"diet.sodium_mg": a, "diet.potassium_mg": b}
     assert compute_relationships(signals, cross_domain_only=True) == []

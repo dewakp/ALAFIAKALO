@@ -3,7 +3,7 @@
 from datetime import datetime, timezone, date
 from enum import Enum as PyEnum
 
-from sqlalchemy import String, Float, Integer, DateTime, Date, ForeignKey, Text, Boolean
+from sqlalchemy import String, Float, DateTime, Date, ForeignKey, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base

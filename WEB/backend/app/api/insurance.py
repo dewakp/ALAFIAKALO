@@ -11,7 +11,6 @@ from app.models.insurance import (
     Insurance,
     INSURANCE_PROVIDERS_BY_COUNTRY,
     COUNTRIES_BY_REGION,
-    InsuranceRegion,
 )
 from app.schemas.insurance import InsuranceCreate, InsuranceUpdate, InsuranceResponse
 

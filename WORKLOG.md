@@ -2486,3 +2486,44 @@ than hardcoded; correct the measured-state reporting; update the documentation.
 **Near-miss worth recording:** `alembic revision --autogenerate` for one new
 table generated ~200 further lines that would have **dropped five live tables**
 and a `users` column. Written by hand instead (§3ao).
+
+### Later — codebase scan for errors, orphans and leaks
+
+**Instruction:** scan the entire codebase for errors including hanging API
+endpoints, orphaned code and data leaks; then fix all issues with documentation.
+
+**Method:** `ruff --select F,E9` over 250 backend modules; FastAPI's own route
+table (377 routes) diffed against 133 frontend call sites; targeted greps for
+timeouts, log interpolation and credential-bearing schemas.
+
+**Live faults fixed**
+- `GET /wellness/omega` — bare `user_id` where the route binds `current_user`,
+  swallowed by `except Exception` and logged as "Could not derive urea
+  kinetics". Kt/V and URR were silently never derived. Verified firing in prod
+  2026-08-30.
+- `GET /privacy/translations/{lang}` — `or_` never imported; unguarded 500.
+- `blockchain.verify_on_chain` — `select` never imported.
+
+**Orphans fixed**
+- `PrivacySettings.jsx` (602 lines), `Mood.jsx`, `Lifestyle.jsx` were built,
+  backed by live endpoints, and had no route and no link. All three now routed;
+  Mood/Lifestyle in the sidebar, Privacy linked from Profile. Verified in the
+  served bundle, not the build log.
+- `patient_board._dose_rollup` — unimported model, zero callers; import added.
+- `blockchain_ledger` — 16 quoted annotations made resolvable via TYPE_CHECKING.
+- 138 unused imports / empty f-strings removed across 72 files.
+
+**Not fixed, deliberately:** the 9 unused imports in `app/models/__init__.py`
+are model-registration side effects that alembic depends on.
+
+**Clean:** no unmounted routers, no frontend 404s, no untimed outbound calls, no
+PHI in log lines, no credentials in response schemas.
+
+**Mistake made and corrected mid-task:** I guessed `MedicationDoseLog` lived in
+`app/models/medications.py` from the class name. It is in `med_nutrient.py`.
+Six test modules failed at collection until corrected — caught by running the
+suite, which a compile check would not have. Also initially reported the 16
+`blockchain_ledger` references as live bugs; they are quoted annotations and
+never evaluate. Classified each line before claiming, which changed the finding.
+
+1197 passed, 9 xfailed — unchanged before and after the import sweep.

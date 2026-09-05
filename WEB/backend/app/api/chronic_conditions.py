@@ -1043,7 +1043,7 @@ async def sign_flowsheet(
     # Anchor to blockchain (best-effort)
     try:
         from app.services.blockchain_ledger import BlockchainLedger
-        from app.services.blockchain_engine import ChainType, EventAction
+        from app.services.blockchain_engine import EventAction
         ledger = BlockchainLedger(db)
         await ledger.record_therapy_event(
             action=EventAction.therapy_session_completed,
@@ -1155,7 +1155,7 @@ async def add_clinical_note(
     # Anchor to blockchain
     try:
         from app.services.blockchain_ledger import BlockchainLedger
-        from app.services.blockchain_engine import ChainType, EventAction
+        from app.services.blockchain_engine import EventAction
         ledger = BlockchainLedger(db)
         await ledger.record_therapy_event(
             action=EventAction.therapy_notes_added,

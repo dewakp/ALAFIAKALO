@@ -360,6 +360,28 @@ export default function Profile() {
             </div>
           </div>
 
+          {/* ── Privacy & Your Data ──
+              The only surface that manages data-sharing consent — including the
+              flag that decides whether meal photos are retained as training data
+              (canon §3a). It was built, backed by three live endpoints, and
+              unreachable: no route and no link (§3ad). */}
+          <div style={sectionStyle}>
+            {sectionTitle('Privacy & Your Data')}
+            <Link
+              to="/privacy-settings"
+              data-testid="profile-privacy-link"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px',
+                border: '1px solid var(--color-border, #e0e0e0)', textDecoration: 'none',
+                color: 'inherit', background: 'var(--color-surface-alt, #fafafa)'
+              }}
+            >
+              <span>Data sharing, export and deletion</span>
+              <span aria-hidden="true">›</span>
+            </Link>
+          </div>
+
           {/* ── Health Conditions ──
               Diagnosed conditions are their own records (ICD-11 coded, with
               severity and diagnosis dates), so they get a dedicated screen

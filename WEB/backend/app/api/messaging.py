@@ -10,12 +10,11 @@ Covers:
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import and_, delete, false, func, or_, select, update
+from sqlalchemy import and_, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -27,16 +26,11 @@ from app.models.messaging import (
     CommunityPost,
     Conversation,
     ConversationMember,
-    ConversationType,
     MemberRole,
     Message,
     MessageReadReceipt,
-    MessageType,
     PostLike,
-    PostMedia,
     PostReply,
-    PostVisibility,
-    ReactionType,
     UserFollow,
 )
 from app.models.data_sharing import DataGrant
@@ -59,8 +53,6 @@ from app.schemas.messaging import (
     PostUpdate,
     RecipientMatch,
     ReplyCreate,
-    ReplyUpdate,
-    UserProfileBrief,
     VALID_CONVERSATION_TYPES,
     VALID_HEALTH_CATEGORIES,
     VALID_MEMBER_ROLES,

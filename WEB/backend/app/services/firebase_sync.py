@@ -13,12 +13,11 @@ import os
 import re
 import json
 import logging
-from datetime import datetime, date, timezone, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth, firestore
-from google.cloud.firestore_v1 import FieldFilter
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -103,7 +102,6 @@ async def get_or_create_user_from_firebase(
     Given decoded Firebase token claims, find or create the local user.
     Returns the PostgreSQL user ID.
     """
-    from app.models.user import User
 
     uid = firebase_claims.get('uid')
     email = firebase_claims.get('email', f"firebase_{uid[:8]}@alafia.local")

@@ -24,7 +24,6 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
-    Column,
     DateTime,
     Enum,
     Float,

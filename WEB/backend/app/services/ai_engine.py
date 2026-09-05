@@ -5,7 +5,6 @@ import os
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
-import httpx
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -15,7 +14,7 @@ from app.models.fitness import FitnessLog
 from app.models.mood import MoodEntry
 from app.models.sleep import SleepLog
 from app.models.vitals import VitalsLog
-from app.models.conditions import HealthCondition, SymptomLog, IllnessLog
+from app.models.conditions import SymptomLog
 from app.models.medications import Medication
 from app.services.ai_memory_service import AIMemoryService
 

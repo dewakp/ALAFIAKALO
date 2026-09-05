@@ -30,11 +30,36 @@ from app.services import subscription_service as svc
 _PAYWALL_OPEN_PREFIXES = (
     "/api/v1/auth",          # login / register / logout / refresh / csrf / password reset
     "/api/v1/subscription",  # plans / status / checkout / confirm / verify / webhook / cancel
-    "/api/v1/users",         # profile + /me + roles/personas (needed to load the app + paywall)
+)
+
+# EXACT paths, not a prefix.
+#
+# This was `"/api/v1/users"` as a PREFIX, commented "profile + /me +
+# roles/personas (needed to load the app + paywall)". The roles half of that is
+# not true, and the prefix also opened everything `user_roles.py` mounts under
+# `/users` — ten endpoints including POST /users/roles,
+# PUT /users/roles/{id}/profile and DELETE /users/roles/{id}. An unpaid account
+# could create role assignments and edit professional profiles.
+#
+# Checked before narrowing it, three ways:
+#   • web bootstrap (`AuthContext`) fetches only /auth/* and /users/me;
+#   • the paywall itself (`Subscription.jsx`, `MembershipNudge.jsx`) uses only
+#     /subscription/*; iOS `EntitlementManager` and Android `EntitlementState`
+#     mirror /subscription/status alone;
+#   • a real unentitled production session hit exactly /auth/csrf-cookie,
+#     /users/me, /subscription/plans, /subscription/status and
+#     /notifications/unread-count — no /users/roles call.
+#
+# A startswith() on a shared prefix silently grants whatever anyone mounts
+# beneath it later. Name the paths.
+_PAYWALL_OPEN_EXACT = (
+    "/api/v1/users/me",      # the app cannot render the paywall without it
 )
 
 
 def _paywall_open_path(path: str) -> bool:
+    if path.rstrip("/") in _PAYWALL_OPEN_EXACT:
+        return True
     return any(path.startswith(p) for p in _PAYWALL_OPEN_PREFIXES)
 
 
@@ -97,3 +122,30 @@ async def require_plus(
             detail="An active ALAFIA Membership is required for this feature.",
         )
     return current_user
+
+
+async def is_user_entitled(user_id: int) -> bool:
+    """Entitlement for a bare user id, for callers with no Request.
+
+    WebSockets cannot use `require_active_subscription`: it is a Request
+    dependency and a handshake carries a `WebSocket`. So the four socket
+    endpoints were mounted with no paywall dependency AND performed no check of
+    their own — an unpaid account with a valid token could open real-time
+    messaging, the activity feed and a telehealth session. Gating HTTP while
+    leaving the sockets open gates nothing.
+    """
+    if not settings.SUBSCRIPTION_REQUIRED:
+        return True
+    from sqlalchemy import select
+
+    from app.core.database import async_session
+    from app.models.user import User
+
+    async with async_session() as db:
+        user = (await db.execute(
+            select(User).where(User.id == user_id))).scalar_one_or_none()
+        if user is None:
+            return False
+        if is_paywall_exempt(user):
+            return True
+        return svc.is_entitled(await svc.get_subscription(db, user.id))

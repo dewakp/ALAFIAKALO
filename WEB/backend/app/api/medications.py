@@ -26,7 +26,7 @@ from app.schemas.medications import (
 )
 from app.services.med_dose_validation import validate_dose, blocking
 from app.services.med_intake_intent import propose_intake
-from app.services.med_nutrient_service import lookup_med_nutrients, seed_med_profiles
+from app.services.med_nutrient_service import lookup_med_nutrients
 
 logger = logging.getLogger(__name__)
 

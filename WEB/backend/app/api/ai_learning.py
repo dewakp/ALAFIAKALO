@@ -13,15 +13,13 @@ Three responsibilities:
 from collections import defaultdict
 from datetime import datetime, timezone
 
-import httpx
 from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.ai_memory import AIInteraction, CollectiveInsight, GlobalKnowledge, LearningEvent, UserMemory
+from app.models.ai_memory import AIInteraction, CollectiveInsight, GlobalKnowledge, LearningEvent
 from app.models.labs import LabResult
 from app.models.user import User
 

@@ -6,12 +6,11 @@ are rejected at the DB-constraint level.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func, delete
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -24,7 +23,7 @@ from app.models.nutrition import NutritionLog
 from app.schemas.health_sync import (
     SyncConnectionCreate, SyncConnectionResponse, SyncConnectionUpdate,
     SyncBatchRequest, SyncBatchResponse, SyncRecordResult,
-    SyncStatusResponse, SyncRecord,
+    SyncStatusResponse,
 )
 
 router = APIRouter()

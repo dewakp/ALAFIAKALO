@@ -21,7 +21,6 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-import httpx
 from sqlalchemy import desc, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,8 +31,6 @@ from app.models.labs import LabResult
 from app.models.medications import Medication
 from app.models.vitals import VitalsLog
 from app.services.icd10_catalog import (
-    ICD10_CATALOG,
-    search_icd10,
     get_codes_by_symptoms,
     get_icd10_by_code,
     ICD10Code,

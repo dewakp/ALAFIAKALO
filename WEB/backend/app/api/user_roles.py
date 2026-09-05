@@ -6,10 +6,9 @@ and query the full role catalog.
 """
 
 import json
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select, and_
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -20,7 +19,6 @@ from app.models.user_roles import (
     UserRoleAssignment,
     ProfessionalProfile,
     UserRole,
-    VerificationStatus,
     ROLE_CATEGORIES,
     role_display_name,
     role_category,

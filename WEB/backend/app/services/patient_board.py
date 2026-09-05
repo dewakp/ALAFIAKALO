@@ -964,6 +964,14 @@ async def _elimination_detail(db: AsyncSession, uid: int, days: int) -> Detail:
 _DOSE_WINDOW_DAYS = 30
 
 
+# NOTE: `_dose_rollup` currently has NO callers. It is kept because it is the
+# case-insensitive grouping the Medications card needs (§3aa: the same drug
+# arrives as "Calcium Carbonate" and "Calcium carbonate"), but it referenced
+# `MedicationDoseLog` without importing it — so the first caller would have hit
+# a NameError rather than a working rollup. Import it here rather than leave a
+# trap for whoever wires it up.
+from app.models.med_nutrient import MedicationDoseLog  # noqa: E402
+
 async def _dose_rollup(db: AsyncSession, uid: int, since: date) -> list:
     """(name, doses, last_taken) per medication, most recently taken first.
 

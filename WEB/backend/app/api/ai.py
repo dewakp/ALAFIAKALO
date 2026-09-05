@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 from app.services.ollama_auth import ollama_auth_headers
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select, desc, update
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -42,7 +42,6 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.services.hebcs_engine import compute_hebcs
 from app.models.ai_memory import AIInteraction, CollectiveInsight, GlobalKnowledge, HealthEmbedding, LearningEvent, UserMemory
-from app.models.chronic_conditions import ChronicCondition
 from app.models.media import MediaAsset
 from app.models.fitness import FitnessLog
 from app.models.labs import LabResult
@@ -57,7 +56,6 @@ from app.schemas.ai import (
     AIFeedbackRequest,
     AIFeedbackResponse,
     AIQueryRequest,
-    AIQueryResponse,
     AIQueryResponseWithMemory,
     AIRouteRequest,
     AIRouteResponse,
@@ -124,6 +122,29 @@ _INTENT_MESSAGES: dict[str, str] = {
 }
 
 
+# Words that open a question. Matched only at the START of the text, so an
+# incidental "what" mid-sentence ("I ate what was left") does not trigger.
+_QUESTION_OPENERS = re.compile(
+    r"^\s*(what|which|how|why|when|where|who|whose|whom|"
+    r"is|are|was|were|do|does|did|can|could|should|would|will|"
+    r"am|has|have|had|may|might)\b",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_question(text: str) -> bool:
+    """Punctuation-independent question detection.
+
+    A trailing "?" is decisive, but so is an interrogative opener — and users
+    routinely type neither a question mark nor a capital letter. Relying on "?"
+    alone is what sent "What food contributed most to sugar today" to a chart.
+    """
+    t = (text or "").strip()
+    if not t:
+        return False
+    return t.endswith("?") or bool(_QUESTION_OPENERS.match(t))
+
+
 @router.post("/route", response_model=AIRouteResponse)
 async def route_prompt(
     body: AIRouteRequest,
@@ -172,17 +193,25 @@ async def route_prompt(
     elif confidence < 0.5:
         intent = "ask_question"
 
-    # Deterministic guard: an explicit question is never a "log" action. Small
-    # local models (e.g. llama3.2:3b) often mislabel "what foods lower potassium?"
-    # as log_meal — a trailing "?" is a high-precision signal it's a question.
-    if intent.startswith("log_") and text.rstrip().endswith("?"):
+    # Deterministic guard: an explicit question is ANSWERED, never navigated.
+    #
+    # A trailing "?" was the only signal here, and people frequently omit it.
+    # "What food contributed most to sugar today" carries no "?", so nothing
+    # fired: the model's `view_trends` label stood and the user was sent to a
+    # correlation dashboard instead of getting the answer their own nutrition
+    # log could give exactly. An interrogative opener is the same class of
+    # high-precision signal as the "?" and does not depend on punctuation.
+    #
+    # This deliberately outranks navigation intents too, not just `log_*`.
+    # Showing someone a screen is not an answer to a question.
+    if _looks_like_question(text) and intent != "ask_question":
         intent = "ask_question"
 
     # The symmetric guard. ask_question is the fallback sink — everything the
     # model is unsure about lands there — so an unambiguous "I ate …" statement
     # that ended up as ask_question is a misroute, not a question. Only rescues
     # the fallback case; a confident classification is left alone.
-    if intent == "ask_question" and not text.rstrip().endswith("?"):
+    if intent == "ask_question" and not _looks_like_question(text):
         for candidate, pattern in _INTENT_PATTERNS:
             if pattern.search(text):
                 intent, confidence = candidate, max(confidence, 0.9)
@@ -1709,7 +1738,7 @@ def _build_system_prompt(
         if global_knowledge:
             evidence_lines = "\n".join(f"  • {k}" for k in global_knowledge[:4])
             knowledge_block = (
-                f"\n\nEVIDENCE NOTES (cite these when relevant — these are verified clinical guidelines):\n"
+                "\n\nEVIDENCE NOTES (cite these when relevant — these are verified clinical guidelines):\n"
                 + evidence_lines
                 + "\n"
             )

@@ -1,7 +1,6 @@
 """Wellness schemas — scores, trends, recommendations, planners."""
 
 from datetime import date, datetime
-from typing import Any
 from pydantic import BaseModel
 
 
