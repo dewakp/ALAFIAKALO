@@ -86,6 +86,14 @@ class InferencePayload:
     max_tokens: int = 2048
     json_mode: bool = False  # request a strict JSON response from the model
     model: str = ""          # optional per-call model override (primary adapter)
+    #: Tool/function definitions the model may call, in the internal shape
+    #: {name, description, input_schema}. Passing them also narrows the provider
+    #: chain to those that accept tools — see `ordered_for_selection`.
+    tools: list[dict[str, Any]] | None = None
+    #: Force ALAFIA-operated inference with no hosted fallback. Used by the
+    #: question router, which decides whether data may leave and therefore must
+    #: not itself be a hosted call.
+    local_only: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -102,6 +110,8 @@ class InferencePayload:
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "json_mode": self.json_mode,
+            "tools": self.tools,
+            "local_only": self.local_only,
             "model": self.model,
         }
 

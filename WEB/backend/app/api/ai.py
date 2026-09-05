@@ -1158,6 +1158,20 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
     lines: list[str] = []
 
     # ── 1. PROFILE ────────────────────────────────────────────────
+    # WHAT DAY IT IS. The context is full of dated rows and never said which
+    # date was current, so "what did I eat today" was unanswerable: the model
+    # replied "I don't have a nutrition log entry dated today" while that day's
+    # breakfast sat in the log, and then guessed from older meals. Every
+    # relative-time question — today, yesterday, this week — depends on this
+    # one line.
+    _today = date.today()
+    lines.append(f"=== TODAY IS {_today:%A, %d %B %Y} ({_today}) ===")
+    lines.append("Dates below are absolute. Compare them to the date above to")
+    lines.append("resolve 'today', 'yesterday' or 'this week'. If a day has no")
+    lines.append("entry, say so plainly — do NOT substitute a different day's")
+    lines.append("data or describe what the patient 'typically' eats.")
+    lines.append("")
+
     lines.append("=== PATIENT PROFILE ===")
     # The subject is identified by OUR token, never by name (CLAUDE.md §3al).
     # This context is sent to a model provider; `subject_token()` is an HMAC of
@@ -1406,37 +1420,61 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
             lines.append(f"  {l.test_date} | {l.test_name}: {val}{ref}{flag}")
         lines.append("")
 
-    # ── 4. NUTRITION (last 14 days, capped at 40 entries) ────────
+    # ── 4. NUTRITION ─────────────────────────────────────────────
+    #
+    # Was 14 days / 40 entries while the docstring advertised 30 days, and
+    # `cutoff_30` sat defined-but-unused. Both the window and the cap existed
+    # to fit a 3B local model; the primary provider holds far more. A patient
+    # with 4,017 logged meals was being answered from at most 40.
     cutoff_14 = date.today() - timedelta(days=14)
     cutoff_30 = date.today() - timedelta(days=30)
+    cutoff_90 = date.today() - timedelta(days=90)
     nut_q = await db.execute(
         select(NutritionLog)
-        .where(NutritionLog.user_id == uid, NutritionLog.log_date >= cutoff_14)
+        .where(NutritionLog.user_id == uid, NutritionLog.log_date >= cutoff_90)
         .order_by(desc(NutritionLog.log_date))
-        .limit(40)
+        .limit(300)
     )
     nuts = nut_q.scalars().all()
     if nuts:
-        lines.append("=== NUTRITION LOGS (last 14 days) ===")
+        lines.append("=== NUTRITION LOGS (last 90 days) ===")
         for n in nuts:
-            cal = f"{n.calories:.0f} kcal" if n.calories else ""
-            pro = f"P:{n.protein_g:.1f}g" if n.protein_g else ""
-            carb = f"C:{n.carbs_g:.1f}g" if hasattr(n, 'carbs_g') and n.carbs_g else ""
-            fat  = f"F:{n.fat_g:.1f}g"   if hasattr(n, 'fat_g') and n.fat_g else ""
-            macro = " ".join(filter(None, [cal, pro, carb, fat]))
+            # Calories and the three macros were all this carried, so a
+            # question about SUGAR — or sodium, potassium, phosphorus, the
+            # nutrients this app exists to manage and the ones DAILY NUTRIENT
+            # TARGETS sets limits for — could not be answered from the log at
+            # all. The model had no figure to cite and invented one from meals
+            # it remembered elsewhere in the context.
+            def _n(label, value, unit, fmt="{:.0f}"):
+                if not value:
+                    return ""
+                prefix = f"{label}:" if label else ""
+                return f"{prefix}{fmt.format(value)}{unit}"
+
+            macro = " ".join(filter(None, [
+                _n("", n.calories, " kcal"),
+                _n("P", n.protein_g, "g", "{:.1f}"),
+                _n("C", n.carbs_g, "g", "{:.1f}"),
+                _n("F", n.fat_g, "g", "{:.1f}"),
+                _n("sugar", getattr(n, "sugar_g", None), "g", "{:.1f}"),
+                _n("Na", getattr(n, "sodium_mg", None), "mg"),
+                _n("K", getattr(n, "potassium_mg", None), "mg"),
+                _n("PO4", getattr(n, "phosphorus_mg", None), "mg"),
+            ]))
             lines.append(f"  {n.log_date} {n.meal_type}: {n.food_name}{(' — ' + macro) if macro else ''}")
         lines.append("")
 
-    # ── 5. FITNESS LOGS (last 30 days) ────────────────────────────
+    # ── 5. FITNESS LOGS (last 30 days — the comment was right, the code
+    #        used cutoff_14) ──────────────────────────────────────────
     fit_q = await db.execute(
         select(FitnessLog)
-        .where(FitnessLog.user_id == uid, FitnessLog.log_date >= cutoff_14)
+        .where(FitnessLog.user_id == uid, FitnessLog.log_date >= cutoff_30)
         .order_by(desc(FitnessLog.log_date))
         .limit(20)
     )
     fits = fit_q.scalars().all()
     if fits:
-        lines.append("=== FITNESS / EXERCISE LOGS (last 14 days) ===")
+        lines.append("=== FITNESS / EXERCISE LOGS (last 30 days) ===")
         for f in fits:
             parts = [f"{f.log_date}", f.activity_type or "Activity"]
             if f.duration_minutes:
@@ -1448,7 +1486,7 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
             if f.intensity:
                 parts.append(f"{f.intensity} intensity")
             if f.notes:
-                parts.append(f.notes[:100])
+                parts.append(f.notes)
             lines.append("  " + " | ".join(parts))
         lines.append("")
 
@@ -1470,9 +1508,9 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
                 parts.append(f"feeling: {m.emotions}")
             lines.append("  " + " | ".join(parts))
             if m.journal_entry:
-                lines.append(f"    Journal: {m.journal_entry[:200]}")
+                lines.append(f"    Journal: {m.journal_entry}")
             if m.notes:
-                lines.append(f"    Notes  : {m.notes[:150]}")
+                lines.append(f"    Notes  : {m.notes}")
         lines.append("")
 
     # ── 6b. ELIMINATION (bowel movements & vomiting — last 60 days) ──
@@ -1544,7 +1582,7 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
                 parts.append(f"SpO2 {e.blood_oxygen_pct}%")
             if e.notes:
                 # Include the rich notes (KtV, fluid removed, post-BP from dialysis session)
-                parts.append(e.notes[:100])
+                parts.append(e.notes)
             lines.append("  " + " | ".join(parts))
         lines.append("")
 
@@ -1789,6 +1827,8 @@ def _build_system_prompt(
         "RULES (must follow every single one):\n"
         f"  - ANSWER THE SPECIFIC QUESTION {user_name} ASKED — do not deliver a full health review unless asked.\n"
         f"  - If {user_name} asks about their meals, read NUTRITION LOGS and report the most recent entry with its date, food name, and meal type.\n"
+        f"  - If they ask which food contributed most of a NUTRIENT (sugar, sodium, potassium, phosphorus, protein), compare that nutrient across the entries for the day they asked about and name the highest, with its figure. Do not answer from what they 'typically' eat.\n"
+        f"  - If the day they asked about has NO entry, say exactly that and stop. Never fill the gap with another day's meals.\n"
         f"  - If {user_name} asks about their conditions, read the 'Chronic Cond.' line in PATIENT PROFILE.\n"
         f"  - If {user_name} asks about labs, read LAB RESULTS.\n"
         f"  - If {user_name} asks about medications, read MEDICATIONS.\n"
@@ -1808,47 +1848,39 @@ def _build_system_prompt(
 
 
 # keyword → section header to extract from patient_context
-_QUERY_SECTION_MAP: list[tuple[list[str], str]] = [
-    (["meal", "eat", "food", "nutrition", "diet", "breakfast", "lunch", "dinner", "snack", "drink", "drank", "ate", "consumed"], "NUTRITION LOGS"),
-    (["condition", "diagnosis", "disease", "chronic", "illness", "sick", "disorder", "health condition"], "PATIENT PROFILE"),
-    (["medication", "medicine", "drug", "prescription", "pill", "tablet", "dose", "drug"], "MEDICATIONS"),
-    (["lab", "test", "result", "blood", "creatinine", "potassium", "pth", "phosphorus", "ktv", "hemoglobin", "albumin", "biomarker"], "LAB RESULTS"),
-    (["dialysis", "session", "vital", "weight", "blood pressure", "bp", "heart rate", "temperature", "spo2"], "PRE-DIALYSIS VITALS"),
-    (["mood", "journal", "feeling", "emotion", "mental"], "MOOD"),
-    (["bowel", "stool", "poop", "vomit", "urination", "elimination"], "ELIMINATION"),
-    (["score", "wellness", "hebcs", "omega", "pathway"], "HEBCS"),
-]
+# `_QUERY_SECTION_MAP` is gone. It was eight hardcoded keyword lists deciding
+# which sections of the patient's own record the model was allowed to see, and
+# it silently starved any question whose wording missed the list: "sugar" and
+# "glucose" appeared in none of them, so a question about sugar reached the
+# nutrition log only by containing the word "food".
+#
+# It existed because the context had to fit a 3B local model. That constraint is
+# gone — the primary provider holds the whole record comfortably — and the
+# privacy boundary was never this table: identity is stripped at egress
+# (subject token, age not DOB, no name, no email, §3al). Gating CLINICAL detail
+# protected nobody and cost the patient their answer.
 
 
 def _augment_query(query: str, patient_context: str, user_name: str) -> str:
+    """Attach the patient's FULL record to the question.
+
+    No selection, no truncation. Anything that reduces what the model sees can
+    only produce a confidently wrong answer from a partial record, and that is
+    exactly what happened: asked which food contributed most of a day's sugar,
+    the model was handed a keyword-selected slice, found no figure, and
+    answered from meals it remembered elsewhere in the context.
+
+    Privacy is enforced where it belongs — at egress, on identity, absolutely
+    (§3al). It is not enforced by giving the model less of the patient's own
+    clinical data.
     """
-    Keyword-based fallback: extract the most relevant section(s) from patient_context
-    and prepend them to the user message.  Used when semantic embeddings are not yet ready.
-    """
-    q_lower = query.lower()
-    matched_sections: list[str] = []
-
-    for keywords, section_header in _QUERY_SECTION_MAP:
-        if any(kw in q_lower for kw in keywords):
-            # Find the section in the context
-            idx = patient_context.find(section_header)
-            if idx == -1:
-                continue
-            # Extract from the header to the next "===" section or end
-            end_idx = patient_context.find("\n===", idx + len(section_header))
-            snippet = patient_context[idx:end_idx].strip() if end_idx != -1 else patient_context[idx:].strip()
-            # Cap at 1500 chars per section to stay within context window
-            matched_sections.append(snippet[:1500])
-
-    if not matched_sections:
-        # No specific match — include profile + first 800 chars of context
-        matched_sections.append(patient_context[:1200])
-
-    relevant_data = "\n\n".join(matched_sections)
     return (
-        f"--- {user_name}'s relevant health records for this question ---\n"
-        f"{relevant_data}\n"
-        f"--- end of records ---\n\n"
+        f"--- COMPLETE health record on file ---\n"
+        f"{patient_context}\n"
+        f"--- end of record ---\n\n"
+        f"Answer from the record above. If it does not contain what is needed, "
+        f"say so plainly and name what is missing — never substitute another "
+        f"day, another period, or what the patient 'typically' does.\n\n"
         f"{query}"
     )
 
@@ -1861,13 +1893,18 @@ def _assemble_chat_messages(system_prompt: str, history, query: str, augmented_q
     augmented copy — which carries the retrieved health-record snippet — becomes
     the final user turn the model answers.
     """
-    messages: list[dict] = [{"role": "system", "content": system_prompt}]
+    # system_prompt may be None: the tool loop supplies its own system turn, so
+    # a placeholder {"role":"system","content":None} here would reach the
+    # provider as an empty instruction.
+    messages: list[dict] = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
     hist = list(history or [])
     if hist and hist[-1].role == "user" and (hist[-1].content or "").strip() == (query or "").strip():
         hist = hist[:-1]
     for m in hist:
         messages.append({"role": m.role, "content": m.content})
-    messages.append({"role": "user", "content": augmented_query})
+    messages.append({"role": "user", "content": augmented_query or query})
     return messages
 
 
@@ -1963,6 +2000,12 @@ async def _refresh_patient_embeddings(
         await db.rollback()
 
 
+# SUPERSEDED by the tool loop (§3am) and currently uncalled: both chat
+# endpoints now let the model fetch what it needs instead of guessing which
+# record sections are relevant — this scorer picked NUTRITION LOGS for "what
+# medications am I taking?". Kept because the embeddings it reads are still
+# maintained (`_refresh_patient_embeddings`), so this is one call away if a
+# future surface wants retrieval; delete it with those if not.
 async def _semantic_augment_query(
     query: str,
     user_id: int,
@@ -2004,13 +2047,48 @@ async def _semantic_augment_query(
         return _augment_query(query, patient_context, "")
 
     scored.sort(reverse=True)
-    top_sections = scored[:top_k]
-    parts = [f"[{key}]\n{text[:1500]}" for _, key, text in top_sections]
+
+    # Retrieval POINTS AT the likely-relevant parts; it does not replace the
+    # record. Returning only the top-k sections (each clipped to 1500 chars)
+    # meant a question whose answer lay in a fourth section could not be
+    # answered at all — and the model, given a partial record, answered anyway.
+    # Embeddings rank; they do not get to decide what the clinician-facing
+    # assistant is allowed to know.
+    pointers = ", ".join(key for _, key, _ in scored[:top_k])
     return (
-        "RELEVANT HEALTH RECORD SECTIONS (semantic retrieval):\n\n"
-        + "\n\n---\n\n".join(parts)
-        + f"\n\n---\n\nUser Question: {query}"
+        f"--- COMPLETE health record on file ---\n"
+        f"{patient_context}\n"
+        f"--- end of record ---\n\n"
+        f"Most likely relevant to this question: {pointers}. That is a hint, "
+        f"not a limit — use any part of the record that answers it.\n"
+        f"If the record does not contain what is needed, say so plainly and "
+        f"name what is missing; never substitute another day or period.\n\n"
+        f"{query}"
     )
+
+
+#: Sections small enough to always send, and needed to frame any answer: who
+#: the patient is, what their computed limits are, and what they must not be
+#: offered. Everything else — logs, labs, sessions, journals — is fetched by
+#: tool, only when a question actually needs it.
+_CORE_SECTION_PREFIXES = (
+    "=== TODAY IS",
+    "=== PATIENT PROFILE",
+    "=== DAILY NUTRIENT TARGETS",
+    "=== FOOD GUIDANCE",
+    "=== GENETIC GROUND TRUTHS",
+)
+
+
+def _core_context(patient_context: str) -> str:
+    """The framing sections only. Detail arrives through tools."""
+    out, keep = [], False
+    for line in patient_context.splitlines():
+        if line.startswith("==="):
+            keep = line.startswith(_CORE_SECTION_PREFIXES)
+        if keep:
+            out.append(line)
+    return "\n".join(out).strip()
 
 
 @router.post("/chat", response_model=AIQueryResponseWithMemory)
@@ -2038,72 +2116,127 @@ async def ai_chat(
             points = " | ".join((gk.key_points or [])[:3])
             domain_knowledge.append(f"{gk.title} ({gk.source_organization}): {points}")
 
-    system_prompt = _build_system_prompt(
-        # NOT the patient's name: this prompt reaches a third-party provider and
-        # a second-person reference carries the same weight (§3al). "the patient"
-        # rather than a greeting word, because the string is interpolated into
-        # rules ("ANSWER THE QUESTION {x} ASKED") as well as into address.
+    # ── Tools first ───────────────────────────────────────────────────
+    #
+    # The model asks for the data it needs instead of the backend guessing.
+    # Everything that came before guessed, and each guess failed the same way:
+    # a keyword table whose lists did not contain "sugar", then attaching the
+    # whole 40k record, then a token-overlap score that chose NUTRITION LOGS
+    # for "what medications am I taking?".
+    #
+    # `answer_with_tools` sends the record SUMMARY as system context and lets
+    # the model call get_meals / get_eliminations / get_medications /
+    # get_vitals / get_labs for detail — so a question about one day's sugar
+    # fetches one day of meals rather than shipping ninety.
+    from app.services.ai_conversation import answer_with_tools
+
+    # The system prompt for the TOOL path is deliberately lean: who the patient
+    # is, their limits, their restrictions — and no logs.
+    #
+    # Handing the model the whole 40k record AND the tools makes the tools
+    # pointless: it answers from the dump instead of fetching, which is exactly
+    # what happened — it reported a meal from three months earlier as "today".
+    # Tools only help when the data is NOT already in the prompt.
+    #
+    # It is also the privacy win. A question about one day's sugar now sends the
+    # patient's targets plus one day of meals, instead of ninety days of logs,
+    # every lab, every dialysis session and every journal entry.
+    core_context = _core_context(patient_context)
+    tool_system_prompt = _build_system_prompt(
         persona, request.context_module, "the patient",
-        patient_context, global_knowledge=domain_knowledge or None,
-    )
-    model = request.model or settings.OLLAMA_MODEL
-
-    # Semantic RAG: embed query, retrieve top-K most relevant record sections
-    augmented_query = await _semantic_augment_query(
-        request.query, current_user.id, db, patient_context
-    )
-    ollama_messages = _assemble_chat_messages(
-        system_prompt, request.messages, request.query, augmented_query
+        core_context, global_knowledge=domain_knowledge or None,
     )
 
-    t0 = time.monotonic()
-    # Routed through the ALAFIAModel facade (Ollama primary → OpenAI fallback).
-    from app.services.alafia_model_service import alafia_chat_detailed, ALAFIAModelError
+    tool_convo = None
+    _t_tools = time.monotonic()
     try:
-        # _detailed so the token count survives to the AIInteraction row below.
-        # The plain alafia_chat returns only text, which is why per-user usage
-        # read as zero for every interaction ever recorded.
-        completion = await alafia_chat_detailed(ollama_messages, model=model, temperature=0.7)
-        response_text = (completion.get("text") or "").strip()
-    except ALAFIAModelError as exc:
-        raise HTTPException(503, f"AI model unavailable: {exc}")
-
-    elapsed_ms = int((time.monotonic() - t0) * 1000)
-
-    # Persist interaction for memory + feedback tracking
-    interaction_id: int | None = None
-    try:
-        interaction = AIInteraction(
-            user_id=current_user.id,
-            interaction_type="chat",
-            category=request.context_module or "general",
-            user_request=request.query,
-            ai_response=response_text,
-            context_used={"persona": persona_key, "module": request.context_module},
-            llm_provider=completion.get("provider") or "ollama",
-            llm_model=completion.get("model") or model,
-            tokens_used=completion.get("tokens_used") or 0,
-            response_time_ms=elapsed_ms,
+        tool_convo = await answer_with_tools(
+            db, current_user.id, tool_system_prompt,
+            _assemble_chat_messages(None, request.messages, request.query, None),
+            temperature=0.3,
         )
-        db.add(interaction)
-        await db.commit()
-        await db.refresh(interaction)
-        interaction_id = interaction.id
-    except Exception:
-        await db.rollback()  # don't fail the request over memory write
+    except Exception as exc:  # noqa: BLE001
+        # An error must never become an ANSWER.
+        #
+        # This used to fall through to the whole-record prose path, and that
+        # fallback fabricated a clinical figure the first time it fired: asked
+        # which food drove today's sugar, it named a food from the day BEFORE
+        # and reported 15.0 g — a number in no row of the record (the real
+        # answer was 23 g, that morning). The tool path exists precisely
+        # BECAUSE a model handed a 40k-character dump invents plausible rows;
+        # reinstating the dump on failure reinstates the bug at the one moment
+        # nobody is watching for it. §3aa, one step further: an error is not an
+        # empty state, and it is not a guess either.
+        logger.warning("tool-assisted chat failed", exc_info=True)
+        raise HTTPException(
+            503,
+            f"I could not read your record just now ({type(exc).__name__}), so "
+            "I have not answered rather than guess. Please try again.",
+        )
 
-    # Fire-and-forget: refresh semantic embeddings in the background
-    asyncio.ensure_future(
-        _refresh_patient_embeddings(current_user.id, patient_context, db)
+    if tool_convo is not None and tool_convo.text:
+        interaction_id: int | None = None
+        try:
+            interaction = AIInteraction(
+                user_id=current_user.id,
+                interaction_type="chat",
+                category=request.context_module or "general",
+                user_request=request.query,
+                ai_response=tool_convo.text,
+                context_used={
+                    "persona": persona_key,
+                    "module": request.context_module,
+                    # What was actually fetched, so an answer can be shown to
+                    # have come from the record rather than from the model.
+                    "tools": [{"name": t.name, "args": t.arguments,
+                               "result": t.summary} for t in tool_convo.traces],
+                    "rounds": tool_convo.rounds,
+                },
+                llm_provider=tool_convo.provider or "",
+                llm_model=tool_convo.model or "",
+                tokens_used=tool_convo.tokens_used,
+                response_time_ms=int((time.monotonic() - _t_tools) * 1000),
+            )
+            db.add(interaction)
+            await db.commit()
+            await db.refresh(interaction)
+            interaction_id = interaction.id
+        except Exception:  # noqa: BLE001 - never fail a good answer over memory
+            await db.rollback()
+        asyncio.ensure_future(
+            _refresh_patient_embeddings(current_user.id, patient_context, db))
+        return AIQueryResponseWithMemory(
+            response=tool_convo.text,
+            module=request.context_module,
+            confidence=1.0,
+            persona=persona_key,
+            interaction_id=interaction_id,
+        )
+
+    # No text and no exception: the model returned nothing. Same rule — say so.
+    raise HTTPException(
+        503,
+        "The assistant returned an empty answer. Nothing has been recorded; "
+        "please try again.",
     )
 
-    return AIQueryResponseWithMemory(
-        response=response_text,
-        module=request.context_module,
-        confidence=1.0,
-        persona=persona_key,
-        interaction_id=interaction_id,
-    )
+
+def _stream_chunks(text: str, size: int = 24):
+    """Break a finished answer into SSE-sized pieces on word boundaries.
+
+    The tool loop produces the whole answer at once, but every client renders
+    this endpoint token by token. Splitting mid-word makes the text visibly
+    stutter, so chunks end at whitespace.
+    """
+    out, buf = [], ""
+    for word in text.split(" "):
+        buf = f"{buf} {word}" if buf else word
+        if len(buf) >= size:
+            out.append(buf + " ")
+            buf = ""
+    if buf:
+        out.append(buf)
+    return out
 
 
 @router.post("/chat/stream")
@@ -2136,22 +2269,20 @@ async def ai_chat_stream(
             points = " | ".join((gk.key_points or [])[:3])
             domain_knowledge.append(f"{gk.title} ({gk.source_organization}): {points}")
 
-    system_prompt = _build_system_prompt(
-        # NOT the patient's name: this prompt reaches a third-party provider and
-        # a second-person reference carries the same weight (§3al). "the patient"
-        # rather than a greeting word, because the string is interpolated into
-        # rules ("ANSWER THE QUESTION {x} ASKED") as well as into address.
-        persona, request.context_module, "the patient",
-        patient_context, global_knowledge=domain_knowledge or None,
-    )
     model = request.model or settings.OLLAMA_MODEL
 
-    # Semantic RAG: embed query and retrieve top-K relevant sections
-    augmented_query = await _semantic_augment_query(
-        request.query, current_user.id, db, patient_context
+    # THIS is the endpoint the product actually uses: web, iOS and Android all
+    # stream, and iOS only falls back to /ai/chat when the stream fails. Wiring
+    # the tool loop into /ai/chat alone would have left every real user on the
+    # whole-record prose path — the one that answered the original complaint
+    # with a meal from the wrong day (§3am).
+    core_context = _core_context(patient_context)
+    tool_system_prompt = _build_system_prompt(
+        persona, request.context_module, "the patient",
+        core_context, global_knowledge=domain_knowledge or None,
     )
-    ollama_messages = _assemble_chat_messages(
-        system_prompt, request.messages, request.query, augmented_query
+    tool_messages = _assemble_chat_messages(
+        None, request.messages, request.query, None
     )
 
     t0 = time.monotonic()
@@ -2171,14 +2302,28 @@ async def ai_chat_stream(
     # when a provider is unreachable or out of credit.
     async def token_generator():
         try:
-            from app.services.alafia_model_service import stream_alafia_chat
+            # The tool rounds cannot stream — the model has to read each result
+            # before it knows what to ask next. The finished answer is then
+            # emitted in chunks so the client keeps its typing behaviour and
+            # the SSE contract is unchanged.
+            from app.services.ai_conversation import answer_with_tools
 
-            async for token in stream_alafia_chat(ollama_messages, model=model):
-                accumulated.append(token)
-                yield f"data: {json.dumps({'content': token})}\n\n"
+            convo = await answer_with_tools(
+                db, current_user.id, tool_system_prompt, tool_messages,
+                temperature=0.3,
+            )
+            full_response = (convo.text or "").strip()
+            if not full_response:
+                # An empty answer is a failure, not an answer. Falling through
+                # to the record-dump path here is what fabricated a figure that
+                # was in no row of the record (§3am).
+                raise RuntimeError("the assistant returned an empty answer")
+
+            for chunk in _stream_chunks(full_response):
+                accumulated.append(chunk)
+                yield f"data: {json.dumps({'content': chunk})}\n\n"
 
             elapsed_ms = int((time.monotonic() - t0) * 1000)
-            full_response = "".join(accumulated)
             try:
                 interaction = AIInteraction(
                     user_id=current_user.id,
@@ -2186,9 +2331,18 @@ async def ai_chat_stream(
                     category=request.context_module or "general",
                     user_request=request.query,
                     ai_response=full_response,
-                    context_used={"persona": persona_key, "module": request.context_module},
-                    llm_provider="router",
-                    llm_model=model,
+                    context_used={
+                        "persona": persona_key,
+                        "module": request.context_module,
+                        # What was fetched, so an answer can be shown to have
+                        # come from the record rather than from the model.
+                        "tools": [{"name": t.name, "args": t.arguments,
+                                   "result": t.summary} for t in convo.traces],
+                        "rounds": convo.rounds,
+                    },
+                    llm_provider=convo.provider or "router",
+                    llm_model=convo.model or model,
+                    tokens_used=convo.tokens_used,
                     response_time_ms=elapsed_ms,
                 )
                 db.add(interaction)

@@ -144,6 +144,7 @@ class OllamaAdapter(BaseAdapter):
         temperature: float = 0.5,
         max_tokens: int = 2048,
         json_mode: bool = False,
+        tools: list[dict[str, Any]] | None = None,
         images: list[str] | None = None,
     ) -> dict[str, Any]:
         # TODO(alafia-model): Phase 3 — swap model_name for fine-tuned BioMistral 7B
@@ -157,21 +158,39 @@ class OllamaAdapter(BaseAdapter):
                 messages.append({"role": "user", "content": "", "images": images})
         payload = {
             "model": self.model_name,
+            # NOT `to_openai_messages` — Ollama and OpenAI disagree here, and
+            # measuring settled it. Ollama wants tool-call `arguments` as an
+            # OBJECT and answers 400 to OpenAI's JSON-STRING form, so applying
+            # that translation here killed round 2 of every tool conversation:
+            # round 1 fetched six meals, round 2 was refused, and the fallback
+            # then answered from the record dump with an invented figure.
+            # One dialect was the tidier idea; the wire disagreed (§0).
             "messages": messages,
             "stream": False,
             "options": {"temperature": temperature, "num_predict": max_tokens},
         }
         if json_mode:
             payload["format"] = "json"
+        if tools:
+            # Ollama takes OpenAI-shaped tools on /api/chat. This is the LOCAL
+            # and the production FALLBACK path, so without it a tool-using
+            # conversation would work until the chain fell through and then
+            # quietly stop working (§3ae).
+            from alafia_model.adapters.tool_protocol import to_openai_tools
+            payload["tools"] = to_openai_tools(tools)
         headers = await _ollama_auth_headers(self.base_url)
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(f"{self.base_url}/api/chat", json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
-        content = data.get("message", {}).get("content", "")
+        message = data.get("message", {}) or {}
+        content = message.get("content", "")
+        from alafia_model.adapters.tool_protocol import parse_openai_tool_calls
+        tool_calls = parse_openai_tool_calls(message)
         return {
             "content": content,
+            "tool_calls": tool_calls,
             "model": self.model_name,
             "tokens_used": data.get("eval_count", 0),
         }

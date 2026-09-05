@@ -80,6 +80,7 @@ class AnthropicAdapter(BaseAdapter):
         temperature: float = 0.5,
         max_tokens: int = 2048,
         json_mode: bool = False,  # accepted for interface parity; Anthropic has no flag
+        tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         if not self._api_key:
             raise RuntimeError("anthropic: API key not configured")
@@ -87,11 +88,34 @@ class AnthropicAdapter(BaseAdapter):
         system = "\n\n".join(
             m.get("content", "") for m in messages if m.get("role") == "system"
         ).strip()
-        conversation = [
-            {"role": m["role"], "content": m.get("content", "")}
-            for m in messages
-            if m.get("role") in ("user", "assistant")
-        ]
+        # Tool turns must survive the hoist. The plain version of this dropped
+        # every {"role": "tool"} message and flattened the assistant turn to a
+        # string, so the model's tool RESULTS never came back to it: it called
+        # get_meals, received nothing it could see, called again, and finally
+        # answered "I don't have access to your food data" while holding three
+        # successful results.
+        conversation: list[dict[str, Any]] = []
+        for m in messages:
+            role = m.get("role")
+            if role == "assistant" and m.get("tool_calls"):
+                conversation.append({"role": "assistant", "content": [
+                    {"type": "tool_use", "id": c["id"], "name": c["name"],
+                     "input": c.get("arguments") or {}}
+                    for c in m["tool_calls"]
+                ]})
+            elif role == "tool":
+                # Anthropic carries tool results on a USER turn, and consecutive
+                # results belong in one turn rather than several.
+                block = {"type": "tool_result",
+                         "tool_use_id": m.get("tool_call_id") or m.get("id", ""),
+                         "content": m.get("content", "")}
+                if conversation and conversation[-1]["role"] == "user" \
+                        and isinstance(conversation[-1].get("content"), list):
+                    conversation[-1]["content"].append(block)
+                else:
+                    conversation.append({"role": "user", "content": [block]})
+            elif role in ("user", "assistant"):
+                conversation.append({"role": role, "content": m.get("content", "")})
         body: dict[str, Any] = {
             "model": self.model_name,
             "max_tokens": max_tokens,
@@ -100,6 +124,11 @@ class AnthropicAdapter(BaseAdapter):
         }
         if system:
             body["system"] = system
+        if tools:
+            # Anthropic's native shape IS the internal one — {name, description,
+            # input_schema} — so no translation is needed here. The other 18
+            # providers translate to OpenAI's `function` wrapper instead.
+            body["tools"] = tools
         headers = anthropic_headers(self._api_key, json_content=True)
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(_MESSAGES_URL, headers=headers, json=body)
@@ -110,14 +139,18 @@ class AnthropicAdapter(BaseAdapter):
                 raise
             data = resp.json()
 
+        blocks = data.get("content", [])
         content = "".join(
             block.get("text", "")
-            for block in data.get("content", [])
+            for block in blocks
             if block.get("type") == "text"
         )
+        from alafia_model.adapters.tool_protocol import parse_anthropic_tool_calls
+        tool_calls = parse_anthropic_tool_calls(blocks)
         usage = data.get("usage") or {}
         tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
-        return {"content": content, "model": data.get("model", self.model_name), "tokens_used": tokens}
+        return {"content": content, "tool_calls": tool_calls,
+                "model": data.get("model", self.model_name), "tokens_used": tokens}
 
     async def stream_chat(
         self,

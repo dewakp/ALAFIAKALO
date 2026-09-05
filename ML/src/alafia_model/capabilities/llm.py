@@ -147,6 +147,7 @@ class LLMCapability(BaseCapability):
         # `local_only=True` stays available for anything that must not leave
         # regardless, and is what the tests use to pin that boundary.
         local_only = bool(payload.get("local_only", False))
+        tools = payload.get("tools") or None
         # Extra identifiers for this call. The signed-in user's own name, email
         # and phone are picked up from the request context inside `scrub_payload`
         # — a hint each caller must remember is one someone eventually forgets.
@@ -157,19 +158,24 @@ class LLMCapability(BaseCapability):
             system = _HEALTH_SYSTEM_PROMPT
             if context.get("user_profile"):
                 system += f"\n\nUser profile context:\n{context['user_profile']}"
-            return await self._chat(system, messages, temperature, max_tokens, json_mode, model, local_only, identity_hints)
+            return await self._chat(system, messages, temperature, max_tokens, json_mode, model, local_only, identity_hints, tools)
 
         if task == "nutrition_guidance":
             system = _NUTRITION_SYSTEM_PROMPT
             if context.get("nutrition_summary"):
                 system += f"\n\nRecent nutrition summary:\n{context['nutrition_summary']}"
-            return await self._chat(system, messages, temperature, max_tokens, json_mode, model, local_only, identity_hints)
+            return await self._chat(system, messages, temperature, max_tokens, json_mode, model, local_only, identity_hints, tools)
 
         # Generic passthrough — the caller supplies its own system message (if any).
         # This is the entry point backend services use so every LLM call is routed
         # through ALAFIAModel rather than hitting Ollama/OpenAI directly.
         if task in ("chat", "raw_chat", "health_coaching"):
-            return await self._chat(None, messages, temperature, max_tokens, json_mode, model, local_only, identity_hints)
+            # `tools` belongs here most of all: this is the generic passthrough
+            # every backend service uses, so omitting it here meant tools were
+            # threaded through six call sites and dropped at the only one that
+            # runs.
+            return await self._chat(None, messages, temperature, max_tokens, json_mode,
+                                    model, local_only, identity_hints, tools)
 
         # Single-prompt completion (maps to /api/generate style structured output).
         if task == "complete":
@@ -197,11 +203,12 @@ class LLMCapability(BaseCapability):
         model: str | None = None,
         local_only: bool = False,
         identity_hints: tuple[str, ...] = (),
+        tools: list[dict] | None = None,
     ) -> CapabilityResult:
         # TODO(alafia-model): replace adapters with native fine-tuned BioMistral 7B
         full_messages = ([{"role": "system", "content": system}] if system else []) + list(messages)
         return await self._dispatch("chat", full_messages, temperature, max_tokens, json_mode,
-                                    model, local_only, identity_hints)
+                                    model, local_only, identity_hints, tools)
 
     async def _complete(
         self, prompt: str, temperature: float, max_tokens: int, model: str | None = None,
@@ -215,6 +222,7 @@ class LLMCapability(BaseCapability):
         self, kind: str, arg: Any, temperature: float, max_tokens: int, json_mode: bool,
         model: str | None = None, local_only: bool = False,
         identity_hints: tuple[str, ...] = (),
+        tools: list[dict] | None = None,
     ) -> CapabilityResult:
         """Dispatch across Ollama and the hosted provider pool. Order is per-environment.
 
@@ -246,7 +254,8 @@ class LLMCapability(BaseCapability):
             ollama = self._get_adapter(model)
             t0 = time.monotonic()
             try:
-                resp = await self._call(ollama, kind, arg, temperature, max_tokens, json_mode)
+                resp = await self._call(ollama, kind, arg, temperature, max_tokens,
+                                        json_mode, tools)
                 telemetry.record(
                     provider="ollama", model=resp.get("model"), task=kind, tier="local",
                     latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
@@ -256,6 +265,9 @@ class LLMCapability(BaseCapability):
                     success=True,
                     data={
                         "text": resp["content"],
+                        # A tool call is the answer to "what do you need?" and
+                        # must not be dropped between adapter and caller.
+                        "tool_calls": resp.get("tool_calls") or [],
                         "tokens_used": resp.get("tokens_used", 0),
                         "model": resp.get("model", ollama.model_name),
                         "provider": "ollama",
@@ -282,10 +294,20 @@ class LLMCapability(BaseCapability):
             # never had to take. The subject is identified to a provider only by
             # `privacy.subject_token()` — our handle, meaningless to them.
             outbound = privacy.scrub_payload(arg, identity_hints)
-            for spec in ordered_for_selection():
+            # When the request carries tools, providers that cannot accept them
+            # are skipped BEFORE selection — one of them answering in prose is
+            # indistinguishable from success and strands the caller.
+            #
+            # Called WITHOUT the keyword on the ordinary path so the signature
+            # every existing caller and test stub relies on is unchanged; the
+            # narrowing applies only to requests that actually carry tools.
+            _specs = (ordered_for_selection(require_tools=True) if tools
+                      else ordered_for_selection())
+            for spec in _specs:
                 t0 = time.monotonic()
                 try:
-                    resp = await self._call(self._adapter_for(spec), kind, outbound, temperature, max_tokens, json_mode)
+                    resp = await self._call(self._adapter_for(spec), kind, outbound,
+                                            temperature, max_tokens, json_mode, tools)
                     telemetry.record(
                         provider=spec.name, model=resp.get("model"), task=kind, tier=spec.tier,
                         latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
@@ -300,6 +322,10 @@ class LLMCapability(BaseCapability):
                         success=True,
                         data={
                             "text": resp["content"],
+                            # Same on the hosted path: dropping tool_calls here
+                            # would make the model's request for data look like
+                            # an empty answer.
+                            "tool_calls": resp.get("tool_calls") or [],
                             "tokens_used": resp.get("tokens_used", 0),
                             "model": resp.get("model", spec.resolved_model()),
                             "provider": spec.name,
@@ -455,7 +481,11 @@ class LLMCapability(BaseCapability):
 
 
     @staticmethod
-    async def _call(adapter, kind, arg, temperature, max_tokens, json_mode):
+    async def _call(adapter, kind, arg, temperature, max_tokens, json_mode, tools=None):
         if kind == "chat":
-            return await adapter.chat(arg, temperature=temperature, max_tokens=max_tokens, json_mode=json_mode)
+            # `tools` is passed only when present so an adapter that predates
+            # tool support still receives the call it expects.
+            extra = {"tools": tools} if tools else {}
+            return await adapter.chat(arg, temperature=temperature,
+                                      max_tokens=max_tokens, json_mode=json_mode, **extra)
         return await adapter.complete(arg, temperature=temperature, max_tokens=max_tokens)

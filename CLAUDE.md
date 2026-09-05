@@ -1077,6 +1077,98 @@ line; no response schema exposes a credential.
 
 ---
 
+## 3am. The assistant asks for data; it never guesses the question
+
+`/ai/chat` runs a bounded TOOL LOOP (`services/ai_conversation.py`,
+`services/record_tools.py`). The model reads the question, calls for the rows it
+needs, and calls again if the answer is not yet in hand.
+
+Three earlier designs all failed the same way — they tried to recognise the
+QUESTION, and each was missing the word the patient actually used:
+
+- `_QUERY_SECTION_MAP`, eight keyword lists gating which sections the model
+  could see. **"sugar" was in none of them.**
+- the whole 40k record in the prompt, which the model answered from — it
+  reported a meal from three months earlier as "today".
+- a token-overlap relevance scorer, which picked NUTRITION LOGS for
+  *"what medications am I taking?"*.
+
+The model understands the question better than any table we can write. What it
+lacks is DATA. So the backend supplies data on request and holds **no opinion
+about phrasing**. That also answers *"why am I purging?"* without anyone having
+predicted the sequence: it fetches eliminations, reads them, and asks for
+medications and vitals only if what came back warrants it.
+
+**The prompt carries framing only** — date, profile, nutrient targets, food
+guidance, genetic ground truths (`_core_context`). Detail arrives through a
+call. Handing over the record AND the tools makes the tools pointless. It is
+also the privacy win: one day's sugar question now sends one day of meals
+instead of ninety days of logs, every lab and every journal entry.
+
+> **An error must never become an ANSWER.** A tool-path failure used to fall
+> through to the whole-record prose path, and the first time it fired it
+> fabricated a clinical figure: asked which food drove today's sugar, it named a
+> food from the day BEFORE and reported **15.0 g — a number in no row of the
+> record** (the true answer was 23 g, that morning). The tool path exists
+> *because* a model handed a dump invents plausible rows; reinstating the dump
+> on failure reinstates the bug at the one moment nobody is watching. `/ai/chat`
+> now answers 503 naming the exception type. §3aa's "an error is not an empty
+> state", one step on: it is not a guess either.
+
+> **Wire the endpoint the product uses, not the one that is easy to curl.**
+> The loop went into `/ai/chat` first and was verified there with three question
+> classes — while **web, iOS and Android all stream**. `/ai/chat/stream` was
+> still on the whole-record prose path, so every real user would have kept the
+> exact answer that started this work, and the verification would have "passed"
+> against an endpoint only iOS ever reaches, and only as a fallback. Both
+> endpoints now run the loop. The tool rounds cannot stream (the model must read
+> each result before it knows what to ask next), so the finished answer is
+> chunked out and the SSE contract is unchanged — the cost is that the first
+> token now waits for the rounds.
+
+### Providers do not agree on the tool wire, and dev runs the forgiving one
+
+`adapters/tool_protocol.py` holds ONE internal shape and each adapter translates.
+Two faults here would each have been invisible in dev and total in production —
+§3ak's opposite orders are what hid them:
+
+- **`openai_compat` parsed `tool_calls` and dropped them from its return dict.**
+  That adapter serves **18 of the 20 providers**, i.e. all of production's
+  hosted pool. The loop saw prose, concluded the model had answered, and
+  returned an answer built from framing context with none of the record in it.
+- **Ollama wants `arguments` as an OBJECT; OpenAI wants a JSON STRING.**
+  Ollama answers **400** to the OpenAI form. Unifying both on one dialect was
+  the tidier idea and it killed round 2 of every conversation: round 1 fetched
+  six meals, round 2 was refused, and the fabricating fallback above did the
+  rest. Measure the wire; do not reason about it (§0).
+
+A provider that cannot take tools is skipped BEFORE selection
+(`ProviderSpec.supports_tools`, False for Perplexity) — one answering in prose
+is worse than one refusing, because the caller waits for a call that never comes.
+
+### Wrong column names, for the third time
+
+§3ag found eleven in `ai_engine`. The tools shipped with more, and
+`getattr(row, name, None)` cannot fail, so every one was a silent omission:
+
+- `get_vitals` read `systolic_bp`, `diastolic_bp`, `heart_rate`,
+  `temperature_c`, `oxygen_saturation`, `blood_glucose` — VitalsLog has
+  `blood_pressure_systolic`, `heart_rate_bpm`, `body_temperature_c`,
+  `blood_oxygen_pct`, `blood_glucose_mg_dl`. **Six of seven fields dropped**, so
+  the tool returned a date and a weight and the model correctly reported no
+  blood pressure on a patient who had it.
+- `get_medications` serialised with dose-log column names, but all three sources
+  return a **`MedicationView`** dataclass (`name, detail, last, doses, source,
+  active`). Every row became `{}` — four empty objects — and the model reported
+  **"no medications taken"** on a patient with four dose-logged drugs. The names
+  it used are real columns *on the model*, just not on the view it was handed,
+  which is why it read as correct.
+
+The field lists are module constants and
+`tests/test_ai_tool_use.py::test_every_field_a_tool_reads_exists_on_its_model`
+compares them to `__table__.columns`. **A static check beats behavioural tests
+here** — the same lesson §3ag already paid for once.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

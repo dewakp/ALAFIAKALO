@@ -205,6 +205,7 @@ async def alafia_chat_detailed(
     task: str = "chat",
     model: str | None = None,
     context: dict[str, Any] | None = None,
+    tools: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Same as `alafia_chat`, but returns the accounting alongside the text.
 
@@ -224,6 +225,11 @@ async def alafia_chat_detailed(
             "json_mode": json_mode,
             "model": model or "",
             "context": context or {},
+            # In alafia_chat_detailed's OWN payload. An earlier edit put this in
+            # alafia_chat by matching the first occurrence, so this function
+            # accepted `tools`, never forwarded them, and the model answered
+            # "I don't have access to your food data" while holding five tools.
+            "tools": tools or None,
         },
     )
     if not result.get("success"):
@@ -231,6 +237,8 @@ async def alafia_chat_detailed(
     data = result.get("data") or {}
     return {
         "text": data.get("text", ""),
+        # The model asking for data is a normal outcome, not an empty answer.
+        "tool_calls": data.get("tool_calls") or [],
         "tokens_used": int(data.get("tokens_used") or 0),
         "model": data.get("model") or "",
         "provider": data.get("provider") or "",

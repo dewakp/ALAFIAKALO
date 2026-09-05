@@ -42,6 +42,18 @@ class ProviderSpec:
     # preference that matches anything — so "haiku" keeps choosing the current
     # haiku as the provider ships new ones, without anyone editing this file.
     model_prefer: tuple[str, ...] = ()
+    #: Whether this provider's API accepts tool/function definitions.
+    #:
+    #: NOT universal, and the chain must know. Of the 20 providers here, the
+    #: Anthropic pair and the mainstream OpenAI-compatible ones do; Perplexity's
+    #: search models do not, and several free tiers silently ignore a `tools`
+    #: field and answer in prose instead — which is worse than refusing, because
+    #: the caller waits for a tool call that will never come.
+    #:
+    #: A request that NEEDS tools skips providers without them rather than
+    #: discovering the gap mid-conversation (§3ae: never gate on a
+    #: provider-specific assumption; here, never assume one either).
+    supports_tools: bool = True
 
     @property
     def api_key(self) -> str:
@@ -204,7 +216,9 @@ PROVIDERS: list[ProviderSpec] = [
     ProviderSpec("deepinfra", "https://api.deepinfra.com/v1/openai", "DEEPINFRA_API_KEY", "meta-llama/Llama-3.3-70B-Instruct", "paid", 1.0, model_prefer=("llama",)),
     ProviderSpec("xai", "https://api.x.ai/v1", "XAI_API_KEY", "grok-2-latest", "paid", 1.0),
     ProviderSpec("openai", "https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-4o-mini", "paid", 1.0, model_prefer=("mini",)),
-    ProviderSpec("perplexity", "https://api.perplexity.ai", "PERPLEXITY_API_KEY", "sonar", "paid", 0.5),
+    ProviderSpec("perplexity", "https://api.perplexity.ai", "PERPLEXITY_API_KEY", "sonar", "paid", 0.5,
+                 # search models answer in prose and ignore a `tools` field
+                 supports_tools=False),
     # ---- Native format ----
     # claude-haiku-4-5 replaces the retired claude-3-5-haiku-latest, which
     # returned 404 not_found_error ("model: claude-3-5-haiku-latest") on EVERY
@@ -267,10 +281,19 @@ def _weighted_shuffle(specs: list[ProviderSpec]) -> list[ProviderSpec]:
     return ordered
 
 
-def ordered_for_selection() -> list[ProviderSpec]:
+def ordered_for_selection(*, require_tools: bool = False) -> list[ProviderSpec]:
     """Free-first weighted round-robin: free tier (shuffled) then paid (shuffled),
-    skipping any provider currently on cooldown."""
+    skipping any provider currently on cooldown.
+
+    `require_tools` drops providers whose API cannot accept tool definitions.
+    They must be excluded BEFORE selection, not discovered on failure: a
+    provider that ignores a `tools` field answers in prose, which looks like a
+    successful call and leaves the caller waiting for a tool result that will
+    never arrive.
+    """
     live = [s for s in enabled_providers() if not _is_cooling(s.name)]
+    if require_tools:
+        live = [s for s in live if s.supports_tools]
     free = [s for s in live if s.tier == "free"]
     paid = [s for s in live if s.tier != "free"]
     return _weighted_shuffle(free) + _weighted_shuffle(paid)

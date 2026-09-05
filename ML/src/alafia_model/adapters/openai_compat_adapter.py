@@ -96,17 +96,27 @@ class OpenAICompatAdapter(BaseAdapter):
         temperature: float = 0.5,
         max_tokens: int = 2048,
         json_mode: bool = False,
+        tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         if not self._api_key:
             raise RuntimeError(f"{self.provider}: API key not configured")
+        # Translate the internal assistant tool-call turn into OpenAI's shape.
+        # Without this, the SECOND round of any tool conversation is a 400 and
+        # the model never sees the call it just made.
+        from alafia_model.adapters.tool_protocol import to_openai_messages
         body: dict[str, Any] = {
             "model": self.model_name,
-            "messages": messages,
+            "messages": to_openai_messages(messages),
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
         if json_mode:
             body["response_format"] = {"type": "json_object"}
+        if tools:
+            # This adapter serves EIGHTEEN of the twenty registry providers, so
+            # tool support here is most of the fleet — not an add-on for one.
+            from alafia_model.adapters.tool_protocol import to_openai_tools
+            body["tools"] = to_openai_tools(tools)
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
@@ -120,9 +130,16 @@ class OpenAICompatAdapter(BaseAdapter):
             data = resp.json()
 
         choice = (data.get("choices") or [{}])[0]
-        content = (choice.get("message") or {}).get("content", "") or ""
+        message = choice.get("message") or {}
+        content = message.get("content", "") or ""
+        from alafia_model.adapters.tool_protocol import parse_openai_tool_calls
+        tool_calls = parse_openai_tool_calls(message)
         tokens = (data.get("usage") or {}).get("total_tokens", 0)
-        return {"content": content, "model": data.get("model", self.model_name), "tokens_used": tokens}
+        # `tool_calls` was parsed and then dropped from this dict, so the tool
+        # loop saw prose and answered from framing context alone — a confident
+        # answer with none of the record in it, on 18 of the 20 providers.
+        return {"content": content, "tool_calls": tool_calls,
+                "model": data.get("model", self.model_name), "tokens_used": tokens}
 
     async def complete(
         self,
