@@ -17,6 +17,14 @@ USDA_API_KEY = settings.USDA_API_KEY
 # Maps our DB column → (display_name, unit, USDA nutrient_id, RDA/DV, category)
 # RDA values are FDA Daily Values (2020) for adults 4+ years.
 
+#: `family` groups entries that are the SAME nutrient measured different ways.
+#: USDA reports folate four times — Folate (B9) 1177, Folate (DFE) 1190, Folic
+#: Acid 1186, Food Folate 1187 — and the 400 µg RDA belongs to the DFE figure,
+#: not to synthetic folic acid. A patient asking "did I meet my folic acid
+#: target" is asking about folate: answering from `folic_acid_mcg` alone would
+#: have reported 7 µg against a 400 µg target when total folate was 108 µg.
+#: The grouping is a property of the catalog, so it lives here with the USDA
+#: ids rather than as a lookup table inside a consumer.
 NUTRIENT_CATALOG: list[dict[str, Any]] = [
     # ── Energy ──
     {"key": "calories", "name": "Energy", "unit": "kcal", "usda_id": 1008, "rda": 2000, "category": "Energy"},
@@ -65,7 +73,7 @@ NUTRIENT_CATALOG: list[dict[str, Any]] = [
     {"key": "vitamin_b5_pantothenic_acid_mg", "name": "Pantothenic Acid (B5)", "unit": "mg", "usda_id": 1170, "rda": 5, "category": "Vitamins"},
     {"key": "vitamin_b6_mg", "name": "Vitamin B6", "unit": "mg", "usda_id": 1175, "rda": 1.7, "category": "Vitamins"},
     {"key": "vitamin_b7_biotin_mcg", "name": "Biotin (B7)", "unit": "µg", "usda_id": 1176, "rda": 30, "category": "Vitamins"},
-    {"key": "vitamin_b9_folate_mcg", "name": "Folate (B9)", "unit": "µg", "usda_id": 1177, "rda": 400, "category": "Vitamins"},
+    {"key": "vitamin_b9_folate_mcg", "name": "Folate (B9)", "unit": "µg", "usda_id": 1177, "rda": 400, "category": "Vitamins", "family": "folate"},
     {"key": "vitamin_b12_mcg", "name": "Vitamin B12", "unit": "µg", "usda_id": 1178, "rda": 2.4, "category": "Vitamins"},
     {"key": "choline_mg", "name": "Choline", "unit": "mg", "usda_id": 1180, "rda": 550, "category": "Vitamins"},
 
@@ -148,9 +156,9 @@ EXTENDED_NUTRIENTS: list[dict[str, Any]] = [
     {"key": "vitamin_d_mcg", "name": "Vitamin D (D2+D3)", "unit": "µg", "usda_id": 1110, "rda": 20, "category": "Vitamins"},
     {"key": "vitamin_k1_mcg", "name": "Vitamin K1 (phylloquinone)", "unit": "µg", "usda_id": 1183, "rda": None, "category": "Vitamins"},
     {"key": "vitamin_k2_mcg", "name": "Vitamin K2 (menaquinone)", "unit": "µg", "usda_id": 1184, "rda": None, "category": "Vitamins"},
-    {"key": "folate_dfe_mcg", "name": "Folate (DFE)", "unit": "µg", "usda_id": 1190, "rda": 400, "category": "Vitamins"},
-    {"key": "folic_acid_mcg", "name": "Folic Acid", "unit": "µg", "usda_id": 1186, "rda": None, "category": "Vitamins"},
-    {"key": "food_folate_mcg", "name": "Food Folate", "unit": "µg", "usda_id": 1187, "rda": None, "category": "Vitamins"},
+    {"key": "folate_dfe_mcg", "name": "Folate (DFE)", "unit": "µg", "usda_id": 1190, "rda": 400, "category": "Vitamins", "family": "folate"},
+    {"key": "folic_acid_mcg", "name": "Folic Acid", "unit": "µg", "usda_id": 1186, "rda": None, "category": "Vitamins", "family": "folate"},
+    {"key": "food_folate_mcg", "name": "Food Folate", "unit": "µg", "usda_id": 1187, "rda": None, "category": "Vitamins", "family": "folate"},
     {"key": "niacin_equiv_mg", "name": "Niacin Equivalent", "unit": "mg", "usda_id": 1168, "rda": None, "category": "Vitamins"},
     {"key": "betaine_mg", "name": "Betaine", "unit": "mg", "usda_id": 1198, "rda": None, "category": "Vitamins"},
     {"key": "vitamin_e_added_mg", "name": "Vitamin E (added)", "unit": "mg", "usda_id": 1242, "rda": None, "category": "Vitamins"},
