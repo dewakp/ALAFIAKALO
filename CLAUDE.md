@@ -1126,6 +1126,145 @@ instead of ninety days of logs, every lab and every journal entry.
 > chunked out and the SSE contract is unchanged — the cost is that the first
 > token now waits for the rounds.
 
+### The wait is part of the feature, and the steps shown are REAL
+
+The rounds cannot stream, so the answer arrives at the end, all at once. That
+wait used to be a blinking cursor on web, a static `"Thinking..."` on Android
+and three dots on iOS, none of which can tell a working request from a hung one.
+
+> ⚠️ **Do not quote dev latency as the product's latency.** Measured on the same
+> question, same code, same day:
+>
+> | | Total | Notes |
+> |---|---|---|
+> | **Production order** (hosted first, Haiku 4.5) | **4.9–6.8 s** | 1–3 tools, 2 rounds |
+> | Production, real traffic, OLD prose path | 6.5–31.5 s | before the tool loop |
+> | **Dev** (`gpt-oss:20b` on a laptop) | **~57 s** | a 20B *reasoning* model |
+>
+> The tool loop is **not** slower than what it replaced — the prompt shrank from
+> a 40k-character dump to lean framing plus one tool result, so there are more
+> round trips but far fewer input tokens. The minute-long waits are a property
+> of the local model, not of the architecture.
+
+### "Today" belongs to the patient, not to the server
+
+The containers run UTC. `date.today()` therefore answers with the SERVER's date,
+and from early evening in the Americas that is already tomorrow for the patient.
+Found live at 20:54 on 2026-09-05: the tool queried 2026-09-06, found nothing,
+and told a patient with **six logged meals and 58.4 g of sugar** that they had
+eaten nothing that day. Cloud Run is UTC too, so this fired in production every
+evening — and it reads as authoritative, because the tool really did return zero
+rows (§3aa, in a new disguise).
+
+- **`users.timezone` cannot be the only source.** It is NULL for **83 of 85**
+  production users, and one of the two that are set reads `America/New York` —
+  not a valid IANA name (`America/New_York` is). Usually empty and sometimes
+  wrong.
+- The clients always know their own zone, so every request now carries
+  `X-Client-Timezone` — one axios interceptor, one OkHttp interceptor, one line
+  in iOS `buildRequest`, so it covers EVERY endpoint rather than the chat alone.
+  Order: client hint → stored value → UTC.
+- **An unresolvable name is discarded, not repaired.** Silently "correcting"
+  that typo to `America/New_York` would be inventing a fact about where someone
+  lives; UTC is the honest fallback (`app/core/patient_time.py`).
+
+> **Fixing the tool window alone was NOT enough, and the half-fix looked worse
+> than the bug.** With the window corrected the tool returned all six meals and
+> the model still answered "no meal entry for today" — because the prompt's
+> `=== TODAY IS ===` header was still the server's UTC date, so it read meals
+> logged hours earlier as belonging to another day. The retrieval and the
+> framing must agree on what day it is; correcting one of them just moves the
+> contradiction somewhere harder to see.
+
+⚠️ **Still outstanding.** 51 `date.today()` call sites across 22 files. The AI
+and tool path is fixed. 23 of the rest are window cutoffs where a day's shift is
+harmless, but about a dozen mean "today" exactly — `wellness.py`, `insights.py`,
+`mental_health.py`, `api/users.py` — and carry the identical defect.
+
+### The answer streams; the rounds cannot
+
+The tool ROUNDS cannot be streamed away — the model must read each result before
+it knows what to ask next — but the round that finally ANSWERS can be, and that
+is where nearly all the waiting was. Measured on the production order:
+
+| Question | first text | total |
+|---|---|---|
+| sugar (1 tool) | 3.0 s | 5.2 s |
+| medications + labs (2 tools) | 2.4 s | 5.8 s |
+| coeliac (no tools) | **0.7 s** | 4.6 s |
+
+Before this, first text *was* the total: a 5 s answer showed nothing for 5 s and
+then arrived whole.
+
+- Every round is streamed OPTIMISTICALLY, because the loop cannot know in
+  advance whether a round will fetch or answer. **A round that turns out to be
+  a fetch retracts its text** (`{"retract": n}`, in characters). Models narrate
+  before calling — *"Let me check your food log…"* — and leaving that in splices
+  the model's preamble onto the front of an answer it was never part of. All
+  three clients truncate by exactly that count.
+- A streamed tool call arrives in FRAGMENTS and the three wires disagree again
+  (§3am): OpenAI sends `arguments` as string pieces keyed by index, Anthropic
+  sends `input_json_delta` per content block, Ollama sends the finished call in
+  one chunk with an object. `StreamedToolCalls` assembles all three. A run that
+  never completes decodes to `{}` rather than raising — every tool reads absent
+  arguments as "today", which beats losing the answer.
+- `stream_chat` is now implemented ON TOP of `stream_events` rather than beside
+  it, so the provider order and `privacy.scrub_payload` have exactly one
+  implementation. Two copies is how a fix lands on one path and misses the other.
+
+> **The Anthropic streamer had the same dropped-tool-turn bug `chat()` had.**
+> It built its conversation with a flat comprehension over user/assistant roles,
+> discarding every `role="tool"` message — live, on the path the product
+> actually uses, while the fix sat in `chat()` next door. Both now share
+> `_anthropic_conversation()`.
+
+> **Dev's slowness buys correctness — do not "fix" it with a smaller model.**
+> `llama3.2:3b` runs the same question in 13 s and is already pulled, which makes
+> it tempting. It is also WRONG in the way that matters: asked *"what medications
+> am I taking?"* it called the tool and then replied *"Could you please tell me
+> which medications you're taking?"*, and *"why might I be feeling tired?"* got a
+> generic list off one tool where the capable models fetch three and reason from
+> the record. A dev model that cannot drive the tool loop lets broken behaviour
+> look fine locally — §3ak's whole point, one layer up. For fast AI iteration set
+> `OLLAMA_FIRST=false` (production's own order, ~5 s) rather than downgrading the
+> model.
+
+`answer_with_tools(progress=…)` now reports every step it takes, and the stream
+endpoint forwards them as `data: {"status": {...}}`. A measured two-tool
+conversation:
+
+    [ 3.4s] Querying AI…
+    [27.2s] Checking your medications        (8 found)
+    [27.7s] Reading what came back…
+    [37.0s] Checking your lab results        (10 found)
+    [61.7s] Writing your answer…
+
+- **Every frame names a step the server actually took.** A rotating set of
+  reassuring phrases would have been easier, and would have been fiction — in
+  the one surface rebuilt specifically to stop a model inventing plausible
+  detail (§0). "nothing recorded" and "could not read that" are deliberately
+  different strings: §3aa in a status chip.
+- **The label is written by the BACKEND**, not by each client. Three clients
+  composing their own text drift, and a new tool would need three app releases
+  to get a name. `TOOL_LABELS` sits beside `TOOL_SPECS` — but NOT inside them:
+  the Anthropic adapter sends those dicts to the provider verbatim, so an extra
+  key there reaches the API as an unknown field. A test pins both halves.
+- **A failing progress callback must never fail the answer.** It is wrapped.
+
+⚠️ **Both mobile clients used a 120 s timeout, and both are IDLE timeouts.**
+`URLRequest.timeoutInterval` on iOS and OkHttp's `readTimeout` on Android. The
+tool loop makes the pre-answer silence far longer than a single completion ever
+was, so 120 s would have cut off requests the server went on to finish — the
+§3ae failure again, on the clients this time. Both are now **285 s**, the
+client rung of the documented ladder (285 < OLLAMA_TIMEOUT 290 < Cloud Run 300).
+The progress frames also keep those idle timers fed, but the final round can
+still be silent for over two minutes, so the raise is what actually fixes it.
+
+> **iOS decoded each SSE frame as `[String: String]`.** That silently dropped
+> every frame whose value was not a string — the new nested `status` object, and
+> the `interaction_id` Int it had been discarding all along. Decoding a real
+> frame struct is what let this feature exist on iOS at all.
+
 ### Providers do not agree on the tool wire, and dev runs the forgiving one
 
 `adapters/tool_protocol.py` holds ONE internal shape and each adapter translates.

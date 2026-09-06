@@ -195,6 +195,60 @@ class OllamaAdapter(BaseAdapter):
             "tokens_used": data.get("eval_count", 0),
         }
 
+    async def stream_chat_events(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.5,
+        max_tokens: int = 2048,
+        tools: list[dict[str, Any]] | None = None,
+    ):
+        """Stream, yielding text as it is written AND any tool calls made.
+
+        The loop needs both from one request: it cannot know in advance whether
+        a round will fetch data or answer, so it must stream every round and
+        find out. Ollama sends a finished tool call in a single chunk, so no
+        fragment assembly is needed here — unlike the hosted adapters.
+
+        NOT `to_openai_messages`: Ollama wants tool-call arguments as an OBJECT
+        and answers 400 to OpenAI's JSON-string form (§3am).
+        """
+        from alafia_model.adapters.tool_protocol import (
+            StreamedToolCalls, to_openai_tools,
+        )
+
+        url = f"{self.base_url.rstrip('/')}/api/chat"
+        body: dict[str, Any] = {
+            "model": self.model_name,
+            "messages": messages,
+            "stream": True,
+            "options": {"temperature": temperature, "num_predict": max_tokens},
+        }
+        if tools:
+            body["tools"] = to_openai_tools(tools)
+        pending = StreamedToolCalls()
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with client.stream("POST", url, json=body,
+                                     headers=await _ollama_auth_headers(self.base_url)) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except ValueError:
+                        continue
+                    message = chunk.get("message") or {}
+                    text = message.get("content")
+                    if text:
+                        yield {"type": "text", "text": text}
+                    if message.get("tool_calls"):
+                        pending.whole_calls(message["tool_calls"])
+                    if chunk.get("done"):
+                        break
+        calls = pending.finish()
+        if calls:
+            yield {"type": "tool_calls", "calls": calls}
+
     async def stream_chat(
         self,
         messages: list[dict[str, str]],

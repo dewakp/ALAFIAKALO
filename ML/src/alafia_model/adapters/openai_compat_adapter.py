@@ -42,6 +42,64 @@ class OpenAICompatAdapter(BaseAdapter):
         self.extra_headers = extra_headers or {}
         self.is_available = bool(api_key)
 
+    async def stream_chat_events(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.5,
+        max_tokens: int = 2048,
+        tools: list[dict[str, Any]] | None = None,
+    ):
+        """Stream text deltas AND assemble tool calls from their fragments.
+
+        `arguments` arrives as a run of string pieces keyed by index, so a call
+        is only complete at the end of the stream — which is why the tool_calls
+        event is emitted last rather than inline.
+        """
+        from alafia_model.adapters.tool_protocol import (
+            StreamedToolCalls, to_openai_messages, to_openai_tools,
+        )
+
+        if not self._api_key:
+            raise RuntimeError("openai-compat: API key not configured")
+        body: dict[str, Any] = {
+            "model": self.model_name,
+            "messages": to_openai_messages(messages),
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        if tools:
+            body["tools"] = to_openai_tools(tools)
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+            **self.extra_headers,
+        }
+        pending = StreamedToolCalls()
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with client.stream("POST", f"{self.base_url}/chat/completions",
+                                     headers=headers, json=body) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    raw = line[5:].strip()
+                    if not raw or raw == "[DONE]":
+                        continue
+                    try:
+                        event = json.loads(raw)
+                    except ValueError:
+                        continue
+                    for choice in event.get("choices", []):
+                        delta = choice.get("delta") or {}
+                        if delta.get("content"):
+                            yield {"type": "text", "text": delta["content"]}
+                        if delta.get("tool_calls"):
+                            pending.openai_delta(delta["tool_calls"])
+        calls = pending.finish()
+        if calls:
+            yield {"type": "tool_calls", "calls": calls}
+
     async def stream_chat(
         self,
         messages: list[dict[str, str]],

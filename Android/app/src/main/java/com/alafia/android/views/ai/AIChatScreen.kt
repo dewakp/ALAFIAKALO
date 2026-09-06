@@ -7,7 +7,16 @@ import android.speech.RecognizerIntent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -48,6 +57,10 @@ fun AIChatScreen(navController: NavHostController) {
     var messages by remember { mutableStateOf<List<UIChatMessage>>(emptyList()) }
     var inputText by remember { mutableStateOf("") }
     var isTyping by remember { mutableStateOf(false) }
+    // What the server reports it is doing. The tool rounds take tens of seconds
+    // and cannot stream, so this carries the wait instead of a static word.
+    // Every value is REPORTED by the backend — never a guessed sequence.
+    var chatStatus by remember { mutableStateOf<ChatStatusStep?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -139,11 +152,41 @@ fun AIChatScreen(navController: NavHostController) {
                                 if (line.startsWith("data: ")) {
                                     val payload = line.removePrefix("data: ")
                                     if (payload == "[DONE]") break
-                                    val chunk = runCatching {
-                                        @Suppress("UNCHECKED_CAST")
-                                        (Gson().fromJson(payload, Map::class.java)["content"] as? String) ?: ""
-                                    }.getOrDefault("")
+                                    val frame = runCatching {
+                                        Gson().fromJson(payload, Map::class.java)
+                                    }.getOrNull()
+                                    // A progress frame carries a nested object;
+                                    // reading it as a String (as this did) yields
+                                    // null and drops it silently.
+                                    (frame?.get("status") as? Map<*, *>)?.let { st ->
+                                        (st["label"] as? String)?.let { label ->
+                                            val step = ChatStatusStep(label, st["detail"] as? String)
+                                            withContext(Dispatchers.Main) { chatStatus = step }
+                                        }
+                                    }
+                                    // That text came from a round that turned out
+                                    // to be a data fetch, not the answer — models
+                                    // narrate before calling a tool. Drop exactly
+                                    // what the server took back, or the preamble
+                                    // is spliced onto the front of the answer.
+                                    (frame?.get("retract") as? Number)?.let { n ->
+                                        val drop = n.toInt()
+                                        if (drop > 0) {
+                                            val keep = (acc.length - drop).coerceAtLeast(0)
+                                            acc.setLength(keep)
+                                            val snap = acc.toString()
+                                            withContext(Dispatchers.Main) {
+                                                val updated = messages.toMutableList()
+                                                if (placeholderIdx < updated.size) {
+                                                    updated[placeholderIdx] = UIChatMessage("assistant", snap)
+                                                    messages = updated
+                                                }
+                                            }
+                                        }
+                                    }
+                                    val chunk = (frame?.get("content") as? String) ?: ""
                                     if (chunk.isNotEmpty()) {
+                                        withContext(Dispatchers.Main) { chatStatus = null }
                                         acc.append(chunk)
                                         val snap = acc.toString()
                                         withContext(Dispatchers.Main) {
@@ -167,6 +210,7 @@ fun AIChatScreen(navController: NavHostController) {
                 Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
             }
             isTyping = false
+            chatStatus = null
         }
     }
 
@@ -258,12 +302,7 @@ fun AIChatScreen(navController: NavHostController) {
                                     color = MaterialTheme.colorScheme.surfaceVariant,
                                     shape = RoundedCornerShape(16.dp)
                                 ) {
-                                    Text(
-                                        "Thinking...",
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    ChatStatusRow(chatStatus)
                                 }
                             }
                         }
@@ -486,5 +525,58 @@ private fun ChatBubble(msg: UIChatMessage) {
                 style = MaterialTheme.typography.bodyMedium
             )
         }
+    }
+}
+
+
+/** One reported step of the assistant's work, as shown to the patient. */
+data class ChatStatusStep(val label: String, val detail: String?)
+
+/**
+ * Animated "what I'm doing" row.
+ *
+ * The tool rounds take tens of seconds and cannot stream — the model has to read
+ * each result before it knows what to ask next — so the answer arrives at the
+ * end, all at once. This used to be the static word "Thinking...", which cannot
+ * tell a working request from a hung one.
+ *
+ * The label comes from the server, so it never claims a step that did not run,
+ * and a new tool does not need an app release to get a name. Before the first
+ * frame lands there is still something true to say: the request is open.
+ */
+@Composable
+private fun ChatStatusRow(step: ChatStatusStep?) {
+    val transition = rememberInfiniteTransition(label = "chat-status")
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            repeat(3) { i ->
+                val alpha by transition.animateFloat(
+                    initialValue = 0.35f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(600, delayMillis = i * 150, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "dot$i"
+                )
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .alpha(alpha)
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
+                )
+            }
+        }
+        val text = step?.let { s -> s.detail?.let { "${s.label} — $it" } ?: s.label }
+            ?: "Querying AI…"
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

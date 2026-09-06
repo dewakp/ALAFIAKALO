@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { Send, RefreshCw, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import AssistantMarkdown from '../components/AssistantMarkdown';
+import ChatStatus from '../components/ChatStatus';
 
 const REGION_ORDER = ['africa', 'middle_east', 'south_asia', 'europe', 'north_america'];
 const REGION_LABELS = {
@@ -39,6 +40,10 @@ export default function AIChat() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  // What the server is doing right now. The tool rounds take tens of seconds and
+  // cannot stream, so without this the patient watches a blinking cursor. Every
+  // value here is REPORTED by the backend — never a guessed sequence.
+  const [status, setStatus] = useState(null);
   const [showCultural, setShowCultural] = useState(false);
   const messagesEndRef = useRef(null);
   const lastUserRef = useRef(null);
@@ -205,6 +210,11 @@ export default function AIChat() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
           'X-CSRF-Token': csrfToken,
+          // This fetch bypasses the axios interceptor, so it sets the header
+          // itself — the chat is the surface where "today" matters most.
+          ...(Intl.DateTimeFormat().resolvedOptions().timeZone
+            ? { 'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }
+            : {}),
         },
         body: requestBody,
       });
@@ -247,7 +257,23 @@ export default function AIChat() {
           const payload = line.slice(6).trim();
           if (payload === '[DONE]') break;
           try {
-            const { content, error } = JSON.parse(payload);
+            const { content, error, status: step, retract } = JSON.parse(payload);
+            if (step) setStatus(step);
+            if (retract) {
+              // That text came from a round that turned out to be a data fetch,
+              // not the answer — the model narrates before calling a tool. Drop
+              // exactly what the server took back, or its preamble is spliced
+              // onto the front of the real answer.
+              setMessages((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                next[next.length - 1] = {
+                  ...last,
+                  content: last.content.slice(0, Math.max(0, last.content.length - retract)),
+                };
+                return next;
+              });
+            }
             if (error) {
               setMessages((prev) => {
                 const next = [...prev];
@@ -257,6 +283,7 @@ export default function AIChat() {
               break;
             }
             if (content) {
+              setStatus(null);
               setMessages((prev) => {
                 const next = [...prev];
                 next[next.length - 1] = {
@@ -279,6 +306,7 @@ export default function AIChat() {
       });
     } finally {
       setLoading(false);
+      setStatus(null);
     }
   }
 
@@ -460,7 +488,9 @@ export default function AIChat() {
                   ? <AssistantMarkdown content={msg.content} />
                   : msg.content}
                 {loading && i === messages.length - 1 && msg.role === 'assistant' && (
-                  <span className="typing-cursor" />
+                  msg.content
+                    ? <span className="typing-cursor" />
+                    : <ChatStatus step={status} />
                 )}
               </div>
             </div>

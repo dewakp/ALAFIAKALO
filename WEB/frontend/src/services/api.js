@@ -63,6 +63,15 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // The browser knows what day it is where the patient is; the server (UTC)
+  // does not. Without this, "what did I eat today?" asked in the evening in
+  // the Americas queries tomorrow and finds nothing.
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) config.headers['X-Client-Timezone'] = tz;
+  } catch {
+    // No Intl support — the server falls back to UTC, as before.
+  }
   // Double-submit CSRF: read cookie and send as header on mutating requests
   const method = (config.method || '').toUpperCase();
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {

@@ -196,6 +196,45 @@ async def stream_alafia_chat(
         raise ALAFIAModelError(f"{type(exc).__name__}: {exc}".rstrip(": ")) from exc
 
 
+async def stream_alafia_events(
+    messages: list[dict[str, str]],
+    *,
+    tools: list[dict] | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    identity_hints: tuple = (),
+):
+    """Stream events — text as it is written, plus any tool calls made.
+
+    The tool loop cannot know in advance whether a round will fetch data or
+    answer, so it streams every round and finds out. Without this the final
+    round was generated whole before the patient saw a character of it.
+
+    Goes through the capability for the same reason as `stream_alafia_chat`:
+    the provider order and `privacy.scrub_payload` live there, and a caller
+    that has to remember to scrub is a caller that eventually forgets (§3al).
+    """
+    from alafia_model.router import Modality  # type: ignore
+
+    model_obj = get_alafia_model()
+    capability = model_obj._capabilities.get(Modality.LLM)
+    streamer = getattr(capability, "stream_events", None)
+    if streamer is None:
+        raise ALAFIAModelError("ALAFIAModel LLM capability cannot stream events")
+
+    try:
+        async for event in streamer(
+            messages,
+            tools=tools,
+            identity_hints=identity_hints,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        ):
+            yield event
+    except Exception as exc:  # noqa: BLE001 - surfaced to the caller, named
+        raise ALAFIAModelError(f"{type(exc).__name__}: {exc}".rstrip(": ")) from exc
+
+
 async def alafia_chat_detailed(
     messages: list[dict[str, str]],
     *,

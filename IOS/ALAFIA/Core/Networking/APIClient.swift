@@ -152,6 +152,10 @@ actor APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        // The device knows what day it is where the patient is; the server runs
+        // UTC and does not. Without this, "what did I eat today?" asked in the
+        // evening in the Americas queries tomorrow and finds nothing.
+        request.setValue(TimeZone.current.identifier, forHTTPHeaderField: "X-Client-Timezone")
         if let timeout { request.timeoutInterval = timeout }
 
         if let token = token {
@@ -359,14 +363,19 @@ actor APIClient {
 
     /// Posts `body` to `path` and returns an `AsyncThrowingStream` that yields
     /// individual content tokens as they arrive from the Ollama SSE endpoint.
-    func streamPost<B: Encodable>(_ path: String, body: B) -> AsyncThrowingStream<String, Error> {
+    func streamPost<B: Encodable>(_ path: String, body: B) -> AsyncThrowingStream<StreamEvent, Error> {
         AsyncThrowingStream { continuation in
             Task {
                 do {
                     let csrfToken = try await fetchCsrfToken()
                     let bodyData = try encoder.encode(body)
                     var request = buildRequest(path: path, method: "POST", body: bodyData)
-                    request.timeoutInterval = 120
+                    // The AI stream runs a tool loop before it can say anything,
+                    // and a cold Ollama fallback is ~250s all in. 120 cut off
+                    // requests the server would have completed. Kept below the
+                    // documented ladder: client 285 < OLLAMA_TIMEOUT 290 <
+                    // Cloud Run 300, and no two rungs equal.
+                    request.timeoutInterval = 285
                     request.setValue(csrfToken, forHTTPHeaderField: "X-CSRF-Token")
                     request.setValue("csrf_token=\(csrfToken)", forHTTPHeaderField: "Cookie")
 
@@ -382,10 +391,20 @@ actor APIClient {
                         if line.hasPrefix("data: ") {
                             let payload = String(line.dropFirst(6))
                             if payload == "[DONE]" { break }
-                            if let data = payload.data(using: .utf8),
-                               let json = try? JSONDecoder().decode([String: String].self, from: data),
-                               let content = json["content"] {
-                                continuation.yield(content)
+                            guard let data = payload.data(using: .utf8) else { continue }
+                            // Decoded as a whole frame rather than [String: String]:
+                            // the status frame carries a nested object, which that
+                            // decode silently dropped along with anything else new.
+                            if let frame = try? JSONDecoder().decode(StreamFrame.self, from: data) {
+                                if let step = frame.status {
+                                    continuation.yield(.status(step))
+                                }
+                                if let dropped = frame.retract, dropped > 0 {
+                                    continuation.yield(.retract(dropped))
+                                }
+                                if let content = frame.content, !content.isEmpty {
+                                    continuation.yield(.content(content))
+                                }
                             }
                         }
                     }
@@ -621,4 +640,45 @@ enum AppDate {
         let f = DateFormatter(); f.timeZone = .current; f.timeStyle = .short
         return f.string(from: d)
     }
+}
+
+// MARK: - AI chat stream frames
+
+/// One step the server reports while it reads the record.
+///
+/// The tool rounds take tens of seconds and cannot stream (the model must read
+/// each result before it knows what to ask next), so without these the patient
+/// watches an empty bubble for the whole wait. The label is written by the
+/// BACKEND so iOS, Android and web cannot drift apart, and so a new tool does
+/// not need three app releases to get a name.
+struct ChatStatusStep: Decodable, Equatable {
+    let label: String
+    /// e.g. "6 found" / "nothing recorded". Absent where there is no result yet.
+    let detail: String?
+    /// "thinking" | "tool" | "tool_done" | "composing".
+    let phase: String?
+}
+
+/// A decoded SSE frame. Every field is optional — a frame carries one of them.
+///
+/// This replaces a `[String: String]` decode that silently dropped every frame
+/// whose value was not a string, which is why the status frames (a nested
+/// object) and `interaction_id` (an Int) were invisible to this client.
+struct StreamFrame: Decodable {
+    let content: String?
+    let status: ChatStatusStep?
+    /// Characters to take back: that text came from a round that turned out to
+    /// be a data fetch, not the answer. Models narrate ("Let me check your food
+    /// log…") before calling a tool, and leaving it splices the preamble onto
+    /// the front of an answer it was never part of.
+    let retract: Int?
+    let error: String?
+    let interaction_id: Int?
+}
+
+/// What `streamPost` hands back.
+enum StreamEvent {
+    case content(String)
+    case status(ChatStatusStep)
+    case retract(Int)
 }

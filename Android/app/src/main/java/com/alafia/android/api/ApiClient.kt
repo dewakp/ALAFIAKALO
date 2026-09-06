@@ -44,7 +44,14 @@ object ApiClient {
                 .cache(cache)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)  // extended for SSE streaming
+                // The AI stream runs a tool loop before it can say anything, and a
+                // cold Ollama fallback is ~250s all in. This is an IDLE timeout, so
+                // the progress frames now keep it fed — but the final round can
+                // still be silent for over two minutes, so 120 was cutting off
+                // requests the server would have completed. Kept below the
+                // documented ladder: client 285 < OLLAMA_TIMEOUT 290 < Cloud Run 300.
+                .readTimeout(285, TimeUnit.SECONDS)  // extended for SSE streaming
+                .addInterceptor(TimezoneInterceptor())
                 .addInterceptor(AuthInterceptor(context))
                 // Must run AFTER AuthInterceptor so it can see whether a
                 // Bearer token was attached — that is the whole condition.
@@ -129,5 +136,23 @@ private class CacheControlInterceptor : Interceptor {
                 .build()
         }
         return response
+    }
+}
+
+
+/**
+ * Tells the server what day it is where the PATIENT is.
+ *
+ * The backend runs UTC, so `date.today()` there is already tomorrow for anyone
+ * west of Greenwich by early evening — and "what did I eat today?" then queries
+ * a day with no rows and reports nothing eaten. One interceptor rather than a
+ * field on each request, so every endpoint benefits at once.
+ */
+private class TimezoneInterceptor : okhttp3.Interceptor {
+    override fun intercept(chain: okhttp3.Interceptor.Chain): okhttp3.Response {
+        val request = chain.request().newBuilder()
+            .header("X-Client-Timezone", java.util.TimeZone.getDefault().id)
+            .build()
+        return chain.proceed(request)
     }
 }
