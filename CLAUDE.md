@@ -1306,13 +1306,28 @@ never resolved. Dry run by default; it writes clinical records.
   and the AI tier as if it were a dish. `_PLACEHOLDER_RE` covers it now; the
   repair reports shells separately rather than counting them as work outstanding.
 
-⚠️ **This pass does NOT fix implausible EXISTING values, and they are the worse
-problem.** One record holds **13 meals over 2,000 kcal**, 12 of them pre-dating
-any repair — including **3,892 kcal for "1 brioche bun, 1 can of Titus Sardines,
-1 boiled egg"** carrying 19.5 g of protein, which is internally inconsistent as
-well as impossible. They have values, so nothing selects them, and every daily
-total and AI answer for those days is inflated. Detecting them is a different
-job from filling blanks; `services/plausibility.py` already judges exactly this.
+### The estimator rejected these; the writer stored them anyway
+
+**3,892 kcal with 394 g of fat in a 505 g meal** — more fat than the meal
+weighed. `estimate_meal_nutrients` had ALREADY judged it: `review_meal` on
+energy density, `review` per component against its category band, and it set
+`believable = False` with the reason. `nutrient_enrichment.py` contained no
+reference to `believable` or `warnings` and stored the figures regardless.
+
+- **A flagged estimate is not a value.** The writer now marks the meal `failed`
+  and logs why. Storing an impossible number is worse than storing none: it is
+  indistinguishable from food the patient ate, and it inflates every daily total
+  and every answer built on one. §3aa again — an error is not a finding.
+- **A tin of fish is not a drinks can.** "1 can of Titus Sardines" parsed as
+  355 g because canned fish was missing from the food-aware size table and fell
+  through to the BEVERAGE default. A sardine tin is ~120 g.
+
+⚠️ **Only what is IMPOSSIBLE gets repaired.** Of 13 meals over 2,000 kcal on one
+record, just **2** exceed pure-fat density (1,012 and 1,150 kcal/100 g) and are
+provably wrong. The other 11 sit at 294–546 kcal/100 g — large, and entirely
+possible for fried or oily food. `--implausible` uses `plausibility.review_meal`,
+the estimator's own guard, rather than a threshold invented for the cleanup:
+deleting a real meal on a hunch is its own kind of data loss.
 
 ### The answer streams; the rounds cannot
 

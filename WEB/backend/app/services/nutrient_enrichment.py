@@ -109,6 +109,25 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
             logger.info("No nutrients resolved for log %s (%r)", log_id, log.food_name[:60])
             return
 
+        # The estimator ALREADY judges its own output — `review_meal` for energy
+        # density and `review` per component against its category band — and
+        # this writer ignored the verdict. So a flagged estimate was stored as
+        # fact: one meal came out at 3,892 kcal with 394 g of fat, more fat than
+        # the meal weighed, because "1 can of Titus Sardines" parsed as a 355 g
+        # BEVERAGE can and the sardines resolved to ~997 kcal/100 g — above pure
+        # fat. The estimator said so; nothing read it.
+        #
+        # Storing an impossible number is worse than storing none: it is
+        # indistinguishable from food the patient ate, and it inflates every
+        # daily total and every answer built on them.
+        if meal.get("believable") is False:
+            log.nutrient_status = "failed"
+            await db.commit()
+            logger.warning("Implausible estimate REJECTED for log %s (%r): %s",
+                           log_id, (log.food_name or "")[:60],
+                           "; ".join(meal.get("warnings") or [])[:300])
+            return
+
         # Only fill blanks: anything the user typed themselves outranks an estimate.
         # A repair pass may also replace a stored 0.0 — see `overwrite_zeros`.
         column_keys = set(DB_COLUMN_KEYS)

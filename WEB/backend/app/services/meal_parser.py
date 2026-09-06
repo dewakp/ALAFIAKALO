@@ -610,6 +610,12 @@ def _to_grams(value: float, unit: str, food_name: str) -> float:
             return round(value * 355.0, 1)
         if "tuna" in fn:
             return round(value * 145.0, 1)
+        # Canned fish comes in a flat tin, not a drinks can. Falling through to
+        # the 355 g default tripled a sardine tin (~106 g drained) and was one
+        # half of a meal that stored 3,892 kcal.
+        if any(k in fn for k in ("sardine", "mackerel", "anchov", "herring",
+                                 "salmon", "pilchard")):
+            return round(value * 120.0, 1)
         if "bean" in fn:
             return round(value * 425.0, 1)
         if any(k in fn for k in ("tomato", "corn", "soup", "coconut milk")):

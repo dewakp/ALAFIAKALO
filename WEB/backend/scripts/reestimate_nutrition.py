@@ -57,6 +57,43 @@ def _needs_repair(model):
     )
 
 
+async def _implausible_rows(db, user_id: int) -> list:
+    """Rows whose STORED figures are impossible for the food they describe.
+
+    Judged with `plausibility.review_meal` — the same guard the estimator
+    applies to its own output — rather than a threshold invented here. A meal
+    denser than pure fat cannot exist, whatever it contains.
+
+    These rows are the opposite of the missing-nutrient case and worse: they
+    carry values, so nothing selects them, they look complete, and they inflate
+    every daily total and every answer built on one. On one record 12 such rows
+    survived every previous pass, the largest reading 3,892 kcal for a brioche
+    bun, a tin of sardines and a boiled egg.
+    """
+    from app.services import plausibility
+    from app.services.meal_parser import parse_meal_text
+
+    rows = (await db.execute(
+        select(NutritionLog)
+        .where(NutritionLog.user_id == user_id, NutritionLog.calories > 0)
+        .order_by(NutritionLog.log_date)
+    )).scalars().all()
+
+    bad = []
+    for r in rows:
+        try:
+            weight = sum(c.qty_g or 0 for c in parse_meal_text(r.food_name or ""))
+        except Exception:  # noqa: BLE001 — an unparseable name is not a finding
+            continue
+        if not weight:
+            continue
+        stored = {"calories": r.calories, "protein_g": r.protein_g,
+                  "carbs_g": r.carbs_g, "fat_g": r.fat_g}
+        if plausibility.review_meal(weight, stored):
+            bad.append(r)
+    return bad
+
+
 async def _cache_size(db) -> int:
     return int((await db.execute(
         select(func.count()).select_from(LearnedFoodNutrient))).scalar() or 0)
@@ -68,14 +105,20 @@ async def main() -> int:
     ap.add_argument("--apply", action="store_true",
                     help="write the results (default is a dry run)")
     ap.add_argument("--limit", type=int, default=0, help="stop after N meals")
+    ap.add_argument("--implausible", action="store_true",
+                    help="repair rows whose STORED values are impossible, not "
+                         "just ones that are missing")
     args = ap.parse_args()
 
     async with async_session() as db:
-        rows = (await db.execute(
-            select(NutritionLog)
-            .where(NutritionLog.user_id == args.user, _needs_repair(NutritionLog))
-            .order_by(NutritionLog.log_date)
-        )).scalars().all()
+        if args.implausible:
+            rows = await _implausible_rows(db, args.user)
+        else:
+            rows = (await db.execute(
+                select(NutritionLog)
+                .where(NutritionLog.user_id == args.user, _needs_repair(NutritionLog))
+                .order_by(NutritionLog.log_date)
+            )).scalars().all()
         before_cache = await _cache_size(db)
 
     # A shell entry ("unknown", "same as previous") has no nutrients to find.
@@ -89,7 +132,8 @@ async def main() -> int:
     if args.limit:
         rows = rows[: args.limit]
 
-    print(f"user {args.user}: {len(rows)} meals worth re-estimating")
+    label = "with impossible stored values" if args.implausible else "worth re-estimating"
+    print(f"user {args.user}: {len(rows)} meals {label}")
     print(f"  ({len(shells)} shell entries skipped — no description to resolve)")
     print(f"learned-food cache: {before_cache} entries")
     if not rows:
@@ -104,6 +148,7 @@ async def main() -> int:
         print("\nRe-run with --apply to write. Existing values are never overwritten.")
         return 0
 
+    from app.core.nutrition_data import DB_COLUMN_KEYS
     from app.services.nutrient_enrichment import enrich_log
 
     repaired = failed = 0
@@ -111,6 +156,19 @@ async def main() -> int:
         # The SAME writer the live path uses. A second copy of that logic is how
         # a fix lands on one path and misses the other.
         try:
+            if args.implausible:
+                # The stored figures are the problem, so they are cleared first.
+                # Re-estimation then either produces a believable answer or —
+                # since the writer now refuses a flagged estimate — leaves the
+                # meal honestly unresolved. Either beats an impossible number.
+                async with async_session() as db:
+                    stale = (await db.execute(select(NutritionLog).where(
+                        NutritionLog.id == row.id))).scalar_one()
+                    for key in DB_COLUMN_KEYS:
+                        if hasattr(stale, key):
+                            setattr(stale, key, None)
+                    stale.extended_nutrients = None
+                    await db.commit()
             # Zeros left by a FAILED estimate are not values the patient chose.
             await enrich_log(row.id, overwrite_zeros=True)
         except Exception as exc:  # noqa: BLE001 — one bad meal must not stop the run
