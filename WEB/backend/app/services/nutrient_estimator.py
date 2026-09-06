@@ -580,7 +580,12 @@ _WATER_MODIFIERS = {
 
 _PLACEHOLDER_RE = re.compile(
     r"^\s*(meal\s*\d*|snack|breakfast|lunch|dinner|food|n/?a|none|nil|test|"
-    r"same as (the )?previous.*|see (above|previous).*|leftover|unspecified|tbd|--?)\s*$",
+    r"same as (the )?previous.*|see (above|previous).*|leftover|unspecified|"
+    # "unknown" is what the mobile importer writes when a meal arrives with no
+    # description — 16 rows on this database. It reached USDA and the AI tier as
+    # if it were a dish, which is exactly how a shell entry acquires fabricated
+    # calories that then sit inside a day's totals.
+    r"unknown|tbd|\?|--?)\s*$",
     re.IGNORECASE,
 )
 

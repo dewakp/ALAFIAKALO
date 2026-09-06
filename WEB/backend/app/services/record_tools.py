@@ -162,6 +162,24 @@ def _window(start: str | None, end: str | None,
     return (s, e) if s <= e else (e, s)
 
 
+def _period_block(dates: list, s: date, e: date, label: str) -> dict[str, Any]:
+    """Days in range vs days that actually hold entries.
+
+    Every count over a range invites the same error a nutrient total did:
+    compared against a per-day expectation it is wrong by a factor of the
+    window. Stating both denominators is what makes the comparison decidable
+    without the model inferring a number of days.
+    """
+    days_in_range = (e - s).days + 1
+    days_with = len(set(dates))
+    return {
+        "days_in_range": days_in_range,
+        f"days_with_{label}": days_with,
+        f"{label}_total": len(dates),
+        f"{label}_per_day": round(len(dates) / days_in_range, 2),
+    }
+
+
 def _normalise(name: str) -> str:
     return "".join(ch for ch in str(name).lower() if ch.isalnum())
 
@@ -225,7 +243,7 @@ def _match_nutrients(requested: list[str]) -> tuple[set[str], list[str], dict[st
                 # limit is 2,800 mg max. Naming it plainly stops it being read
                 # as the patient's own target — the DAILY NUTRIENT TARGETS
                 # section is where that lives, and it wins.
-                entry["general_adult_reference"] = n["rda"]
+                entry["general_adult_reference_per_day"] = n["rda"]
             reference[n["key"]] = entry
     return hits, misses, reference, family_of
 
@@ -294,6 +312,82 @@ async def get_meals(
         "count": len(rows),
         "meals": [_row(r, p) for r, p in zip(rows, panels)],
     }
+    # ── Period arithmetic belongs to the server ────────────────────────
+    #
+    # Asked "how have I done with Vit Bs over the last 7 days?", the model
+    # summed 7 days of meals and compared the TOTAL to a per-DAY reference:
+    # 576 mcg of folate against a 400 mcg target, reported as "Excellent,
+    # well above". The daily average was 82 mcg — 21% of target — on a patient
+    # with chronic anaemia. The clinical conclusion inverted completely.
+    #
+    # Nothing in the payload was false; the shape invited the error. So the
+    # comparison-ready quantity is computed here, next to the reference that
+    # names its own period, and the model never has to divide by a number of
+    # days it has to infer.
+    days_in_range = (e - s).days + 1
+    days_with_meals = len({m["date"] for m in out["meals"]})
+    measured = sorted({k for m in out["meals"] for k in m
+                       if k not in ("date", "meal", "food", "nutrient_status")})
+    # Counted by ABSENCE OF VALUES, not by `nutrient_status`. Status "skipped"
+    # carries real figures on 902 of 960 production rows — flagging on it would
+    # have declared nearly every total an undercount and taught the model to
+    # distrust good data. Only a meal with no value at all is a gap.
+    unestimated = sum(1 for m in out["meals"]
+                      if not any(isinstance(m.get(f), (int, float)) for f in measured))
+    period: dict[str, Any] = {
+        "days_in_range": days_in_range,
+        "days_with_meals": days_with_meals,
+        "meals": len(out["meals"]),
+    }
+    if unestimated:
+        # These contribute nothing to a sum, so the total is an UNDERCOUNT —
+        # not a low intake (§3c: a pending estimate is not a zero).
+        period["meals_with_no_nutrient_values"] = unestimated
+        period["totals_are_undercounts"] = True
+    out["period"] = period
+    if measured:
+        totals: dict[str, Any] = {}
+        for field in measured:
+            values = [m[field] for m in out["meals"] if isinstance(m.get(field), (int, float))]
+            if not values:
+                continue
+            total = round(sum(values), 2)
+            per_day = round(total / days_in_range, 2)
+            entry: dict[str, Any] = {
+                "total_over_range": total,
+                "per_day": per_day,
+                "per_day_logged": (round(total / days_with_meals, 2)
+                                   if days_with_meals else None),
+            }
+            ref = (reference.get(field) or {}).get("general_adult_reference_per_day")
+            if ref:
+                # Computed here so the judgement cannot drift from the figure.
+                # The model called 63% of the folate target "Excellent" on a
+                # patient with chronic anaemia; a percentage with no agreed
+                # wording gets whatever adjective the model reaches for.
+                pct = round(100 * per_day / ref)
+                entry["percent_of_reference_per_day"] = pct
+                entry["status"] = (
+                    "at_or_above_reference" if pct >= 100
+                    else "slightly_below" if pct >= 90
+                    else "below" if pct >= 70
+                    else "well_below" if pct >= 40
+                    else "very_low")
+            totals[field] = entry
+        if totals:
+            out["totals"] = totals
+            out["how_to_compare"] = (
+                "Compare `per_day` with `general_adult_reference_per_day` and "
+                "with the patient's own DAILY targets. NEVER compare "
+                "`total_over_range` to a per-day figure — over "
+                f"{days_in_range} days that overstates intake by up to "
+                f"{days_in_range}x. `per_day` divides by every day in the "
+                f"range ({days_in_range}); `per_day_logged` divides only by "
+                f"days with meals ({days_with_meals}) — say which you used. "
+                "Use the `status` word as given: anything below 100% of the "
+                "reference is a shortfall, not a success. Do not call a "
+                "`below` or `well_below` result good, strong or excellent.")
+
     if reference:
         # Name, unit and a general reference travel with the values, so the
         # answer can state a target rather than "your daily aim is not
@@ -301,7 +395,8 @@ async def get_meals(
         # about folate.
         out["nutrient_reference"] = reference
         out["reference_note"] = (
-            "`general_adult_reference` is the USDA figure for a healthy adult. "
+            "`general_adult_reference_per_day` is the USDA figure for a "
+            "healthy adult, PER DAY. "
             "Where this patient has their own target (see DAILY NUTRIENT "
             "TARGETS), THAT figure governs and this one must not be quoted "
             "instead — their potassium limit is far below the adult RDA. Where "
@@ -375,6 +470,10 @@ async def get_eliminations(
         "range": {"start": str(s), "end": str(e)},
         "bowel_movements": [_pick(r, BOWEL_FIELDS) for r in bm],
         "vomiting": [_pick(r, VOMIT_FIELDS) for r in vo],
+        "period": {
+            **_period_block([r.log_date for r in bm], s, e, "bowel_movements"),
+            **_period_block([r.log_date for r in vo], s, e, "vomiting"),
+        },
     }
 
 
@@ -416,11 +515,31 @@ async def get_medications(db: AsyncSession, user_id: int, *,
             out["dose_count"] = v.doses
         return out
 
+    window_days = max(1, days)
+
+    def _with_rate(v) -> dict[str, Any]:
+        out = _view(v)
+        if v.doses:
+            # An AGGREGATE over the window, not a daily dose. "489 doses" reads
+            # as a regimen unless the period is stated beside it: over 30 days
+            # that is roughly twice a day, and over 365 it is not.
+            out["doses_in_window"] = v.doses
+            out["doses_per_day"] = round(v.doses / window_days, 2)
+            out.pop("dose_count", None)
+        return out
+
     return {
         "since": str(since),
-        "taken_by_patient": [_view(d) for d in taken][:_MAX_ROWS],
-        "administered_during_dialysis": [_view(d) for d in administered][:_MAX_ROWS],
+        "window_days": window_days,
+        "taken_by_patient": [_with_rate(d) for d in taken][:_MAX_ROWS],
+        "administered_during_dialysis": [_with_rate(d) for d in administered][:_MAX_ROWS],
         "prescribed": [_view(m) for m in prescribed][:_MAX_ROWS],
+        "how_to_read": (
+            f"`doses_in_window` counts the whole {window_days}-day window; "
+            "`doses_per_day` is the rate. Neither is a prescribed dose — "
+            "`prescribed` carries that, and prescribed is not the same fact as "
+            "taken. Drugs under `administered_during_dialysis` are given by the "
+            "unit and appear in no dose log the patient fills in."),
     }
 
 
@@ -429,18 +548,39 @@ async def get_vitals(
     start_date: str | None = None, end_date: str | None = None,
     today: date | None = None,
 ) -> dict[str, Any]:
-    """Recorded vitals in a date range."""
+    """Readings from THREE distinct sources, kept apart.
+
+    A blood pressure is only interpretable with its context. This tool used to
+    read `vitals_logs` alone — 41 rows on a patient who also has 2,013 dialysis
+    sessions carrying pre/post pairs and 16,236 readings taken DURING treatment.
+    §3aa in a new table: reading one source and calling it the answer.
+
+    The three are never merged, because they answer different questions:
+
+      self_recorded   what the patient measured at home
+      pre_dialysis    before the session — the volume-loaded end of the day
+      post_dialysis   after fluid removal — routinely 20-40 mmHg lower
+      intradialytic   during treatment, where the NADIR matters: a mean hides
+                      the intradialytic hypotension that a session ending below
+                      90 systolic actually represents
+
+    Averaging across them produces a number describing no clinical state at
+    all — the same error as printing pre-systolic over post-systolic and
+    calling it "91/83" (§3an).
+    """
+    from app.models.chronic_conditions import IntradialyticReading, TherapySession
     from app.models.vitals import VitalsLog
 
     s, e = _window(start_date, end_date, today)
-    rows = (await db.execute(
+
+    logs = (await db.execute(
         select(VitalsLog)
         .where(VitalsLog.user_id == user_id,
                VitalsLog.log_date >= s, VitalsLog.log_date <= e)
         .order_by(VitalsLog.log_date).limit(_MAX_ROWS)
     )).scalars().all()
 
-    def _row(r):
+    def _self(r):
         out = {"date": str(r.log_date)}
         for c in VITALS_FIELDS:
             v = getattr(r, c, None)
@@ -448,8 +588,92 @@ async def get_vitals(
                 out[c] = v
         return out
 
-    return {"range": {"start": str(s), "end": str(e)},
-            "count": len(rows), "vitals": [_row(r) for r in rows]}
+    # Dialysis measured from actual_end_time where present: scheduled_date is
+    # stored at midnight, so measuring from it invents up to a day of error on
+    # the one number that decides recency (§3an).
+    sessions = (await db.execute(
+        select(TherapySession)
+        .where(TherapySession.user_id == user_id,
+               TherapySession.scheduled_date >= s,
+               TherapySession.scheduled_date <= e)
+        .order_by(TherapySession.scheduled_date).limit(_MAX_ROWS)
+    )).scalars().all()
+
+    readings_by_session: dict[Any, list] = {}
+    if sessions:
+        ids = [t.id for t in sessions]
+        for r in (await db.execute(
+            select(IntradialyticReading)
+            .where(IntradialyticReading.session_id.in_(ids))
+        )).scalars().all():
+            readings_by_session.setdefault(r.session_id, []).append(r)
+
+    def _bp(obj, prefix):
+        out = {}
+        for label, col in (("systolic", f"{prefix}systolic_bp"),
+                           ("diastolic", f"{prefix}diastolic_bp"),
+                           ("heart_rate", f"{prefix}heart_rate")):
+            v = getattr(obj, col, None)
+            if v is not None:
+                out[label] = v
+        return out
+
+    def _summarise_intra(rows):
+        """Per-session summary. 16,236 raw readings cannot travel, and the mean
+        alone hides the nadir that defines intradialytic hypotension."""
+        sys_v = [r.systolic_bp for r in rows if r.systolic_bp is not None]
+        dia_v = [r.diastolic_bp for r in rows if r.diastolic_bp is not None]
+        pulse = [r.pulse for r in rows if r.pulse is not None]
+        if not (sys_v or dia_v or pulse):
+            return None
+        out: dict[str, Any] = {"readings": len(rows)}
+        if sys_v:
+            out["systolic_lowest"] = min(sys_v)
+            out["systolic_mean"] = round(sum(sys_v) / len(sys_v), 1)
+            out["systolic_highest"] = max(sys_v)
+            below_90 = sum(1 for v in sys_v if v < 90)
+            if below_90:
+                out["readings_below_90_systolic"] = below_90
+        if dia_v:
+            out["diastolic_lowest"] = min(dia_v)
+            out["diastolic_mean"] = round(sum(dia_v) / len(dia_v), 1)
+        if pulse:
+            out["pulse_mean"] = round(sum(pulse) / len(pulse), 1)
+        return out
+
+    dialysis = []
+    for t in sessions:
+        entry: dict[str, Any] = {"date": str(t.scheduled_date)[:10]}
+        for label, prefix in (("pre_dialysis", "pre_"), ("post_dialysis", "post_"),
+                              ("pre_standing", "pre_standing_"),
+                              ("post_standing", "post_standing_")):
+            bp = _bp(t, prefix)
+            if bp:
+                entry[label] = bp
+        intra = _summarise_intra(readings_by_session.get(t.id, []))
+        if intra:
+            entry["intradialytic"] = intra
+        if len(entry) > 1:
+            dialysis.append(entry)
+
+    out: dict[str, Any] = {
+        "range": {"start": str(s), "end": str(e)},
+        "self_recorded": [_self(r) for r in logs],
+        "dialysis": dialysis,
+        "period": {
+            **_period_block([r.log_date for r in logs], s, e, "self_recorded"),
+            "dialysis_sessions": len(dialysis),
+        },
+    }
+    if dialysis or logs:
+        out["how_to_compare"] = (
+            "pre_dialysis, post_dialysis, intradialytic and self_recorded are "
+            "DIFFERENT measurements — never average them together or quote one "
+            "as the patient's blood pressure. Post-dialysis runs well below "
+            "pre-dialysis by design. State each separately as systolic/"
+            "diastolic; do not pair a pre-systolic with a post-systolic. For "
+            "intradialytic, the LOWEST reading matters more than the mean.")
+    return out
 
 
 async def get_labs(db: AsyncSession, user_id: int, *,
@@ -469,9 +693,38 @@ async def get_labs(db: AsyncSession, user_id: int, *,
         .order_by(LabResult.test_date.desc())
         .limit(min(limit, _MAX_ROWS))
     )).scalars().all()
-    return {"since": str(since), "count": len(rows), "labs": [
-        {"date": str(r.test_date), "test": r.test_name, "value": r.value,
-         "unit": r.unit, "abnormal": r.is_abnormal} for r in rows]}
+    # The recency rule is already defined for this codebase — 14 days fresh,
+    # 30 days stale (dialysis_day_adjustment, scaled to a monthly draw cadence).
+    # Returning a 147-day-old draw beside a fresh one with nothing to tell them
+    # apart is how advice gets built on a number nobody has checked in five
+    # months (§3an). Imported here rather than re-declared, so one definition
+    # governs both.
+    from app.services.dialysis_day_adjustment import FRESH_DAYS, STALE_DAYS
+
+    reference = today or date.today()
+
+    def _row(r):
+        age = (reference - r.test_date).days if r.test_date else None
+        out = {"date": str(r.test_date), "test": r.test_name, "value": r.value,
+               "unit": r.unit, "abnormal": r.is_abnormal}
+        if age is not None:
+            out["age_days"] = age
+            out["recency"] = ("current" if age <= FRESH_DAYS
+                              else "ageing" if age < STALE_DAYS
+                              else "out_of_date")
+        return out
+
+    labs = [_row(r) for r in rows]
+    out: dict[str, Any] = {"since": str(since), "count": len(labs), "labs": labs}
+    if labs and all(l.get("recency") == "out_of_date" for l in labs):
+        # Every value is older than the staleness window. That is a finding —
+        # "no current labs" — not a set of current results.
+        out["no_current_labs"] = True
+        out["recency_note"] = (
+            f"Every result here is more than {STALE_DAYS} days old. Report them "
+            "as historical and say when they were drawn; do not present them as "
+            "the patient's current values.")
+    return out
 
 
 #: The tool surface, in Anthropic's schema. Descriptions are written for the

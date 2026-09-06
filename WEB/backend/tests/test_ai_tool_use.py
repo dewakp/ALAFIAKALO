@@ -856,7 +856,7 @@ async def test_a_named_nutrient_is_answered_from_wherever_it_lives(db):
     assert meal["vitamin_b9_folate_mcg"] == 180.0, "column value missing"
     assert meal["folate_dfe_mcg"] == 306.0, "extended panel value missing"
     assert out["nutrient_reference"]["vitamin_b9_folate_mcg"][
-        "general_adult_reference"] == 400, (
+        "general_adult_reference_per_day"] == 400, (
         "a reference figure must travel with the value, or the model can only "
         "say 'your daily aim for folate is not specified'")
 
@@ -983,7 +983,7 @@ def test_a_generic_rda_is_never_presented_as_the_patients_limit():
     _, _, ref, _fam = _match_nutrients(["potassium"])
     entry = ref["potassium_mg"]
     assert "rda" not in entry, "a bare 'rda' reads as the patient's own target"
-    assert entry["general_adult_reference"] == 4700
+    assert entry["general_adult_reference_per_day"] == 4700
 
 
 @pytest.mark.asyncio
@@ -1011,3 +1011,288 @@ async def test_a_family_with_a_value_is_not_reported_as_missing(db):
     assert "tracked_but_no_value" not in out, (
         "the folate family has a value; its empty siblings must not read as "
         "'no folate data'")
+
+
+# ── period: a total is not a daily intake ──────────────────────────────
+
+@pytest.mark.asyncio
+async def test_a_multi_day_range_carries_the_daily_figure(db):
+    """THE bug: asked "how have I done with Vit Bs over the last 7 days?", the
+    model summed 7 days and compared the TOTAL to a per-DAY reference — 576 mcg
+    of folate against 400, reported as "Excellent, well above". The daily
+    average was 82 mcg, 21% of target, on a patient with chronic anaemia. The
+    clinical conclusion inverted.
+
+    Nothing in the payload was false; its SHAPE invited the error. The server
+    now does the period arithmetic."""
+    from datetime import date, timedelta
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services.record_tools import get_meals
+
+    user = User(email="period@alafia.app", hashed_password="x", full_name="P")
+    db.add(user)
+    await db.flush()
+    start = date.today() - timedelta(days=6)
+    for i in range(7):
+        db.add(NutritionLog(user_id=user.id, log_date=start + timedelta(days=i),
+                            meal_type="lunch", food_name="Greens", calories=100.0,
+                            vitamin_b9_folate_mcg=80.0, nutrient_status="done"))
+    await db.flush()
+
+    out = await get_meals(db, user.id, start_date=str(start), end_date=str(date.today()),
+                          nutrients=["folate"])
+    totals = out["totals"]["vitamin_b9_folate_mcg"]
+    assert totals["total_over_range"] == 560.0
+    assert totals["per_day"] == 80.0, "the comparison-ready figure is missing"
+    assert out["period"]["days_in_range"] == 7
+    ref = out["nutrient_reference"]["vitamin_b9_folate_mcg"]
+    assert "general_adult_reference_per_day" in ref, (
+        "the reference must name its period, or a 7-day total gets compared to it")
+    assert "rda" not in ref and "general_adult_reference" not in ref
+
+
+@pytest.mark.asyncio
+async def test_the_payload_says_not_to_compare_a_total_to_a_daily_figure(db):
+    from datetime import date, timedelta
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services.record_tools import get_meals
+
+    user = User(email="compare@alafia.app", hashed_password="x", full_name="C")
+    db.add(user)
+    await db.flush()
+    start = date.today() - timedelta(days=6)
+    db.add(NutritionLog(user_id=user.id, log_date=start, meal_type="lunch",
+                        food_name="Rice", calories=200.0, potassium_mg=300.0,
+                        nutrient_status="done"))
+    await db.flush()
+
+    out = await get_meals(db, user.id, start_date=str(start), end_date=str(date.today()))
+    assert "NEVER compare" in out["how_to_compare"]
+    # both denominators are offered, and which one was used must be stated
+    t = out["totals"]["potassium_mg"]
+    assert t["per_day"] != t["per_day_logged"], (
+        "7 days in range but 1 logged — the two denominators must differ")
+    assert out["period"]["days_with_meals"] == 1
+
+
+@pytest.mark.asyncio
+async def test_an_undercount_is_flagged_by_absence_not_by_status(db):
+    """`nutrient_status="skipped"` carries real figures on 902 of 960
+    production rows. Flagging on status would declare nearly every total an
+    undercount and teach the model to distrust good data."""
+    from datetime import date
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services.record_tools import get_meals
+
+    user = User(email="undercount@alafia.app", hashed_password="x", full_name="U")
+    db.add(user)
+    await db.flush()
+    # skipped, but with values — NOT a gap
+    db.add(NutritionLog(user_id=user.id, log_date=date.today(), meal_type="lunch",
+                        food_name="Rice", calories=200.0, potassium_mg=300.0,
+                        nutrient_status="skipped"))
+    await db.flush()
+
+    out = await get_meals(db, user.id)
+    assert "totals_are_undercounts" not in out["period"], (
+        "a meal with values is not a gap, whatever its status says")
+
+
+# ── recency and period on the other tools ──────────────────────────────
+
+@pytest.mark.asyncio
+async def test_stale_labs_are_marked_not_served_as_current(db):
+    """§3an: lab recency is already defined — 14 days fresh, 30 stale. A
+    147-day-old draw returned beside a fresh one, with nothing to tell them
+    apart, is how advice gets built on a number nobody has checked in months."""
+    from datetime import date, timedelta
+
+    from app.models.labs import LabResult
+    from app.models.user import User
+    from app.services.record_tools import get_labs
+
+    user = User(email="labs@alafia.app", hashed_password="x", full_name="L")
+    db.add(user)
+    await db.flush()
+    db.add(LabResult(user_id=user.id, test_date=date.today() - timedelta(days=147),
+                     test_name="Potassium", value=5.9, unit="mmol/L"))
+    await db.flush()
+
+    out = await get_labs(db, user.id)
+    assert out["labs"][0]["age_days"] == 147
+    assert out["labs"][0]["recency"] == "out_of_date"
+    assert out["no_current_labs"] is True
+
+
+@pytest.mark.asyncio
+async def test_a_fresh_lab_is_not_flagged(db):
+    from datetime import date, timedelta
+
+    from app.models.labs import LabResult
+    from app.models.user import User
+    from app.services.record_tools import get_labs
+
+    user = User(email="fresh@alafia.app", hashed_password="x", full_name="F")
+    db.add(user)
+    await db.flush()
+    db.add(LabResult(user_id=user.id, test_date=date.today() - timedelta(days=3),
+                     test_name="Potassium", value=4.1, unit="mmol/L"))
+    await db.flush()
+
+    out = await get_labs(db, user.id)
+    assert out["labs"][0]["recency"] == "current"
+    assert "no_current_labs" not in out
+
+
+@pytest.mark.asyncio
+async def test_counts_over_a_range_carry_their_denominator(db):
+    """The same error a nutrient total had: "12 episodes" against a per-day
+    expectation is wrong by the width of the window."""
+    from datetime import date, timedelta
+
+    from app.models.elimination import BowelMovement
+    from app.models.user import User
+    from app.services.record_tools import get_eliminations
+
+    user = User(email="elim@alafia.app", hashed_password="x", full_name="E")
+    db.add(user)
+    await db.flush()
+    start = date.today() - timedelta(days=6)
+    for i in range(3):
+        db.add(BowelMovement(user_id=user.id, log_date=start + timedelta(days=i)))
+    await db.flush()
+
+    out = await get_eliminations(db, user.id, start_date=str(start),
+                                 end_date=str(date.today()))
+    p = out["period"]
+    assert p["days_in_range"] == 7
+    assert p["days_with_bowel_movements"] == 3
+    assert p["bowel_movements_per_day"] == round(3 / 7, 2)
+
+
+# ── readings that must never be averaged together ──────────────────────
+
+@pytest.mark.asyncio
+async def test_pre_post_and_intradialytic_readings_stay_apart(db):
+    """A blood pressure is only interpretable with its context. This tool read
+    `vitals_logs` alone — 41 rows on a patient who also has 2,013 sessions with
+    pre/post pairs and 16,236 readings taken DURING treatment (§3aa, new table).
+
+    Post-dialysis runs well below pre by design, so a mean across them
+    describes no clinical state at all."""
+    from datetime import date, timedelta
+
+    from app.models.chronic_conditions import IntradialyticReading, TherapySession
+    from app.models.user import User
+    from app.services.record_tools import get_vitals
+
+    user = User(email="bp@alafia.app", hashed_password="x", full_name="B")
+    db.add(user)
+    await db.flush()
+    session = TherapySession(user_id=user.id, scheduled_date=date.today(),
+                             therapy_type="hemodialysis",
+                             pre_systolic_bp=150, pre_diastolic_bp=90, pre_heart_rate=80,
+                             post_systolic_bp=110, post_diastolic_bp=70, post_heart_rate=88)
+    db.add(session)
+    await db.flush()
+    for sys_bp in (120, 86, 95):
+        db.add(IntradialyticReading(session_id=session.id, user_id=user.id,
+                                    systolic_bp=sys_bp, diastolic_bp=60))
+    await db.flush()
+
+    out = await get_vitals(db, user.id,
+                           start_date=str(date.today() - timedelta(days=1)),
+                           end_date=str(date.today()))
+    s = out["dialysis"][0]
+    assert s["pre_dialysis"]["systolic"] == 150
+    assert s["post_dialysis"]["systolic"] == 110
+    intra = s["intradialytic"]
+    assert intra["systolic_lowest"] == 86, "the nadir is the clinical fact"
+    assert intra["readings_below_90_systolic"] == 1
+    assert "never average them together" in out["how_to_compare"]
+
+
+@pytest.mark.asyncio
+async def test_dialysis_readings_are_found_even_with_no_self_recorded_vitals(db):
+    """The window that returned nothing: this patient logs no home readings but
+    had five sessions of them."""
+    from datetime import date
+
+    from app.models.chronic_conditions import TherapySession
+    from app.models.user import User
+    from app.services.record_tools import get_vitals
+
+    user = User(email="bp2@alafia.app", hashed_password="x", full_name="B")
+    db.add(user)
+    await db.flush()
+    db.add(TherapySession(user_id=user.id, scheduled_date=date.today(),
+                          therapy_type="hemodialysis",
+                          pre_systolic_bp=140, pre_diastolic_bp=85))
+    await db.flush()
+
+    out = await get_vitals(db, user.id)
+    assert out["self_recorded"] == []
+    assert len(out["dialysis"]) == 1, "dialysis readings were invisible"
+
+
+# ── a shortfall cannot be talked up ────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_a_shortfall_carries_a_label_that_cannot_be_spun(db):
+    """The model called 63% of the folate target "Excellent" on a patient with
+    chronic anaemia. A bare percentage gets whatever adjective the model
+    reaches for."""
+    from datetime import date, timedelta
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services.record_tools import get_meals
+
+    user = User(email="grade@alafia.app", hashed_password="x", full_name="G")
+    db.add(user)
+    await db.flush()
+    start = date.today() - timedelta(days=6)
+    for i in range(7):
+        db.add(NutritionLog(user_id=user.id, log_date=start + timedelta(days=i),
+                            meal_type="lunch", food_name="Greens", calories=100.0,
+                            vitamin_b9_folate_mcg=252.0, nutrient_status="done"))
+    await db.flush()
+
+    out = await get_meals(db, user.id, start_date=str(start),
+                          end_date=str(date.today()), nutrients=["folate"])
+    t = out["totals"]["vitamin_b9_folate_mcg"]
+    assert t["percent_of_reference_per_day"] == 63
+    assert t["status"] == "well_below"
+    assert "not a success" in out["how_to_compare"]
+
+
+@pytest.mark.asyncio
+async def test_a_dose_count_is_not_a_daily_regimen(db):
+    """"489 doses" reads as a regimen unless its window travels with it."""
+    from datetime import date, timedelta
+
+    from app.models.med_nutrient import MedicationDoseLog
+    from app.models.user import User
+    from app.services.record_tools import get_medications
+
+    user = User(email="rate@alafia.app", hashed_password="x", full_name="R")
+    db.add(user)
+    await db.flush()
+    for i in range(15):
+        db.add(MedicationDoseLog(user_id=user.id, medication_name="Calcium Carbonate",
+                                 log_date=date.today() - timedelta(days=i),
+                                 dose_amount=1000.0, dose_unit="mg"))
+    await db.flush()
+
+    out = await get_medications(db, user.id, days=30)
+    assert out["window_days"] == 30
+    med = out["taken_by_patient"][0]
+    assert med["doses_in_window"] == 15
+    assert med["doses_per_day"] == 0.5
+    assert "prescribed is not the same fact as" in out["how_to_read"]
