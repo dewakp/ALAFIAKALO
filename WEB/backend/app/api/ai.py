@@ -32,13 +32,14 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 
 from app.services.ollama_auth import ollama_auth_headers
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.patient_time import TIMEZONE_HEADER, patient_today
 from app.core.security import get_current_user
 from app.services.hebcs_engine import compute_hebcs
 from app.models.ai_memory import AIInteraction, CollectiveInsight, GlobalKnowledge, HealthEmbedding, LearningEvent, UserMemory
@@ -1135,7 +1136,8 @@ def _subject_token_for(user: User) -> str:
     return subject_reference(user)
 
 
-async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
+async def _fetch_patient_context(user: User, db: AsyncSession,
+                                 today: date | None = None) -> str:
     """
     Query all health tables for the current user and return a structured
     plain-text summary that the LLM can reason over.
@@ -1164,7 +1166,12 @@ async def _fetch_patient_context(user: User, db: AsyncSession) -> str:
     # breakfast sat in the log, and then guessed from older meals. Every
     # relative-time question — today, yesterday, this week — depends on this
     # one line.
-    _today = date.today()
+    # The PATIENT's date. Taking the server's UTC date here told the model it
+    # was already tomorrow, so it read meals logged hours earlier as belonging
+    # to a different day and reported "no meal entry for today" — with the six
+    # meals sitting in the tool result in front of it. Fixing the tool window
+    # alone was not enough: both halves have to agree on what day it is.
+    _today = today or date.today()
     lines.append(f"=== TODAY IS {_today:%A, %d %B %Y} ({_today}) ===")
     lines.append("Dates below are absolute. Compare them to the date above to")
     lines.append("resolve 'today', 'yesterday' or 'this week'. If a day has no")
@@ -2096,12 +2103,14 @@ async def ai_chat(
     request: AIQueryRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
 ):
     """Non-streaming AI chat — returns full response when complete."""
     persona_key = request.persona or getattr(current_user, "ai_persona", None)
     persona = PERSONA_PROFILES.get(persona_key) if persona_key else None
 
-    patient_context = await _fetch_patient_context(current_user, db)
+    today = patient_today(client_timezone, getattr(current_user, "timezone", None))
+    patient_context = await _fetch_patient_context(current_user, db, today)
 
     # Fetch GlobalKnowledge evidence notes for specialist agents
     domain_knowledge: list[str] = []
@@ -2146,14 +2155,13 @@ async def ai_chat(
         persona, request.context_module, "the patient",
         core_context, global_knowledge=domain_knowledge or None,
     )
-
     tool_convo = None
     _t_tools = time.monotonic()
     try:
         tool_convo = await answer_with_tools(
             db, current_user.id, tool_system_prompt,
             _assemble_chat_messages(None, request.messages, request.query, None),
-            temperature=0.3,
+            temperature=0.3, today=today,
         )
     except Exception as exc:  # noqa: BLE001
         # An error must never become an ANSWER.
@@ -2221,29 +2229,12 @@ async def ai_chat(
     )
 
 
-def _stream_chunks(text: str, size: int = 24):
-    """Break a finished answer into SSE-sized pieces on word boundaries.
-
-    The tool loop produces the whole answer at once, but every client renders
-    this endpoint token by token. Splitting mid-word makes the text visibly
-    stutter, so chunks end at whitespace.
-    """
-    out, buf = [], ""
-    for word in text.split(" "):
-        buf = f"{buf} {word}" if buf else word
-        if len(buf) >= size:
-            out.append(buf + " ")
-            buf = ""
-    if buf:
-        out.append(buf)
-    return out
-
-
 @router.post("/chat/stream")
 async def ai_chat_stream(
     request: AIQueryRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
 ):
     """
     Streaming AI chat — returns Server-Sent Events (SSE).
@@ -2254,7 +2245,8 @@ async def ai_chat_stream(
     persona_key = request.persona or getattr(current_user, "ai_persona", None)
     persona = PERSONA_PROFILES.get(persona_key) if persona_key else None
 
-    patient_context = await _fetch_patient_context(current_user, db)
+    today = patient_today(client_timezone, getattr(current_user, "timezone", None))
+    patient_context = await _fetch_patient_context(current_user, db, today)
 
     # Fetch GlobalKnowledge for specialist agents
     domain_knowledge: list[str] = []
@@ -2286,7 +2278,6 @@ async def ai_chat_stream(
     )
 
     t0 = time.monotonic()
-    accumulated: list[str] = []
 
     # Streams through the ALAFIAModel router, NOT straight to Ollama.
     #
@@ -2306,22 +2297,46 @@ async def ai_chat_stream(
             # before it knows what to ask next. The finished answer is then
             # emitted in chunks so the client keeps its typing behaviour and
             # the SSE contract is unchanged.
-            from app.services.ai_conversation import answer_with_tools
+            from app.services.ai_conversation import stream_with_tools
 
-            convo = await answer_with_tools(
+            # Streams the answer as the model writes it. The tool ROUNDS still
+            # cannot stream — the model must read each result before it knows
+            # what to ask next — but the round that finally answers can, and
+            # that is where nearly all of the waiting was: even a 5s production
+            # answer showed nothing for ~3.5s and then arrived whole.
+            #
+            # The step reports double as SSE keep-alives: both mobile clients
+            # use an IDLE timeout, and a silent wait is what trips it.
+            convo = None
+            async for event in stream_with_tools(
                 db, current_user.id, tool_system_prompt, tool_messages,
-                temperature=0.3,
-            )
+                temperature=0.3, today=today,
+            ):
+                if "text" in event:
+                    yield f"data: {json.dumps({'content': event['text']})}\n\n"
+                elif "retract" in event:
+                    # That text belonged to a round that turned out to be a
+                    # FETCH, not the answer — models often narrate ("Let me
+                    # check your food log…") before calling a tool. Take it
+                    # back rather than splice the model's preamble onto the
+                    # front of an answer it was never part of. The count is in
+                    # characters; the client truncates by exactly that much.
+                    yield f"data: {json.dumps({'retract': event['retract']})}\n\n"
+                elif "done" in event:
+                    convo = event["done"]
+                else:
+                    yield f"data: {json.dumps({'status': event})}\n\n"
+
+            if convo is None:
+                # The generator ended without a result. Say so rather than
+                # recording an empty answer as if it were one.
+                raise RuntimeError("the tool loop ended without an answer")
             full_response = (convo.text or "").strip()
             if not full_response:
                 # An empty answer is a failure, not an answer. Falling through
                 # to the record-dump path here is what fabricated a figure that
                 # was in no row of the record (§3am).
                 raise RuntimeError("the assistant returned an empty answer")
-
-            for chunk in _stream_chunks(full_response):
-                accumulated.append(chunk)
-                yield f"data: {json.dumps({'content': chunk})}\n\n"
 
             elapsed_ms = int((time.monotonic() - t0) * 1000)
             try:

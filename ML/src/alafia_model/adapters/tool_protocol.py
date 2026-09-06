@@ -167,3 +167,82 @@ def _openai_call(c: dict[str, Any]) -> dict[str, Any]:
             "arguments": args if isinstance(args, str) else json.dumps(args or {}),
         },
     }
+
+
+class StreamedToolCalls:
+    """Assembles tool calls that arrive in fragments across a stream.
+
+    Streaming is what lets the ANSWER appear as it is written instead of
+    arriving whole after every round has finished. The cost is that a tool call
+    no longer arrives as one object: OpenAI sends `arguments` as a run of string
+    fragments keyed by index, Anthropic sends `input_json_delta` fragments per
+    content block, and Ollama sends the finished call in a single chunk.
+
+    All three land here so the loop above sees one shape.
+    """
+
+    def __init__(self) -> None:
+        self._slots: dict[int, dict[str, Any]] = {}
+
+    def _slot(self, index: int) -> dict[str, Any]:
+        return self._slots.setdefault(index, {"id": "", "name": "", "args": ""})
+
+    def openai_delta(self, deltas: list[dict[str, Any]] | None) -> None:
+        """`choices[].delta.tool_calls` — id and name arrive once, args in pieces."""
+        for d in deltas or []:
+            slot = self._slot(d.get("index", 0))
+            if d.get("id"):
+                slot["id"] = d["id"]
+            fn = d.get("function") or {}
+            if fn.get("name"):
+                slot["name"] = fn["name"]
+            if fn.get("arguments"):
+                slot["args"] += fn["arguments"]
+
+    def anthropic_start(self, index: int, block: dict[str, Any]) -> None:
+        if (block or {}).get("type") != "tool_use":
+            return
+        self._slots[index] = {"id": block.get("id", ""), "name": block.get("name", ""),
+                              "args": ""}
+
+    def anthropic_delta(self, index: int, partial_json: str) -> None:
+        slot = self._slots.get(index)
+        if slot is not None:
+            slot["args"] += partial_json or ""
+
+    def whole_calls(self, calls: list[dict[str, Any]] | None) -> None:
+        """Ollama emits a finished call in one chunk, with args already an object."""
+        for c in calls or []:
+            fn = c.get("function") or {}
+            index = len(self._slots)
+            self._slots[index] = {
+                "id": c.get("id") or f"call_{index}",
+                "name": c.get("name") or fn.get("name", ""),
+                "args": fn.get("arguments") if fn.get("arguments") is not None
+                else c.get("arguments"),
+            }
+
+    def finish(self) -> list[dict[str, Any]]:
+        """The completed calls, arguments decoded.
+
+        A fragment run that never completed decodes to `{}` rather than raising:
+        the model asked for something, and running the tool with no arguments —
+        which every tool here reads as "today" — beats losing the whole answer.
+        """
+        out: list[dict[str, Any]] = []
+        for index in sorted(self._slots):
+            slot = self._slots[index]
+            if not slot["name"]:
+                continue
+            args = slot["args"]
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args) if args.strip() else {}
+                except ValueError:
+                    args = {}
+            out.append({
+                "id": slot["id"] or f"call_{index}",
+                "name": slot["name"],
+                "arguments": args if isinstance(args, dict) else {},
+            })
+        return out

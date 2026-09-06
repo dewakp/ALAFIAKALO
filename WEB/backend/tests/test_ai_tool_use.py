@@ -419,3 +419,376 @@ async def test_a_dose_logged_medication_is_not_serialised_empty(db):
     assert taken, "a logged dose did not reach the tool output"
     assert all(t for t in taken), "a medication serialised to an empty object"
     assert any("Calcium" in (t.get("name") or "") for t in taken)
+
+
+# ── progress: what the patient is shown during a 40-second wait ────────
+
+def test_every_tool_has_a_patient_facing_label():
+    """The label is sent by the SERVER so web, iOS and Android cannot drift and
+    a new tool does not need three app releases to get a name."""
+    from app.services.record_tools import TOOL_LABELS, TOOL_SPECS
+
+    missing = {t["name"] for t in TOOL_SPECS} - set(TOOL_LABELS)
+    assert not missing, f"no status label for: {sorted(missing)}"
+
+
+def test_tool_specs_carry_only_fields_the_wire_expects():
+    """The Anthropic adapter sends these dicts to the provider VERBATIM, so an
+    extra key here reaches the API as an unknown field. That is why the labels
+    live in a separate map rather than inside the spec."""
+    from app.services.record_tools import TOOL_SPECS
+
+    for spec in TOOL_SPECS:
+        assert set(spec) <= {"name", "description", "input_schema"}, (
+            f"{spec.get('name')} carries a field the provider will not expect")
+
+
+def test_display_detail_never_reports_a_failure_as_an_empty_result():
+    """§3aa in a status chip: "nothing recorded" is a real finding, and a tool
+    that failed must not borrow that wording."""
+    from app.services.ai_conversation import _display_detail
+
+    assert _display_detail({"error": "boom"}) == "could not read that"
+    assert _display_detail({"meals": []}) == "nothing recorded"
+    assert _display_detail({"meals": [1, 2, 3]}) == "3 found"
+
+
+@pytest.mark.asyncio
+async def test_the_loop_reports_each_step_it_actually_takes(monkeypatch):
+    """The rounds take tens of seconds and cannot stream, so the wait used to be
+    a blinking cursor. These frames are REPORTS: each one names a step the
+    server really took, in the order it took them."""
+    from app.services import ai_conversation as ac
+
+    replies = [
+        {"text": "", "tool_calls": [{"id": "c1", "name": "get_meals", "arguments": {}}],
+         "provider": "p", "model": "m", "tokens_used": 1},
+        {"text": "You ate rice.", "tool_calls": [],
+         "provider": "p", "model": "m", "tokens_used": 1},
+    ]
+
+    async def _fake_chat(prompt, **kw):
+        return replies.pop(0)
+
+    async def _fake_tool(db, user_id, name, args, today=None):
+        return {"meals": [1, 2, 3, 4, 5, 6], "count": 6}
+
+    monkeypatch.setattr("app.services.alafia_model_service.alafia_chat_detailed",
+                        _fake_chat, raising=False)
+    monkeypatch.setattr(ac, "run_tool", _fake_tool)
+
+    seen: list[dict] = []
+
+    async def _progress(event):
+        seen.append(event)
+
+    convo = await ac.answer_with_tools(None, 1, "sys", [{"role": "user", "content": "q"}],
+                                       progress=_progress)
+    assert convo.text == "You ate rice."
+
+    phases = [e["phase"] for e in seen]
+    assert phases == ["thinking", "tool", "tool_done", "thinking", "composing"], phases
+    assert seen[1]["label"] == "Checking your meals"
+    assert seen[2]["detail"] == "6 found"
+    assert all(e.get("label") for e in seen), "every frame must carry text to show"
+
+
+@pytest.mark.asyncio
+async def test_a_broken_progress_callback_never_fails_the_answer(monkeypatch):
+    """A display problem must not cost the patient their answer."""
+    from app.services import ai_conversation as ac
+
+    async def _fake_chat(prompt, **kw):
+        return {"text": "fine", "tool_calls": [], "provider": "p", "model": "m",
+                "tokens_used": 0}
+
+    async def _boom(event):
+        raise RuntimeError("ui exploded")
+
+    monkeypatch.setattr("app.services.alafia_model_service.alafia_chat_detailed",
+                        _fake_chat, raising=False)
+    convo = await ac.answer_with_tools(None, 1, "sys", [{"role": "user", "content": "q"}],
+                                       progress=_boom)
+    assert convo.text == "fine"
+
+
+@pytest.mark.asyncio
+async def test_the_loop_still_works_with_no_progress_callback(monkeypatch):
+    """/ai/chat does not stream and passes none."""
+    from app.services import ai_conversation as ac
+
+    async def _fake_chat(prompt, **kw):
+        return {"text": "ok", "tool_calls": [], "provider": "p", "model": "m",
+                "tokens_used": 0}
+
+    monkeypatch.setattr("app.services.alafia_model_service.alafia_chat_detailed",
+                        _fake_chat, raising=False)
+    convo = await ac.answer_with_tools(None, 1, "sys", [{"role": "user", "content": "q"}])
+    assert convo.text == "ok"
+
+
+# ── streaming: the answer appears as it is written ─────────────────────
+
+def test_openai_tool_call_fragments_are_reassembled():
+    """`arguments` arrives as a run of string pieces keyed by index. Treating a
+    fragment as a whole call sends the tool a truncated argument."""
+    from alafia_model.adapters.tool_protocol import StreamedToolCalls
+
+    acc = StreamedToolCalls()
+    acc.openai_delta([{"index": 0, "id": "c1", "function": {"name": "get_meals",
+                                                            "arguments": '{"start_'}}])
+    acc.openai_delta([{"index": 0, "function": {"arguments": 'date": "2026-09-05"}'}}])
+    assert acc.finish() == [
+        {"id": "c1", "name": "get_meals", "arguments": {"start_date": "2026-09-05"}}]
+
+
+def test_anthropic_tool_call_fragments_are_reassembled():
+    from alafia_model.adapters.tool_protocol import StreamedToolCalls
+
+    acc = StreamedToolCalls()
+    acc.anthropic_start(1, {"type": "tool_use", "id": "t1", "name": "get_labs"})
+    acc.anthropic_delta(1, '{"limit"')
+    acc.anthropic_delta(1, ': 5}')
+    assert acc.finish() == [{"id": "t1", "name": "get_labs", "arguments": {"limit": 5}}]
+
+
+def test_a_text_block_is_not_mistaken_for_a_tool_call():
+    from alafia_model.adapters.tool_protocol import StreamedToolCalls
+
+    acc = StreamedToolCalls()
+    acc.anthropic_start(0, {"type": "text"})
+    assert acc.finish() == []
+
+
+def test_ollama_sends_whole_calls_with_object_arguments():
+    from alafia_model.adapters.tool_protocol import StreamedToolCalls
+
+    acc = StreamedToolCalls()
+    acc.whole_calls([{"function": {"name": "get_vitals", "arguments": {"days": 7}}}])
+    out = acc.finish()
+    assert out[0]["name"] == "get_vitals"
+    assert out[0]["arguments"] == {"days": 7}
+    assert out[0]["id"], "a call with no id must still be addressable"
+
+
+def test_an_unfinished_fragment_run_does_not_lose_the_call():
+    """A truncated stream yields {} rather than raising — every tool here reads
+    no arguments as "today", which beats losing the whole answer."""
+    from alafia_model.adapters.tool_protocol import StreamedToolCalls
+
+    acc = StreamedToolCalls()
+    acc.openai_delta([{"index": 0, "id": "c1",
+                       "function": {"name": "get_meals", "arguments": '{"start_'}}])
+    assert acc.finish() == [{"id": "c1", "name": "get_meals", "arguments": {}}]
+
+
+@pytest.mark.asyncio
+async def test_streaming_loop_retracts_a_preamble_that_preceded_a_tool_call(monkeypatch):
+    """Models narrate before calling ("Let me check your food log…"). That text
+    belongs to a FETCH, not the answer, and leaving it splices the preamble onto
+    the front of an answer it was never part of."""
+    from app.services import ai_conversation as ac
+
+    rounds = [
+        [{"type": "text", "text": "Let me check your log."},
+         {"type": "tool_calls", "calls": [{"id": "c1", "name": "get_meals", "arguments": {}}]}],
+        [{"type": "text", "text": "You ate rice."}],
+    ]
+
+    async def _fake_stream(prompt, **kw):
+        for ev in rounds.pop(0):
+            yield ev
+
+    async def _fake_tool(db, user_id, name, args, today=None):
+        return {"meals": [1, 2, 3]}
+
+    monkeypatch.setattr("app.services.alafia_model_service.stream_alafia_events",
+                        _fake_stream, raising=False)
+    monkeypatch.setattr(ac, "run_tool", _fake_tool)
+
+    text, retracted, convo = "", 0, None
+    async for ev in ac.stream_with_tools(None, 1, "sys", [{"role": "user", "content": "q"}]):
+        if "text" in ev:
+            text += ev["text"]
+        elif "retract" in ev:
+            retracted += ev["retract"]
+            text = text[:max(0, len(text) - ev["retract"])]
+        elif "done" in ev:
+            convo = ev["done"]
+
+    assert retracted == len("Let me check your log.")
+    assert text == "You ate rice.", "the preamble was left on the front of the answer"
+    assert convo.text == "You ate rice."
+    assert len(convo.traces) == 1
+
+
+@pytest.mark.asyncio
+async def test_streaming_loop_reports_the_same_steps_as_the_buffered_one(monkeypatch):
+    from app.services import ai_conversation as ac
+
+    rounds = [
+        [{"type": "tool_calls", "calls": [{"id": "c1", "name": "get_meals", "arguments": {}}]}],
+        [{"type": "text", "text": "done"}],
+    ]
+
+    async def _fake_stream(prompt, **kw):
+        for ev in rounds.pop(0):
+            yield ev
+
+    async def _fake_tool(db, user_id, name, args, today=None):
+        return {"meals": [1]}
+
+    monkeypatch.setattr("app.services.alafia_model_service.stream_alafia_events",
+                        _fake_stream, raising=False)
+    monkeypatch.setattr(ac, "run_tool", _fake_tool)
+
+    phases = [ev["phase"] async for ev in
+              ac.stream_with_tools(None, 1, "sys", [{"role": "user", "content": "q"}])
+              if "phase" in ev]
+    assert phases == ["thinking", "tool", "tool_done", "thinking", "composing"], phases
+
+
+def test_both_loops_share_one_set_of_instructions():
+    """Two copies is how the streaming path and the buffered one start answering
+    the same question differently."""
+    import inspect
+
+    from app.services import ai_conversation as ac
+
+    for fn in (ac.answer_with_tools, ac.stream_with_tools):
+        assert "_TOOL_LOOP_INSTRUCTIONS" in inspect.getsource(fn)
+
+
+# ── an adapter that predates the events API ────────────────────────────
+
+@pytest.mark.asyncio
+async def test_a_text_only_adapter_still_serves_a_request_without_tools(monkeypatch):
+    """Requiring `stream_chat_events` everywhere would drop a funded provider
+    that can perfectly well stream text."""
+    from alafia_model.capabilities.llm import LLMCapability
+    from alafia_model.registry.providers import ProviderSpec
+
+    class _TextOnly:
+        model_name = "old"
+
+        async def stream_chat(self, messages, temperature=0.5, max_tokens=2048):
+            yield "hello"
+
+    cap = LLMCapability.__new__(LLMCapability)
+    spec = ProviderSpec("groq", "https://x/v1", "GROQ_API_KEY", "m", "free", 1.0)
+    monkeypatch.setattr("alafia_model.registry.providers.ordered_for_selection",
+                        lambda **kw: [spec])
+    monkeypatch.setattr(cap, "_adapter_for", lambda s: _TextOnly(), raising=False)
+    monkeypatch.setattr(cap, "_get_adapter", lambda model=None: _TextOnly(), raising=False)
+    monkeypatch.setattr("alafia_model.capabilities.llm._ollama_first", lambda: False)
+
+    out = [e async for e in cap.stream_events([{"role": "user", "content": "hi"}])]
+    assert out == [{"type": "text", "text": "hello"}]
+
+
+@pytest.mark.asyncio
+async def test_a_text_only_adapter_is_SKIPPED_when_tools_are_required(monkeypatch):
+    """It would answer in prose while the caller waits for a tool call — worse
+    than refusing, and the whole reason `supports_tools` gates selection."""
+    from alafia_model.capabilities.llm import LLMCapability
+    from alafia_model.registry.providers import ProviderSpec
+
+    class _TextOnly:
+        model_name = "old"
+
+        async def stream_chat(self, messages, temperature=0.5, max_tokens=2048):
+            yield "prose instead of a tool call"
+
+    cap = LLMCapability.__new__(LLMCapability)
+    spec = ProviderSpec("groq", "https://x/v1", "GROQ_API_KEY", "m", "free", 1.0)
+    monkeypatch.setattr("alafia_model.registry.providers.ordered_for_selection",
+                        lambda **kw: [spec])
+    monkeypatch.setattr(cap, "_adapter_for", lambda s: _TextOnly(), raising=False)
+    monkeypatch.setattr(cap, "_get_adapter", lambda model=None: _TextOnly(), raising=False)
+    monkeypatch.setattr("alafia_model.capabilities.llm._ollama_first", lambda: False)
+
+    tools = [{"name": "get_meals", "description": "d", "input_schema": {}}]
+    with pytest.raises(Exception):
+        [e async for e in cap.stream_events([{"role": "user", "content": "hi"}],
+                                            tools=tools)]
+
+
+# ── whose "today" is it ────────────────────────────────────────────────
+
+def test_the_patients_zone_beats_the_servers_utc():
+    """The bug, exactly: at 20:54 on 2026-09-05 in New York the container's
+    `date.today()` already reads 2026-09-06, so "what did I eat today?" queried
+    a day with no rows and reported nothing eaten to a patient with six meals
+    and 58.4 g of sugar logged."""
+    from datetime import datetime, timezone as tz
+    from unittest.mock import patch
+
+    from app.core.patient_time import patient_today
+
+    utc_now = datetime(2026, 9, 6, 0, 54, tzinfo=tz.utc)  # = 20:54 on the 5th in NY
+    with patch("app.core.patient_time.datetime") as fake:
+        fake.now.return_value = utc_now
+        assert str(patient_today("America/New_York")) == "2026-09-05"
+        assert str(patient_today(None)) == "2026-09-06", "UTC remains the fallback"
+
+
+def test_an_unusable_timezone_is_discarded_not_guessed_at():
+    """Production holds "America/New York" — not a valid IANA name. Silently
+    "correcting" it to America/New_York would be inventing a fact about where
+    someone lives; falling back to UTC is honest."""
+    from app.core.patient_time import zone_name
+
+    assert zone_name("America/New York") == "UTC"
+    assert zone_name("Not/AZone") == "UTC"
+    assert zone_name("") == "UTC"
+    assert zone_name(None, "America/Chicago") == "America/Chicago"
+
+
+def test_the_client_hint_wins_over_a_stale_stored_zone():
+    """83 of 85 production users have `users.timezone` NULL, and a traveller's
+    stored value is out of date the moment they land."""
+    from app.core.patient_time import zone_name
+
+    assert zone_name("Europe/London", "America/Chicago") == "Europe/London"
+
+
+def test_tools_use_the_date_they_are_given():
+    from datetime import date
+
+    from app.services.record_tools import _window
+
+    given = date(2026, 9, 5)
+    assert _window(None, None, given) == (given, given)
+
+
+@pytest.mark.asyncio
+async def test_the_loop_passes_the_patients_date_to_every_tool(monkeypatch):
+    """A model must never be asked what day it is, so the loop supplies it —
+    and it has to be the PATIENT's date, not the container's."""
+    from datetime import date
+
+    from app.services import ai_conversation as ac
+
+    seen = {}
+
+    async def _fake_chat(prompt, **kw):
+        if "calls" not in seen:
+            seen["calls"] = True
+            return {"text": "", "tool_calls": [
+                {"id": "c1", "name": "get_meals", "arguments": {}}],
+                "provider": "p", "model": "m", "tokens_used": 0}
+        return {"text": "done", "tool_calls": [], "provider": "p", "model": "m",
+                "tokens_used": 0}
+
+    async def _fake_tool(db, user_id, name, args, today=None):
+        seen["today"] = today
+        return {"meals": [1]}
+
+    monkeypatch.setattr("app.services.alafia_model_service.alafia_chat_detailed",
+                        _fake_chat, raising=False)
+    monkeypatch.setattr(ac, "run_tool", _fake_tool)
+
+    given = date(2026, 9, 5)
+    await ac.answer_with_tools(None, 1, "sys", [{"role": "user", "content": "q"}],
+                               today=given)
+    assert seen["today"] == given

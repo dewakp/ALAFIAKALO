@@ -406,6 +406,28 @@ class LLMCapability(BaseCapability):
         temperature: float = 0.7,
         max_tokens: int = 2048,
     ):
+        """Text-only view of `stream_events`. Unchanged for every caller.
+
+        Implemented on top of the event stream rather than beside it so the
+        provider order and the redaction below have exactly ONE implementation:
+        two copies is how a fix lands on one path and misses the other (§3ae).
+        """
+        async for event in self.stream_events(
+            messages, tools=None, identity_hints=identity_hints,
+            temperature=temperature, max_tokens=max_tokens,
+        ):
+            if event.get("type") == "text":
+                yield event["text"]
+
+    async def stream_events(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tools: list[dict] | None = None,
+        identity_hints: tuple = (),
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+    ):
         """Stream a chat completion through the SAME egress point as `run()`.
 
         `/ai/chat/stream` used to POST straight to Ollama, so token streaming was
@@ -425,25 +447,60 @@ class LLMCapability(BaseCapability):
         from alafia_model import privacy
         from alafia_model.registry.providers import ordered_for_selection, mark_cooldown
 
+        def _events_from(adapter):
+            """The adapter's event stream, or its text stream adapted to one.
+
+            An adapter that only implements `stream_chat` can still serve a
+            text-only request, and refusing it would drop a funded provider for
+            no reason. But when the request carries TOOLS it must be skipped:
+            a provider that answers in prose instead of calling is worse than
+            one that refuses, because the caller waits for a call that never
+            comes (§3am).
+            """
+            events = getattr(adapter, "stream_chat_events", None)
+            if events is not None:
+                def _run(msgs, temp, maxt):
+                    return events(msgs, temp, maxt, tools)
+                return _run
+            if tools:
+                return None
+            text_only = getattr(adapter, "stream_chat", None)
+            if text_only is None:
+                return None
+
+            async def _wrap(msgs, temp, maxt):
+                async for chunk in text_only(msgs, temp, maxt):
+                    yield {"type": "text", "text": chunk}
+            return _wrap
+
         async def _stream_ollama():
             adapter = self._get_adapter(None)
-            async for chunk in adapter.stream_chat(messages, temperature, max_tokens):
-                yield chunk
+            runner = _events_from(adapter)
+            if runner is None:
+                raise RuntimeError(
+                    "ollama adapter cannot stream tool calls for this request")
+            async for event in runner(messages, temperature, max_tokens):
+                yield event
 
         async def _stream_hosted():
             # Redaction HERE, at the single egress point — identical to try_hosted().
             outbound = privacy.scrub_payload(messages, identity_hints)
             last_error = None
-            for spec in ordered_for_selection():
+            # A provider that cannot take tools is skipped BEFORE selection when
+            # the request carries them — one answering in prose is worse than one
+            # refusing, because the caller waits for a call that never comes.
+            specs = (ordered_for_selection(require_tools=True) if tools
+                     else ordered_for_selection())
+            for spec in specs:
                 adapter = self._adapter_for(spec)
-                streamer = getattr(adapter, "stream_chat", None)
-                if streamer is None:
-                    continue  # provider cannot stream; the next one may
+                runner = _events_from(adapter)
+                if runner is None:
+                    continue  # cannot stream, or cannot do tools; the next may
                 try:
                     produced = False
-                    async for chunk in streamer(outbound, temperature, max_tokens):
+                    async for event in runner(outbound, temperature, max_tokens):
                         produced = True
-                        yield chunk
+                        yield event
                     if produced:
                         return
                 except Exception as exc:  # noqa: BLE001 — try the next provider
@@ -459,25 +516,25 @@ class LLMCapability(BaseCapability):
 
         if _ollama_first():
             try:
-                async for chunk in _stream_ollama():
-                    yield chunk
+                async for event in _stream_ollama():
+                    yield event
                 return
             except Exception as exc:  # noqa: BLE001
                 if _ollama_required():
                     raise
                 logger.warning("ollama streaming failed, falling back to hosted (%s)", exc)
-            async for chunk in _stream_hosted():
-                yield chunk
+            async for event in _stream_hosted():
+                yield event
             return
 
         try:
-            async for chunk in _stream_hosted():
-                yield chunk
+            async for event in _stream_hosted():
+                yield event
             return
         except Exception as exc:  # noqa: BLE001
             logger.warning("hosted streaming failed, falling back to ollama (%s)", exc)
-        async for chunk in _stream_ollama():
-            yield chunk
+        async for event in _stream_ollama():
+            yield event
 
 
     @staticmethod

@@ -5,6 +5,10 @@ final class AIChatViewModel {
     var messages: [ChatMessage] = []
     var inputText = ""
     var isLoading = false
+    /// What the server reports it is doing, while it cannot yet say anything.
+    /// The tool rounds take tens of seconds and cannot stream, so this is what
+    /// carries the wait. Every value is REPORTED — never a guessed sequence.
+    var chatStatus: ChatStatusStep?
     var errorMessage: String?
     
     // Persona
@@ -100,9 +104,20 @@ final class AIChatViewModel {
             let query = AIQueryRequest(query: text, persona: selectedPersona?.key, messages: history)
             var receivedToken = false
             do {
-                for try await token in await APIClient.shared.streamPost("/ai/chat/stream", body: query) {
-                    receivedToken = true
-                    messages[idx].content += token
+                for try await event in await APIClient.shared.streamPost("/ai/chat/stream", body: query) {
+                    switch event {
+                    case .status(let step):
+                        // Only meaningful while the bubble is still empty; once
+                        // text arrives it is the answer that should be read.
+                        chatStatus = step
+                    case .content(let token):
+                        receivedToken = true
+                        chatStatus = nil
+                        messages[idx].content += token
+                    case .retract(let dropped):
+                        let keep = max(0, messages[idx].content.count - dropped)
+                        messages[idx].content = String(messages[idx].content.prefix(keep))
+                    }
                 }
             } catch APIError.unknown(let code) where code == 404 || code == 405 {
                 let response: AIQueryResponse = try await APIClient.shared.post("/ai/chat", body: query)
@@ -130,6 +145,7 @@ final class AIChatViewModel {
         }
 
         isLoading = false
+        chatStatus = nil
     }
 }
 
@@ -161,7 +177,7 @@ struct AIChatView: View {
                             
                             if vm.isLoading {
                                 HStack {
-                                    TypingIndicator()
+                                    TypingIndicator(step: vm.chatStatus)
                                     Spacer()
                                 }
                                 .padding(.horizontal)
@@ -398,17 +414,31 @@ struct ChatBubble: View {
 }
 
 struct TypingIndicator: View {
+    /// Nil until the first progress frame lands, or on any surface that has
+    /// none — the dots alone are the previous behaviour, unchanged.
+    var step: ChatStatusStep? = nil
     @State private var phase = 0.0
-    
+
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .fill(Color.gray)
-                    .frame(width: 8, height: 8)
-                    .opacity(0.4 + 0.6 * sin(phase + Double(i) * .pi / 3))
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(Color.gray)
+                        .frame(width: 8, height: 8)
+                        .opacity(0.4 + 0.6 * sin(phase + Double(i) * .pi / 3))
+                }
+            }
+            if let step {
+                Text(step.detail.map { "\(step.label) — \($0)" } ?? step.label)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .transition(.opacity)
+                    .id(step.label)
+                    .accessibilityLabel(step.label)
             }
         }
+        .animation(.easeOut(duration: 0.25), value: step)
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .background(Color(.systemGray6))

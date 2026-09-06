@@ -76,8 +76,13 @@ VOMIT_FIELDS = ("volume", "consistency", "color", "contains_blood",
 LAB_FIELDS = ("test_date", "test_name", "value", "unit", "is_abnormal")
 
 
-def _window(start: str | None, end: str | None) -> tuple[date, date]:
-    today = date.today()
+def _window(start: str | None, end: str | None,
+            today: date | None = None) -> tuple[date, date]:
+    # The patient's today, not the server's. The containers run UTC, so
+    # `date.today()` is already tomorrow for anyone west of Greenwich by early
+    # evening — and "what did I eat today?" then queries a day with no rows
+    # (app/core/patient_time.py).
+    today = today or date.today()
     def _p(v, fallback):
         if not v:
             return fallback
@@ -96,11 +101,12 @@ def _window(start: str | None, end: str | None) -> tuple[date, date]:
 async def get_meals(
     db: AsyncSession, user_id: int, *,
     start_date: str | None = None, end_date: str | None = None,
+    today: date | None = None,
 ) -> dict[str, Any]:
     """Every logged food item in a date range, with its full nutrient row."""
     from app.models.nutrition import NutritionLog
 
-    s, e = _window(start_date, end_date)
+    s, e = _window(start_date, end_date, today)
     rows = (await db.execute(
         select(NutritionLog)
         .where(NutritionLog.user_id == user_id,
@@ -128,11 +134,12 @@ async def get_meals(
 async def get_eliminations(
     db: AsyncSession, user_id: int, *,
     start_date: str | None = None, end_date: str | None = None,
+    today: date | None = None,
 ) -> dict[str, Any]:
     """Bowel movements and vomiting episodes in a date range."""
     from app.models.elimination import BowelMovement, VomitingLog
 
-    s, e = _window(start_date, end_date)
+    s, e = _window(start_date, end_date, today)
     bm = (await db.execute(
         select(BowelMovement)
         .where(BowelMovement.user_id == user_id,
@@ -162,7 +169,8 @@ async def get_eliminations(
 
 
 async def get_medications(db: AsyncSession, user_id: int, *,
-                          days: int = 30) -> dict[str, Any]:
+                          days: int = 30,
+                          today: date | None = None) -> dict[str, Any]:
     """What the patient has actually TAKEN, and what is prescribed.
 
     Both, labelled — §3aa: prescribed and taken are different facts, and a
@@ -176,7 +184,7 @@ async def get_medications(db: AsyncSession, user_id: int, *,
     # all three if the names were wrong, which is the same failure in code.
     from app.services import clinical_sources
 
-    since = date.today() - timedelta(days=max(1, days))
+    since = (today or date.today()) - timedelta(days=max(1, days))
     taken = await clinical_sources.medications_taken(db, user_id, since=since)
     administered = await clinical_sources.medications_administered(db, user_id, since=since)
     prescribed = await clinical_sources.medications_prescribed(db, user_id)
@@ -209,11 +217,12 @@ async def get_medications(db: AsyncSession, user_id: int, *,
 async def get_vitals(
     db: AsyncSession, user_id: int, *,
     start_date: str | None = None, end_date: str | None = None,
+    today: date | None = None,
 ) -> dict[str, Any]:
     """Recorded vitals in a date range."""
     from app.models.vitals import VitalsLog
 
-    s, e = _window(start_date, end_date)
+    s, e = _window(start_date, end_date, today)
     rows = (await db.execute(
         select(VitalsLog)
         .where(VitalsLog.user_id == user_id,
@@ -234,7 +243,8 @@ async def get_vitals(
 
 
 async def get_labs(db: AsyncSession, user_id: int, *,
-                   since_days: int = 365, limit: int = 60) -> dict[str, Any]:
+                   since_days: int = 365, limit: int = 60,
+                   today: date | None = None) -> dict[str, Any]:
     """Lab results, most recent first, with their dates.
 
     Dates matter more than values here: a result months old is history, and
@@ -242,7 +252,7 @@ async def get_labs(db: AsyncSession, user_id: int, *,
     """
     from app.models.labs import LabResult
 
-    since = date.today() - timedelta(days=max(1, since_days))
+    since = (today or date.today()) - timedelta(days=max(1, since_days))
     rows = (await db.execute(
         select(LabResult)
         .where(LabResult.user_id == user_id, LabResult.test_date >= since)
@@ -321,6 +331,22 @@ TOOL_SPECS: list[dict[str, Any]] = [
     },
 ]
 
+#: What to SHOW the patient while each tool runs. The backend owns this text
+#: rather than each client, so web, iOS and Android cannot drift apart and a new
+#: tool does not need three app releases to get a label.
+#:
+#: Deliberately NOT a key inside `TOOL_SPECS`: the Anthropic adapter sends those
+#: dicts to the provider verbatim, so an extra field there reaches the API as an
+#: unknown key. `tests/test_ai_tool_use.py` pins both halves — every tool has a
+#: label, and no spec carries a field the wire does not expect.
+TOOL_LABELS = {
+    "get_meals": "Checking your meals",
+    "get_eliminations": "Checking your symptom log",
+    "get_medications": "Checking your medications",
+    "get_vitals": "Checking your vitals",
+    "get_labs": "Checking your lab results",
+}
+
 TOOLS = {
     "get_meals": get_meals,
     "get_eliminations": get_eliminations,
@@ -331,7 +357,8 @@ TOOLS = {
 
 
 async def run_tool(db: AsyncSession, user_id: int, name: str,
-                   arguments: dict[str, Any]) -> dict[str, Any]:
+                   arguments: dict[str, Any],
+                   today: date | None = None) -> dict[str, Any]:
     """Execute one tool call. Errors are returned, never raised.
 
     A tool that raises would abort the whole answer; a tool that reports its
@@ -341,7 +368,9 @@ async def run_tool(db: AsyncSession, user_id: int, name: str,
     if fn is None:
         return {"error": f"no such tool: {name}"}
     try:
-        return await fn(db, user_id, **(arguments or {}))
+        # `today` is passed by the loop, never by the model: a model does not
+        # know the date and must not be asked to supply one.
+        return await fn(db, user_id, today=today, **(arguments or {}))
     except TypeError as exc:
         return {"error": f"bad arguments for {name}: {exc}"}
     except Exception as exc:  # noqa: BLE001
