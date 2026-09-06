@@ -112,3 +112,52 @@ def test_a_real_dish_is_not_mistaken_for_a_shell(text):
     from app.services.nutrient_estimator import _is_placeholder
 
     assert not _is_placeholder(text)
+
+
+def test_a_tin_of_fish_is_not_a_drinks_can():
+    """"1 can of Titus Sardines" parsed as 355 g — a soda can — instead of a
+    ~120 g tin. That was one half of a meal that stored 3,892 kcal."""
+    from app.services.meal_parser import parse_meal_text
+
+    for text, ceiling in (("1 can of Titus Sardines", 200),
+                          ("1 can of mackerel", 200),
+                          ("1 can of coke", 400)):
+        grams = sum(c.qty_g or 0 for c in parse_meal_text(text))
+        if "coke" in text:
+            assert grams > 300, "a drinks can is still a drinks can"
+        else:
+            assert grams <= ceiling, f"{text!r} parsed as {grams} g"
+
+
+def test_the_writer_consults_the_estimators_own_verdict():
+    """The estimator judges its own output — energy density at the meal level,
+    category bands per component — and the background writer IGNORED the
+    verdict, so a flagged estimate was stored as fact: 3,892 kcal with 394 g of
+    fat, more fat than the meal weighed.
+
+    A static check, because the write happens in its own session and a
+    behavioural test of it proves less than reading the gate is there at all.
+    """
+    import inspect
+
+    from app.services import nutrient_enrichment
+
+    src = inspect.getsource(nutrient_enrichment)
+    assert 'meal.get("believable") is False' in src, (
+        "nutrient_enrichment must refuse an estimate the estimator flagged")
+    gate = src.index('meal.get("believable") is False')
+    after = src[gate:gate + 400]
+    assert 'nutrient_status = "failed"' in after
+    assert "return" in after, "a flagged estimate must not fall through to storage"
+
+
+@pytest.mark.asyncio
+async def test_an_impossible_meal_is_flagged_by_the_estimator(db):
+    """The other half of the gate: the verdict has to be produced at all.
+    Sardines resolving to ~900 kcal/100 g is denser than pure fat."""
+    from app.services import plausibility
+
+    # review_meal is what the writer's gate ultimately rests on.
+    assert plausibility.review_meal(270.0, {"calories": 3892.0}), (
+        "a meal denser than pure fat must be flagged")
+    assert not plausibility.review_meal(270.0, {"calories": 400.0})
