@@ -269,13 +269,16 @@ def test_a_reversed_range_is_repaired_not_returned_empty():
     assert s < e, "a backwards range would silently return nothing"
 
 
-def test_a_garbled_date_falls_back_instead_of_raising():
-    from datetime import date
+def test_a_garbled_date_is_now_refused_rather_than_defaulted():
+    """This test previously asserted the OPPOSITE — that an unreadable date
+    quietly fell back to a default. That fallback is what turned "yesterday"
+    into a seven-day window whose potassium total was reported as one day's."""
+    import pytest as _pytest
 
     from app.services.record_tools import _window
 
-    s, e = _window("not-a-date", None)
-    assert e == date.today()
+    with _pytest.raises(ValueError):
+        _window("not-a-date", None)
 
 
 # ── a tool must report its failure, never abort the answer ─────────────
@@ -373,7 +376,6 @@ def test_every_field_a_tool_reads_exists_on_its_model():
     from app.services import record_tools as rt
 
     for model, fields in (
-        (NutritionLog, rt.MEAL_FIELDS),
         (VitalsLog, rt.VITALS_FIELDS),
         (BowelMovement, rt.BOWEL_FIELDS),
         (VomitingLog, rt.VOMIT_FIELDS),
@@ -792,3 +794,220 @@ async def test_the_loop_passes_the_patients_date_to_every_tool(monkeypatch):
     await ac.answer_with_tools(None, 1, "sys", [{"role": "user", "content": "q"}],
                                today=given)
     assert seen["today"] == given
+
+
+# ── the whole nutrient panel, not a curated fourteen ───────────────────
+
+def test_meals_expose_every_nutrient_column_on_the_model():
+    """The tool used to return a hand-written 14-nutrient allowlist while
+    NutritionLog has 58 columns, so 44 were dropped before the model saw them —
+    `vitamin_b9_folate_mcg` among them, populated on 1,215 of 1,286 rows. Asked
+    about folate, the assistant said the breakdown "does not include folic acid
+    data" on a patient with chronic anaemia. The number was in the row.
+    """
+    from app.models.nutrition import NutritionLog
+    from app.services.record_tools import _nutrient_columns
+
+    fields = set(_nutrient_columns(NutritionLog))
+    assert "vitamin_b9_folate_mcg" in fields, "folate is dropped again"
+    for nutrient in ("vitamin_c_mg", "zinc_mg", "selenium_mcg", "iodine_mcg",
+                     "choline_mg", "vitamin_d_iu", "vitamin_k_mcg", "copper_mg",
+                     "omega3_g", "caffeine_mg"):
+        assert nutrient in fields, f"{nutrient} is not reaching the assistant"
+    assert len(fields) > 40, f"only {len(fields)} nutrients exposed"
+
+
+def test_no_identity_or_bookkeeping_column_is_served_as_a_nutrient():
+    from app.models.nutrition import NutritionLog
+    from app.services.record_tools import _nutrient_columns
+
+    fields = set(_nutrient_columns(NutritionLog))
+    for junk in ("id", "user_id", "log_date", "food_name", "created_at",
+                 "recipe_url", "food_image_uris", "nutrient_status"):
+        assert junk not in fields
+
+
+@pytest.mark.asyncio
+async def test_a_named_nutrient_is_answered_from_wherever_it_lives(db):
+    """"Folic acid" must find the value whether it sits in a column or in the
+    extended JSON panel. The screenshot that started this said "the nutrient
+    breakdown provided does not include folic acid data" — on a patient with
+    chronic anaemia, with the figure in the row the whole time."""
+    from datetime import date
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services.record_tools import get_meals
+
+    user = User(email="panel@alafia.app", hashed_password="x", full_name="P")
+    db.add(user)
+    await db.flush()
+    db.add(NutritionLog(
+        user_id=user.id, log_date=date.today(), meal_type="breakfast",
+        food_name="Fortified cereal", calories=200.0,
+        vitamin_b9_folate_mcg=180.0, nutrient_status="done",
+        extended_nutrients={"folate_dfe_mcg": 306.0, "food_folate_mcg": 22.8,
+                            "lycopene_mcg": 45.6},
+    ))
+    await db.flush()
+
+    out = await get_meals(db, user.id, nutrients=["folic acid"])
+    meal = out["meals"][0]
+    assert meal["vitamin_b9_folate_mcg"] == 180.0, "column value missing"
+    assert meal["folate_dfe_mcg"] == 306.0, "extended panel value missing"
+    assert out["nutrient_reference"]["vitamin_b9_folate_mcg"][
+        "general_adult_reference"] == 400, (
+        "a reference figure must travel with the value, or the model can only "
+        "say 'your daily aim for folate is not specified'")
+
+
+@pytest.mark.asyncio
+async def test_a_targeted_question_does_not_haul_back_the_whole_panel(db):
+    """A question about folate should fetch folate. The full panel is 101
+    fields a meal and ~48k characters for a week."""
+    from datetime import date
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services.record_tools import get_meals
+
+    user = User(email="narrow@alafia.app", hashed_password="x", full_name="N")
+    db.add(user)
+    await db.flush()
+    db.add(NutritionLog(
+        user_id=user.id, log_date=date.today(), meal_type="lunch",
+        food_name="Rice", calories=300.0, potassium_mg=400.0, zinc_mg=2.0,
+        vitamin_b9_folate_mcg=50.0, nutrient_status="done",
+        extended_nutrients={"lycopene_mcg": 12.0, "leucine_g": 0.5},
+    ))
+    await db.flush()
+
+    meal = (await get_meals(db, user.id, nutrients=["folate"]))["meals"][0]
+    assert "vitamin_b9_folate_mcg" in meal
+    assert "lycopene_mcg" not in meal, "unrequested nutrients were included"
+    assert "zinc_mg" not in meal
+
+
+@pytest.mark.asyncio
+async def test_tracked_but_absent_is_not_the_same_as_untracked(db):
+    """Two different facts, and the model must be able to say which: "we have no
+    zinc figure for these meals" vs "we do not track unobtainium" (§3aa)."""
+    from datetime import date
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services.record_tools import get_meals
+
+    user = User(email="absent@alafia.app", hashed_password="x", full_name="A")
+    db.add(user)
+    await db.flush()
+    db.add(NutritionLog(user_id=user.id, log_date=date.today(), meal_type="lunch",
+                        food_name="Rice", calories=300.0, nutrient_status="done"))
+    await db.flush()
+
+    out = await get_meals(db, user.id, nutrients=["zinc", "unobtainium"])
+    assert "zinc_mg" in out["tracked_but_no_value"]
+    assert out["not_tracked"] == ["unobtainium"]
+
+
+def test_the_nutrient_vocabulary_is_the_shared_catalog():
+    """116 nutrients with their USDA ids, names, units and RDAs. Matching
+    against raw column names instead would miss the 75 that live in the
+    extended panel, and would not know what "folic acid" is called."""
+    from app.core.nutrition_data import get_nutrient_catalog
+    from app.services.record_tools import _match_nutrients
+
+    assert len(get_nutrient_catalog()) >= 116
+    hits, misses, ref, _fam = _match_nutrients(["folic acid"])
+    assert "folic_acid_mcg" in hits and not misses
+    hits, _, _, _ = _match_nutrients(["vitamin d"])
+    assert any("vitamin_d" in h for h in hits)
+
+
+# ── a bad date must not become a different window ──────────────────────
+
+def test_relative_days_are_understood():
+    """Claude said "yesterday" on the very first real question asked of this
+    tool. The words are what models actually write."""
+    from datetime import date
+
+    from app.services.record_tools import _window
+
+    today = date(2026, 9, 6)
+    assert _window("yesterday", "yesterday", today) == (date(2026, 9, 5),) * 2
+    assert _window("today", "today", today) == (today, today)
+    assert _window("3 days ago", "today", today) == (date(2026, 9, 3), today)
+
+
+def test_an_unreadable_date_is_refused_not_silently_widened():
+    """THE bug: "yesterday" fell through to a default and produced a SEVEN-DAY
+    window. The model summed 20 meals and reported 7,699 mg of potassium as one
+    day's intake. A bad argument became a confident wrong clinical number —
+    worse than an error, which the model can act on."""
+    from datetime import date
+
+    import pytest as _pytest
+
+    from app.services.record_tools import _window
+
+    with _pytest.raises(ValueError, match="not a date"):
+        _window("last Tuesday-ish", None, date(2026, 9, 6))
+
+
+@pytest.mark.asyncio
+async def test_the_tool_returns_that_refusal_to_the_model():
+    from app.services.record_tools import run_tool
+
+    out = await run_tool(None, 1, "get_meals", {"start_date": "sometime last week"})
+    assert "error" in out and "not a date" in out["error"]
+    assert "yesterday" in out["error"], "the error must name the accepted forms"
+
+
+def test_a_single_date_does_not_open_a_week():
+    """Given only a start, the old code walked back _DEFAULT_DAYS from a
+    default end. One named day means that day."""
+    from datetime import date
+
+    from app.services.record_tools import _window
+
+    today = date(2026, 9, 6)
+    assert _window("2026-09-01", None, today) == (date(2026, 9, 1),) * 2
+
+
+def test_a_generic_rda_is_never_presented_as_the_patients_limit():
+    """Potassium's adult RDA is 4,700 mg; this patient's computed limit is
+    2,800 mg max. Handing the model a field called "rda" invited it to quote
+    the wrong one to a renal patient — it did exactly that in testing."""
+    from app.services.record_tools import _match_nutrients
+
+    _, _, ref, _fam = _match_nutrients(["potassium"])
+    entry = ref["potassium_mg"]
+    assert "rda" not in entry, "a bare 'rda' reads as the patient's own target"
+    assert entry["general_adult_reference"] == 4700
+
+
+@pytest.mark.asyncio
+async def test_a_family_with_a_value_is_not_reported_as_missing(db):
+    """Asking for "folate" returns four USDA measurements and three are usually
+    NULL. Listing them individually put "tracked_but_no_value: 3" in front of
+    the model beside a perfectly good 306 mcg folate figure — and it answered
+    "there is no folic-acid target recorded"."""
+    from datetime import date
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services.record_tools import get_meals
+
+    user = User(email="family@alafia.app", hashed_password="x", full_name="F")
+    db.add(user)
+    await db.flush()
+    db.add(NutritionLog(user_id=user.id, log_date=date.today(), meal_type="lunch",
+                        food_name="Greens", calories=100.0,
+                        vitamin_b9_folate_mcg=92.0, nutrient_status="done"))
+    await db.flush()
+
+    out = await get_meals(db, user.id, nutrients=["folate"])
+    assert out["meals"][0]["vitamin_b9_folate_mcg"] == 92.0
+    assert "tracked_but_no_value" not in out, (
+        "the folate family has a value; its empty siblings must not read as "
+        "'no folate data'")

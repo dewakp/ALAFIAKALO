@@ -1181,6 +1181,64 @@ and tool path is fixed. 23 of the rest are window cutoffs where a day's shift is
 harmless, but about a dozen mean "today" exactly — `wellness.py`, `insights.py`,
 `mental_health.py`, `api/users.py` — and carry the identical defect.
 
+### Every nutrient is reachable, and the question decides which
+
+Asked "did I exceed my potassium quota or folic acid target yesterday?", the
+assistant answered *"the nutrient breakdown provided does not include folic acid
+data"* — to a patient with chronic anaemia, for whom folate is the nutrient that
+matters. The figure was in the row the whole time.
+
+`get_meals` had a hand-written allowlist of fourteen "important" nutrients.
+NutritionLog has 58 columns and the extended JSON panel carries 75 more, so the
+tool discarded 44 fields — including `vitamin_b9_folate_mcg`, populated on
+**1,215 of 1,286 rows** — before the model could see them. A curated list is a
+decision about which nutrients matter, taken months earlier by someone who could
+not know the question.
+
+- **The vocabulary is `app/core/nutrition_data.py`** — the same 116-nutrient
+  USDA catalog the estimator and the diary use, with each nutrient's FoodData
+  Central id, name, unit and RDA. Matching runs against NAMES too, so "folic
+  acid" resolves without the model knowing our column names.
+- **The question decides the payload, not the schema.** Returning all 116 is the
+  opposite mistake: 101 fields a meal, ~48k characters for a week, cut mid-JSON
+  by the loop's cap. `nutrients=["folate"]` returns folate — 2k characters.
+  Omitting it returns a core set plus a note saying anything else can be asked
+  for by name.
+- **`family` groups the same nutrient measured different ways.** USDA reports
+  folate four times (B9 1177, DFE 1190, Folic Acid 1186, Food Folate 1187) and
+  the 400 µg RDA sits on two of them. A request for "folic acid" that returned
+  `folic_acid_mcg` alone would answer **7 µg against a 400 µg target** while
+  total folate was 108 µg. The grouping lives in the catalog beside the USDA
+  ids, not as a table inside a consumer.
+- **Report absence per FAMILY.** Three of folate's four measurements are usually
+  NULL, and listing them individually put "tracked_but_no_value: 3" in front of
+  the model beside a good 306 µg figure — which it read as no folate data and
+  answered "there is no folic-acid target recorded".
+
+> ⚠️ **A generic RDA must never be handed over as the patient's target.**
+> Potassium's adult RDA is 4,700 mg; this patient's computed limit is 2,800 mg
+> max. A field called `rda` in a tool result invited the model to quote the
+> wrong one to a renal patient — and it did, in testing. It is named
+> `general_adult_reference`, and the result says plainly that DAILY NUTRIENT
+> TARGETS governs where a personal figure exists. Where none does — folate is
+> not among the 15 computed targets — the model states the general figure and
+> labels it, rather than stopping at "your daily aim is not specified".
+
+> **An unreadable date silently became a different WINDOW.** Claude answered
+> "yesterday" as `start_date: "yesterday"`; `_window` could not parse it, fell
+> back to a default, and returned SEVEN DAYS. The model summed 20 meals and
+> reported **7,699 mg of potassium as one day's intake**. Relative words are now
+> understood ("today", "yesterday", "N days ago") and anything else is REFUSED
+> by name. A bad argument that becomes a wrong clinical number is worse than an
+> error, which the model can act on and retry.
+
+> **The model must never report absence it did not check.** `gpt-oss:20b`
+> answered "I don't have a nutrition log entry for yesterday" without calling a
+> tool at all — on a day holding six meals. The prompt now states outright that
+> the context contains NO logs, so any claim about what is or isn't recorded is
+> unfounded until a tool returns it. That alone changed the dev model from
+> refusing to fetching.
+
 ### The answer streams; the rounds cannot
 
 The tool ROUNDS cannot be streamed away — the model must read each result before
