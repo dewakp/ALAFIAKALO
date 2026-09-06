@@ -94,3 +94,21 @@ def test_extract_boost_label():
 def test_extract_returns_none_for_normal_meal():
     assert extract_nutrition_facts("2 eggs and a slice of toast") is None
     assert extract_nutrition_facts("0.75 cups of rice and beans, suya") is None
+
+
+@pytest.mark.parametrize("text", ["unknown", "Unknown", "  unknown  ", "?", "n/a", "unspecified"])
+def test_shell_entries_never_yield_fabricated_calories(text):
+    """"unknown" is what the importer writes for a meal with no description —
+    16 rows on this database. It reached USDA and the AI tier as if it were a
+    dish, and a shell entry that acquires calories puts them inside a day's
+    totals where nothing distinguishes them from food the patient ate."""
+    from app.services.nutrient_estimator import _is_placeholder
+
+    assert _is_placeholder(text)
+
+
+@pytest.mark.parametrize("text", ["unknown pepper soup", "chin chin", "eba"])
+def test_a_real_dish_is_not_mistaken_for_a_shell(text):
+    from app.services.nutrient_estimator import _is_placeholder
+
+    assert not _is_placeholder(text)

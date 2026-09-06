@@ -1239,6 +1239,81 @@ not know the question.
 > unfounded until a tool returns it. That alone changed the dev model from
 > refusing to fetching.
 
+### Readings, periods and grades: three ways a true number misleads
+
+- **A blood pressure is only interpretable with its context.** `get_vitals` read
+  `vitals_logs` alone — 41 rows on a patient who also has **2,013 dialysis
+  sessions** carrying pre/post pairs and **16,236 intradialytic readings**. A
+  week that held five sessions returned NOTHING. The four sources
+  (`self_recorded`, `pre_dialysis`, `post_dialysis`, `intradialytic`) are now
+  returned apart and must never be averaged together: post runs well below pre
+  by design, and for intradialytic the **nadir** is the finding, not the mean —
+  a session ending below 90 systolic is intradialytic hypotension that a mean
+  hides. Readings below 90 are counted explicitly.
+- **A count over a window is not a daily rate.** `doses_in_window` and
+  `doses_per_day` travel together with `window_days`, because "489 doses" reads
+  as a regimen otherwise. Same for eliminations and vitals.
+- **A percentage with no agreed wording gets whatever adjective the model
+  reaches for.** It called 63% of the folate target "Excellent" on a patient
+  with chronic anaemia. `status` is now computed beside the figure —
+  `at_or_above_reference` / `slightly_below` / `below` / `well_below` /
+  `very_low` — and the payload says a shortfall is not a success.
+
+### A wrong learned entry is worse than none
+
+`learned_food_nutrients` is shared and preferred over USDA and AI, so one bad
+row is served to every patient forever. The cache had learned Boost Glucose
+Control from OCR'd marketing prose and got it wrong three ways at once:
+
+    food_name_normalized  "boost glucose control contains"  ← never matches a log
+    protein_g             2.9591                            ← the FAT value
+    potassium/phosphorus  absent                            ← the two figures a
+                                                               dialysis patient
+                                                               is managed on
+
+That product appears on one record with **fifteen different nutrient profiles**,
+from 0 to 558 kcal for the same 8 fl oz carton. `scripts/seed_label_nutrients.py`
+writes a product from its printed label, which is authoritative.
+
+> **Store per-100 GRAMS, not per-100 mL.** The estimator scales by mass, and
+> `meal_parser` correctly uses 30.6 g/fl oz for supplement drinks (~1.03 g/mL,
+> denser than water). Seeding the label per-100 mL left every value 3.3% high —
+> uniformly, so it looked like a plausible estimate rather than a basis error:
+> 196.3 kcal against a printed 190, and 322.8 mg of phosphorus against 312.5.
+> Only the label caught it. On the gram basis it now returns 190 / 16 / 250 /
+> 312.5 / 200 / 350 exactly.
+
+> **Percent-DV micronutrients are deliberately NOT back-computed** from a label.
+> A %DV depends on which Daily Value edition is assumed, and a derived number
+> that looks measured is how a wrong figure becomes authoritative. Phosphorus is
+> the one exception — no mass is printed, and it is the number that matters most
+> here — so it is derived from the FDA DV and marked as derived.
+
+### Repairing estimates: what heals, and what does not
+
+`scripts/reestimate_nutrition.py` re-runs estimation over meals whose figures
+never resolved. Dry run by default; it writes clinical records.
+
+- **A row left at 0.0 by a FAILED estimate is not a value the patient chose.**
+  `_enrich` fills blanks only — correctly, on the live path — so 58 meals on one
+  record could never heal: the estimate was recomputed every time and discarded,
+  and the row was stamped `done`. `overwrite_zeros` is opt-in and used only by
+  the repair pass.
+- **Select on absence of VALUES, never on `nutrient_status`.** "skipped" carries
+  real figures on 902 of 960 production rows; selecting on status would re-run
+  nearly everything and call complete data broken.
+- **A shell entry has nothing to resolve.** "unknown" — 16 rows — reached USDA
+  and the AI tier as if it were a dish. `_PLACEHOLDER_RE` covers it now; the
+  repair reports shells separately rather than counting them as work outstanding.
+
+⚠️ **This pass does NOT fix implausible EXISTING values, and they are the worse
+problem.** One record holds **13 meals over 2,000 kcal**, 12 of them pre-dating
+any repair — including **3,892 kcal for "1 brioche bun, 1 can of Titus Sardines,
+1 boiled egg"** carrying 19.5 g of protein, which is internally inconsistent as
+well as impossible. They have values, so nothing selects them, and every daily
+total and AI answer for those days is inflated. Detecting them is a different
+job from filling blanks; `services/plausibility.py` already judges exactly this.
+
 ### The answer streams; the rounds cannot
 
 The tool ROUNDS cannot be streamed away — the model must read each result before

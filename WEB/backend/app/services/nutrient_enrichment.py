@@ -42,10 +42,19 @@ def _enrichment_timeout() -> float:
     return float(settings.NUTRIENT_ENRICHMENT_TIMEOUT)
 
 
-async def enrich_log(log_id: int) -> None:
-    """Estimate and store nutrients for an already-saved log. Never raises."""
+async def enrich_log(log_id: int, *, overwrite_zeros: bool = False) -> None:
+    """Estimate and store nutrients for an already-saved log. Never raises.
+
+    `overwrite_zeros` is for the one-off repair pass only (see
+    `scripts/reestimate_nutrition.py`) and defaults OFF. On the live path a
+    stored value always outranks an estimate; but a row left at 0.0 by an
+    estimation that failed is not a value the patient chose, and treating it as
+    one is why 58 meals on a single record could never heal: the estimate was
+    computed each time and then discarded, and the row was stamped `done`.
+    """
     try:
-        await asyncio.wait_for(_enrich(log_id), timeout=_enrichment_timeout())
+        await asyncio.wait_for(_enrich(log_id, overwrite_zeros=overwrite_zeros),
+                               timeout=_enrichment_timeout())
     except asyncio.TimeoutError:
         logger.warning("Nutrient enrichment timed out for log %s", log_id)
         await _mark(log_id, "failed")
@@ -54,7 +63,7 @@ async def enrich_log(log_id: int) -> None:
         await _mark(log_id, "failed")
 
 
-async def _enrich(log_id: int) -> None:
+async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
     from app.core.nutrition_data import DB_COLUMN_KEYS
     from app.services.nutrient_estimator import estimate_meal_nutrients, estimate_nutrients
 
@@ -101,9 +110,13 @@ async def _enrich(log_id: int) -> None:
             return
 
         # Only fill blanks: anything the user typed themselves outranks an estimate.
+        # A repair pass may also replace a stored 0.0 — see `overwrite_zeros`.
         column_keys = set(DB_COLUMN_KEYS)
         for key in column_keys:
-            if getattr(log, key, None) is None and key in nutrients:
+            if key not in nutrients:
+                continue
+            current = getattr(log, key, None)
+            if current is None or (overwrite_zeros and current == 0):
                 setattr(log, key, nutrients[key])
 
         extended = dict(log.extended_nutrients or {})
