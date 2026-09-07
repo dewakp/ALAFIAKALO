@@ -340,6 +340,12 @@ private fun FDARecallCard(item: FDARecallItem) {
                 Spacer(Modifier.height(4.dp))
                 Text(it, style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // The list of postal codes stays — it is exact, and a screen
+                // reader can read it. The map is what makes it graspable.
+                if (item.nationwide || item.states.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    RecallCoverageMap(states = item.states, nationwide = item.nationwide)
+                }
             }
             if (item.countries.size > 1) {
                 Text("Countries: ${item.countries.joinToString(", ")}",
