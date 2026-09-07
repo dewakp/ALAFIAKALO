@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Search, AlertTriangle, Clock, RefreshCw, MapPin } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { summariseRecall } from '../utils/recallText';
 import USCoverageMap from '../components/USCoverageMap';
-import WorldCoverageMap, { flagEmoji, COUNTRY_NAMES } from '../components/WorldCoverageMap';
+import { flagEmoji, COUNTRY_NAMES } from '../components/WorldCoverageMap';
 
 const classColors = {
   'Class I': { bg: '#fee2e2', color: '#ef4444', label: 'Class I — Dangerous' },
@@ -143,17 +144,31 @@ export default function FDARecalls() {
                 </div>
                 {mapMode === 'aggregate' ? (
                   <>
-                    <div style={{ fontSize: '.82rem', color: 'var(--color-text-secondary)', marginBottom: '.5rem' }}>
-                      {[...countries].map((c) => `${flagEmoji(c)} ${COUNTRY_NAMES[c] || c}`).join(' · ') || '—'}
-                      {' '}— {results.results.length} recall{results.results.length !== 1 ? 's' : ''}
+                    {/* A world map to say "North America and the UK" is a lot of
+                        screen for four facts the line below already states. The
+                        countries are chips; the map is gone. */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.4rem', alignItems: 'center' }}>
+                      {[...countries].map((c) => (
+                        <span key={c} style={{
+                          padding: '3px 10px', borderRadius: 12, fontSize: '.8rem', fontWeight: 600,
+                          background: 'var(--color-bg-secondary, #f1f5f9)',
+                        }}>
+                          {flagEmoji(c)} {COUNTRY_NAMES[c] || c}
+                        </span>
+                      ))}
+                      <span style={{ fontSize: '.8rem', color: 'var(--color-text-secondary)' }}>
+                        {results.results.length} recall{results.results.length !== 1 ? 's' : ''}
+                      </span>
                     </div>
-                    <WorldCoverageMap covered={[...countries]} />
                     {usCovered && (states.size > 0 || nationwide) && (
-                      <div style={{ marginTop: '1rem' }}>
+                      <div style={{ marginTop: '.75rem' }}>
                         <div style={{ fontSize: '.8rem', fontWeight: 600, marginBottom: '.4rem' }}>
                           🇺🇸 United States — {nationwide ? 'Nationwide' : `${states.size} state${states.size !== 1 ? 's' : ''}`}
                         </div>
-                        <USCoverageMap covered={[...states]} nationwide={nationwide} />
+                        {/* Only drawn when it DISTINGUISHES something. Fifty
+                            highlighted tiles under the word "Nationwide" is a
+                            picture of a sentence. */}
+                        {!nationwide && <USCoverageMap covered={[...states]} nationwide={false} />}
                       </div>
                     )}
                   </>
@@ -172,7 +187,7 @@ export default function FDARecalls() {
               return (
                 <div key={i} className="card" style={{ padding: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.75rem' }}>
-                    <h4 style={{ flex: 1 }}>{item.product_description}</h4>
+                    <h4 style={{ flex: 1 }}>{summariseRecall(item.product_description).title}</h4>
                     <div style={{ display: 'flex', gap: '.4rem', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                       <span style={{
                         padding: '2px 10px', borderRadius: 12, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
@@ -195,6 +210,25 @@ export default function FDARecalls() {
                     <p style={{ fontSize: '0.9rem' }}>{item.reason}</p>
                   </div>
 
+                  {(() => {
+                    // The packaging list is what a patient checks their carton
+                    // against, so it is kept — as a list, behind a disclosure,
+                    // instead of a wall of bold text in the heading.
+                    const { items } = summariseRecall(item.product_description);
+                    if (!items.length) return null;
+                    return (
+                      <details style={{ marginBottom: '0.75rem' }}>
+                        <summary style={{ cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
+                          Packaging &amp; UPCs ({items.length})
+                        </summary>
+                        <ul style={{ margin: '.5rem 0 0', paddingLeft: '1.1rem', fontSize: '0.82rem',
+                                     color: 'var(--color-text-secondary)', lineHeight: 1.55 }}>
+                          {items.map((line, n) => <li key={n}>{line.replace(/^\d{1,2}\.\s*/, '')}</li>)}
+                        </ul>
+                      </details>
+                    );
+                  })()}
+
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                     <div><strong>Source:</strong> {flagEmoji(item.country)} {item.source}</div>
                     {item.recalling_firm && <div><strong>Firm:</strong> {item.recalling_firm}</div>}
@@ -214,7 +248,7 @@ export default function FDARecalls() {
                     if (!showUS && cc.length === 0) return null;
                     return (
                       <div style={{ marginTop: '.75rem' }}>
-                        {showUS && <USCoverageMap covered={item.states || []} nationwide={item.nationwide} />}
+                        {showUS && !item.nationwide && <USCoverageMap covered={item.states || []} nationwide={false} />}
                         {cc.length > 0 && (
                           <div style={{ marginTop: showUS ? '.5rem' : 0, fontSize: '.85rem' }}>
                             <strong>Countries:</strong> {cc.map((c) => `${flagEmoji(c)} ${COUNTRY_NAMES[c] || c}`).join('  ·  ')}
