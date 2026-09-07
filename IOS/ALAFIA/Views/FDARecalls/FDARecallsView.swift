@@ -224,12 +224,20 @@ private struct FDARecallRow: View {
     }
 
     /// Geographic coverage: nationwide flag, US states, countries reached.
+    ///
+    /// The states also get a real map. A comma-separated list of eleven
+    /// postal codes is not something anyone can picture — "is this near me?"
+    /// is the only question this section exists to answer, and a map answers
+    /// it at a glance where "AL, AR, FL, GA, KY, LA, MS, NC, SC, TN, VA" does
+    /// not. MapKit is native, already used in PhysiciansView, and needs no key.
     @ViewBuilder
     private var coverageRow: some View {
         if item.nationwide == true {
             detailRow("map", "Coverage: Nationwide (US)")
+            RecallCoverageMap(states: [], nationwide: true)
         } else if let states = item.states, !states.isEmpty {
             detailRow("map", "Coverage: \(states.joined(separator: ", "))")
+            RecallCoverageMap(states: states, nationwide: false)
         }
         if let countries = item.countries, countries.count > 1 {
             detailRow("globe", "Countries: \(countries.joined(separator: ", "))")
@@ -266,5 +274,96 @@ private struct FDARecallRow: View {
             Text(text)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+
+// MARK: - Coverage map
+
+import MapKit
+
+/// The states a recall reached, on a real map.
+///
+/// Geometry is the SAME file the web map draws (`/us-states.geojson`), fetched
+/// from the app's own origin rather than bundled: adding a resource here means
+/// editing the Xcode project file, and one asset served from one place cannot
+/// drift into two versions of the truth.
+///
+/// It degrades quietly. If the fetch fails there is no map — the text line
+/// above it still states the coverage, so nothing is lost but the picture.
+/// An empty map frame would be worse than none: it reads as "no coverage".
+struct RecallCoverageMap: View {
+    let states: [String]
+    let nationwide: Bool
+
+    @State private var shapes: [MKPolygon] = []
+    @State private var failed = false
+
+    /// Fits the lower 48; Alaska and Hawaii pull the camera far enough that
+    /// the covered states become invisible, and this is a thumbnail.
+    private static let contiguous = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 39.5, longitude: -98.0),
+        span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 60))
+
+    var body: some View {
+        Group {
+            if failed || (shapes.isEmpty && !nationwide) {
+                EmptyView()
+            } else {
+                Map(initialPosition: .region(Self.contiguous), interactionModes: []) {
+                    ForEach(Array(shapes.enumerated()), id: \.offset) { _, polygon in
+                        MapPolygon(polygon)
+                            .foregroundStyle(Color.orange.opacity(0.55))
+                            .stroke(Color.orange, lineWidth: 0.5)
+                    }
+                }
+                .frame(height: 170)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .allowsHitTesting(false)
+                .accessibilityLabel(nationwide
+                    ? "Distributed nationwide"
+                    : "Distributed in \(states.count) states")
+            }
+        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        guard shapes.isEmpty, !failed else { return }
+        guard let url = URL(string: "\(AppConfig.webBaseURL)/us-states.geojson") else {
+            failed = true
+            return
+        }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let wanted = Set(states.map { $0.uppercased() })
+            let features = try MKGeoJSONDecoder().decode(data)
+                .compactMap { $0 as? MKGeoJSONFeature }
+
+            var found: [MKPolygon] = []
+            for feature in features {
+                guard let code = stateCode(of: feature) else { continue }
+                guard nationwide || wanted.contains(code) else { continue }
+                for geometry in feature.geometry {
+                    if let polygon = geometry as? MKPolygon {
+                        found.append(polygon)
+                    } else if let multi = geometry as? MKMultiPolygon {
+                        found.append(contentsOf: multi.polygons)
+                    }
+                }
+            }
+            shapes = found
+        } catch {
+            failed = true
+        }
+    }
+
+    /// The USPS code is baked into the asset by
+    /// `scripts/build_us_states_geojson.py`, so no lookup table lives here.
+    private func stateCode(of feature: MKGeoJSONFeature) -> String? {
+        guard let data = feature.properties,
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        return (object["code"] as? String)?.uppercased()
     }
 }

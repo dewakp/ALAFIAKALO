@@ -1,60 +1,129 @@
 /**
- * US coverage tile-grid map (statebins style). Dependency-free + offline — each
- * state is a labelled square in an approximate geographic layout; covered states
- * are highlighted. Used to overlay the regions a recall reaches.
+ * US coverage map — real state geometry, no map library, works offline.
+ *
+ * This was a grid of labelled squares ("statebins"). Squares are legible but
+ * they are not a map: they cannot show that a recall covers the Gulf coast, or
+ * the Pacific Northwest, or everything east of the Mississippi — which is the
+ * only question a coverage map exists to answer.
+ *
+ * Alaska and Hawaii are drawn as INSETS, as every printed US map does. Left in
+ * place they own the projection: Alaska's Aleutians cross the antimeridian
+ * (this file reaches longitude -188.9), so a naive fit squeezes the contiguous
+ * 48 into a third of the frame and puts the states anyone is looking for into
+ * an unreadable strip.
  */
+import { useEffect, useState } from 'react';
 
-// [col, row] for each state — a verified, overlap-free US tile grid (11×8).
-const GRID = {
-  AK: [0, 0], ME: [10, 0],
-  VT: [9, 1], NH: [10, 1],
-  WA: [0, 2], ID: [1, 2], MT: [2, 2], ND: [3, 2], MN: [4, 2], IL: [5, 2], WI: [6, 2], MI: [7, 2], NY: [8, 2], RI: [9, 2], MA: [10, 2],
-  OR: [0, 3], NV: [1, 3], WY: [2, 3], SD: [3, 3], IA: [4, 3], IN: [5, 3], OH: [6, 3], PA: [7, 3], NJ: [8, 3], CT: [9, 3],
-  CA: [0, 4], UT: [1, 4], CO: [2, 4], NE: [3, 4], MO: [4, 4], KY: [5, 4], WV: [6, 4], VA: [7, 4], MD: [8, 4], DE: [9, 4],
-  AZ: [1, 5], NM: [2, 5], KS: [3, 5], AR: [4, 5], TN: [5, 5], NC: [6, 5], SC: [7, 5], DC: [8, 5],
-  OK: [3, 6], LA: [4, 6], MS: [5, 6], AL: [6, 6], GA: [7, 6],
-  HI: [0, 7], TX: [3, 7], FL: [8, 7],
-};
+// Albers-style conic for the contiguous 48. A plain lon/lat plot leans the
+// country visibly — Maine ends up level with Washington — because a degree of
+// longitude shortens as you go north. This costs ten lines and looks right.
+const LAT0 = (23 * Math.PI) / 180;   // standard parallels
+const LAT1 = (45 * Math.PI) / 180;
+const LON0 = (-96 * Math.PI) / 180;  // central meridian
+const N = Math.sin(LAT0) + Math.sin(LAT1) === 0
+  ? Math.sin(LAT0)
+  : (Math.sin(LAT0) + Math.sin(LAT1)) / 2;
+const C = Math.cos(LAT0) ** 2 + 2 * N * Math.sin(LAT0);
+const RHO0 = Math.sqrt(C - 2 * N * Math.sin((39 * Math.PI) / 180)) / N;
 
-const CELL = 34;
-const GAP = 3;
-const COLS = 11;
-const ROWS = 8;
+export function albers([lon, lat]) {
+  const theta = N * ((lon * Math.PI) / 180 - LON0);
+  const rho = Math.sqrt(C - 2 * N * Math.sin((lat * Math.PI) / 180)) / N;
+  // y grows DOWNWARD in SVG, so north must map to a smaller y. The textbook
+  // form (RHO0 - rho·cosθ) gives the opposite and renders the country upside
+  // down — Washington below California.
+  return [rho * Math.sin(theta), rho * Math.cos(theta) - RHO0];
+}
+
+/** Flatten Polygon / MultiPolygon rings to arrays of [lon,lat]. */
+function rings(geometry) {
+  if (!geometry) return [];
+  return geometry.type === 'Polygon' ? geometry.coordinates
+    : geometry.type === 'MultiPolygon' ? geometry.coordinates.flat()
+    : [];
+}
+
+function fit(features, project, box) {
+  const pts = features.flatMap((f) => rings(f.geometry).flat().map(project));
+  if (!pts.length) return null;
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
+  const [y0, y1] = [Math.min(...ys), Math.max(...ys)];
+  const k = Math.min(box.w / (x1 - x0 || 1), box.h / (y1 - y0 || 1));
+  return (pt) => {
+    const [x, y] = project(pt);
+    return [
+      box.x + (x - x0) * k + (box.w - (x1 - x0) * k) / 2,
+      box.y + (y - y0) * k + (box.h - (y1 - y0) * k) / 2,
+    ];
+  };
+}
+
+function pathFor(feature, place) {
+  return rings(feature.geometry)
+    .map((ring) => ring.map(place).map(([x, y], i) =>
+      `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('') + 'Z')
+    .join(' ');
+}
+
+const W = 640;
+const H = 380;
 
 export default function USCoverageMap({ covered = [], nationwide = false }) {
-  const coveredSet = new Set((covered || []).map((s) => s.toUpperCase()));
-  const width = COLS * (CELL + GAP);
-  const height = ROWS * (CELL + GAP);
+  const [states, setStates] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/us-states.geojson')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+      .then((d) => alive && setStates(d.features || []))
+      // A failed fetch must not render an empty frame that reads as
+      // "no coverage" — the caller keeps showing its text summary either way.
+      .catch(() => alive && setStates([]));
+    return () => { alive = false; };
+  }, []);
+
+  if (states === null) {
+    return <div style={{ height: H, display: 'grid', placeItems: 'center',
+                         color: 'var(--color-text-secondary)', fontSize: '.85rem' }}>
+      Loading map…
+    </div>;
+  }
+  if (!states.length) return null;
+
+  const isCovered = (code) =>
+    nationwide || covered.map((s) => String(s).toUpperCase()).includes(code);
+
+  const by = (codes) => states.filter((f) => codes.includes(f.properties.code));
+  const not = (codes) => states.filter((f) => !codes.includes(f.properties.code));
+
+  const lower48 = not(['AK', 'HI', 'PR']);
+  const placeMain = fit(lower48, albers, { x: 8, y: 8, w: W - 16, h: H - 70 });
+  // Insets get their own fit, so each is drawn at a readable size rather than
+  // at true relative scale — Alaska at true scale would dwarf Texas.
+  const placeAK = fit(by(['AK']), ([lon, lat]) => [lon < -168 ? lon + 360 : lon, lat],
+                      { x: 10, y: H - 118, w: 150, h: 105 });
+  const placeHI = fit(by(['HI']), (p) => p, { x: 176, y: H - 86, w: 92, h: 70 });
+
+  const fill = (f) => (isCovered(f.properties.code) ? '#f97316' : '#e5e7eb');
+
+  const draw = (feature, place) => place && (
+    <path key={feature.properties.code} d={pathFor(feature, place)}
+          fill={fill(feature)} stroke="#fff" strokeWidth={0.6}>
+      <title>{feature.properties.name}{isCovered(feature.properties.code) ? ' — covered' : ''}</title>
+    </path>
+  );
 
   return (
-    <div>
-      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', maxWidth: 460 }}
-           role="img" aria-label="US states covered by recall">
-        {Object.entries(GRID).map(([code, [col, row]]) => {
-          const on = nationwide || coveredSet.has(code);
-          return (
-            <g key={code} transform={`translate(${col * (CELL + GAP)}, ${row * (CELL + GAP)})`}>
-              <rect width={CELL} height={CELL} rx={5}
-                fill={on ? '#f97316' : '#eef0f2'}
-                stroke={on ? '#ea580c' : '#e2e5e9'} strokeWidth={1}>
-                <title>{code}{on ? ' — covered' : ''}</title>
-              </rect>
-              <text x={CELL / 2} y={CELL / 2 + 4} textAnchor="middle"
-                fontSize={11} fontWeight={600}
-                fill={on ? '#fff' : '#9aa1a9'}>{code}</text>
-            </g>
-          );
-        })}
-      </svg>
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '.5rem', fontSize: '.78rem', color: 'var(--color-text-secondary)' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '.35rem' }}>
-          <span style={{ width: 12, height: 12, borderRadius: 3, background: '#f97316', display: 'inline-block' }} /> Covered
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '.35rem' }}>
-          <span style={{ width: 12, height: 12, borderRadius: 3, background: '#eef0f2', display: 'inline-block' }} /> Not covered
-        </span>
-        {nationwide && <span style={{ color: '#ea580c', fontWeight: 600 }}>Nationwide distribution</span>}
-      </div>
-    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" style={{ width: '100%', height: 'auto' }}
+         aria-label={nationwide ? 'Nationwide distribution'
+                                : `Distribution in ${covered.length} states`}>
+      {lower48.map((f) => draw(f, placeMain))}
+      {by(['AK']).map((f) => draw(f, placeAK))}
+      {by(['HI']).map((f) => draw(f, placeHI))}
+      <text x={10} y={H - 6} fontSize={11} fill="var(--color-text-secondary, #64748b)">Alaska</text>
+      <text x={176} y={H - 6} fontSize={11} fill="var(--color-text-secondary, #64748b)">Hawaii</text>
+    </svg>
   );
 }
