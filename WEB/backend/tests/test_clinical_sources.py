@@ -31,6 +31,13 @@ ALLOWED = {
     "models/",                        # model definitions and relationships
     "api/chronic_conditions.py",      # the WRITER for chronic_conditions
     "api/medications.py",             # the WRITER for medications + dose logs
+    # The assistant's `log_medication` tool is also a WRITER of dose logs, and
+    # the one read it does is an idempotency check scoped to the exact row it
+    # is about to insert (same user, date, drug, dose) — not a clinical
+    # question. §3aa exists because READING one of the split tables and calling
+    # it the answer hides facts; every clinical read in this module still goes
+    # through clinical_sources (see `get_medications`).
+    "services/record_tools.py",
     "api/ehr.py",                     # the EHR/FHIR import writes both
     "services/med_nutrient_service.py",   # dose-log nutrient resolution
     "services/nutrient_goals_service.py",  # documented condition matching

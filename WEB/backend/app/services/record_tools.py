@@ -828,6 +828,39 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "required": ["food_name"],
         },
     },
+    {
+        "name": "log_medication",
+        "description": "RECORD medication the patient says they took. Use it "
+                       "whenever they report taking something — 'I took my "
+                       "calcitriol', 'I took regular dosages of X and Y'. Do "
+                       "NOT tell them to open the Medications screen. You do "
+                       "not need the dose: 'regular' or 'usual' is resolved "
+                       "from their own logging history. Anything that cannot "
+                       "be resolved, or that the dose guard objects to, comes "
+                       "back under `needs_input` — ask about those, and never "
+                       "invent a dose.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "medications": {
+                    "type": "array", "items": {"type": "string"},
+                    "description":
+                        "One entry per medication: the DRUG NAME as the patient "
+                        "named it, plus a dose ONLY if they stated a specific "
+                        "one. 'I took regular dosages of calcitriol and calcium "
+                        "carbonate' is ['calcitriol', 'calcium carbonate'] — "
+                        "words like regular, usual or my normal are not doses, "
+                        "so leave the dose out and the patient's own history "
+                        "supplies it. '2 tablets of calcium carbonate' keeps "
+                        "the dose. Do not correct or expand the drug name.",
+                },
+                "log_date_str": {"type": "string", "description":
+                    "YYYY-MM-DD, or 'today' / 'yesterday'. OMIT for today."},
+                "taken_at": {"type": "string", "description": "e.g. '8:45 am'"},
+            },
+            "required": ["medications"],
+        },
+    },
 ]
 # ── Writing ────────────────────────────────────────────────────────────
 #
@@ -954,6 +987,130 @@ def _parse_clock(value: str | None):
     return _time(hour, minute)
 
 
+async def log_medication(
+    db: AsyncSession, user_id: int, *,
+    medications: list[str] | str,
+    log_date_str: str | None = None,
+    taken_at: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Record medication the patient says they took.
+
+    "I took regular dosages of calcitriol and calcium carbonate" used to reach a
+    blank form. The dose is not stated there, and the patient should not have to
+    restate what they take every day — "regular" means what their own logs say
+    it is.
+
+    NOTHING IS PARSED OR GUESSED HERE. The work is done by the pieces that
+    already exist and are already tested:
+
+      `propose_intake`  reads the phrase, supplies a missing dose from THIS
+                        patient's own dose-log history (or their prescription),
+                        and reports where the figure came from.
+      `validate_dose`   the RxNorm guard from §3aj — the one that caught
+                        "calcium calcitriol 1000 mg", a ~1000x overdose on a
+                        drug measured in micrograms.
+
+    A dose is a clinical statement, so this writes ONLY when the record can
+    supply the figure and the guard is satisfied. Where the dose is unknown, or
+    the guard objects, it writes nothing and hands back what it found — the
+    model then asks, which is §3aj's "inference proposes; it never writes" kept
+    intact rather than argued away.
+    """
+    from app.models.med_nutrient import MedicationDoseLog
+    from app.services.med_dose_validation import blocking, validate_dose
+    from app.services.med_intake_intent import propose_intake
+
+    phrases = [medications] if isinstance(medications, str) else list(medications or [])
+    phrases = [p.strip() for p in phrases if p and p.strip()]
+    if not phrases:
+        return {"error": "no medication named — nothing was logged"}
+
+    when = _parse_day(log_date_str, today or date.today()) if log_date_str else (today or date.today())
+    if when is None:
+        return {"error": f"log_date_str={log_date_str!r} is not a date I can read"}
+    clock = _parse_clock(taken_at)
+
+    logged: list[dict[str, Any]] = []
+    needs_input: list[dict[str, Any]] = []
+
+    for phrase in phrases:
+        proposal = await propose_intake(db, user_id, phrase)
+        name = (proposal.medication_name or "").strip()
+        if not name:
+            needs_input.append({"asked_about": phrase, "reason": "could not tell which medication"})
+            continue
+
+        if proposal.dose_amount is None or proposal.dose_source == "unknown":
+            # No figure in the text, none in their history, none prescribed.
+            # Inventing one is exactly what §3aj forbids.
+            needs_input.append({
+                "medication": name,
+                "reason": "no dose stated and none in your history to use",
+                "alternatives": proposal.alternatives,
+            })
+            continue
+
+        findings = blocking(await validate_dose(
+            db, name, proposal.dose_amount, proposal.dose_unit or ""))
+        if findings:
+            needs_input.append({
+                "medication": name,
+                "reason": "the dose guard objected",
+                "findings": [f.as_dict() for f in findings],
+            })
+            continue
+
+        # Idempotency: a repeated tool call must not double a dose.
+        existing = (await db.execute(
+            select(MedicationDoseLog).where(
+                MedicationDoseLog.user_id == user_id,
+                MedicationDoseLog.log_date == when,
+                MedicationDoseLog.medication_name == name,
+                MedicationDoseLog.dose_amount == proposal.dose_amount,
+            ).limit(1)
+        )).scalars().first()
+        if existing is not None:
+            logged.append({"medication": name, "already_logged": True, "id": existing.id,
+                           "dose": f"{proposal.dose_amount} {proposal.dose_unit or ''}".strip()})
+            continue
+
+        row = MedicationDoseLog(
+            user_id=user_id, log_date=when, medication_name=name,
+            dose_amount=proposal.dose_amount, dose_unit=proposal.dose_unit or "",
+            log_time=clock,
+        )
+        db.add(row)
+        await db.flush()
+        await db.refresh(row)
+        logged.append({
+            "medication": name,
+            "id": row.id,
+            "dose": f"{proposal.dose_amount} {proposal.dose_unit or ''}".strip(),
+            # Where the figure came from, so the answer can say it. A dose the
+            # patient never spoke aloud must never look like one they did.
+            "dose_source": proposal.dose_source,
+            "provenance": proposal.provenance,
+        })
+
+    if logged:
+        await db.commit()
+        logger.info("ai logged %d dose(s) for user %s", len(logged), user_id)
+
+    out: dict[str, Any] = {"date": str(when), "logged": logged}
+    if needs_input:
+        out["needs_input"] = needs_input
+        out["ask_the_patient"] = (
+            "Say what was recorded, then ask for the missing dose in one short "
+            "question. Do not invent a figure and do not log these.")
+    if logged:
+        out["confirm_to_patient"] = (
+            "State each medication, its dose, and WHERE the dose came from "
+            "(their own logs, their prescription, or what they just said), so "
+            "they can correct it.")
+    return out
+
+
 #: What to SHOW the patient while each tool runs. The backend owns this text
 #: rather than each client, so web, iOS and Android cannot drift apart and a new
 #: tool does not need three app releases to get a label.
@@ -969,13 +1126,14 @@ TOOL_LABELS = {
     "get_vitals": "Checking your vitals",
     "get_labs": "Checking your lab results",
     "log_meal": "Saving your meal",
+    "log_medication": "Recording your medication",
 }
 
 #: Tools that CHANGE the record. Declared, not inferred from a description —
 #: a keyword test on prose matched `get_meals` because its text mentions "the
 #: record". Anything added here is a tool that can write to a patient's chart,
 #: which is a decision worth making explicitly.
-WRITE_TOOLS = frozenset({"log_meal"})
+WRITE_TOOLS = frozenset({"log_meal", "log_medication"})
 
 TOOLS = {
     "get_meals": get_meals,
@@ -984,6 +1142,7 @@ TOOLS = {
     "get_vitals": get_vitals,
     "get_labs": get_labs,
     "log_meal": log_meal,
+    "log_medication": log_medication,
 }
 
 
