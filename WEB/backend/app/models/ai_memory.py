@@ -176,6 +176,12 @@ class AIInteraction(Base):
     ai_response: Mapped[str] = mapped_column(Text)  # what AI recommended
     context_used: Mapped[dict] = mapped_column(JSON)  # snapshot of context used for this recommendation
     
+    # Set when the patient chooses to KEEP this answer. A flag, not a copy:
+    # the response is already stored, and a second copy is a second thing to
+    # keep in step.
+    saved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    saved_title: Mapped[Optional[str]] = mapped_column(String(200))
+
     # Outcome tracking
     was_helpful: Mapped[Optional[bool]] = mapped_column(Boolean)  # user feedback
     user_feedback: Mapped[Optional[str]] = mapped_column(Text)  # additional comments

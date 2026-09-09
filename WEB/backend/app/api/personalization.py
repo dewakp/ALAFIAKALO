@@ -126,6 +126,11 @@ class SymptomAnalysisResponse(BaseModel):
     analysis: str
     disclaimer: str
     generated_at: str
+    # The recorded interaction, so the patient can KEEP this answer. None when
+    # the record could not be written — the answer is still returned, and the
+    # UI simply shows no save control rather than a button that cannot work.
+    interaction_id: int | None = None
+    symptoms_logged: int = 0
 
 
 # Endpoints
@@ -239,6 +244,76 @@ async def get_ai_recommendations(
         )
 
 
+
+def _split_symptoms(text: str) -> list[str]:
+    """"dizzy, weak" → ["dizzy", "weak"]; a sentence stays whole.
+
+    Split on SHAPE, not on a vocabulary of symptom words. A short comma list is
+    a list; anything with sentence punctuation or long parts is prose, and
+    chopping it would invent symptoms the patient never named ("I feel dizzy
+    when I stand up, weak in the mornings" is not two symptoms called "I feel
+    dizzy when I stand up" and "weak in the mornings" — but it is also not
+    something to guess at, so it is kept whole).
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return []
+    parts = [p.strip(" .;") for p in raw.split(",")]
+    parts = [p for p in parts if p]
+    # WORD COUNT, not character length. Stripping the trailing period made
+    # "I feel dizzy when I stand up, weak in the mornings." look like a
+    # two-item list. A named symptom is one to three words ("nausea",
+    # "blurred vision", "shortness of breath"); anything longer is a sentence,
+    # and splitting a sentence invents symptoms nobody reported.
+    #
+    # When in doubt this keeps the text WHOLE — the safe direction, because it
+    # preserves exactly what the patient said.
+    if len(parts) >= 2 and all(len(p.split()) <= 3 for p in parts):
+        return parts[:10]
+    return [raw[:200]]
+
+
+def _record_symptom_analysis(db, user, description: str, analysis: dict) -> dict:
+    """Write the symptoms to symptom tracking and keep the analysis.
+
+    Returns the ids the response needs so the patient can save this answer.
+    """
+    from datetime import date as _date
+
+    from app.models.ai_memory import AIInteraction
+    from app.models.conditions import SymptomLog
+
+    today = _date.today()
+    names = _split_symptoms(description)
+    for name in names:
+        db.add(SymptomLog(
+            user_id=user.id,
+            log_date=today,
+            symptom_name=name[:200],
+            # The full text always travels with each row: the split is a
+            # convenience for tracking, never a replacement for what was said.
+            notes=f"Reported to Alafia Health Insights: {description}"[:2000],
+        ))
+
+    # llm_provider and llm_model are NOT NULL on this table. Omitting them
+    # raised NotNullViolation, which the best-effort wrapper would have swallowed
+    # — so the analysis would have gone unrecorded exactly as before, silently.
+    interaction = AIInteraction(
+        user_id=user.id,
+        interaction_type="symptom_analysis",
+        category="symptoms",
+        user_request=description,
+        ai_response=(analysis or {}).get("analysis") or str(analysis)[:8000],
+        context_used={"source": "personalization/analyze-symptoms"},
+        llm_provider=(analysis or {}).get("provider") or "router",
+        llm_model=(analysis or {}).get("model") or "",
+    )
+    db.add(interaction)
+    db.commit()
+    db.refresh(interaction)
+    return {"interaction_id": interaction.id, "symptoms_logged": len(names)}
+
+
 @router.post("/analyze-symptoms", response_model=SymptomAnalysisResponse)
 async def analyze_symptoms(
     request: SymptomAnalysisRequest,
@@ -264,8 +339,24 @@ async def analyze_symptoms(
             db=db,
             symptoms_description=request.symptoms_description
         )
-        
-        return SymptomAnalysisResponse(**analysis)
+
+        # The symptoms the patient just described are CLINICAL DATA, and this
+        # endpoint used to discard them: nothing was written, so "dizzy, weak"
+        # informed one answer and then left no trace — not in symptom tracking,
+        # not anywhere. The analysis itself was equally unrecorded, so the whole
+        # exchange vanished when the screen changed.
+        #
+        # Both are recorded now, best-effort: a failure here must never cost the
+        # patient the answer they are waiting for.
+        recorded = {}
+        try:
+            recorded = _record_symptom_analysis(
+                db, current_user, request.symptoms_description, analysis)
+        except Exception:  # noqa: BLE001
+            logger.warning("could not record symptom analysis", exc_info=True)
+            db.rollback()
+
+        return SymptomAnalysisResponse(**analysis, **recorded)
 
     except ALAFIAModelError as e:
         # The model really is unreachable. Say so, and say why. The old code

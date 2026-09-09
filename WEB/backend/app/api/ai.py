@@ -2386,6 +2386,99 @@ async def ai_chat_stream(
     )
 
 
+# ── History: an answer the patient can come back to ────────────────────
+
+
+@router.get("/history")
+async def ai_history(
+    limit: int = 40,
+    saved_only: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Past AI exchanges, newest first.
+
+    `ai_interactions` has recorded every chat since the feature shipped — the
+    data was there the whole time and nothing read it back, so an answer
+    vanished the moment the screen changed and the record was invisible to the
+    person it was about.
+    """
+    stmt = (
+        select(AIInteraction)
+        .where(AIInteraction.user_id == current_user.id)
+        .order_by(desc(AIInteraction.created_at))
+        .limit(max(1, min(limit, 200)))
+    )
+    if saved_only:
+        stmt = stmt.where(AIInteraction.saved_at.isnot(None))
+    rows = (await db.execute(stmt)).scalars().all()
+    return {
+        "count": len(rows),
+        "items": [
+            {
+                "id": r.id,
+                "type": r.interaction_type,
+                "category": r.category,
+                "question": r.user_request,
+                "answer": r.ai_response,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "saved": r.saved_at is not None,
+                "saved_title": r.saved_title,
+            }
+            for r in rows
+        ],
+    }
+
+
+class SaveInteractionRequest(BaseModel):
+    title: str | None = None
+
+
+@router.post("/history/{interaction_id}/save")
+async def save_ai_interaction(
+    interaction_id: int,
+    body: SaveInteractionRequest | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Keep an answer. Ownership is checked, not assumed."""
+    row = (await db.execute(
+        select(AIInteraction).where(
+            AIInteraction.id == interaction_id,
+            AIInteraction.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+    if row is None:
+        # 404 rather than 403: another patient's interaction id should not be
+        # confirmable by the response code.
+        raise HTTPException(404, "Interaction not found")
+    row.saved_at = datetime.now(timezone.utc)
+    if body and body.title:
+        row.saved_title = body.title[:200]
+    await db.commit()
+    return {"id": row.id, "saved": True, "saved_title": row.saved_title}
+
+
+@router.delete("/history/{interaction_id}/save")
+async def unsave_ai_interaction(
+    interaction_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    row = (await db.execute(
+        select(AIInteraction).where(
+            AIInteraction.id == interaction_id,
+            AIInteraction.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(404, "Interaction not found")
+    row.saved_at = None
+    row.saved_title = None
+    await db.commit()
+    return {"id": row.id, "saved": False}
+
+
 @router.post("/feedback", response_model=AIFeedbackResponse)
 async def ai_feedback(
     body: AIFeedbackRequest,

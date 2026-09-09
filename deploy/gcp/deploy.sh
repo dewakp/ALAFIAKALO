@@ -101,7 +101,12 @@ if [ "${SKIP_BUILD:-}" != "1" ]; then
   STAGE="$REPO_ROOT/WEB/frontend"
   rm -rf "$VENDORED"
   cp -R "$REPO_ROOT/ML/src/alafia_model" "$VENDORED"
-  trap 'rm -rf "$VENDORED"; rm -f "$STAGE/deploy-nginx.conf.template"' EXIT
+  # INT/TERM as well as EXIT. A deploy killed mid-build (a hung gcloud, a
+  # Ctrl-C) left this directory behind, and an EMPTY `WEB/backend/alafia_model`
+  # shadows the real package as a namespace package — /app precedes /ml/src on
+  # PYTHONPATH — so the whole test suite failed with ImportErrors that looked
+  # like an adapter regression. Nineteen tests, none of them broken.
+  trap 'rm -rf "$VENDORED"; rm -f "$STAGE/deploy-nginx.conf.template"' EXIT INT TERM
   gcloud builds submit "$REPO_ROOT/WEB/backend"          --tag "$AR/backend:latest"
 
   # Frontend (node, no native compile): local buildx amd64 with the prod Dockerfile,

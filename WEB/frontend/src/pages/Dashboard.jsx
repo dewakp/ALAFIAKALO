@@ -2,6 +2,7 @@ import { localToday } from '../utils/datetime';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { AI_TIMEOUT_MS } from '../services/api';
+import SaveAnswer from '../components/SaveAnswer';
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, BookOpen, Apple, Zap, Pill,
   CalendarDays, ExternalLink, Sparkles, Heart, FlaskConical, FileText, Activity, Bot,
@@ -428,6 +429,20 @@ function InsightsCard() {
             <p style={{ marginTop: '.75rem', marginBottom: 0, fontSize: '.78rem', fontStyle: 'italic',
               color: 'var(--color-text-secondary)' }}>{result.disclaimer}</p>
           )}
+          <div style={{ marginTop: '.75rem', display: 'flex', alignItems: 'center',
+                        gap: '.75rem', flexWrap: 'wrap' }}>
+            <SaveAnswer interactionId={result.interaction_id} />
+            {result.symptoms_logged > 0 && (
+              // Say so plainly: the patient described symptoms to get an
+              // answer, and those symptoms are now part of their record. That
+              // is a clinical write, and it should never be silent.
+              <span style={{ fontSize: '.78rem', color: 'var(--color-text-secondary)' }}>
+                {result.symptoms_logged === 1
+                  ? 'Added to your symptom tracking'
+                  : `${result.symptoms_logged} symptoms added to your tracking`}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </OverviewCard>
