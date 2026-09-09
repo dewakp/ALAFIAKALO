@@ -376,3 +376,35 @@ async def notify_refill_reminder(
         action_url=f"/pharmacy/prescriptions/{prescription_id}",
         metadata_dict={"prescription_id": prescription_id, "medication": medication_name, "patient": patient_name},
     )
+
+async def notify_record_shared(
+    db: AsyncSession,
+    *,
+    grantee_user_id: int,
+    owner_name: str,
+    data_type: str,
+    grant_id: int,
+    write_access: bool = False,
+) -> Notification | None:
+    """Tell the person a record was shared WITH that it happened.
+
+    The opposite direction from `notify_record_accessed`, which is the patient's
+    own view of who opened their chart. This goes to the recipient, who
+    otherwise learns nothing at all: the grant was created and returned to the
+    owner, and sharing was silent on the side that gained access.
+    """
+    access = "view and update" if write_access else "view"
+    label = (data_type or "health").replace("_", " ")
+    return await create_notification(
+        db,
+        user_id=grantee_user_id,
+        category=NotificationCategory.RECORD_SHARED,
+        priority=NotificationPriority.MEDIUM,
+        title=f"{owner_name} shared their {label} records",
+        message=(f"You can now {access} {owner_name}'s {label} records. "
+                 f"Open Share Records to see them."),
+        action_url="/share-records",
+        metadata_dict={"grant_id": grant_id, "data_type": data_type,
+                       "write_access": write_access},
+    )
+

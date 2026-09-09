@@ -1418,6 +1418,38 @@ watching the tests still pass); and the staging path is gitignored. §0 in a new
 disguise — the failure was an artifact of the environment, not of the code it
 appeared to accuse.
 
+### Sharing was silent on the side that gained access
+
+`POST /data-sharing/grants` created the grant, returned it to the OWNER, and
+stopped. The person given access learned nothing — no email, no notification,
+nothing anywhere they would look. Someone could hold access to a patient's labs
+and never know they had it.
+
+Both channels now, not either: the in-app notification is what they see next
+time they open the app, the email is what reaches them when they do not.
+
+- **`RECORD_SHARED` is a NEW category, not `RECORD_ACCESS`.** That one means the
+  opposite direction — the patient's own view of who opened *their* chart — so
+  reusing it would file "shared with you" in the wrong person's access log.
+  Migration `zz001`, `ALTER TYPE … ADD VALUE IF NOT EXISTS`. No downgrade:
+  Postgres cannot drop an enum value, and an unused one costs nothing.
+- **No clinical content travels by email.** Who shared, what KIND of record,
+  and where to sign in — never a value, a result or a diagnosis. Email is not a
+  channel we control once it leaves. Pinned by a test.
+- **A mail outage must never fail a share.** The announcement runs after the
+  grant exists and is wrapped — §3ah, where a non-2xx over an email problem sent
+  Stripe into a multi-day retry cascade. Verified: with mail throwing, the grant
+  stands and the notification still lands.
+- `_is_enabled` defaults to ENABLED when no preference row exists, so a new
+  category is not silently dropped for every existing user.
+
+> **`send_invitation` sent nothing.** Despite the name it wrote an invitation row
+> and returned it, so the invitee was never told — an invitation discoverable
+> only by someone already logged in and looking for it, which is precisely the
+> person who does not need one. It notifies and emails now, and the wording says
+> nothing is shared until they accept, so an invitation cannot read as a
+> completed share.
+
 ### The answer streams; the rounds cannot
 
 The tool ROUNDS cannot be streamed away — the model must read each result before
