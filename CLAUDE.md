@@ -1329,6 +1329,42 @@ possible for fried or oily food. `--implausible` uses `plausibility.review_meal`
 the estimator's own guard, rather than a threshold invented for the cleanup:
 deleting a real meal on a hunch is its own kind of data loss.
 
+### The assistant can ACT, within a deliberately narrow door
+
+Asked "log this meal", it answered *"I don't have the ability to log meals into
+your record"* and listed what the patient should go and type themselves. True of
+its tools, and a useless answer: it held the meal, the times and an explicit
+instruction, and handed the work back. `record_tools` was read-only.
+
+`log_meal` writes through the same shape the Nutrition screen uses (§3c): saved
+immediately, nutrients estimated afterwards, so a slow lookup can never cost the
+patient the meal they typed.
+
+- **Meals are the ONLY writable thing.** `WRITE_TOOLS` declares it. Medications,
+  vitals and labs stay read-only — §3aj's dose guard exists because a dose is a
+  clinical statement, and "inference proposes, it never writes" holds for
+  anything the patient did not spell out in the message.
+- **Only what they named**, in their words and quantities. The instructions
+  forbid adding, rounding or completing a meal, and the result echoes back what
+  was saved so the answer can repeat it for correction.
+- **A repeat call does not double-count.** A tool loop retries — a provider
+  hiccup, a second round re-reading the request — and a duplicated meal doubles
+  every nutrient for that day. A repeat returns `already_logged` with the
+  original id.
+- **The patient's date, not the server's.** `today` threads from
+  `patient_today()` through the loop into the write. Verified with the container
+  on UTC 09-09 logging a meal to 09-08 for a New York patient.
+
+> **A write has no rows to count.** `_display_detail` summed list lengths, so the
+> status chip read *"Saving your meal — nothing recorded"* at the moment the meal
+> was being saved. Write results carry their own wording.
+
+> **Do not test a write against a real patient record.** The first end-to-end run
+> wrote into user 63 — dev, so no production data, and the row was deleted, but
+> `pull_prod` had wiped the demo account and the right move was to re-seed it
+> (`scripts/make_proof_user.py`, needs `PYTHONPATH=/app`) rather than reach for
+> whichever user had data.
+
 ### The answer streams; the rounds cannot
 
 The tool ROUNDS cannot be streamed away — the model must read each result before

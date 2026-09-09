@@ -803,7 +803,156 @@ TOOL_SPECS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "log_meal",
+        "description": "RECORD a meal in the patient's diary. Use this whenever "
+                       "they ask you to log, add, save or record something they "
+                       "ate or drank — do NOT tell them to go and enter it "
+                       "themselves. Save ONLY the foods they actually named; "
+                       "never add, guess or complete a meal. Nutrients are "
+                       "estimated automatically afterwards, so do not pass any.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "food_name": {"type": "string", "description":
+                    "The items, as the patient described them, comma separated — "
+                    "e.g. '1 slice brioche bread, 2 boiled eggs, 4 green olives'. "
+                    "Their words and their quantities, not a tidied version."},
+                "meal_type": {"type": "string", "description":
+                    "breakfast | lunch | dinner | snack"},
+                "log_date_str": {"type": "string", "description":
+                    "YYYY-MM-DD, or 'today' / 'yesterday'. OMIT for today."},
+                "start_time": {"type": "string", "description": "e.g. '8:45 pm'"},
+                "end_time": {"type": "string", "description": "e.g. '9:30 pm'"},
+            },
+            "required": ["food_name"],
+        },
+    },
 ]
+# ── Writing ────────────────────────────────────────────────────────────
+#
+# Reading was all this module did, so "log this meal" got "I don't have the
+# ability to log meals into your record" followed by a tidy list of what the
+# patient should go and type themselves. That is a correct statement about the
+# tools and a useless answer to the request: the assistant had the meal, the
+# times, and the patient's explicit instruction, and handed the work back.
+#
+# Writes are deliberately narrower than reads. A meal is patient-authored, easy
+# to see in the diary and easy to delete. Medications, vitals and labs are NOT
+# writable here: §3aj's guard exists because a dose is a clinical statement, and
+# "inference proposes, it never writes" still holds for anything the patient did
+# not spell out in the message.
+
+
+async def log_meal(
+    db: AsyncSession, user_id: int, *,
+    food_name: str,
+    meal_type: str = "snack",
+    log_date_str: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Record a meal the patient has asked to log.
+
+    Saves immediately and estimates nutrients afterwards — the same shape as the
+    Nutrition screen (§3c), because a 10-item meal's lookup takes longer than
+    anyone will wait and a failed lookup must never cost the patient the meal
+    they typed.
+
+    ONLY records what the patient stated. The tool cannot check that, so the
+    loop instructions carry the rule and the result echoes back exactly what was
+    written for the answer to repeat.
+    """
+    from app.models.nutrition import NutritionLog
+
+    name = (food_name or "").strip()
+    if not name:
+        return {"error": "no food described — nothing was logged"}
+
+    when = _parse_day(log_date_str, today or date.today()) if log_date_str else (today or date.today())
+    if when is None:
+        return {"error": f"log_date_str={log_date_str!r} is not a date I can read"}
+
+    meal = (meal_type or "snack").strip().lower()
+    if meal not in ("breakfast", "lunch", "dinner", "snack"):
+        meal = "snack"
+
+    # Idempotency. A tool loop can repeat a call — a provider retry, a second
+    # round that re-reads the request — and a duplicated meal double-counts
+    # every nutrient for that day.
+    existing = (await db.execute(
+        select(NutritionLog).where(
+            NutritionLog.user_id == user_id,
+            NutritionLog.log_date == when,
+            NutritionLog.meal_type == meal,
+            NutritionLog.food_name == name,
+        ).limit(1)
+    )).scalars().first()
+    if existing is not None:
+        return {"already_logged": True, "id": existing.id, "date": str(when),
+                "meal": meal, "food": name,
+                "note": "This exact meal is already on the record for that day; "
+                        "nothing was added. Tell the patient it was already there."}
+
+    log = NutritionLog(
+        user_id=user_id, log_date=when, meal_type=meal, food_name=name,
+        start_time=_parse_clock(start_time), end_time=_parse_clock(end_time),
+        nutrient_status="pending",
+    )
+    db.add(log)
+    await db.flush()
+    await db.refresh(log)
+    await db.commit()
+
+    # Enrichment runs after the write, with its own session, exactly as the API
+    # does. Fire-and-forget: the patient gets the confirmation now and the
+    # nutrients land within seconds.
+    try:
+        from app.services.nutrient_enrichment import enrich_log
+        import asyncio
+
+        asyncio.ensure_future(enrich_log(log.id))
+    except Exception:  # noqa: BLE001 — a failed queue must not undo the save
+        logger.warning("could not queue enrichment for log %s", log.id, exc_info=True)
+
+    logger.info("ai logged meal %s for user %s: %r", log.id, user_id, name[:60])
+    return {
+        "logged": True,
+        "id": log.id,
+        "date": str(when),
+        "meal": meal,
+        "food": name,
+        "start_time": str(log.start_time) if log.start_time else None,
+        "end_time": str(log.end_time) if log.end_time else None,
+        "nutrients": "being estimated now — they appear in the diary shortly",
+        "confirm_to_patient": (
+            "Say exactly what was saved, including the date and the items, so "
+            "they can correct it. Do not add foods they did not mention."),
+    }
+
+
+def _parse_clock(value: str | None):
+    """"8:45 pm" / "20:45" → a time, or None. Never raises."""
+    if not value:
+        return None
+    from datetime import time as _time
+
+    text = str(value).strip().lower().replace(".", "")
+    m = re.match(r"^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$", text)
+    if not m:
+        return None
+    hour = int(m.group(1))
+    minute = int(m.group(2) or 0)
+    suffix = m.group(3)
+    if suffix == "pm" and hour < 12:
+        hour += 12
+    if suffix == "am" and hour == 12:
+        hour = 0
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+    return _time(hour, minute)
+
 
 #: What to SHOW the patient while each tool runs. The backend owns this text
 #: rather than each client, so web, iOS and Android cannot drift apart and a new
@@ -819,7 +968,14 @@ TOOL_LABELS = {
     "get_medications": "Checking your medications",
     "get_vitals": "Checking your vitals",
     "get_labs": "Checking your lab results",
+    "log_meal": "Saving your meal",
 }
+
+#: Tools that CHANGE the record. Declared, not inferred from a description —
+#: a keyword test on prose matched `get_meals` because its text mentions "the
+#: record". Anything added here is a tool that can write to a patient's chart,
+#: which is a decision worth making explicitly.
+WRITE_TOOLS = frozenset({"log_meal"})
 
 TOOLS = {
     "get_meals": get_meals,
@@ -827,6 +983,7 @@ TOOLS = {
     "get_medications": get_medications,
     "get_vitals": get_vitals,
     "get_labs": get_labs,
+    "log_meal": log_meal,
 }
 
 
