@@ -1373,18 +1373,6 @@ def test_clock_times_are_understood_the_way_patients_write_them():
     assert _parse_clock(None) is None
 
 
-def test_only_meals_are_writable():
-    """§3aj: a dose is a clinical statement, and inference proposes but never
-    writes. Meals are patient-authored, visible in the diary and easy to delete;
-    medications, vitals and labs are not writable from a chat message."""
-    from app.services.record_tools import TOOLS, WRITE_TOOLS
-
-    assert WRITE_TOOLS == {"log_meal"}, f"unexpected write tools: {sorted(WRITE_TOOLS)}"
-    assert WRITE_TOOLS <= set(TOOLS)
-    # And the read tools really are read-only names, not writers in disguise.
-    assert {"get_medications", "get_vitals", "get_labs"} & WRITE_TOOLS == set()
-
-
 def test_the_loop_tells_the_model_to_act_rather_than_hand_the_work_back():
     from app.services.ai_conversation import _TOOL_LOOP_INSTRUCTIONS
 
@@ -1402,3 +1390,107 @@ def test_a_write_is_not_reported_as_nothing_found():
     assert _display_detail({"already_logged": True, "id": 7}) == "already on the record"
     assert _display_detail({"error": "boom"}) == "could not do that"
     assert _display_detail({"meals": []}) == "nothing recorded"
+
+
+# ── medication: the assistant can log a dose, within the §3aj guard ────
+
+@pytest.mark.asyncio
+async def test_a_regular_dose_comes_from_the_patients_own_history(db):
+    """"I took regular dosages of calcitriol" reached a blank form. The patient
+    should not have to restate what they take every day — "regular" means what
+    their own logs say it is."""
+    from datetime import date, timedelta
+
+    from app.models.med_nutrient import MedicationDoseLog
+    from app.models.user import User
+    from app.services.record_tools import log_medication
+
+    user = User(email="reg@alafia.app", hashed_password="x", full_name="R")
+    db.add(user)
+    await db.flush()
+    for i in range(1, 6):
+        db.add(MedicationDoseLog(user_id=user.id, medication_name="Calcitriol",
+                                 log_date=date.today() - timedelta(days=i),
+                                 dose_amount=0.5, dose_unit="mcg"))
+    await db.flush()
+
+    out = await log_medication(db, user.id, medications=["calcitriol"])
+    entry = out["logged"][0]
+    assert entry["dose"] == "0.5 mcg"
+    assert entry["dose_source"] == "history"
+    assert entry["provenance"], (
+        "a dose the patient never spoke aloud must say where it came from")
+
+
+@pytest.mark.asyncio
+async def test_no_dose_anywhere_is_asked_about_never_invented(db):
+    """§3aj: inference proposes, it never writes. With nothing stated and
+    nothing in history, a figure would be fabricated into a clinical record."""
+    from sqlalchemy import func, select
+
+    from app.models.med_nutrient import MedicationDoseLog
+    from app.models.user import User
+    from app.services.record_tools import log_medication
+
+    user = User(email="nodose@alafia.app", hashed_password="x", full_name="N")
+    db.add(user)
+    await db.flush()
+
+    out = await log_medication(db, user.id, medications=["sevelamer"])
+    assert out["logged"] == []
+    assert out["needs_input"], "it must ask"
+    assert "never invent" in out["ask_the_patient"].lower() or \
+           "do not invent" in out["ask_the_patient"].lower()
+
+    written = (await db.execute(select(func.count()).select_from(MedicationDoseLog)
+                                .where(MedicationDoseLog.user_id == user.id))).scalar()
+    assert written == 0, "nothing may be written when the dose is unknown"
+
+
+@pytest.mark.asyncio
+async def test_a_repeated_call_does_not_double_a_dose(db):
+    """A tool loop retries. A doubled dose in a clinical record is the failure
+    this whole guard exists to prevent."""
+    from datetime import date, timedelta
+
+    from app.models.med_nutrient import MedicationDoseLog
+    from app.models.user import User
+    from app.services.record_tools import log_medication
+
+    user = User(email="dupemed@alafia.app", hashed_password="x", full_name="D")
+    db.add(user)
+    await db.flush()
+    for i in range(1, 4):
+        db.add(MedicationDoseLog(user_id=user.id, medication_name="Calcitriol",
+                                 log_date=date.today() - timedelta(days=i),
+                                 dose_amount=0.5, dose_unit="mcg"))
+    await db.flush()
+
+    first = await log_medication(db, user.id, medications=["calcitriol"])
+    second = await log_medication(db, user.id, medications=["calcitriol"])
+    assert first["logged"][0].get("already_logged") is None
+    assert second["logged"][0]["already_logged"] is True
+    assert second["logged"][0]["id"] == first["logged"][0]["id"]
+
+
+def test_only_meals_and_medication_are_writable():
+    """§3aj: a dose is a clinical statement, and inference proposes but never
+    writes. Medication became writable deliberately — the patient says they took
+    it, the dose comes from their own history, and the guard still runs — but
+    vitals and labs stay read-only, and this is DECLARED rather than inferred
+    from a description (a keyword test on prose once flagged `get_meals`
+    because its text says "the record")."""
+    from app.services.record_tools import TOOLS, WRITE_TOOLS
+
+    assert WRITE_TOOLS == {"log_meal", "log_medication"}
+    assert WRITE_TOOLS <= set(TOOLS)
+    # Vitals and labs stay read-only.
+    assert {"get_vitals", "get_labs", "get_medications"} & WRITE_TOOLS == set()
+
+
+def test_the_loop_tells_the_model_not_to_invent_a_dose():
+    from app.services.ai_conversation import _TOOL_LOOP_INSTRUCTIONS
+
+    assert "log_medication" in _TOOL_LOOP_INSTRUCTIONS
+    assert "Never invent one" in _TOOL_LOOP_INSTRUCTIONS
+    assert "where each dose came from" in _TOOL_LOOP_INSTRUCTIONS

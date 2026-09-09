@@ -1340,10 +1340,30 @@ instruction, and handed the work back. `record_tools` was read-only.
 immediately, nutrients estimated afterwards, so a slow lookup can never cost the
 patient the meal they typed.
 
-- **Meals are the ONLY writable thing.** `WRITE_TOOLS` declares it. Medications,
-  vitals and labs stay read-only — §3aj's dose guard exists because a dose is a
-  clinical statement, and "inference proposes, it never writes" holds for
-  anything the patient did not spell out in the message.
+- **Meals and MEDICATION are writable; vitals and labs are not.** `WRITE_TOOLS`
+  declares it. Medication opened deliberately — "I took regular dosages of
+  calcitriol and calcium carbonate" used to reach a blank form — but §3aj holds
+  in full: `log_medication` writes only when the record can supply the dose and
+  the RxNorm guard is satisfied.
+  - **"Regular" means what their own logs say it is.** `propose_intake` resolves
+    it from dose history and reports the provenance; `validate_dose` (the guard
+    that caught "calcium calcitriol 1000 mg") runs before every write.
+  - **No dose stated and none in history → nothing is written**, and it asks.
+    Inference still proposes; it never writes.
+  - **Every logged dose states where the figure came from**, so a dose the
+    patient never spoke aloud cannot read as one they did.
+
+> **The model extracts the drug name; the backend resolves the data.** Passing
+> the whole phrase made "regular dosage of calcitriol" the drug NAME, so history
+> lookup found nothing. The fix is NOT a list of filler words to strip — it is
+> the split §3am already argues for: language understanding belongs to the model,
+> and `medications: ["calcitriol", "calcium carbonate"]` is what reaches the tool.
+
+> §3aa's guard caught this: `record_tools` now touches `MedicationDoseLog`, and
+> `test_clinical_sources` failed. The entry was added with its reason — it is a
+> WRITER like `api/medications.py`, and its only read is an idempotency check
+> scoped to the row being inserted. Every clinical READ still goes through
+> `clinical_sources`.
 - **Only what they named**, in their words and quantities. The instructions
   forbid adding, rounding or completing a meal, and the result echoes back what
   was saved so the answer can repeat it for correction.

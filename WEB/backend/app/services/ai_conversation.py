@@ -107,8 +107,16 @@ _TOOL_LOOP_INSTRUCTIONS = (
     "\n• If a detail you need is genuinely absent, ask ONE short question — "
     "but a missing meal type or time is not a reason to refuse: log it and say "
     "what you assumed."
-    "\n• Meals are the ONLY thing you can write. Medications, vitals and labs "
-    "are read-only here; for those, say what you can see and what they should "
+    "\n• Medication too: when they say they TOOK something, call "
+    "`log_medication`. You do not need a dose — 'regular', 'usual' and 'my "
+    "normal' are resolved from their own logging history. Never invent one: "
+    "anything unresolved comes back under `needs_input`, and those you ASK "
+    "about in one short question."
+    "\n• Say where each dose came from — their own logs, their prescription, "
+    "or what they just told you. A dose they never spoke aloud must not read "
+    "as one they did."
+    "\n• Meals and medication are the only things you can write. Vitals and "
+    "labs are read-only; for those, say what you can see and what they should "
     "record themselves."
 )
 
