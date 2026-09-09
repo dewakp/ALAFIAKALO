@@ -1365,6 +1365,59 @@ patient the meal they typed.
 > (`scripts/make_proof_user.py`, needs `PYTHONPATH=/app`) rather than reach for
 > whichever user had data.
 
+### An answer the patient can come back to
+
+`ai_interactions` has recorded every chat exchange since the feature shipped.
+Nothing ever read it back, so an answer vanished the moment the screen changed
+while the record sat in the database — invisible to the person it was about.
+`GET /ai/history` returns it and the chat restores the thread on mount, seeding
+only an EMPTY thread so a reload cannot shove history in front of a question
+already being asked.
+
+- **Saving flips a flag, it does not copy the text.** `saved_at` / `saved_title`
+  on the interaction that already exists; a second copy is a second thing to
+  keep in step. Migration `yy001` — two additive columns and a partial index,
+  hand-written (§3ao).
+- **A failed save says so.** Flipping the icon on a failed request lies about
+  the one thing the patient is relying on: finding it again.
+- **Another patient's id returns 404, not 403**, so the status code cannot
+  confirm an interaction exists (§3b's rule, applied to a new surface).
+
+### Symptoms described to the AI are clinical data
+
+`/personalization/analyze-symptoms` wrote NOTHING — not the symptoms, not the
+analysis. "dizzy, weak" informed one answer and left no trace, on a patient
+whose dizziness is exactly what a clinician would want a history of. Both are
+recorded now, and the card says "2 symptoms added to your tracking": a clinical
+write must never be silent.
+
+> **Split on WORD COUNT, not on a vocabulary of symptom words.** "dizzy, weak"
+> is two symptoms; "I feel dizzy when I stand up, weak in the mornings." is one
+> sentence. The first attempt used character length, and stripping the trailing
+> period made that sentence look like a two-item list — inventing two symptoms
+> nobody reported. A named symptom is one to three words; anything longer is
+> kept WHOLE, which is the safe direction, and the full text travels with every
+> row.
+
+> ⚠️ `AIInteraction.llm_provider` and `llm_model` are **NOT NULL**. Omitting them
+> raised NotNullViolation inside a best-effort `try/except`, which would have
+> swallowed it — leaving the analysis unrecorded exactly as before, silently.
+
+### A killed deploy breaks the test suite, and it looks like a code regression
+
+`deploy.sh` vendors `ML/src/alafia_model` into `WEB/backend/alafia_model` for
+the build and removes it on `trap … EXIT`. Kill the deploy (a hung gcloud, a
+Ctrl-C) and an **empty** directory survives — which shadows the real package as
+a namespace package, because `/app` preceded `/ml/src` on PYTHONPATH. Nineteen
+tests failed with ImportErrors across the adapters and the LLM capability.
+Nothing was broken.
+
+Three fixes: the trap now covers `INT TERM`; `PYTHONPATH` is `/ml/src:/app` so
+the canonical source wins regardless (verified by recreating the shadow and
+watching the tests still pass); and the staging path is gitignored. §0 in a new
+disguise — the failure was an artifact of the environment, not of the code it
+appeared to accuse.
+
 ### The answer streams; the rounds cannot
 
 The tool ROUNDS cannot be streamed away — the model must read each result before

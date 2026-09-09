@@ -6,6 +6,7 @@ import { Send, RefreshCw, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-
 import BackButton from '../components/BackButton';
 import AssistantMarkdown from '../components/AssistantMarkdown';
 import ChatStatus from '../components/ChatStatus';
+import SaveAnswer from '../components/SaveAnswer';
 
 const REGION_ORDER = ['africa', 'middle_east', 'south_asia', 'europe', 'north_america'];
 const REGION_LABELS = {
@@ -59,6 +60,29 @@ export default function AIChat() {
   // Number of user turns — drives the "anchor the question to the top" scroll.
   const userTurnCount = messages.reduce((n, m) => n + (m.role === 'user' ? 1 : 0), 0);
   const lastUserIndex = messages.map((m) => m.role).lastIndexOf('user');
+
+  // Reload the conversation. Every exchange has been recorded in
+  // `ai_interactions` since this feature shipped — the data was there the whole
+  // time and nothing read it back, so an answer vanished the moment the screen
+  // changed and the record was invisible to the person it was about.
+  useEffect(() => {
+    api.get('/ai/history', { params: { limit: 20 } })
+      .then(({ data }) => {
+        const restored = (data.items || [])
+          .slice()
+          .reverse()                     // newest-first from the API; oldest-first on screen
+          .flatMap((it) => ([
+            ...(it.question ? [{ role: 'user', content: it.question }] : []),
+            { role: 'assistant', content: it.answer, interactionId: it.id, saved: it.saved },
+          ]));
+        // Only seed an empty thread: a reload must never shove history in
+        // front of a question the patient has already started asking.
+        setMessages((prev) => (prev.length ? prev : restored));
+      })
+      // No history is not an error state worth showing — a new patient simply
+      // has none, and the chat works either way.
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.get('/ai/personas')
@@ -257,7 +281,21 @@ export default function AIChat() {
           const payload = line.slice(6).trim();
           if (payload === '[DONE]') break;
           try {
-            const { content, error, status: step, retract } = JSON.parse(payload);
+            const { content, error, status: step, retract,
+                    interaction_id: interactionId } = JSON.parse(payload);
+            if (interactionId) {
+              // The stream's last frame. Attaching it is what lets the answer
+              // be SAVED — without it the button has nothing to point at and
+              // a freshly-given answer is the one thing you cannot keep.
+              setMessages((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (last?.role === 'assistant') {
+                  next[next.length - 1] = { ...last, interactionId };
+                }
+                return next;
+              });
+            }
             if (step) setStatus(step);
             if (retract) {
               // That text came from a round that turned out to be a data fetch,
@@ -487,6 +525,11 @@ export default function AIChat() {
                 {msg.role === 'assistant'
                   ? <AssistantMarkdown content={msg.content} />
                   : msg.content}
+                {msg.role === 'assistant' && msg.interactionId && !loading && (
+                  <div style={{ marginTop: '.4rem' }}>
+                    <SaveAnswer interactionId={msg.interactionId} initiallySaved={msg.saved} />
+                  </div>
+                )}
                 {loading && i === messages.length - 1 && msg.role === 'assistant' && (
                   msg.content
                     ? <span className="typing-cursor" />
