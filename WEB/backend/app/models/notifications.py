@@ -31,6 +31,10 @@ class NotificationCategory(str, enum.Enum):
     # Someone other than the patient opened their record. Not clinical advice —
     # the patient's own view of who is looking at their chart.
     RECORD_ACCESS = "record_access"
+    # The OPPOSITE direction: someone has been given access to a record. This
+    # goes to the person it was shared WITH, who otherwise learns nothing —
+    # sharing used to be entirely silent on their side.
+    RECORD_SHARED = "record_shared"
     # Pharmacy
     PRESCRIPTION_CREATED = "prescription_created"
     PRESCRIPTION_READY = "prescription_ready"

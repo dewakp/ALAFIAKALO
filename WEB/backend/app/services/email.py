@@ -287,3 +287,116 @@ async def send_payment_failed_email(
     </body></html>
     """
     return await send_email(to, subject, html_body)
+
+async def send_record_shared_email(
+    to: str,
+    *,
+    owner_name: str,
+    data_type: str,
+    recipient_name: str | None = None,
+    read_access: bool = True,
+    write_access: bool = False,
+    expires_at: str | None = None,
+) -> bool:
+    """Tell someone a patient has shared a record with them.
+
+    Sharing used to be silent on the recipient's side: the grant was created and
+    returned to the owner, and the person given access learned nothing. Someone
+    could hold access to a patient's labs and never know.
+
+    NO CLINICAL CONTENT travels in this mail. It names who shared, what KIND of
+    record, and where to go — never a value, a result or a diagnosis. Email is
+    not a channel we control once it leaves, and the record itself is behind
+    the login where it belongs.
+
+    Transactional, so it must never consult `marketing_opt_out_at` (§3d):
+    opting out of announcements cannot opt someone out of being told that they
+    now hold a patient's data.
+    """
+    greeting = f"Hi {_escape(recipient_name.split()[0])}," if recipient_name else "Hi,"
+    owner = _escape(owner_name or "An ALAFIA member")
+    kind = _escape((data_type or "health").replace("_", " "))
+    url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/share-records"
+
+    if write_access and read_access:
+        access = "view and update"
+    elif write_access:
+        access = "update"
+    else:
+        access = "view"
+
+    expiry = (f"<p style=\"margin:0 0 16px\">This access expires on {_escape(expires_at)}.</p>"
+              if expires_at else "")
+
+    subject = f"{settings.APP_NAME} — {owner_name or 'a member'} shared their {kind} records with you"
+    html = f"""
+      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
+        <h2 style="color:#f97316;margin:0 0 16px">A record has been shared with you</h2>
+        <p style="margin:0 0 16px">{greeting}</p>
+        <p style="margin:0 0 16px">
+          <strong>{owner}</strong> has shared their <strong>{kind}</strong> records
+          with you on {_escape(settings.APP_NAME)}. You can {access} them.
+        </p>
+        {expiry}
+        <p style="margin:0 0 24px">
+          <a href="{url}" style="background:#f97316;color:#fff;padding:12px 20px;
+             border-radius:8px;text-decoration:none;display:inline-block">Open shared records</a>
+        </p>
+        <p style="margin:0;font-size:13px;color:#64748b">
+          The records themselves are not in this email — sign in to see them.
+          If you were not expecting this, you can ignore it; nothing is shared
+          from your own account.
+        </p>
+      </div>
+    """
+    return await send_email(to, subject, html)
+
+
+async def send_share_invitation_email(
+    to: str,
+    *,
+    owner_name: str,
+    data_types: str,
+    recipient_name: str | None = None,
+    message: str | None = None,
+) -> bool:
+    """Invite someone to receive a patient's records.
+
+    `send_invitation` wrote an invitation row and returned it — despite the
+    name, nothing was sent. The invitee never heard about it, so the invitation
+    could only be discovered by someone already logged in and looking for it,
+    which is precisely the person who does not need an invitation.
+
+    An invitation ASKS; `send_record_shared_email` reports a share that has
+    already happened. Different letters, because the reader has to do something
+    about one of them.
+    """
+    greeting = f"Hi {_escape(recipient_name.split()[0])}," if recipient_name else "Hi,"
+    owner = _escape(owner_name or "An ALAFIA member")
+    kinds = _escape((data_types or "health").replace("_", " "))
+    url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/share-records"
+    note = (f'<p style="margin:0 0 16px;padding:12px;background:#f8fafc;'
+            f'border-radius:8px;font-style:italic">{_escape(message)}</p>'
+            if message else "")
+
+    subject = f"{settings.APP_NAME} — {owner_name or 'a member'} wants to share their records with you"
+    html = f"""
+      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
+        <h2 style="color:#f97316;margin:0 0 16px">You've been invited to view a record</h2>
+        <p style="margin:0 0 16px">{greeting}</p>
+        <p style="margin:0 0 16px">
+          <strong>{owner}</strong> would like to share their <strong>{kinds}</strong>
+          records with you on {_escape(settings.APP_NAME)}.
+        </p>
+        {note}
+        <p style="margin:0 0 24px">
+          <a href="{url}" style="background:#f97316;color:#fff;padding:12px 20px;
+             border-radius:8px;text-decoration:none;display:inline-block">Review the invitation</a>
+        </p>
+        <p style="margin:0;font-size:13px;color:#64748b">
+          No records are in this email, and nothing is shared until you accept.
+          If you were not expecting this, you can ignore it.
+        </p>
+      </div>
+    """
+    return await send_email(to, subject, html)
