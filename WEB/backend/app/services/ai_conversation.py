@@ -96,6 +96,20 @@ _TOOL_LOOP_INSTRUCTIONS = (
     "you need, then combine it with what you know."
     "\nIf a general question could also be made specific, answer generally "
     "and offer to check their record."
+    "\n\nYOU CAN ACT, NOT ONLY READ. When the patient asks you to log, add, "
+    "save or record a meal, CALL `log_meal`. Do not tell them to enter it in "
+    "the app themselves — you have the tool and they have already told you "
+    "what to record. Then confirm exactly what was saved so they can correct "
+    "it."
+    "\n• Save only the foods they actually named, in their words and their "
+    "quantities. Never add an item, round a portion, or complete a meal you "
+    "think is missing something."
+    "\n• If a detail you need is genuinely absent, ask ONE short question — "
+    "but a missing meal type or time is not a reason to refuse: log it and say "
+    "what you assumed."
+    "\n• Meals are the ONLY thing you can write. Medications, vitals and labs "
+    "are read-only here; for those, say what you can see and what they should "
+    "record themselves."
 )
 
 #: Said out loud rather than truncating silently: an answer built on partial
@@ -115,7 +129,14 @@ def _display_detail(result: dict[str, Any]) -> str:
     failure must not read as an empty result (§3aa).
     """
     if "error" in result:
-        return "could not read that"
+        return "could not do that"
+    # A WRITE has no rows to count. Falling through to the read wording told the
+    # patient "Saving your meal — nothing recorded" at the moment the meal was
+    # in fact saved.
+    if result.get("logged"):
+        return "saved"
+    if result.get("already_logged"):
+        return "already on the record"
     total = sum(len(v) for v in result.values() if isinstance(v, list))
     if not total:
         return "nothing recorded"

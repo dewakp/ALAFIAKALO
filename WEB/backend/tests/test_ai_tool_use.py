@@ -450,7 +450,7 @@ def test_display_detail_never_reports_a_failure_as_an_empty_result():
     that failed must not borrow that wording."""
     from app.services.ai_conversation import _display_detail
 
-    assert _display_detail({"error": "boom"}) == "could not read that"
+    assert _display_detail({"error": "boom"}) == "could not do that"
     assert _display_detail({"meals": []}) == "nothing recorded"
     assert _display_detail({"meals": [1, 2, 3]}) == "3 found"
 
@@ -1296,3 +1296,109 @@ async def test_a_dose_count_is_not_a_daily_regimen(db):
     assert med["doses_in_window"] == 15
     assert med["doses_per_day"] == 0.5
     assert "prescribed is not the same fact as" in out["how_to_read"]
+
+
+# ── the assistant can ACT ──────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_a_meal_can_be_logged_from_the_conversation(db):
+    """Asked to log a meal, the assistant answered "I don't have the ability to
+    log meals into your record" and listed what the patient should go and type
+    themselves — a correct statement about its tools and a useless answer to the
+    request. It had the meal, the times, and an explicit instruction."""
+    from datetime import date
+
+    from app.models.user import User
+    from app.services.record_tools import log_meal
+
+    user = User(email="log@alafia.app", hashed_password="x", full_name="L")
+    db.add(user)
+    await db.flush()
+
+    out = await log_meal(
+        db, user.id,
+        food_name="1 slice brioche bread, 2 boiled eggs, 4 green olives",
+        meal_type="dinner", start_time="8:45 pm", end_time="9:30 pm")
+
+    assert out["logged"] is True
+    assert out["id"]
+    assert out["meal"] == "dinner"
+    assert out["start_time"].startswith("20:45")
+    assert out["end_time"].startswith("21:30")
+    assert out["date"] == str(date.today())
+
+
+@pytest.mark.asyncio
+async def test_logging_the_same_meal_twice_does_not_double_count(db):
+    """A tool loop can repeat a call — a provider retry, a second round that
+    re-reads the request. A duplicated meal double-counts every nutrient for
+    that day, and nothing downstream could tell the two rows apart."""
+    from app.models.user import User
+    from app.services.record_tools import log_meal
+
+    user = User(email="dupe@alafia.app", hashed_password="x", full_name="D")
+    db.add(user)
+    await db.flush()
+
+    first = await log_meal(db, user.id, food_name="2 boiled eggs", meal_type="snack")
+    second = await log_meal(db, user.id, food_name="2 boiled eggs", meal_type="snack")
+
+    assert first["logged"] is True
+    assert second.get("already_logged") is True
+    assert second["id"] == first["id"]
+
+
+@pytest.mark.asyncio
+async def test_an_empty_meal_is_refused_rather_than_saved(db):
+    from app.models.user import User
+    from app.services.record_tools import log_meal
+
+    user = User(email="empty@alafia.app", hashed_password="x", full_name="E")
+    db.add(user)
+    await db.flush()
+
+    out = await log_meal(db, user.id, food_name="   ")
+    assert "error" in out and "logged" not in out
+
+
+def test_clock_times_are_understood_the_way_patients_write_them():
+    from app.services.record_tools import _parse_clock
+
+    assert str(_parse_clock("8:45 pm")) == "20:45:00"
+    assert str(_parse_clock("9:30 PM")) == "21:30:00"
+    assert str(_parse_clock("7 am")) == "07:00:00"
+    assert str(_parse_clock("12:15 am")) == "00:15:00"
+    assert str(_parse_clock("20:45")) == "20:45:00"
+    assert _parse_clock("half past eight") is None
+    assert _parse_clock(None) is None
+
+
+def test_only_meals_are_writable():
+    """§3aj: a dose is a clinical statement, and inference proposes but never
+    writes. Meals are patient-authored, visible in the diary and easy to delete;
+    medications, vitals and labs are not writable from a chat message."""
+    from app.services.record_tools import TOOLS, WRITE_TOOLS
+
+    assert WRITE_TOOLS == {"log_meal"}, f"unexpected write tools: {sorted(WRITE_TOOLS)}"
+    assert WRITE_TOOLS <= set(TOOLS)
+    # And the read tools really are read-only names, not writers in disguise.
+    assert {"get_medications", "get_vitals", "get_labs"} & WRITE_TOOLS == set()
+
+
+def test_the_loop_tells_the_model_to_act_rather_than_hand_the_work_back():
+    from app.services.ai_conversation import _TOOL_LOOP_INSTRUCTIONS
+
+    assert "log_meal" in _TOOL_LOOP_INSTRUCTIONS
+    assert "Do not tell them to enter it in" in _TOOL_LOOP_INSTRUCTIONS
+    assert "Never add an item" in _TOOL_LOOP_INSTRUCTIONS
+
+
+def test_a_write_is_not_reported_as_nothing_found():
+    """"Saving your meal — nothing recorded" was shown at the moment the meal
+    was in fact saved: the detail helper counted rows, and a write returns none."""
+    from app.services.ai_conversation import _display_detail
+
+    assert _display_detail({"logged": True, "id": 7}) == "saved"
+    assert _display_detail({"already_logged": True, "id": 7}) == "already on the record"
+    assert _display_detail({"error": "boom"}) == "could not do that"
+    assert _display_detail({"meals": []}) == "nothing recorded"
