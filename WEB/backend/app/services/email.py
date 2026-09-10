@@ -474,3 +474,54 @@ async def send_signup_receipt_email(
       </div>
     """
     return await send_email(to, subject, html)
+
+async def send_signup_incomplete_email(to: str, *, full_name: str | None = None) -> bool:
+    """Tell someone their signup never finished, and how to finish it.
+
+    Sent to people whose account was created by the old one-step form: it made
+    a loginable account, took no payment, sent no email, and showed no result,
+    so they were left holding something that could not do anything and had no
+    way to know why. Two of them sat like that for over a fortnight.
+
+    TRANSACTIONAL, not marketing — it must NOT consult `marketing_opt_out_at`.
+    This is about an action the person themselves started on their own account,
+    exactly like a verification or a password reset. Gating it on a marketing
+    preference would withhold the one message that unblocks them.
+
+    It carries no clinical content of any kind and makes no claim about what
+    they were charged beyond the truth: nothing.
+    """
+    greeting = f"Hi {_escape(full_name.split()[0])}," if full_name else "Hi,"
+    login_url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/login"
+
+    html = f"""
+      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
+        <h2 style="color:#f97316;margin:0 0 16px">Your {_escape(settings.APP_NAME)} signup didn't finish</h2>
+        <p style="margin:0 0 16px">{greeting}</p>
+        <p style="margin:0 0 16px">
+          You started creating an {_escape(settings.APP_NAME)} account and it never
+          completed. That was a fault on our side, not anything you did.
+        </p>
+        <p style="margin:0 0 16px">
+          <strong>You were not charged.</strong> Your account exists and your
+          password works — it just has no membership attached yet, which is why
+          it would not let you in.
+        </p>
+        <p style="margin:0 0 16px">
+          Sign in and choose a plan and you are set up:
+        </p>
+        <p style="margin:0 0 24px">
+          <a href="{login_url}" style="background:#f97316;color:#fff;padding:12px 20px;
+             border-radius:8px;text-decoration:none;display:inline-block">Sign in and finish</a>
+        </p>
+        <p style="margin:0 0 16px;font-size:13px;color:#64748b">
+          Forgotten your password? Use "Forgot password" on that page.
+        </p>
+        <p style="margin:0;font-size:13px;color:#64748b">
+          Sorry for the wasted trip. If you would rather not continue, ignore
+          this and nothing further will happen — you will not be billed and we
+          will not chase you.
+        </p>
+      </div>
+    """
+    return await send_email(to, f"Your {settings.APP_NAME} signup didn't finish", html)
