@@ -168,19 +168,10 @@ fun ClinicianDashboardScreen(
     }
 }
 
-/** Deterministic tint per patient, so a card keeps its colour between loads. */
-private val avatarTints = listOf(
-    Color(0xFF0EA5E9), Color(0xFF8B5CF6), Color(0xFFF59E0B),
-    Color(0xFF10B981), Color(0xFFEF4444), Color(0xFF6366F1),
-)
-
-private fun tintFor(id: Int) = avatarTints[kotlin.math.abs(id) % avatarTints.size]
-
-private fun initialsOf(name: String): String {
-    val parts = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.take(2)
-    val s = parts.mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("")
-    return s.ifEmpty { "?" }
-}
+// The tint palette and initials now live in `views/components/AvatarImage.kt`,
+// so the same person is the same colour on every screen and on every platform
+// — which is the only thing that makes a colour useful for recognition. A
+// second copy here would drift the moment either is edited.
 
 @Composable
 private fun PatientCard(patient: PatientSummary, onOpen: () -> Unit) {
