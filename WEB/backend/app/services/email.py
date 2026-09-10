@@ -400,3 +400,77 @@ async def send_share_invitation_email(
       </div>
     """
     return await send_email(to, subject, html)
+
+
+async def send_signup_receipt_email(
+    to: str,
+    *,
+    full_name: str | None = None,
+    plan_label: str,
+    amount_label: str | None = None,
+    verification_pending: bool = False,
+    verify_url: str | None = None,
+) -> bool:
+    """Receipt and welcome, sent the moment payment succeeds.
+
+    Sent BEFORE the account exists when verification is still outstanding —
+    deliberately. Money has changed hands, and the person is entitled to a
+    record of that whether or not they have clicked the link yet. Waiting until
+    the account is created would leave a paid customer with nothing in writing.
+
+    When verification is still pending this letter carries the link, so the one
+    email a payer is guaranteed to open is also the one that finishes signup.
+    """
+    greeting = f"Hi {_escape(full_name.split()[0])}," if full_name else "Hi,"
+    plan = _escape(plan_label)
+    amount = f"<p style=\"margin:0 0 8px\"><strong>Amount:</strong> {_escape(amount_label)}</p>" if amount_label else ""
+
+    if verification_pending and verify_url:
+        subject = f"{settings.APP_NAME} — payment received, one step left"
+        headline = "Payment received — one step left"
+        action = f"""
+          <p style="margin:0 0 16px">
+            To finish setting up your account, confirm your email address using
+            the link we sent when you started. Lost it? Open the page below and
+            we will send a fresh one.
+          </p>
+          <p style="margin:0 0 24px">
+            <a href="{verify_url}" style="background:#f97316;color:#fff;padding:12px 20px;
+               border-radius:8px;text-decoration:none;display:inline-block">Finish setting up</a>
+          </p>
+          <p style="margin:0 0 16px;font-size:13px;color:#64748b">
+            Your membership is paid and waiting. Nothing further is charged.
+          </p>
+        """
+    else:
+        subject = f"Welcome to {settings.APP_NAME}"
+        headline = f"Welcome to {settings.APP_NAME}"
+        action = f"""
+          <p style="margin:0 0 24px">
+            <a href="{settings.PUBLIC_WEB_URL.rstrip('/')}/login"
+               style="background:#f97316;color:#fff;padding:12px 20px;border-radius:8px;
+               text-decoration:none;display:inline-block">Open ALAFIA</a>
+          </p>
+        """
+
+    html = f"""
+      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
+        <h2 style="color:#f97316;margin:0 0 16px">{headline}</h2>
+        <p style="margin:0 0 16px">{greeting}</p>
+        <p style="margin:0 0 16px">Thank you — your payment went through.</p>
+        <div style="margin:0 0 20px;padding:14px;background:#f8fafc;border-radius:8px">
+          <p style="margin:0 0 8px"><strong>Membership:</strong> {plan}</p>
+          {amount}
+          <p style="margin:0;font-size:13px;color:#64748b">
+            A full receipt is also available from your card provider.
+          </p>
+        </div>
+        {action}
+        <p style="margin:0;font-size:13px;color:#64748b">
+          ALAFIA helps you track meals, medication, labs and therapies, share
+          records with the people caring for you, and ask questions of your own
+          health record. If anything looks wrong, reply and tell us.
+        </p>
+      </div>
+    """
+    return await send_email(to, subject, html)

@@ -81,6 +81,10 @@ struct ConversationMessage: Codable, Identifiable {
     let id: Int
     let conversationId: Int
     let senderId: Int
+    /// Who sent it, in terms the recipient recognises. Without these the UI can
+    /// only render the internal id — it showed "User #123".
+    let senderName: String?
+    let senderPictureUrl: String?
     let messageType: String
     let content: String?
     let fileUrl: String?
@@ -99,6 +103,8 @@ struct ConversationMessage: Codable, Identifiable {
         case id
         case conversationId = "conversation_id"
         case senderId = "sender_id"
+        case senderName = "sender_name"
+        case senderPictureUrl = "sender_picture_url"
         case messageType = "message_type"
         case content
         case fileUrl = "file_url"

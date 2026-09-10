@@ -29,6 +29,8 @@ const Mood = lazy(() => import('./pages/Mood'));
 const Lifestyle = lazy(() => import('./pages/Lifestyle'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const SignupFlow = lazy(() => import('./pages/SignupFlow'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const PromptHub = lazy(() => import('./pages/PromptHub'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -101,6 +103,15 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          {/* Two-step signup. The backend has had these endpoints all along
+              and nothing called them, so `TWO_STEP_SIGNUP_REQUIRED` could not
+              be turned on without closing registration entirely. */}
+          <Route path="/signup" element={<SignupFlow />} />
+          {/* Stripe's own success_url. It carries a session id and no email,
+              which is why the flow parks the address before leaving. */}
+          <Route path="/signup/complete" element={<SignupFlow />} />
+          {/* The address the verification email has always pointed at. */}
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           {/* Destination of the emailed reset link (?token=…). Same component:
               a token in the query string skips straight to the new-password form. */}

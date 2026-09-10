@@ -620,11 +620,17 @@ private struct MessageBubble: View {
             Text(msg.content ?? "").font(.caption).foregroundStyle(.secondary).italic()
                 .frame(maxWidth: .infinity)
         } else {
-            HStack {
+            HStack(alignment: .bottom, spacing: 6) {
                 if isOwn { Spacer(minLength: 60) }
+                // The other person's face, beside their bubble. Own messages
+                // get none — the sender knows who they are.
+                if !isOwn {
+                    AvatarView(urlString: msg.senderPictureUrl, name: msg.senderName,
+                               userId: msg.senderId, size: 28)
+                }
                 VStack(alignment: isOwn ? .trailing : .leading, spacing: 2) {
                     if !isOwn {
-                        Text("User #\(msg.senderId)")
+                        Text(msg.senderName ?? "User #\(msg.senderId)")
                             .font(.caption2).foregroundStyle(.secondary)
                     }
                     Text(msg.content ?? "")

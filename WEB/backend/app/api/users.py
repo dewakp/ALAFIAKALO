@@ -1,6 +1,6 @@
 """User profile endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import File, UploadFile, APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -78,6 +78,18 @@ async def update_profile(
     # device in front of them printed. So the client may name the unit and the
     # backend converts to what the column stores. A value with no unit is taken
     # as canonical — the field name says which.
+    # ── Names stay in step ────────────────────────────────────────────────
+    # `full_name` is what greetings, clinician lists and 85 existing rows read.
+    # Editing the parts without recomputing it leaves the two disagreeing, and
+    # whichever surface a user checks second looks broken. Derived here, in the
+    # one place both forms are written, rather than in each client.
+    if "first_name" in changed or "last_name" in changed:
+        first = (changed.get("first_name", current_user.first_name) or "").strip()
+        last = (changed.get("last_name", current_user.last_name) or "").strip()
+        middle = (changed.get("middle_name", current_user.middle_name) or "").strip()
+        if first or last:
+            changed["full_name"] = " ".join(w for w in (first, middle, last) if w)
+
     height_unit = changed.pop("height_unit", None)
     weight_unit = changed.pop("weight_unit", None)
     acknowledged = bool(changed.pop("acknowledge_unusual", None))
@@ -181,3 +193,68 @@ async def update_profile(
     )
     assignments = result.scalars().all()
     return _enrich_user_response(current_user, assignments)
+
+
+# ── Avatar ─────────────────────────────────────────────────────────────
+#
+# `profile_picture_url` has existed since the first migration and nothing ever
+# wrote to it, so every face in the app is initials on a coloured circle.
+
+
+@router.post("/me/avatar", response_model=UserResponse)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set the signed-in user's photo, from a file or a phone camera.
+
+    The image is normalised before storage — EXIF-rotated, centre-cropped,
+    resized, re-encoded — because a phone photo is 3-12 MB and arrives sideways.
+    """
+    from app.services.avatar import AvatarError, MAX_UPLOAD_BYTES, build_avatar
+
+    raw = await file.read()
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "That image is too large — please choose one under 15 MB.")
+    try:
+        current_user.profile_picture_data = build_avatar(raw, file.content_type)
+    except AvatarError as exc:
+        # The message is written for the person who chose the file.
+        raise HTTPException(422, str(exc))
+
+    current_user.profile_picture_url = current_user.profile_picture_data
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.delete("/me/avatar", response_model=UserResponse)
+async def remove_avatar(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove the photo. Falls back to initials, as before."""
+    current_user.profile_picture_data = None
+    current_user.profile_picture_url = None
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.get("/{user_id}/avatar")
+async def get_avatar(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Another person's photo, for chat and clinician lists.
+
+    Authenticated callers only. A face is not clinical data, but it is still
+    personal: this returns 404 rather than an empty image for someone with no
+    photo, so a caller cannot use it to enumerate which accounts exist.
+    """
+    row = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if row is None or not row.profile_picture_data:
+        raise HTTPException(404, "No photo")
+    return {"user_id": row.id, "profile_picture_url": row.profile_picture_data}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import AvatarUpload from '../components/AvatarUpload';
 import BackButton from '../components/BackButton';
 import UnitToggle from '../components/UnitToggle';
 import { useUnits } from '../context/UnitsContext';
@@ -8,6 +9,11 @@ import { apiErrorMessage } from '../utils/apiError';
 
 const emptyForm = {
   full_name: '',
+  first_name: '',
+  last_name: '',
+  middle_name: '',
+  name_prefix: '',
+  name_suffix: '',
   date_of_birth: '',
   gender: '',
   gender_at_birth: '',
@@ -49,6 +55,11 @@ export default function Profile() {
   const { system, isImperial, toDisplay, toMetric, unitLabel } = useUnits();
   const [form, setForm] = useState(emptyForm);
   const [email, setEmail] = useState('');
+  // The photo is held OUTSIDE `form`: it is saved by its own endpoint the
+  // moment it is chosen, not by the Save button, so spreading it into the
+  // PATCH payload would send a 40 KB data URI back on every profile save.
+  const [photo, setPhoto] = useState(null);
+  const [userId, setUserId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
@@ -84,6 +95,8 @@ export default function Profile() {
   async function loadProfile() {
     const { data } = await api.get('/users/me');
     setEmail(data.email || '');
+    setPhoto(data.profile_picture_url || null);
+    setUserId(data.id ?? null);
     const loaded = {};
     for (const key of Object.keys(emptyForm)) {
       loaded[key] = data[key] ?? emptyForm[key];
@@ -202,14 +215,43 @@ export default function Profile() {
           {/* ── Identity ── */}
           <div style={sectionStyle}>
             {sectionTitle('Identity')}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <AvatarUpload
+                user={{ ...form, id: userId, profile_picture_url: photo }}
+                onChange={(u) => setPhoto(u.profile_picture_url)}
+              />
+            </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Full Name</label>
-                <input className="form-input" value={form.full_name} onChange={(e) => updateField('full_name', e.target.value)} required />
+                <label className="form-label">First Name</label>
+                <input className="form-input" autoComplete="given-name" minLength={3}
+                       value={form.first_name} onChange={(e) => updateField('first_name', e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Last Name</label>
+                <input className="form-input" autoComplete="family-name" minLength={3}
+                       value={form.last_name} onChange={(e) => updateField('last_name', e.target.value)} required />
               </div>
               <div className="form-group">
                 <label className="form-label">{'Date of Birth' + (locked.date_of_birth ? lockLabel : '')}</label>
                 <input className="form-input" type="date" value={form.date_of_birth} onChange={(e) => updateField('date_of_birth', e.target.value)} readOnly={locked.date_of_birth} style={locked.date_of_birth ? { opacity: 0.6 } : {}} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Prefix</label>
+                <input className="form-input" placeholder="Dr., Mrs., Chief"
+                       value={form.name_prefix} onChange={(e) => updateField('name_prefix', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Middle Name</label>
+                <input className="form-input" autoComplete="additional-name"
+                       value={form.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Suffix</label>
+                <input className="form-input" placeholder="Jr., III, RN"
+                       value={form.name_suffix} onChange={(e) => updateField('name_suffix', e.target.value)} />
               </div>
             </div>
             <div className="form-row">

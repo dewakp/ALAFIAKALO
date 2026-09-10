@@ -581,6 +581,7 @@ data class ClinicianLabItem(
 data class PatientSummary(
     @SerializedName("user_id") val userId: Int,
     @SerializedName("full_name") val fullName: String = "",
+    @SerializedName("profile_picture_url") val profilePictureUrl: String? = null,
     val email: String? = null,
     @SerializedName("latest_vitals") val latestVitals: ClinicianVitals? = null,
     @SerializedName("latest_mood") val latestMood: ClinicianMood? = null,

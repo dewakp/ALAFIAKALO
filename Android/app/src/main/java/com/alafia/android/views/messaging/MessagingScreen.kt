@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.alafia.android.views.components.AvatarImage
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -646,14 +647,25 @@ private fun MessageBubble(msg: ConversationMessage, isOwn: Boolean) {
     } else {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
+            horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.Bottom
         ) {
+            // The other person's face, beside their bubble. Own messages get
+            // none — the sender knows who they are, and a column of your own
+            // photo down one side is just noise.
+            if (!isOwn) {
+                AvatarImage(url = msg.senderPictureUrl, name = msg.senderName,
+                            userId = msg.senderId, size = 28.dp)
+                Spacer(Modifier.width(6.dp))
+            }
             Column(
                 horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start,
                 modifier = Modifier.widthIn(max = 280.dp)
             ) {
                 if (!isOwn) {
-                    Text("User #${msg.senderId}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(msg.senderName ?: "User #${msg.senderId}",
+                         style = MaterialTheme.typography.labelSmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Surface(
                     shape = RoundedCornerShape(16.dp),

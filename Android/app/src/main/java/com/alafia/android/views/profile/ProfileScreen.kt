@@ -8,8 +8,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.alafia.android.views.components.AvatarImage
+import com.alafia.android.views.components.rememberCameraCapture
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import com.alafia.android.api.ApiClient
 import com.alafia.android.schemas.UserSchema
 import com.alafia.android.schemas.UserUpdateRequest
@@ -24,9 +33,53 @@ fun ProfileScreen(navController: NavHostController) {
     var saving by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
     var profile by remember { mutableStateOf<UserSchema?>(null) }
+    val context = LocalContext.current
+
+    // ── Photo ──
+    //
+    // Declared before the form so both controls can reach them. `send` reads
+    // the bytes off the content Uri: a camera capture and a gallery pick arrive
+    // the same way, so one upload path serves both.
+    var avatarUrl by remember { mutableStateOf<String?>(null) }
+    var avatarBusy by remember { mutableStateOf(false) }
+
+    fun sendAvatar(uri: android.net.Uri) {
+        avatarBusy = true
+        scope.launch {
+            try {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes == null || bytes.isEmpty()) {
+                    // An unreadable Uri must say so. Uploading zero bytes would
+                    // be refused by the server as "not an image", which reads as
+                    // the photo being wrong rather than never having been read.
+                    message = "That photo could not be read."
+                } else {
+                    val part = MultipartBody.Part.createFormData(
+                        "file", "avatar.jpg",
+                        bytes.toRequestBody("image/*".toMediaTypeOrNull()),
+                    )
+                    val u = ApiClient.getApiService().uploadAvatar(part)
+                    avatarUrl = u.profile_picture_url
+                }
+            } catch (e: Exception) {
+                message = ErrorUtil.userMessage(e)
+            }
+            avatarBusy = false
+        }
+    }
+
+    val avatarCamera = rememberCameraCapture { uri -> sendAvatar(uri) }
+    val avatarPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let { sendAvatar(it) } }
 
     // ── Mutable fields ──
     var fullName by remember { mutableStateOf("") }
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var middleName by remember { mutableStateOf("") }
+    var namePrefix by remember { mutableStateOf("") }
+    var nameSuffix by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var dateOfBirth by remember { mutableStateOf("") }
     var genderAtBirth by remember { mutableStateOf("") }
@@ -68,6 +121,12 @@ fun ProfileScreen(navController: NavHostController) {
 
     fun populateFields(p: UserSchema) {
         fullName = p.full_name
+        firstName = p.first_name ?: ""
+        lastName = p.last_name ?: ""
+        middleName = p.middle_name ?: ""
+        namePrefix = p.name_prefix ?: ""
+        nameSuffix = p.name_suffix ?: ""
+        avatarUrl = p.profile_picture_url
         gender = p.gender ?: ""
         dateOfBirth = p.date_of_birth ?: ""
         genderAtBirth = p.gender_at_birth ?: ""
@@ -155,7 +214,55 @@ fun ProfileScreen(navController: NavHostController) {
 
         // ── Identity ──
         SectionHeader("Identity")
-        OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        // Tap the face for the camera; the gallery is the long-press on the
+        // button beside it. The subject — the patient's own face — is present
+        // at the moment they tap, so the camera is the right default.
+        Row(verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+            AvatarImage(url = avatarUrl, name = fullName, userId = profile?.id ?: 0, size = 72.dp)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                TextButton(onClick = { if (!avatarBusy) avatarCamera.capture() }, enabled = !avatarBusy) {
+                    Text(if (avatarBusy) "Uploading…" else if (avatarUrl != null) "Change Photo" else "Take Photo")
+                }
+                TextButton(onClick = { if (!avatarBusy) avatarPicker.launch("image/*") }, enabled = !avatarBusy) {
+                    Text("Choose from Gallery")
+                }
+                if (avatarUrl != null) {
+                    TextButton(onClick = {
+                        if (avatarBusy) return@TextButton
+                        avatarBusy = true
+                        scope.launch {
+                            try {
+                                val u = ApiClient.getApiService().deleteAvatar()
+                                avatarUrl = u.profile_picture_url
+                            } catch (e: Exception) {
+                                message = ErrorUtil.userMessage(e)
+                            }
+                            avatarBusy = false
+                        }
+                    }, enabled = !avatarBusy) { Text("Remove Photo") }
+                }
+            }
+        }
+
+        OutlinedTextField(value = firstName, onValueChange = { firstName = it },
+            label = { Text("First Name") },
+            isError = firstName.isNotEmpty() && firstName.trim().length < 3,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = lastName, onValueChange = { lastName = it },
+            label = { Text("Last Name") },
+            isError = lastName.isNotEmpty() && lastName.trim().length < 3,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = middleName, onValueChange = { middleName = it },
+            label = { Text("Middle Name") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = namePrefix, onValueChange = { namePrefix = it },
+            label = { Text("Prefix (Dr., Mrs., Chief)") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = nameSuffix, onValueChange = { nameSuffix = it },
+            label = { Text("Suffix (Jr., III, RN)") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
         OutlinedTextField(
             value = dateOfBirth, onValueChange = { if (!dobLocked) dateOfBirth = it },
             label = { Text(if (dobLocked) "Date of Birth (locked)" else "Date of Birth") },
@@ -245,7 +352,14 @@ fun ProfileScreen(navController: NavHostController) {
                 scope.launch {
                     try {
                         val req = UserUpdateRequest(
-                            full_name = fullName.ifBlank { null },
+                            // The parts are what this form edits; the server
+                            // recomputes full_name from them, so the two forms
+                            // cannot drift apart.
+                            first_name = firstName.trim().ifBlank { null },
+                            last_name = lastName.trim().ifBlank { null },
+                            middle_name = middleName.trim().ifBlank { null },
+                            name_prefix = namePrefix.trim().ifBlank { null },
+                            name_suffix = nameSuffix.trim().ifBlank { null },
                             gender = gender.ifBlank { null },
                             date_of_birth = if (!dobLocked) dateOfBirth.ifBlank { null } else null,
                             gender_at_birth = if (!gabLocked) genderAtBirth.ifBlank { null } else null,

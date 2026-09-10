@@ -4,6 +4,7 @@ import {
   Users, Activity, Pill, FlaskConical, Apple, Dumbbell, Brain, Heart,
   Eye, Stethoscope,
 } from 'lucide-react';
+import Avatar from '../components/Avatar';
 import BackButton from '../components/BackButton';
 import { useClinicianMode } from '../context/ClinicianModeContext';
 import PatientBoard from './clinician/PatientBoard';
@@ -15,13 +16,6 @@ const categoryIcons = {
   all: Eye,
 };
 
-// Deterministic avatar tint per patient, so a card keeps the same colour
-// between loads and the grid stays scannable.
-const AVATAR_TINTS = ['#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#6366f1'];
-const tintFor = (id) => AVATAR_TINTS[Math.abs(Number(id) || 0) % AVATAR_TINTS.length];
-
-const initials = (name) => (name || '?')
-  .split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '?';
 
 export default function ClinicianDashboard() {
   const { canBeClinician, clinicianMode, enterClinicianMode } = useClinicianMode();
@@ -142,14 +136,7 @@ function PatientCard({ patient: p, onOpen }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-          background: tintFor(p.user_id), color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 700, fontSize: '0.95rem',
-        }}>
-          {initials(p.full_name)}
-        </div>
+        <Avatar src={p.profile_picture_url} name={p.full_name} id={p.user_id} size={44} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {p.full_name || `Patient #${p.user_id}`}

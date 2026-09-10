@@ -905,6 +905,19 @@ struct AddNutritionSheet: View {
                                             .frame(width: 80, height: 80)
                                             .overlay(Image(systemName: "plus").font(.title2).foregroundStyle(.secondary))
                                     }
+                                    // "Several shots of the same meal are read
+                                    // together as one plate" — so the second and
+                                    // third shot need the camera just as much as
+                                    // the first. It was only offered while the
+                                    // list was empty.
+                                    Button {
+                                        showCamera = true
+                                    } label: {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(.quaternary)
+                                            .frame(width: 80, height: 80)
+                                            .overlay(Image(systemName: "camera").font(.title2).foregroundStyle(.secondary))
+                                    }
                                 }
                             }
                             .padding(.vertical, 4)
@@ -1081,6 +1094,20 @@ struct AddNutritionSheet: View {
             }
             .sheet(isPresented: $showImagePicker) {
                 ImagePickerView(images: $selectedImages, maxCount: 3)
+            }
+            // The Camera button set this flag and NOTHING observed it, so the
+            // one control a patient reaches for while the meal is in front of
+            // them did nothing at all. Same shape as a finished page with no
+            // route: the control existed, the picker existed, and no user
+            // could get from one to the other.
+            .sheet(isPresented: $showCamera) {
+                CameraPicker { data in
+                    // `selectedImages` is the shared list the analyser reads,
+                    // so a captured photo has to join it — not a second list.
+                    if let image = UIImage(data: data), selectedImages.count < 3 {
+                        selectedImages.append(image)
+                    }
+                }
             }
         }
     }

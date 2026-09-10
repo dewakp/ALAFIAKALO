@@ -9,6 +9,14 @@ data class User(
     val id: Int,
     val email: String,
     val full_name: String,
+    // Nullable on purpose: `MedicationResponse` taught this codebase that a
+    // Kotlin non-null field does not stop Gson writing null into it — it only
+    // hides the risk. Accounts that predate the two-field signup have no parts.
+    val first_name: String? = null,
+    val last_name: String? = null,
+    val middle_name: String? = null,
+    val name_prefix: String? = null,
+    val name_suffix: String? = null,
     val date_of_birth: String?,
     val gender: String?,
     val profile_picture_url: String?,
@@ -1004,6 +1012,11 @@ data class ConversationMessage(
     val id: Int,
     @SerializedName("conversation_id") val conversationId: Int,
     @SerializedName("sender_id") val senderId: Int,
+    // Who sent it, in terms the recipient recognises. Without these the UI can
+    // only render the internal id — it showed "User #123", which is the same
+    // mistake as asking for a Member ID in a compose box.
+    @SerializedName("sender_name") val senderName: String? = null,
+    @SerializedName("sender_picture_url") val senderPictureUrl: String? = null,
     @SerializedName("message_type") val messageType: String,
     val content: String?,
     @SerializedName("is_edited") val isEdited: Boolean,

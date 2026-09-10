@@ -273,6 +273,7 @@ async def find_recipients(
         matches.append({
             "id": user.id,
             "full_name": user.full_name,
+            "profile_picture_url": user.profile_picture_data,
             "email": user.email if entitled else None,
             "phone_number": user.phone_number if entitled else None,
             "email_hint": _mask_email(user.email),
@@ -568,7 +569,31 @@ async def list_messages(
         q = q.where(Message.id < before_id)
     q = q.order_by(Message.created_at.desc()).limit(limit)
     r = await db.execute(q)
-    return list(reversed(r.scalars().all()))
+    rows = list(reversed(r.scalars().all()))
+    return await _with_senders(db, rows)
+
+
+async def _with_senders(db: AsyncSession, rows: list[Message]) -> list[MessageResponse]:
+    """Attach each sender's name and photo.
+
+    One query for the whole page rather than one per message — a 200-message
+    page would otherwise issue 200 round-trips to render a name.
+    """
+    ids = {m.sender_id for m in rows if m.sender_id}
+    people: dict[int, User] = {}
+    if ids:
+        found = await db.execute(select(User).where(User.id.in_(ids)))
+        people = {u.id: u for u in found.scalars().all()}
+
+    out = []
+    for m in rows:
+        item = MessageResponse.model_validate(m, from_attributes=True)
+        who = people.get(m.sender_id)
+        if who is not None:
+            item.sender_name = who.full_name
+            item.sender_picture_url = who.profile_picture_data
+        out.append(item)
+    return out
 
 
 @router.post("/conversations/{conv_id}/messages", response_model=MessageResponse, status_code=201)
@@ -614,7 +639,10 @@ async def send_message(
     r = await db.execute(
         select(Message).options(selectinload(Message.read_receipts)).where(Message.id == msg.id)
     )
-    return r.scalars().first()
+    # Stamped here too, so a message just sent renders identically to one that
+    # arrives from a reload rather than briefly losing its sender.
+    saved = r.scalars().first()
+    return (await _with_senders(db, [saved]))[0]
 
 
 @router.patch("/conversations/{conv_id}/messages/{msg_id}", response_model=MessageResponse)

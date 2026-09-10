@@ -46,6 +46,14 @@ interface ApiService {
     @PATCH("users/me")
     suspend fun updateUser(@Body updates: UserUpdateRequest): UserSchema
 
+    /** Set the signed-in user's photo. The server crops, resizes and re-encodes. */
+    @Multipart
+    @POST("users/me/avatar")
+    suspend fun uploadAvatar(@Part file: MultipartBody.Part): UserSchema
+
+    @DELETE("users/me/avatar")
+    suspend fun deleteAvatar(): UserSchema
+
     // Fitness Endpoints
     @GET("fitness/")
     suspend fun getFitnessLogs(

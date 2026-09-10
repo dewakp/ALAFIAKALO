@@ -42,6 +42,17 @@ logger = logging.getLogger(__name__)
 class SignupStart(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    # Two fields, not one. A single `full_name` cannot be sorted, greeted or
+    # matched on — a clinician list cannot render "Okafor, N." from it without
+    # guessing which word is the surname.
+    #
+    # min_length=3: "longer than 2 letters" as specified. Real short names exist
+    # (Li, Ng, Bo), so this WILL turn some real people away — a deliberate rule,
+    # applied at the boundary rather than hidden in the UI, so every client
+    # enforces the same thing.
+    first_name: str = Field(min_length=3, max_length=100)
+    last_name: str = Field(min_length=3, max_length=100)
+    # Accepted for older clients; derived from the parts when absent.
     full_name: str | None = Field(default=None, max_length=255)
     # Required: an account holder must be an adult by their jurisdiction's
     # standard, and we cannot evaluate that rule without a date of birth.
@@ -143,9 +154,15 @@ async def signup_start(
         # Same response as success, so the endpoint cannot enumerate accounts.
         return _sent_message()
 
+    # `full_name` is DERIVED, never asked for twice. Keeping it in step here
+    # means every existing reader — greetings, clinician lists, the 85 rows that
+    # predate the split — keeps working without a second source of truth.
+    display_name = (body.full_name
+                    or f"{body.first_name.strip()} {body.last_name.strip()}".strip())
     pending, raw_token = await svc.start(
-        db, body.email, body.password, body.full_name,
+        db, body.email, body.password, display_name,
         date_of_birth=body.date_of_birth, country=body.country,
+        first_name=body.first_name.strip(), last_name=body.last_name.strip(),
     )
     await db.commit()
     return await _deliver_verification(background_tasks, body.email, raw_token, pending.id)
@@ -174,12 +191,31 @@ async def signup_verify_email(
 async def signup_checkout(
     request: Request, body: CheckoutStart, db: AsyncSession = Depends(get_db),
 ):
-    """Start payment. Refuses until the email is verified."""
+    """Start payment.
+
+    Payment no longer waits on the verification click. Requiring it first meant
+    leaving the app, opening a mailbox and coming back — and the signup that
+    prompted this change never got that far: the account was created silently,
+    with no mail and no payment, and the person had no way to tell.
+
+    The mailbox is still proven before the ACCOUNT exists (`/complete`); what
+    changed is that the money can be taken while the person is still here.
+
+    Because payment now precedes proof, a typo becomes someone who paid and
+    cannot be reached. `can_receive_mail` is the cheap guard against that: a
+    domain with no MX record can never accept mail, whoever typed it. It fails
+    OPEN, so a DNS wobble does not refuse a paying customer.
+    """
     pending = await svc.get(db, body.email)
     if pending is None or pending.is_expired():
         raise HTTPException(status_code=404, detail="No signup in progress for that address")
+
     if not pending.email_verified:
-        raise HTTPException(status_code=403, detail="Verify your email address first")
+        from app.services.email_deliverability import can_receive_mail
+
+        deliverable, reason = await can_receive_mail(body.email)
+        if not deliverable:
+            raise HTTPException(status_code=422, detail=reason)
 
     # `provider` is pinned to "stripe" by the schema, so an unsupported rail is
     # refused as a 422 on the field rather than a 503 from inside the flow.
@@ -206,8 +242,6 @@ async def signup_complete(
     pending = await svc.get(db, body.email)
     if pending is None or pending.is_expired():
         raise HTTPException(status_code=400, detail="No signup in progress for that address")
-    if not pending.email_verified:
-        raise HTTPException(status_code=403, detail="Verify your email address first")
 
     # Confirm the payment WITH THE PROVIDER before recording it.
     #
@@ -227,6 +261,44 @@ async def signup_complete(
             detail="No verified signup in progress for that address",
         )
 
+    # The receipt goes out on PAYMENT, not on account creation. Money has
+    # changed hands and the payer is entitled to a record of it whether or not
+    # they have clicked the verification link yet — waiting would leave a paid
+    # customer with nothing in writing. Best-effort: a mail outage must never
+    # fail a completed payment (§3ah).
+    # Deliberately does NOT mint a new token. Only the hash is stored, so a
+    # fresh token would overwrite it and silently BREAK the link already sitting
+    # in their inbox — the one they are most likely to click. Tested: doing that
+    # made a correct verification fail after payment.
+    #
+    # The receipt therefore points at the signup page, which can resend on
+    # request, rather than carrying a link that invalidates another one.
+    verify_url = (f"{settings.PUBLIC_WEB_URL.rstrip('/')}/signup?email="
+                  f"{pending.email}") if not pending.email_verified else None
+    try:
+        await email_service.send_signup_receipt_email(
+            pending.email,
+            full_name=pending.full_name,
+            plan_label="ALAFIA Membership",
+            verification_pending=not pending.email_verified,
+            verify_url=verify_url,
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning("could not send signup receipt to %s", pending.email, exc_info=True)
+
+    # The ACCOUNT still waits on a proven mailbox. Payment alone does not make
+    # one: "nothing exists until a real mailbox is proven AND a subscription is
+    # paid" is the whole point of this flow.
+    if not pending.email_verified:
+        await db.commit()
+        return {
+            "message": ("Payment received. Check your email and confirm your "
+                        "address to finish setting up your account."),
+            "paid": True,
+            "email_verified": False,
+            "email": pending.email,
+        }
+
     user = await svc.materialise(db, pending)
     if user is None:
         raise HTTPException(status_code=409, detail="Signup is not ready to complete")
@@ -234,6 +306,8 @@ async def signup_complete(
     await db.commit()
     return {
         "message": "Account created. You can now sign in.",
+        "paid": True,
+        "email_verified": True,
         "user_id": user.id,
         "email": user.email,
     }

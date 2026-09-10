@@ -15,6 +15,17 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # The parts. Nullable because 85 existing rows predate them; the API
+    # requires both on new input and `full_name` stays the display value until
+    # a row is split. See migration ab001.
+    first_name: Mapped[str | None] = mapped_column(String(100))
+    last_name: Mapped[str | None] = mapped_column(String(100))
+    middle_name: Mapped[str | None] = mapped_column(String(100))
+    name_prefix: Mapped[str | None] = mapped_column(String(20))
+    name_suffix: Mapped[str | None] = mapped_column(String(20))
+    # The avatar itself, base64. S3 is not configured in production, so media
+    # already falls back to base64 in the database.
+    profile_picture_data: Mapped[str | None] = mapped_column(Text)
     
     # Basic Demographics
     date_of_birth: Mapped[str | None] = mapped_column(String(10))

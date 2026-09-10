@@ -121,6 +121,13 @@ struct ProfileSheet: View {
 
     // ── Identity ──
     @State private var fullName = ""
+    @State private var firstName = ""
+    @State private var lastName = ""
+    @State private var middleName = ""
+    @State private var namePrefix = ""
+    @State private var nameSuffix = ""
+    @State private var avatarURL: String?
+    @State private var avatarUploading = false
     @State private var dateOfBirth = ""
     @State private var gender = ""
     @State private var genderAtBirth = ""
@@ -218,9 +225,24 @@ struct ProfileSheet: View {
                 // ── Header ──
                 Section {
                     HStack(spacing: 16) {
-                        Image(systemName: "person.crop.circle.fill")
-                            .font(.system(size: 56))
-                            .foregroundStyle(.green)
+                        // Tap for the camera, long-press for the library —
+                        // the same control every other photo entry point uses.
+                        PhotoCaptureButton { data in
+                            uploadAvatar(data)
+                        } label: {
+                            AvatarView(urlString: avatarURL,
+                                       name: authManager.currentUser?.fullName,
+                                       userId: authManager.currentUser?.id ?? 0,
+                                       size: 56)
+                                .overlay(alignment: Alignment.bottomTrailing) {
+                                    Image(systemName: avatarUploading
+                                          ? "arrow.triangle.2.circlepath" : "camera.circle.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(.green)
+                                        .background(Circle().fill(.background))
+                                }
+                        }
+                        .buttonStyle(.plain)
                         VStack(alignment: .leading) {
                             Text(authManager.currentUser?.fullName ?? "")
                                 .font(.headline)
@@ -234,7 +256,16 @@ struct ProfileSheet: View {
 
                 // ── Identity ──
                 Section("Identity") {
-                    LKTextField(title: "Full Name", text: $fullName)
+                    LKTextField(title: "First Name", text: $firstName)
+                        .textContentType(.givenName)
+                    LKTextField(title: "Last Name", text: $lastName)
+                        .textContentType(.familyName)
+                    LKTextField(title: "Middle Name", text: $middleName)
+                        .textContentType(.middleName)
+                    LKTextField(title: "Prefix", text: $namePrefix)
+                        .textContentType(.namePrefix)
+                    LKTextField(title: "Suffix", text: $nameSuffix)
+                        .textContentType(.nameSuffix)
                     LKTextField(title: dobLocked ? "Date of Birth (locked)" : "Date of Birth", text: $dateOfBirth)
                         .disabled(dobLocked)
                     Picker("Gender Identity", selection: $gender) {
@@ -391,6 +422,12 @@ struct ProfileSheet: View {
     private func loadFields() {
         guard let u = authManager.currentUser else { return }
         fullName = u.fullName
+        firstName = u.givenName ?? ""
+        lastName = u.familyName ?? ""
+        middleName = u.middleName ?? ""
+        namePrefix = u.namePrefix ?? ""
+        nameSuffix = u.nameSuffix ?? ""
+        avatarURL = u.profilePictureUrl
         dateOfBirth = u.dateOfBirth ?? ""
         gender = u.gender ?? ""
         genderAtBirth = u.genderAtBirth ?? ""
@@ -432,13 +469,44 @@ struct ProfileSheet: View {
         bloodTypeLocked = !(u.bloodType ?? "").isEmpty
     }
 
+    /// Send a photo and adopt whatever the server stored.
+    ///
+    /// The server normalises it — EXIF rotation, centre crop, resize, re-encode
+    /// — so the app displays what everyone else will see rather than the
+    /// 12-megapixel original it just sent.
+    private func uploadAvatar(_ data: Data) {
+        avatarUploading = true
+        Task {
+            do {
+                let user: User = try await APIClient.shared.postImages(
+                    "/users/me/avatar", images: [data], fieldName: "file")
+                avatarURL = user.profilePictureUrl
+                // Same as saveProfile: adopt the row the server returned, so
+                // every screen reading `currentUser` shows the new face at once.
+                authManager.currentUser = user
+            } catch {
+                // Named, not swallowed — a photo that silently fails to upload
+                // is indistinguishable from one that worked until the next
+                // launch shows the old face.
+                message = error.localizedDescription
+            }
+            avatarUploading = false
+        }
+    }
+
     private func saveProfile() {
         isSaving = true
         message = nil
         Task {
             do {
                 var payload = UserUpdate()
-                payload.fullName = fullName.isEmpty ? nil : fullName
+                // The parts are what the form edits; the backend recomputes
+                // `full_name` from them so the two forms cannot drift apart.
+                payload.firstName = firstName.isEmpty ? nil : firstName
+                payload.lastName = lastName.isEmpty ? nil : lastName
+                payload.middleName = middleName.isEmpty ? nil : middleName
+                payload.namePrefix = namePrefix.isEmpty ? nil : namePrefix
+                payload.nameSuffix = nameSuffix.isEmpty ? nil : nameSuffix
                 if !dobLocked { payload.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth }
                 payload.gender = gender.isEmpty ? nil : gender
                 if !genderAtBirthLocked { payload.genderAtBirth = genderAtBirth.isEmpty ? nil : genderAtBirth }

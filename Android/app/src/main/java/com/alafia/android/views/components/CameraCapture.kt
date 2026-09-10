@@ -7,7 +7,11 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -31,8 +35,24 @@ class CameraCaptureController internal constructor(
     private val context: Context,
     private val launchCamera: (Uri) -> Unit,
     private val requestPermission: () -> Unit,
+    private val readPending: () -> String?,
+    private val writePending: (String?) -> Unit,
 ) {
-    internal var pendingUri: Uri? = null
+    /**
+     * Where the photo is being written.
+     *
+     * Held in SAVED state, not in `remember`. A camera app is one of the most
+     * memory-hungry things a phone runs, so it routinely causes our process to
+     * be killed while it is in the foreground. The ActivityResult API restores
+     * the pending request and delivers `success = true` on the way back — but a
+     * `remember`ed field is gone by then, so the Uri read back was null and the
+     * photo the patient had just taken was silently dropped. The failure looks
+     * exactly like "the camera does nothing", and it is worst on the cheap,
+     * low-memory phones most likely to be in use.
+     */
+    internal var pendingUri: Uri?
+        get() = readPending()?.let(Uri::parse)
+        set(value) = writePending(value?.toString())
 
     private fun newPhotoUri(): Uri {
         val dir = File(context.cacheDir, "camera").apply { mkdirs() }
@@ -68,6 +88,8 @@ class CameraCaptureController internal constructor(
 @Composable
 fun rememberCameraCapture(onImage: (Uri) -> Unit): CameraCaptureController {
     val context = LocalContext.current
+    // Survives process death; a plain `remember` does not.
+    var pending by rememberSaveable { mutableStateOf<String?>(null) }
     var controller: CameraCaptureController? = null
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -91,6 +113,8 @@ fun rememberCameraCapture(onImage: (Uri) -> Unit): CameraCaptureController {
             context = context,
             launchCamera = { cameraLauncher.launch(it) },
             requestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+            readPending = { pending },
+            writePending = { pending = it },
         )
     }
     controller = instance

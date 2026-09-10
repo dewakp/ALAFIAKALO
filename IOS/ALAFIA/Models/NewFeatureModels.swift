@@ -958,6 +958,7 @@ struct PatientSummary: Codable, Identifiable {
     var id: Int { userId }
     let userId: Int
     let fullName: String
+    let profilePictureUrl: String?
     let email: String?
     let latestVitals: ClinicianVitals?
     let latestMood: ClinicianMood?
@@ -970,6 +971,7 @@ struct PatientSummary: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case email, conditions, medications, permissions
         case userId = "user_id"
+        case profilePictureUrl = "profile_picture_url"
         case fullName = "full_name"
         case latestVitals = "latest_vitals"
         case latestMood = "latest_mood"

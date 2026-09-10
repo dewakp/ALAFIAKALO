@@ -4,6 +4,13 @@ struct User: Codable, Identifiable {
     let id: Int
     let email: String
     let fullName: String
+    // The parts. `fullName` stays for display and for the accounts that
+    // predate the split; these are what a form edits.
+    let givenName: String?
+    let familyName: String?
+    let middleName: String?
+    let namePrefix: String?
+    let nameSuffix: String?
 
     // Demographics
     let dateOfBirth: String?
@@ -71,6 +78,11 @@ struct User: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, email, gender, locale, timezone, country, allergies, occupation
         case fullName = "full_name"
+        case givenName = "first_name"
+        case familyName = "last_name"
+        case middleName = "middle_name"
+        case namePrefix = "name_prefix"
+        case nameSuffix = "name_suffix"
         case dateOfBirth = "date_of_birth"
         case genderAtBirth = "gender_at_birth"
         case profilePictureUrl = "profile_picture_url"
@@ -108,14 +120,26 @@ struct User: Codable, Identifiable {
         case isHealthcareProfessional = "is_healthcare_professional"
     }
 
+    /// What to call this person on a greeting.
+    ///
+    /// Prefers the field the server actually holds. The split is the fallback
+    /// for accounts that predate the two-field signup — it is a guess, and a
+    /// wrong one for anyone whose first name is two words, which is exactly
+    /// why the parts are now stored rather than derived.
     var firstName: String {
-        fullName.components(separatedBy: " ").first ?? fullName
+        if let given = givenName, !given.isEmpty { return given }
+        return fullName.components(separatedBy: " ").first ?? fullName
     }
 
     static let preview = User(
         id: 1,
         email: "preview@alafia.health",
-        fullName: "Amina K.",
+        fullName: "Amina Kone",
+        givenName: "Amina",
+        familyName: "Kone",
+        middleName: nil,
+        namePrefix: nil,
+        nameSuffix: nil,
         dateOfBirth: "1990-05-14",
         gender: "Female",
         genderAtBirth: "Female",
@@ -163,6 +187,11 @@ struct User: Codable, Identifiable {
 /// Partial update payload — only non-nil fields are included in JSON.
 struct UserUpdate: Encodable {
     var fullName: String?
+    var firstName: String?
+    var lastName: String?
+    var middleName: String?
+    var namePrefix: String?
+    var nameSuffix: String?
     var dateOfBirth: String?
     var gender: String?
     var genderAtBirth: String?
@@ -207,6 +236,11 @@ struct UserUpdate: Encodable {
     enum CodingKeys: String, CodingKey {
         case gender, locale, timezone, country, allergies, occupation
         case fullName = "full_name"
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case middleName = "middle_name"
+        case namePrefix = "name_prefix"
+        case nameSuffix = "name_suffix"
         case dateOfBirth = "date_of_birth"
         case genderAtBirth = "gender_at_birth"
         case profilePictureUrl = "profile_picture_url"

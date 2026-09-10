@@ -98,6 +98,7 @@ async def _get_patients_for_clinician(clinician_id: int, db: AsyncSession) -> li
             user_id=patient.id,
             full_name=patient.full_name,
             email=patient.email,
+            profile_picture_url=patient.profile_picture_data,
             permissions=permissions,
         )
 
@@ -199,6 +200,7 @@ async def get_patient_detail(
 
     summary = PatientSummary(
         user_id=patient.id, full_name=patient.full_name, email=patient.email,
+        profile_picture_url=patient.profile_picture_data,
         permissions=permissions,
     )
     # Populate all permitted data (same logic as above)

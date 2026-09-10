@@ -180,12 +180,11 @@ struct ClinicianDashboardView: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Text(Self.initials(patient.fullName))
-                    .font(.subheadline).fontWeight(.bold)
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(Self.tint(for: patient.userId).gradient)
-                    .clipShape(Circle())
+                // The shared avatar: photo if the patient has one, the same
+                // initials circle as before if not.
+                AvatarView(urlString: patient.profilePictureUrl,
+                           name: patient.fullName,
+                           userId: patient.userId, size: 40)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(patient.fullName)

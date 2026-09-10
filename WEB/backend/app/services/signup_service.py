@@ -58,6 +58,7 @@ async def email_taken(db: AsyncSession, email: str) -> bool:
 async def start(
     db: AsyncSession, email: str, password: str, full_name: str | None,
     date_of_birth: str | None = None, country: str | None = None,
+    first_name: str | None = None, last_name: str | None = None,
 ) -> tuple[PendingRegistration, str]:
     """Begin a signup. Returns the pending row and the raw verification token.
 
@@ -77,6 +78,8 @@ async def start(
         # re-requesting the verification email.
         existing.password_hash = hash_password(password)
         existing.full_name = full_name or existing.full_name
+        existing.first_name = first_name or existing.first_name
+        existing.last_name = last_name or existing.last_name
         existing.date_of_birth = date_of_birth or existing.date_of_birth
         existing.country = country or existing.country
         existing.verification_token_hash = token_hash
@@ -89,6 +92,8 @@ async def start(
     pending = PendingRegistration(
         email=email,
         full_name=full_name,
+        first_name=first_name,
+        last_name=last_name,
         date_of_birth=date_of_birth,
         country=country,
         password_hash=hash_password(password),
@@ -138,17 +143,23 @@ async def mark_paid(
 ) -> PendingRegistration | None:
     """Record payment against a signup.
 
-    Refuses if the email is not verified yet — payment must not be the thing
-    that gets a robot past the gate.
+    Payment may now arrive BEFORE the verification click, so this no longer
+    refuses an unverified signup. The gate it used to hold is still held, and
+    held in the one place that matters: `materialise` checks `ready_to_create`
+    (verified AND paid) and is the only path from a pending signup to a `users`
+    row. Recording payment here creates no account and grants no access — it
+    records a fact about money that has already moved, which the payer is
+    entitled to have on file.
+
+    "Payment must not be the thing that gets a robot past the gate" still
+    holds. A robot that pays and never reads mail gets one expiring row and no
+    account.
     """
     email = (email or "").strip().lower()
     pending = (await db.execute(
         select(PendingRegistration).where(PendingRegistration.email == email)
     )).scalar_one_or_none()
     if pending is None or pending.is_expired():
-        return None
-    if not pending.email_verified:
-        logger.info("Payment recorded for unverified signup %s — refused", email)
         return None
 
     pending.payment_provider = provider
@@ -192,6 +203,8 @@ async def materialise(db: AsyncSession, pending: PendingRegistration) -> User | 
     user = User(
         email=pending.email,
         full_name=pending.full_name,
+        first_name=pending.first_name,
+        last_name=pending.last_name,
         date_of_birth=pending.date_of_birth,
         country=pending.country,
         hashed_password=pending.password_hash,   # already hashed at start()

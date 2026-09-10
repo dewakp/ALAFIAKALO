@@ -129,7 +129,7 @@ fun RegisterScreen(
                 }
                 
                 if (email.isNotEmpty() && password.isNotEmpty() &&
-                    firstName.isNotEmpty() && lastName.isNotEmpty() &&
+                    firstName.trim().length >= 3 && lastName.trim().length >= 3 &&
                     DOB_PATTERN.matches(dateOfBirth)
                 ) {
                     isLoading = true
@@ -141,7 +141,9 @@ fun RegisterScreen(
                                 RegisterRequest(
                                     email = email,
                                     password = password,
-                                    full_name = "$firstName $lastName",
+                                    first_name = firstName.trim(),
+                                    last_name = lastName.trim(),
+                                    full_name = "${firstName.trim()} ${lastName.trim()}",
                                     date_of_birth = dateOfBirth,
                                     gender = null
                                 )
@@ -169,7 +171,10 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .height(48.dp),
             enabled = !isLoading && email.isNotEmpty() &&
-                    password.isNotEmpty() && firstName.isNotEmpty() && lastName.isNotEmpty()
+                    password.isNotEmpty() &&
+                    // Same rule the API enforces, so the button is disabled
+                    // rather than the request refused.
+                    firstName.trim().length >= 3 && lastName.trim().length >= 3
         ) {
             if (isLoading) {
                 CircularProgressIndicator(

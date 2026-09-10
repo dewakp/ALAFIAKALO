@@ -74,6 +74,7 @@ export default function Nutrition() {
   const [visionEdits, setVisionEdits] = useState([]);       // editable [{name, estimated_grams}]
   const [teachState, setTeachState] = useState('');         // '' | 'saving' | message
   const imageInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const formRef = useRef(null);   // edit/add form card — for scroll-into-view on Edit
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -619,11 +620,37 @@ export default function Nutrition() {
                 // A previous failure must not linger next to a fresh selection.
                 setImageAnalysisResult('');
               }}/>
+            {/* A SEPARATE input for the camera. `capture` and `multiple` are
+                mutually exclusive — a browser handed both silently ignores one,
+                and which one it ignores differs between iOS and Android. So the
+                camera gets its own single-shot input rather than an attribute
+                bolted onto the picker. */}
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const picked = Array.from(e.target.files || []).slice(0, 3 - imageFiles.length);
+                // Same detachment as above: WebKit empties these File objects
+                // when the input is cleared, and the upload arrives with no
+                // image in it.
+                const added = await detachFiles(picked);
+                setImageFiles((prev) => [...prev, ...added].slice(0, 3));
+                e.target.value = '';
+                setImageAnalysisResult('');
+              }}/>
             <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.5rem' }}>
               <button type="button" className="btn btn-secondary btn-sm"
                 onClick={() => imageInputRef.current?.click()}
                 disabled={imageFiles.length >= 3}>
                 Choose Files
+              </button>
+              {/* The copy above has always said "or take a photo" and there was
+                  no control that did — the meal is in front of the patient at
+                  the moment they tap, so this is the primary action on a phone,
+                  not a hidden option inside the file picker's action sheet. */}
+              <button type="button" className="btn btn-secondary btn-sm"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={imageFiles.length >= 3}>
+                Take Photo
               </button>
               {imageFiles.length === 0 && <span style={{ fontSize: '.8rem', color: 'var(--color-text-tertiary)', alignSelf: 'center' }}>no files selected</span>}
               {imageFiles.map((f, i) => (

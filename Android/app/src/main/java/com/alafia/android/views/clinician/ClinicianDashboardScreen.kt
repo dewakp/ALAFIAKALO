@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.alafia.android.views.components.AvatarImage
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -195,22 +196,10 @@ private fun PatientCard(patient: PatientSummary, onOpen: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(40.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Surface(
-                        color = tintFor(patient.userId),
-                        shape = MaterialTheme.shapes.extraLarge,
-                        modifier = Modifier.size(40.dp)
-                    ) {}
-                    Text(
-                        initialsOf(patient.fullName),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                // The shared avatar: photo if the patient has one, the same
+                // initials circle as before if not.
+                AvatarImage(url = patient.profilePictureUrl, name = patient.fullName,
+                            userId = patient.userId, size = 40.dp)
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(

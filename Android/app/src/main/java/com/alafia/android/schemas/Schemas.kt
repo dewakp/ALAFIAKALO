@@ -17,6 +17,13 @@ data class LoginResponse(
 data class RegisterRequest(
     val email: String,
     val password: String,
+    // The parts, sent as the parts. This screen already asked for two fields
+    // and joined them, so the server was handed a single string and had to
+    // guess the surname back out of it — it sent the literal "XXX" to the
+    // identity service for any one-word name. Nothing about the form changes;
+    // what it sends does.
+    val first_name: String,
+    val last_name: String,
     val full_name: String,
     val date_of_birth: String? = null,
     val gender: String? = null
@@ -26,6 +33,11 @@ data class UserSchema(
     val id: Int,
     val email: String,
     val full_name: String,
+    val first_name: String? = null,
+    val last_name: String? = null,
+    val middle_name: String? = null,
+    val name_prefix: String? = null,
+    val name_suffix: String? = null,
     val date_of_birth: String? = null,
     val gender: String? = null,
     val gender_at_birth: String? = null,
@@ -72,6 +84,11 @@ data class UserSchema(
 /** Partial update payload — only non-null fields are sent. */
 data class UserUpdateRequest(
     val full_name: String? = null,
+    val first_name: String? = null,
+    val last_name: String? = null,
+    val middle_name: String? = null,
+    val name_prefix: String? = null,
+    val name_suffix: String? = null,
     val date_of_birth: String? = null,
     val gender: String? = null,
     val gender_at_birth: String? = null,

@@ -1,3 +1,4 @@
+import Avatar from '../components/Avatar';
 import { fmtDateTime, fmtTime } from '../utils/datetime';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -394,10 +395,15 @@ export function RecipientPicker({ selected, onChange, max }) {
                     display: 'block', width: '100%', textAlign: 'left', border: 'none',
                     background: 'none', padding: '8px 12px', cursor: 'pointer', fontSize: '0.9rem',
                   }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Avatar src={p.profile_picture_url} name={p.full_name} id={p.id} size={28} />
+                    <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 600 }}>{p.full_name}</div>
                   <div style={{ fontSize: '0.78rem', color: '#888' }}>
                     {p.email || p.email_hint || p.phone_hint || ''}
                     {p.connected && <span style={{ marginLeft: 6 }}>· shared contact</span>}
+                  </div>
+                    </div>
                   </div>
                 </button>
               ))}
@@ -737,8 +743,15 @@ function MessageBubble({ msg, isOwn }) {
   return (
     <div style={{
       display: 'flex', justifyContent: isOwn ? 'flex-end' : 'flex-start',
-      margin: '4px 0',
+      alignItems: 'flex-end', gap: 8, margin: '4px 0',
     }}>
+      {/* The other person's face, beside their bubble. Own messages get none —
+          the sender already knows who they are, and a column of your own photo
+          down the right-hand side is just noise. */}
+      {!isOwn && (
+        <Avatar src={msg.sender_picture_url} name={msg.sender_name}
+                id={msg.sender_id} size={28} style={{ marginBottom: 2 }} />
+      )}
       <div style={{
         maxWidth: '70%', padding: '8px 14px', borderRadius: 16,
         background: isOwn ? 'var(--color-primary)' : '#f0f0f0',
@@ -748,7 +761,9 @@ function MessageBubble({ msg, isOwn }) {
       }}>
         {!isOwn && (
           <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 2, opacity: 0.7 }}>
-            User #{msg.sender_id}
+            {/* "User #123" was an internal handle shown to a patient — the same
+                mistake as asking for Member IDs in the compose box (§3e). */}
+            {msg.sender_name || `User #${msg.sender_id}`}
           </div>
         )}
         {msg.message_type === 'image' && msg.file_url && (

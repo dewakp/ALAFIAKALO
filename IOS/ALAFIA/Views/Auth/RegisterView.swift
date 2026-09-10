@@ -3,7 +3,8 @@ import SwiftUI
 struct RegisterView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.dismiss) var dismiss
-    @State private var fullName = ""
+    @State private var firstName = ""
+    @State private var lastName = ""
     @State private var email = ""
     @State private var password = ""
     // Defaults to 30 years ago rather than today, so the wheel does not open on
@@ -51,8 +52,11 @@ struct RegisterView: View {
                 }
                 
                 VStack(spacing: 16) {
-                    LKTextField(title: "Full Name", text: $fullName)
-                        .textContentType(.name)
+                    LKTextField(title: "First Name", text: $firstName)
+                        .textContentType(.givenName)
+
+                    LKTextField(title: "Last Name", text: $lastName)
+                        .textContentType(.familyName)
                     
                     LKTextField(title: "Email", text: $email, keyboardType: .emailAddress)
                         .textContentType(.emailAddress)
@@ -70,10 +74,24 @@ struct RegisterView: View {
                         .textContentType(.newPassword)
                     
                     LKButton(title: "Create Account", isLoading: isLoading) {
+                        // Checked here so the message names WHICH box is wrong.
+                        // The API enforces the same rule regardless — a client
+                        // check is a kindness, never the enforcement.
+                        let first = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let last = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if first.count < 3 {
+                            authManager.error = "First name must be at least 3 characters."
+                            return
+                        }
+                        if last.count < 3 {
+                            authManager.error = "Last name must be at least 3 characters."
+                            return
+                        }
                         isLoading = true
                         Task {
                             await authManager.register(
-                                email: email, password: password, fullName: fullName,
+                                email: email, password: password,
+                                firstName: first, lastName: last,
                                 dateOfBirth: Self.isoDate.string(from: dateOfBirth))
                             isLoading = false
                         }

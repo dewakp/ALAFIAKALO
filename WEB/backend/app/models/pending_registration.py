@@ -33,6 +33,11 @@ class PendingRegistration(Base):
 
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Carried through signup rather than re-split at materialise time: a
+    # surname of two words ("Van Der Berg") cannot be recovered from the
+    # joined string, and the person already typed it in its own field.
+    first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # Hashed on arrival — a pending signup is never a place for a plaintext secret.
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 

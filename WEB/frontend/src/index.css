@@ -749,3 +749,74 @@ textarea.form-input {
   .chat-status-dots i,
   .chat-status-label { animation: none; }
 }
+
+/* Two fields side by side on a comfortable width; stacked on a phone, where
+   a 50%-wide name input is unusable. */
+.name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}
+@media (max-width: 480px) {
+  .name-row { grid-template-columns: 1fr; }
+}
+
+/* ── Signup flow ── */
+.signup-steps {
+  display: flex;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+.signup-steps li {
+  flex: 1;
+  padding-top: 0.5rem;
+  border-top: 3px solid var(--color-border);
+  text-align: center;
+}
+.signup-steps li.is-done {
+  border-top-color: var(--color-primary);
+  color: var(--color-text);
+  font-weight: 600;
+}
+.auth-error {
+  color: var(--color-danger);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.auth-notice {
+  background: var(--color-bg-secondary);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+.auth-alt { text-align: center; margin-top: 1rem; font-size: 0.9rem; }
+.btn-block { width: 100%; }
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.5rem 0;
+  width: 100%;
+}
+.plan-choice { border: none; padding: 0; margin: 0 0 1rem; }
+.plan-choice label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 1rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.plan-choice label.is-selected {
+  border-color: var(--color-primary);
+  font-weight: 600;
+}

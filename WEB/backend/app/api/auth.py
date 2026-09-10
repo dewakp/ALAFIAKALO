@@ -124,9 +124,9 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    names = user_in.full_name.split()
-    first_name = names[0] if names else "XXX"
-    last_name = names[-1] if len(names) > 1 else "XXX"
+    # The client sends the parts; nothing is guessed and nothing is invented.
+    first_name = user_in.first_name.strip()
+    last_name = user_in.last_name.strip()
 
     # 1) Create the canonical identity user (single source of truth).
     istatus, ireg = await identity_register({
@@ -152,6 +152,8 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
         full_name=user_in.full_name,
+        first_name=first_name,
+        last_name=last_name,
         date_of_birth=user_in.date_of_birth,
         gender=user_in.gender,
         gender_at_birth=user_in.gender_at_birth,

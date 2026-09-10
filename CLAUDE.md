@@ -1597,6 +1597,132 @@ The field lists are module constants and
 compares them to `__table__.columns`. **A static check beats behavioural tests
 here** — the same lesson §3ag already paid for once.
 
+## 3aq. A name is two fields, and a face is one component
+
+`full_name` was a single string everywhere, so `auth.register` had to guess
+which word was the surname — and sent the literal **`"XXX"`** to the identity
+service for anyone who typed one word.
+
+- **The rule lives at the API boundary, not in a form.** `first_name` and
+  `last_name` are `min_length=3` ("longer than 2 letters", as specified). Web,
+  iOS and Android each check it too, but only so the message can name WHICH box
+  is wrong — a client check is a kindness, never the enforcement.
+- **`full_name` is DERIVED and kept in step server-side.** `PATCH /users/me`
+  recomputes it whenever a part changes, in the one place both forms are
+  written. 85 existing rows, every greeting and every clinician list read it;
+  editing the parts without recomputing leaves the two disagreeing and whichever
+  surface you check second looks broken.
+- **Shipped clients still send `full_name` alone** — TestFlight 1.5 and the
+  distributed APK. `UserCreate` splits those on the compatibility path rather
+  than refusing them, which would have broken signup for everyone who has not
+  updated. The parts are carried through `pending_registrations` too, because
+  no amount of splitting recovers **"Van Der Berg"** from the joined string.
+- Middle name, prefix and suffix carry **no** length rule. "II" and "Jr." are
+  two and three characters, and the form sends `""` for the ones left blank —
+  a `min_length` there rejects an ordinary save.
+
+### The avatar is one component per platform, or it appears in one place
+
+`profile_picture_url` existed since the first migration and **nothing ever wrote
+to it**. The clinician grid drew its own initials circle and no other surface
+drew anything, so a photo would have shown up on exactly one screen.
+
+`Avatar.jsx` / `AvatarView.swift` / `AvatarImage.kt` share one fallback ladder
+(photo → initials → `?`) and one tint palette, so the same person is the same
+colour everywhere — which is the only thing that makes a colour useful for
+recognition. Used by Profile, peer-to-peer chat, the recipient picker and the
+clinician grid.
+
+- **The server normalises on the way in** (`services/avatar.py`): EXIF
+  transpose, centre-crop at `(0.5, 0.4)` so a face is not cropped at the chin,
+  256 px, JPEG q82 → a ~15 KB `data:` URI. A phone photo is 3–12 MB and arrives
+  sideways; stored verbatim it would ride on every user payload.
+- It travels as a `data:` URI on the payload rather than a URL to fetch — one
+  fewer authenticated round-trip per face, which matters in a patient list.
+- Mobile capture is the **camera first**, gallery second. The subject — the
+  patient's own face — is in front of them at the moment they tap.
+
+## 3ar. A control that sets a flag nothing observes does NOTHING
+
+Reported as "camera capture is not working for food/medication in phones".
+Observed, not guessed — the causes were different on each platform:
+
+| Platform | What was actually wrong |
+|---|---|
+| **iOS, food** | the Camera button set `showCamera = true` and **no `.sheet(isPresented: $showCamera)` existed anywhere in the file** |
+| **Web, food** | the copy said "or take a photo" and the only control was *Choose Files* |
+| **Android** | wired correctly, but the pending capture Uri lived in `remember` |
+
+- **iOS was a dead button.** Setting an unread `Bool` compiles perfectly, so no
+  build and no unit test can see it. §3ad's "the page existed but had no route",
+  one layer down: the control existed, `CameraPicker` existed, and nothing
+  connected them. `tests/test_ios_presentation_flags.py` now fails the build on
+  any `show…` flag that is set but never READ.
+
+  > **Classify a static finding before fixing it.** The first version of that
+  > check listed the presentation modifiers and flagged anything not passed to
+  > one — which reported `HealthSyncView.showResult`, a perfectly wired flag
+  > read by an inline `if let result = …, showResult {`. Acting on it would
+  > have broken a working screen to satisfy a check. The rule is "is it ever
+  > read", not "is it handed to a sheet". §3ap, again.
+
+- **`capture` and `multiple` cannot share an input.** A browser handed both
+  ignores one, and which one differs between iOS and Android. The camera gets
+  its own single-shot input. The camera path must ALSO `detachFiles` — WebKit
+  empties a `File` when its input is cleared, so the chip shows a filename and
+  the upload arrives with no image (§3c's 6360-byte request).
+
+- **`remember` does not survive process death; `rememberSaveable` does.** A
+  camera app is one of the most memory-hungry things a phone runs and routinely
+  gets our process killed while it is in the foreground. The ActivityResult API
+  restores the request and delivers `success = true` on the way back — but the
+  `remember`ed Uri is gone, so the photo the patient just took was silently
+  dropped. Worst on the cheap, low-memory phones most likely to be in use, and
+  it looks exactly like "the camera does nothing".
+
+- The camera was offered only while the image list was **empty**, on a form
+  whose own copy says several shots of one meal are read together. Shots 2 and
+  3 needed it just as much.
+
+## 3as. Two-step signup had four endpoints and no client
+
+`/auth/signup/{start,verify-email,checkout,complete}` shipped and **nothing
+called them**, so `TWO_STEP_SIGNUP_REQUIRED` could never be turned on — turning
+it on would have closed registration entirely. Meanwhile the one-step form
+created loginable, unpaid accounts and reported nothing at all: a real address
+"went through" with no email and no payment, and the person had no way to know.
+
+- **The router mounts at `/auth/signup`, not `/signup`.** The first version of
+  the client called the latter and got a clean 404 from every endpoint. §3ap's
+  route-table diff exists for exactly this.
+- **The order is deliberate:** details → email sent → **straight to payment**,
+  without waiting for the click. Payment and verification are independent and
+  whichever finishes second creates the account, so a card that clears while
+  the email sits unread is money held against an account the person can finish
+  from their inbox — not a dead end.
+- **Paid-but-unverified is a REAL state, not an error.** Saying "payment
+  failed" there is false; saying nothing is how someone concludes their money
+  vanished.
+- **Stripe's `success_url` carries a session id and NO email** — it is built
+  before a customer exists. The address is parked in `sessionStorage` before
+  leaving. When it is missing (a fresh tab), the page ASKS for it and completes:
+  the money is taken either way, so it must not dead-end on a blank success page.
+- **Cancelling is not failing.** `?status=cancel` returns to the plan picker
+  saying no payment was taken.
+- The verification email has always pointed at **`/verify-email?token=…`** and
+  no such route existed — every link landed on the catch-all with a valid token
+  and nothing to spend it on. React 18's StrictMode double-mount consumes a
+  single-use token twice, so the call is guarded by a ref.
+- `e2e/signup-flow.spec.js` drives all of it in a real browser. Unit tests
+  cannot reach the API paths, the redirect out, or the return leg — which is
+  exactly the set that was broken.
+
+> **A fixture that quietly disappears reads as a broken feature.**
+> `e2e/medication-intake.spec.js` failed on *"No previous dose on record"*
+> because `make_proof_user.py` created only the ACCOUNT while the spec asserts
+> on dose history — and every `pull_prod.sh` replaces the whole database, that
+> row included. The seeder now seeds the data too.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

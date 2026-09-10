@@ -137,6 +137,11 @@ class MessageResponse(BaseModel):
     id: int
     conversation_id: int
     sender_id: int
+    # Who sent it, in terms the recipient recognises. Without these the UI can
+    # only render the internal id — it showed "User #123" — which is the same
+    # mistake as asking for "Member IDs" in the compose box (§3e).
+    sender_name: Optional[str] = None
+    sender_picture_url: Optional[str] = None
     message_type: str
     content: Optional[str] = None
     file_url: Optional[str] = None
@@ -312,6 +317,11 @@ class RecipientMatch(BaseModel):
 
     id: int
     full_name: str
+    # The photo travels with the name for the same reason the name does: two
+    # people called "A. Okafor" are told apart by a face faster than by a
+    # masked email. It is only ever returned for someone already reachable
+    # under the rules above, so it discloses nothing the name does not.
+    profile_picture_url: Optional[str] = None
     email: Optional[str] = None
     phone_number: Optional[str] = None
     email_hint: Optional[str] = None

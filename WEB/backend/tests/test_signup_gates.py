@@ -88,3 +88,87 @@ def test_blank_token_hashes_are_not_matched_by_accident(raw):
     """A blank submitted token must never collide with a stored NULL/blank."""
     assert svc.hash_token(raw.strip()) == svc.hash_token("")
     # ...and the verify path requires a stored hash, which is cleared on use.
+
+
+# ── payment may now precede verification; the ACCOUNT may not ──────────
+
+def test_payment_no_longer_requires_a_verified_email():
+    """The signup that prompted this change never reached payment: the account
+    was created silently with no mail and no money, and the person had no way
+    to tell. Payment is now collected while they are still on the page."""
+    import inspect
+
+    from app.services import signup_service
+
+    src = inspect.getsource(signup_service.mark_paid)
+    assert "Payment recorded for unverified signup" not in src, (
+        "mark_paid must no longer refuse an unverified signup")
+
+
+def test_the_account_still_requires_BOTH_gates():
+    """Relaxing payment must not relax account creation. `materialise` is the
+    only path from a pending signup to a users row, and it checks both."""
+    import inspect
+
+    from app.services import signup_service
+
+    src = inspect.getsource(signup_service.materialise)
+    assert "ready_to_create" in src
+    assert "return None" in src
+
+
+@pytest.mark.parametrize("verified,paid,expected", [
+    (False, False, False),
+    (True, False, False),
+    (False, True, False),   # paid but unproven mailbox — still no account
+    (True, True, True),
+])
+def test_ready_to_create_needs_both(verified, paid, expected):
+    from datetime import datetime, timedelta, timezone
+
+    from app.models.pending_registration import PendingRegistration
+
+    p = PendingRegistration(
+        email="x@example.com", password_hash="h", full_name="X",
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        email_verified_at=datetime.now(timezone.utc) if verified else None,
+        paid_at=datetime.now(timezone.utc) if paid else None,
+    )
+    assert p.ready_to_create is expected
+
+
+@pytest.mark.asyncio
+async def test_an_undeliverable_domain_is_refused_before_payment():
+    """Payment now precedes proof, so a typo becomes someone who paid and
+    cannot be reached. A domain with no MX record can never accept mail."""
+    from app.services.email_deliverability import can_receive_mail
+
+    ok, reason = await can_receive_mail("someone@gmial.cmo")
+    assert ok is False and "cannot receive email" in reason
+
+    ok, _ = await can_receive_mail("someone@gmail.com")
+    assert ok is True
+
+
+@pytest.mark.asyncio
+async def test_dns_failure_does_not_refuse_a_paying_customer(monkeypatch):
+    """Unreachable is not invalid — refusing a customer because our resolver
+    blinked is worse than the failure being guarded against (§3aj)."""
+    from app.services import email_deliverability as mod
+
+    monkeypatch.setattr(mod, "_has_mx", lambda domain: None)
+    ok, reason = await mod.can_receive_mail("someone@whatever.example")
+    assert ok is True and reason is None
+
+
+def test_the_receipt_does_not_invalidate_the_emailed_link():
+    """Minting a fresh token in the receipt overwrote the stored hash and
+    silently broke the link already in their inbox — a correct verification
+    failed after payment. Caught in testing, not in production."""
+    import inspect
+
+    from app.api import signup
+
+    src = inspect.getsource(signup.signup_complete)
+    assert "svc.new_token()" not in src, (
+        "completing payment must not mint a token over the live one")

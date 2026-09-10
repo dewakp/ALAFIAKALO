@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const { register } = useAuth();
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -18,7 +19,11 @@ export default function Register() {
     e.preventDefault();
     setError('');
     // Client-side validation
-    if (!fullName.trim() || fullName.trim().length < 2) { setError('Full name is required (at least 2 characters)'); return; }
+    // The API enforces the same 3-character rule; this is only the kinder,
+    // faster version of it. Naming the field that is wrong matters — a single
+    // "name is required" leaves the user guessing which of two boxes.
+    if (firstName.trim().length < 3) { setError('First name must be at least 3 characters'); return; }
+    if (lastName.trim().length < 3) { setError('Last name must be at least 3 characters'); return; }
     if (!email.trim()) { setError('Email is required'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Please enter a valid email address'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
@@ -33,7 +38,9 @@ export default function Register() {
     if (submitting) return;
     setSubmitting(true);
     try {
-      await register(email, password, fullName, phone, dateOfBirth,
+      await register(email, password,
+                     { firstName: firstName.trim(), lastName: lastName.trim() },
+                     phone, dateOfBirth,
                      Intl.DateTimeFormat().resolvedOptions().locale?.split('-')[1] || null);
     } catch (err) {
       setError(apiErrorMessage(err, 'Registration failed'));
@@ -47,21 +54,45 @@ export default function Register() {
       <div className="card auth-card">
         <h1 className="auth-title">ALAFIA</h1>
         <p className="auth-subtitle">Create your account</p>
+        {/* §3ad: a page needs BOTH a route and a link. /register is where
+            people land, so the two-step flow is reachable from here rather
+            than only from a URL somebody has to know. */}
+        <p className="auth-alt" style={{ marginTop: 0, marginBottom: '1rem' }}>
+          Joining as a member? <Link to="/signup">Start here</Link>
+        </p>
         {error && (
           <div style={{ color: 'var(--color-danger)', textAlign: 'center', marginBottom: '1rem' }}>
             {error}
           </div>
         )}
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Full Name</label>
-            <input
-              className="form-input"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
+          <div className="name-row">
+            <div className="form-group">
+              <label className="form-label" htmlFor="register-first">First Name</label>
+              <input
+                id="register-first"
+                className="form-input"
+                type="text"
+                autoComplete="given-name"
+                minLength={3}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="register-last">Last Name</label>
+              <input
+                id="register-last"
+                className="form-input"
+                type="text"
+                autoComplete="family-name"
+                minLength={3}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="register-email">Email</label>

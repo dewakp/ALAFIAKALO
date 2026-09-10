@@ -507,6 +507,9 @@ class PatientSummary(BaseModel):
     user_id: int
     full_name: str
     email: str | None = None
+    # A face on the card. Absent for anyone who has not uploaded one, which is
+    # every account today — the grid falls back to initials as it always did.
+    profile_picture_url: str | None = None
     latest_vitals: dict | None = None
     latest_mood: dict | None = None
     latest_labs: list[dict] = []

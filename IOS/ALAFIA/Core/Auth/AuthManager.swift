@@ -177,12 +177,17 @@ class AuthManager: ObservableObject {
 
     // MARK: - Register
 
-    func register(email: String, password: String, fullName: String,
+    func register(email: String, password: String,
+                  firstName: String, lastName: String,
                   dateOfBirth: String,
                   country: String? = Locale.current.region?.identifier) async {
         error = nil
         do {
-            let body = RegisterRequest(email: email, password: password, fullName: fullName,
+            let first = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let last = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let body = RegisterRequest(email: email, password: password,
+                                       firstName: first, lastName: last,
+                                       fullName: "\(first) \(last)",
                                        dateOfBirth: dateOfBirth, country: country)
             let _: User = try await APIClient.shared.post("/auth/register", body: body)
             await login(email: email, password: password)
@@ -253,6 +258,12 @@ struct TokenResponse: Decodable {
 struct RegisterRequest: Encodable {
     let email: String
     let password: String
+    /// Two fields. A single name forced the backend to guess which word was the
+    /// surname — it sent the literal "XXX" to the identity service whenever
+    /// someone entered one word.
+    let firstName: String
+    let lastName: String
+    /// Still sent, so nothing downstream that reads it has to change.
     let fullName: String
     /// REQUIRED by the API: an account holder must be an adult by their own
     /// jurisdiction's standard (app/core/age_policy.py). Omitting it 422s.
@@ -262,6 +273,8 @@ struct RegisterRequest: Encodable {
 
     enum CodingKeys: String, CodingKey {
         case email, password, country
+        case firstName = "first_name"
+        case lastName = "last_name"
         case fullName = "full_name"
         case dateOfBirth = "date_of_birth"
     }
