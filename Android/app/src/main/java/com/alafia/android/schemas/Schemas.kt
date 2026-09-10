@@ -25,6 +25,10 @@ data class RegisterRequest(
     val first_name: String,
     val last_name: String,
     val full_name: String,
+    // Optional, E.164. Enables phone/password login — the web form collects it
+    // and mobile did not, so an account made on a phone could not use the one
+    // sign-in method a phone is best placed to offer.
+    val phone: String? = null,
     val date_of_birth: String? = null,
     val gender: String? = null
 )

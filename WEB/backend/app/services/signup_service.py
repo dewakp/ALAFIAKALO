@@ -59,6 +59,7 @@ async def start(
     db: AsyncSession, email: str, password: str, full_name: str | None,
     date_of_birth: str | None = None, country: str | None = None,
     first_name: str | None = None, last_name: str | None = None,
+    phone: str | None = None,
 ) -> tuple[PendingRegistration, str]:
     """Begin a signup. Returns the pending row and the raw verification token.
 
@@ -78,6 +79,7 @@ async def start(
         # re-requesting the verification email.
         existing.password_hash = hash_password(password)
         existing.full_name = full_name or existing.full_name
+        existing.phone = phone or existing.phone
         existing.first_name = first_name or existing.first_name
         existing.last_name = last_name or existing.last_name
         existing.date_of_birth = date_of_birth or existing.date_of_birth
@@ -94,6 +96,7 @@ async def start(
         full_name=full_name,
         first_name=first_name,
         last_name=last_name,
+        phone=phone,
         date_of_birth=date_of_birth,
         country=country,
         password_hash=hash_password(password),
@@ -205,6 +208,7 @@ async def materialise(db: AsyncSession, pending: PendingRegistration) -> User | 
         full_name=pending.full_name,
         first_name=pending.first_name,
         last_name=pending.last_name,
+        phone_number=pending.phone,
         date_of_birth=pending.date_of_birth,
         country=pending.country,
         hashed_password=pending.password_hash,   # already hashed at start()

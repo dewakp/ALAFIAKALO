@@ -33,13 +33,31 @@ test.beforeAll(async ({ playwright }) => {
   const csrf = (await api.storageState()).cookies
     .find((c) => c.name === 'csrf_token')?.value || '';
 
-  const res = await api.post('/api/v1/auth/login', {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-CSRF-Token': csrf,
-    },
-    data: `username=${encodeURIComponent(EMAIL)}&password=${encodeURIComponent(PASSWORD)}`,
-  });
+  // RATE_LIMIT_AUTH is 5/minute and Playwright runs unbounded workers locally,
+  // so each worker's beforeAll is a login and back-to-back suite runs blow
+  // straight through the budget. Throttling then surfaces as three medication
+  // tests failing on "No previous dose on record" — a healthy feature looking
+  // broken, which is the exact confusion this file was written to avoid.
+  //
+  // Retry through the window, and if it still will not pass, say THROTTLED
+  // rather than letting it read as a login defect.
+  let res;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    res = await api.post('/api/v1/auth/login', {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRF-Token': csrf,
+      },
+      data: `username=${encodeURIComponent(EMAIL)}&password=${encodeURIComponent(PASSWORD)}`,
+    });
+    if (res.status() !== 429) break;
+    await new Promise((r) => setTimeout(r, 15_000));
+  }
+  if (res.status() === 429) {
+    throw new Error(
+      'THROTTLED, not broken: /auth/login returned 429 (RATE_LIMIT_AUTH is '
+      + '5/minute). Wait a minute and re-run, or run this file with --workers=1.');
+  }
   expect(res.status(), await res.text()).toBe(200);
   sharedToken = (await res.json()).access_token;
   expect(sharedToken).toBeTruthy();

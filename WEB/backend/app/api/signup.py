@@ -58,6 +58,9 @@ class SignupStart(BaseModel):
     # standard, and we cannot evaluate that rule without a date of birth.
     # `country` selects the threshold — absent, the strictest (16) applies.
     date_of_birth: str = Field(description="ISO YYYY-MM-DD")
+    # Optional, and the reason it is here at all: the one-step form this flow
+    # replaced collected it, and the login path looks accounts up by it.
+    phone: str | None = Field(default=None, max_length=32)
     country: str | None = Field(default=None, max_length=2)
 
 
@@ -163,6 +166,7 @@ async def signup_start(
         db, body.email, body.password, display_name,
         date_of_birth=body.date_of_birth, country=body.country,
         first_name=body.first_name.strip(), last_name=body.last_name.strip(),
+        phone=(body.phone or "").strip() or None,
     )
     await db.commit()
     return await _deliver_verification(background_tasks, body.email, raw_token, pending.id)

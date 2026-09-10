@@ -45,6 +45,7 @@ export default function SignupFlow() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [phone, setPhone] = useState('');
   const [interval, setInterval] = useState('month');
   const [status, setStatus] = useState(null);
 
@@ -129,6 +130,7 @@ export default function SignupFlow() {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         date_of_birth: dateOfBirth,
+        phone: phone.trim() || null,
         country: Intl.DateTimeFormat().resolvedOptions().locale?.split('-')[1] || null,
       });
       setNotice(`We've emailed a verification link to ${email.trim()}. `
@@ -221,6 +223,18 @@ export default function SignupFlow() {
               <label className="form-label" htmlFor="su-dob">Date of Birth</label>
               <input id="su-dob" className="form-input" type="date" value={dateOfBirth}
                      onChange={(e) => setDateOfBirth(e.target.value)} required />
+              <p className="form-hint">
+                An account holder must be an adult. A child is tracked as a
+                dependent profile under a parent or guardian's account.
+              </p>
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="su-phone">
+                Phone Number <span className="form-optional">(optional — enables phone login)</span>
+              </label>
+              <input id="su-phone" className="form-input" type="tel" autoComplete="tel"
+                     placeholder="+1 555 123 4567" value={phone}
+                     onChange={(e) => setPhone(e.target.value)} />
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="su-password">Password</label>

@@ -52,23 +52,11 @@ export function AuthProvider({ children }) {
     await loadUser();
   }
 
-  async function register(email, password, name, phone, dateOfBirth, country) {
-    // date_of_birth is REQUIRED by the backend: an account holder must be an
-    // adult by their own jurisdiction's standard (app/core/age_policy.py), and
-    // `country` selects that threshold — absent, the strictest (16) applies.
-    await api.post('/auth/register', {
-      email,
-      password,
-      // `name` is {firstName, lastName}. The backend derives `full_name` from
-      // the parts, so nothing here has to decide which word is the surname.
-      first_name: name.firstName,
-      last_name: name.lastName,
-      phone: phone || null,
-      date_of_birth: dateOfBirth,
-      country: country || null,
-    });
-    await login(email, password);
-  }
+  // There is no one-step web registration any more. `/auth/register` still
+  // exists for the shipped mobile builds, but every web signup goes through
+  // SignupFlow — details, payment, then the account — so a helper here that
+  // creates an unpaid account is a path nobody should be able to take by
+  // accident.
 
   async function refreshToken() {
     // Cookie is sent automatically via withCredentials
@@ -105,7 +93,6 @@ export function AuthProvider({ children }) {
         loading,
         login,
         loginWithFirebase,
-        register,
         logout,
         refreshToken,
         requestPasswordReset,

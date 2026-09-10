@@ -28,7 +28,6 @@ const PrivacySettings = lazy(() => import('./pages/PrivacySettings'));
 const Mood = lazy(() => import('./pages/Mood'));
 const Lifestyle = lazy(() => import('./pages/Lifestyle'));
 const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
 const SignupFlow = lazy(() => import('./pages/SignupFlow'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -102,10 +101,14 @@ export default function App() {
           <Route path="/investors" element={<Investors />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          {/* Two-step signup. The backend has had these endpoints all along
-              and nothing called them, so `TWO_STEP_SIGNUP_REQUIRED` could not
-              be turned on without closing registration entirely. */}
+          {/* ONE registration, and it is the two-step flow.
+              For a while there were two — /register creating an unpaid account
+              and /signup taking payment — sharing the same "Create your
+              account" headline with a vague link between them. Someone landing
+              on either had no way to tell which they wanted, and the one they
+              were most likely to find was the one that could not produce a
+              usable account. Both paths render the same page now. */}
+          <Route path="/register" element={<SignupFlow />} />
           <Route path="/signup" element={<SignupFlow />} />
           {/* Stripe's own success_url. It carries a session id and no email,
               which is why the flow parks the address before leaving. */}

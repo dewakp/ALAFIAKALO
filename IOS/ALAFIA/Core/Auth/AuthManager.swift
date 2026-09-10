@@ -179,15 +179,21 @@ class AuthManager: ObservableObject {
 
     func register(email: String, password: String,
                   firstName: String, lastName: String,
-                  dateOfBirth: String,
+                  dateOfBirth: String, phone: String? = nil,
                   country: String? = Locale.current.region?.identifier) async {
         error = nil
         do {
             let first = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
             let last = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+            // An empty field is absence, not a phone number of "". Sending ""
+            // would occupy the column and make the account unfindable by the
+            // phone-login lookup while looking populated.
+            let cleaned = (phone ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedPhone = cleaned.isEmpty ? nil : cleaned
             let body = RegisterRequest(email: email, password: password,
                                        firstName: first, lastName: last,
                                        fullName: "\(first) \(last)",
+                                       phone: trimmedPhone,
                                        dateOfBirth: dateOfBirth, country: country)
             let _: User = try await APIClient.shared.post("/auth/register", body: body)
             await login(email: email, password: password)
@@ -265,6 +271,10 @@ struct RegisterRequest: Encodable {
     let lastName: String
     /// Still sent, so nothing downstream that reads it has to change.
     let fullName: String
+    /// Optional, E.164. Enables phone/password login — the web form collects
+    /// it and mobile did not, so an account made on a phone could not use the
+    /// one sign-in method a phone is best placed to offer.
+    let phone: String?
     /// REQUIRED by the API: an account holder must be an adult by their own
     /// jurisdiction's standard (app/core/age_policy.py). Omitting it 422s.
     let dateOfBirth: String
@@ -272,7 +282,7 @@ struct RegisterRequest: Encodable {
     let country: String?
 
     enum CodingKeys: String, CodingKey {
-        case email, password, country
+        case email, password, country, phone
         case firstName = "first_name"
         case lastName = "last_name"
         case fullName = "full_name"

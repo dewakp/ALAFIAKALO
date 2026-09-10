@@ -33,6 +33,7 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
     // Required by the backend: an account holder must be an adult by their own
     // jurisdiction's standard (app/core/age_policy.py). This screen previously
     // sent date_of_birth = null, which the age gate rejects with a 422.
@@ -101,6 +102,18 @@ fun RegisterScreen(
             enabled = !isLoading
         )
 
+        OutlinedTextField(
+            value = phone,
+            onValueChange = { phone = it },
+            label = { Text("Phone Number (optional — enables phone login)") },
+            placeholder = { Text("+1 555 123 4567") },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            enabled = !isLoading
+        )
+
         PasswordField(
             value = password,
             onValueChange = { password = it },
@@ -143,6 +156,11 @@ fun RegisterScreen(
                                     password = password,
                                     first_name = firstName.trim(),
                                     last_name = lastName.trim(),
+                                    // An empty field is absence, not a phone
+                                    // number of "": sending "" would occupy the
+                                    // column and make the account unfindable by
+                                    // the phone-login lookup.
+                                    phone = phone.trim().ifBlank { null },
                                     full_name = "${firstName.trim()} ${lastName.trim()}",
                                     date_of_birth = dateOfBirth,
                                     gender = null

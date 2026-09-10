@@ -89,3 +89,37 @@ class TestAvatar:
     def test_an_empty_upload_is_refused(self):
         with pytest.raises(AvatarError):
             build_avatar(b"", "image/jpeg")
+
+
+class TestSignupCarriesPhone:
+    """Phone survives the consolidation onto the two-step flow.
+
+    Web registration used to be a one-step form that collected a phone number;
+    `auth.register` stored it as `users.phone_number` and the login path looks
+    accounts up by it. `pending_registrations` had no column for it, so merging
+    the two forms without noticing would have removed phone login for every new
+    account — invisibly, because nothing errors when a field simply stops being
+    collected.
+    """
+
+    def test_the_pending_row_has_somewhere_to_put_it(self):
+        from app.models.pending_registration import PendingRegistration
+        assert "phone" in PendingRegistration.__table__.columns
+
+    def test_the_endpoint_accepts_it_and_it_is_optional(self):
+        from app.api.signup import SignupStart
+        base = dict(email="a@example.com", password="SecureP@ss123",
+                    first_name="Adaeze", last_name="Okafor",
+                    date_of_birth="1990-01-01")
+        assert SignupStart(**base).phone is None
+        assert SignupStart(**base, phone="+15551234567").phone == "+15551234567"
+
+    def test_it_reaches_the_created_user(self):
+        # `materialise` is what turns a pending row into an account. If it does
+        # not copy the phone across, the column is filled at signup and empty
+        # on the user — which reads as "phone login is broken" rather than
+        # "phone was never carried".
+        import inspect
+        from app.services import signup_service
+        src = inspect.getsource(signup_service.materialise)
+        assert "phone_number=pending.phone" in src

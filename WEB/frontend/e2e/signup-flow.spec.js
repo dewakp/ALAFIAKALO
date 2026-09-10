@@ -53,6 +53,31 @@ async function fillDetails(page, { first = 'Adaeze', last = 'Okafor' } = {}) {
   await page.locator('#su-password').fill('SecureP@ss123');
 }
 
+test('/register and /signup are the same page — there is only one front door', async ({ page }) => {
+  await stubSignup(page);
+  for (const path of ['/register', '/signup']) {
+    await page.goto(path);
+    // The step rail is what tells the two-step flow apart from the one-step
+    // form that used to sit on /register with an identical headline.
+    await expect(page.getByRole('list', { name: 'Signup progress' })).toBeVisible();
+    await expect(page.getByLabel('First Name')).toBeVisible();
+  }
+});
+
+test('the phone number survives the consolidation', async ({ page }) => {
+  let sent = null;
+  await stubSignup(page, { onStart: (b) => { sent = b; } });
+
+  await page.goto('/register');
+  await fillDetails(page);
+  await page.getByLabel(/Phone Number/).fill('+1 555 123 4567');
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // The one-step form collected this and the login path looks accounts up by
+  // it — dropping it in the merge would have removed phone login silently.
+  await expect.poll(() => sent?.phone).toBe('+1 555 123 4567');
+});
+
 test('details are sent as two name fields, then the page moves to payment', async ({ page }) => {
   let sent = null;
   await stubSignup(page, { onStart: (b) => { sent = b; } });

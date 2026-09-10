@@ -820,3 +820,10 @@ textarea.form-input {
   border-color: var(--color-primary);
   font-weight: 600;
 }
+
+.form-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin: 0.35rem 0 0;
+}
+.form-optional { font-weight: 400; color: var(--color-text-secondary); }

@@ -1695,6 +1695,24 @@ created loginable, unpaid accounts and reported nothing at all: a real address
 - **The router mounts at `/auth/signup`, not `/signup`.** The first version of
   the client called the latter and got a clean 404 from every endpoint. §3ap's
   route-table diff exists for exactly this.
+
+> **Two front doors is worse than one broken one.** The flow first shipped
+> BESIDE the old form — `/register` creating an unpaid account, `/signup` taking
+> payment, both headed "Create your account", joined by a *"Joining as a member?
+> Start here"* link. Nobody could tell which they wanted, and the one they were
+> most likely to find was the one that could not produce a usable account.
+> Both paths render the same page now, and the old page is deleted rather than
+> left unrouted — an unreachable duplicate is the next person's confusion.
+>
+> **Consolidating must not silently drop what the old form collected.** It took
+> a phone number, which `auth.register` stored as `users.phone_number` and which
+> the login path looks accounts up by; `pending_registrations` had no column for
+> it. Merging without noticing would have removed phone login for every new
+> account, invisibly. Migration `ad001_pending_phone`.
+>
+> **The first button says "Continue", not "Create Account".** Pressing it does
+> not create an account — details, then payment, then the account exists. The
+> old label was the promise the one-step form could not keep.
 - **The order is deliberate:** details → email sent → **straight to payment**,
   without waiting for the click. Payment and verification are independent and
   whichever finishes second creates the account, so a card that clears while
@@ -1722,6 +1740,15 @@ created loginable, unpaid accounts and reported nothing at all: a real address
 > because `make_proof_user.py` created only the ACCOUNT while the spec asserts
 > on dose history — and every `pull_prod.sh` replaces the whole database, that
 > row included. The seeder now seeds the data too.
+
+> **`RATE_LIMIT_AUTH` is 5/minute and Playwright runs unbounded workers.** Each
+> worker's `beforeAll` is a login, so back-to-back suite runs blow through the
+> budget — and the throttle surfaced as three medication tests failing on "No
+> previous dose on record", a healthy feature looking broken. Logging in once
+> per TEST was already fixed; once per WORKER was not. The spec now retries
+> through the window and, if it still cannot pass, fails saying **THROTTLED,
+> not broken**. A test that cannot name why it failed sends you debugging the
+> wrong thing.
 
 ## 3b. Admin console
 

@@ -25,11 +25,17 @@ test.describe('Authentication flow', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test('register page renders form', async ({ page }) => {
+  test('register page renders the signup flow', async ({ page }) => {
     await page.goto('/register');
+    await expect(page.getByLabel('First Name')).toBeVisible();
+    await expect(page.getByLabel('Last Name')).toBeVisible();
     await expect(page.getByLabel('Email')).toBeVisible();
     await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /create account/i })).toBeVisible();
+    // "Continue", not "Create Account": pressing this does NOT create an
+    // account — details are taken, then payment, and the account exists once
+    // both are done. Labelling it "Create Account" is the promise the old
+    // one-step form made and could not keep.
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
   });
 
   test('forgot password page is accessible', async ({ page }) => {

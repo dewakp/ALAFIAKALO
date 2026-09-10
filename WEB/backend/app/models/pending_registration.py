@@ -36,6 +36,10 @@ class PendingRegistration(Base):
     # Carried through signup rather than re-split at materialise time: a
     # surname of two words ("Van Der Berg") cannot be recovered from the
     # joined string, and the person already typed it in its own field.
+    # E.164. Enables phone/password login, which the one-step form this flow
+    # replaced already collected — dropping it here would remove the capability
+    # for every new account without anyone noticing.
+    phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # Hashed on arrival — a pending signup is never a place for a plaintext secret.

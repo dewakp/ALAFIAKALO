@@ -5,6 +5,7 @@ struct RegisterView: View {
     @Environment(\.dismiss) var dismiss
     @State private var firstName = ""
     @State private var lastName = ""
+    @State private var phone = ""
     @State private var email = ""
     @State private var password = ""
     // Defaults to 30 years ago rather than today, so the wheel does not open on
@@ -70,6 +71,10 @@ struct RegisterView: View {
                     }
                         .autocapitalization(.none)
                     
+                    LKTextField(title: "Phone Number (optional — enables phone login)",
+                                text: $phone, keyboardType: .phonePad)
+                        .textContentType(.telephoneNumber)
+
                     LKTextField(title: "Password", text: $password, isSecure: true)
                         .textContentType(.newPassword)
                     
@@ -92,7 +97,8 @@ struct RegisterView: View {
                             await authManager.register(
                                 email: email, password: password,
                                 firstName: first, lastName: last,
-                                dateOfBirth: Self.isoDate.string(from: dateOfBirth))
+                                dateOfBirth: Self.isoDate.string(from: dateOfBirth),
+                                phone: phone)
                             isLoading = false
                         }
                     }
