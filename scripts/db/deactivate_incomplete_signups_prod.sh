@@ -9,8 +9,11 @@
 # state, not by a list of ids, so an unexpected row in it means a clause is
 # wrong, not that the row is junk.
 #
-# What it targets: accounts that never signed in, never reached a payment
-# attempt, and hold no clinical data of any kind, older than 7 days. These are
+# What it targets: accounts dormant for 30 days that never reached a payment
+# attempt and hold no clinical data of any kind, older than 7 days.
+#
+# NOT "never signed in" — the one-step form logs you in the moment it registers
+# you, so that clause matched nothing and the script reported a reassuring "0". These are
 # the residue of `POST /auth/register` creating a loginable account while the
 # web form reported nothing at all — a person pressed "Create", was charged
 # nothing, got no email, and had their address permanently taken.

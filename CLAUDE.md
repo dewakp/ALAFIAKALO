@@ -1735,6 +1735,27 @@ created loginable, unpaid accounts and reported nothing at all: a real address
   cannot reach the API paths, the redirect out, or the return leg — which is
   exactly the set that was broken.
 
+> **A cleanup script that selects nothing looks like a clean database.**
+> `deactivate_incomplete_signups.sql` gated on `last_login IS NULL` to mean
+> "never signed in". But the one-step form calls `register()` and then
+> `login()`, so **every account it created has a `last_login` stamped at
+> creation** — the clause excluded precisely the accounts it was written to
+> catch, and the dry run printed a reassuring `0 targets`. §3aa's "an error is
+> not an empty state", in a maintenance script: an empty result set is not
+> evidence of a clean database, and a destructive script that reports success
+> having matched nothing is the §3ab shell-pipeline failure again.
+>
+> The signature of the residue is `last_login <= created_at + 5 minutes` — the
+> only sign-in on record is the one registration performed. A 30-day dormancy
+> window alone is too blunt: the auto-login makes an account that has never
+> been used look freshly active for its first month, locking up the address of
+> someone who could not get in.
+>
+> **What it found is the point, not the cleanup.** Four real addresses had
+> signed up and been left with an account that could do nothing — two of them
+> 16 and 19 days before anyone noticed. Retiring them frees the address; it is
+> not obviously the kindest option, and that call is the operator's.
+
 > **A fixture that quietly disappears reads as a broken feature.**
 > `e2e/medication-intake.spec.js` failed on *"No previous dose on record"*
 > because `make_proof_user.py` created only the ACCOUNT while the spec asserts

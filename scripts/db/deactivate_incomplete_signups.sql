@@ -16,11 +16,31 @@
 -- Selection is by STATE, never by a list of ids. An id list has to be edited
 -- for every recurrence, and one typo retires a patient. Every clause must hold:
 --
---   * never signed in since the account was created (last_login IS NULL)
+--   * DORMANT — either no sign-in for 30 days, or the ONLY sign-in ever
+--     recorded is the automatic one the registration itself performed
 --   * no subscription row at all — never even reached a payment attempt
 --   * holds NO clinical data whatsoever
 --   * older than 7 days, so a signup happening right now is untouched
 --   * not a superuser
+--
+-- ⚠️ `last_login IS NULL` was the first version of the dormancy clause and it
+-- was PROVABLY WRONG here: the one-step form calls register() and then login()
+-- immediately, so every account it created has a `last_login` stamped at
+-- creation. The clause excluded exactly the accounts it was written to catch,
+-- and the script reported "0 targets" — which reads as "nothing to clean"
+-- rather than "these criteria can never match". §3aa, in a cleanup script:
+-- an empty result is not proof of a clean database.
+--
+-- Dormancy is therefore measured as a WINDOW, not as absence. But a window
+-- alone is still too blunt: because the auto-login stamps `last_login` at
+-- creation, an account that has NEVER been used looks freshly active for its
+-- first 30 days — so the address of someone who could not get in stays locked
+-- up for a month.
+--
+-- `last_login <= created_at + 5 minutes` is the precise signature of that: the
+-- only sign-in on record is the one the registration performed. Anyone who has
+-- come back, even once, fails it and is left alone. The 7-day clause still
+-- applies on top, so a signup happening right now is never touched.
 --
 -- A row failing ANY clause is left alone. An account with one meal in it is a
 -- patient record, not residue.
@@ -50,7 +70,12 @@ SELECT u.id, u.email, u.full_name, u.created_at
 FROM users u
 WHERE u.is_active = true
   AND u.is_superuser = false
-  AND u.last_login IS NULL
+  AND (
+        u.last_login IS NULL
+     OR u.last_login < now() - interval '30 days'
+     -- The only sign-in on record is the automatic one at registration.
+     OR u.last_login <= u.created_at + interval '5 minutes'
+      )
   AND u.created_at < now() - interval '7 days'
   AND NOT EXISTS (SELECT 1 FROM subscriptions         s  WHERE s.user_id  = u.id)
   AND NOT EXISTS (SELECT 1 FROM nutrition_logs        n  WHERE n.user_id  = u.id)
@@ -62,7 +87,7 @@ WHERE u.is_active = true
   AND NOT EXISTS (SELECT 1 FROM therapy_sessions      t  WHERE t.user_id  = u.id);
 
 \echo ''
-\echo '── accounts to retire (never signed in, never paid, no clinical data) ──'
+\echo '── accounts to retire (unused since signup, never paid, no clinical data) ──'
 SELECT count(*) AS target_count FROM _targets;
 SELECT id, email, full_name, created_at FROM _targets ORDER BY id LIMIT 25;
 \echo '(showing at most 25)'
