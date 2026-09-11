@@ -176,6 +176,22 @@ actor APIClient {
         return decoded
     }
 
+    /// GET a text/HTML body, authenticated, without decoding it as JSON.
+    ///
+    /// The printable treatment report is rendered server-side so that the
+    /// patient's copy and the clinician's copy cannot drift, and so that all
+    /// three platforms print the same document. It comes back as HTML, which
+    /// `get<T: Decodable>` cannot handle.
+    func getHTML(_ path: String) async throws -> String {
+        let request = buildRequest(path: path, method: "GET")
+        let (data, response) = try await send(request)
+        try validateResponse(response, data: data)
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw APIError.invalidResponse
+        }
+        return text
+    }
+
     /// GET with transparent offline cache fallback.
     /// On success the response is cached; on network failure the last cached value is returned.
     func getWithCache<T: Codable>(_ path: String) async throws -> T {

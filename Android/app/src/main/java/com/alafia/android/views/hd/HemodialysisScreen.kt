@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -258,6 +259,22 @@ private fun HDSessionCard(
                         Spacer(Modifier.height(6.dp))
                     }
 
+                    // Print or save this session as PDF. The document is
+                    // rendered server-side, so it is the same one the clinician
+                    // prints — and a failure is shown rather than swallowed.
+                    val printScope = rememberCoroutineScope()
+                    val printContext = LocalContext.current
+                    var printError by remember { mutableStateOf<String?>(null) }
+                    TextButton(onClick = {
+                        printScope.launch {
+                            printError = TherapyReportPrinter.print(printContext, session.id)
+                        }
+                    }) { Text("Print / Save as PDF") }
+                    printError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error,
+                             style = MaterialTheme.typography.bodySmall)
+                    }
+
                     // Flow & prescription
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         session.bloodFlowRate?.let { Pill("BFR", "${it.toInt()}") }
@@ -462,7 +479,12 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
     var preMobility by remember { mutableStateOf(editing?.preChangeInMobility ?: false) }
     var preDigest by remember { mutableStateOf(editing?.preDigestionProblems ?: false) }
     var preHosp by remember { mutableStateOf(editing?.preHospErSinceLast ?: false) }
-    var thrill by remember { mutableStateOf(editing?.accessThrillBruit ?: true) }
+    // Nullable, and NOT defaulted to true. A toggle that starts on "present"
+    // records a reassuring normal finding for every session nobody assessed —
+    // and ABSENT, the urgent one, was indistinguishable from an untouched
+    // switch. The column has always been a nullable boolean; the UI just never
+    // offered the third state.
+    var thrill by remember { mutableStateOf(editing?.accessThrillBruit) }
     var redness by remember { mutableStateOf(editing?.accessRednessDrainage ?: false) }
     // Equipment
     var cartLot by remember { mutableStateOf(editing?.cartridgeLot ?: "") }
@@ -472,6 +494,8 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
     // Post-treatment totals
     var totDial by remember { mutableStateOf(editing?.totalDialysateLiters?.toString() ?: "") }
     var totUf by remember { mutableStateOf(editing?.totalUfLiters?.toString() ?: "") }
+    var salineAdded by remember { mutableStateOf(editing?.salineAddedMl?.toString() ?: "") }
+    var machineTime by remember { mutableStateOf(editing?.machineTotalTimeMinutes?.toString() ?: "") }
     var totBlood by remember { mutableStateOf(editing?.totalBloodVolumeProcessed?.toString() ?: "") }
     var dialAppear by remember { mutableStateOf(editing?.dialyzerAppearance ?: "") }
     var bleedStop by remember { mutableStateOf(editing?.postBleedingStopTime ?: "") }
@@ -480,7 +504,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
     var postSob by remember { mutableStateOf(editing?.postShortnessOfBreath ?: false) }
     var postSwell by remember { mutableStateOf(editing?.postSwelling ?: false) }
     var postDigest by remember { mutableStateOf(editing?.postDigestionProblems ?: false) }
-    var postThrill by remember { mutableStateOf(editing?.postAccessThrillBruit ?: true) }
+    var postThrill by remember { mutableStateOf(editing?.postAccessThrillBruit) }
     // Machine maintenance
     var purPak by remember { mutableStateOf(editing?.purificationPakChange ?: false) }
     var airFilter by remember { mutableStateOf(editing?.airFilterCleaned ?: false) }
@@ -693,7 +717,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             ToggleRow("Change in Mobility", preMobility) { preMobility = it }
             ToggleRow("Digestion Problems", preDigest) { preDigest = it }
             ToggleRow("Hospital/ER Since Last", preHosp) { preHosp = it }
-            ToggleRow("Access Thrill/Bruit ✓", thrill) { thrill = it }
+            ThrillRow(thrill) { thrill = it }
             ToggleRow("Access Redness/Drainage", redness) { redness = it }
 
             // Post-Treatment Vitals
@@ -714,7 +738,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             SectionHeader("Post-Treatment Totals")
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
                 F(totDial, { totDial = it }, "Total Dial (L)", Modifier.weight(1f))
-                F(totUf, { totUf = it }, "Total UF (L)", Modifier.weight(1f))
+                F(totUf, { totUf = it }, "Total UF (L) — machine", Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
                 F(totBlood, { totBlood = it }, "Blood Vol (L)", Modifier.weight(1f))
@@ -726,7 +750,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             ToggleRow("SOB", postSob) { postSob = it }
             ToggleRow("Swelling", postSwell) { postSwell = it }
             ToggleRow("GI Issues", postDigest) { postDigest = it }
-            ToggleRow("Access Thrill/Bruit ✓", postThrill) { postThrill = it }
+            ThrillRow(postThrill) { postThrill = it }
 
             // Equipment
             SectionHeader("Equipment")
@@ -750,6 +774,19 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                 F(chloramine, { chloramine = it }, "Chloramine (ppm)", Modifier.weight(1f))
             }
             F(labTubes, { labTubes = it }, "Lab Tubes Drawn")
+
+            // Saline is volume put BACK, so the machine's gross UF overstates
+            // what came off until it is deducted. The scale-derived
+            // fluid_removed_ml is already net — the patient was weighed after
+            // the saline went in — so the deduction belongs on the UF figure.
+            //
+            // The machine's total time is its own reading and excludes alarms
+            // and pauses; the summary's duration is end - start and is a
+            // different, larger number. Kt/V follows time actually dialysing.
+            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                F(salineAdded, { salineAdded = it }, "Saline Added (mL)", Modifier.weight(1f))
+                F(machineTime, { machineTime = it }, "Machine Total Time (min)", Modifier.weight(1f))
+            }
 
             // Facility & Staff
             SectionHeader("Facility & Staff")
@@ -827,15 +864,18 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                             b("pre_shortness_of_breath", preSob); b("pre_swelling", preSwell)
                             b("pre_change_in_mobility", preMobility); b("pre_digestion_problems", preDigest)
                             b("pre_hosp_er_since_last", preHosp)
-                            b("access_thrill_bruit", thrill); b("access_redness_drainage", redness)
+                            thrill?.let { b("access_thrill_bruit", it) }
+                            b("access_redness_drainage", redness)
                             s("cartridge_lot", cartLot); s("sak_lot", sakLot)
                             s("cycler_number", cycler); s("warmer_serial", warmer)
                             d("total_dialysate_liters", totDial); d("total_uf_liters", totUf)
+                            d("saline_added_ml", salineAdded); d("machine_total_time_minutes", machineTime)
                             d("total_blood_volume_processed", totBlood)
                             s("dialyzer_appearance", dialAppear); s("post_bleeding_stop_time", bleedStop)
                             b("post_bruising", postBruise); b("post_infiltration", postInfilt)
                             b("post_shortness_of_breath", postSob); b("post_swelling", postSwell)
-                            b("post_digestion_problems", postDigest); b("post_access_thrill_bruit", postThrill)
+                            b("post_digestion_problems", postDigest)
+                            postThrill?.let { b("post_access_thrill_bruit", it) }
                             b("purification_pak_change", purPak); b("air_filter_cleaned", airFilter)
                             b("waste_line_bleach_disinfection", wasteBleach); b("alarm_test_completed", alarmTest)
                             i("sak_use_number", sakUse); d("total_chloramine_level", chloramine)
@@ -899,6 +939,49 @@ private fun F(
         modifier = modifier, singleLine = true, enabled = enabled,
     )
     Spacer(Modifier.height(4.dp))
+}
+
+
+/**
+ * Access thrill / bruit — three states, matching the nullable column.
+ *
+ *   null   not assessed
+ *   true   PRESENT — the access is patent, the normal finding
+ *   false  ABSENT — possible clotted access, urgent
+ *
+ * It was a toggle labelled "Access Thrill/Bruit ✓" defaulting to ON, sitting
+ * among problem toggles. So ticking it read as reporting a problem when it
+ * meant the opposite, every unassessed session recorded a reassuring normal,
+ * and the one finding that needs to shout looked like an untouched switch.
+ */
+@Composable
+private fun ThrillRow(value: Boolean?, onChange: (Boolean?) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text("Access Thrill / Bruit", style = MaterialTheme.typography.labelMedium)
+        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+            listOf<Triple<String, Boolean?, Boolean>>(
+                Triple("Not assessed", null, false),
+                Triple("Present", true, false),
+                Triple("ABSENT", false, true),
+            ).forEach { (label, state, urgent) ->
+                val selected = value == state
+                FilterChip(
+                    selected = selected,
+                    onClick = { onChange(state) },
+                    label = {
+                        Text(
+                            label,
+                            color = if (urgent && selected) MaterialTheme.colorScheme.onError
+                                    else Color.Unspecified,
+                        )
+                    },
+                    colors = if (urgent) FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.error,
+                    ) else FilterChipDefaults.filterChipColors(),
+                )
+            }
+        }
+    }
 }
 
 @Composable

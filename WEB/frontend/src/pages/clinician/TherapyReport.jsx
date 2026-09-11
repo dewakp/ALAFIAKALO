@@ -323,6 +323,17 @@ function SessionReport({ patientId, sessionId, onBack, onReviewed }) {
     <div>
       <BackBar onBack={onBack} title={`${new Date(`${s.date}T00:00:00`).toLocaleDateString()} — ${data.patient.full_name}`} />
 
+      {/* The same printable report the patient gets, opened for this patient.
+          The backend re-checks the sharing grant on that route — the query
+          string is a destination, never an authorisation. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '.75rem' }}>
+        <a className="btn btn-secondary"
+           href={`/therapy-report/${sessionId}?patient=${patientId}`}
+           target="_blank" rel="noopener noreferrer">
+          Print / Save as PDF
+        </a>
+      </div>
+
       <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
         <Facts items={[
           ['Therapy', s.name || (s.therapy || '').replace(/_/g, ' ')],

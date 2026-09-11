@@ -180,6 +180,8 @@ class TherapySessionBase(BaseModel):
     # Post-Treatment Totals
     total_dialysate_liters: Optional[float] = None
     total_uf_liters: Optional[float] = None
+    saline_added_ml: Optional[float] = None
+    machine_total_time_minutes: Optional[int] = None
     total_blood_volume_processed: Optional[float] = None
     dialyzer_appearance: Optional[str] = Field(None, max_length=100)
     post_bleeding_stop_time: Optional[str] = Field(None, max_length=50)
@@ -292,6 +294,8 @@ class TherapySessionUpdate(BaseModel):
     access_redness_drainage: Optional[bool] = None
     total_dialysate_liters: Optional[float] = None
     total_uf_liters: Optional[float] = None
+    saline_added_ml: Optional[float] = None
+    machine_total_time_minutes: Optional[int] = None
     total_blood_volume_processed: Optional[float] = None
     dialyzer_appearance: Optional[str] = Field(None, max_length=100)
     post_bleeding_stop_time: Optional[str] = Field(None, max_length=50)

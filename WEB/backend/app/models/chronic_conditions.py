@@ -212,6 +212,15 @@ class TherapySession(Base):
     # Post-Treatment Totals
     total_dialysate_liters = Column(Float, nullable=True)  # Total dialysate used
     total_uf_liters = Column(Float, nullable=True)  # Total ultrafiltration volume
+    # Saline given DURING the session — volume returned to the patient, so net
+    # removal is fluid_removed_ml minus this. Recorded gross, a session that
+    # gave 500 mL back reads as one the patient tolerated better than they did.
+    saline_added_ml = Column(Float, nullable=True)
+    # The machine's OWN total time, which is not the wall clock: it excludes
+    # alarms and pauses. The summary's duration is end - start and is always
+    # larger. Kt/V is computed from time ON dialysis, so they must not be
+    # conflated — and neither can be derived from the other.
+    machine_total_time_minutes = Column(Integer, nullable=True)
     total_blood_volume_processed = Column(Float, nullable=True)  # Total BVP
     dialyzer_appearance = Column(String(100), nullable=True)  # e.g., "Streaked", "Clear", "Clotted"
     post_bleeding_stop_time = Column(String(50), nullable=True)  # e.g., "4 mins"

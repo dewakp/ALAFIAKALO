@@ -4,6 +4,8 @@ import hashlib
 import logging
 from datetime import datetime
 
+from fastapi.responses import HTMLResponse
+from app.services.therapy_report import render_session_report
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select, desc
@@ -526,6 +528,38 @@ async def get_patient_therapy_session(
             "adverse_reactions": session.adverse_reactions,
             "patient_tolerance": session.patient_tolerance,
             "patient_notes": session.patient_notes,
+            # ── The rest of the flowsheet ────────────────────────────────
+            # This payload was a curated subset, which is fine for the review
+            # screen's summary but wrong for a PRINTED report: every field
+            # omitted here renders as "—", and the report states that "—"
+            # means not recorded. A clinician would read a dozen recorded
+            # findings as absent ones. §3aa — an omission is not a finding.
+            "scheduled_date": _iso_dt(session.scheduled_date),
+            "session_number": session.session_number,
+            "actual_start_time": _iso_dt(session.actual_start_time),
+            "actual_end_time": _iso_dt(session.actual_end_time),
+            "machine_total_time_minutes": session.machine_total_time_minutes,
+            "needle_gauge": session.needle_gauge,
+            "needle_length": session.needle_length,
+            "buttonhole_technique": session.buttonhole_technique,
+            "access_thrill_bruit": session.access_thrill_bruit,
+            "access_redness_drainage": session.access_redness_drainage,
+            "alarm_test_completed": session.alarm_test_completed,
+            "previous_post_weight_kg": session.previous_post_weight_kg,
+            "fluid_to_remove_kg": session.fluid_to_remove_kg,
+            "saline_added_ml": session.saline_added_ml,
+            "total_dialysate_liters": session.total_dialysate_liters,
+            "total_uf_liters": session.total_uf_liters,
+            "total_blood_volume_processed": session.total_blood_volume_processed,
+            "dialyzer_appearance": session.dialyzer_appearance,
+            "post_access_thrill_bruit": session.post_access_thrill_bruit,
+            "post_bleeding_stop_time": session.post_bleeding_stop_time,
+            "post_bruising": session.post_bruising,
+            "post_infiltration": session.post_infiltration,
+            "post_shortness_of_breath": session.post_shortness_of_breath,
+            "post_swelling": session.post_swelling,
+            "drugs_administered": session.drugs_administered,
+            "side_effects": session.side_effects,
         },
         "readings": [_reading_dict(r) for r in readings],
         "notes": [{"id": n.id, "author_role": n.author_role, "note_type": n.note_type,
@@ -548,6 +582,34 @@ def _signoff_dict(session: TherapySession) -> dict:
         "reviewed_at": _iso_dt(session.reviewed_at), "reviewed_by": session.reviewed_by,
         "payload_hash": session.payload_hash,
     }
+
+
+@router.get("/patient/{patient_id}/therapy-sessions/{session_id}/report.html",
+            response_class=HTMLResponse)
+async def patient_therapy_session_report(
+    patient_id: int,
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """The same printable report, for a patient this clinician may see.
+
+    Authorisation is `_therapy_session_for_patient`, exactly as the JSON route
+    uses — the report must not become a way around the sharing grant.
+
+    Rendered by the SAME module as the patient's own copy. Two renderers would
+    drift, and the one that drifted would be the one a clinician relies on.
+    """
+    # EXACTLY the JSON route's gate, in the same order. Without the first line
+    # any authenticated user could print any patient's flowsheet — the sharing
+    # grant is the authorisation, and a second route onto the same data must
+    # not be a way around it.
+    await _require_dialysis_access(current_user.id, patient_id, db)
+    patient = await _patient_or_404(patient_id, db)
+    session = await _therapy_session_for_patient(session_id, patient_id, db)
+
+    html = render_session_report(session, patient_name=patient.full_name)
+    return HTMLResponse(content=html)
 
 
 @router.post("/patient/{patient_id}/therapy-sessions/{session_id}/review")

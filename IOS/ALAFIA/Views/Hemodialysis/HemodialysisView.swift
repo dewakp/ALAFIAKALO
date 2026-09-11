@@ -110,7 +110,11 @@ final class HemodialysisViewModel {
     var preChangeInMobility = false
     var preDigestionProblems = false
     var preHospErSinceLast = false
-    var accessThrillBruit = true
+    /// Optional, and NOT defaulted to true. A toggle that starts on "present"
+    /// records a reassuring normal finding for every session nobody assessed,
+    /// and ABSENT — the urgent one — was indistinguishable from an untouched
+    /// switch. The column has always been a nullable boolean.
+    var accessThrillBruit: Bool? = nil
     var accessRednessDrainage = false
     // Equipment
     var cartridgeLot = ""
@@ -120,6 +124,8 @@ final class HemodialysisViewModel {
     // Post-treatment totals
     var totalDialysateLiters = ""
     var totalUfLiters = ""
+    var salineAddedMl = ""
+    var machineTotalTimeMinutes = ""
     var totalBloodVolumeProcessed = ""
     var dialyzerAppearance = ""
     var postBleedingStopTime = ""
@@ -128,7 +134,7 @@ final class HemodialysisViewModel {
     var postShortnessOfBreath = false
     var postSwelling = false
     var postDigestionProblems = false
-    var postAccessThrillBruit = true
+    var postAccessThrillBruit: Bool? = nil
     // Machine maintenance
     var purificationPakChange = false
     var airFilterCleaned = false
@@ -294,12 +300,13 @@ final class HemodialysisViewModel {
         postStandingSystolicBp = ""; postStandingDiastolicBp = ""; postStandingHeartRate = ""
         preShortnessOfBreath = false; preSwelling = false; preChangeInMobility = false
         preDigestionProblems = false; preHospErSinceLast = false
-        accessThrillBruit = true; accessRednessDrainage = false
+        accessThrillBruit = nil; accessRednessDrainage = false
         cartridgeLot = ""; sakLot = ""; cyclerNumber = ""; warmerSerial = ""
         totalDialysateLiters = ""; totalUfLiters = ""; totalBloodVolumeProcessed = ""
+        salineAddedMl = ""; machineTotalTimeMinutes = ""
         dialyzerAppearance = ""; postBleedingStopTime = ""
         postBruising = false; postInfiltration = false; postShortnessOfBreath = false
-        postSwelling = false; postDigestionProblems = false; postAccessThrillBruit = true
+        postSwelling = false; postDigestionProblems = false; postAccessThrillBruit = nil
         purificationPakChange = false; airFilterCleaned = false
         wasteLineBleachDisinfection = false; alarmTestCompleted = false
         sakUseNumber = ""; totalChloramineLevel = ""; labTubesDrawn = ""
@@ -355,19 +362,21 @@ final class HemodialysisViewModel {
         preSwelling = s.preSwelling ?? false; preChangeInMobility = s.preChangeInMobility ?? false
         preDigestionProblems = s.preDigestionProblems ?? false
         preHospErSinceLast = s.preHospErSinceLast ?? false
-        accessThrillBruit = s.accessThrillBruit ?? true
+        accessThrillBruit = s.accessThrillBruit
         accessRednessDrainage = s.accessRednessDrainage ?? false
         cartridgeLot = s.cartridgeLot ?? ""; sakLot = s.sakLot ?? ""
         cyclerNumber = s.cyclerNumber ?? ""; warmerSerial = s.warmerSerial ?? ""
         totalDialysateLiters = s.totalDialysateLiters.map { String($0) } ?? ""
         totalUfLiters = s.totalUfLiters.map { String($0) } ?? ""
+        salineAddedMl = s.salineAddedMl.map { String($0) } ?? ""
+        machineTotalTimeMinutes = s.machineTotalTimeMinutes.map { String($0) } ?? ""
         totalBloodVolumeProcessed = s.totalBloodVolumeProcessed.map { String($0) } ?? ""
         dialyzerAppearance = s.dialyzerAppearance ?? ""
         postBleedingStopTime = s.postBleedingStopTime ?? ""
         postBruising = s.postBruising ?? false; postInfiltration = s.postInfiltration ?? false
         postShortnessOfBreath = s.postShortnessOfBreath ?? false
         postSwelling = s.postSwelling ?? false; postDigestionProblems = s.postDigestionProblems ?? false
-        postAccessThrillBruit = s.postAccessThrillBruit ?? true
+        postAccessThrillBruit = s.postAccessThrillBruit
         purificationPakChange = s.purificationPakChange ?? false
         airFilterCleaned = s.airFilterCleaned ?? false
         wasteLineBleachDisinfection = s.wasteLineBleachDisinfection ?? false
@@ -454,6 +463,8 @@ final class HemodialysisViewModel {
         body.preDigestionProblems = preDigestionProblems
         body.preHospErSinceLast = preHospErSinceLast
         body.accessThrillBruit = accessThrillBruit
+        body.salineAddedMl = Double(salineAddedMl)
+        body.machineTotalTimeMinutes = Int(machineTotalTimeMinutes)
         body.accessRednessDrainage = accessRednessDrainage
         if !cartridgeLot.isEmpty { body.cartridgeLot = cartridgeLot }
         if !sakLot.isEmpty { body.sakLot = sakLot }
@@ -498,8 +509,44 @@ final class HemodialysisViewModel {
 
 // MARK: - View
 
+
+/// Access thrill / bruit — three states, matching the nullable column.
+///
+/// `nil` not assessed · `true` present (normal) · `false` ABSENT (urgent).
+/// It was a Toggle labelled "Access Thrill/Bruit ✓" sitting among problem
+/// toggles: ticking it read as reporting a problem when it meant the opposite,
+/// and an unassessed session recorded a reassuring normal.
+struct ThrillPicker: View {
+    @Binding var value: Bool?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Access Thrill / Bruit")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Picker("Access Thrill / Bruit", selection: Binding(
+                get: { value == true ? 1 : value == false ? 2 : 0 },
+                set: { value = $0 == 1 ? true : $0 == 2 ? false : nil }
+            )) {
+                Text("Not assessed").tag(0)
+                Text("Present").tag(1)
+                Text("ABSENT").tag(2)
+            }
+            .pickerStyle(.segmented)
+            if value == false {
+                Text("Absent thrill — check access urgently.")
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+}
+
 struct HemodialysisView: View {
     @State private var vm = HemodialysisViewModel()
+    /// A print failure must be visible: a button that silently does
+    /// nothing is indistinguishable from one that was never wired.
+    @State private var printError: String?
     @State private var expandedId: Int?
 
     var body: some View {
@@ -519,6 +566,15 @@ struct HemodialysisView: View {
                         Task { await vm.loadDefaults() }
                     } label: { Image(systemName: "plus") }
             }
+        }
+        // A print failure is shown, never swallowed. Setting a flag nothing
+        // reads is the same defect as a button with no sheet behind it.
+        .alert("Could not print",
+               isPresented: Binding(get: { printError != nil },
+                                    set: { if !$0 { printError = nil } })) {
+            Button("OK", role: .cancel) { printError = nil }
+        } message: {
+            Text(printError ?? "")
         }
         .task { await vm.load(); await vm.loadSummary() }
         .refreshable { await vm.load(); await vm.loadSummary() }
@@ -641,6 +697,16 @@ struct HemodialysisView: View {
 
             if isExpanded {
                 Divider()
+
+                // Print or save this session as PDF. The document is rendered
+                // server-side, so it is the same one the clinician prints.
+                Button {
+                    Task { printError = await TherapyReportPrinter.present(sessionId: s.id) }
+                } label: {
+                    Label("Print / Save as PDF", systemImage: "printer")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
 
                 if s.preStandingSystolicBp != nil || s.postStandingSystolicBp != nil {
                     HStack(spacing: 14) {
@@ -866,7 +932,7 @@ struct HemodialysisView: View {
                     Toggle("Change in Mobility", isOn: $vm.preChangeInMobility)
                     Toggle("Digestion Problems", isOn: $vm.preDigestionProblems)
                     Toggle("Hospital/ER Since Last", isOn: $vm.preHospErSinceLast)
-                    Toggle("Access Thrill/Bruit ✓", isOn: $vm.accessThrillBruit)
+                    ThrillPicker(value: $vm.accessThrillBruit)
                     Toggle("Access Redness/Drainage", isOn: $vm.accessRednessDrainage)
                 }
 
@@ -901,7 +967,7 @@ struct HemodialysisView: View {
                     Toggle("SOB", isOn: $vm.postShortnessOfBreath)
                     Toggle("Swelling", isOn: $vm.postSwelling)
                     Toggle("GI Issues", isOn: $vm.postDigestionProblems)
-                    Toggle("Access Thrill/Bruit ✓", isOn: $vm.postAccessThrillBruit)
+                    ThrillPicker(value: $vm.postAccessThrillBruit)
                 }
 
                 Section("Equipment") {

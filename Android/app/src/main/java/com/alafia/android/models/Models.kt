@@ -478,6 +478,8 @@ data class TherapySession(
     @SerializedName("pre_digestion_problems") val preDigestionProblems: Boolean? = null,
     @SerializedName("pre_hosp_er_since_last") val preHospErSinceLast: Boolean? = null,
     @SerializedName("access_thrill_bruit") val accessThrillBruit: Boolean? = null,
+    @SerializedName("saline_added_ml") val salineAddedMl: Double? = null,
+    @SerializedName("machine_total_time_minutes") val machineTotalTimeMinutes: Int? = null,
     @SerializedName("access_redness_drainage") val accessRednessDrainage: Boolean? = null,
     // Equipment
     @SerializedName("cartridge_lot") val cartridgeLot: String? = null,

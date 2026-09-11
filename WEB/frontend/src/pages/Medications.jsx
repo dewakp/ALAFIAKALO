@@ -173,8 +173,22 @@ export default function Medications() {
   const loadDoseLogs = useCallback(async () => {
     try { const { data } = await api.get('/medications/dose-logs'); setDoseLogs(data); } catch { setDoseLogs([]); }
   }, []);
-  useEffect(() => { loadMeds(); loadDoseLogs(); loadLogged(); },
-    [loadMeds, loadDoseLogs, loadLogged]);
+  // The THIRD source (canon 3aa): drugs the unit gave during dialysis. It has
+  // been in the database for a decade and no patient-facing screen showed it,
+  // so a patient who had been given Calcium Carbonate at the unit saw no record
+  // of it here and logged it again — a duplicate dose created by the app not
+  // showing what it already knew. A failure must not fall through to an empty
+  // list that reads as "nothing was given".
+  const [administered, setAdministered] = useState([]);
+  const [administeredError, setAdministeredError] = useState(false);
+  const loadAdministered = useCallback(async () => {
+    try {
+      const { data } = await api.get('/medications/administered');
+      setAdministered(data); setAdministeredError(false);
+    } catch { setAdministeredError(true); }
+  }, []);
+  useEffect(() => { loadMeds(); loadDoseLogs(); loadLogged(); loadAdministered(); },
+    [loadMeds, loadDoseLogs, loadLogged, loadAdministered]);
   useEffect(() => { if (meds.length === 0 || onlyStaleMeds) setShowRx(true); },
     [meds.length, onlyStaleMeds]);
 
@@ -527,6 +541,48 @@ export default function Medications() {
               Dates with a <span style={{ color: 'var(--primary)' }}>●</span> have logged entries.
             </p>
           </div>
+
+          {/* Given at the unit — already on the record, so do not log again. */}
+          {(administered.length > 0 || administeredError) && (
+            <div className="card">
+              <h3 style={{ marginTop: 0 }}>Given at dialysis</h3>
+              {administeredError ? (
+                // An error is not an empty state (canon 3aa). Saying nothing
+                // here would tell a patient the unit gave them nothing.
+                <p style={{ color: 'var(--color-danger)' }}>
+                  We could not load what the unit gave you. This is a display
+                  problem, not a record of nothing — please try again.
+                </p>
+              ) : (
+                <>
+                  <p style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: 0 }}>
+                    Recorded by your unit on the treatment flowsheet.{' '}
+                    <strong>Already on your record — you do not need to log these.</strong>
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {administered.map((a, i) => (
+                      <div key={i} style={{
+                        display: 'flex', justifyContent: 'space-between', gap: 10,
+                        padding: '8px 10px', borderRadius: 6,
+                        background: 'var(--bg-secondary, #f8fafc)',
+                      }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600 }}>{a.name}</div>
+                          {a.detail && (
+                            <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)' }}>{a.detail}</div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {a.last && <>last {a.last}<br /></>}
+                          {a.doses}× in 90 days
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="card">
             <h3 style={{ marginTop: 0 }}>Medications for {fmtLong(selectedDate)}</h3>

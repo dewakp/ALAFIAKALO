@@ -471,3 +471,47 @@ async def delete_medication_dose_log(
         raise HTTPException(status_code=404, detail="Dose log not found")
     await db.delete(entry)
     await db.flush()
+
+@router.get("/administered")
+async def medications_given_at_dialysis(
+    days: int = 90,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Drugs the UNIT gave during dialysis, read off the flowsheet.
+
+    The third medication source (§3aa). `clinical_sources.medications_administered`
+    has existed for a while and **nothing exposed it to a patient-facing
+    screen**, so a drug the unit had already recorded was invisible on the
+    Medications page — and the patient, seeing no record of it, logged it
+    again. That is a duplicate dose in a clinical record, created by the app
+    failing to show what it already knew.
+
+    Read-only on purpose. These are administrations performed by the unit and
+    written on the session flowsheet; the patient neither takes nor confirms
+    them at home, so offering an edit here would invite a correction that the
+    flowsheet would then contradict.
+    """
+    from datetime import timedelta
+
+    from app.core.patient_time import patient_today
+    from app.services import clinical_sources
+
+    # `patient_today` takes the client's zone hint and the stored value, not a
+    # request object (§3am: the containers run UTC, so the server's date is
+    # already tomorrow for the Americas by early evening).
+    since = patient_today(stored=current_user.timezone) - timedelta(days=max(1, days))
+    rows = await clinical_sources.medications_administered(db, current_user.id, since=since)
+    return [
+        {
+            "name": r.name,
+            "detail": r.detail,
+            "last": r.last.isoformat() if r.last else None,
+            "doses": r.doses,
+            "source": r.source,
+            # Named so a client cannot mistake these for something the patient
+            # should log. The whole point is that they are ALREADY recorded.
+            "already_recorded": True,
+        }
+        for r in rows
+    ]

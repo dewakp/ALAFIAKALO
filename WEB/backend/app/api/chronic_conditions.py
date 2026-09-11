@@ -1,3 +1,5 @@
+from fastapi.responses import HTMLResponse
+from app.services.therapy_report import render_session_report
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
@@ -740,6 +742,37 @@ async def delete_condition_metric(
 
 
 # ============= INTRADIALYTIC READINGS =============
+
+@router.get("/therapy-sessions/{session_id}/report.html", response_class=HTMLResponse)
+async def therapy_session_report(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """The printable report for one of the CURRENT user's sessions.
+
+    Returns HTML rather than a PDF because every platform already turns HTML
+    into paginated PDF through its own print pipeline, and each gives the user
+    AirPrint, "Save to Files" and "Save as PDF" for free. A server-side PDF
+    library would add a dependency and take those affordances away.
+
+    The clinician equivalent lives on the clinician router, where the sharing
+    grant is checked — both render through the same module, so the document a
+    clinician prints and the one the patient prints cannot drift.
+    """
+    result = await db.execute(
+        select(TherapySession).where(
+            and_(TherapySession.id == session_id,
+                 TherapySession.user_id == current_user.id)
+        )
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Therapy session not found")
+
+    html = render_session_report(session, patient_name=current_user.full_name)
+    return HTMLResponse(content=html)
+
 
 @router.get("/therapy-sessions/{session_id}/readings", response_model=List[IntradialyticReadingResponse])
 async def get_intradialytic_readings(

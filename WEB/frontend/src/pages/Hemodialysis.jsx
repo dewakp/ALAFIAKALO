@@ -197,6 +197,136 @@ const Input = ({ lbl, value, onChange, type = 'text', step, placeholder, ...rest
 );
 
 /* ================================================================== */
+
+
+/**
+ * Reconcile what the machine pulled off against what the scale says.
+ *
+ * These are two independent measurements of the same session and they must be
+ * kept apart:
+ *
+ *   Total UF        the machine's GROSS removal — what it pumped off.
+ *   Saline added    volume put BACK through the blood line.
+ *   Fluid removed   (pre − post) × 1000, computed from the scale. The patient
+ *                   was weighed AFTER the saline went in, so this figure is
+ *                   ALREADY net. Subtracting saline from it double-counts.
+ *
+ * So the deduction belongs on the machine figure: gross UF − saline ≈ the
+ * weight change. A gap between the two is a real finding — a miscalibrated
+ * scale, an unrecorded bolus, or fluid given outside the circuit — and it is
+ * surfaced rather than quietly reconciled to whichever number looks tidier.
+ *
+ * Sign convention, read off the form's own arithmetic rather than assumed:
+ * POSITIVE means fluid came off. A negative `fluid_removed_ml` means the
+ * patient finished heavier than they started, which is why the production row
+ * this was checked against reads -700.
+ */
+function FluidReconciliation({ totalUfLiters, saline, fluidRemovedMl }) {
+  const uf = Number(totalUfLiters);
+  const sal = Number(saline);
+  const scale = Number(fluidRemovedMl);
+
+  const hasUf = totalUfLiters !== '' && totalUfLiters != null && Number.isFinite(uf);
+  const hasScale = fluidRemovedMl !== '' && fluidRemovedMl != null && Number.isFinite(scale);
+  const given = saline !== '' && saline != null && Number.isFinite(sal) ? sal : 0;
+
+  if (!hasUf && !given) return <div />;
+
+  const netFromMachine = hasUf ? uf * 1000 - given : null;
+  const gap = netFromMachine != null && hasScale ? Math.round(netFromMachine - scale) : null;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'flex-end' }}>
+      <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+        Net from machine (UF − saline)
+      </span>
+      <div style={{ padding: '6px 8px', borderRadius: 6, background: 'var(--bg-secondary, #f8fafc)',
+                    border: '1px dashed var(--border, #cbd5e1)', fontWeight: 700 }}>
+        {netFromMachine == null ? '—' : `${Math.round(netFromMachine)} mL`}
+        {gap != null && Math.abs(gap) >= 300 && (
+          <div style={{ fontWeight: 400, fontSize: '.72rem', color: '#b45309', marginTop: 2 }}>
+            {Math.abs(gap)} mL apart from the scale ({Math.round(scale)} mL) — check
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The wall clock next to the machine's own figure.
+ *
+ * These are different numbers and neither is derivable from the other: the
+ * clock is end − start, the machine reports time actually dialysing. A large
+ * gap means the session was interrupted, which is a clinical finding in
+ * itself — so it is surfaced rather than quietly reconciled.
+ */
+function ClockVsMachine({ start, end, machine }) {
+  if (!start || !end) return <div />;
+  const ms = new Date(end) - new Date(start);
+  if (!Number.isFinite(ms) || ms <= 0) return <div />;
+  const clock = Math.round(ms / 60000);
+  const m = Number(machine);
+  const hasMachine = machine !== '' && machine != null && Number.isFinite(m);
+  const gap = hasMachine ? clock - m : null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'flex-end' }}>
+      <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+        Clock Time (end − start)
+      </span>
+      <div style={{ padding: '6px 8px', borderRadius: 6, background: 'var(--bg-secondary, #f8fafc)',
+                    border: '1px dashed var(--border, #cbd5e1)' }}>
+        <strong>{clock} min</strong>
+        {gap != null && gap !== 0 && (
+          <span style={{ fontSize: '.72rem', color: gap > 15 ? '#b45309' : '#64748b', marginLeft: 6 }}>
+            {gap > 0 ? `${gap} min not dialysing` : `machine reads ${-gap} min longer`}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Access thrill / bruit — three states, because the column is a NULLABLE
+ * boolean and every one of its values means something different:
+ *
+ *   null   not assessed
+ *   true   PRESENT — the access is patent. This is the normal finding.
+ *   false  ABSENT — a possible clotted access. Urgent.
+ *
+ * It used to be a checkbox labelled "Access Thrill/Bruit ✓" sitting in a row
+ * of problems (Shortness of Breath, Swelling, …). Ticking it therefore read as
+ * reporting a problem when it meant the opposite, and — worse — "absent",
+ * the one finding that needs to shout, was indistinguishable from a box nobody
+ * had touched. An unassessed field is not a normal finding.
+ */
+function ThrillBruit({ value, onChange }) {
+  const state = value === true ? 'present' : value === false ? 'absent' : '';
+  const tone = value === false
+    ? { color: '#b91c1c', borderColor: '#b91c1c', fontWeight: 600 }
+    : {};
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 200 }}>
+      <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+        Access Thrill / Bruit
+      </span>
+      <select
+        value={state}
+        onChange={(e) => {
+          const v = e.target.value;
+          onChange(v === 'present' ? true : v === 'absent' ? false : null);
+        }}
+        style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border, #cbd5e1)', ...tone }}
+      >
+        <option value="">Not assessed</option>
+        <option value="present">Present — normal</option>
+        <option value="absent">ABSENT — urgent</option>
+      </select>
+    </label>
+  );
+}
+
 export default function Hemodialysis() {
   const [tab, setTab] = useState('reports'); // 'reports' | 'form'
   const [sessions, setSessions] = useState([]);
@@ -558,15 +688,13 @@ export default function Hemodialysis() {
         <Checkbox checked={formData.buttonhole_technique} onChange={set('buttonhole_technique')}
           label="Buttonhole" disabled={isCatheter} />
       </div>
-      <div style={{ ...grid4, marginTop: 12 }}>
+      <div style={{ ...grid3, marginTop: 12 }}>
         <Input lbl="Dry Weight (kg)" value={formData.dry_weight_kg} onChange={set('dry_weight_kg')} type="number" step="0.1" />
         <Input lbl="Prev Post Weight (kg)" value={formData.previous_post_weight_kg} onChange={set('previous_post_weight_kg')} type="number" step="0.1" />
         <Input lbl="Pre Weight (kg) *" value={formData.pre_dialysis_weight_kg} onChange={set('pre_dialysis_weight_kg')} type="number" step="0.1" />
-        <Input lbl="Post Weight (kg)" value={formData.post_dialysis_weight_kg} onChange={set('post_dialysis_weight_kg')} type="number" step="0.1" />
       </div>
       <div style={{ ...grid2, marginTop: 12 }}>
         <Input lbl="Fluid to Remove (kg)" value={formData.fluid_to_remove_kg} onChange={set('fluid_to_remove_kg')} type="number" step="0.1" />
-        <Input lbl="Fluid Removed (mL)" value={formData.fluid_removed_ml} onChange={set('fluid_removed_ml')} type="number" />
       </div>
 
       {/* ──── PRE-TREATMENT VITALS ──── */}
@@ -596,7 +724,13 @@ export default function Hemodialysis() {
         <Checkbox checked={formData.pre_change_in_mobility} onChange={set('pre_change_in_mobility')} label="Change in Mobility" />
         <Checkbox checked={formData.pre_digestion_problems} onChange={set('pre_digestion_problems')} label="Digestion Problems" />
         <Checkbox checked={formData.pre_hosp_er_since_last} onChange={set('pre_hosp_er_since_last')} label="Hospital/ER Since Last" />
-        <Checkbox checked={formData.access_thrill_bruit} onChange={set('access_thrill_bruit')} label="Access Thrill/Bruit ✓" />
+        <ThrillBruit value={formData.access_thrill_bruit}
+          onChange={(v) => setFormData((f) => ({ ...f, access_thrill_bruit: v }))} />
+        {/* The alarm test is run BEFORE the patient goes on. It sat under
+            Machine Maintenance, below the post-treatment section, which put a
+            pre-treatment safety check after the treatment it guards. */}
+        <Checkbox checked={formData.alarm_test_completed} onChange={set('alarm_test_completed')}
+          label="Alarm Test Complete (pre-treatment)" />
         <Checkbox checked={formData.access_redness_drainage} onChange={set('access_redness_drainage')} label="Access Redness/Drainage" />
       </div>
 
@@ -676,10 +810,35 @@ export default function Hemodialysis() {
 
       <div style={sectionHead}>Post-Treatment Totals & Assessment</div>
       <div style={grid4}>
+        {/* Measured at the END of treatment, so it lives here rather than
+            beside the pre-treatment weights where it used to sit. */}
+        <Input lbl="Post Weight (kg)" value={formData.post_dialysis_weight_kg} onChange={set('post_dialysis_weight_kg')} type="number" step="0.1" />
+        <Input lbl="Fluid Removed (mL)" value={formData.fluid_removed_ml} onChange={set('fluid_removed_ml')} type="number" />
+        {/* Saline given during the session is volume put BACK. Without it,
+            fluid removed overstates what actually came off. */}
+        <Input lbl="Saline Added (mL)" value={formData.saline_added_ml} onChange={set('saline_added_ml')} type="number"
+          placeholder="boluses, rinseback" />
+        {/* The machine's gross removal sits beside the saline it is reduced by,
+            so the reconciliation below has both of its inputs in view. */}
+        <Input lbl="Total UF (L) — machine" value={formData.total_uf_liters} onChange={set('total_uf_liters')} type="number" step="0.1" />
+      </div>
+      <div style={{ ...grid4, marginTop: 12 }}>
+        <FluidReconciliation totalUfLiters={formData.total_uf_liters}
+          saline={formData.saline_added_ml} fluidRemovedMl={formData.fluid_removed_ml} />
         <Input lbl="Total Dialysate (L)" value={formData.total_dialysate_liters} onChange={set('total_dialysate_liters')} type="number" step="0.1" />
-        <Input lbl="Total UF (L)" value={formData.total_uf_liters} onChange={set('total_uf_liters')} type="number" step="0.1" />
         <Input lbl="Blood Vol Processed (L)" value={formData.total_blood_volume_processed} onChange={set('total_blood_volume_processed')} type="number" step="0.1" />
         <Input lbl="Dialyzer Appearance" value={formData.dialyzer_appearance} onChange={set('dialyzer_appearance')} />
+      </div>
+      <div style={{ ...grid2, marginTop: 12 }}>
+        {/* The machine's OWN figure, read off the machine. NOT the wall clock:
+            it excludes alarms and pauses, so it is always the smaller number.
+            The summary's duration is end - start and answers a different
+            question; Kt/V is computed from time actually ON dialysis. */}
+        <Input lbl="Machine Total Time (min)" value={formData.machine_total_time_minutes}
+          onChange={set('machine_total_time_minutes')} type="number"
+          placeholder="as displayed by the machine" />
+        <ClockVsMachine start={formData.actual_start_time} end={formData.actual_end_time}
+          machine={formData.machine_total_time_minutes} />
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 14 }}>
         <Input lbl="Bleeding Stop Time" value={formData.post_bleeding_stop_time} onChange={set('post_bleeding_stop_time')} />
@@ -688,7 +847,8 @@ export default function Hemodialysis() {
         <Checkbox checked={formData.post_shortness_of_breath} onChange={set('post_shortness_of_breath')} label="SOB" />
         <Checkbox checked={formData.post_swelling} onChange={set('post_swelling')} label="Swelling" />
         <Checkbox checked={formData.post_digestion_problems} onChange={set('post_digestion_problems')} label="GI Issues" />
-        <Checkbox checked={formData.post_access_thrill_bruit} onChange={set('post_access_thrill_bruit')} label="Access Thrill/Bruit ✓" />
+        <ThrillBruit value={formData.post_access_thrill_bruit}
+          onChange={(v) => setFormData((f) => ({ ...f, post_access_thrill_bruit: v }))} />
       </div>
 
       {/* ──── MACHINE MAINTENANCE ──── */}
@@ -697,7 +857,6 @@ export default function Hemodialysis() {
         <Checkbox checked={formData.purification_pak_change} onChange={set('purification_pak_change')} label="Purification Pak Change" />
         <Checkbox checked={formData.air_filter_cleaned} onChange={set('air_filter_cleaned')} label="Air Filter Cleaned" />
         <Checkbox checked={formData.waste_line_bleach_disinfection} onChange={set('waste_line_bleach_disinfection')} label="Waste Line Bleach" />
-        <Checkbox checked={formData.alarm_test_completed} onChange={set('alarm_test_completed')} label="Alarm Test Complete" />
       </div>
       <div style={{ ...grid3, marginTop: 12 }}>
         <Input lbl="SAK Use #" value={formData.sak_use_number} onChange={set('sak_use_number')} type="number" />
@@ -830,6 +989,14 @@ export default function Hemodialysis() {
                 {/* Expanded detail */}
                 {expanded && (
                   <div style={{ marginTop: 16, borderTop: '1px solid #e0e0e0', paddingTop: 16 }} onClick={e => e.stopPropagation()}>
+                    {/* A printable copy of this session. Opens the report in a
+                        new tab so the session list is not lost behind it. */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                      <a href={`/therapy-report/${session.id}`} target="_blank" rel="noopener noreferrer"
+                         style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-block' }}>
+                        Print / Save as PDF
+                      </a>
+                    </div>
                     <div style={grid4}>
                       <div><b style={{ fontSize: 12, color: '#888' }}>Facility</b><br />{session.facility_name || '—'}</div>
                       <div><b style={{ fontSize: 12, color: '#888' }}>Access</b><br />{session.dialysis_access_type || '—'}</div>

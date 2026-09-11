@@ -44,6 +44,7 @@
 		4A0000000000000000000A02 /* MedicationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000A01 /* MedicationPicker.swift */; };
 		4A0000000000000000000B02 /* PhotoCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000B01 /* PhotoCapture.swift */; };
 		4A0000000000000000000C02 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000C01 /* AvatarView.swift */; };
+		4A0000000000000000000D02 /* TherapyReportPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000D01 /* TherapyReportPrinter.swift */; };
 		4A0000000000000000000218 /* MoodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000118 /* MoodView.swift */; };
 		4A0000000000000000000219 /* LifestyleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000119 /* LifestyleView.swift */; };
 		4A000000000000000000021A /* AIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011A /* AIChatView.swift */; };
@@ -169,6 +170,7 @@
 		4A0000000000000000000A01 /* MedicationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationPicker.swift; sourceTree = "<group>"; };
 		4A0000000000000000000B01 /* PhotoCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCapture.swift; sourceTree = "<group>"; };
 		4A0000000000000000000C01 /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
+		4A0000000000000000000D01 /* TherapyReportPrinter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapyReportPrinter.swift; sourceTree = "<group>"; };
 		4A0000000000000000000118 /* MoodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000119 /* LifestyleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifestyleView.swift; sourceTree = "<group>"; };
 		4A000000000000000000011A /* AIChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatView.swift; sourceTree = "<group>"; };
@@ -637,6 +639,7 @@
 			isa = PBXGroup;
 			children = (
 				AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */,
+				4A0000000000000000000D01 /* TherapyReportPrinter.swift */,
 				4A0000000000000000000996 /* DrugsAdministeredEditor.swift */,
 				CE0000000000000000000106 /* IntradialyticEditor.swift */,
 			);
@@ -1026,6 +1029,7 @@
 				BB0000000000000000000418 /* DataSharingView.swift in Sources */,
 				CE0000000000000000000206 /* IntradialyticEditor.swift in Sources */,
 				0CB072E3037F41A3B1EB0550 /* HemodialysisView.swift in Sources */,
+				4A0000000000000000000D02 /* TherapyReportPrinter.swift in Sources */,
 				4A0000000000000000000997 /* DrugsAdministeredEditor.swift in Sources */,
 				2B735102C7EC4AB9A6F0E89A /* ChemotherapyView.swift in Sources */,
 				CC0000000000000000000602 /* PharmacyModels.swift in Sources */,

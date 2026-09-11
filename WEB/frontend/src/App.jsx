@@ -29,6 +29,7 @@ const Mood = lazy(() => import('./pages/Mood'));
 const Lifestyle = lazy(() => import('./pages/Lifestyle'));
 const Login = lazy(() => import('./pages/Login'));
 const SignupFlow = lazy(() => import('./pages/SignupFlow'));
+const TherapyPrintReport = lazy(() => import('./pages/TherapyPrintReport'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const PromptHub = lazy(() => import('./pages/PromptHub'));
@@ -186,6 +187,10 @@ export default function App() {
           <Route path="vitals" element={<Vitals />} />
           <Route path="insights" element={<HealthInsights />} />
           <Route path="subscription" element={<Subscription />} />
+          {/* Printable treatment report. Same page for a patient reading their
+              own session and a clinician reading it with ?patient=<id> — the
+              backend decides who may see what. */}
+          <Route path="therapy-report/:sessionId" element={<TherapyPrintReport />} />
         </Route>
       </Routes>
       </Suspense>

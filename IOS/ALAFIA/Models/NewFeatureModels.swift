@@ -1208,6 +1208,8 @@ struct TherapySession: Codable, Identifiable {
     // Post-treatment totals
     let totalDialysateLiters: Double?
     let totalUfLiters: Double?
+    let salineAddedMl: Double?
+    let machineTotalTimeMinutes: Int?
     let totalBloodVolumeProcessed: Double?
     let dialyzerAppearance: String?
     let postBleedingStopTime: String?
@@ -1330,6 +1332,8 @@ struct TherapySession: Codable, Identifiable {
         case preChangeInMobility = "pre_change_in_mobility"
         case preDigestionProblems = "pre_digestion_problems"
         case preHospErSinceLast = "pre_hosp_er_since_last"
+        case salineAddedMl = "saline_added_ml"
+        case machineTotalTimeMinutes = "machine_total_time_minutes"
         case accessThrillBruit = "access_thrill_bruit"
         case accessRednessDrainage = "access_redness_drainage"
         case totalDialysateLiters = "total_dialysate_liters"
@@ -1441,6 +1445,8 @@ struct TherapySessionCreate: Codable {
     // Post-treatment totals
     var totalDialysateLiters: Double? = nil
     var totalUfLiters: Double? = nil
+    var salineAddedMl: Double? = nil
+    var machineTotalTimeMinutes: Int? = nil
     var totalBloodVolumeProcessed: Double? = nil
     var dialyzerAppearance: String? = nil
     var postBleedingStopTime: String? = nil
@@ -1526,6 +1532,8 @@ struct TherapySessionCreate: Codable {
         case preChangeInMobility = "pre_change_in_mobility"
         case preDigestionProblems = "pre_digestion_problems"
         case preHospErSinceLast = "pre_hosp_er_since_last"
+        case salineAddedMl = "saline_added_ml"
+        case machineTotalTimeMinutes = "machine_total_time_minutes"
         case accessThrillBruit = "access_thrill_bruit"
         case accessRednessDrainage = "access_redness_drainage"
         case totalDialysateLiters = "total_dialysate_liters"

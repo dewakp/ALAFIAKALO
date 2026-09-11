@@ -1771,6 +1771,92 @@ created loginable, unpaid accounts and reported nothing at all: a real address
 > not broken**. A test that cannot name why it failed sends you debugging the
 > wrong thing.
 
+## 3at. The dialysis flowsheet records WHEN a thing was measured
+
+Six corrections to the HD flowsheet, each one a field that was recorded
+truthfully and then read wrongly because of where or how it was presented.
+
+- **Post weight is post-treatment data.** It sat in the pre-treatment weights
+  row beside Dry / Prev Post / Pre, so a nurse filling the form top to bottom
+  met it before the treatment it measures. Moved, along with Fluid Removed;
+  the PLAN (fluid to remove) is what belongs above.
+- **The alarm test is run BEFORE the patient goes on.** It lived under Machine
+  Maintenance, below the post-treatment section — a pre-treatment safety check
+  presented after the treatment it guards.
+- **A checkbox cannot record three states, and thrill/bruit has three.** The
+  column is a nullable boolean: null = not assessed, true = PRESENT (normal),
+  false = ABSENT (a possible clotted access, urgent). A tick labelled
+  "Access Thrill/Bruit ✓" sat in a row of PROBLEMS, so ticking it read as
+  reporting one when it meant the opposite — and "absent", the finding that
+  needs to shout, was indistinguishable from a box nobody had touched. Worse
+  on mobile, where both clients DEFAULTED it to true and so recorded a
+  reassuring normal for every unassessed session. §3aa in a checkbox.
+
+### Two clocks and two fluid figures, and neither pair is interchangeable
+
+> **The machine's total time is not the wall clock.** The machine reports time
+> actually DIALYSING and excludes alarms and pauses; the summary's duration is
+> `actual_end_time - actual_start_time` and is always the larger number. Kt/V
+> is computed from time on dialysis, so conflating them overstates the dose
+> delivered. Both are stored (`machine_total_time_minutes`) and both are
+> printed, because neither can be derived from the other — and a large gap
+> between them is itself a finding, so it is surfaced rather than reconciled.
+
+> **Saline is volume put BACK, and the deduction goes on the MACHINE figure.**
+> This was nearly got wrong in the obvious direction. `fluid_removed_ml` is
+> computed by the form as `(pre − post) × 1000` — it is weight-derived, and the
+> patient is weighed AFTER the saline has gone in, so it is ALREADY net.
+> Subtracting saline from it counts the same volume twice. The gross figure is
+> the machine's `total_uf_liters`; net is `UF − saline`, and it should agree
+> with the scale. A gap of ≥300 mL is flagged rather than hidden — it means a
+> miscalibrated scale, an unrecorded bolus, or fluid given outside the circuit.
+>
+> Sign convention, read off the form's own arithmetic rather than assumed:
+> POSITIVE means fluid came off. The production row this was checked against
+> reads **-700 mL**, because that patient finished heavier than they started.
+
+### Drugs given at the unit were invisible to the patient who might log them
+
+`clinical_sources.medications_administered()` — the THIRD medication source
+(§3aa) — existed and **no patient-facing endpoint exposed it**. So a drug the
+unit had already recorded on the flowsheet did not appear on the Medications
+screen, and a patient seeing no record of it logged it again. A duplicate dose
+in a clinical record, created by the app failing to show what it already knew.
+`GET /medications/administered` serves it read-only, labelled "already on your
+record — you do not need to log these". Read-only on purpose: these are
+administrations the unit performed, and an edit here would be contradicted by
+the flowsheet.
+
+### The printable report
+
+`services/therapy_report.py` renders ONE document, printed by all three
+clients and by both readers. A patient prints their own session; a clinician
+prints it through the route that checks the sharing grant.
+
+- **HTML, not a generated PDF.** Every platform already turns HTML into
+  paginated PDF through its own print pipeline — `window.print()`,
+  `UIMarkupTextPrintFormatter`, `WebView.createPrintDocumentAdapter` — and each
+  gives the user AirPrint, "Save to Files" and "Save as PDF" for free. A PDF
+  library would add a dependency and take those affordances away.
+- **A second route onto the same data must not bypass the first one's gate.**
+  The clinician report initially skipped `_require_dialysis_access`, which
+  would have let any authenticated user print any patient's flowsheet. It now
+  runs the JSON route's checks in the same order. Pinned by a test that asks
+  for a stranger's report and expects 403/404.
+- **The clinician JSON payload was a curated subset**, which is fine for a
+  summary and wrong for a printed record: every omitted field renders as "—",
+  and the report states that "—" means not recorded. A clinician would have
+  read a dozen recorded findings as absent ones.
+- **"—" is explained in the footer of every copy.** On paper a blank reads as
+  normal and the reader cannot ask.
+
+> **A mock is only evidence if it matches the wire.** The first version of
+> `e2e/therapy-report.spec.js` mocked `/api/v1/chronic-conditions/...` and
+> passed — the router mounts at **`/chronic`**, so it was asserting against a
+> route that does not exist, and the real component 404'd. §3aj's "a suite that
+> cannot reach the thing it tests is not evidence", one layer in: a suite that
+> reaches a URL nobody serves is worse, because it is green.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

@@ -54,6 +54,24 @@ interface ApiService {
     @DELETE("users/me/avatar")
     suspend fun deleteAvatar(): UserSchema
 
+    /**
+     * The printable treatment report, as HTML.
+     *
+     * Rendered server-side so the patient's copy, the clinician's copy and the
+     * web copy are the same document. `ResponseBody` because it is not JSON.
+     */
+    @GET("chronic/therapy-sessions/{id}/report.html")
+    suspend fun therapySessionReport(@Path("id") sessionId: Int): ResponseBody
+
+    /** The same report for a patient this clinician may see; the backend
+     *  re-checks the sharing grant, so the id is a destination not a right. */
+    @GET("clinician-dashboard/patient/{patientId}/therapy-sessions/{id}/report.html")
+    suspend fun patientTherapySessionReport(
+        @Path("patientId") patientId: Int,
+        @Path("id") sessionId: Int,
+    ): ResponseBody
+
+
     // Fitness Endpoints
     @GET("fitness/")
     suspend fun getFitnessLogs(
