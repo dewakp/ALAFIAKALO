@@ -109,6 +109,41 @@ const fmtTime = (t) => {
 };
 
 /**
+ * The machine displays its total time as HR:MIN. Accept that.
+ *
+ * The column stores minutes, and the field used to demand them — so a patient
+ * reading "7:27" off the machine had to work out 447 themselves, every session.
+ * That is arithmetic the computer should do, and a conversion done in someone's
+ * head at the end of a four-hour treatment is a conversion that will sometimes
+ * be wrong.
+ *
+ * Both forms are accepted: "7:27" and "447" mean the same thing. A bare number
+ * is minutes, because that is what the field has always taken and what every
+ * stored value already is.
+ */
+export function parseMachineTime(value) {
+  if (value === '' || value == null) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+
+  const clock = /^(\d{1,3}):([0-5]\d)$/.exec(text);
+  if (clock) return Number(clock[1]) * 60 + Number(clock[2]);
+
+  // Bare minutes. Not `parseInt`, which would read "7:27" as 7 and silently
+  // record a seven-minute treatment.
+  if (/^\d+$/.test(text)) return Number(text);
+  return null;
+}
+
+/** Minutes back to HR:MIN, for showing what was understood. */
+export function formatMachineTime(minutes) {
+  if (minutes == null || !Number.isFinite(minutes)) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}:${String(m).padStart(2, '0')}`;
+}
+
+/**
  * Canonical "HH:MM" for the API and for form values, or null when the value
  * cannot be one. ONE parser — display formatting stays in fmtTime above.
  *
@@ -121,8 +156,29 @@ const fmtTime = (t) => {
  */
 export function normalizeTime(t) {
   if (typeof t !== 'string') return null;
-  const m = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?(?:\.\d+)?$/.exec(t.trim());
-  return m ? `${m[1]}:${m[2]}` : null;
+  // A SINGLE-digit hour is accepted and padded. The old pattern demanded two,
+  // so "9:30" — which is what a person types, and what some browsers leave in
+  // a time input — returned null, and the row it belonged to was then silently
+  // dropped on save.
+  const m = /^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?(?:\.\d+)?$/.exec(t.trim());
+  if (!m) return null;
+  const hh = Number(m[1]);
+  if (hh > 23) return null;
+  return `${String(hh).padStart(2, '0')}:${m[2]}`;
+}
+
+/**
+ * Does this reading hold anything a clinician would miss?
+ *
+ * A row the user never touched can be dropped on save without comment. A row
+ * with a pressure or a pulse in it CANNOT — losing that silently is losing a
+ * clinical observation, and the patient has no way to know it happened.
+ */
+export function readingHasData(r) {
+  return Object.entries(r || {}).some(([k, v]) => {
+    if (k === 'id' || k === 'reading_time' || k === 'session_id') return false;
+    return v !== '' && v != null;
+  });
 }
 
 /**
@@ -266,8 +322,10 @@ function ClockVsMachine({ start, end, machine }) {
   const ms = new Date(end) - new Date(start);
   if (!Number.isFinite(ms) || ms <= 0) return <div />;
   const clock = Math.round(ms / 60000);
-  const m = Number(machine);
-  const hasMachine = machine !== '' && machine != null && Number.isFinite(m);
+  // Same parser the field uses — `Number("7:27")` is NaN, so the comparison
+  // would have gone blank the moment someone typed the machine's own format.
+  const m = parseMachineTime(machine);
+  const hasMachine = m != null;
   const gap = hasMachine ? clock - m : null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'flex-end' }}>
@@ -284,6 +342,50 @@ function ClockVsMachine({ start, end, machine }) {
         )}
       </div>
     </div>
+  );
+}
+
+
+/**
+ * Machine total time, typed the way the machine shows it.
+ *
+ * Takes HR:MIN or bare minutes and states underneath what it understood, so
+ * the conversion is visible rather than trusted. An unreadable entry says so
+ * instead of being quietly stored as nothing — the field feeds Kt/V, and a
+ * silently dropped treatment time reads as a session that was never measured.
+ */
+function MachineTimeField({ value, onChange }) {
+  const minutes = parseMachineTime(value);
+  const typed = String(value ?? '').trim();
+  const unreadable = typed !== '' && minutes == null;
+
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+        Machine Total Time
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="7:27 or 447"
+        style={{
+          padding: '6px 8px', borderRadius: 6,
+          border: `1px solid ${unreadable ? '#b91c1c' : 'var(--border, #cbd5e1)'}`,
+        }}
+      />
+      {unreadable ? (
+        <span style={{ fontSize: '.72rem', color: '#b91c1c' }}>
+          Enter it as HR:MIN (7:27) or as minutes (447).
+        </span>
+      ) : minutes != null ? (
+        <span style={{ fontSize: '.72rem', color: 'var(--text-secondary, #64748b)' }}>
+          = <strong>{minutes} min</strong>
+          {typed.includes(':') ? '' : ` (${formatMachineTime(minutes)})`}
+        </span>
+      ) : null}
+    </label>
   );
 }
 
@@ -466,6 +568,9 @@ export default function Hemodialysis() {
     setSaving(true);
     try {
       const payload = { ...formData };
+      // The field accepts HR:MIN; the column stores minutes. Converted once,
+      // here, so nothing downstream has to know the field was ever a clock.
+      payload.machine_total_time_minutes = parseMachineTime(formData.machine_total_time_minutes);
       // Build scheduled_date as datetime
       if (payload.scheduled_date && !payload.scheduled_date.includes('T')) {
         payload.scheduled_date = payload.scheduled_date + 'T00:00:00';
@@ -528,11 +633,35 @@ export default function Hemodialysis() {
         : [];
       const keptIds = new Set(readings.map(r => r.id).filter(Boolean));
 
+      // A reading that holds data but has no usable time must NOT be dropped.
+      //
+      // This loop used to `continue` past it, so a row with a blood pressure in
+      // it was never POSTed and simply vanished on save — no error, nothing in
+      // the list afterwards. It bit the FIRST reading most often, because the
+      // form seeds one blank row and a half-typed or empty time is exactly what
+      // that row has. Silent loss of a clinical observation is the worst
+      // outcome available here; refusing the save is better than it.
+      const timeless = readings.filter(
+        (r) => !normalizeTime(r.reading_time) && readingHasData(r));
+      if (timeless.length > 0) {
+        const which = timeless
+          .map((r) => readings.indexOf(r) + 1)
+          .join(', ');
+        alert(
+          `Reading ${which} ${timeless.length > 1 ? 'have' : 'has'} no time. ` +
+          'Enter a time (HH:MM) for it, or clear the row — nothing has been saved.');
+        setSaving(false);
+        return;
+      }
+
       // Save readings
       for (const r of readings) {
         // Not just truthiness: '—' is truthy and unparseable, and "14:30 "
         // looks valid while being rejected for its trailing space.
         const cleanTime = normalizeTime(r.reading_time);
+        // Only a genuinely EMPTY row reaches this — one the user added and
+        // never filled in. Dropping that is right; dropping one with data is
+        // what the guard above refuses.
         if (!cleanTime) continue;
         // A row that already exists is UPDATED, never re-posted. Re-posting was
         // how editing a session grew its flowsheet: the corrected row differs
@@ -834,9 +963,8 @@ export default function Hemodialysis() {
             it excludes alarms and pauses, so it is always the smaller number.
             The summary's duration is end - start and answers a different
             question; Kt/V is computed from time actually ON dialysis. */}
-        <Input lbl="Machine Total Time (min)" value={formData.machine_total_time_minutes}
-          onChange={set('machine_total_time_minutes')} type="number"
-          placeholder="as displayed by the machine" />
+        <MachineTimeField value={formData.machine_total_time_minutes}
+          onChange={(v) => setFormData((f) => ({ ...f, machine_total_time_minutes: v }))} />
         <ClockVsMachine start={formData.actual_start_time} end={formData.actual_end_time}
           machine={formData.machine_total_time_minutes} />
       </div>

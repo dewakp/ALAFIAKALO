@@ -1857,6 +1857,54 @@ prints it through the route that checks the sharing grant.
 > cannot reach the thing it tests is not evidence", one layer in: a suite that
 > reaches a URL nobody serves is worse, because it is green.
 
+## 3av. The web flowsheet was silently eating intradialytic readings
+
+Reported twice — "the first reading disappeared after saving/update". It was
+not a race and not the backend. `Hemodialysis.jsx` normalised each row's time
+and then:
+
+    const cleanTime = normalizeTime(r.reading_time);
+    if (!cleanTime) continue;          // ← never POSTed, never mentioned
+
+A row whose time did not parse was skipped. An EXISTING row survived (it keeps
+its id, so the stale-delete pass leaves it alone), but a NEW one was never sent
+and simply vanished. It bit the FIRST reading most often because `startNew`
+seeds one blank row, and a blank or half-typed time is exactly what that row
+has.
+
+`normalizeTime` demanded a two-digit hour — `^([01]\d|2[0-3]):` — so **"9:30"
+returned null**. A patient typing the time as they say it lost the reading.
+
+- Single-digit hours are accepted and padded.
+- A row holding data but no usable time now REFUSES the save and names which
+  row, rather than discarding it. `readingHasData()` distinguishes an
+  abandoned empty row (fine to drop) from a clinical observation (never).
+- A time alone is not "data" — otherwise typing a time into an empty row would
+  block the save.
+
+> **Both mobile clients were already correct here**, which is why this was only
+> ever reported on web: they skip on `row.isBlank` — the row holding nothing —
+> not on a time that failed to parse, and they show the parse error inline.
+> When one platform eats data and two do not, the two are the specification.
+
+### The machine shows HR:MIN; do not make the patient convert
+
+`machine_total_time_minutes` stores minutes and the field demanded them, so a
+patient reading **7:27** off the machine had to work out 447 in their head at
+the end of a four-hour treatment. `parseMachineTime` takes either form and the
+converted value is shown beneath the field, so the arithmetic is visible rather
+than trusted.
+
+> `parseInt("7:27")` is **7**. A seven-minute treatment, in a field Kt/V is
+> computed from. The parser returns null for anything it cannot read in full
+> rather than taking the leading digits.
+
+> ⚠️ On iOS the saline and machine-time fields had been added to the view model,
+> the reset, the loader AND the payload — with **no input rendered anywhere**.
+> Plumbing with nothing attached to it, and every test passes because the state
+> is perfectly consistent. §3ar's dead control, one layer up: it is not enough
+> for a field to exist, something must be able to put a value in it.
+
 ## 3au. Mobile cannot buy the way the web buys
 
 Apple and Google require digital subscriptions to be sold through their own

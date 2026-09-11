@@ -464,7 +464,7 @@ final class HemodialysisViewModel {
         body.preHospErSinceLast = preHospErSinceLast
         body.accessThrillBruit = accessThrillBruit
         body.salineAddedMl = Double(salineAddedMl)
-        body.machineTotalTimeMinutes = Int(machineTotalTimeMinutes)
+        body.machineTotalTimeMinutes = MachineTime.parse(machineTotalTimeMinutes)
         body.accessRednessDrainage = accessRednessDrainage
         if !cartridgeLot.isEmpty { body.cartridgeLot = cartridgeLot }
         if !sakLot.isEmpty { body.sakLot = sakLot }
@@ -515,6 +515,65 @@ final class HemodialysisViewModel {
 /// `nil` not assessed · `true` present (normal) · `false` ABSENT (urgent).
 /// It was a Toggle labelled "Access Thrill/Bruit ✓" sitting among problem
 /// toggles: ticking it read as reporting a problem when it meant the opposite,
+
+/// The machine displays its total time as HR:MIN. Accept that.
+///
+/// The column stores minutes, and the field demanded them — so a patient
+/// reading "7:27" off the machine had to work out 447 themselves, every
+/// session. A conversion done in someone's head at the end of a four-hour
+/// treatment is one that will sometimes be wrong.
+///
+/// A bare number is minutes, because that is what every stored value is.
+/// `Int("7:27")` is nil rather than 7, so the clock form can never be
+/// mistaken for a seven-minute treatment.
+enum MachineTime {
+    static func parse(_ value: String) -> Int? {
+        let text = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+
+        if text.contains(":") {
+            let parts = text.split(separator: ":")
+            guard parts.count == 2,
+                  let h = Int(parts[0]), let m = Int(parts[1]),
+                  h >= 0, (0...59).contains(m) else { return nil }
+            return h * 60 + m
+        }
+        guard let minutes = Int(text), minutes >= 0 else { return nil }
+        return minutes
+    }
+
+    static func format(_ minutes: Int) -> String {
+        String(format: "%d:%02d", minutes / 60, minutes % 60)
+    }
+}
+
+/// Machine total time, typed the way the machine shows it, with the converted
+/// minutes stated underneath so the arithmetic is visible rather than trusted.
+struct MachineTimeField: View {
+    @Binding var text: String
+
+    private var minutes: Int? { MachineTime.parse(text) }
+    private var unreadable: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && minutes == nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            TextField("Machine Total Time (7:27 or 447)", text: $text)
+                .keyboardType(.numbersAndPunctuation)
+            if unreadable {
+                Text("Enter it as HR:MIN (7:27) or as minutes (447).")
+                    .font(.caption2).foregroundStyle(.red)
+            } else if let minutes {
+                Text(text.contains(":")
+                     ? "= \(minutes) min"
+                     : "= \(minutes) min (\(MachineTime.format(minutes)))")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
 /// and an unassessed session recorded a reassuring normal.
 struct ThrillPicker: View {
     @Binding var value: Bool?
@@ -961,6 +1020,16 @@ struct HemodialysisView: View {
                         VStack(alignment: .leading) { Text("Blood Vol (L)").font(.caption); TextField("L", text: $vm.totalBloodVolumeProcessed).keyboardType(.decimalPad) }
                         VStack(alignment: .leading) { Text("Dialyzer").font(.caption); TextField("Appearance", text: $vm.dialyzerAppearance) }
                     }
+                    // Saline is volume put BACK, so the machine's gross UF
+                    // overstates what came off until it is deducted. These were
+                    // in the view model and the payload with no field to type
+                    // them into — plumbing with nothing attached.
+                    VStack(alignment: .leading) {
+                        Text("Saline Added (mL)").font(.caption)
+                        TextField("boluses, rinseback", text: $vm.salineAddedMl)
+                            .keyboardType(.decimalPad)
+                    }
+                    MachineTimeField(text: $vm.machineTotalTimeMinutes)
                     VStack(alignment: .leading) { Text("Bleed Stop Time").font(.caption); TextField("Time", text: $vm.postBleedingStopTime) }
                     Toggle("Bruising", isOn: $vm.postBruising)
                     Toggle("Infiltration", isOn: $vm.postInfiltration)

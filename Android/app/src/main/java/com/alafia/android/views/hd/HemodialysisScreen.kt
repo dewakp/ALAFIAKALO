@@ -785,7 +785,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             // different, larger number. Kt/V follows time actually dialysing.
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
                 F(salineAdded, { salineAdded = it }, "Saline Added (mL)", Modifier.weight(1f))
-                F(machineTime, { machineTime = it }, "Machine Total Time (min)", Modifier.weight(1f))
+                MachineTimeField(machineTime) { machineTime = it }
             }
 
             // Facility & Staff
@@ -869,7 +869,11 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                             s("cartridge_lot", cartLot); s("sak_lot", sakLot)
                             s("cycler_number", cycler); s("warmer_serial", warmer)
                             d("total_dialysate_liters", totDial); d("total_uf_liters", totUf)
-                            d("saline_added_ml", salineAdded); d("machine_total_time_minutes", machineTime)
+                            d("saline_added_ml", salineAdded)
+                            // HR:MIN in, minutes out. Converted once, here.
+                            parseMachineTime(machineTime)?.let {
+                                body["machine_total_time_minutes"] = it
+                            }
                             d("total_blood_volume_processed", totBlood)
                             s("dialyzer_appearance", dialAppear); s("post_bleeding_stop_time", bleedStop)
                             b("post_bruising", postBruise); b("post_infiltration", postInfilt)
@@ -941,6 +945,69 @@ private fun F(
     Spacer(Modifier.height(4.dp))
 }
 
+
+
+/**
+ * The machine displays its total time as HR:MIN. Accept that.
+ *
+ * The column stores minutes and the field demanded them, so a patient reading
+ * "7:27" off the machine had to work out 447 themselves every session — and a
+ * conversion done in someone's head at the end of a four-hour treatment is one
+ * that will sometimes be wrong.
+ *
+ * A bare number is minutes, because that is what every stored value is.
+ * `toIntOrNull()` on "7:27" is null rather than 7, so the clock form can never
+ * be mistaken for a seven-minute treatment.
+ */
+internal fun parseMachineTime(value: String): Int? {
+    val text = value.trim()
+    if (text.isEmpty()) return null
+    if (text.contains(":")) {
+        val parts = text.split(":")
+        if (parts.size != 2) return null
+        val h = parts[0].toIntOrNull() ?: return null
+        val m = parts[1].toIntOrNull() ?: return null
+        if (h < 0 || m !in 0..59) return null
+        return h * 60 + m
+    }
+    return text.toIntOrNull()?.takeIf { it >= 0 }
+}
+
+internal fun formatMachineTime(minutes: Int): String = "%d:%02d".format(minutes / 60, minutes % 60)
+
+/**
+ * Machine total time, typed the way the machine shows it, with the converted
+ * minutes stated underneath so the arithmetic is visible rather than trusted.
+ */
+@Composable
+private fun MachineTimeField(value: String, onChange: (String) -> Unit) {
+    val minutes = parseMachineTime(value)
+    val unreadable = value.trim().isNotEmpty() && minutes == null
+    Column(Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            label = { Text("Machine Total Time") },
+            placeholder = { Text("7:27 or 447") },
+            isError = unreadable,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        when {
+            unreadable -> Text(
+                "Enter it as HR:MIN (7:27) or as minutes (447).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+            minutes != null -> Text(
+                if (value.contains(":")) "= $minutes min"
+                else "= $minutes min (${formatMachineTime(minutes)})",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
 
 /**
  * Access thrill / bruit — three states, matching the nullable column.
