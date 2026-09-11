@@ -172,3 +172,57 @@ def test_the_receipt_does_not_invalidate_the_emailed_link():
     src = inspect.getsource(signup.signup_complete)
     assert "svc.new_token()" not in src, (
         "completing payment must not mint a token over the live one")
+
+
+class TestStoreBilledCompletion:
+    """`/auth/signup/complete-mobile` — the path iOS and Android must use.
+
+    Apple and Google require digital subscriptions to be sold through their own
+    in-app purchase, and an IAP receipt has to attach to an account that does
+    not exist yet. So the web order (verify → pay → create) cannot run on a
+    phone, and the payment gate is deferred to the paywall.
+
+    The danger in deferring it is obvious, so the properties that make it safe
+    are pinned here rather than left to reasoning.
+    """
+
+    def test_email_verification_is_NOT_waived(self):
+        """The one gate mobile was missing entirely is the one kept.
+
+        `/auth/register` created a loginable account for any address anyone
+        typed. Waiving verification here would reintroduce exactly that.
+        """
+        import inspect
+
+        from app.api import signup
+
+        src = inspect.getsource(signup.signup_complete_mobile)
+        assert "pending.email_verified" in src
+        assert "409" in src or "status_code=409" in src
+
+    @pytest.mark.asyncio
+    async def test_materialise_refuses_an_unverified_pending_even_when_paid_is_waived(self):
+        """Waiving payment must not waive verification too.
+
+        Asserted behaviourally. The first version of this test compared source
+        positions and failed on correct code — `require_paid` appears in the
+        function SIGNATURE, before the docstring and before any check, so the
+        index comparison was measuring the wrong thing entirely.
+        """
+        from app.services import signup_service
+
+        unverified = _pending(email_verified_at=None, paid_at=datetime.now(timezone.utc))
+        assert unverified.email_verified is False
+
+        created = await signup_service.materialise(None, unverified, require_paid=False)
+        assert created is None, "an unverified address must never become an account"
+
+    def test_the_account_it_creates_is_unpaid_and_says_so(self):
+        import inspect
+
+        from app.api import signup
+
+        src = inspect.getsource(signup.signup_complete_mobile)
+        # An entitlement the client could misread is the whole risk here.
+        assert '"paid": False' in src
+        assert "require_paid=False" in src

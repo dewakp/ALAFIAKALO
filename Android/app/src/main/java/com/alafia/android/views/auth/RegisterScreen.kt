@@ -1,6 +1,9 @@
 package com.alafia.android.views.auth
 
 import android.widget.Toast
+import com.alafia.android.util.ErrorUtil
+import com.alafia.android.schemas.SignupStartRequest
+import com.alafia.android.schemas.SignupEmailBody
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +37,12 @@ fun RegisterScreen(
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    // Two-step signup: details, then confirm the email, THEN the account.
+    // Payment is not taken here — Play Billing needs an account to attach a
+    // purchase token to, so the paywall is the screen after this one.
+    var awaitingVerification by remember { mutableStateOf(false) }
+    var checking by remember { mutableStateOf(false) }
+    var notice by remember { mutableStateOf<String?>(null) }
     // Required by the backend: an account holder must be an adult by their own
     // jurisdiction's standard (app/core/age_policy.py). This screen previously
     // sent date_of_birth = null, which the age gate rejects with a 422.
@@ -55,6 +64,77 @@ fun RegisterScreen(
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.padding(vertical = 32.dp)
         )
+        // "We emailed you a link." The app cannot read the mailbox, so it ASKS
+        // the server whether the address is confirmed rather than guessing.
+        if (awaitingVerification) {
+            Text("Confirm your email", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "We sent a link to $email. Open it, then come back and tap Continue.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            notice?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall,
+                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    checking = true
+                    scope.launch {
+                        try {
+                            val api = ApiClient.getApiService()
+                            val status = api.signupStatus(email)
+                            if (status.emailVerified) {
+                                // Creates the account and signs in. It is
+                                // created UNPAID, so the paywall follows.
+                                api.signupCompleteMobile(SignupEmailBody(email))
+                                val login = loginWithCsrf(api, email, password)
+                                KeychainHelper.saveToken(context, login.access_token)
+                                val user = api.getCurrentUser()
+                                KeychainHelper.saveUserId(context, user.id.toString())
+                                KeychainHelper.saveUsername(context, user.email)
+                                onRegisterSuccess()
+                                navController.navigate("main") {
+                                    popUpTo("register") { inclusive = true }
+                                }
+                            } else {
+                                notice = "Not confirmed yet. Check your inbox, and your spam folder."
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_LONG).show()
+                        } finally {
+                            checking = false
+                        }
+                    }
+                },
+                enabled = !checking,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) {
+                if (checking) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("I've confirmed — continue")
+                }
+            }
+            TextButton(onClick = {
+                scope.launch {
+                    try {
+                        ApiClient.getApiService().signupResend(SignupEmailBody(email))
+                        notice = "Sent. It can take a minute to arrive."
+                    } catch (e: Exception) {
+                        Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }) { Text("Send the email again") }
+            TextButton(onClick = { awaitingVerification = false }) { Text("Change my details") }
+            return@Column
+        }
+
 
         OutlinedTextField(
             value = firstName,
@@ -148,10 +228,13 @@ fun RegisterScreen(
                     isLoading = true
                     scope.launch {
                         try {
-                            val apiService = ApiClient.getApiService()
-                            // Register creates the user
-                            apiService.register(
-                                RegisterRequest(
+                            // Two-step: this only sends the verification email.
+                            // The account does not exist until the address is
+                            // confirmed, which is the gate /auth/register never
+                            // had — it created a loginable account for anything
+                            // anyone typed, with no email to explain itself.
+                            ApiClient.getApiService().signupStart(
+                                SignupStartRequest(
                                     email = email,
                                     password = password,
                                     first_name = firstName.trim(),
@@ -161,24 +244,15 @@ fun RegisterScreen(
                                     // column and make the account unfindable by
                                     // the phone-login lookup.
                                     phone = phone.trim().ifBlank { null },
-                                    full_name = "${firstName.trim()} ${lastName.trim()}",
                                     date_of_birth = dateOfBirth,
-                                    gender = null
+                                    country = java.util.Locale.getDefault().country
+                                        .ifBlank { null },
                                 )
                             )
-                            // Login to get token
-                            val loginResponse = loginWithCsrf(apiService, email, password)
-                            KeychainHelper.saveToken(context, loginResponse.access_token)
-                            // Fetch user profile
-                            val user = apiService.getCurrentUser()
-                            KeychainHelper.saveUserId(context, user.id.toString())
-                            KeychainHelper.saveUsername(context, user.email)
-                            onRegisterSuccess()
-                            navController.navigate("main") {
-                                popUpTo("register") { inclusive = true }
-                            }
+                            awaitingVerification = true
+                            notice = null
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Registration failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_LONG).show()
                         } finally {
                             isLoading = false
                         }

@@ -54,6 +54,27 @@ interface ApiService {
     @DELETE("users/me/avatar")
     suspend fun deleteAvatar(): UserSchema
 
+    // ── Two-step signup ────────────────────────────────────────────────
+    @POST("auth/signup/start")
+    suspend fun signupStart(@Body body: SignupStartRequest): SignupAck
+
+    @GET("auth/signup/status")
+    suspend fun signupStatus(@Query("email") email: String): SignupStatusResponse
+
+    @POST("auth/signup/resend")
+    suspend fun signupResend(@Body body: SignupEmailBody): SignupAck
+
+    /**
+     * Create the account once the email is confirmed.
+     *
+     * Payment is NOT taken here: Google requires digital subscriptions to be
+     * sold through Play Billing, and a purchase token has to attach to an
+     * account that does not exist yet. The account is created unpaid and so
+     * unentitled — the paywall is the next screen.
+     */
+    @POST("auth/signup/complete-mobile")
+    suspend fun signupCompleteMobile(@Body body: SignupEmailBody): SignupCompleteResponse
+
     /**
      * The printable treatment report, as HTML.
      *

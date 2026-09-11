@@ -1857,6 +1857,56 @@ prints it through the route that checks the sharing grant.
 > cannot reach the thing it tests is not evidence", one layer in: a suite that
 > reaches a URL nobody serves is worse, because it is green.
 
+## 3au. Mobile cannot buy the way the web buys
+
+Apple and Google require digital subscriptions to be sold through their own
+in-app purchase, and an IAP receipt has to attach to an account — which, in a
+two-step signup, does not exist yet. So the web order (verify → pay → create)
+is **impossible on a phone**, and `TWO_STEP_SIGNUP_REQUIRED` could not be
+turned on without breaking mobile registration entirely.
+
+`POST /auth/signup/complete-mobile` is the store-billed completion. It waives
+the PAYMENT gate and never the email one:
+
+- **Verification is the gate mobile never had.** `/auth/register` created a
+  loginable account for any address anyone typed — which is how a real person
+  ended up holding an account they could not use, with no email to explain it.
+  `complete-mobile` answers **409** until the address is confirmed.
+- **The account it creates is unpaid, therefore unentitled.** Verified, not
+  assumed: `entitled: false`, zero subscription rows, and `SUBSCRIPTION_REQUIRED`
+  makes every gated route answer 402. The purchase still happens — at the
+  paywall, one screen later. Deferring payment is safe only because the paywall
+  already works (§3ah).
+- `materialise(require_paid=False)` checks verification **independently** of
+  the payment flag, so waiving one cannot waive both. Pinned behaviourally.
+
+> **A source-order test can fail on correct code.** The first version of that
+> check compared `src.index("pending.email_verified")` against
+> `src.index("require_paid")` — and `require_paid` appears in the function
+> SIGNATURE, before the docstring and before any check, so it measured nothing
+> and failed on code that was right. Call the function.
+
+### The store takes a cut, so the phone price carries it
+
+Web $12/mo, Apple and Google $14/mo — the differential is the commission, and
+it is deliberate rather than drift.
+
+> **The annual Apple rail reused `SUBSCRIPTION_PRICE_WEB_ANNUAL_USD`.** So the
+> differential silently vanished on the plan where it is worth the most, and
+> the commission came out of margin instead. `SUBSCRIPTION_PRICE_IOS_ANNUAL_USD`
+> is now its own figure (149, the same 14/12 ratio).
+>
+> ⚠️ **The catalog value is what the app SHOWS; App Store Connect holds what it
+> CHARGES.** They must be set to agree, or the paywall quotes a price the
+> purchase sheet then contradicts.
+
+### Version numbers cannot go backwards
+
+Build 6 of 1.5 was submitted, so `1.5(2)` was not uploadable — App Store Connect
+refuses a build number that is not higher than one already accepted for the same
+marketing version. Check `CURRENT_PROJECT_VERSION` against what has actually
+been submitted before bumping; the next build of 1.5 is **7**.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

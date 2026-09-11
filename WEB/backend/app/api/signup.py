@@ -78,6 +78,12 @@ class CheckoutStart(BaseModel):
     interval: str = Field(default="month", pattern="^(month|year)$")
 
 
+class CompleteMobileSignup(BaseModel):
+    """Store-billed completion. No provider reference: there is no payment yet."""
+
+    email: EmailStr
+
+
 class CompleteSignup(BaseModel):
     email: EmailStr
     provider: str = Field(default="stripe", pattern="^stripe$")
@@ -312,6 +318,59 @@ async def signup_complete(
         "message": "Account created. You can now sign in.",
         "paid": True,
         "email_verified": True,
+        "user_id": user.id,
+        "email": user.email,
+    }
+
+
+@router.post("/complete-mobile")
+@limiter.limit(settings.RATE_LIMIT_AUTH)
+async def signup_complete_mobile(
+    request: Request,
+    body: CompleteMobileSignup,
+    db: AsyncSession = Depends(get_db),
+):
+    """Finish a signup whose payment is billed by the app store.
+
+    iOS and Android CANNOT use the Stripe leg. Apple and Google require digital
+    subscriptions to be sold through their own in-app purchase, and an IAP
+    receipt has to be attached to an account — which does not exist yet. So the
+    order that works on web (verify, pay, create) is impossible on a phone.
+
+    What this path does NOT do is grant entitlement. The account is created
+    **verified and unpaid**, and every gated route still answers 402 until a
+    real subscription exists — `SUBSCRIPTION_REQUIRED` is on in production and
+    both clients gate the whole app on `GET /subscription/status` (§3ah). So
+    the purchase still has to happen; it happens at the paywall, one screen
+    later, instead of before the account exists.
+
+    The gate this DOES enforce is the one mobile was missing entirely: the
+    address is verified before an account is made. `/auth/register` created a
+    loginable account for any address anyone typed, which is how a real person
+    ended up with an account they could not get into and no email to tell them.
+
+    It is deliberately NOT a way to skip payment on web. Creating an account
+    here buys nothing a paywalled 402 does not already refuse, and the flow is
+    rate limited like every other auth route.
+    """
+    pending = await svc.get(db, body.email)
+    if pending is None or pending.is_expired():
+        raise HTTPException(status_code=400, detail="No signup in progress for that address")
+
+    # Email verification is NOT waived — it is the whole point of this path.
+    if not pending.email_verified:
+        raise HTTPException(
+            status_code=409,
+            detail="Confirm your email address first — check your inbox for the link.",
+        )
+
+    user = await svc.materialise(db, pending, require_paid=False)
+    await db.commit()
+    return {
+        "message": "Account created. Sign in and choose a plan to start.",
+        "email_verified": True,
+        # Stated plainly so a client cannot mistake this for an entitlement.
+        "paid": False,
         "user_id": user.id,
         "email": user.email,
     }

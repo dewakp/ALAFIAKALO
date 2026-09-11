@@ -318,3 +318,97 @@ struct PasswordResetResponse: Decodable {
     // setting — it is delivered only by email — and decoding a field that must
     // never exist invites re-adding the server side to "make the client work".
 }
+
+// MARK: - Two-step signup
+
+struct SignupStartRequest: Encodable {
+    let email: String
+    let password: String
+    let firstName: String
+    let lastName: String
+    let dateOfBirth: String
+    let phone: String?
+    let country: String?
+
+    enum CodingKeys: String, CodingKey {
+        case email, password, country, phone
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case dateOfBirth = "date_of_birth"
+    }
+}
+
+struct SignupStatus: Decodable {
+    let email: String
+    let emailVerified: Bool
+    let paid: Bool
+    let expired: Bool
+    let next: String
+
+    enum CodingKeys: String, CodingKey {
+        case email, paid, expired, next
+        case emailVerified = "email_verified"
+    }
+}
+
+struct SignupEmailBody: Encodable { let email: String }
+
+/// The signup endpoints answer with a message object whose shape is not worth
+/// modelling — `/start` deliberately says the same thing whether or not the
+/// address is in use, so there is nothing to read back.
+struct SignupAck: Decodable {
+    let message: String?
+}
+
+struct SignupCompleteResponse: Decodable {
+    let message: String
+    let userId: Int?
+    let email: String?
+
+    enum CodingKeys: String, CodingKey {
+        case message, email
+        case userId = "user_id"
+    }
+}
+
+extension AuthManager {
+    /// Begin a signup. The account does NOT exist yet — this only sends the
+    /// verification email.
+    func signupStart(email: String, password: String, firstName: String,
+                     lastName: String, dateOfBirth: String, phone: String?) async throws {
+        let cleaned = (phone ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = SignupStartRequest(
+            email: email, password: password,
+            firstName: firstName.trimmingCharacters(in: .whitespacesAndNewlines),
+            lastName: lastName.trimmingCharacters(in: .whitespacesAndNewlines),
+            dateOfBirth: dateOfBirth,
+            phone: cleaned.isEmpty ? nil : cleaned,
+            country: Locale.current.region?.identifier)
+        // 202: "if that address can receive mail, a link has been sent" — the
+        // same answer whether or not the address is already in use, so signup
+        // cannot become an oracle for which emails have accounts.
+        let _: SignupAck = try await APIClient.shared.post("/auth/signup/start", body: body)
+    }
+
+    /// Where the signup has got to. 404 means no signup in progress.
+    func signupStatus(email: String) async throws -> SignupStatus {
+        try await APIClient.shared.get("/auth/signup/status?email=\(email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email)")
+    }
+
+    func signupResend(email: String) async throws {
+        let _: SignupAck = try await APIClient.shared.post(
+            "/auth/signup/resend", body: SignupEmailBody(email: email))
+    }
+
+    /// Create the account once the email is verified.
+    ///
+    /// Payment is NOT taken here: Apple requires digital subscriptions to be
+    /// sold through in-app purchase, and an IAP receipt has to attach to an
+    /// account that does not exist yet. The account is created unpaid and
+    /// therefore unentitled — the paywall is the next screen.
+    func signupCompleteMobile(email: String, password: String) async throws {
+        let _: SignupCompleteResponse = try await APIClient.shared.post(
+            "/auth/signup/complete-mobile", body: SignupEmailBody(email: email))
+        await login(email: email, password: password)
+    }
+}

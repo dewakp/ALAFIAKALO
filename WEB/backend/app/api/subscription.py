@@ -73,11 +73,19 @@ async def get_plans():
                   store_product_id=settings.APPLE_PRODUCT_ID),
     ]
     # Annual: web (Stripe) + iOS (App Store). Google Play annual not offered yet.
-    # The App Store price shown on-device comes from StoreKit; this catalog value is a
-    # fallback for display only.
+    #
+    # The App Store price shown on-device comes from StoreKit; this catalog
+    # value is the fallback shown before StoreKit answers. It must therefore
+    # AGREE with App Store Connect, or the paywall quotes a price the purchase
+    # sheet then contradicts.
+    #
+    # It is its own setting, not the web one. Apple take their commission off
+    # the top — the reason monthly is $14 on a phone and $12 on the web — and
+    # reusing the web constant here made that differential vanish on the plan
+    # where it is worth the most.
     annual_rails = [
         RailPrice(provider="stripe", price_usd=settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD),
-        RailPrice(provider="apple", price_usd=settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD,
+        RailPrice(provider="apple", price_usd=settings.SUBSCRIPTION_PRICE_IOS_ANNUAL_USD,
                   store_product_id=settings.APPLE_PRODUCT_ID_ANNUAL),
     ]
     return PlansResponse(

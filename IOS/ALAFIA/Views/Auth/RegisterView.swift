@@ -6,6 +6,14 @@ struct RegisterView: View {
     @State private var firstName = ""
     @State private var lastName = ""
     @State private var phone = ""
+    /// Two-step signup: details are taken, the verification email goes out, and
+    /// the account is created only once the address is confirmed. Payment is
+    /// NOT taken here — Apple requires in-app purchase, and an IAP receipt has
+    /// to attach to an account that does not exist yet, so the paywall is the
+    /// screen after this one.
+    @State private var awaitingVerification = false
+    @State private var checking = false
+    @State private var notice: String?
     @State private var email = ""
     @State private var password = ""
     // Defaults to 30 years ago rather than today, so the wheel does not open on
@@ -15,6 +23,73 @@ struct RegisterView: View {
     @State private var isLoading = false
 
     /// The API parses `YYYY-MM-DD`; a locale-formatted date would not parse.
+    /// "We emailed you a link."
+    ///
+    /// The app does not read the mailbox, so it ASKS the server whether the
+    /// address has been confirmed yet rather than guessing. Until it has, the
+    /// account does not exist — which is the gate `/auth/register` never had,
+    /// and why a real person ended up holding an account they could not use
+    /// with no email to explain it.
+    private var verificationStep: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "envelope.badge")
+                .font(.system(size: 44))
+                .foregroundStyle(.green)
+
+            Text("Confirm your email")
+                .font(.title3).bold()
+
+            Text("We sent a link to \(email). Open it, then come back and tap Continue.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            if let notice {
+                Text(notice)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            LKButton(title: "I've confirmed — continue", isLoading: checking) {
+                checking = true
+                Task {
+                    do {
+                        let status = try await authManager.signupStatus(email: email)
+                        if status.emailVerified {
+                            // Creates the account and signs in. It is created
+                            // UNPAID, so the paywall is the next screen.
+                            try await authManager.signupCompleteMobile(
+                                email: email, password: password)
+                        } else {
+                            notice = "Not confirmed yet. Check your inbox, and your spam folder."
+                        }
+                    } catch {
+                        authManager.error = error.localizedDescription
+                    }
+                    checking = false
+                }
+            }
+
+            Button("Send the email again") {
+                Task {
+                    do {
+                        try await authManager.signupResend(email: email)
+                        notice = "Sent. It can take a minute to arrive."
+                    } catch {
+                        authManager.error = error.localizedDescription
+                    }
+                }
+            }
+            .font(.subheadline)
+
+            Button("Change my details") { awaitingVerification = false }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 12)
+    }
+
     private static let isoDate: DateFormatter = {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .gregorian)
@@ -52,6 +127,9 @@ struct RegisterView: View {
                         .cornerRadius(8)
                 }
                 
+                if awaitingVerification {
+                    verificationStep
+                } else {
                 VStack(spacing: 16) {
                     LKTextField(title: "First Name", text: $firstName)
                         .textContentType(.givenName)
@@ -78,7 +156,7 @@ struct RegisterView: View {
                     LKTextField(title: "Password", text: $password, isSecure: true)
                         .textContentType(.newPassword)
                     
-                    LKButton(title: "Create Account", isLoading: isLoading) {
+                    LKButton(title: "Continue", isLoading: isLoading) {
                         // Checked here so the message names WHICH box is wrong.
                         // The API enforces the same rule regardless — a client
                         // check is a kindness, never the enforcement.
@@ -94,16 +172,24 @@ struct RegisterView: View {
                         }
                         isLoading = true
                         Task {
-                            await authManager.register(
-                                email: email, password: password,
-                                firstName: first, lastName: last,
-                                dateOfBirth: Self.isoDate.string(from: dateOfBirth),
-                                phone: phone)
+                            do {
+                                try await authManager.signupStart(
+                                    email: email, password: password,
+                                    firstName: first, lastName: last,
+                                    dateOfBirth: Self.isoDate.string(from: dateOfBirth),
+                                    phone: phone)
+                                awaitingVerification = true
+                                notice = nil
+                            } catch {
+                                authManager.error = error.localizedDescription
+                            }
                             isLoading = false
                         }
                     }
                 }
                 
+                }
+
                 Button {
                     dismiss()
                 } label: {

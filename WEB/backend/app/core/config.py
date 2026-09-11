@@ -174,6 +174,19 @@ class Settings(BaseSettings):
     SUBSCRIPTION_PRICE_IOS_USD: float = 14.0        # Apple StoreKit (monthly)
     # Annual web plan (Stripe). ~$10.75/mo vs $12/mo monthly.
     SUBSCRIPTION_PRICE_WEB_ANNUAL_USD: float = 129.0
+    # Annual on the App Store. A SEPARATE figure, not the web one.
+    #
+    # A store-billed subscription is sold by Apple or Google, who take their
+    # commission off the top — which is exactly why monthly is $14 on a phone
+    # and $12 on the web. The annual Apple rail used to reuse the WEB constant,
+    # so that differential silently vanished on the one plan where it is worth
+    # the most and the commission came out of margin instead.
+    #
+    # 149 keeps the same ratio as monthly (14/12 x 129 = 150.5). The figure
+    # CHARGED is whatever App Store Connect holds — this is what the app shows
+    # when StoreKit has not answered, so the two must be set to agree or the
+    # paywall quotes a price the purchase sheet then contradicts.
+    SUBSCRIPTION_PRICE_IOS_ANNUAL_USD: float = 149.0
     SUBSCRIPTION_TRIAL_DAYS: int = 0
     # Grace window after a period ends before entitlement is revoked (covers
     # webhook lag / renewal retries).

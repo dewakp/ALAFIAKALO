@@ -871,3 +871,38 @@ data class MedicationIntakeProposal(
     val hasDose: Boolean get() = doseAmount != null
     val blocking: List<MedicationDoseFinding> get() = findings.filter { it.level == "error" }
 }
+
+// ── Two-step signup ────────────────────────────────────────────────────────
+//
+// The account does not exist until the address is confirmed. `/auth/register`
+// created a loginable account for anything anyone typed, which is how a real
+// person ended up holding an account they could not use, with no email to
+// explain why.
+
+data class SignupStartRequest(
+    val email: String,
+    val password: String,
+    val first_name: String,
+    val last_name: String,
+    val date_of_birth: String,
+    val phone: String? = null,
+    val country: String? = null,
+)
+
+data class SignupAck(val message: String? = null)
+
+data class SignupStatusResponse(
+    val email: String,
+    @SerializedName("email_verified") val emailVerified: Boolean = false,
+    val paid: Boolean = false,
+    val expired: Boolean = false,
+    val next: String = "",
+)
+
+data class SignupEmailBody(val email: String)
+
+data class SignupCompleteResponse(
+    val message: String? = null,
+    @SerializedName("user_id") val userId: Int? = null,
+    val email: String? = null,
+)

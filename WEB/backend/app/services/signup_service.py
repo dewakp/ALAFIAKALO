@@ -172,13 +172,29 @@ async def mark_paid(
     return pending
 
 
-async def materialise(db: AsyncSession, pending: PendingRegistration) -> User | None:
+async def materialise(db: AsyncSession, pending: PendingRegistration,
+                      *, require_paid: bool = True) -> User | None:
     """Create the real account. The ONLY place a signup becomes a user.
 
-    Refuses unless both gates are passed. Returns None if not ready — callers
+    Refuses unless the gates are passed. Returns None if not ready — callers
     must treat that as "not yet", never as an error to work around.
+
+    `require_paid=False` is for STORE-BILLED platforms only. Apple and Google
+    require digital subscriptions to be sold through their own in-app purchase,
+    and an IAP receipt must attach to an account that does not exist yet — so
+    the web order (verify, pay, create) cannot run on a phone.
+
+    It waives the PAYMENT gate and never the email one. The account is created
+    unpaid, and unpaid means unentitled: `SUBSCRIPTION_REQUIRED` makes every
+    gated route answer 402 and both mobile clients gate the whole app on
+    `/subscription/status`. The purchase still happens — at the paywall, one
+    screen later.
     """
-    if not pending.ready_to_create:
+    if not pending.email_verified:
+        logger.warning(
+            "Refusing to create account for %s — email not verified", pending.email)
+        return None
+    if require_paid and not pending.ready_to_create:
         logger.warning(
             "Refusing to create account for %s (verified=%s paid=%s)",
             pending.email, pending.email_verified, pending.paid,
