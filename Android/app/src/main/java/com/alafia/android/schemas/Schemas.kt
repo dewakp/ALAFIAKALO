@@ -229,7 +229,10 @@ data class NutritionLogRequest(
     @SerializedName("post_meal_weight_kg") val postMealWeightKg: Float? = null,
     @SerializedName("recipe_url") val recipeUrl: String? = null,
     /** API path of the photo this meal was estimated from, so history can show it. */
-    @SerializedName("food_image_uris") val foodImageUris: String? = null
+    @SerializedName("food_image_uris") val foodImageUris: String? = null,
+    // Small data: URI kept WITH the meal so the list shows what each entry was
+    // without a request per row.
+    @SerializedName("food_thumbnail") val foodThumbnail: String? = null
 )
 
 // Medications Schemas

@@ -20,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import com.alafia.android.views.components.rememberCameraCapture
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -528,8 +529,26 @@ private fun NutritionLogCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        // The picture, on the row. Costs no request — it is
+                        // already on the log.
+                        val thumb = remember(log.foodThumbnail) { decodeThumbnail(log.foodThumbnail) }
+                        if (thumb != null) {
+                            Image(
+                                bitmap = thumb.asImageBitmap(),
+                                contentDescription = "Photo of this meal",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .then(if (!log.foodImageUris.isNullOrBlank())
+                                              Modifier.clickable { showPhoto = true } else Modifier),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                        }
                         Text(log.foodName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        if (!log.foodImageUris.isNullOrBlank()) {
+                        // The icon stays for meals logged before thumbnails
+                        // existed — dropping it would hide their photos.
+                        if (!log.foodImageUris.isNullOrBlank() && thumb == null) {
                             Spacer(Modifier.width(6.dp))
                             Icon(Icons.Default.Photo, contentDescription = "See the photo of this meal",
                                 modifier = Modifier.size(14.dp).clickable { showPhoto = true },
@@ -1170,7 +1189,12 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                     postMealWeightKg = postMealWeight.toFloatOrNull(),
                                     recipeUrl = recipeUrl.ifBlank { null },
                                     // Keep the photo with the meal it produced.
-                                    foodImageUris = visionImageUrl
+                                    foodImageUris = visionImageUrl,
+                                    // …and a thumbnail ON the row, so the list
+                                    // shows the meal without fetching the full
+                                    // photo per entry. Saved whether or not the
+                                    // vision analysis ran.
+                                    foodThumbnail = mealThumbnail(selectedImages.firstOrNull())
                                 )
                             )
                             onSaved(); onDismiss()

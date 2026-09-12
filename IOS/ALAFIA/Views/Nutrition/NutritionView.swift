@@ -551,8 +551,24 @@ struct NutritionRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
+                // The picture, on the row. Costs no request — it is already
+                // on the log.
+                if let thumb = MealThumbnail.decode(log.foodThumbnail) {
+                    Image(uiImage: thumb)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 28, height: 28)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .onTapGesture {
+                            if let uri = log.foodImageUris, !uri.isEmpty { showPhoto = true }
+                        }
+                        .accessibilityLabel("Photo of this meal")
+                }
                 Text(log.foodName).font(.headline)
-                if let uri = log.foodImageUris, !uri.isEmpty {
+                // The icon stays for meals logged before thumbnails existed —
+                // dropping it would hide their photos.
+                if let uri = log.foodImageUris, !uri.isEmpty,
+                   MealThumbnail.decode(log.foodThumbnail) == nil {
                     Button { showPhoto = true } label: {
                         Image(systemName: "photo").font(.system(size: 11))
                             .foregroundStyle(.secondary)
@@ -625,6 +641,47 @@ struct NutritionRow: View {
 /// Fetched when opened rather than with the list: the bytes come back base64 in
 /// the row, so loading every meal's photo up front would make the history call
 /// enormous. A failure says so — a blank sheet would read as "no photo taken",
+
+/// A small thumbnail of a meal photo, kept with the meal.
+///
+/// The full photo goes to media storage through the vision call and is only
+/// written when that analysis runs. This is saved on the log row itself, so a
+/// list of meals shows what each one was with no request per row — the same
+/// `data:` URI the web and Android clients store, so a meal logged on any of
+/// them renders on all three.
+enum MealThumbnail {
+    private static let maxEdge: CGFloat = 96
+    private static let quality: CGFloat = 0.7
+
+    /// `data:image/jpeg;base64,…`, or nil when it cannot be produced.
+    ///
+    /// nil rather than throwing: a meal must stay savable when its picture is
+    /// unreadable. The thumbnail is a nicety; the meal is the record.
+    static func make(from image: UIImage?) -> String? {
+        guard let image else { return nil }
+        let longest = max(image.size.width, image.size.height)
+        guard longest > 0 else { return nil }
+
+        let scale = min(1, maxEdge / longest)
+        let size = CGSize(width: max(1, image.size.width * scale),
+                          height: max(1, image.size.height * scale))
+
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let small = renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+        guard let data = small.jpegData(compressionQuality: quality) else { return nil }
+        return "data:image/jpeg;base64,\(data.base64EncodedString())"
+    }
+
+    /// Decode a stored thumbnail for display, or nil.
+    static func decode(_ dataUri: String?) -> UIImage? {
+        guard let s = dataUri, s.hasPrefix("data:image"),
+              let comma = s.firstIndex(of: ","),
+              let data = Data(base64Encoded: String(s[s.index(after: comma)...]))
+        else { return nil }
+        return UIImage(data: data)
+    }
+}
+
 /// which is the empty-state lie this codebase keeps re-learning.
 struct MealPhotoView: View {
     let mediaPath: String
@@ -1230,6 +1287,10 @@ struct AddNutritionSheet: View {
         log.postMealWeightKg = Double(postMealWeightKg)
         log.recipeUrl = recipeUrl.isEmpty ? nil : recipeUrl
         log.foodImageUris = visionImageUrl
+        // …and a thumbnail ON the row, so the list shows the meal without
+        // fetching the full photo per entry. Saved whether or not the vision
+        // analysis ran.
+        log.foodThumbnail = MealThumbnail.make(from: selectedImages.first)
         Task {
             if await vm.addLog(log) { dismiss() }
             saving = false
