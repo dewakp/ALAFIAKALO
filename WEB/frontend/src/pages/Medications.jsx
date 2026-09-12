@@ -49,6 +49,23 @@ const EMPTY_RX = {
   start_date: todayStr(), end_date: '', prescribing_doctor: '', reason: '', is_active: true,
 };
 
+// Where a row's evidence came from. Deliberately says what the RECORD is, never
+// who administered the drug: on home haemodialysis the patient gives these to
+// themselves, and nothing in the schema distinguishes home from in-centre.
+const SOURCE_LABEL = {
+  prescribed: 'Prescribed',
+  imported: 'From your clinic record',
+  logged: 'You logged it',
+  administered: 'Given at a treatment',
+};
+
+// The spellings this row absorbed, minus the canonical name it is shown under.
+function otherNames(row) {
+  return (row.written_as || []).filter(
+    (n) => n.toLowerCase() !== (row.name || '').toLowerCase(),
+  );
+}
+
 export default function Medications() {
   const [meds, setMeds] = useState([]);          // prescription catalog
   const [doseFindings, setDoseFindings] = useState(null);  // why the guard refused
@@ -173,22 +190,54 @@ export default function Medications() {
   const loadDoseLogs = useCallback(async () => {
     try { const { data } = await api.get('/medications/dose-logs'); setDoseLogs(data); } catch { setDoseLogs([]); }
   }, []);
-  // The THIRD source (canon 3aa): drugs the unit gave during dialysis. It has
-  // been in the database for a decade and no patient-facing screen showed it,
-  // so a patient who had been given Calcium Carbonate at the unit saw no record
-  // of it here and logged it again — a duplicate dose created by the app not
-  // showing what it already knew. A failure must not fall through to an empty
-  // list that reads as "nothing was given".
+  // The THIRD source (canon 3aa): drugs given DURING dialysis, off the
+  // flowsheet. It has been in the database for a decade and no patient-facing
+  // screen showed it, so a patient given Calcium Carbonate during a run saw no
+  // record of it here and logged it again — a duplicate dose created by the app
+  // not showing what it already knew. A failure must not fall through to an
+  // empty list that reads as "nothing was given".
+  //
+  // The copy below says "during dialysis", never "your unit": on HHD the
+  // patient runs at home and self-administers, so there is no unit to have
+  // given them anything. Nothing in the schema distinguishes home from
+  // in-centre — TherapyType has no HHD value and `modality` is PD-only — so
+  // the wording has to be true for both rather than branch on a fact the app
+  // does not hold.
   const [administered, setAdministered] = useState([]);
   const [administeredError, setAdministeredError] = useState(false);
+  // ONE record, not three lists. `/medications/unified` folds prescriptions,
+  // portal imports, dose logs and the flowsheet into a row per drug, with the
+  // brand/generic collapse ("Venofer" = "Iron sucrose") the raw sources cannot
+  // do for themselves. Rendering the sources separately is what made a patient
+  // on one iron read their chart as three drugs.
   const loadAdministered = useCallback(async () => {
     try {
-      const { data } = await api.get('/medications/administered');
+      const { data } = await api.get('/medications/unified');
       setAdministered(data); setAdministeredError(false);
     } catch { setAdministeredError(true); }
   }, []);
-  useEffect(() => { loadMeds(); loadDoseLogs(); loadLogged(); loadAdministered(); },
-    [loadMeds, loadDoseLogs, loadLogged, loadAdministered]);
+  // The day list and the calendar dots must see the flowsheet too. Reading
+  // dose logs alone rendered a treatment day as "No intake logged for this
+  // date" — and a patient told their record for that day is empty logs the
+  // dose again. That empty state is where the duplicate is born.
+  const [dayRecord, setDayRecord] = useState([]);
+  const loadDayRecord = useCallback(async (day) => {
+    if (!day) return;
+    try {
+      const { data } = await api.get('/medications/day-record', { params: { day } });
+      setDayRecord(data);
+    } catch { setDayRecord([]); }
+  }, []);
+  const [givenDays, setGivenDays] = useState([]);
+  const loadGivenDays = useCallback(async () => {
+    try {
+      const { data } = await api.get('/medications/administration-days');
+      setGivenDays(data);
+    } catch { setGivenDays([]); }
+  }, []);
+  useEffect(() => { loadMeds(); loadDoseLogs(); loadLogged(); loadAdministered(); loadGivenDays(); },
+    [loadMeds, loadDoseLogs, loadLogged, loadAdministered, loadGivenDays]);
+  useEffect(() => { loadDayRecord(selectedDate); }, [loadDayRecord, selectedDate]);
   useEffect(() => { if (meds.length === 0 || onlyStaleMeds) setShowRx(true); },
     [meds.length, onlyStaleMeds]);
 
@@ -305,12 +354,34 @@ export default function Medications() {
 
   const doseTime = (d) => (d.log_time ? String(d.log_time).slice(0, 5) : timeFromNotes(d.notes));
 
-  const datesWithEntries = useMemo(() => new Set(doseLogs.map((d) => d.log_date)), [doseLogs]);
-  const dayDoses = useMemo(
+  // A dot means "something was given that day", from ANY source — a calendar
+  // whose whole job is to say which days have something on them must not mark
+  // a treatment day empty.
+  const datesWithEntries = useMemo(
+    () => new Set([...doseLogs.map((d) => d.log_date), ...givenDays]),
+    [doseLogs, givenDays]);
+
+  // Dose logs keep their own rows: they carry the vitals and notes the day
+  // card renders, which the merged record does not model. What the merge adds
+  // is the rows NO dose log backs — drugs recorded only on the flowsheet,
+  // which is exactly what was invisible here.
+  const loggedForDay = useMemo(
     () => doseLogs
       .filter((d) => d.log_date === selectedDate)
       .sort((a, b) => (doseTime(a) < doseTime(b) ? -1 : 1)),
     [doseLogs, selectedDate]);
+  const flowsheetOnly = useMemo(
+    () => dayRecord.filter((r) => r.dose_log_id == null),
+    [dayRecord]);
+  // Dose logs the flowsheet ALSO records. Not a duplicate to remove — one
+  // administration with two records — but the patient should see it is on
+  // their chart, not only in what they typed.
+  const alsoOnFlowsheet = useMemo(
+    () => new Set(dayRecord
+      .filter((r) => r.dose_log_id != null && (r.sources || []).includes('administered'))
+      .map((r) => r.dose_log_id)),
+    [dayRecord]);
+  const dayDoses = loggedForDay;
 
   const cells = useMemo(() => {
     const y = viewMonth.getFullYear(), m = viewMonth.getMonth();
@@ -542,21 +613,21 @@ export default function Medications() {
             </p>
           </div>
 
-          {/* Given at the unit — already on the record, so do not log again. */}
+          {/* The whole medication record, harmonised — every source, one row per drug. */}
           {(administered.length > 0 || administeredError) && (
             <div className="card">
-              <h3 style={{ marginTop: 0 }}>Given at dialysis</h3>
+              <h3 style={{ marginTop: 0 }}>Your medication record</h3>
               {administeredError ? (
                 // An error is not an empty state (canon 3aa). Saying nothing
-                // here would tell a patient the unit gave them nothing.
+                // here would tell a patient no drug was given.
                 <p style={{ color: 'var(--color-danger)' }}>
-                  We could not load what the unit gave you. This is a display
+                  We could not load your medication record. This is a display
                   problem, not a record of nothing — please try again.
                 </p>
               ) : (
                 <>
                   <p style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: 0 }}>
-                    Recorded by your unit on the treatment flowsheet.{' '}
+                    Everything on file, from every source, merged into one list.{' '}
                     <strong>Already on your record — you do not need to log these.</strong>
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -567,14 +638,33 @@ export default function Medications() {
                         background: 'var(--bg-secondary, #f8fafc)',
                       }}>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 600 }}>{a.name}</div>
-                          {a.detail && (
-                            <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)' }}>{a.detail}</div>
+                          <div style={{ fontWeight: 600 }}>
+                            {a.name}
+                            {a.dose && <span style={{ fontWeight: 400 }}> · {a.dose}</span>}
+                          </div>
+                          {/* Merging is shown, not hidden: if this row absorbed
+                              "Venofer" and "venofer" under "Iron sucrose", the
+                              patient can see why their two entries became one. */}
+                          {otherNames(a).length > 0 && (
+                            <div style={{ fontSize: '.72rem', color: 'var(--text-secondary)' }}>
+                              also recorded as {otherNames(a).join(', ')}
+                            </div>
                           )}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                            {(a.sources || []).map((src) => (
+                              <span key={src} style={{
+                                fontSize: '.68rem', padding: '1px 6px', borderRadius: 999,
+                                border: '1px solid var(--border,#e5e7eb)',
+                                color: 'var(--text-secondary)',
+                              }}>{SOURCE_LABEL[src] || src}</span>
+                            ))}
+                          </div>
                         </div>
                         <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          {a.last && <>last {a.last}<br /></>}
-                          {a.doses}× in 90 days
+                          {a.last ? <>last {a.last}<br /></> : <>not yet taken<br /></>}
+                          {/* Days, never a sum of records: a dose written on the
+                              flowsheet AND logged by hand is one day, not two. */}
+                          {a.days > 0 && `${a.days} ${a.days === 1 ? 'day' : 'days'} given`}
                         </div>
                       </div>
                     ))}
@@ -586,10 +676,30 @@ export default function Medications() {
 
           <div className="card">
             <h3 style={{ marginTop: 0 }}>Medications for {fmtLong(selectedDate)}</h3>
-            {dayDoses.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)' }}>No intake logged for this date.</p>
+            {dayDoses.length === 0 && flowsheetOnly.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)' }}>Nothing recorded for this date.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Recorded at a treatment and backed by no dose log. Shown so
+                    the patient does not log it a second time — and not
+                    deletable, because a flowsheet is corrected on the
+                    flowsheet, not here. */}
+                {flowsheetOnly.map((r, i) => (
+                  <div key={`fs-${i}`} className="card"
+                    style={{ margin: 0, border: '1px solid var(--border,#e5e7eb)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <strong>{r.name}{r.dose ? ` – ${r.dose}` : ''}</strong>
+                      <span style={{
+                        fontSize: '.68rem', padding: '1px 6px', borderRadius: 999,
+                        border: '1px solid var(--border,#e5e7eb)',
+                        color: 'var(--text-secondary)', whiteSpace: 'nowrap',
+                      }}>On your flowsheet</span>
+                    </div>
+                    <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+                      Given at your treatment — already on your record, no need to log it.
+                    </div>
+                  </div>
+                ))}
                 {dayDoses.map((d) => {
                   const note = cleanNotes(d.notes);
                   const t = doseTime(d);
@@ -597,7 +707,16 @@ export default function Medications() {
                     <div key={d.id} className="card" style={{ margin: 0, border: '1px solid var(--border,#e5e7eb)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <strong>{t ? `${t} – ` : ''}{d.medication_name}</strong>
-                        <button className="btn btn-danger btn-sm" onClick={() => deleteDose(d.id)} title="Delete"><Trash2 size={14} /></button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {alsoOnFlowsheet.has(d.id) && (
+                            <span style={{
+                              fontSize: '.68rem', padding: '1px 6px', borderRadius: 999,
+                              border: '1px solid var(--border,#e5e7eb)',
+                              color: 'var(--text-secondary)', whiteSpace: 'nowrap',
+                            }}>Also on your flowsheet</span>
+                          )}
+                          <button className="btn btn-danger btn-sm" onClick={() => deleteDose(d.id)} title="Delete"><Trash2 size={14} /></button>
+                        </div>
                       </div>
                       <div style={{ fontSize: '.85rem', color: 'var(--text-secondary)' }}>{d.dose_amount} {d.dose_unit}</div>
                       {(d.pre_systolic_bp || d.pre_heart_rate || d.pre_temperature_c != null) && (

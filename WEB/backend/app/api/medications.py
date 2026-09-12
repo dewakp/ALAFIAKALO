@@ -478,19 +478,24 @@ async def medications_given_at_dialysis(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Drugs the UNIT gave during dialysis, read off the flowsheet.
+    """Drugs given DURING dialysis, read off the flowsheet.
 
     The third medication source (§3aa). `clinical_sources.medications_administered`
     has existed for a while and **nothing exposed it to a patient-facing
-    screen**, so a drug the unit had already recorded was invisible on the
+    screen**, so a drug already recorded on the flowsheet was invisible on the
     Medications page — and the patient, seeing no record of it, logged it
     again. That is a duplicate dose in a clinical record, created by the app
     failing to show what it already knew.
 
-    Read-only on purpose. These are administrations performed by the unit and
-    written on the session flowsheet; the patient neither takes nor confirms
-    them at home, so offering an edit here would invite a correction that the
-    flowsheet would then contradict.
+    Not "what the unit gave you": on HHD the patient runs at home and gives
+    these to themselves, and nothing in the schema distinguishes home from
+    in-centre (TherapyType has no HHD value), so neither this docstring nor the
+    copy on the screen may assert a setting the record does not state.
+
+    Read-only on purpose — because the flowsheet is the source of record for a
+    session, not because the patient is absent from it. An edit here would
+    invite a correction the flowsheet would then contradict; a home patient who
+    needs one changes the flowsheet.
     """
     from datetime import timedelta
 
@@ -515,3 +520,105 @@ async def medications_given_at_dialysis(
         }
         for r in rows
     ]
+
+
+@router.get("/unified")
+async def unified_medication_record(
+    days: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """THE medication list — every source harmonised, one row per drug.
+
+    The Medications screen used to render three lists side by side (a
+    prescription list, a dose-log list, and a "given at dialysis" card) and
+    left the patient to work out that the Venofer in one and the Iron sucrose
+    in another were the same drug. They are not three lists; they are one
+    record seen from three angles, and a patient reading their own medications
+    should not have to reconcile their chart by eye.
+
+    `days` omitted means the whole history, which is the default on purpose:
+    "what am I on" is not a 90-day question on a therapy given three times a
+    week. Pass `days` to window it.
+
+    Read-only. This merges records, it never writes one — a harmonised view
+    that silently created rows would be inventing clinical history.
+    """
+    from datetime import timedelta
+
+    from app.core.patient_time import patient_today
+    from app.services import clinical_sources
+
+    since = None
+    if days is not None:
+        since = patient_today(stored=current_user.timezone) - timedelta(days=max(1, days))
+    rows = await clinical_sources.medications_unified(db, current_user.id, since=since)
+    return [
+        {
+            "name": r.name,
+            "drug_class": r.drug_class,
+            # Every spelling this drug appears under. Shown when it differs
+            # from the canonical name, so merging two rows into one is visible
+            # to the patient rather than something the app did behind them.
+            "written_as": r.written_as,
+            "sources": r.sources,
+            "active": r.active,
+            "dose": r.dose,
+            "first": r.first,
+            "last": r.last,
+            # Distinct DAYS given, unioned across sources — never a sum, so a
+            # dose recorded both on the flowsheet and by hand counts once.
+            "days": r.days,
+            "by_source": r.by_source,
+            "detail": r.detail,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/day-record")
+async def day_record(
+    day: date,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Everything given on one day, from every source, merged.
+
+    The day list used to read dose logs alone, so a treatment day whose drugs
+    were only on the flowsheet rendered as "No intake logged for this date" —
+    and a patient told their record is empty logs the dose again. A drug in
+    both sources comes back as ONE row tagged with both.
+    """
+    from app.services import clinical_sources
+
+    rows = await clinical_sources.administrations_on_day(db, current_user.id, day)
+    return [
+        {
+            "date": r.date, "name": r.name, "written_as": r.written_as,
+            "dose": r.dose, "time": r.time, "drug_class": r.drug_class,
+            "sources": r.sources,
+            # null means no dose log backs this row, so it is not this screen's
+            # to delete — a flowsheet administration is corrected on the
+            # flowsheet, not here.
+            "dose_log_id": r.dose_log_id,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/administration-days")
+async def administration_days(
+    days: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Dates with at least one administration, for the calendar dots."""
+    from datetime import timedelta
+
+    from app.core.patient_time import patient_today
+    from app.services import clinical_sources
+
+    since = None
+    if days is not None:
+        since = patient_today(stored=current_user.timezone) - timedelta(days=max(1, days))
+    return await clinical_sources.administration_days(db, current_user.id, since=since)

@@ -43,6 +43,7 @@ __all__ = [
     "parse_drugs_administered",
     "format_drugs_administered",
     "summarize_flowsheet_drugs",
+    "canonical_drug_name",
     "COMMON_DIALYSIS_DRUGS",
 ]
 
@@ -139,15 +140,29 @@ def _split_items(text: str) -> list[str]:
     return [i.strip() for i in items if i.strip()]
 
 
-def _canonicalise(name: str) -> tuple[str, str | None, bool]:
+def canonical_drug_name(name: str) -> tuple[str, str | None, bool]:
+    """Resolve one written drug name to (canonical, drug_class, recognised).
+
+    Public because the flowsheet is not the only place a drug name is written
+    badly. The same drug arrives as "Venofer" on a flowsheet, "venofer" in a
+    dose log and "Iron sucrose" from a FHIR import, and anything grouping on
+    the raw string reports three drugs where the patient is on one. Every
+    source has to be folded through this function or the unified record
+    duplicates.
+
+    Unrecognised names come back unchanged with recognised=False. Never guess:
+    a wrong drug name on a medication list is worse than an unmatched one.
+    """
     key = " ".join(name.lower().split())
     for alias in sorted(_CANONICAL, key=len, reverse=True):
         if key.startswith(alias):
             canon = _CANONICAL[alias]
             return canon, _DRUG_CLASS.get(canon), True
-    # Unknown: keep what was written. Never guess a drug name — a wrong one on
-    # a medication list is worse than an unrecognised one.
     return name.strip(), None, False
+
+
+#: Retained so existing call sites keep working.
+_canonicalise = canonical_drug_name
 
 
 def parse_drugs_administered(text: str | None) -> list[FlowsheetDrug]:
