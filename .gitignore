@@ -127,3 +127,11 @@ IOS/build/
 # without a prompt for anyone who clones. Ignore the directory, not one file,
 # so a future settings file does not arrive tracked by default.
 .claude/
+
+# Work that lives in this folder but is not ALAFIA — Book, HEBCS,
+# HEBCSL_MATLAB, pitch. Each was already ignored by its own rule, but `/Book/`
+# is ANCHORED to the repo root, so moving it under a subfolder would have
+# stopped that rule matching and quietly exposed 60 MB as untracked files.
+# Ignoring the container covers everything inside it regardless of how the
+# individual rules are written, and covers whatever is put there next.
+/_other/
