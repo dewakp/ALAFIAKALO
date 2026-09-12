@@ -122,3 +122,31 @@ class TestEscaping:
             _session(patient_notes="<script>alert('x')</script>"))
         assert "<script>" not in html
         assert "&lt;script&gt;" in html
+
+
+class TestThePatientIsNamed:
+    """The name is the IDENTIFIER on a clinical document.
+
+    A printed report that could be confused between two people is worse than
+    no report, so the name is stated first and its absence is stated too — a
+    gap where a name should be is a gap a reader fills in themselves.
+    """
+
+    def test_the_name_is_printed(self):
+        html = render_session_report(_session(), patient_name="Adaeze Okafor")
+        assert "Adaeze Okafor" in html
+
+    def test_it_is_not_buried_in_the_session_subtitle(self):
+        # It used to be glued onto "Session 7 · 2026-09-01" as a prefix.
+        html = render_session_report(_session(), patient_name="Adaeze Okafor")
+        assert '<p class="patient">Adaeze Okafor</p>' in html
+
+    def test_a_missing_name_SAYS_so_instead_of_leaving_a_gap(self):
+        html = render_session_report(_session(), patient_name=None)
+        assert "Patient name not recorded" in html
+
+    def test_a_name_cannot_inject_markup(self):
+        html = render_session_report(
+            _session(), patient_name="<script>alert('x')</script>")
+        assert "<script>" not in html
+        assert "&lt;script&gt;" in html

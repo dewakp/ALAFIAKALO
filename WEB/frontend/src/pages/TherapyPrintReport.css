@@ -137,3 +137,14 @@
     margin: 14mm;
   }
 }
+
+.tr-patient {
+  margin: 2px 0 2px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.tr-missing {
+  font-weight: 400;
+  color: #b91c1c;
+}

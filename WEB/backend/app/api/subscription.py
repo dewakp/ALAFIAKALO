@@ -72,7 +72,9 @@ async def get_plans():
         RailPrice(provider="apple", price_usd=settings.SUBSCRIPTION_PRICE_IOS_USD,
                   store_product_id=settings.APPLE_PRODUCT_ID),
     ]
-    # Annual: web (Stripe) + iOS (App Store). Google Play annual not offered yet.
+    # Annual on all three rails. Play annual used to be missing entirely, so an
+    # Android user could buy the membership monthly and had no way to buy it
+    # for a year — a gap in the catalog, not a decision.
     #
     # The App Store price shown on-device comes from StoreKit; this catalog
     # value is the fallback shown before StoreKit answers. It must therefore
@@ -87,6 +89,8 @@ async def get_plans():
         RailPrice(provider="stripe", price_usd=settings.SUBSCRIPTION_PRICE_WEB_ANNUAL_USD),
         RailPrice(provider="apple", price_usd=settings.SUBSCRIPTION_PRICE_IOS_ANNUAL_USD,
                   store_product_id=settings.APPLE_PRODUCT_ID_ANNUAL),
+        RailPrice(provider="google_play", price_usd=settings.SUBSCRIPTION_PRICE_ANDROID_ANNUAL_USD,
+                  store_product_id=settings.GOOGLE_PLAY_PRODUCT_ID_ANNUAL),
     ]
     return PlansResponse(
         product_name=settings.SUBSCRIPTION_PRODUCT_NAME,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { apiErrorMessage } from '../utils/apiError';
 import './TherapyPrintReport.css';
 
@@ -75,6 +76,10 @@ export default function TherapyPrintReport() {
   // decides whether they may see it.
   const patientId = params.get('patient');
 
+  // A patient printing their OWN session gets no `patient` object back — the
+  // route returns the session alone — so the name came out blank. The signed-in
+  // user IS the patient on that path, and their name is already in hand.
+  const { user } = useAuth();
   const [session, setSession] = useState(null);
   const [patient, setPatient] = useState(null);
   const [error, setError] = useState('');
@@ -90,7 +95,9 @@ export default function TherapyPrintReport() {
       // The clinician route wraps the session alongside the patient it belongs
       // to; the patient route returns the session alone.
       setSession(data.session || data);
-      setPatient(data.patient || null);
+      // Clinician route wraps the patient; patient route does not — on that
+      // path the signed-in user is the subject.
+      setPatient(data.patient || (patientId ? null : user) || null);
       setError('');
     } catch (err) {
       // A failed fetch must never render as a blank report — a clinician would
@@ -99,7 +106,7 @@ export default function TherapyPrintReport() {
     } finally {
       setLoading(false);
     }
-  }, [sessionId, patientId]);
+  }, [sessionId, patientId, user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -147,8 +154,15 @@ export default function TherapyPrintReport() {
       <header className="tr-header">
         <div>
           <h1>Hemodialysis Treatment Report</h1>
+          {/* The patient's name is the IDENTIFIER on a clinical document, not
+              a detail — a printed report that could be confused between two
+              people is worse than no report. It is stated first and on its own
+              line, and its absence is stated too rather than leaving a gap a
+              reader would fill in themselves. */}
+          <p className="tr-patient">
+            {patient?.full_name || <span className="tr-missing">Patient name not recorded</span>}
+          </p>
           <p className="tr-sub">
-            {patient?.full_name ? `${patient.full_name} · ` : ''}
             Session {s.session_number ?? s.id} · {day(s.scheduled_date || s.date)}
           </p>
         </div>

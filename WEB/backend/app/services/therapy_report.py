@@ -104,7 +104,15 @@ def render_session_report(session, *, patient_name: str | None = None) -> str:
         given = s.saline_added_ml or 0
         net_machine = f"{round(s.total_uf_liters * 1000 - given)} mL"
 
-    header_name = f"{escape(patient_name)} · " if patient_name else ""
+    # The patient's name is the IDENTIFIER on a clinical document, not a
+    # detail. It goes on its own line, first — and when it is absent that is
+    # STATED, because a gap where a name should be is a gap a reader fills in
+    # themselves, and a report that could be confused between two people is
+    # worse than no report.
+    patient_line = (
+        f'<p class="patient">{escape(patient_name)}</p>' if patient_name
+        else '<p class="patient missing">Patient name not recorded</p>'
+    )
 
     body = "".join([
         _section("Session", [
@@ -189,6 +197,8 @@ def render_session_report(session, *, patient_name: str | None = None) -> str:
   header {{ display: flex; justify-content: space-between; align-items: flex-start;
             border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }}
   h1 {{ font-size: 16pt; margin: 0 0 3px; }}
+  .patient {{ font-size: 12pt; font-weight: 700; margin: 2px 0; }}
+  .patient.missing {{ font-weight: 400; color: #b91c1c; }}
   .sub {{ font-size: 9pt; color: #475569; margin: 0; }}
   .brand {{ font-weight: 800; letter-spacing: .5px; }}
   /* Never split a section across a page break: half a table on page two
@@ -210,7 +220,8 @@ def render_session_report(session, *, patient_name: str | None = None) -> str:
 <header>
   <div>
     <h1>Hemodialysis Treatment Report</h1>
-    <p class="sub">{header_name}Session {escape(str(s.session_number or s.id))} · {_day(s.scheduled_date)}</p>
+    {patient_line}
+    <p class="sub">Session {escape(str(s.session_number or s.id))} · {_day(s.scheduled_date)}</p>
   </div>
   <div class="brand">ALAFIA</div>
 </header>

@@ -92,3 +92,18 @@ test('a failed load says so rather than printing a blank report', async ({ page 
   // Empty fields on a clinical report read as findings. Nothing must render.
   await expect(page.getByText('Weights')).toHaveCount(0);
 });
+
+
+test('a patient printing their own session sees their own name', async ({ page }) => {
+  // The patient route returns the session ALONE — no `patient` object — so the
+  // name came out blank on the one report a patient prints for themselves.
+  // The signed-in user is the subject on that path.
+  await mockAppChrome(page);
+  await page.route('**/api/v1/users/me', (r) =>
+    r.fulfill(json({ id: 1, email: 'ada@example.com', full_name: 'Adaeze Okafor' })));
+  await page.route('**/api/v1/chronic/therapy-sessions/42', (r) => r.fulfill(json(SESSION)));
+  await signIn(page);
+
+  await page.goto('/therapy-report/42');
+  await expect(page.locator('.tr-patient')).toContainText('Adaeze Okafor');
+});

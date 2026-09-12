@@ -187,6 +187,12 @@ class Settings(BaseSettings):
     # when StoreKit has not answered, so the two must be set to agree or the
     # paywall quotes a price the purchase sheet then contradicts.
     SUBSCRIPTION_PRICE_IOS_ANNUAL_USD: float = 149.0
+    # Google Play annual. Same figure as the App Store — both stores take a
+    # commission, so both carry it, exactly as monthly is $14 on either phone
+    # and $12 on the web. Play annual was not offered AT ALL before this: the
+    # catalog listed Stripe and Apple only, so an Android user could buy the
+    # membership monthly and had no way to buy it for a year.
+    SUBSCRIPTION_PRICE_ANDROID_ANNUAL_USD: float = 149.0
     SUBSCRIPTION_TRIAL_DAYS: int = 0
     # Grace window after a period ends before entitlement is revoked (covers
     # webhook lag / renewal retries).
@@ -233,6 +239,7 @@ class Settings(BaseSettings):
     # service account with the Android Publisher scope.
     GOOGLE_PLAY_PACKAGE_NAME: str = "com.alafia.android"
     GOOGLE_PLAY_PRODUCT_ID: str = "alafia_plus_monthly"
+    GOOGLE_PLAY_PRODUCT_ID_ANNUAL: str = "alafia_plus_annual"
     GOOGLE_PLAY_SERVICE_ACCOUNT: str = ""   # path to service-account JSON
 
     # Apple StoreKit (iOS). Server-side transaction verification.
