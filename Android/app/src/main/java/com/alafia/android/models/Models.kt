@@ -107,6 +107,10 @@ data class NutritionLog(
     @SerializedName("pre_meal_weight_kg") val preMealWeightKg: Float?,
     @SerializedName("post_meal_weight_kg") val postMealWeightKg: Float?,
     @SerializedName("food_image_uris") val foodImageUris: String?,
+    // Small data: URI saved WITH the meal, so a list shows what each entry was
+    // without a request per row. Nullable — every entry logged before
+    // thumbnails existed has none.
+    @SerializedName("food_thumbnail") val foodThumbnail: String? = null,
     @SerializedName("recipe_url") val recipeUrl: String?,
     @SerializedName("created_at") val createdAt: String
 )

@@ -113,6 +113,7 @@ class NutritionLogCreate(BaseModel):
     pre_meal_weight_kg: float | None = None
     post_meal_weight_kg: float | None = None
     food_image_uris: str | None = None
+    food_thumbnail: str | None = None
     recipe_url: str | None = None
 
     # Extended nutrients stored as JSON blob
@@ -171,6 +172,7 @@ class NutritionLogUpdate(BaseModel):
     pre_meal_weight_kg: float | None = None
     post_meal_weight_kg: float | None = None
     food_image_uris: str | None = None
+    food_thumbnail: str | None = None
     recipe_url: str | None = None
     extended_nutrients: dict[str, Any] | None = None
     notes: str | None = None
@@ -236,6 +238,7 @@ class NutritionLogResponse(BaseModel):
     pre_meal_weight_kg: float | None = None
     post_meal_weight_kg: float | None = None
     food_image_uris: str | None = None
+    food_thumbnail: str | None = None
     recipe_url: str | None = None
     extended_nutrients: dict[str, Any] | None = None
     notes: str | None = None

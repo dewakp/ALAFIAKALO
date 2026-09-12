@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
+import { thumbnailFromFile } from '../utils/imageThumbnail';
 import { detachFiles } from '../utils/fileInput';
 import {
   Plus, Search, Apple, ChevronDown, ChevronRight,
@@ -48,7 +49,7 @@ export default function Nutrition() {
     log_date: today(), meal_type: 'breakfast', food_name: '',
     serving_size: '', fdc_id: null, notes: '',
     start_time: '', end_time: '', pre_meal_weight_kg: '', post_meal_weight_kg: '',
-    recipe_url: '', food_image_uris: '',
+    recipe_url: '', food_image_uris: '', food_thumbnail: '',
   });
 
   // Prompt Hub hand-off: open the add-food form pre-filled from the prompt.
@@ -68,6 +69,11 @@ export default function Nutrition() {
 
   // Image analysis
   const [imageFiles, setImageFiles] = useState([]);
+  // Parallel to `imageFiles`: a small data URI per chosen photo, shown in the
+  // chip and saved with the meal. Kept separate from the File objects because
+  // those are detached from their input (WebKit empties a File when its input
+  // is cleared) and cannot be re-read later.
+  const [imageThumbs, setImageThumbs] = useState([]);
   const [imageAnalysisResult, setImageAnalysisResult] = useState('');
   const [isAnalyzingImages, setIsAnalyzingImages] = useState(false);
   const [visionResult, setVisionResult] = useState(null);   // { items, estimated_nutrition, source, sample_id }
@@ -356,9 +362,10 @@ export default function Nutrition() {
     setEditOriginalFood('');
     setForm({ log_date: today(), meal_type: 'breakfast', food_name: '', serving_size: '', fdc_id: null, notes: '',
       start_time: '', end_time: '', pre_meal_weight_kg: '', post_meal_weight_kg: '', recipe_url: '',
-      food_image_uris: '' });
+      food_image_uris: '', food_thumbnail: '' });
     setEstimatePreview(null);
     setImageFiles([]);
+    setImageThumbs([]);
     setImageAnalysisResult('');
     setVisionResult(null);
     setVisionEdits([]);
@@ -383,6 +390,7 @@ export default function Nutrition() {
       // Carried through the edit: the PATCH sends the whole form, so dropping
       // this would silently detach the photo from a meal being corrected.
       food_image_uris: log.food_image_uris || '',
+      food_thumbnail: log.food_thumbnail || '',
     });
     setEditOriginalFood(log.food_name || '');
     setEditingId(log.id);
@@ -417,7 +425,8 @@ export default function Nutrition() {
     try {
       const payload = { ...form };
       for (const k of ['serving_size', 'notes', 'recipe_url', 'start_time', 'end_time',
-                       'pre_meal_weight_kg', 'post_meal_weight_kg', 'food_image_uris']) {
+                       'pre_meal_weight_kg', 'post_meal_weight_kg', 'food_image_uris',
+                       'food_thumbnail']) {
         if (!payload[k]) delete payload[k];
       }
 
@@ -614,7 +623,20 @@ export default function Nutrition() {
                 // Re-wrapping each File around its own ArrayBuffer makes it
                 // independent of the input element, so clearing cannot reach it.
                 const added = await detachFiles(picked);
+                // Thumbnails come from the ORIGINAL picked files: `detachFiles`
+                // re-wraps them, and reading the copy works but re-reading a
+                // detached File later does not.
+                const thumbs = await Promise.all(picked.map(thumbnailFromFile));
                 setImageFiles((prev) => [...prev, ...added].slice(0, 3));
+                setImageThumbs((prev) => {
+                  const next = [...prev, ...thumbs].slice(0, 3);
+                  // Saved with the meal, whether or not the analysis is run.
+                  // `food_image_uris` is only written by the vision call, so
+                  // without this a photo chosen and saved directly left no
+                  // trace on the entry at all.
+                  setForm((f0) => ({ ...f0, food_thumbnail: next[0] || '' }));
+                  return next;
+                });
                 // Reset so re-picking the SAME file fires onChange again.
                 e.target.value = '';
                 // A previous failure must not linger next to a fresh selection.
@@ -633,7 +655,20 @@ export default function Nutrition() {
                 // when the input is cleared, and the upload arrives with no
                 // image in it.
                 const added = await detachFiles(picked);
+                // Thumbnails come from the ORIGINAL picked files: `detachFiles`
+                // re-wraps them, and reading the copy works but re-reading a
+                // detached File later does not.
+                const thumbs = await Promise.all(picked.map(thumbnailFromFile));
                 setImageFiles((prev) => [...prev, ...added].slice(0, 3));
+                setImageThumbs((prev) => {
+                  const next = [...prev, ...thumbs].slice(0, 3);
+                  // Saved with the meal, whether or not the analysis is run.
+                  // `food_image_uris` is only written by the vision call, so
+                  // without this a photo chosen and saved directly left no
+                  // trace on the entry at all.
+                  setForm((f0) => ({ ...f0, food_thumbnail: next[0] || '' }));
+                  return next;
+                });
                 e.target.value = '';
                 setImageAnalysisResult('');
               }}/>
@@ -654,11 +689,25 @@ export default function Nutrition() {
               </button>
               {imageFiles.length === 0 && <span style={{ fontSize: '.8rem', color: 'var(--color-text-tertiary)', alignSelf: 'center' }}>no files selected</span>}
               {imageFiles.map((f, i) => (
-                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.75rem',
-                  background: 'var(--color-bg-secondary)', borderRadius: 4, padding: '.2rem .5rem' }}>
+                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.75rem',
+                  background: 'var(--color-bg-secondary)', borderRadius: 4, padding: '.2rem .4rem' }}>
+                  {/* The picture, not just its filename. "IMG_0675.jpeg" tells
+                      nobody which photo they attached, and on a phone the name
+                      is the same for every shot taken that minute. */}
+                  {imageThumbs[i] ? (
+                    <img src={imageThumbs[i]} alt=""
+                      style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 3, display: 'block' }} />
+                  ) : null}
                   {f.name}
                   <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--color-text-tertiary)' }}
-                    onClick={() => setImageFiles((prev) => prev.filter((_, j) => j !== i))}>
+                    onClick={() => {
+                      setImageFiles((prev) => prev.filter((_, j) => j !== i));
+                      setImageThumbs((prev) => {
+                        const next = prev.filter((_, j) => j !== i);
+                        setForm((f0) => ({ ...f0, food_thumbnail: next[0] || '' }));
+                        return next;
+                      });
+                    }}>
                     <X size={12}/>
                   </button>
                 </span>
@@ -944,8 +993,29 @@ export default function Nutrition() {
                     <td>{log.log_date}</td>
                     <td style={{ textTransform: 'capitalize' }}>{log.meal_type}</td>
                     <td>
+                      {/* The thumbnail saved WITH the meal. It costs no request
+                          — it is on the row already — so a page of meals shows
+                          what each one was without fetching anything. Clicking
+                          it opens the full photo where one was stored. */}
+                      {log.food_thumbnail && (
+                        <img
+                          src={log.food_thumbnail}
+                          alt=""
+                          onClick={log.food_image_uris ? () => openMealPhoto(log) : undefined}
+                          title={log.food_image_uris ? 'See the full photo' : undefined}
+                          style={{
+                            width: 32, height: 32, objectFit: 'cover', borderRadius: 3,
+                            verticalAlign: 'middle', marginRight: '.4rem',
+                            cursor: log.food_image_uris ? 'pointer' : 'default',
+                          }}
+                        />
+                      )}
                       <span style={{ fontWeight: 500 }}>{log.food_name}</span>
-                      {log.food_image_uris && (
+                      {/* The camera icon stays for meals that have a stored
+                          photo but no thumbnail — every entry logged before
+                          thumbnails existed. Dropping it would hide their
+                          pictures. */}
+                      {log.food_image_uris && !log.food_thumbnail && (
                         <button onClick={() => openMealPhoto(log)} title="See the photo this meal was estimated from"
                           style={{ marginLeft: '.35rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.8rem' }}>
                           📷

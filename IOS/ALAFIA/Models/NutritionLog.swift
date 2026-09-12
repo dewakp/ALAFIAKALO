@@ -76,6 +76,10 @@ struct NutritionLog: Codable, Identifiable {
     let preMealWeightKg: Double?
     let postMealWeightKg: Double?
     let foodImageUris: String?
+    /// A small `data:` URI saved WITH the meal, so a list can show what each
+    /// entry was without a request per row. `foodImageUris` points at the full
+    /// photo in media storage and is only written by the vision analysis.
+    let foodThumbnail: String?
     let recipeUrl: String?
     let createdAt: Date
 
@@ -134,6 +138,7 @@ struct NutritionLog: Codable, Identifiable {
         case preMealWeightKg = "pre_meal_weight_kg"
         case postMealWeightKg = "post_meal_weight_kg"
         case foodImageUris = "food_image_uris"
+        case foodThumbnail = "food_thumbnail"
         case recipeUrl = "recipe_url"
         case createdAt = "created_at"
     }
@@ -160,6 +165,7 @@ struct NutritionLogCreate: Encodable {
     /// API path of the photo this meal was estimated from, so opening the meal
     /// later shows the picture and not just the numbers.
     var foodImageUris: String?
+    var foodThumbnail: String?
 
     enum CodingKeys: String, CodingKey {
         case logDate = "log_date"

@@ -79,6 +79,11 @@ class NutritionLog(Base):
     pre_meal_weight_kg: Mapped[float | None] = mapped_column(Float)
     post_meal_weight_kg: Mapped[float | None] = mapped_column(Float)
     food_image_uris: Mapped[str | None] = mapped_column(Text)
+    #: A small `data:` URI of the meal photo, kept ON the log so a list of
+    #: meals can show what each one was without a request per row. The full
+    #: photo lives in media storage behind `food_image_uris`, and only when the
+    #: patient runs the vision analysis — this persists whether they do or not.
+    food_thumbnail: Mapped[str | None] = mapped_column(Text)
     recipe_url: Mapped[str | None] = mapped_column(Text)
 
     notes: Mapped[str | None] = mapped_column(Text)
