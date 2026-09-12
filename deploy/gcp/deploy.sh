@@ -168,15 +168,28 @@ if [ "$ENRICHMENT_TIMEOUT_S" -lt 250 ]; then
   echo "ERROR: NUTRIENT_ENRICHMENT_TIMEOUT=${ENRICHMENT_TIMEOUT_S} does not clear a cold Ollama model load (~250 s)." >&2
   exit 1
 fi
-# Two-step signup (verify email → pay → account) is CODE-READY but gated OFF
-# here, because turning it on closes registration until email actually works:
-#   /auth/register            -> 410 Gone
-#   /auth/signup/start        -> 503 without an email provider, and with Resend
-#                                configured but NO VERIFIED DOMAIN the send 403s,
-#                                so the verification link never arrives.
-# Either way no new account can be created. Flip to true ONLY after a domain is
-# verified at resend.com/domains and a test signup completes end to end.
-BACKEND_ENV="${BACKEND_ENV},TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:-false}"
+# Two-step signup (verify email → pay → account) is ON.
+#
+# `/auth/register` now answers 410 Gone, naming `/auth/signup/start` as the way
+# in. Every client goes through the two-step flow: web since the registration
+# forms were consolidated onto it, iOS and Android since 1.5(7) / the current
+# release APK — both verified to contain `auth/signup/start` and
+# `auth/signup/complete-mobile` by reading the COMPILED BINARIES. The packages
+# that sat ready to upload before that were built days earlier, still called
+# `/auth/register`, and would have broken here; "compiled and ready" is not the
+# same as built from the code that needs to be in it.
+#
+# The preconditions this used to wait on are met:
+#   • alafia.app is verified in Resend (DKIM + SPF in Cloud DNS), and real
+#     delivery to external inboxes is confirmed.
+#   • A signup start against production returns 202 and creates the pending
+#     row, with `status` reporting `next: verify-email`.
+#
+# Turning this OFF again re-opens direct registration, which creates loginable
+# UNPAID accounts and sends no email — the exact failure the two-step flow
+# exists to close, and the one that left a real person holding an account they
+# could not use. Do not flip it back as a quick fix.
+BACKEND_ENV="${BACKEND_ENV},TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:-true}"
 # Where contact-form submissions are DELIVERED.
 #
 # `alafia.app` publishes DKIM and SPF but has NO MX RECORDS — it can send and
