@@ -56,7 +56,10 @@ const SOURCE_LABEL = {
   prescribed: 'Prescribed',
   imported: 'From your clinic record',
   logged: 'You logged it',
-  administered: 'Given at a treatment',
+  // "DURING treatment", not "at a treatment". On home haemodialysis the
+  // patient runs at home and gives these to themselves — the record states
+  // when the drug was given, not who gave it or where.
+  administered: 'Given during treatment',
 };
 
 // The spellings this row absorbed, minus the canonical name it is shown under.
@@ -613,66 +616,13 @@ export default function Medications() {
             </p>
           </div>
 
-          {/* The whole medication record, harmonised — every source, one row per drug. */}
-          {(administered.length > 0 || administeredError) && (
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Your medication record</h3>
-              {administeredError ? (
-                // An error is not an empty state (canon 3aa). Saying nothing
-                // here would tell a patient no drug was given.
-                <p style={{ color: 'var(--color-danger)' }}>
-                  We could not load your medication record. This is a display
-                  problem, not a record of nothing — please try again.
-                </p>
-              ) : (
-                <>
-                  <p style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: 0 }}>
-                    Everything on file, from every source, merged into one list.{' '}
-                    <strong>Already on your record — you do not need to log these.</strong>
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {administered.map((a, i) => (
-                      <div key={i} style={{
-                        display: 'flex', justifyContent: 'space-between', gap: 10,
-                        padding: '8px 10px', borderRadius: 6,
-                        background: 'var(--bg-secondary, #f8fafc)',
-                      }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 600 }}>
-                            {a.name}
-                            {a.dose && <span style={{ fontWeight: 400 }}> · {a.dose}</span>}
-                          </div>
-                          {/* Merging is shown, not hidden: if this row absorbed
-                              "Venofer" and "venofer" under "Iron sucrose", the
-                              patient can see why their two entries became one. */}
-                          {otherNames(a).length > 0 && (
-                            <div style={{ fontSize: '.72rem', color: 'var(--text-secondary)' }}>
-                              also recorded as {otherNames(a).join(', ')}
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                            {(a.sources || []).map((src) => (
-                              <span key={src} style={{
-                                fontSize: '.68rem', padding: '1px 6px', borderRadius: 999,
-                                border: '1px solid var(--border,#e5e7eb)',
-                                color: 'var(--text-secondary)',
-                              }}>{SOURCE_LABEL[src] || src}</span>
-                            ))}
-                          </div>
-                        </div>
-                        <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          {a.last ? <>last {a.last}<br /></> : <>not yet taken<br /></>}
-                          {/* Days, never a sum of records: a dose written on the
-                              flowsheet AND logged by hand is one day, not two. */}
-                          {a.days > 0 && `${a.days} ${a.days === 1 ? 'day' : 'days'} given`}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+          {/* Two listings used to sit here — the unified medication
+              record, and the prescriptions catalogue below it. Both were
+              removed: the page had become three overlapping lists of the
+              same drugs, and what it is FOR is recording a dose and
+              seeing what was taken. The record is in the database and the
+              assistant answers from it; it does not need re-printing on
+              the screen a patient uses to log a tablet. */}
 
           <div className="card">
             <h3 style={{ marginTop: 0 }}>Medications for {fmtLong(selectedDate)}</h3>
@@ -696,7 +646,7 @@ export default function Medications() {
                       }}>On your flowsheet</span>
                     </div>
                     <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-                      Given at your treatment — already on your record, no need to log it.
+                      Given during treatment — already on your record, no need to log it.
                     </div>
                   </div>
                 ))}
@@ -741,52 +691,6 @@ export default function Medications() {
         </div>
       </div>
 
-      {/* ── Prescriptions catalog (secondary, collapsible) ── */}
-      <div className="card" style={{ marginTop: '1.5rem' }}>
-        <button type="button" onClick={() => setShowRx((v) => !v)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 600, color: 'var(--primary)', padding: 0 }}>
-          {showRx ? '▾' : '▸'} Prescriptions {meds.length > 0 && `(${activeMeds.length} active of ${meds.length})`}
-        </button>
-        {showRx && (
-          <div style={{ marginTop: 12 }}>
-            <form onSubmit={saveRx}>
-              <div className="form-row">
-                <div className="form-group"><label className="form-label">Medication Name</label>
-                  <input className="form-input" value={rx.name} onChange={(e) => setRx({ ...rx, name: e.target.value })} required /></div>
-                <div className="form-group"><label className="form-label">Dosage</label>
-                  <input className="form-input" value={rx.dosage} onChange={(e) => setRx({ ...rx, dosage: e.target.value })} /></div>
-                <div className="form-group"><label className="form-label">Unit</label>
-                  <input className="form-input" value={rx.dosage_unit} placeholder="mg, ml…" onChange={(e) => setRx({ ...rx, dosage_unit: e.target.value })} /></div>
-              </div>
-              <div className="form-row">
-                <div className="form-group"><label className="form-label">Frequency</label>
-                  <input className="form-input" value={rx.frequency} placeholder="e.g., twice daily" onChange={(e) => setRx({ ...rx, frequency: e.target.value })} /></div>
-                <div className="form-group"><label className="form-label">Reason</label>
-                  <input className="form-input" value={rx.reason} onChange={(e) => setRx({ ...rx, reason: e.target.value })} /></div>
-              </div>
-              <button className="btn btn-primary btn-sm" type="submit">Save Prescription</button>
-            </form>
-            <table className="table" style={{ marginTop: 12 }}>
-              <thead><tr><th>Name</th><th>Dosage</th><th>Frequency</th><th>Status</th><th></th></tr></thead>
-              <tbody>
-                {meds.map((m) => (
-                  <tr key={m.id}>
-                    <td>{m.name}{m.source && (
-                      <span title={`Imported from ${m.source}`}
-                        style={{ marginLeft: 6, fontSize: '.62rem', fontWeight: 700, padding: '1px 6px',
-                          borderRadius: 8, background: '#fff3cd', color: '#856404', whiteSpace: 'nowrap' }}>
-                        ⤵ Imported
-                      </span>)}</td><td>{m.dosage} {m.dosage_unit}</td><td>{m.frequency ?? '-'}</td>
-                    <td>{m.is_active ? '🟢 Active' : '⚪ Inactive'}</td>
-                    <td><button className="btn btn-danger btn-sm" onClick={() => deleteRx(m.id, m.name)}><Trash2 size={14} /></button></td>
-                  </tr>
-                ))}
-                {meds.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No prescriptions yet</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

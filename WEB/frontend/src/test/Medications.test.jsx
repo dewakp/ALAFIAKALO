@@ -74,19 +74,22 @@ describe('Medications picker', () => {
     expect(screen.queryByTestId('stale-meds-hint')).not.toBeInTheDocument();
   });
 
-  it('opens the Prescriptions manager when there is nothing current to pick', async () => {
-    // The complaint was "no options to enter list of medications being taken".
-    // The manager existed, collapsed, below a long form.
+  it('does NOT print the prescription catalogue on the logging page', async () => {
+    // The page had become three overlapping lists of the same drugs: the
+    // unified record, the prescriptions catalogue, and the day's doses. It is
+    // FOR recording a dose and seeing what was taken. The catalogue and the
+    // unified record are in the database and the assistant answers from them;
+    // re-printing them here is what made the page unusable.
     mockApi(STALE_2017);
     renderPage();
 
-    // Header states the split, so "2 prescriptions" cannot read as "2 available".
-    expect(await screen.findByText(/Prescriptions \(0 active of 2\)/)).toBeInTheDocument();
-    // And the manager is expanded, not collapsed behind a disclosure: its table
-    // lists both stopped rows with their status.
+    // The logging form and the day view are what remain.
+    expect(await screen.findByText(/Log New Medication Intake/i)).toBeInTheDocument();
+
     await waitFor(() =>
-      expect(screen.getByText('Ibuprofen 200 MG Oral Tablet')).toBeInTheDocument());
-    expect(screen.getAllByText(/Inactive/i)).toHaveLength(2);
+      expect(screen.queryByText(/Prescriptions \(/)).not.toBeInTheDocument());
+    expect(screen.queryByText('Ibuprofen 200 MG Oral Tablet')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Your medication record/i)).not.toBeInTheDocument();
   });
 });
 

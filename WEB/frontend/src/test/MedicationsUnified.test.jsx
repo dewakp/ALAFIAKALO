@@ -32,59 +32,26 @@ const renderPage = () => render(<MemoryRouter><Medications /></MemoryRouter>);
 
 beforeEach(() => { vi.clearAllMocks(); });
 
-describe('the harmonised medication record', () => {
-  it('shows one drug once, under its canonical name', async () => {
-    mockApi(ONE_IRON);
-    renderPage();
-    await waitFor(() => expect(screen.getByText('Iron sucrose')).toBeInTheDocument());
-    // The brand names must NOT appear as separate rows.
-    expect(screen.queryAllByText('Venofer')).toHaveLength(0);
-  });
+describe('the harmonised medication record is NOT printed on this page', () => {
+  // It still exists, and the assistant answers from it — /medications/unified
+  // is unchanged and covered by tests/test_medications_unified.py. What was
+  // wrong was PRINTING it here: this page had three overlapping lists of the
+  // same drugs, and it is for recording a dose and seeing what was taken.
+  beforeEach(() => { vi.clearAllMocks(); mockApi(); });
 
-  it('shows every source that attests to the drug', async () => {
-    mockApi(ONE_IRON);
+  it('leaves the page to the entry form and the day view', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Prescribed')).toBeInTheDocument());
-    for (const label of ['From your clinic record', 'You logged it', 'Given at a treatment']) {
-      expect(screen.getByText(label)).toBeInTheDocument();
-    }
-  });
-
-  it('tells the patient which spellings were merged, rather than merging silently', async () => {
-    mockApi(ONE_IRON);
-    renderPage();
+    expect(await screen.findByText(/Log New Medication Intake/i)).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByText(/also recorded as/i)).toHaveTextContent('Venofer'));
+      expect(screen.queryByText(/Your medication record/i)).not.toBeInTheDocument());
   });
 
-  it('counts days given, never the sum of records', async () => {
-    mockApi(ONE_IRON);
-    const { container } = renderPage();
-    await waitFor(() => expect(screen.getByText('Iron sucrose')).toBeInTheDocument());
-    // 5 records across the sources, but Sep 1 is on the flowsheet AND in the
-    // dose log — that is one administration written twice. Two days.
-    expect(container.textContent).toContain('2 days given');
-    expect(container.textContent).not.toMatch(/[345] days given/);
-  });
-
-  it('never tells a patient a drug was given by "the unit"', async () => {
-    // On home haemodialysis the patient self-administers, and the schema does
-    // not record the setting — so the screen must not assert one.
-    mockApi(ONE_IRON);
-    const { container } = renderPage();
-    await waitFor(() => expect(screen.getByText('Iron sucrose')).toBeInTheDocument());
-    expect(container.textContent).not.toMatch(/the unit|your unit/i);
-  });
-
-  it('says a load failure is a display problem, not an empty record', async () => {
-    api.get.mockImplementation((url) => (
-      url === '/medications/unified'
-        ? Promise.reject(new Error('boom'))
-        : Promise.resolve({ data: [] })
-    ));
+  it('does not re-print the drug catalogue', async () => {
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByText(/not a record of nothing/i)).toBeInTheDocument());
+    await screen.findByText(/Log New Medication Intake/i);
+    // The merged-spellings and source chips belonged to the removed listing.
+    expect(screen.queryByText(/Also written as/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/days given/i)).not.toBeInTheDocument();
   });
 });
 

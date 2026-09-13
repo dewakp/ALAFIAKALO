@@ -311,6 +311,7 @@ async def medications_unified(db: AsyncSession, user_id: int, since: date | None
             "name": canon, "drug_class": drug_class, "written_as": [],
             "sources": [], "active": False, "dose": None,
             "dates": set(), "by_source": {}, "details": [],
+            "dose_counts": {},
             "recognised": recognised,
         })
         # A recognised spelling is authoritative over a raw one: once RxNorm's
@@ -375,6 +376,17 @@ async def medications_unified(db: AsyncSession, user_id: int, since: date | None
     )
     if since:
         fstmt = fstmt.where(TherapySession.scheduled_date >= since)
+    # OLDEST FIRST, so a later session's dose overwrites an earlier one and the
+    # dose that survives is the most recent one actually recorded.
+    #
+    # Unordered, this took whatever row the database happened to return first.
+    # On a real record that surfaced "Epogene (20,000 SQ)" — a dose written on
+    # a flowsheet in 2013 — and presented it as the current one, while every
+    # session since 2018 records "Epogene (3,000 SQ)" and recent ones record no
+    # dose at all. A thirteen-year-old ESA dose shown as current is the §3aj
+    # failure in a different disguise: the number is real, and it is not this
+    # patient's dose today.
+    fstmt = fstmt.order_by(TherapySession.scheduled_date.asc())
     for session in (await db.execute(fstmt)).scalars().all():
         stamp = str(session.scheduled_date)[:10] if session.scheduled_date else None
         for drug in parse_drugs_administered(session.drugs_administered):
@@ -385,11 +397,28 @@ async def medications_unified(db: AsyncSession, user_id: int, since: date | None
             b["active"] = True
             if stamp:
                 b["dates"].add(stamp)
-            if drug.dose and not b["dose"]:
-                b["dose"] = drug.dose
+            # Tally every dose written, rather than keeping one.
+            #
+            # The dose a patient is ON is the one recorded again and again, not
+            # whatever the single most recent line of free text happens to say.
+            # On this record the flowsheet holds 1,178 sessions of
+            # "Epogene (3,000 SQ)" and five 2026 entries reading "100 ml/5mg",
+            # "100 ml/5g" and "3 ml" — transcription noise. Taking the latest
+            # reports the noise; taking the most frequent reports the regimen.
+            #
+            # It also survives what taking the FIRST one did: that surfaced
+            # "20,000 SQ" from 2013, a dose discontinued in 2020, and presented
+            # it as current.
+            if drug.dose:
+                b["dose_counts"][drug.dose] = b["dose_counts"].get(drug.dose, 0) + 1
 
     out: list[UnifiedMedicationView] = []
     for b in buckets.values():
+        # The most frequently recorded dose. Ties break toward the one seen
+        # most — `max` is stable, so insertion order (oldest first) decides,
+        # which is arbitrary but never wrong in a way that matters at a tie.
+        if b["dose_counts"]:
+            b["dose"] = max(b["dose_counts"].items(), key=lambda kv: kv[1])[0]
         dates = sorted(b["dates"])
         given = sum(b["by_source"].get(s, 0) for s in _ADMINISTRATION_SOURCES)
         detail = " · ".join(x for x in (
