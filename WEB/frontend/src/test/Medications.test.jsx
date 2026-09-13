@@ -62,7 +62,11 @@ describe('Medications picker', () => {
 
     const hint = await screen.findByTestId('stale-meds-hint');
     expect(hint).toHaveTextContent(/stopped/i);
-    expect(hint).toHaveTextContent(/Prescriptions/);
+    // It must say what to DO. It used to point at a "Prescriptions" section
+    // that has since been removed — an instruction naming a screen the patient
+    // cannot reach is worse than no instruction at all.
+    expect(hint).toHaveTextContent(/Type the\s+medication/i);
+    expect(hint).not.toHaveTextContent(/under Prescriptions/);
   });
 
   it('offers a current prescription', async () => {

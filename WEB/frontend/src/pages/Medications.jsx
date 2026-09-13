@@ -508,8 +508,14 @@ export default function Medications() {
                 <p data-testid="stale-meds-hint" style={{ fontSize: 12, color: '#856404', marginTop: 6 }}>
                   Your profile has {meds.length} prescription{meds.length === 1 ? '' : 's'}, but
                   {meds.length === 1 ? ' it is' : ' all of them are'} marked stopped — so
-                  {meds.length === 1 ? ' it is' : ' none are'} offered above. Type the medication,
-                  or add a current one under <strong>Prescriptions</strong>.
+                  {meds.length === 1 ? ' it is' : ' none are'} offered above. Type the
+                  medication — logging it adds it to your record.
+                  {/* This used to say "add a current one under Prescriptions".
+                      That section is gone, and an instruction pointing at a
+                      screen that no longer exists is worse than none: it tells
+                      the patient to go somewhere they cannot reach. Typing the
+                      name and logging it is now the way a current medication
+                      gets onto the record. */}
                 </p>
               )}
             </div>
