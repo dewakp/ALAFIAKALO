@@ -89,6 +89,28 @@ def render_session_report(session, *, patient_name: str | None = None) -> str:
     # derivable from the other: the clock is end - start; the machine reports
     # time actually dialysing and excludes alarms and pauses. Kt/V follows the
     # machine figure, so conflating them overstates the dose delivered.
+    # Start and end are printed as CLOCK TIMES — the session's date is already
+    # stated above them, and repeating it on every row is noise.
+    #
+    # Unless they disagree with it. A start stamped on a different day than the
+    # session is a real inconsistency (it happened when the times were entered
+    # before the date was corrected), and printing "9/12" and "9/13, 9:41 AM"
+    # side by side with no comment presents it as if it were fine. Where they
+    # differ the full date is shown and the discrepancy is named.
+    session_day = str(s.scheduled_date)[:10] if s.scheduled_date else None
+
+    def _stamp(value) -> str:
+        if not value:
+            return NOT_RECORDED
+        day = str(value)[:10]
+        if isinstance(value, datetime):
+            clock_txt = escape(value.strftime("%H:%M"))
+            if session_day and day != session_day:
+                return (f'{escape(value.strftime("%Y-%m-%d %H:%M"))} '
+                        f'<span class="warn">— not the session date</span>')
+            return clock_txt
+        return escape(str(value))
+
     clock = NOT_RECORDED
     if s.actual_start_time and s.actual_end_time:
         delta = (s.actual_end_time - s.actual_start_time).total_seconds() / 60
@@ -120,8 +142,8 @@ def render_session_report(session, *, patient_name: str | None = None) -> str:
             _row("Facility", _v(s.facility_name)),
             _row("Attending physician", _v(s.attending_physician)),
             _row("Attending nurse", _v(s.attending_nurse)),
-            _row("Start", _dt(s.actual_start_time)),
-            _row("End", _dt(s.actual_end_time)),
+            _row("Start", _stamp(s.actual_start_time)),
+            _row("End", _stamp(s.actual_end_time)),
             _row("Clock time (end − start)", clock),
             _row("Machine total time", _v(s.machine_total_time_minutes, " min")),
         ]),
@@ -212,6 +234,7 @@ def render_session_report(session, *, patient_name: str | None = None) -> str:
   .lbl {{ color: #475569; }}
   .val {{ font-weight: 600; text-align: right; }}
   .free {{ font-size: 9.5pt; white-space: pre-wrap; margin: 0 0 5px; }}
+  .warn {{ font-weight: 400; font-style: italic; }}
   footer {{ display: flex; justify-content: space-between; gap: 10px; font-size: 7.5pt;
             color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 6px; margin-top: 16px; }}
   @page {{ margin: 14mm; }}

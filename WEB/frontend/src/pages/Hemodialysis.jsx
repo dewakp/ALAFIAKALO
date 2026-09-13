@@ -534,6 +534,23 @@ export default function Hemodialysis() {
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData(prev => {
       const next = { ...prev, [field]: val };
+
+      // Changing the session DATE moves its times with it.
+      //
+      // `actual_start_time` is stored as a full datetime but entered as a wall
+      // clock, so the day is stamped on from `scheduled_date` when the TIME is
+      // typed. Enter the times first and correct the date afterwards — which is
+      // what happens when a session is written up after midnight — and the
+      // times kept the old day. A report then read "Date 9/12" and
+      // "Start 9/13, 9:41 AM": the same session on two different days, and the
+      // clock duration computed across them.
+      if (field === 'scheduled_date' && val) {
+        const day = String(val).slice(0, 10);
+        for (const f of ['actual_start_time', 'actual_end_time']) {
+          const clock = timeOnly(prev[f]);
+          if (clock) next[f] = `${day}T${clock}:00`;
+        }
+      }
       // Auto-calc fluid to remove
       if (['pre_dialysis_weight_kg', 'dry_weight_kg'].includes(field) && next.pre_dialysis_weight_kg && next.dry_weight_kg) {
         next.fluid_to_remove_kg = (parseFloat(next.pre_dialysis_weight_kg) - parseFloat(next.dry_weight_kg)).toFixed(1);

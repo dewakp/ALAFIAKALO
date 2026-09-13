@@ -150,3 +150,38 @@ class TestThePatientIsNamed:
             _session(), patient_name="<script>alert('x')</script>")
         assert "<script>" not in html
         assert "&lt;script&gt;" in html
+
+
+class TestTheSessionDateAndItsTimesAgree:
+    """A start stamped on a different day than the session is a real fault.
+
+    It happened because `actual_start_time` is stored as a full datetime but
+    entered as a wall clock: the day came from `scheduled_date` at the moment
+    the TIME was typed, so entering the times and correcting the date afterwards
+    left them on the old day. A printed report then read "Date 9/12" and
+    "Start 9/13, 9:41 AM" — the same session on two days, with the clock
+    duration computed across them.
+    """
+
+    def test_a_matching_time_prints_as_a_clock(self):
+        # The date is stated once at the top; repeating it per row is noise.
+        html = render_session_report(_session(
+            scheduled_date=datetime(2026, 9, 12),
+            actual_start_time=datetime(2026, 9, 12, 9, 41),
+            actual_end_time=datetime(2026, 9, 12, 13, 14)))
+        assert "09:41" in html
+        assert "2026-09-12 09:41" not in html
+
+    def test_a_time_on_another_day_is_NAMED_not_printed_quietly(self):
+        html = render_session_report(_session(
+            scheduled_date=datetime(2026, 9, 12),
+            actual_start_time=datetime(2026, 9, 13, 9, 41),
+            actual_end_time=None))
+        assert "not the session date" in html
+        # …and the full stamp is shown, so the reader can see WHICH day.
+        assert "2026-09-13 09:41" in html
+
+    def test_no_start_time_is_still_just_not_recorded(self):
+        html = render_session_report(_session(
+            actual_start_time=None, actual_end_time=None))
+        assert "not the session date" not in html

@@ -83,6 +83,7 @@ export default function TherapyPrintReport() {
   const [session, setSession] = useState(null);
   const [patient, setPatient] = useState(null);
   const [error, setError] = useState('');
+  const [printError, setPrintError] = useState('');
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -109,6 +110,52 @@ export default function TherapyPrintReport() {
   }, [sessionId, patientId, user]);
 
   useEffect(() => { load(); }, [load]);
+
+  /**
+   * Print the SERVER-RENDERED report, not this page.
+   *
+   * `window.print()` on this component printed a preview that looked right and
+   * then saved a blank PDF — the document that comes out of the browser is the
+   * app's whole DOM with print rules layered over it, and anything the layout
+   * does (a scroll container, a re-render while the dialog is open) lands in
+   * the file rather than on the screen where it would be noticed.
+   *
+   * `services/therapy_report.py` already renders this session as a standalone
+   * document, and iOS and Android print exactly that. Fetching it through the
+   * authenticated client and printing it in a blank window removes the app
+   * from the picture entirely — and makes the paper copy identical on all
+   * three platforms, which is the point of having one renderer.
+   */
+  const printReport = useCallback(async () => {
+    setPrintError('');
+    const path = patientId
+      ? `/clinician-dashboard/patient/${patientId}/therapy-sessions/${sessionId}/report.html`
+      : `/chronic/therapy-sessions/${sessionId}/report.html`;
+    let html;
+    try {
+      const res = await api.get(path, { responseType: 'text' });
+      html = res.data;
+    } catch (err) {
+      // A print that silently does nothing is indistinguishable from a button
+      // that was never wired.
+      setPrintError(apiErrorMessage(err, 'This report could not be prepared for printing.'));
+      return;
+    }
+
+    const w = window.open('', '_blank');
+    if (!w) {
+      setPrintError('Your browser blocked the print window — allow pop-ups for this site.');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    // Wait for layout before printing, or the dialog can open on an empty
+    // document — which is precisely the blank page this replaces.
+    w.onload = () => { w.focus(); w.print(); };
+  }, [sessionId, patientId]);
+
+
 
   if (loading) return <div className="tr-page"><p>Loading report…</p></div>;
 
@@ -146,9 +193,14 @@ export default function TherapyPrintReport() {
   return (
     <div className="tr-page">
       <div className="tr-noprint tr-actions">
-        <button className="btn btn-primary" onClick={() => window.print()}>
+        <button className="btn btn-primary" onClick={printReport}>
           Print / Save as PDF
         </button>
+        {printError && (
+          <span style={{ color: '#b91c1c', fontSize: '.85rem', marginLeft: '.6rem' }}>
+            {printError}
+          </span>
+        )}
       </div>
 
       <header className="tr-header">
