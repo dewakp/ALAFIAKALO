@@ -22,7 +22,11 @@ const json = (body, status = 200) => ({
 const SESSION = {
   id: 42,
   session_number: 7,
-  scheduled_date: '2026-09-01T00:00:00',
+  // Note the Z. These columns are `timestamp WITHOUT time zone` — wall clocks
+  // — and the API stamps UTC on them anyway. Read through `new Date()` a
+  // midnight session date lands on the PREVIOUS day west of Greenwich, which
+  // is how a session stored 2026-09-13 printed as 9/12.
+  scheduled_date: '2026-09-01T00:00:00Z',
   facility_name: 'Victoria Island Dialysis',
   attending_physician: 'Dr. A. Balogun',
   actual_start_time: '2026-09-01T08:00:00Z',
@@ -106,4 +110,20 @@ test('a patient printing their own session sees their own name', async ({ page }
 
   await page.goto('/therapy-report/42');
   await expect(page.locator('.tr-patient')).toContainText('Adaeze Okafor');
+});
+
+
+test('a wall-clock timestamp is shown as written, never shifted into the viewer zone', async ({ page }) => {
+  await page.goto('/therapy-report/42');
+
+  // The session date must read 09/01 in every timezone. Parsed as UTC and
+  // rendered locally it becomes 08/31 anywhere west of Greenwich — which is
+  // exactly how a session stored as 2026-09-13 printed as 9/12.
+  await expect(page.locator('.tr-sub')).toContainText('09/01/2026');
+
+  // And the start is the clock that was recorded, not that clock minus an
+  // offset: 08:00 stays 08:00.
+  const start = page.locator('.tr-row', { hasText: 'Start' }).first();
+  await expect(start).toContainText('08:00');
+  await expect(start).not.toContainText('04:00');
 });

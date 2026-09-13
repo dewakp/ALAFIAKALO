@@ -30,16 +30,43 @@ const NOT_RECORDED = '—';
 const val = (v, suffix = '') =>
   v === null || v === undefined || v === '' ? NOT_RECORDED : `${v}${suffix}`;
 
+/**
+ * These timestamps are WALL CLOCKS, not instants.
+ *
+ * `scheduled_date`, `actual_start_time` and `actual_end_time` are
+ * `timestamp WITHOUT time zone` — "13:41 on 2026-09-13" as written on the
+ * flowsheet, with no offset attached. The API puts a `Z` on the wire anyway,
+ * so `new Date(v)` reads them as UTC and shifts them into the viewer's zone:
+ * a session stored as 2026-09-13 00:00 came out as **9/12** in EDT, and a
+ * 13:41 start displayed as 9:41 AM.
+ *
+ * So they are read by their COMPONENTS and never converted. A time recorded at
+ * the chair is that time wherever the record is later opened — converting it
+ * would make the same session read differently in two places, which is worse
+ * than being four hours out in one.
+ */
+const parts = (v) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(String(v || ''));
+  return m ? { y: m[1], mo: m[2], d: m[3], hh: m[4], mm: m[5] } : null;
+};
+
 const dt = (v) => {
   if (!v) return NOT_RECORDED;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+  const p = parts(v);
+  if (!p) return String(v);
+  return p.hh ? `${p.mo}/${p.d}/${p.y}, ${p.hh}:${p.mm}` : `${p.mo}/${p.d}/${p.y}`;
 };
 
 const day = (v) => {
   if (!v) return NOT_RECORDED;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString();
+  const p = parts(v);
+  return p ? `${p.mo}/${p.d}/${p.y}` : String(v);
+};
+
+/** Clock only — the session's date is stated once at the top. */
+const clockOf = (v) => {
+  const p = parts(v);
+  return p && p.hh ? `${p.hh}:${p.mm}` : NOT_RECORDED;
 };
 
 /**
@@ -184,10 +211,20 @@ export default function TherapyPrintReport() {
     ? Math.round(uf * 1000 - given)
     : null;
 
+  // Minutes between two wall clocks, computed from their components. Both
+  // carry the same spurious Z, so Date arithmetic happens to cancel — but only
+  // while both are present and on the same day, which is exactly the case that
+  // was wrong here.
   let clockMinutes = null;
-  if (s.actual_start_time && s.actual_end_time) {
-    const ms = new Date(s.actual_end_time) - new Date(s.actual_start_time);
-    if (Number.isFinite(ms) && ms > 0) clockMinutes = Math.round(ms / 60000);
+  {
+    const a = parts(s.actual_start_time);
+    const b = parts(s.actual_end_time);
+    if (a?.hh && b?.hh) {
+      const mins = (d) => Number(d.hh) * 60 + Number(d.mm);
+      const sameDay = `${a.y}${a.mo}${a.d}` === `${b.y}${b.mo}${b.d}`;
+      const delta = mins(b) - mins(a) + (sameDay ? 0 : 24 * 60);
+      if (delta > 0) clockMinutes = delta;
+    }
   }
 
   return (
@@ -226,8 +263,19 @@ export default function TherapyPrintReport() {
         <Row label="Facility">{val(s.facility_name)}</Row>
         <Row label="Attending physician">{val(s.attending_physician)}</Row>
         <Row label="Attending nurse">{val(s.attending_nurse)}</Row>
-        <Row label="Start">{dt(s.actual_start_time)}</Row>
-        <Row label="End">{dt(s.actual_end_time)}</Row>
+        {/* Clock times — the date is on the line above. Where a time falls on
+            a different day the full stamp is shown, so the mismatch is not
+            hidden by only ever printing the clock. */}
+        <Row label="Start">
+          {parts(s.actual_start_time) && day(s.actual_start_time) !== day(s.scheduled_date || s.date)
+            ? `${dt(s.actual_start_time)} — not the session date`
+            : clockOf(s.actual_start_time)}
+        </Row>
+        <Row label="End">
+          {parts(s.actual_end_time) && day(s.actual_end_time) !== day(s.scheduled_date || s.date)
+            ? `${dt(s.actual_end_time)} — not the session date`
+            : clockOf(s.actual_end_time)}
+        </Row>
         {/* Two different numbers, printed as two different numbers. The clock
             is end − start; the machine reports time actually dialysing and
             excludes alarms and pauses. Kt/V follows the machine figure. */}
