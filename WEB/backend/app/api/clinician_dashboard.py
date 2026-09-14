@@ -608,6 +608,16 @@ async def patient_therapy_session_report(
     patient = await _patient_or_404(patient_id, db)
     session = await _therapy_session_for_patient(session_id, patient_id, db)
 
+    # The readings are part of the report, and `_therapy_session_for_patient`
+    # does not eager-load them — on an AsyncSession that attribute raises
+    # rather than lazily fetching, so the clinician's copy would 500.
+    readings = (await db.execute(
+        select(IntradialyticReading)
+        .where(IntradialyticReading.session_id == session_id)
+        .order_by(IntradialyticReading.reading_time)
+    )).scalars().all()
+    session.intradialytic_readings = list(readings)
+
     html = render_session_report(session, patient_name=patient.full_name)
     return HTMLResponse(content=html)
 

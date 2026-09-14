@@ -761,7 +761,12 @@ async def therapy_session_report(
     clinician prints and the one the patient prints cannot drift.
     """
     result = await db.execute(
-        select(TherapySession).where(
+        select(TherapySession)
+        # The readings are PART of the report. Without this the attribute is a
+        # lazy load on an AsyncSession, which raises rather than fetching —
+        # the report would 500, not quietly omit them.
+        .options(selectinload(TherapySession.intradialytic_readings))
+        .where(
             and_(TherapySession.id == session_id,
                  TherapySession.user_id == current_user.id)
         )

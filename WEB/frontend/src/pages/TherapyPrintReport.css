@@ -148,3 +148,26 @@
   font-weight: 400;
   color: #b91c1c;
 }
+
+/* Intradialytic readings. A long run must break across pages rather than be
+   clipped or pushed onto its own sheet, so this section opts out of the
+   break-inside rule the other sections use. */
+.tr-readings { break-inside: auto; page-break-inside: auto; }
+.tr-readings tr { break-inside: avoid; page-break-inside: avoid; }
+
+.tr-rdg { width: 100%; border-collapse: collapse; font-size: .75rem; }
+.tr-rdg th {
+  text-align: left;
+  border-bottom: 1px solid #94a3b8;
+  padding: 3px 5px;
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  color: #475569;
+}
+.tr-rdg td { padding: 3px 5px; border-bottom: 1px dotted #e2e8f0; }
+.tr-low { font-weight: 700; color: #b91c1c; }
+
+@media print {
+  .tr-low { color: #000; }   /* clinic printers are rarely colour */
+}

@@ -185,3 +185,56 @@ class TestTheSessionDateAndItsTimesAgree:
         html = render_session_report(_session(
             actual_start_time=None, actual_end_time=None))
         assert "not the session date" not in html
+
+
+def _reading(t, sys_bp=130, dia=80, pulse=72, remarks=""):
+    return SimpleNamespace(
+        reading_time=t, systolic_bp=sys_bp, diastolic_bp=dia, pulse=pulse,
+        mean_arterial_pressure=None, blood_flow_rate=400, uf_rate=800,
+        uf_volume_removed=500, arterial_pressure=-120, venous_pressure=140,
+        remarks=remarks)
+
+
+class TestIntradialyticReadings:
+    """A flowsheet without the readings is a summary, not a record.
+
+    The clinical point of a dialysis session is what happened DURING it, and
+    averages are no substitute: a run that starts at 150 and ends at 84 has an
+    unremarkable mean and a serious ending.
+    """
+
+    def test_the_readings_are_printed(self):
+        html = render_session_report(_session(intradialytic_readings=[
+            _reading("09:00", 150, 88), _reading("10:00", 128, 80)]))
+        assert "Intradialytic readings (2)" in html
+        assert "150/88" in html
+        assert "128/80" in html
+
+    def test_a_low_systolic_is_NAMED_not_left_to_be_spotted(self):
+        # Canon §3am: for these readings the NADIR is the finding, not the
+        # mean. A reader should not have to scan a 20-row table to find it.
+        html = render_session_report(_session(intradialytic_readings=[
+            _reading("09:00", 150, 88), _reading("11:00", 84, 55),
+            _reading("12:00", 88, 58)]))
+        assert "2 readings below 90 mmHg" in html
+        assert "intradialytic hypotension" in html
+
+    def test_a_normal_run_is_not_flagged(self):
+        html = render_session_report(_session(intradialytic_readings=[
+            _reading("09:00", 150, 88), _reading("10:00", 128, 80)]))
+        assert "hypotension" not in html
+
+    def test_remarks_survive(self):
+        html = render_session_report(_session(intradialytic_readings=[
+            _reading("11:00", 84, 55, remarks="cramping")]))
+        assert "cramping" in html
+
+    def test_no_readings_says_so_rather_than_printing_an_empty_table(self):
+        html = render_session_report(_session(intradialytic_readings=[]))
+        assert "None recorded for this session" in html
+        assert '<table class="rdg"' not in html
+
+    def test_a_remark_cannot_inject_markup(self):
+        html = render_session_report(_session(intradialytic_readings=[
+            _reading("09:00", remarks="<script>alert(1)</script>")]))
+        assert "<script>" not in html

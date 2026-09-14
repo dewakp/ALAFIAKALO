@@ -81,6 +81,67 @@ def _section(title: str, rows: list[str]) -> str:
             f'<div class="grid">{"".join(rows)}</div></section>')
 
 
+#: Systolic below this is intradialytic hypotension. Canon §3am: for these
+#: readings the NADIR is the finding, not the mean — a session ending below 90
+#: is an event a mean hides completely.
+HYPOTENSION_SYSTOLIC = 90
+
+
+def _readings_table(readings) -> str:
+    """The intradialytic readings, as they were taken.
+
+    A printed flowsheet without them is a summary, not a record: the whole
+    clinical point of a dialysis session is what happened DURING it. Averages
+    are not a substitute — a run that started at 150 and ended at 84 has an
+    unremarkable mean and a serious ending.
+
+    Readings are ordered by time and low systolics are marked, so the reader
+    sees the nadir rather than having to find it.
+    """
+    if not readings:
+        return ('<section><h2>Intradialytic readings</h2>'
+                f'<p class="free">{NOT_RECORDED} None recorded for this session.</p>'
+                '</section>')
+
+    rows = []
+    lows = 0
+    for r in sorted(readings, key=lambda x: (str(getattr(x, "reading_time", "") or ""))):
+        sys_bp = getattr(r, "systolic_bp", None)
+        low = sys_bp is not None and sys_bp < HYPOTENSION_SYSTOLIC
+        if low:
+            lows += 1
+        bp = (f'{sys_bp}/{getattr(r, "diastolic_bp", None) or NOT_RECORDED}'
+              if sys_bp is not None else NOT_RECORDED)
+        cells = [
+            escape(str(getattr(r, "reading_time", "") or NOT_RECORDED))[:5],
+            f'<span class="low">{bp}</span>' if low else bp,
+            _v(getattr(r, "pulse", None)),
+            _v(getattr(r, "mean_arterial_pressure", None)),
+            _v(getattr(r, "blood_flow_rate", None)),
+            _v(getattr(r, "uf_rate", None)),
+            _v(getattr(r, "uf_volume_removed", None)),
+            _v(getattr(r, "arterial_pressure", None)),
+            _v(getattr(r, "venous_pressure", None)),
+            escape(str(getattr(r, "remarks", "") or "")),
+        ]
+        rows.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
+
+    head = ("<tr>" + "".join(
+        f"<th>{h}</th>" for h in
+        ("Time", "BP", "Pulse", "MAP", "BFR", "UFR", "UF vol", "Art P", "Ven P", "Remarks")
+    ) + "</tr>")
+
+    note = ""
+    if lows:
+        # Stated as a finding, not left for the reader to spot in a table.
+        note = (f'<p class="free low"><strong>{lows} reading'
+                f'{"s" if lows != 1 else ""} below {HYPOTENSION_SYSTOLIC} mmHg '
+                f'systolic</strong> — intradialytic hypotension.</p>')
+
+    return (f'<section><h2>Intradialytic readings ({len(readings)})</h2>'
+            f'{note}<table class="rdg">{head}{"".join(rows)}</table></section>')
+
+
 def render_session_report(session, *, patient_name: str | None = None) -> str:
     """The printable document for one session."""
     s = session
@@ -194,6 +255,9 @@ def render_session_report(session, *, patient_name: str | None = None) -> str:
         ]),
     ])
 
+    # The readings belong in the record, after the totals they explain.
+    body += _readings_table(getattr(s, "intradialytic_readings", None) or [])
+
     if s.drugs_administered:
         body += (f'<section><h2>Drugs given this session</h2>'
                  f'<p class="free">{escape(s.drugs_administered)}</p></section>')
@@ -235,6 +299,15 @@ def render_session_report(session, *, patient_name: str | None = None) -> str:
   .val {{ font-weight: 600; text-align: right; }}
   .free {{ font-size: 9.5pt; white-space: pre-wrap; margin: 0 0 5px; }}
   .warn {{ font-weight: 400; font-style: italic; }}
+  table.rdg {{ width: 100%; border-collapse: collapse; font-size: 8pt; }}
+  table.rdg th {{ text-align: left; border-bottom: 1px solid #000; padding: 2px 4px;
+                  font-size: 7.5pt; text-transform: uppercase; letter-spacing: .3px; }}
+  table.rdg td {{ padding: 2px 4px; border-bottom: 1px dotted #e2e8f0; }}
+  /* A long run must be allowed to break across pages — `break-inside: avoid`
+     on the section would push a 20-row table onto its own sheet or clip it. */
+  section:has(table.rdg) {{ break-inside: auto; page-break-inside: auto; }}
+  table.rdg tr {{ break-inside: avoid; page-break-inside: avoid; }}
+  .low {{ font-weight: 700; }}
   footer {{ display: flex; justify-content: space-between; gap: 10px; font-size: 7.5pt;
             color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 6px; margin-top: 16px; }}
   @page {{ margin: 14mm; }}

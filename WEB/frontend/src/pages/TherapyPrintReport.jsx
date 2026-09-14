@@ -215,6 +215,12 @@ export default function TherapyPrintReport() {
   // carry the same spurious Z, so Date arithmetic happens to cancel — but only
   // while both are present and on the same day, which is exactly the case that
   // was wrong here.
+  // Ordered by time: a table out of order reads as a different session.
+  const readings = [...(s.intradialytic_readings || [])]
+    .sort((a, b) => String(a.reading_time || '').localeCompare(String(b.reading_time || '')));
+  const lowReadings = readings.filter(
+    (r) => r.systolic_bp != null && r.systolic_bp < 90).length;
+
   let clockMinutes = null;
   {
     const a = parts(s.actual_start_time);
@@ -338,6 +344,56 @@ export default function TherapyPrintReport() {
         <Row label="Shortness of breath">{s.post_shortness_of_breath ? 'Yes' : 'No'}</Row>
         <Row label="Swelling">{s.post_swelling ? 'Yes' : 'No'}</Row>
       </Section>
+
+      {/* The readings, as they were taken. A flowsheet without them is a
+          summary, not a record — and a mean hides the ending, which is the
+          part that matters (§3am: the nadir is the finding). */}
+      <section className="tr-section tr-readings">
+        <h2>Intradialytic readings{readings.length ? ` (${readings.length})` : ''}</h2>
+        {readings.length === 0 ? (
+          <p className="tr-free">{NOT_RECORDED} None recorded for this session.</p>
+        ) : (
+          <>
+            {lowReadings > 0 && (
+              <p className="tr-free tr-low">
+                <strong>{lowReadings} reading{lowReadings === 1 ? '' : 's'} below 90 mmHg
+                systolic</strong> — intradialytic hypotension.
+              </p>
+            )}
+            <div style={{ overflowX: 'auto' }}>
+              <table className="tr-rdg">
+                <thead>
+                  <tr>{['Time', 'BP', 'Pulse', 'MAP', 'BFR', 'UFR', 'UF vol', 'Art P', 'Ven P', 'Remarks']
+                    .map((h) => <th key={h}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {readings.map((r, i) => {
+                    const low = r.systolic_bp != null && r.systolic_bp < 90;
+                    return (
+                      <tr key={r.id ?? i}>
+                        <td>{String(r.reading_time || NOT_RECORDED).slice(0, 5)}</td>
+                        <td className={low ? 'tr-low' : undefined}>
+                          {r.systolic_bp != null
+                            ? `${r.systolic_bp}/${r.diastolic_bp ?? NOT_RECORDED}`
+                            : NOT_RECORDED}
+                        </td>
+                        <td>{val(r.pulse)}</td>
+                        <td>{val(r.mean_arterial_pressure)}</td>
+                        <td>{val(r.blood_flow_rate)}</td>
+                        <td>{val(r.uf_rate)}</td>
+                        <td>{val(r.uf_volume_removed)}</td>
+                        <td>{val(r.arterial_pressure)}</td>
+                        <td>{val(r.venous_pressure)}</td>
+                        <td>{r.remarks || ''}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </section>
 
       {s.drugs_administered && (
         <section className="tr-section">

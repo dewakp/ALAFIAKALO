@@ -42,6 +42,12 @@ const SESSION = {
   saline_added_ml: 250,
   total_uf_liters: 2.55,                      // machine gross
   drugs_administered: 'Epoetin alfa 4000 units',
+  intradialytic_readings: [
+    { id: 1, reading_time: '09:00:00', systolic_bp: 150, diastolic_bp: 88, pulse: 74 },
+    { id: 2, reading_time: '11:00:00', systolic_bp: 84, diastolic_bp: 55, pulse: 96,
+      remarks: 'cramping' },
+    { id: 3, reading_time: '12:00:00', systolic_bp: 88, diastolic_bp: 58, pulse: 90 },
+  ],
 };
 
 test.beforeEach(async ({ page }) => {
@@ -126,4 +132,26 @@ test('a wall-clock timestamp is shown as written, never shifted into the viewer 
   const start = page.locator('.tr-row', { hasText: 'Start' }).first();
   await expect(start).toContainText('08:00');
   await expect(start).not.toContainText('04:00');
+});
+
+
+test('the readings are on the report, and the nadir is named', async ({ page }) => {
+  await page.goto('/therapy-report/42');
+
+  // A flowsheet without the readings is a summary, not a record.
+  await expect(page.getByText('Intradialytic readings (3)')).toBeVisible();
+  await expect(page.getByText('150/88')).toBeVisible();
+  await expect(page.getByText('84/55')).toBeVisible();
+  await expect(page.getByText('cramping')).toBeVisible();
+
+  // The ending is the finding, and a mean hides it — so it is stated, not
+  // left to be spotted in the table.
+  await expect(page.getByText(/2 readings below 90 mmHg/)).toBeVisible();
+});
+
+test('a session with no readings says so instead of showing an empty table', async ({ page }) => {
+  await page.route('**/api/v1/chronic/therapy-sessions/42', (r) =>
+    r.fulfill(json({ ...SESSION, intradialytic_readings: [] })));
+  await page.goto('/therapy-report/42');
+  await expect(page.getByText(/None recorded for this session/)).toBeVisible();
 });
