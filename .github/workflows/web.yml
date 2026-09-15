@@ -72,10 +72,12 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # No PLAYWRIGHT_BASE_URL here. Set, it told Playwright a server already
+      # existed; nothing started one, and every spec died with
+      # ERR_CONNECTION_REFUSED — 46 failures on 2026-09-15, and every run before
+      # it. Unset, playwright.config.js builds the app and serves `vite preview`.
       - name: Run E2E tests
         run: npx playwright test
-        env:
-          PLAYWRIGHT_BASE_URL: http://localhost:5173
 
       - name: Upload Playwright report
         if: always()

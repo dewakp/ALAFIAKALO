@@ -26,9 +26,25 @@ const PASSWORD = 'ProofPassw0rd!23';
 let sharedToken = null;
 
 test.beforeAll(async ({ playwright }) => {
+  // The same default as playwright.config.js. Compose always sets
+  // PLAYWRIGHT_BASE_URL (frontend-preview); unset, the suite's own server is here.
   const api = await playwright.request.newContext({
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://frontend-preview:5173',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
   });
+
+  // CI serves the built app with no backend behind it, and this file exists to
+  // prove the screen against the REAL API — so there it is skipped, saying where
+  // it does run, rather than failing on a server nobody provided. Anywhere else a
+  // missing backend is a broken setup, and it still fails below.
+  const health = await api.get('/api/health').catch(() => null);
+  const backendUp = !!health && health.ok()
+    && (await health.json().catch(() => ({}))).status === 'healthy';
+  if (process.env.CI && !backendUp) {
+    await api.dispose();
+    test.skip(true, 'needs the real backend and the seeded proof user — runs in '
+      + '`docker compose --profile test run --rm e2e`, not in CI');
+  }
+
   await api.get('/api/v1/auth/csrf-cookie');
   const csrf = (await api.storageState()).cookies
     .find((c) => c.name === 'csrf_token')?.value || '';

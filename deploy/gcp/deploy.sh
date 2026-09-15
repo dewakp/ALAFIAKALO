@@ -295,7 +295,10 @@ FRONTEND_URL="$(gcloud run services describe "$SVC_FRONTEND" --region "$REGION" 
 # (Not the *.run.app URL — the app is served at PUBLIC_DOMAIN, and mobile/web hit
 # api.$domain. Using the domain here is what keeps CORS/redirects prod-correct.)
 echo "── Wiring backend → public URL (${PUBLIC_DOMAIN}) ─────────────"
-WWW="${PUBLIC_DOMAIN/https:\/\//https:\/\/www.}"
+# Built directly: the escaped replacement `${PUBLIC_DOMAIN/https:\/\//https:\/\/www.}`
+# kept its backslashes under macOS bash 3.2, so production's CORS_ORIGINS held
+# "https:\/\/www.alafia.app" — an origin no browser sends — on every revision.
+WWW="https://www.${PUBLIC_DOMAIN#https://}"
 gcloud run services update "$SVC_BACKEND" --region "$REGION" \
   --update-env-vars "^|^PUBLIC_WEB_URL=${PUBLIC_DOMAIN}|CORS_ORIGINS=[\"${PUBLIC_DOMAIN}\",\"${WWW}\"]|EHR_REDIRECT_URI=${PUBLIC_DOMAIN}/ehr/callback"
 

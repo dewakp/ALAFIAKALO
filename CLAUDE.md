@@ -2402,6 +2402,22 @@ docker compose --profile ml run --rm food-vision-export   # food model  → 19 (
 
 Other notes:
 
+- ⚠️ **Until 2026-09-15 CI had never tested anything, and every check was red.**
+  Each workflow died before its first test, for a reason that had nothing to do
+  with the code:
+  - **Backend** — `pytest` does not put the working directory on `sys.path`
+    (`No module named 'app'`), and once past that, `conftest.py` defaults its
+    host to the compose name `db`. Now `PYTHONPATH` and `TEST_DB_HOST` are set.
+  - **Android** — `google-services.json` is gitignored, so the Google Services
+    task failed first. CI writes it from the `GOOGLE_SERVICES_JSON` secret, or
+    a placeholder.
+  - **Web e2e** — `playwright.config.js` skipped its preview server in CI and
+    nothing else started one: 46 × `ERR_CONNECTION_REFUSED`.
+    `medication-intake.spec.js` needs the real backend, so in CI only it skips,
+    saying so.
+
+  A red CI that everyone learns to ignore is worse than no CI: it hid all of
+  this. **Read why a check failed before calling it flaky.**
 - `greenlet` is required by SQLAlchemy's async engine and is **not** pulled in
   automatically on Python 3.13. Without it every DB route 500s.
 - Backend docs are at `/api/docs` (only when `DEBUG`), routes under `/api/v1`.
