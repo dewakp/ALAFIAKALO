@@ -17,8 +17,10 @@ jobs:
 
     services:
       postgres:
-        # Production is Cloud SQL Postgres 16 (CLAUDE.md §1); test against it.
-        image: postgres:16
+        # Production is Cloud SQL POSTGRES_18 (created as 18 on 2026-07-22; read it
+        # with `gcloud sql instances describe alafia-db-va`, not from a doc). This
+        # was wrongly set to 16 on 2026-09-15 from a stale line in CLAUDE.md.
+        image: postgres:18
         env:
           POSTGRES_USER: alafia
           POSTGRES_PASSWORD: alafia

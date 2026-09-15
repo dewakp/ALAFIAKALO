@@ -53,14 +53,19 @@ clone or a new session belongs outside it.)
 
 | | Where | Notes |
 |---|---|---|
-| **Prod DB** | Cloud SQL `alafia-prod-6igma:us-east4:alafia-db-va` | Postgres 16. Authoritative. |
-| **Dev DB** | `127.0.0.1:5435` (`WEB/docker-compose.yml` service `db`) | Postgres 16. **Port 5435, not 5432.** |
+| **Prod DB** | Cloud SQL `alafia-prod-6igma:us-east4:alafia-db-va` | **Postgres 18** (`POSTGRES_18`, created 2026-07-22). Authoritative. |
+| **Dev DB** | `127.0.0.1:5435` (`WEB/docker-compose.yml` service `db`) | Postgres 18 (`postgres:18-alpine`). **Port 5435, not 5432.** |
+
+> ⚠️ **Ask the instance, not this table.** It said "Postgres 16" for six weeks
+> after everything moved to 18 (`4817a67`, 2026-08-16), and on 2026-09-15 that
+> stale line was used to move CI back to 16. `gcloud sql instances describe
+> alafia-db-va --format='value(databaseVersion)'` is the answer.
 | **Schemas** | `public` (app) + `identity` (PQC SSO) | Both must match. Syncing only `public` is a silent drift bug. |
 
 > ⚠️ A `postgres` on **5432** belongs to a *different project* on this machine
 > (`sigma_db`). Connecting to it will look like it works and give wrong data.
 
-All postgres tooling runs through pinned Docker images (`postgres:16-alpine`,
+All postgres tooling runs through pinned Docker images (`postgres:18-alpine`,
 `cloud-sql-proxy:2.14.3`) — nothing is installed on the host, so client versions
 can't drift between machines. Prod access needs ADC once per machine:
 `gcloud auth application-default login`, plus `PROD_DB_PASS` in the environment.
@@ -2447,15 +2452,19 @@ Other notes:
   `down_revision: Union[str, None] = '…'`, which a naive `^down_revision\s*=`
   regex misses, making real parents look like heads. Never grep for this; run
   `alembic heads`.
-- ⚠️ **The dev database is NOT the production engine (found 2026-09-15).** §1's
-  table says Postgres 16 for both; `WEB/docker-compose.yml` runs
-  **`postgres:18-alpine`** (server 18.6). Both report `en_US.utf8`, yet they
-  sort text differently: alpine's musl compares bytes, while glibc — Cloud SQL,
-  and CI's `postgres:16` — collates linguistically. So `min(name)` over "Calcium
-  Carbonate" / "Calcium carbonate" returns a different row in dev than in
-  production, and a test that encoded dev's answer failed the first time CI ran
-  on 16. Anything that orders, groups or compares text can pass here and differ
-  there. Moving dev to `postgres:16` (Debian) means a fresh `pull_prod.sh`.
+- ⚠️ **Dev and production are both Postgres 18 — and still sort text
+  differently (verified 2026-09-15).** Same query, both databases:
+
+      production (Cloud SQL)  18.4 | en_US.UTF8 | libc | min → "Calcium carbonate"
+      dev (postgres:18-alpine) 18.6 | en_US.utf8 | libc | min → "Calcium Carbonate"
+
+  Both name the same locale, but alpine's musl compares bytes while Cloud SQL
+  collates linguistically. So `ORDER BY` / `min()` / `GROUP BY` over text can
+  return a different row in dev than in production — a test encoded dev's answer
+  and failed the first time CI (Debian `postgres:18`, which sorts like
+  production) ran it. Moving dev to the Debian `postgres:18` image fixes the
+  collation, but existing text indexes were built under musl's order: re-pull
+  (`pull_prod.sh`), do not just swap the image.
 - ⚠️ **`ML/tests/test_hebcs.py` fails 2 of 48 (as of 2026-09-15)** —
   feature-bridge coverage **71.4% < 75%**, and **105/141** features with medians
   (< 130). The code and its `models/*.joblib` are unchanged since June, and the
