@@ -124,6 +124,13 @@ Non-obvious points that have already caused bugs:
 
 - Use `OLLAMA_VISION_MODEL=llava`. **Not moondream** — it is a grounding model
   and answers the food schema with bounding boxes, so every photo fails.
+- **Vision follows the production provider order: local DB → hosted → Ollama.**
+  It used to ask Ollama FIRST whenever `OLLAMA_BASE_URL` was set — always, in
+  production — so every photo woke a cold GPU. On 2026-09-15 llava then looped on
+  one item until the token limit, and a truncation repair that had never worked
+  on a list turned it into a 503 after ~150 s. Hosted readers come from
+  `ordered_for_selection(require_vision=True)`; the same photos answer in ~3 s.
+  Detail: VISION_TRAINING.md → "Who reads the photo".
 - Images are retained **only** with `PrivacySettings.allow_collective_insights`
   (default false; absent row = no consent). Without it the sample is still
   recorded, minus the photo.
@@ -132,6 +139,27 @@ Non-obvious points that have already caused bugs:
 - Writing training data must never break the user's analysis: the writes run in a
   `SAVEPOINT`, because a failed flush poisons the session and the later commit
   500s even when the exception was caught.
+
+### The Phase 5 classifier: `ML/food_vision/`
+
+Training, evaluation and export for the on-device food model. It is verified end
+to end on synthetic photos, but **no model has been trained on real food**, and
+nothing in iOS, Android or the backend loads one yet. Photo format and commands:
+VISION_TRAINING.md.
+
+- **Components are multi-label.** A single dish softmax cannot name what a
+  composite contains. `labels.csv` lists components *including what cooking has
+  hidden* — that is what the preparation-stage photos teach.
+- **`session` keeps validation honest.** All stages of one preparation stay on
+  one side of the split. Split per photo and validation measures memory.
+- **An export ships on DECISIONS, not a tolerance.** On the first trained model
+  both float16 conversions failed. onnx2tf's float16 TFLite would not even load
+  on LiteRT's CPU interpreter, and Core ML float16 flipped a decision (max diff
+  1.9e-2), where an untrained model had differed by only 4e-4. "Half the size,
+  within tolerance" would have shipped both.
+- **Conversion runs `linux/amd64` even on Apple Silicon**, and Core ML
+  verification runs on the macOS host, the pipeline's only non-Docker step.
+  Reasons are in `ML/food_vision/Dockerfile.export`.
 
 ## 3aa. Clinical domains split across TWO tables — medications across THREE
 
@@ -2166,7 +2194,15 @@ docker compose --profile dev up frontend-dev        # → http://localhost:5173
 docker compose --profile test run --rm frontend-test   # vitest      → 105
 docker compose --profile test run --rm e2e             # playwright  → 18
 docker compose --profile test run --rm backend-test    # pytest      → 880
+docker compose --profile ml run --rm food-vision          # food model  → 20 (+1 skipped: conversion)
+docker compose --profile ml run --rm food-vision-export   # food model  → 19 (+2 skipped: HEIC, sklearn)
 ```
+
+- **`--platform linux/amd64` re-points the local image tag.** After one
+  `docker run --platform linux/amd64 python:3.12-slim`, a plain
+  `docker run python:3.12-slim` on Apple Silicon runs the amd64 copy under
+  emulation. Docker only prints a warning, and a benchmark taken "on arm64" was
+  not. A service that needs a platform pins it in compose (`food-vision-export`).
 
 - **`frontend` on :8080 is not a dev server.** It is nginx serving a `dist/`
   baked at image-build time. Use `frontend-dev` on :5173 for frontend work.

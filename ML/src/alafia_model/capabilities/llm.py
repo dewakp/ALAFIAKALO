@@ -113,19 +113,8 @@ class LLMCapability(BaseCapability):
         cached = self._pool.get(spec.name)
         if cached is not None:
             return cached
-        if spec.kind == "anthropic":
-            from alafia_model.adapters.anthropic_adapter import AnthropicAdapter
-            adapter = AnthropicAdapter(api_key=spec.api_key, model=spec.resolved_model())
-        else:
-            from alafia_model.adapters.openai_compat_adapter import OpenAICompatAdapter
-            from alafia_model.registry.providers import base_url_for
-            adapter = OpenAICompatAdapter(
-                provider=spec.name,
-                base_url=base_url_for(spec),
-                api_key=spec.api_key,
-                model=spec.resolved_model(),
-                extra_headers=spec.extra_headers,
-            )
+        from alafia_model.registry.providers import adapter_for
+        adapter = adapter_for(spec)
         self._pool[spec.name] = adapter
         return adapter
 

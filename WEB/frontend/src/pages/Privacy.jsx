@@ -27,7 +27,7 @@ const COLLECTED = [
   {
     icon: '📷',
     title: 'Photos you attach',
-    desc: 'Meal photos you add so ALAFIA can estimate nutrition, and any documents you upload such as lab reports. A meal photo is read first by ALAFIA\'s own vision model; if that is unavailable it is sent to a third-party vision provider with nothing attached to it — no name, no account, no notes.',
+    desc: 'Meal photos you add so ALAFIA can estimate nutrition, and any documents you upload such as lab reports. A meal you have labelled before is recognised from your own history and sent nowhere. Otherwise the photo is read by a third-party vision provider with nothing attached to it — no name, no account, no notes — and by ALAFIA\'s own vision model only if no provider is available.',
   },
   {
     icon: '📝',

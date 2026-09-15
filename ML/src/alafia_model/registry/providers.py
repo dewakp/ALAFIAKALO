@@ -54,6 +54,13 @@ class ProviderSpec:
     #: discovering the gap mid-conversation (§3ae: never gate on a
     #: provider-specific assumption; here, never assume one either).
     supports_tools: bool = True
+    #: Whether this provider's model family reads IMAGES.
+    #:
+    #: Declared, not probed, and deliberately narrow: a text-only model handed a
+    #: photo either refuses, or answers from the prompt alone and describes a
+    #: plate it never saw. Vision requests skip unmarked providers BEFORE
+    #: selection, exactly as tool requests skip `supports_tools=False`.
+    supports_vision: bool = False
 
     @property
     def api_key(self) -> str:
@@ -215,7 +222,8 @@ PROVIDERS: list[ProviderSpec] = [
     ProviderSpec("fireworks", "https://api.fireworks.ai/inference/v1", "FIREWORKS_API_KEY", "accounts/fireworks/models/llama-v3p3-70b-instruct", "paid", 1.0),
     ProviderSpec("deepinfra", "https://api.deepinfra.com/v1/openai", "DEEPINFRA_API_KEY", "meta-llama/Llama-3.3-70B-Instruct", "paid", 1.0, model_prefer=("llama",)),
     ProviderSpec("xai", "https://api.x.ai/v1", "XAI_API_KEY", "grok-2-latest", "paid", 1.0),
-    ProviderSpec("openai", "https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-4o-mini", "paid", 1.0, model_prefer=("mini",)),
+    ProviderSpec("openai", "https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-4o-mini", "paid", 1.0, model_prefer=("mini",),
+                 supports_vision=True),
     ProviderSpec("perplexity", "https://api.perplexity.ai", "PERPLEXITY_API_KEY", "sonar", "paid", 0.5,
                  # search models answer in prose and ignore a `tools` field
                  supports_tools=False),
@@ -226,7 +234,8 @@ PROVIDERS: list[ProviderSpec] = [
     # sitting beside deepseek's 402 and openai's 429 in the same log.
     # Same tier as the id it replaces; use claude-opus-5 instead if you want the
     # fallback to be the strong model rather than the cheap fast one.
-    ProviderSpec("anthropic", "https://api.anthropic.com/v1", "ANTHROPIC_API_KEY", "claude-haiku-4-5", "paid", 1.0, kind="anthropic", model_prefer=("haiku", "sonnet")),
+    ProviderSpec("anthropic", "https://api.anthropic.com/v1", "ANTHROPIC_API_KEY", "claude-haiku-4-5", "paid", 1.0, kind="anthropic", model_prefer=("haiku", "sonnet"),
+                 supports_vision=True),
 ]
 
 
@@ -263,6 +272,26 @@ def base_url_for(spec: ProviderSpec) -> str:
     return _resolve_base_url(spec)
 
 
+def adapter_for(spec: ProviderSpec):
+    """Build the adapter for a provider spec.
+
+    The one place a spec's `kind` becomes an adapter, shared by chat and vision —
+    two copies of this mapping is how one path learns a provider the other does
+    not.
+    """
+    if spec.kind == "anthropic":
+        from alafia_model.adapters.anthropic_adapter import AnthropicAdapter
+        return AnthropicAdapter(api_key=spec.api_key, model=spec.resolved_model())
+    from alafia_model.adapters.openai_compat_adapter import OpenAICompatAdapter
+    return OpenAICompatAdapter(
+        provider=spec.name,
+        base_url=base_url_for(spec),
+        api_key=spec.api_key,
+        model=spec.resolved_model(),
+        extra_headers=spec.extra_headers,
+    )
+
+
 def _weighted_shuffle(specs: list[ProviderSpec]) -> list[ProviderSpec]:
     """Random order, biased by weight (weighted sampling without replacement)."""
     pool = list(specs)
@@ -281,7 +310,7 @@ def _weighted_shuffle(specs: list[ProviderSpec]) -> list[ProviderSpec]:
     return ordered
 
 
-def ordered_for_selection(*, require_tools: bool = False) -> list[ProviderSpec]:
+def ordered_for_selection(*, require_tools: bool = False, require_vision: bool = False) -> list[ProviderSpec]:
     """Free-first weighted round-robin: free tier (shuffled) then paid (shuffled),
     skipping any provider currently on cooldown.
 
@@ -290,10 +319,15 @@ def ordered_for_selection(*, require_tools: bool = False) -> list[ProviderSpec]:
     provider that ignores a `tools` field answers in prose, which looks like a
     successful call and leaves the caller waiting for a tool result that will
     never arrive.
+
+    `require_vision` drops providers whose models cannot read images, for the
+    same reason: a text model can describe a photo it never saw.
     """
     live = [s for s in enabled_providers() if not _is_cooling(s.name)]
     if require_tools:
         live = [s for s in live if s.supports_tools]
+    if require_vision:
+        live = [s for s in live if s.supports_vision]
     free = [s for s in live if s.tier == "free"]
     paid = [s for s in live if s.tier != "free"]
     return _weighted_shuffle(free) + _weighted_shuffle(paid)
