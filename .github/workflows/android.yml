@@ -32,6 +32,42 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # google-services.json is gitignored, so every run since at least
+      # 2026-09-09 died at :app:processDebugGoogleServices ("File
+      # google-services.json is missing") before compiling a line or running a
+      # test. The real config is used when the GOOGLE_SERVICES_JSON secret is set;
+      # otherwise a placeholder shaped for com.alafia.android lets the debug build
+      # and unit tests run. Unit tests never reach Firebase.
+      - name: Provide google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          else
+            cat > app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "alafia-ci-placeholder",
+              "storage_bucket": "alafia-ci-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": { "package_name": "com.alafia.android" }
+                },
+                "oauth_client": [],
+                "api_key": [ { "current_key": "ci-placeholder-not-a-real-key" } ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          fi
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
 

@@ -54,6 +54,10 @@ jobs:
       # "No module named 'app'" (exit 4) and ran no test. Same order as the
       # backend-test container: the canonical ALAFIAModel source first (CLAUDE.md §4).
       PYTHONPATH: ${{ github.workspace }}/ML/src:${{ github.workspace }}/WEB/backend
+      # tests/conftest.py builds its own URL from TEST_DB_*, defaulting the host to
+      # the compose service name `db` — which a runner cannot resolve ("Temporary
+      # failure in name resolution"). The service container listens on localhost.
+      TEST_DB_HOST: localhost
 
     steps:
       - uses: actions/checkout@v4
