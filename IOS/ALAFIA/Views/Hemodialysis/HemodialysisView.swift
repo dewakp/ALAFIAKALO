@@ -1134,7 +1134,7 @@ struct HemodialysisView: View {
 // MARK: - Reusable subviews
 
 private struct HDStatCard: View {
-    let title: String; let value: String; let color: Color
+    let title: LocalizedStringKey; let value: String; let color: Color
     var body: some View {
         VStack(spacing: 2) {
             Text(value).font(.callout).bold().foregroundStyle(color)
@@ -1146,7 +1146,7 @@ private struct HDStatCard: View {
 }
 
 private struct HDInfoPill: View {
-    let label: String; let value: String
+    let label: LocalizedStringKey; let value: String
     var body: some View {
         VStack(spacing: 2) {
             Text(label).font(.system(size: 10)).foregroundStyle(.secondary)

@@ -350,8 +350,8 @@ struct MessagingView: View {
 
 private struct HubCard: View {
     let icon: String
-    let title: String
-    let desc: String
+    let title: LocalizedStringKey
+    let desc: LocalizedStringKey
     let color: Color
     let action: () -> Void
 

@@ -3,7 +3,13 @@ import PhotosUI
 
 /// Reusable styled text field
 struct LKTextField: View {
-    let title: String
+    /// A localization key, not a `String`. `Text(String)` and `TextField(String, …)`
+    /// render verbatim AND Xcode never extracts the caller's literal, so every
+    /// label drawn through these components stayed English in every language —
+    /// "Email", "Password" and "Sign In" on a French login screen whose own
+    /// `Text("Forgot password?")` beside them was translated. The same holds for
+    /// every component below that takes a title.
+    let title: LocalizedStringKey
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
     var isSecure: Bool = false
@@ -84,7 +90,7 @@ struct LKTextField: View {
 
 /// Reusable styled number field
 struct LKNumberField: View {
-    let title: String
+    let title: LocalizedStringKey
     @Binding var value: String
     var unit: String? = nil
     
@@ -114,7 +120,7 @@ struct LKNumberField: View {
 
 /// Primary action button
 struct LKButton: View {
-    let title: String
+    let title: LocalizedStringKey
     var isLoading: Bool = false
     let action: () -> Void
     
@@ -142,8 +148,8 @@ struct LKButton: View {
 /// Stat card for dashboard
 struct StatCard: View {
     let icon: String
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     let color: Color
     
     var body: some View {
@@ -183,8 +189,8 @@ struct StatCard: View {
 /// Empty state placeholder
 struct EmptyStateView: View {
     let icon: String
-    let title: String
-    let message: String
+    let title: LocalizedStringKey
+    let message: LocalizedStringKey
     
     var body: some View {
         VStack(spacing: 12) {

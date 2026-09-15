@@ -1,6 +1,7 @@
 package com.alafia.android.views.auth
 
 import android.widget.Toast
+import com.alafia.android.AppLanguage
 import com.alafia.android.util.ErrorUtil
 import com.alafia.android.schemas.SignupStartRequest
 import com.alafia.android.schemas.SignupEmailBody
@@ -93,12 +94,14 @@ fun RegisterScreen(
                                 val login = loginWithCsrf(api, email, password)
                                 KeychainHelper.saveToken(context, login.access_token)
                                 val user = api.getCurrentUser()
+                                val languageChanged = AppLanguage.choose(context, user.preferred_language)
                                 KeychainHelper.saveUserId(context, user.id.toString())
                                 KeychainHelper.saveUsername(context, user.email)
                                 onRegisterSuccess()
                                 navController.navigate("main") {
                                     popUpTo("register") { inclusive = true }
                                 }
+                                if (languageChanged) (context as? android.app.Activity)?.recreate()
                             } else {
                                 notice = "Not confirmed yet. Check your inbox, and your spam folder."
                             }

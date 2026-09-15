@@ -385,7 +385,7 @@ struct ChemotherapyView: View {
 // MARK: - Reusable subviews
 
 private struct ChemoStatCard: View {
-    let title: String; let value: String; let color: Color
+    let title: LocalizedStringKey; let value: String; let color: Color
     var body: some View {
         VStack {
             Text(value).font(.title2).bold().foregroundStyle(color)
@@ -398,7 +398,7 @@ private struct ChemoStatCard: View {
 }
 
 private struct ChemoInfoPill: View {
-    let label: String; let value: String
+    let label: LocalizedStringKey; let value: String
     var body: some View {
         VStack(spacing: 2) {
             Text(label).font(.system(size: 10)).foregroundStyle(.secondary)

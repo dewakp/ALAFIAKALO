@@ -265,7 +265,7 @@ private struct MealPlanDisplay: View {
 // MARK: - Meal Section
 
 private struct MealSection: View {
-    let title: String
+    let title: LocalizedStringKey
     let icon: String
     let meals: [MealItem]?
 

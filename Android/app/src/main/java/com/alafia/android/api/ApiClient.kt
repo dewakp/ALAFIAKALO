@@ -52,6 +52,7 @@ object ApiClient {
                 // documented ladder: client 285 < OLLAMA_TIMEOUT 290 < Cloud Run 300.
                 .readTimeout(285, TimeUnit.SECONDS)  // extended for SSE streaming
                 .addInterceptor(TimezoneInterceptor())
+                .addInterceptor(LanguageInterceptor(context.applicationContext))
                 .addInterceptor(AuthInterceptor(context))
                 // Must run AFTER AuthInterceptor so it can see whether a
                 // Bearer token was attached — that is the whole condition.
@@ -152,6 +153,21 @@ private class TimezoneInterceptor : okhttp3.Interceptor {
     override fun intercept(chain: okhttp3.Interceptor.Chain): okhttp3.Response {
         val request = chain.request().newBuilder()
             .header("X-Client-Timezone", java.util.TimeZone.getDefault().id)
+            .build()
+        return chain.proceed(request)
+    }
+}
+
+
+/**
+ * Tells the server which language the patient uses ALAFIA in. The assistant
+ * answers in the language a message is written in and falls back to this one.
+ * Read per request, so a change in Profile applies to the very next call.
+ */
+private class LanguageInterceptor(private val context: Context) : okhttp3.Interceptor {
+    override fun intercept(chain: okhttp3.Interceptor.Chain): okhttp3.Response {
+        val request = chain.request().newBuilder()
+            .header("X-Client-Language", com.alafia.android.AppLanguage.current(context))
             .build()
         return chain.proceed(request)
     }

@@ -19,6 +19,7 @@ import com.alafia.android.views.components.rememberCameraCapture
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import com.alafia.android.AppLanguage
 import com.alafia.android.api.ApiClient
 import com.alafia.android.schemas.UserSchema
 import com.alafia.android.schemas.UserUpdateRequest
@@ -139,7 +140,9 @@ fun ProfileScreen(navController: NavHostController) {
         targetWeightKg = p.target_weight_kg?.toString() ?: ""
         country = p.country ?: ""
         tz = p.timezone ?: ""
-        preferredLanguage = p.preferred_language ?: ""
+        // Profiles hold both "en" and "English"; the dropdown works in codes.
+        preferredLanguage = AppLanguage.normalise(p.preferred_language)
+        AppLanguage.choose(context, p.preferred_language)
         preferredUnits = p.preferred_units ?: ""
         allergies = p.allergies ?: ""
         foodIntolerances = p.food_intolerances ?: ""
@@ -295,7 +298,12 @@ fun ProfileScreen(navController: NavHostController) {
         SectionHeader("Location & Preferences")
         OutlinedTextField(value = country, onValueChange = { country = it }, label = { Text("Country") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
         OutlinedTextField(value = tz, onValueChange = { tz = it }, label = { Text("Timezone") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), placeholder = { Text("e.g. America/New_York") })
-        DropdownField("Language", preferredLanguage, listOf("", "en", "fr", "es", "pt", "ar", "sw")) { preferredLanguage = it }
+        // Each language in its own name ("Yorùbá", not "yo"); the profile stores the code.
+        DropdownField(
+            "Language",
+            if (preferredLanguage.isBlank()) "" else AppLanguage.displayName(preferredLanguage),
+            listOf("") + AppLanguage.CODES.map { AppLanguage.displayName(it) },
+        ) { name -> preferredLanguage = AppLanguage.normalise(name) }
         DropdownField("Units", preferredUnits, listOf("", "metric", "imperial")) { preferredUnits = it }
 
         // ── Health ──
@@ -395,7 +403,9 @@ fun ProfileScreen(navController: NavHostController) {
                             ai_training_consent = aiTrainingConsent
                         )
                         val updated = ApiClient.getApiService().updateUser(req)
+                        val languageChanged = AppLanguage.choose(context, updated.preferred_language)
                         populateFields(updated)
+                        if (languageChanged) (context as? android.app.Activity)?.recreate()
                         message = "Profile updated."
                     } catch (e: Exception) {
                         message = ErrorUtil.userMessage(e)

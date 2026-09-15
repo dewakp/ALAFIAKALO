@@ -52,3 +52,87 @@ enum AppConfig {
     /// NOT ours, so trusting it would let whoever owns it claim our links.
     static let universalLinkDomain = "alafia.app"
 }
+
+/// The languages ALAFIA offers — the same eleven codes on web, iOS, Android and
+/// the backend (`WEB/backend/app/services/prompt_language.py`).
+enum AppLanguage {
+    static let codes = ["en", "es", "fr", "de", "pt", "ar", "zh", "yo", "ig", "ha", "sw"]
+
+    static let nativeNames: [String: String] = [
+        "en": "English", "es": "Español", "fr": "Français", "de": "Deutsch",
+        "pt": "Português", "ar": "العربية", "zh": "中文", "yo": "Yorùbá",
+        "ig": "Igbo", "ha": "Hausa", "sw": "Kiswahili",
+    ]
+
+    /// The patient's choice, as last synced from their profile or set here.
+    static let storageKey = "alafia_app_language"
+
+    /// The language this app is in: the patient's choice, else the device's
+    /// language when ALAFIA offers it, else English.
+    ///
+    /// Sent on every request as `X-Client-Language`, and the backend puts it
+    /// FIRST. So the saved profile preference must become the choice here when
+    /// the profile loads — sending the device language instead would answer a
+    /// patient who chose Yoruba in English on an English-language phone.
+    static var current: String {
+        resolve(UserDefaults.standard.string(forKey: storageKey))
+    }
+
+    /// `current`, for a stored choice the caller already holds — the app root
+    /// observes the choice itself, so a change re-renders every screen at once.
+    static func resolve(_ chosen: String?) -> String {
+        if let chosen, codes.contains(chosen) {
+            return chosen
+        }
+        for preferred in Locale.preferredLanguages {
+            let code = normalise(preferred)
+            if !code.isEmpty { return code }
+        }
+        return "en"
+    }
+
+    /// The locale the interface is drawn in: the chosen language, on the device's
+    /// own region, so a French-speaking patient in the US keeps US date order.
+    ///
+    /// Applied as SwiftUI's `\.locale` environment, deliberately NOT by writing
+    /// `AppleLanguages`. That key changes `Locale.current`, which every
+    /// `DateFormatter` here that sets no locale of its own reads — and several
+    /// of those format dates for API payloads, the same reason Android wraps its
+    /// Context instead of calling `Locale.setDefault`.
+    static func locale(_ chosen: String?) -> Locale {
+        Locale(components: .init(languageCode: .init(resolve(chosen)), languageRegion: Locale.current.region))
+    }
+
+    static func isRightToLeft(_ chosen: String?) -> Bool {
+        Locale.Language(identifier: resolve(chosen)).characterDirection == .rightToLeft
+    }
+
+    /// Remember the patient's choice. An empty or unknown value is ignored,
+    /// never guessed at: a blank profile field does not erase a choice.
+    static func choose(_ value: String?) {
+        let code = normalise(value)
+        guard !code.isEmpty else { return }
+        UserDefaults.standard.set(code, forKey: storageKey)
+    }
+
+    /// A product code for any stored form — "fr", "fr-FR", "French", "Français"
+    /// — or "" when it is none of them. Profiles hold both codes and names.
+    static func normalise(_ value: String?) -> String {
+        guard let raw = value?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return "" }
+        let prefix = String(raw.prefix(while: { $0 != "-" && $0 != "_" })).lowercased()
+        if codes.contains(prefix) { return prefix }
+        let english = Locale(identifier: "en")
+        for code in codes {
+            let englishName = english.localizedString(forLanguageCode: code) ?? ""
+            if raw.caseInsensitiveCompare(englishName) == .orderedSame
+                || raw.caseInsensitiveCompare(nativeNames[code] ?? "") == .orderedSame {
+                return code
+            }
+        }
+        return ""
+    }
+
+    static func displayName(_ code: String) -> String {
+        code.isEmpty ? "—" : (nativeNames[code] ?? code.uppercased())
+    }
+}

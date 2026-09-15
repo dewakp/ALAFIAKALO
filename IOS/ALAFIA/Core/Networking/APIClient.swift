@@ -156,6 +156,9 @@ actor APIClient {
         // UTC and does not. Without this, "what did I eat today?" asked in the
         // evening in the Americas queries tomorrow and finds nothing.
         request.setValue(TimeZone.current.identifier, forHTTPHeaderField: "X-Client-Timezone")
+        // The language the patient uses ALAFIA in. The assistant answers in the
+        // language a message is written in, and falls back to this one.
+        request.setValue(AppLanguage.current, forHTTPHeaderField: "X-Client-Language")
         if let timeout { request.timeoutInterval = timeout }
 
         if let token = token {

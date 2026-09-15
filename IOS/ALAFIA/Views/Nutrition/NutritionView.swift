@@ -754,12 +754,12 @@ struct MealPhotoView: View {
 }
 
 struct MacroPill: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: Double
     let color: Color
 
     var body: some View {
-        Text("\(label): \(String(format: "%.0f", value))g")
+        Text("\(Text(label)): \(String(format: "%.0f", value))g")
             .font(.caption2).fontWeight(.medium)
             .padding(.horizontal, 8).padding(.vertical, 2)
             .background(color.opacity(0.15))
@@ -771,7 +771,7 @@ struct MacroPill: View {
 // MARK: - Macro Card
 
 struct MacroCard: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: Double
     let unit: String
     let rda: Double

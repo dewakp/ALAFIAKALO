@@ -1,5 +1,6 @@
 package com.alafia.android
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -42,6 +43,13 @@ import com.alafia.android.views.main.MainTabView
 import com.alafia.android.views.subscription.SubscriptionScreen
 
 class MainActivity : ComponentActivity() {
+    // The patient's language applies to every resource this activity loads.
+    // Wrapping the base context — rather than swapping a Compose-level context —
+    // keeps LocalContext a real Activity for the screens that need one.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -86,7 +94,13 @@ fun AppNavigation(activity: MainActivity, intent: Intent?) {
         if (KeychainHelper.isLoggedIn(activity)) {
             // Token exists – verify it's still valid with the backend
             try {
-                ApiClient.getApiService().getCurrentUser()
+                val user = ApiClient.getApiService().getCurrentUser()
+                // The saved profile language becomes the app's language, so the
+                // X-Client-Language header never contradicts the patient's choice.
+                if (AppLanguage.choose(activity, user.preferred_language)) {
+                    activity.recreate()  // apply the adopted language now, not on next launch
+                    return@LaunchedEffect
+                }
                 tokenValid.value = true
                 // Signed in is not the same as allowed in. The backend answers
                 // 402 to every gated path without an active membership, so ask

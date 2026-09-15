@@ -4,7 +4,12 @@ import SwiftUI
 /// Manages authentication state across the app
 @MainActor
 class AuthManager: ObservableObject {
-    @Published var currentUser: User?
+    @Published var currentUser: User? {
+        // The saved profile language becomes the app's language wherever the
+        // user is (re)loaded — sign-in, session restore, refresh — so the
+        // `X-Client-Language` header never contradicts the patient's own choice.
+        didSet { AppLanguage.choose(currentUser?.preferredLanguage) }
+    }
     @Published var isAuthenticated = false
     @Published var isLoading = true
     @Published var error: String?

@@ -2033,6 +2033,31 @@ refused.
 > go down to one string at a time. It was found by printing the raw reply, after
 > "reply had 0 keys" had been logged twice without saying why.
 
+### iOS: a title passed as `String` is never translated
+
+SwiftUI treats `Text("Save")` as a localization key — but only a literal that
+reaches a `LocalizedStringKey`. `LKTextField`, `LKButton`, `LKNumberField`,
+`StatCard`, `EmptyStateView` and a dozen private cards took `title: String` and
+drew `Text(title)`, which renders verbatim, and Xcode never extracts the
+caller's literal. The French login screen showed *Mot de passe oublié ?* beside
+**Email, Password, Sign In**. Typing those parameters `LocalizedStringKey` took
+extraction from 1,316 strings to 1,534 without touching a call site.
+`scripts/i18n/test_catalogs.py` fails if a view takes a worded literal through a
+`String` it draws.
+
+- **The in-app choice is SwiftUI's `\.locale` environment at the app root**,
+  observed through `@AppStorage`, so choosing a language redraws without a
+  relaunch. **Not `AppleLanguages`:** that changes `Locale.current`, which the
+  app's locale-less `DateFormatter`s read while formatting API payloads — iOS's
+  version of Android's `Locale.setDefault` trap above. Verified on the simulator
+  with `-alafia_app_language fr` and the system language left in English.
+- **What the environment does not reach:** Info.plist permission prompts follow
+  the DEVICE language, and any `String` a view model builds is drawn verbatim
+  until it becomes a key.
+- `-importLocalizations` warns "No translation found" for keys with nothing to
+  translate (`""`, `"500"`). That is not a lost translation — the reader skips
+  anything without a word in it.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

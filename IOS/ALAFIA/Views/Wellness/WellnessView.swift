@@ -219,7 +219,7 @@ private struct ScoreSection: View {
 // MARK: - Sub-Score Bar
 
 private struct SubScoreBar: View {
-    let label: String
+    let label: LocalizedStringKey
     /// nil when this domain had no data. An empty bar would read as a zero
     /// score, which is a different claim from "we did not measure this".
     let value: Double?
@@ -533,7 +533,7 @@ private struct ImprovementsSection: View {
 // MARK: - Improvement List
 
 private struct ImprovementList: View {
-    let title: String
+    let title: LocalizedStringKey
     let icon: String
     let color: Color
     let items: [String]?
@@ -872,7 +872,7 @@ private struct WhatIfResultView: View {
 }
 
 private struct ResultMetric: View {
-    let label: String; let value: String; let color: Color
+    let label: LocalizedStringKey; let value: String; let color: Color
     var body: some View {
         VStack(spacing: 2) {
             Text(value).font(.title3).bold().foregroundStyle(color)

@@ -210,7 +210,7 @@ struct ProfileSheet: View {
     private let sexAtBirthOptions = ["", "Male", "Female", "Intersex"]
     private let bloodOptions = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
     private let unitOptions = ["", "metric", "imperial"]
-    private let langOptions = ["", "en", "fr", "es", "pt", "ar", "sw"]
+    private let langOptions = [""] + AppLanguage.codes
     private let activityOptions = ["", "sedentary", "lightly_active", "moderately_active", "very_active", "extremely_active"]
     private let smokingOptions = ["", "never", "former", "current"]
     private let alcoholOptions = ["", "none", "occasional", "moderate", "heavy"]
@@ -303,7 +303,8 @@ struct ProfileSheet: View {
                     LKTextField(title: "Country", text: $country)
                     LKTextField(title: "Timezone", text: $tz)
                     Picker("Language", selection: $preferredLanguage) {
-                        ForEach(langOptions, id: \.self) { Text($0.isEmpty ? "—" : $0.uppercased()) }
+                        // Each language in its own name: "Yorùbá", not "YO".
+                        ForEach(langOptions, id: \.self) { Text(verbatim: AppLanguage.displayName($0)) }
                     }
                     Picker("Units", selection: $preferredUnits) {
                         ForEach(unitOptions, id: \.self) { Text($0.isEmpty ? "—" : $0.capitalized) }
@@ -441,7 +442,8 @@ struct ProfileSheet: View {
         targetWeightKg = u.targetWeightKg.map { String(toDisplayMass($0)) } ?? ""
         country = u.country ?? ""
         tz = u.timezone ?? ""
-        preferredLanguage = u.preferredLanguage ?? ""
+        // Profiles hold both "en" and "English"; the picker's tags are codes.
+        preferredLanguage = AppLanguage.normalise(u.preferredLanguage)
         preferredUnits = u.preferredUnits ?? ""
         allergies = u.allergies ?? ""
         foodIntolerances = u.foodIntolerances ?? ""
@@ -547,6 +549,7 @@ struct ProfileSheet: View {
                 payload.aiTrainingConsent = aiTrainingConsent
 
                 let user: User = try await APIClient.shared.patch("/users/me", body: payload)
+                AppLanguage.choose(user.preferredLanguage)
                 authManager.currentUser = user
                 message = "Saved"
                 // Re-lock immutable fields

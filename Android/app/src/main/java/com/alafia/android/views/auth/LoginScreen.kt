@@ -11,6 +11,7 @@ import androidx.compose.ui.text.input.ImeAction
 import com.alafia.android.views.components.PasswordField
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.alafia.android.AppLanguage
 import com.alafia.android.MainActivity
 import com.alafia.android.api.ApiClient
 import com.alafia.android.api.KeychainHelper
@@ -77,12 +78,15 @@ fun LoginScreen(
                             }
                             // Fetch user profile now that token is saved
                             val user = apiService.getCurrentUser()
+                            val languageChanged = AppLanguage.choose(context, user.preferred_language)
                             KeychainHelper.saveUserId(context, user.id.toString())
                             KeychainHelper.saveUsername(context, user.email)
                             onLoginSuccess()
                             navController.navigate("main") {
                                 popUpTo("login") { inclusive = true }
                             }
+                            // The token is saved, so a recreated activity restores the session.
+                            if (languageChanged) (context as? android.app.Activity)?.recreate()
                         } catch (e: retrofit2.HttpException) {
                             val msg = if (e.code() == 401) "Incorrect email or password" else "Login failed: ${e.message()}"
                             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()

@@ -7,23 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CE0000000000000000000206 /* IntradialyticEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000106 /* IntradialyticEditor.swift */; };
 		0CB072E3037F41A3B1EB0550 /* HemodialysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */; };
-		4A0000000000000000000997 /* DrugsAdministeredEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000996 /* DrugsAdministeredEditor.swift */; };
 		1B84B817D8E548B6F2F47A39 /* OfflineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54A4453102DA1889F93494A /* OfflineCacheTests.swift */; };
 		2B735102C7EC4AB9A6F0E89A /* ChemotherapyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFE2B9BDF0D4F4296E0DBC1 /* ChemotherapyView.swift */; };
-		CE0000000000000000000207 /* FormEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000107 /* FormEncodingTests.swift */; };
-		CE0000000000000000000208 /* DoseGuardRefusalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000108 /* DoseGuardRefusalTests.swift */; };
 		3DAAAEF13A8E66CE33AEFD04 /* UserModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 540417D020944D206CCD54B5 /* UserModelTests.swift */; };
-		42F5BB87C87D050F55ABC18E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F545AF4D419DF7BF4039B01 /* Foundation.framework */; };
 		4A0000000000000000000201 /* ALAFIAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000101 /* ALAFIAApp.swift */; };
 		4A0000000000000000000202 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000102 /* ContentView.swift */; };
 		4A0000000000000000000203 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000103 /* AppConfig.swift */; };
 		4A0000000000000000000204 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000104 /* APIClient.swift */; };
 		4A0000000000000000000205 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000105 /* KeychainHelper.swift */; };
 		4A0000000000000000000206 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000106 /* AuthManager.swift */; };
-		CD0000000000000000000202 /* ClinicianTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0000000000000000000102 /* ClinicianTabView.swift */; };
-		CD0000000000000000000201 /* ClinicianMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0000000000000000000101 /* ClinicianMode.swift */; };
 		4A0000000000000000000207 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000107 /* User.swift */; };
 		4A0000000000000000000208 /* NutritionLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000108 /* NutritionLog.swift */; };
 		4A0000000000000000000209 /* FitnessLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000109 /* FitnessLog.swift */; };
@@ -41,15 +34,10 @@
 		4A0000000000000000000215 /* FitnessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000115 /* FitnessView.swift */; };
 		4A0000000000000000000216 /* LabsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000116 /* LabsView.swift */; };
 		4A0000000000000000000217 /* MedicationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000117 /* MedicationsView.swift */; };
-		4A0000000000000000000A02 /* MedicationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000A01 /* MedicationPicker.swift */; };
-		4A0000000000000000000B02 /* PhotoCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000B01 /* PhotoCapture.swift */; };
-		4A0000000000000000000C02 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000C01 /* AvatarView.swift */; };
-		4A0000000000000000000D02 /* TherapyReportPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000D01 /* TherapyReportPrinter.swift */; };
 		4A0000000000000000000218 /* MoodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000118 /* MoodView.swift */; };
 		4A0000000000000000000219 /* LifestyleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000119 /* LifestyleView.swift */; };
 		4A000000000000000000021A /* AIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011A /* AIChatView.swift */; };
 		4A000000000000000000021B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011B /* Assets.xcassets */; };
-		4A0000000000000000000FA2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000FA1 /* PrivacyInfo.xcprivacy */; };
 		4A000000000000000000021C /* MentalHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011D /* MentalHealth.swift */; };
 		4A000000000000000000021D /* MentalHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011E /* MentalHealthView.swift */; };
 		4A000000000000000000021E /* CommunityHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000011F /* CommunityHealth.swift */; };
@@ -64,22 +52,20 @@
 		4A0000000000000000000227 /* Messaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000128 /* Messaging.swift */; };
 		4A0000000000000000000228 /* MessagingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000129 /* MessagingView.swift */; };
 		4A0000000000000000000229 /* ChronicConditionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000012A /* ChronicConditionsView.swift */; };
-		4A0000000000000000000999 /* ICD11Picker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000998 /* ICD11Picker.swift */; };
 		4A000000000000000000022A /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000012B /* PrivacySettingsView.swift */; };
 		4A000000000000000000022B /* PrivacySettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A000000000000000000012C /* PrivacySettingsViewModel.swift */; };
-		5416CA5C925F88921614518C /* OfflineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02394AE3863321EA2264282D /* OfflineCacheTests.swift */; };
+		4A0000000000000000000997 /* DrugsAdministeredEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000996 /* DrugsAdministeredEditor.swift */; };
+		4A0000000000000000000999 /* ICD11Picker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000998 /* ICD11Picker.swift */; };
+		4A0000000000000000000A02 /* MedicationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000A01 /* MedicationPicker.swift */; };
+		4A0000000000000000000B02 /* PhotoCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000B01 /* PhotoCapture.swift */; };
+		4A0000000000000000000C02 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000C01 /* AvatarView.swift */; };
+		4A0000000000000000000D02 /* TherapyReportPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000D01 /* TherapyReportPrinter.swift */; };
+		4A0000000000000000000FA2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4A0000000000000000000FA1 /* PrivacyInfo.xcprivacy */; };
 		847351E7B1F1540D01FBB1BE /* HealthModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8FBA971CE4F9702EC7A090 /* HealthModelsTests.swift */; };
 		8727CA4B1FE6043D8D1F731E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F545AF4D419DF7BF4039B01 /* Foundation.framework */; };
-		96AA43472B41D552BAE91839 /* HealthModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC737E5695007FBB722507B4 /* HealthModelsTests.swift */; };
 		AA11BB22CC330002 /* Insurance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC330001 /* Insurance.swift */; };
 		AA11BB22CC330004 /* InsuranceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC330003 /* InsuranceView.swift */; };
 		BB0000000000000000000302 /* NewFeatureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000301 /* NewFeatureModels.swift */; };
-		CE0000000000000000000204 /* TherapySessionReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000104 /* TherapySessionReport.swift */; };
-		CE0000000000000000000205 /* TherapyReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000105 /* TherapyReportView.swift */; };
-		CE0000000000000000000203 /* PatientCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000103 /* PatientCategoryView.swift */; };
-		CE0000000000000000000202 /* PatientBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000102 /* PatientBoardView.swift */; };
-		CE0000000000000000000201 /* PatientBoardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000101 /* PatientBoardModels.swift */; };
-		DD10000000000000000000A2 /* SubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD10000000000000000000A1 /* SubscriptionView.swift */; };
 		BB0000000000000000000304 /* Physician.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000303 /* Physician.swift */; };
 		BB0000000000000000000402 /* PhysiciansView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000401 /* PhysiciansView.swift */; };
 		BB0000000000000000000404 /* LabChartsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000403 /* LabChartsView.swift */; };
@@ -98,18 +84,27 @@
 		CA1E0DA20000000000000002 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1E0DA20000000000000001 /* CalendarView.swift */; };
 		CC0000000000000000000602 /* PharmacyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000601 /* PharmacyModels.swift */; };
 		CC0000000000000000000604 /* PharmacyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000603 /* PharmacyView.swift */; };
+		CCEBF44A30597875006737FB /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CCEBF44930597875006737FB /* Localizable.xcstrings */; };
+		CCEBF44B30597875006737FB /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CCEBF44830597875006737FB /* InfoPlist.xcstrings */; };
+		CD0000000000000000000201 /* ClinicianMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0000000000000000000101 /* ClinicianMode.swift */; };
+		CD0000000000000000000202 /* ClinicianTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0000000000000000000102 /* ClinicianTabView.swift */; };
+		CE0000000000000000000201 /* PatientBoardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000101 /* PatientBoardModels.swift */; };
+		CE0000000000000000000202 /* PatientBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000102 /* PatientBoardView.swift */; };
+		CE0000000000000000000203 /* PatientCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000103 /* PatientCategoryView.swift */; };
+		CE0000000000000000000204 /* TherapySessionReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000104 /* TherapySessionReport.swift */; };
+		CE0000000000000000000205 /* TherapyReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000105 /* TherapyReportView.swift */; };
+		CE0000000000000000000206 /* IntradialyticEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000106 /* IntradialyticEditor.swift */; };
+		CE0000000000000000000207 /* FormEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000107 /* FormEncodingTests.swift */; };
+		CE0000000000000000000208 /* DoseGuardRefusalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000108 /* DoseGuardRefusalTests.swift */; };
 		DD0000000000000000000702 /* PantryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000701 /* PantryItem.swift */; };
 		DD0000000000000000000704 /* PantryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000703 /* PantryView.swift */; };
 		DD0000000000000000000802 /* FacilitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000801 /* FacilitiesView.swift */; };
 		DD0000000000000000000804 /* SurveillanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000803 /* SurveillanceView.swift */; };
 		DD0000000000000000000806 /* WeightTrendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000805 /* WeightTrendView.swift */; };
-		ECAFBC6A27D9823B4B5285CE /* UserModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996258B7101E0217D1A2CF57 /* UserModelTests.swift */; };
-		EE0000000000000000000101 /* BiometricAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001 /* BiometricAuthManager.swift */; };
+		DD10000000000000000000A2 /* SubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD10000000000000000000A1 /* SubscriptionView.swift */; };
 		DD10000000000000000000B2 /* SubscriptionGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD10000000000000000000B1 /* SubscriptionGateView.swift */; };
-		EE20000000000000000000C2 /* MedicalSourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C1 /* MedicalSourcesView.swift */; };
-		EE20000000000000000000C4 /* AIAndDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C3 /* AIAndDataView.swift */; };
-		EE20000000000000000000C6 /* AIConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C5 /* AIConsentView.swift */; };
 		EE0000000000000000000012 /* EntitlementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* EntitlementManager.swift */; };
+		EE0000000000000000000101 /* BiometricAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001 /* BiometricAuthManager.swift */; };
 		EE0000000000000000000102 /* OfflineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000002 /* OfflineCache.swift */; };
 		EE0000000000000000000103 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003 /* CrashReporter.swift */; };
 		EE0000000000000000000104 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000004 /* DeepLinkRouter.swift */; };
@@ -120,16 +115,12 @@
 		EE0000000000000000000109 /* EliminationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000009 /* EliminationModels.swift */; };
 		EE000000000000000000010A /* PromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000A /* PromptView.swift */; };
 		EE000000000000000000010B /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000B /* SpeechRecognizer.swift */; };
+		EE20000000000000000000C2 /* MedicalSourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C1 /* MedicalSourcesView.swift */; };
+		EE20000000000000000000C4 /* AIAndDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C3 /* AIAndDataView.swift */; };
+		EE20000000000000000000C6 /* AIConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C5 /* AIConsentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		7E822FC79D02404982E042CD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 4A000000000000000000000A /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 4A000000000000000000000D;
-			remoteInfo = ALAFIA;
-		};
 		FEDBDF153690CB0EF6C2E42E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4A000000000000000000000A /* Project object */;
@@ -148,8 +139,6 @@
 		4A0000000000000000000104 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		4A0000000000000000000105 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		4A0000000000000000000106 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
-		CD0000000000000000000102 /* ClinicianTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicianTabView.swift; sourceTree = "<group>"; };
-		CD0000000000000000000101 /* ClinicianMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicianMode.swift; sourceTree = "<group>"; };
 		4A0000000000000000000107 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		4A0000000000000000000108 /* NutritionLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLog.swift; sourceTree = "<group>"; };
 		4A0000000000000000000109 /* FitnessLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessLog.swift; sourceTree = "<group>"; };
@@ -167,15 +156,10 @@
 		4A0000000000000000000115 /* FitnessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000116 /* LabsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabsView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000117 /* MedicationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsView.swift; sourceTree = "<group>"; };
-		4A0000000000000000000A01 /* MedicationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationPicker.swift; sourceTree = "<group>"; };
-		4A0000000000000000000B01 /* PhotoCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCapture.swift; sourceTree = "<group>"; };
-		4A0000000000000000000C01 /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
-		4A0000000000000000000D01 /* TherapyReportPrinter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapyReportPrinter.swift; sourceTree = "<group>"; };
 		4A0000000000000000000118 /* MoodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodView.swift; sourceTree = "<group>"; };
 		4A0000000000000000000119 /* LifestyleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifestyleView.swift; sourceTree = "<group>"; };
 		4A000000000000000000011A /* AIChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatView.swift; sourceTree = "<group>"; };
 		4A000000000000000000011B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		4A0000000000000000000FA1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4A000000000000000000011C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4A000000000000000000011D /* MentalHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealth.swift; sourceTree = "<group>"; };
 		4A000000000000000000011E /* MentalHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthView.swift; sourceTree = "<group>"; };
@@ -191,11 +175,15 @@
 		4A0000000000000000000128 /* Messaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Messaging.swift; sourceTree = "<group>"; };
 		4A0000000000000000000129 /* MessagingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingView.swift; sourceTree = "<group>"; };
 		4A000000000000000000012A /* ChronicConditionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronicConditionsView.swift; sourceTree = "<group>"; };
-		4A0000000000000000000998 /* ICD11Picker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICD11Picker.swift; sourceTree = "<group>"; };
 		4A000000000000000000012B /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
 		4A000000000000000000012C /* PrivacySettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsViewModel.swift; sourceTree = "<group>"; };
-		CE0000000000000000000107 /* FormEncodingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FormEncodingTests.swift; path = Tests/ALAFIATests/FormEncodingTests.swift; sourceTree = "<group>"; };
-		CE0000000000000000000108 /* DoseGuardRefusalTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DoseGuardRefusalTests.swift; path = Tests/ALAFIATests/DoseGuardRefusalTests.swift; sourceTree = "<group>"; };
+		4A0000000000000000000996 /* DrugsAdministeredEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrugsAdministeredEditor.swift; sourceTree = "<group>"; };
+		4A0000000000000000000998 /* ICD11Picker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICD11Picker.swift; sourceTree = "<group>"; };
+		4A0000000000000000000A01 /* MedicationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationPicker.swift; sourceTree = "<group>"; };
+		4A0000000000000000000B01 /* PhotoCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCapture.swift; sourceTree = "<group>"; };
+		4A0000000000000000000C01 /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
+		4A0000000000000000000D01 /* TherapyReportPrinter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapyReportPrinter.swift; sourceTree = "<group>"; };
+		4A0000000000000000000FA1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		540417D020944D206CCD54B5 /* UserModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = UserModelTests.swift; path = Tests/ALAFIATests/UserModelTests.swift; sourceTree = "<group>"; };
 		7C8FBA971CE4F9702EC7A090 /* HealthModelsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HealthModelsTests.swift; path = Tests/ALAFIATests/HealthModelsTests.swift; sourceTree = "<group>"; };
 		7FFE2B9BDF0D4F4296E0DBC1 /* ChemotherapyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChemotherapyView.swift; sourceTree = "<group>"; };
@@ -204,16 +192,8 @@
 		9E4B84BB60767246D18C1EFE /* ALAFIATests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ALAFIATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA11BB22CC330001 /* Insurance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Insurance.swift; sourceTree = "<group>"; };
 		AA11BB22CC330003 /* InsuranceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsuranceView.swift; sourceTree = "<group>"; };
-		CE0000000000000000000106 /* IntradialyticEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradialyticEditor.swift; sourceTree = "<group>"; };
 		AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HemodialysisView.swift; sourceTree = "<group>"; };
-		4A0000000000000000000996 /* DrugsAdministeredEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrugsAdministeredEditor.swift; sourceTree = "<group>"; };
 		BB0000000000000000000301 /* NewFeatureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewFeatureModels.swift; sourceTree = "<group>"; };
-		CE0000000000000000000104 /* TherapySessionReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapySessionReport.swift; sourceTree = "<group>"; };
-		CE0000000000000000000105 /* TherapyReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapyReportView.swift; sourceTree = "<group>"; };
-		CE0000000000000000000103 /* PatientCategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientCategoryView.swift; sourceTree = "<group>"; };
-		CE0000000000000000000102 /* PatientBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientBoardView.swift; sourceTree = "<group>"; };
-		CE0000000000000000000101 /* PatientBoardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientBoardModels.swift; sourceTree = "<group>"; };
-		DD10000000000000000000A1 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000303 /* Physician.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Physician.swift; sourceTree = "<group>"; };
 		BB0000000000000000000401 /* PhysiciansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiciansView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000403 /* LabChartsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabChartsView.swift; sourceTree = "<group>"; };
@@ -234,18 +214,27 @@
 		CA1E0DA20000000000000001 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		CC0000000000000000000601 /* PharmacyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PharmacyModels.swift; sourceTree = "<group>"; };
 		CC0000000000000000000603 /* PharmacyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PharmacyView.swift; sourceTree = "<group>"; };
+		CCEBF44830597875006737FB /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		CCEBF44930597875006737FB /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		CD0000000000000000000101 /* ClinicianMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicianMode.swift; sourceTree = "<group>"; };
+		CD0000000000000000000102 /* ClinicianTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicianTabView.swift; sourceTree = "<group>"; };
+		CE0000000000000000000101 /* PatientBoardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientBoardModels.swift; sourceTree = "<group>"; };
+		CE0000000000000000000102 /* PatientBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientBoardView.swift; sourceTree = "<group>"; };
+		CE0000000000000000000103 /* PatientCategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientCategoryView.swift; sourceTree = "<group>"; };
+		CE0000000000000000000104 /* TherapySessionReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapySessionReport.swift; sourceTree = "<group>"; };
+		CE0000000000000000000105 /* TherapyReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TherapyReportView.swift; sourceTree = "<group>"; };
+		CE0000000000000000000106 /* IntradialyticEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradialyticEditor.swift; sourceTree = "<group>"; };
+		CE0000000000000000000107 /* FormEncodingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FormEncodingTests.swift; path = Tests/ALAFIATests/FormEncodingTests.swift; sourceTree = "<group>"; };
+		CE0000000000000000000108 /* DoseGuardRefusalTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DoseGuardRefusalTests.swift; path = Tests/ALAFIATests/DoseGuardRefusalTests.swift; sourceTree = "<group>"; };
 		DD0000000000000000000701 /* PantryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantryItem.swift; sourceTree = "<group>"; };
 		DD0000000000000000000703 /* PantryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantryView.swift; sourceTree = "<group>"; };
 		DD0000000000000000000801 /* FacilitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FacilitiesView.swift; sourceTree = "<group>"; };
 		DD0000000000000000000803 /* SurveillanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveillanceView.swift; sourceTree = "<group>"; };
 		DD0000000000000000000805 /* WeightTrendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightTrendView.swift; sourceTree = "<group>"; };
+		DD10000000000000000000A1 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
+		DD10000000000000000000B1 /* SubscriptionGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionGateView.swift; sourceTree = "<group>"; };
 		EC737E5695007FBB722507B4 /* HealthModelsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HealthModelsTests.swift; path = Tests/ALAFIATests/HealthModelsTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000000001 /* BiometricAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthManager.swift; sourceTree = "<group>"; };
-		DD10000000000000000000B1 /* SubscriptionGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionGateView.swift; sourceTree = "<group>"; };
-		EE20000000000000000000C1 /* MedicalSourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalSourcesView.swift; sourceTree = "<group>"; };
-		EE20000000000000000000C3 /* AIAndDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAndDataView.swift; sourceTree = "<group>"; };
-		EE20000000000000000000C5 /* AIConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConsentView.swift; sourceTree = "<group>"; };
-		EE0000000000000000000011 /* EntitlementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementManager.swift; sourceTree = "<group>"; };
 		EE0000000000000000000002 /* OfflineCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineCache.swift; sourceTree = "<group>"; };
 		EE0000000000000000000003 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		EE0000000000000000000004 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
@@ -256,6 +245,10 @@
 		EE0000000000000000000009 /* EliminationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EliminationModels.swift; sourceTree = "<group>"; };
 		EE000000000000000000000A /* PromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptView.swift; sourceTree = "<group>"; };
 		EE000000000000000000000B /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
+		EE0000000000000000000011 /* EntitlementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementManager.swift; sourceTree = "<group>"; };
+		EE20000000000000000000C1 /* MedicalSourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalSourcesView.swift; sourceTree = "<group>"; };
+		EE20000000000000000000C3 /* AIAndDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAndDataView.swift; sourceTree = "<group>"; };
+		EE20000000000000000000C5 /* AIConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConsentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -271,14 +264,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				8727CA4B1FE6043D8D1F731E /* Foundation.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B2B4D0E1F0715E783D30BBF7 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				42F5BB87C87D050F55ABC18E /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -553,6 +538,8 @@
 		4A00000000000000000000E1 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				CCEBF44830597875006737FB /* InfoPlist.xcstrings */,
+				CCEBF44930597875006737FB /* Localizable.xcstrings */,
 				4A000000000000000000011B /* Assets.xcassets */,
 				4A0000000000000000000FA1 /* PrivacyInfo.xcprivacy */,
 			);
@@ -652,25 +639,6 @@
 				30F01C708275FA63CED50239 /* ALAFIATests */,
 			);
 			name = Tests;
-			sourceTree = "<group>";
-		};
-		EE20000000000000000000C0 /* About */ = {
-			isa = PBXGroup;
-			children = (
-				EE20000000000000000000C1 /* MedicalSourcesView.swift */,
-				EE20000000000000000000C3 /* AIAndDataView.swift */,
-				EE20000000000000000000C5 /* AIConsentView.swift */,
-			);
-			path = About;
-			sourceTree = "<group>";
-		};
-		DD10000000000000000000A0 /* Subscription */ = {
-			isa = PBXGroup;
-			children = (
-				DD10000000000000000000A1 /* SubscriptionView.swift */,
-				DD10000000000000000000B1 /* SubscriptionGateView.swift */,
-			);
-			path = Subscription;
 			sourceTree = "<group>";
 		};
 		AA11BB22CC330005 /* Insurance */ = {
@@ -799,6 +767,15 @@
 			path = Pantry;
 			sourceTree = "<group>";
 		};
+		DD10000000000000000000A0 /* Subscription */ = {
+			isa = PBXGroup;
+			children = (
+				DD10000000000000000000A1 /* SubscriptionView.swift */,
+				DD10000000000000000000B1 /* SubscriptionGateView.swift */,
+			);
+			path = Subscription;
+			sourceTree = "<group>";
+		};
 		EA6073BEDA43712D0E169CED /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -829,6 +806,16 @@
 				EE000000000000000000000A /* PromptView.swift */,
 			);
 			path = Prompt;
+			sourceTree = "<group>";
+		};
+		EE20000000000000000000C0 /* About */ = {
+			isa = PBXGroup;
+			children = (
+				EE20000000000000000000C1 /* MedicalSourcesView.swift */,
+				EE20000000000000000000C3 /* AIAndDataView.swift */,
+				EE20000000000000000000C5 /* AIConsentView.swift */,
+			);
+			path = About;
 			sourceTree = "<group>";
 		};
 		F531D6EE9BAC8461AAD846AB /* iOS */ = {
@@ -923,15 +910,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CCEBF44A30597875006737FB /* Localizable.xcstrings in Resources */,
+				CCEBF44B30597875006737FB /* InfoPlist.xcstrings in Resources */,
 				4A000000000000000000021B /* Assets.xcassets in Resources */,
 				4A0000000000000000000FA2 /* PrivacyInfo.xcprivacy in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		78AC051BB71F1F3D5B936D6E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1058,16 +1040,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		D2245B7BA68A2DF199AE4ABC /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				96AA43472B41D552BAE91839 /* HealthModelsTests.swift in Sources */,
-				5416CA5C925F88921614518C /* OfflineCacheTests.swift in Sources */,
-				ECAFBC6A27D9823B4B5285CE /* UserModelTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -1077,32 +1049,9 @@
 			target = 4A000000000000000000000D /* ALAFIA */;
 			targetProxy = FEDBDF153690CB0EF6C2E42E /* PBXContainerItemProxy */;
 		};
-		4B61C8B4C4F634CD215FF8A7 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ALAFIA;
-			target = 4A000000000000000000000D /* ALAFIA */;
-			targetProxy = 7E822FC79D02404982E042CD /* PBXContainerItemProxy */;
-		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		06587F0FF8FCF51D6A224146 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.alafia.app.tests;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ALAFIA.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ALAFIA";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 		12B538A3F370565A233A4E5D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1247,9 +1196,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ALAFIA/ALAFIA.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = E48V6Y372K;
 				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = E48V6Y372K;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1279,9 +1228,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ALAFIA/ALAFIA.Release.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = E48V6Y372K;
 				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = E48V6Y372K;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ALAFIA/Info.plist;
@@ -1320,22 +1269,6 @@
 			};
 			name = Debug;
 		};
-		ED6ED83013EAE3F054CD54E1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.alafia.app.tests;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ALAFIA.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ALAFIA";
-			};
-			name = Debug;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1353,15 +1286,6 @@
 			buildConfigurations = (
 				4A00000000000000000000B2 /* Debug */,
 				4A00000000000000000000B3 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		76795FA021CED1088050ADCE /* Build configuration list for <deleted target> */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				06587F0FF8FCF51D6A224146 /* Release */,
-				ED6ED83013EAE3F054CD54E1 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

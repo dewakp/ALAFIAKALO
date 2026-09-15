@@ -400,7 +400,7 @@ struct CommunityHealthView: View {
 private struct CommunityStatCard: View {
     let icon: String
     let value: Int
-    let label: String
+    let label: LocalizedStringKey
     let color: Color
 
     var body: some View {

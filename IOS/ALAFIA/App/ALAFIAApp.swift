@@ -79,10 +79,16 @@ struct ALAFIAApp: App {
     @StateObject private var entitlement = EntitlementManager()
     @StateObject private var aiConsent = AIConsentManager()
     @Environment(\.scenePhase) private var scenePhase
-    
+    /// The patient's language (`AppLanguage.choose`). Observed here, so choosing
+    /// one in Profile — or it arriving with the profile at sign-in — redraws the
+    /// whole app in it without a relaunch.
+    @AppStorage(AppLanguage.storageKey) private var chosenLanguage = ""
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.locale, AppLanguage.locale(chosenLanguage))
+                .environment(\.layoutDirection, AppLanguage.isRightToLeft(chosenLanguage) ? .rightToLeft : .leftToRight)
                 .environmentObject(authManager)
                 .environmentObject(deepLinkRouter)
                 .environmentObject(clinicianMode)
