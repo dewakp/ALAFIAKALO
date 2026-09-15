@@ -207,7 +207,12 @@ async def test_medications_card_reads_what_the_patient_actually_took(client: Asy
     card = _card(await _board(client, doc_token, patient_id), "medications")
     labels = [i["label"] for i in card["items"]]
     assert any("Calcitriol" in x for x in labels), f"taken meds missing: {labels}"
-    assert any("Calcium Carbonate" in x for x in labels), labels
+    # Which casing is shown is min(name) under the database's collation. Both the
+    # local and CI databases say en_US.utf8, and still disagree: the local
+    # postgres:18-alpine image uses musl, which compares bytes ("Calcium
+    # Carbonate" first), while glibc — CI, and Cloud SQL — sorts linguistically
+    # ("Calcium carbonate" first). The rule is that the drug is there, once.
+    assert any("calcium carbonate" in x.lower() for x in labels), labels
     # Same drug, different casing, is one medication — not two.
     assert sum("alcium" in x.lower() for x in labels) == 1, labels
     # The prescription list is kept, but labelled so it cannot be mistaken

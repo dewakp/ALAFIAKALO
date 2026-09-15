@@ -2447,6 +2447,15 @@ Other notes:
   `down_revision: Union[str, None] = '…'`, which a naive `^down_revision\s*=`
   regex misses, making real parents look like heads. Never grep for this; run
   `alembic heads`.
+- ⚠️ **The dev database is NOT the production engine (found 2026-09-15).** §1's
+  table says Postgres 16 for both; `WEB/docker-compose.yml` runs
+  **`postgres:18-alpine`** (server 18.6). Both report `en_US.utf8`, yet they
+  sort text differently: alpine's musl compares bytes, while glibc — Cloud SQL,
+  and CI's `postgres:16` — collates linguistically. So `min(name)` over "Calcium
+  Carbonate" / "Calcium carbonate" returns a different row in dev than in
+  production, and a test that encoded dev's answer failed the first time CI ran
+  on 16. Anything that orders, groups or compares text can pass here and differ
+  there. Moving dev to `postgres:16` (Debian) means a fresh `pull_prod.sh`.
 - ⚠️ **`ML/tests/test_hebcs.py` fails 2 of 48 (as of 2026-09-15)** —
   feature-bridge coverage **71.4% < 75%**, and **105/141** features with medians
   (< 130). The code and its `models/*.joblib` are unchanged since June, and the

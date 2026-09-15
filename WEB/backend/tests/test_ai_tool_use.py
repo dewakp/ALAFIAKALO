@@ -220,10 +220,18 @@ async def test_anthropic_keeps_tool_results_in_the_conversation(monkeypatch):
 
 # ── a provider that cannot do tools must be skipped, not tried ─────────
 
-def test_providers_without_tool_support_are_excluded():
+def test_providers_without_tool_support_are_excluded(monkeypatch):
     """Perplexity ignores a `tools` field and answers in prose — worse than
-    refusing, because the caller waits for a call that never comes."""
+    refusing, because the caller waits for a call that never comes.
+
+    The pool is whatever has a key, so the test supplies its own: it passed on a
+    machine with keys in `.env` and failed in CI, which has none — and with no
+    Perplexity key the exclusion was never exercised at all."""
     from alafia_model.registry.providers import ordered_for_selection
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("PERPLEXITY_API_KEY", "test-key")
+    assert "perplexity" in {s.name for s in ordered_for_selection()}
 
     names = {s.name for s in ordered_for_selection(require_tools=True)}
     assert "perplexity" not in names

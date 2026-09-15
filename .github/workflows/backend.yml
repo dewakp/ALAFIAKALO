@@ -73,6 +73,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # alafia_crypto is our own Rust extension, built exactly as the Dockerfile
+      # builds it. Without it, `import alafia_crypto` found the SOURCE directory on
+      # PYTHONPATH as an empty namespace package, and every call failed with
+      # "module 'alafia_crypto' has no attribute 'sha512_hex'" — adding a clinical
+      # note 500'd in CI while working in production, which builds the extension.
+      - name: Build alafia_crypto (Rust extension)
+        run: |
+          pip install maturin
+          cd alafia_crypto
+          maturin build --release
+          pip install target/wheels/*.whl
+
       - name: Run Alembic migrations
         run: alembic upgrade head
 
