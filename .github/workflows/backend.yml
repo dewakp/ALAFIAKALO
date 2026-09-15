@@ -17,7 +17,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:18
+        # Production is Cloud SQL Postgres 16 (CLAUDE.md §1); test against it.
+        image: postgres:16
         env:
           POSTGRES_USER: alafia
           POSTGRES_PASSWORD: alafia
@@ -48,14 +49,20 @@ jobs:
       SECRET_KEY: ci-test-secret-key-not-used-in-production-min32chars
       REDIS_URL: redis://localhost:6379/0
       DEBUG: "true"
+      # The `pytest` entry point does not put the working directory on sys.path,
+      # so every run since this workflow existed stopped at collection with
+      # "No module named 'app'" (exit 4) and ran no test. Same order as the
+      # backend-test container: the canonical ALAFIAModel source first (CLAUDE.md §4).
+      PYTHONPATH: ${{ github.workspace }}/ML/src:${{ github.workspace }}/WEB/backend
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          # The production image runs 3.12 (its tracebacks read python3.12).
+          python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: WEB/backend/requirements.txt
 
