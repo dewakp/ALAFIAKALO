@@ -165,6 +165,18 @@ async def csrf_middleware(request: Request, call_next):
         # Validate: header must match cookie (double-submit pattern)
         header_token = request.headers.get("X-CSRF-Token", "")
         if header_token != csrf_cookie:
+            # Which credentials arrived — presence only, never a value. A mobile
+            # token refresh was refused here on 2026-09-15 and nothing said why:
+            # a body-based refresh is exempt only while NO refresh_token cookie
+            # rides along, and a client's cookie store can supply one unasked.
+            logger.warning(
+                "csrf_rejected path=%s header=%s csrf_cookie=%s refresh_cookie=%s client=%s",
+                request.url.path,
+                bool(header_token),
+                "csrf_token" in request.cookies,
+                "refresh_token" in request.cookies,
+                (request.headers.get("user-agent") or "")[:40],
+            )
             err_response = Response(
                 content='{"detail":"CSRF token missing or invalid"}',
                 status_code=403,

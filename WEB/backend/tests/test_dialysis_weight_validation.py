@@ -12,6 +12,11 @@ garbage sit inside the mean.
 These are PHYSICAL plausibility bounds — is this a human being — not clinical
 reference ranges. Clinical thresholds are resolved from reported data
 (`test_no_hardcoded_thresholds.py`).
+
+They guard what is ENTERED — `TherapySessionCreate`. They once sat on the base
+the response model inherits, and because the record still holds rows like
+these, reading a patient's history became a 500
+(`test_therapy_sessions_readable.py`).
 """
 
 from datetime import datetime
@@ -19,13 +24,13 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.chronic_conditions import TherapySessionBase
+from app.schemas.chronic_conditions import TherapySessionCreate
 
 BASE = dict(therapy_type="hemodialysis", scheduled_date=datetime(2026, 1, 5, 8, 0))
 
 
 def _session(**kw):
-    return TherapySessionBase(**{**BASE, **kw})
+    return TherapySessionCreate(**{**BASE, **kw})
 
 
 def test_an_ordinary_session_is_accepted():
