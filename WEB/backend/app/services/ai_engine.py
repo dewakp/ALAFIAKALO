@@ -412,7 +412,8 @@ class AIPersonalizationEngine:
         user: User, 
         db: Session, 
         recommendation_type: str,
-        specific_request: Optional[str] = None
+        specific_request: Optional[str] = None,
+        language: str = "en",
     ) -> Dict[str, Any]:
         """
         Generate personalized recommendations using LLM.
@@ -428,7 +429,10 @@ class AIPersonalizationEngine:
         """
         context = self._build_user_context(user, db)
         
+        from app.services.prompt_language import conversation_instruction
+
         system_prompt = self._get_system_prompt(context["ai_preferences"]["personality"])
+        system_prompt += "\n\n" + conversation_instruction(language)
         user_prompt = self._build_recommendation_prompt(context, recommendation_type, specific_request)
         
         messages = [
@@ -530,7 +534,9 @@ If you see any concerning patterns (e.g., symptoms, vital signs), recommend prof
         
         return prompt
     
-    async def analyze_symptoms(self, user: User, db: Session, symptoms_description: str) -> Dict[str, Any]:
+    async def analyze_symptoms(
+        self, user: User, db: Session, symptoms_description: str, language: str = "en",
+    ) -> Dict[str, Any]:
         """
         Analyze symptoms with context from user's health profile.
         
@@ -542,6 +548,9 @@ If you see any concerning patterns (e.g., symptoms, vital signs), recommend prof
 Your role is to help users understand possible connections between symptoms and existing conditions,
 identify patterns, and determine urgency of professional consultation.
 Always recommend seeing a healthcare provider for proper diagnosis."""
+        from app.services.prompt_language import conversation_instruction
+
+        system_prompt += "\n\n" + conversation_instruction(language)
         
         user_prompt = f"""USER HEALTH CONTEXT:
 {json.dumps(context, indent=2, default=str)}

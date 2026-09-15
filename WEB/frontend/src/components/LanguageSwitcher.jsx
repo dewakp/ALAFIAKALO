@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '../i18n';
+import api from '../services/api';
 
 /**
  * Language Switcher Component
@@ -21,18 +22,10 @@ const LanguageSwitcher = ({ variant = 'dropdown' }) => {
 
   const updateUserLanguagePreference = async (languageCode) => {
     try {
-      // Save to user profile
-      const token = localStorage.getItem('token');
-      if (token) {
-        await fetch(`${import.meta.env.VITE_API_URL}/api/v1/users/me`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ preferred_language: languageCode }),
-        });
-      }
+      // The same PATCH the Profile screen saves with, through the shared client
+      // so auth, CSRF and the base URL are handled once. This used to PUT to
+      // `${VITE_API_URL}/api/v1/users/me` by hand, bypassing all three.
+      await api.patch('/users/me', { preferred_language: languageCode });
     } catch (error) {
       console.error('Failed to update language preference:', error);
     }

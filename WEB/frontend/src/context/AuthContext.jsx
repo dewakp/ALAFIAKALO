@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import i18n, { normaliseLanguage } from '../i18n';
 
 const AuthContext = createContext(null);
 
@@ -19,6 +20,14 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
   }, []);
+
+  // The saved profile language becomes the app's language wherever the user is
+  // (re)loaded, so the X-Client-Language header — which the backend reads
+  // first — never contradicts the patient's own choice.
+  useEffect(() => {
+    const code = normaliseLanguage(user?.preferred_language);
+    if (code && code !== i18n.language) i18n.changeLanguage(code);
+  }, [user]);
 
   async function loadUser() {
     try {

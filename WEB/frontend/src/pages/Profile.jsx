@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import i18n, { SUPPORTED_LANGUAGES, normaliseLanguage } from '../i18n';
 import AvatarUpload from '../components/AvatarUpload';
 import BackButton from '../components/BackButton';
 import UnitToggle from '../components/UnitToggle';
@@ -145,6 +146,10 @@ export default function Profile() {
       payload.target_weight_kg = toNum(payload.target_weight_kg, parseFloat);
       payload.exercise_frequency_per_week = toNum(payload.exercise_frequency_per_week, parseInt);
       await api.patch('/users/me', payload);
+      // The saved language becomes the app's language now, so the language
+      // header the assistant reads never contradicts the choice just made.
+      const chosen = normaliseLanguage(payload.preferred_language);
+      if (chosen && chosen !== i18n.language) i18n.changeLanguage(chosen);
       setMessage('Profile updated successfully.');
       setMessageType('info');
       // Re-lock set-once fields after save
@@ -347,14 +352,13 @@ export default function Profile() {
               </div>
               <div className="form-group">
                 <label className="form-label">Preferred Language</label>
-                <select className="form-input" value={form.preferred_language} onChange={(e) => updateField('preferred_language', e.target.value)}>
+                {/* All eleven languages, each in its own name. A stored "English"
+                    (iOS saves names) resolves to its code so the select shows it. */}
+                <select className="form-input" value={normaliseLanguage(form.preferred_language) || ''} onChange={(e) => updateField('preferred_language', e.target.value)}>
                   <option value="">—</option>
-                  <option value="en">English</option>
-                  <option value="fr">French</option>
-                  <option value="es">Spanish</option>
-                  <option value="pt">Portuguese</option>
-                  <option value="ar">Arabic</option>
-                  <option value="sw">Swahili</option>
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code}>{lang.nativeName}</option>
+                  ))}
                 </select>
               </div>
             </div>

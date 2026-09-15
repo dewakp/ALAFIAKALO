@@ -39,6 +39,21 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili' },
 ];
 
+// Profiles store both codes ("en", saved by web) and names ("English", saved by
+// iOS). Resolve either to a supported code — or null: an unknown value is not
+// guessed at. The backend's app/services/prompt_language.py applies the same rule.
+export const normaliseLanguage = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  const text = value.trim();
+  const code = text.split(/[-_]/)[0].toLowerCase();
+  if (SUPPORTED_LANGUAGES.some((lang) => lang.code === code)) return code;
+  const folded = text.toLocaleLowerCase();
+  const match = SUPPORTED_LANGUAGES.find(
+    (lang) => lang.name.toLocaleLowerCase() === folded || lang.nativeName.toLocaleLowerCase() === folded,
+  );
+  return match ? match.code : null;
+};
+
 // RTL languages
 export const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur'];
 

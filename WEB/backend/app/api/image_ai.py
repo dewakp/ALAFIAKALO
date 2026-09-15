@@ -18,9 +18,6 @@ import logging
 import os
 import re
 
-import httpx
-
-from app.services.ollama_auth import ollama_auth_headers
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -86,34 +83,29 @@ MEDICATION_LIBRARY = {
 }
 
 
-# Must match ML/src/alafia_model/capabilities/vision.py, which defaults to the
-# same model. These two files ask the SAME Ollama service for a vision model, so
-# a disagreement means half the app requests a model the service does not have.
-#
-# NOT moondream (CLAUDE.md §3a): it is a grounding model and answers the food
-# schema with bounding boxes, so every photo fails. moondream was the default
-# here while vision.py defaulted to llava -- and since OLLAMA_VISION_MODEL is
-# unset in production, these endpoints were asking for the one model canon
-# forbids.
-DEFAULT_VISION_MODEL = "llava"
+async def _vision_ask(image: bytes, prompt: str) -> tuple[str, str | None]:
+    """Ask a vision model one fixed question about a photo. Returns (answer, why_not).
 
+    Through ALAFIAModel, in the production provider order: hosted vision first,
+    Ollama last (CLAUDE.md §3a). This used to post straight to Ollama's
+    generate endpoint, which made every Image AI screen Ollama-ONLY — a cold
+    scale-to-zero GPU in production, and no answer at all when it was down.
 
-async def _vision_ask(image: bytes, prompt: str) -> str:
-    """Ask the local vision model a plain question about the photo."""
-    model = os.environ.get("OLLAMA_VISION_MODEL", DEFAULT_VISION_MODEL)
-    b64 = base64.b64encode(image).decode("ascii")
-    try:
-        async with httpx.AsyncClient(timeout=float(os.environ.get("OLLAMA_TIMEOUT", "300"))) as client:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={"model": model, "prompt": prompt, "images": [b64], "stream": False},
-                headers=await ollama_auth_headers(),
-            )
-            resp.raise_for_status()
-            return (resp.json().get("response") or "").strip()
-    except Exception as e:
-        logger.warning("Vision question failed: %s", e)
-        return ""
+    What leaves is the task's fixed question and the photo. Nothing about who
+    took it: no name, no account, no record.
+
+    The reason travels back with an empty answer. This used to return "" for
+    every failure and the endpoints answered a bare "unavailable" — the shape
+    that sends an operator hunting a healthy service (§3ae).
+    """
+    from app.services.alafia_model_service import alafia_infer
+
+    result = await alafia_infer("vision", {"task": "image_question", "image_bytes": image, "text": prompt})
+    if not result.get("success"):
+        reason = result.get("error") or "no vision provider answered"
+        logger.warning("Vision question failed: %s", reason)
+        return "", reason
+    return str((result.get("data") or {}).get("text") or "").strip(), None
 
 
 _FOOD_CAPTION_PROMPT = "What foods are on this plate?"
@@ -189,20 +181,19 @@ async def _extract_food_list(caption: str) -> list[str]:
         "No commentary, no cookware, no cutlery, each item 1-4 words.\n\n"
         f"Description: {caption}"
     )
+    from alafia_model.capabilities.vision import VisionCapability
+
+    from app.services.alafia_model_service import ALAFIAModelError, alafia_chat
+
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={"model": settings.OLLAMA_MODEL, "prompt": prompt,
-                      "stream": False, "format": "json",
-                      "options": {"temperature": 0}},
-                headers=await ollama_auth_headers(),
-            )
-            resp.raise_for_status()
-            parsed = json.loads((resp.json().get("response") or "").strip())
-    except Exception as e:
+        raw = await alafia_chat(
+            [{"role": "user", "content": prompt}], temperature=0, max_tokens=300, json_mode=True,
+        )
+    except ALAFIAModelError as e:
         logger.warning("Food-list extraction failed: %s", e)
         return []
+    # Tolerant parse: a hosted model may fence its JSON or wrap it in a sentence.
+    parsed = VisionCapability._parse_json(raw)
     foods = parsed.get("foods") if isinstance(parsed, dict) else None
     if not isinstance(foods, list):
         return []
@@ -215,16 +206,16 @@ async def _extract_food_list(caption: str) -> list[str]:
     return out[:8]
 
 
-async def _vision_food_caption(image: bytes) -> str:
+async def _vision_food_caption(image: bytes) -> tuple[str, str | None]:
     """Identify foods in the photo: vision caption → text-model list extraction,
-    with regex cleanup as the fallback."""
-    caption = await _vision_ask(image, _FOOD_CAPTION_PROMPT)
+    with regex cleanup as the fallback. Returns (description, why_not)."""
+    caption, reason = await _vision_ask(image, _FOOD_CAPTION_PROMPT)
     if not caption:
-        return ""
+        return "", reason
     foods = await _extract_food_list(caption)
     if foods:
-        return "; ".join(foods)
-    return _clean_caption(caption)
+        return "; ".join(foods), None
+    return _clean_caption(caption), None
 
 
 async def _price_description(db: AsyncSession, user: User, description: str) -> tuple[list, dict]:
@@ -321,11 +312,11 @@ async def nutrition_from_image(
         # … caption fallback: small local vision models (moondream) answer a
         # plain question far more reliably than they emit JSON. The caption
         # feeds the NLM meal parser, which extracts the foods.
-        description = await _vision_food_caption(image)
+        description, caption_reason = await _vision_food_caption(image)
         if not description:
             raise HTTPException(
                 status_code=503,
-                detail=vision.get("error")
+                detail=vision.get("error") or caption_reason
                 or "The food-recognition model is unavailable right now — try again shortly "
                    "or log the meal by text in Log Food Intake.",
             )
@@ -427,24 +418,17 @@ _MED_LABEL_PROMPT = (
 
 
 async def _vision_read_med_label(image: bytes) -> dict | None:
-    """Read a medication label with the local Ollama vision model."""
-    model = os.environ.get("OLLAMA_VISION_MODEL", DEFAULT_VISION_MODEL)
-    b64 = base64.b64encode(image).decode("ascii")
-    try:
-        async with httpx.AsyncClient(timeout=float(os.environ.get("OLLAMA_TIMEOUT", "300"))) as client:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={"model": model, "prompt": _MED_LABEL_PROMPT, "images": [b64],
-                      "stream": False, "format": "json"},
-                headers=await ollama_auth_headers(),
-            )
-            resp.raise_for_status()
-            raw = (resp.json().get("response") or "").strip()
-            parsed = json.loads(raw)
-            return parsed if isinstance(parsed, dict) else None
-    except Exception as e:
-        logger.warning("Medication label vision failed: %s", e)
+    """Read a medication label — through ALAFIAModel, in the provider order."""
+    from app.services.alafia_model_service import alafia_infer
+
+    result = await alafia_infer("vision", {
+        "task": "image_question", "image_bytes": image, "text": _MED_LABEL_PROMPT, "json_mode": True,
+    })
+    if not result.get("success"):
+        logger.warning("Medication label vision failed: %s", result.get("error"))
         return None
+    parsed = (result.get("data") or {}).get("json")
+    return parsed if isinstance(parsed, dict) else None
 
 
 @router.post("/medication-from-image", response_model=MedicationFromImageResponse)
@@ -576,16 +560,16 @@ async def verify_dosage(
             f"If no significant interactions exist, say so briefly. "
             f"Do not give general drug information — focus only on interactions with the listed medications."
         )
+        from app.services.alafia_model_service import ALAFIAModelError, alafia_chat
+
         try:
-            async with httpx.AsyncClient(timeout=60) as client:
-                resp = await client.post(
-                    f"{settings.OLLAMA_BASE_URL}/api/generate",
-                    json={"model": settings.OLLAMA_MODEL, "prompt": prompt, "stream": False},
-                    headers=await ollama_auth_headers(),
-                )
-                resp.raise_for_status()
-                ai_notes = (resp.json().get("response") or "").strip() or None
-        except Exception:
+            ai_notes = (await alafia_chat(
+                [{"role": "user", "content": prompt}], temperature=0.2, max_tokens=300,
+            )).strip() or None
+        except ALAFIAModelError as exc:
+            # The deterministic reference check above still stands; only the AI
+            # interaction note is missing, and the log says why.
+            logger.warning("Interaction check unavailable: %s", exc)
             ai_notes = None
 
     if ai_notes:
@@ -698,11 +682,11 @@ async def elimination_from_image(
         event_type = "bowel"
 
     image, _ = await _read_image(request, file)
-    description = await _vision_ask(image, _ELIM_PROMPTS[event_type])
+    description, reason = await _vision_ask(image, _ELIM_PROMPTS[event_type])
     if not description:
         raise HTTPException(
             status_code=503,
-            detail="The image-analysis model is unavailable right now — try again shortly.",
+            detail=f"The image-analysis model is unavailable right now ({reason}) — try again shortly.",
         )
 
     suggested, flags = _extract_elimination(event_type, description)
@@ -749,11 +733,11 @@ async def symptom_from_image(
     the Symptoms form. NOT a diagnosis.
     """
     image, _ = await _read_image(request, file)
-    description = await _vision_ask(image, _SYMPTOM_PROMPT)
+    description, reason = await _vision_ask(image, _SYMPTOM_PROMPT)
     if not description:
         raise HTTPException(
             status_code=503,
-            detail="The image-analysis model is unavailable right now — try again shortly.",
+            detail=f"The image-analysis model is unavailable right now ({reason}) — try again shortly.",
         )
 
     low = description.lower()

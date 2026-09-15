@@ -1983,6 +1983,56 @@ refuses a build number that is not higher than one already accepted for the same
 marketing version. Check `CURRENT_PROJECT_VERSION` against what has actually
 been submitted before bumping; the next build of 1.5 is **7**.
 
+## 3aw. The patient is answered in their language — and a guard's fields never are
+
+`preferred_language` was saved by all three Profile screens and read by nothing
+that talks to a patient, in two dialects at once: web stores `en`, iOS stored
+`English`. `app/services/prompt_language.py` is now the one place.
+
+- **Order:** the app's current UI language, sent on every request as
+  `X-Client-Language` (web axios interceptor and AIChat's streaming `fetch`,
+  Android `LanguageInterceptor`, iOS `buildRequest`) → the saved preference →
+  English. An unrecognised value is discarded, not repaired.
+- **The header wins, so every client adopts the saved profile language when the
+  user loads** — web `AuthContext` effect, iOS `AuthManager.currentUser` didSet,
+  Android session restore and sign-in. Sending the device language instead
+  answers a patient who chose Yoruba in English on an English-language phone.
+- **Prose follows the patient** (chat and stream, personalization, symptom
+  analysis, planner `description`/`rationale`/`notes`). **Any field a guard or a
+  lookup reads stays in English:** the meal planner's allergy sanitiser matches
+  English food names, vision item names feed the nutrient lookup, and elimination
+  descriptions feed the Bristol/blood keyword extractor. A translated
+  "cacahuète" walks straight past a peanut allergy.
+- The same eleven codes everywhere; `scripts/i18n/test_catalogs.py` fails if the
+  backend, web, iOS or Android lists disagree.
+- Android applies a chosen language through `attachBaseContext`, **not**
+  `Locale.setDefault` — that changes number formatting process-wide, and a
+  French patient's `1.5` would reach the backend as `1,5`.
+
+### Image AI follows the provider order too
+
+Medication labels, symptom and elimination photos, the meal caption fallback and
+the drug-interaction note all posted straight to Ollama — Ollama-ONLY, not merely
+Ollama-first. They now go through `alafia_infer("vision", task="image_question")`
+and `alafia_chat`, and `tests/test_image_ai_provider_order.py` fails the build if
+`image_ai.py` reaches a model server directly. What leaves is ALAFIA's fixed
+question and the photo, never the patient; a failure carries the provider
+chain's reason into the 503 instead of a bare "unavailable".
+
+### Translating the UI with AI: the model rewrites what it echoes
+
+`scripts/i18n/translate_catalogs.py` fills the web, Android and iOS catalogs.
+Every result is recorded as `machine` in `i18n/review/` until someone who reads
+the language marks it reviewed, and a translation that breaks a placeholder is
+refused.
+
+> Given our keys, the model returned them with its own typography — `Couldn’t`
+> as `Couldn't`, `“%@”` as `"%@"`. The key stopped matching, and a straight quote
+> inside a JSON key made the whole reply unparseable: ten strings lost for one
+> quote mark, on every retry. The model now sees numeric ids only, and retries
+> go down to one string at a time. It was found by printing the raw reply, after
+> "reply had 0 keys" had been logged twice without saying why.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

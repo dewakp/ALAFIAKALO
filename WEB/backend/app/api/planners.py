@@ -3,7 +3,7 @@
 import json
 import logging
 from datetime import date, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
@@ -21,6 +21,7 @@ from app.models.pantry import PantryItem
 # alafia_model_service imports nothing from app, so there is no cycle.
 from app.services.alafia_model_service import ALAFIAModelError
 from app.services import food_safety
+from app.services.prompt_language import LANGUAGE_HEADER, patient_language, structured_instruction
 from app.schemas.wellness import (
     MealPlanRequest, MealPlanResponse, MealItem, DayMeals,
     ExercisePlanRequest, ExercisePlanResponse, ExerciseItem, DayWorkout,
@@ -574,6 +575,7 @@ async def _ollama_generate_exercise_plan(
     user: "User",
     ctx: dict,
     level: str,
+    language: str = "en",
 ) -> "list[DayWorkout] | None":
     """Ask Ollama to generate a personalised 7-day exercise plan. Returns None on any failure."""
     conditions_str = "; ".join(c.name for c in ctx["conditions"]) or "None reported"
@@ -592,6 +594,9 @@ async def _ollama_generate_exercise_plan(
 
     ex_schema = '{"name":"Push-ups","type":"strength","sets":3,"reps":10}'
     day_schema = f'{{"day":"Monday","focus":"upper_body","total_minutes":45,"exercises":[{ex_schema}]}}'
+    # Only free-text notes follow the patient's language; focus and type are
+    # enumerations the plan parser validates in English.
+    lang_rule = structured_instruction(language, ("notes",))
     prompt = (
         f"You are a certified exercise physiologist. Generate a personalized 7-day exercise plan.\n\n"
         f"{_patient_block(user, ctx)}\n\n"
@@ -610,7 +615,8 @@ async def _ollama_generate_exercise_plan(
         f"6. If 'beginner': gentle exercises, 20-30 min/session.\n"
         f"7. If 'advanced': higher intensity, 45-60 min/session, compound movements.\n"
         f"8. Include at least 1-2 rest/recovery days.\n\n"
-        f"Output only the JSON array:"
+        + (f"{lang_rule}\n\n" if lang_rule else "")
+        + "Output only the JSON array:"
     )
 
     # Routed through ALAFIAModel (Ollama → OpenAI fallback). Freeform output —
@@ -718,6 +724,7 @@ def _labs_summary(labs: list) -> str:
 
 async def _generate_meal_suggestions(
     user: "User", ctx: dict, req: MealSuggestionRequest, pantry_names: list[str],
+    language: str = "en",
 ) -> list[MealSuggestion]:
     """Ask the LLM for N pantry- and condition-aware meal suggestions."""
     conditions_str = "; ".join(c.name for c in ctx["conditions"]) or "None reported"
@@ -743,6 +750,9 @@ async def _generate_meal_suggestions(
         '"calories":450,"protein_g":25,"carbs_g":40,"fat_g":15,'
         '"rationale":"why this fits the patient goals/labs/conditions"}'
     )
+    # Only the prose follows the patient's language. Meal names and ingredients
+    # stay in English: the allergy and pantry checks match English food names.
+    lang_rule = structured_instruction(language, ("description", "rationale"))
     prompt = (
         "You are ALAFIA's clinical dietitian. Suggest meals personalised to this patient.\n\n"
         f"{_patient_block(user, ctx)}\n\n"
@@ -763,7 +773,8 @@ async def _generate_meal_suggestions(
         "5. Tailor to the conditions & labs (e.g. renal/CKD -> limit potassium, phosphorus, sodium; "
         "low hemoglobin -> iron-rich foods + vitamin C; low vitamin D / calcium -> fortified or dairy options).\n"
         "6. All calorie/macro fields are numbers; keep ingredient names simple.\n\n"
-        "Output only the JSON array:"
+        + (f"{lang_rule}\n\n" if lang_rule else "")
+        + "Output only the JSON array:"
     )
 
     from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
@@ -824,6 +835,7 @@ async def generate_meal_suggestions(
     request: MealSuggestionRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
 ):
     """Personalised meal suggestions from the patient's medical history, current
     state (labs/conditions/meds), preferences and on-hand pantry — with shopping
@@ -840,7 +852,10 @@ async def generate_meal_suggestions(
     pantry_names = submitted or [p.name for p in ctx.get("pantry", [])]
 
     try:
-        suggestions = await _generate_meal_suggestions(current_user, ctx, request, pantry_names)
+        suggestions = await _generate_meal_suggestions(
+            current_user, ctx, request, pantry_names,
+            language=patient_language(current_user, client_language),
+        )
     except ALAFIAModelError as exc:
         # Name the reason. "Unavailable right now" sent the operator looking for
         # a down service when the model was actually up and answering — it was
@@ -1044,6 +1059,7 @@ async def generate_exercise_plan(
     request: ExercisePlanRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
 ):
     """Generate a personalized 7-day exercise plan via AI with deterministic template fallback."""
     ctx = await _gather_planner_context(current_user.id, db)
@@ -1058,7 +1074,9 @@ async def generate_exercise_plan(
         level = "moderate"
 
     # Attempt AI-generated plan
-    weekly_plan = await _ollama_generate_exercise_plan(current_user, ctx, level)
+    weekly_plan = await _ollama_generate_exercise_plan(
+        current_user, ctx, level, language=patient_language(current_user, client_language),
+    )
     used_ai = weekly_plan is not None
 
     if not weekly_plan:

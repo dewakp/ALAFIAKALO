@@ -434,3 +434,38 @@ def test_a_full_resolution_photo_is_shrunk_for_the_model_only():
     Image.new("RGB", (800, 600), (1, 2, 3)).save(small, format="PNG")
     assert vision_module._fit_for_upload(small.getvalue(), "image/png") == (small.getvalue(), "image/png")
     assert vision_module._fit_for_upload(b"not an image", "image/heic") == (b"not an image", "image/heic")
+
+
+def test_the_declared_type_is_corrected_from_the_bytes():
+    Image = pytest.importorskip("PIL.Image")
+    png = io.BytesIO()
+    Image.new("RGB", (40, 30), (9, 9, 9)).save(png, format="PNG")
+    assert vision_module._fit_for_upload(png.getvalue(), "image/jpeg") == (png.getvalue(), "image/png")
+
+
+# ── image_question: the Image AI screens, in the same provider order ─────────
+
+
+def test_an_image_question_goes_through_the_provider_order_as_plain_text(providers):
+    calls, requested = providers(order=("anthropic",))
+    result = _run(VisionCapability().infer(
+        {"task": "image_question", "image_bytes": b"img", "text": "Describe the rash."}))
+    assert result.success and result.source == "vision-anthropic:anthropic-model"
+    (_, messages, kwargs), = calls
+    assert messages[1]["content"][-1] == {"type": "text", "text": "Describe the rash."}
+    assert kwargs["json_mode"] is False
+    assert requested == {"require_vision": True}
+
+
+def test_an_image_question_in_json_mode_returns_the_parsed_object(providers):
+    providers(order=("anthropic",))
+    result = _run(VisionCapability().infer(
+        {"task": "image_question", "image_bytes": b"img", "text": "Read the label.", "json_mode": True}))
+    assert result.success
+    assert result.data["json"] == {"items": [{"name": "rice"}]}
+
+
+def test_an_image_question_without_a_question_is_refused():
+    result = _run(VisionCapability().infer({"task": "image_question", "image_bytes": b"img"}))
+    assert not result.success
+    assert "question" in result.error

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import api, { ensureCsrfToken, refreshAccessToken } from '../services/api';
+import i18n from '../i18n';
 import { apiErrorMessage } from '../utils/apiError';
 import { Send, RefreshCw, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
 import BackButton from '../components/BackButton';
@@ -239,6 +240,8 @@ export default function AIChat() {
           ...(Intl.DateTimeFormat().resolvedOptions().timeZone
             ? { 'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }
             : {}),
+          // Same reason: the assistant answers in the patient's language.
+          ...(i18n.language ? { 'X-Client-Language': i18n.language } : {}),
         },
         body: requestBody,
       });

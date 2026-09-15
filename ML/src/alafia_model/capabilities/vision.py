@@ -74,10 +74,17 @@ close-ups). Analyze them together and return ONE combined result:
 - Use the extra angles to raise confidence, not to inflate the totals.
 """
 
+# Framing for one fixed question about a photo (the Image AI screens). The
+# task's own question arrives as the user turn.
+_IMAGE_QUESTION_SYSTEM = """\
+You describe photos for a personal health-tracking app. Describe only what is
+visible. Do not diagnose, do not guess who is in the photo, and say so plainly
+when the photo is unclear.
+"""
 
-def _vision_messages(kind: str, system_prompt: str, noun: str, encoded: list[tuple[str, str]]) -> list[dict]:
+
+def _vision_messages(kind: str, system_prompt: str, instruction: str, encoded: list[tuple[str, str]]) -> list[dict]:
     """The same request in each hosted wire's image shape."""
-    instruction = f"Analyze {noun}."
     if kind == "anthropic":
         content: list[dict[str, Any]] = [
             {"type": "image", "source": {"type": "base64", "media_type": content_type, "data": b64}}
@@ -108,8 +115,11 @@ def _fit_for_upload(raw: bytes, content_type: str) -> tuple[bytes, str]:
         return raw, content_type
     try:
         with Image.open(io.BytesIO(raw)) as original:
+            # The type the bytes ARE, not the one the caller declared. Image AI
+            # sends no content type at all, so a PNG arrives labelled image/jpeg.
+            actual_type = Image.MIME.get(original.format or "", content_type)
             if max(original.size) <= _UPLOAD_LONG_EDGE and len(raw) <= _UPLOAD_MAX_BYTES:
-                return raw, content_type
+                return raw, actual_type
             image = ImageOps.exif_transpose(original).convert("RGB")
         image.thumbnail((_UPLOAD_LONG_EDGE, _UPLOAD_LONG_EDGE), Image.LANCZOS)
         out = io.BytesIO()
@@ -148,6 +158,8 @@ class VisionCapability(BaseCapability):
             return await self._food_photo_nutrition(payload)
         if task == "lab_report_ocr":
             return await self._lab_report_ocr(payload)
+        if task == "image_question":
+            return await self._image_question(payload)
         if task in ("skin_triage", "pill_identification"):
             return self._scaffold_stub(task)
 
@@ -271,8 +283,43 @@ class VisionCapability(BaseCapability):
             source=result.source,
         )
 
+    async def _image_question(self, payload: dict) -> CapabilityResult:
+        """One fixed, task-specific question about a photo, in the provider order.
+
+        For the Image AI screens: medication labels, symptom and elimination
+        photos, the meal caption fallback. `text` is the question and is always
+        written by ALAFIA, never by the patient — what leaves is the photo and
+        what we ask about it. With `json_mode` the parsed object comes back as
+        `json`.
+        """
+        images = self._collect_images(payload)
+        question = str(payload.get("text") or "").strip()
+        if not images or not question:
+            return CapabilityResult(success=False, error="image_question needs an image and a question (text)")
+        if not self.is_available():
+            return CapabilityResult(
+                success=False,
+                error="Vision backend not configured (no image-capable provider key and no OLLAMA_BASE_URL).",
+            )
+        json_mode = bool(payload.get("json_mode"))
+        result = await self._vision_chat(images, _IMAGE_QUESTION_SYSTEM, instruction=question, json_mode=json_mode)
+        if not result.success:
+            return result
+        answer = str((result.data or {}).get("text") or "").strip()
+        data: dict[str, Any] = {"text": answer}
+        if json_mode:
+            parsed, cut_off = self._parse_json_with_repair(answer)
+            if parsed is None:
+                return CapabilityResult(
+                    success=False, source=result.source,
+                    error=f"The vision model ({result.source}) did not answer this question in JSON.",
+                )
+            data.update(json=parsed, cut_off=cut_off)
+        return CapabilityResult(success=True, data=data, confidence=0.5, source=result.source)
+
     async def _vision_chat(
-        self, images: list[tuple[bytes, str]], system_prompt: str
+        self, images: list[tuple[bytes, str]], system_prompt: str,
+        *, instruction: str | None = None, json_mode: bool = True,
     ) -> CapabilityResult:
         """Send one or more images + an instruction to ONE vision model, in ONE call.
 
@@ -295,12 +342,13 @@ class VisionCapability(BaseCapability):
         prepared = [_fit_for_upload(raw, content_type) for raw, content_type in images]
         encoded = [(base64.b64encode(raw).decode("ascii"), content_type) for raw, content_type in prepared]
         noun = "this image" if len(encoded) == 1 else f"these {len(encoded)} images"
+        instruction = instruction or f"Analyze {noun}."
         errors: list[str] = []
         has_ollama = bool(os.environ.get("OLLAMA_BASE_URL"))
         ollama_first = has_ollama and _ollama_first()
 
         if ollama_first:
-            result = await self._ollama_vision(encoded, system_prompt, noun)
+            result = await self._ollama_vision(encoded, system_prompt, instruction, json_mode)
             if result.success:
                 return result
             errors.append(result.error or "Ollama vision failed")
@@ -311,12 +359,12 @@ class VisionCapability(BaseCapability):
                            f"provider was tried: {errors[-1]}"),
                 )
 
-        result = await self._hosted_vision(encoded, system_prompt, noun, errors)
+        result = await self._hosted_vision(encoded, system_prompt, instruction, errors, json_mode)
         if result is not None:
             return result
 
         if has_ollama and not ollama_first:
-            result = await self._ollama_vision(encoded, system_prompt, noun)
+            result = await self._ollama_vision(encoded, system_prompt, instruction, json_mode)
             if result.success:
                 return result
             errors.append(result.error or "Ollama vision failed")
@@ -327,7 +375,8 @@ class VisionCapability(BaseCapability):
         )
 
     async def _hosted_vision(
-        self, encoded: list[tuple[str, str]], system_prompt: str, noun: str, errors: list[str]
+        self, encoded: list[tuple[str, str]], system_prompt: str, instruction: str,
+        errors: list[str], json_mode: bool = True,
     ) -> CapabilityResult | None:
         """Each hosted provider whose models read images, in selection order.
 
@@ -344,8 +393,8 @@ class VisionCapability(BaseCapability):
             started = time.monotonic()
             try:
                 response = await adapter_for(spec).chat(
-                    _vision_messages(spec.kind, system_prompt, noun, encoded),
-                    temperature=0.2, max_tokens=_VISION_MAX_TOKENS, json_mode=True,
+                    _vision_messages(spec.kind, system_prompt, instruction, encoded),
+                    temperature=0.2, max_tokens=_VISION_MAX_TOKENS, json_mode=json_mode,
                 )
             except Exception as exc:
                 status = getattr(getattr(exc, "response", None), "status_code", None)
@@ -372,7 +421,7 @@ class VisionCapability(BaseCapability):
         return None
 
     async def _ollama_vision(
-        self, encoded: list[tuple[str, str]], system_prompt: str, noun: str
+        self, encoded: list[tuple[str, str]], system_prompt: str, instruction: str, json_mode: bool = True,
     ) -> CapabilityResult:
         """Run image understanding through Ollama (llava)."""
         from alafia_model.adapters.ollama_adapter import OllamaAdapter
@@ -383,14 +432,14 @@ class VisionCapability(BaseCapability):
         adapter = OllamaAdapter(model=model)
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Analyze {noun}."},
+            {"role": "user", "content": instruction},
         ]
         try:
             response = await adapter.chat(
                 messages,
                 temperature=0.2,
                 max_tokens=_VISION_MAX_TOKENS,
-                json_mode=True,
+                json_mode=json_mode,
                 images=[b64 for b64, _ in encoded],
             )
         except Exception as exc:

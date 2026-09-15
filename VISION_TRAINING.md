@@ -135,6 +135,11 @@ In production, cheapest and most trustworthy first:
 Dev puts Ollama first and makes it required (`OLLAMA_FIRST` / `OLLAMA_REQUIRED`,
 CLAUDE.md §3ak), exactly as chat does.
 
+The Image AI screens — medication labels, symptom and elimination photos, and the
+meal caption fallback — ask their questions through the same order
+(`task="image_question"`). They used to call Ollama directly, and only Ollama
+(CLAUDE.md §3aw).
+
 **Production had 2 and 3 the wrong way round.** `_vision_chat` asked Ollama first
 whenever `OLLAMA_BASE_URL` was set, which in production is always. On 2026-09-15
 three meal photos (two from iOS, one from web) each took 134–153 s: a cold GPU

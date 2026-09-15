@@ -1,4 +1,5 @@
 import axios from 'axios';
+import i18n from '../i18n';
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -72,6 +73,9 @@ api.interceptors.request.use((config) => {
   } catch {
     // No Intl support — the server falls back to UTC, as before.
   }
+  // The language the patient uses ALAFIA in. The assistant answers in the
+  // language a message is written in, and falls back to this one.
+  if (i18n.language) config.headers['X-Client-Language'] = i18n.language;
   // Double-submit CSRF: read cookie and send as header on mutating requests
   const method = (config.method || '').toUpperCase();
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {

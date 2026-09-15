@@ -40,6 +40,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.patient_time import TIMEZONE_HEADER, patient_today
+from app.services.prompt_language import LANGUAGE_HEADER, conversation_instruction, patient_language
 from app.core.security import get_current_user
 from app.services.hebcs_engine import compute_hebcs
 from app.models.ai_memory import AIInteraction, CollectiveInsight, GlobalKnowledge, HealthEmbedding, LearningEvent, UserMemory
@@ -1751,6 +1752,7 @@ def _build_system_prompt(
     user_name: str,
     patient_context: str = "",
     global_knowledge: list[str] | None = None,
+    language: str = "en",
 ) -> str:
     """Build a persona-specific system prompt for Ollama, injecting patient health record
     and optional GlobalKnowledge evidence notes for specialist agents."""
@@ -1810,7 +1812,8 @@ def _build_system_prompt(
             f"arrives as a wall of pipes and dashes. Put each point on its own line instead.\n"
             f"  - Keep it brief. Lead with the direct answer, then the reasoning — not the reverse."
         )
-        return f"{patient_block}{module_note}{specialist_prompt}{knowledge_block}{core_rules}"
+        language_rule = "\n\n" + conversation_instruction(language)
+        return f"{patient_block}{module_note}{specialist_prompt}{knowledge_block}{core_rules}{language_rule}"
 
     # ── Cultural personas: analyst base + optional cultural flavour ─
     if persona:
@@ -1851,7 +1854,7 @@ def _build_system_prompt(
         f"  - Refer to the patient as '{user_name}' or 'you'."
     )
 
-    return f"{patient_block}{analyst_instructions}"
+    return f"{patient_block}{analyst_instructions}\n\n{conversation_instruction(language)}"
 
 
 # keyword → section header to extract from patient_context
@@ -2104,6 +2107,7 @@ async def ai_chat(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
+    client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
 ):
     """Non-streaming AI chat — returns full response when complete."""
     persona_key = request.persona or getattr(current_user, "ai_persona", None)
@@ -2154,6 +2158,7 @@ async def ai_chat(
     tool_system_prompt = _build_system_prompt(
         persona, request.context_module, "the patient",
         core_context, global_knowledge=domain_knowledge or None,
+        language=patient_language(current_user, client_language),
     )
     tool_convo = None
     _t_tools = time.monotonic()
@@ -2235,6 +2240,7 @@ async def ai_chat_stream(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
+    client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
 ):
     """
     Streaming AI chat — returns Server-Sent Events (SSE).
@@ -2272,6 +2278,7 @@ async def ai_chat_stream(
     tool_system_prompt = _build_system_prompt(
         persona, request.context_module, "the patient",
         core_context, global_knowledge=domain_knowledge or None,
+        language=patient_language(current_user, client_language),
     )
     tool_messages = _assemble_chat_messages(
         None, request.messages, request.query, None

@@ -5,7 +5,9 @@ from typing import Optional, List
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+
+from app.services.prompt_language import LANGUAGE_HEADER, patient_language
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -201,7 +203,8 @@ async def update_personalized_profile(
 async def get_ai_recommendations(
     request: RecommendationRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_sync_db)
+    db: Session = Depends(get_sync_db),
+    client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
 ):
     """
     Get personalized AI recommendations.
@@ -222,7 +225,8 @@ async def get_ai_recommendations(
             user=current_user,
             db=db,
             recommendation_type=request.type,
-            specific_request=request.specific_request
+            specific_request=request.specific_request,
+            language=patient_language(current_user, client_language),
         )
         
         return RecommendationResponse(**recommendations)
@@ -318,7 +322,8 @@ def _record_symptom_analysis(db, user, description: str, analysis: dict) -> dict
 async def analyze_symptoms(
     request: SymptomAnalysisRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_sync_db)
+    db: Session = Depends(get_sync_db),
+    client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
 ):
     """
     Analyze symptoms with user's health context.
@@ -337,7 +342,8 @@ async def analyze_symptoms(
         analysis = await ai_engine.analyze_symptoms(
             user=current_user,
             db=db,
-            symptoms_description=request.symptoms_description
+            symptoms_description=request.symptoms_description,
+            language=patient_language(current_user, client_language),
         )
 
         # The symptoms the patient just described are CLINICAL DATA, and this
