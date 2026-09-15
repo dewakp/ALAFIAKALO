@@ -3,6 +3,7 @@ import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
 import { Activity, TrendingUp, TrendingDown, Minus, Network, LineChart, Info } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 // Basis cornerstones #4 (relationship graphs / cause-effect) and #5 (predict
 // future states). Associations are NOT causation — surfaced with that caveat.
@@ -85,7 +86,7 @@ export default function HealthInsights() {
         setSignals(forecastable);
         if (forecastable.length) setSelSignal(forecastable[0].key);
       } catch (err) {
-        if (!cancelled) setRelsErr(apiErrorMessage(err, 'Could not load insights.'));
+        if (!cancelled) setRelsErr(apiErrorMessage(err, t('HealthInsights.could_not_load_insights')));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -100,7 +101,7 @@ export default function HealthInsights() {
       const { data } = await api.get('/insights/forecast', { params: { signal: key } });
       setForecast(data);
     } catch (err) {
-      setForecast({ error: apiErrorMessage(err, 'Could not forecast this signal.') });
+      setForecast({ error: apiErrorMessage(err, t('HealthInsights.could_not_forecast_this_signal')) });
     }
   }, []);
 
@@ -114,32 +115,31 @@ export default function HealthInsights() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Health Insights</h1>
+          <h1 className="page-title">{t('HealthInsights.health_insights')}</h1>
         </div>
       </div>
 
       <div className="card" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 16, background: 'var(--primary-light, #eef6ff)' }}>
         <Info size={18} style={{ flexShrink: 0, marginTop: 2 }} />
         <div style={{ fontSize: '.85rem' }}>
-          These patterns and forecasts are computed from your own logs. They show
-          <strong> associations and trends, not medical cause-and-effect</strong>. Always discuss with your care team.
+          {t('HealthInsights.these_patterns_and_forecasts_are')}
+          <strong> {t('HealthInsights.associations_and_trends_not_medical')}</strong>{t('HealthInsights.always_discuss_with_your_care_team')}
         </div>
       </div>
 
       {loading ? (
-        <div className="card">Analyzing your data…</div>
+        <div className="card">{t('HealthInsights.analyzing_your_data')}</div>
       ) : (
         <>
           {/* ── Relationships ── */}
           <div className="card" style={{ marginBottom: 16 }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
-              <Network size={18} /> Relationships
+              <Network size={18} /> {t('HealthInsights.relationships')}
             </h3>
             {relsErr && <p style={{ color: 'var(--danger, #ef4444)' }}>{relsErr}</p>}
             {rels && rels.relationships.length === 0 && (
               <p style={{ color: 'var(--text-secondary)' }}>
-                No clear relationships yet. Keep logging across diet, vitals, sleep, mood and symptoms —
-                patterns emerge once a few weeks of overlapping data exist.
+                {t('HealthInsights.no_clear_relationships_yet_keep_logging')}
               </p>
             )}
             {rels && rels.relationships.length > 0 && (
@@ -160,8 +160,7 @@ export default function HealthInsights() {
                       </span>
                       <span style={{ fontWeight: 600 }}>{e.target_label}</span>
                       <div style={{ fontSize: '.72rem', color: 'var(--text-secondary)' }}>
-                        {e.strength > 0 ? 'positive' : 'inverse'} association · n={e.sample_size} days
-                        {typeof e.p_value === 'number' && ` · p=${e.p_value < 0.001 ? '<0.001' : e.p_value.toFixed(3)}`}
+                        {(e.strength > 0) ? t('HealthInsights.positive_association_n_days', { sample_size: e.sample_size, value: typeof e.p_value === 'number' && ` · p=${e.p_value < 0.001 ? '<0.001' : e.p_value.toFixed(3)}` }) : t('HealthInsights.inverse_association_n_days', { sample_size: e.sample_size, value: typeof e.p_value === 'number' && ` · p=${e.p_value < 0.001 ? '<0.001' : e.p_value.toFixed(3)}` })}
                       </div>
                     </div>
                     <StrengthBar value={e.strength} />
@@ -174,16 +173,16 @@ export default function HealthInsights() {
           {/* ── Forecast ── */}
           <div className="card">
             <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
-              <LineChart size={18} /> Forecast
+              <LineChart size={18} /> {t('HealthInsights.forecast')}
             </h3>
             {signals.length === 0 ? (
               <p style={{ color: 'var(--text-secondary)' }}>
-                Not enough data to forecast yet. Log a signal (weight, BP, sleep…) for at least 4 days.
+                {t('HealthInsights.not_enough_data_to_forecast_yet_log_a')}
               </p>
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                  <label className="form-label" style={{ margin: 0 }}>Signal:</label>
+                  <label className="form-label" style={{ margin: 0 }}>{t('HealthInsights.signal')}</label>
                   <select className="form-input" style={{ maxWidth: 280 }}
                     value={selSignal} onChange={(e) => setSelSignal(e.target.value)}>
                     {signals.map((s) => (
@@ -202,7 +201,7 @@ export default function HealthInsights() {
                   <>
                     <ForecastChart data={forecast} />
                     <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', marginTop: 6 }}>
-                      Solid = your history · dashed = {forecast.forecast.length}-day projection · shaded = 95% range · {forecast.caveat}
+                      {t('HealthInsights.solid_your_history_dashed_day_projection', { forecast: forecast.forecast.length, caveat: forecast.caveat })}
                     </div>
                   </>
                 )}

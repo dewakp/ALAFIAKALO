@@ -5,15 +5,16 @@ import { apiErrorMessage } from '../utils/apiError';
 import { Plus, Trash2, Layers, ChevronLeft, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
+import { t } from '../i18n';
 
 // Unified Elimination Log (Basis + ALAFIA.app reference): one form with an
 // Event Type selector, a calendar with entry-dots, and a per-date timeline.
 // The event type (poop / urine / vomit) is captured AND shown on every entry.
 
 const EVENT_OPTIONS = [
-  { value: 'poop', label: 'Poop' },
-  { value: 'urine', label: 'Urination' },
-  { value: 'vomit', label: 'Vomiting' },
+  { value: 'poop', get label() { return t('Elimination.poop'); } },
+  { value: 'urine', get label() { return t('Elimination.urination'); } },
+  { value: 'vomit', get label() { return t('Elimination.vomiting'); } },
 ];
 const EVENT_LABEL = { poop: 'Poop', urine: 'Urination', vomit: 'Vomiting' };
 
@@ -85,7 +86,7 @@ export default function Elimination() {
       update('description', summary);
       setAiFlags([...(data.flags || []), data.disclaimer].filter(Boolean));
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not analyze the image'));
+      alert(apiErrorMessage(err, t('Elimination.could_not_analyze_the_image')));
     } finally { setAnalyzing(false); }
   }
 
@@ -106,14 +107,14 @@ export default function Elimination() {
       setSelectedDate(form.log_date);
       load();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not save entry'));
+      alert(apiErrorMessage(err, t('Elimination.could_not_save_entry')));
     } finally { setSaving(false); }
   }
 
   async function handleDelete(entry) {
-    if (!confirm('Delete this entry?')) return;
+    if (!confirm(t('Elimination.delete_this_entry'))) return;
     try { await api.delete(`/elimination/all/${entry.event_type}/${entry.id}`); load(); }
-    catch (err) { alert(apiErrorMessage(err, 'Could not delete')); }
+    catch (err) { alert(apiErrorMessage(err, t('Elimination.could_not_delete'))); }
   }
 
   // Dates (YYYY-MM-DD) that have at least one entry → calendar dots.
@@ -149,31 +150,31 @@ export default function Elimination() {
         <div className="page-header-left">
           <BackButton />
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Layers size={22} /> Elimination Log
+            <Layers size={22} /> {t('Elimination.elimination_log')}
           </h1>
         </div>
       </div>
       <p style={{ color: 'var(--text-secondary)', marginTop: -8, marginBottom: 16 }}>
-        Track poop, urination, and vomiting events, with optional weights and images.
+        {t('Elimination.track_poop_urination_and_vomiting_events')}
       </p>
 
       {/* ── Add New Log Entry ── */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
-          <Plus size={18} /> Add New Log Entry
+          <Plus size={18} /> {t('Elimination.add_new_log_entry')}
         </h3>
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Date</label>
+              <label className="form-label">{t('Elimination.date')}</label>
               <input className="form-input" type="date" value={form.log_date} onChange={(e) => update('log_date', e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label">Time</label>
+              <label className="form-label">{t('Elimination.time')}</label>
               <input className="form-input" type="time" value={form.log_time} onChange={(e) => update('log_time', e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label">Event Type</label>
+              <label className="form-label">{t('Elimination.event_type')}</label>
               <select className="form-input" value={form.event_type} onChange={(e) => update('event_type', e.target.value)}>
                 {EVENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -181,24 +182,24 @@ export default function Elimination() {
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Pre-Event Weight (kg, optional)</label>
+              <label className="form-label">{t('Elimination.pre_event_weight_kg_optional')}</label>
               <input className="form-input" type="number" step="0.1" placeholder="e.g., 68.5"
                 value={form.pre_event_weight_kg} onChange={(e) => update('pre_event_weight_kg', e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label">Post-Event Weight (kg, optional)</label>
+              <label className="form-label">{t('Elimination.post_event_weight_kg_optional')}</label>
               <input className="form-input" type="number" step="0.1" placeholder="e.g., 68.0"
                 value={form.post_event_weight_kg} onChange={(e) => update('post_event_weight_kg', e.target.value)} />
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Description (optional)</label>
+            <label className="form-label">{t('Elimination.description_optional')}</label>
             <textarea className="form-input" rows={2}
-              placeholder="e.g., Bristol type 4, normal color for poop; Clear, light yellow for urine…"
+              placeholder={t('Elimination.e_g_bristol_type_4_normal_color_for_poop')}
               value={form.description} onChange={(e) => update('description', e.target.value)} />
           </div>
           <div className="form-group">
-            <label className="form-label">Attach Image (optional)</label>
+            <label className="form-label">{t('Elimination.attach_image_optional')}</label>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input className="form-input" type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ flex: 1 }} />
               {form.image_uri && (
@@ -228,7 +229,7 @@ export default function Elimination() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 360px) 1fr', gap: 16, alignItems: 'start' }}>
         {/* Calendar */}
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>📅 Select Date</h3>
+          <h3 style={{ marginTop: 0 }}>{t('Elimination.select_date')}</h3>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => shiftMonth(-1)}><ChevronLeft size={16} /></button>
             <strong>{monthLabel}</strong>
@@ -261,15 +262,15 @@ export default function Elimination() {
             ))}
           </div>
           <p style={{ fontSize: '.72rem', color: 'var(--text-secondary)', marginTop: 8, marginBottom: 0 }}>
-            Dates with a <span style={{ color: 'var(--primary)' }}>●</span> have logged entries.
+            {t('Elimination.dates_with_a')} <span style={{ color: 'var(--primary)' }}>●</span> {t('Elimination.have_logged_entries')}
           </p>
         </div>
 
         {/* Entries for selected date */}
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Log Entries for {fmtLong(selectedDate)}</h3>
-          {loading ? <p>Loading…</p> : dayEntries.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)' }}>No entries for this date.</p>
+          <h3 style={{ marginTop: 0 }}>{t('Elimination.log_entries_for', { selectedDate: fmtLong(selectedDate) })}</h3>
+          {loading ? <p>{t('Elimination.loading')}</p> : dayEntries.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)' }}>{t('Elimination.no_entries_for_this_date')}</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {dayEntries.map((e) => (
@@ -277,17 +278,17 @@ export default function Elimination() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Layers size={15} style={{ color: 'var(--primary)' }} />
-                      {EVENT_LABEL[e.event_type] || e.event_type} At {e.log_time ? String(e.log_time).slice(0, 5) : '—'}
+                      {t('Elimination.at', { EVENT_LABEL: EVENT_LABEL[e.event_type] || e.event_type, value: e.log_time ? String(e.log_time).slice(0, 5) : '—' })}
                     </strong>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(e)} title="Delete"><Trash2 size={14} /></button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(e)} title={t('Elimination.delete')}><Trash2 size={14} /></button>
                   </div>
                   <div style={{ fontSize: '.85rem', marginTop: 6, lineHeight: 1.6 }}>
-                    {e.pre_event_weight_kg != null && <div><strong>Pre-Weight:</strong> {e.pre_event_weight_kg} kg</div>}
-                    {e.post_event_weight_kg != null && <div><strong>Post-Weight:</strong> {e.post_event_weight_kg} kg</div>}
-                    {e.description && <div><strong>Description:</strong> {e.description}</div>}
+                    {e.pre_event_weight_kg != null && <div><strong>{t('Elimination.pre_weight')}</strong> {t('Elimination.kg', { pre_event_weight_kg: e.pre_event_weight_kg })}</div>}
+                    {e.post_event_weight_kg != null && <div><strong>{t('Elimination.post_weight')}</strong> {t('Elimination.kg_2', { post_event_weight_kg: e.post_event_weight_kg })}</div>}
+                    {e.description && <div><strong>{t('Elimination.description')}</strong> {e.description}</div>}
                   </div>
                   {e.image_uri && (
-                    <img src={e.image_uri} alt="attachment" style={{ maxWidth: 160, borderRadius: 8, marginTop: 8 }} />
+                    <img src={e.image_uri} alt={t('Elimination.attachment')} style={{ maxWidth: 160, borderRadius: 8, marginTop: 8 }} />
                   )}
                 </div>
               ))}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
+import { t } from '../i18n';
 
 /**
  * The landing page for the link in the verification email.
@@ -27,7 +28,7 @@ export default function VerifyEmail() {
   const spent = useRef(false);
 
   useEffect(() => {
-    if (!token) { setState('error'); setMessage('That link is missing its token.'); return; }
+    if (!token) { setState('error'); setMessage(t('VerifyEmail.that_link_is_missing_its_token')); return; }
     if (spent.current) return;
     spent.current = true;
 
@@ -48,7 +49,7 @@ export default function VerifyEmail() {
         }
       } catch (err) {
         setState('error');
-        setMessage(apiErrorMessage(err, 'That link could not be used.'));
+        setMessage(apiErrorMessage(err, t('VerifyEmail.that_link_could_not_be_used')));
       }
     })();
   }, [token]);
@@ -58,13 +59,13 @@ export default function VerifyEmail() {
       <div className="card auth-card">
         <h1 className="auth-title">ALAFIA</h1>
 
-        {state === 'checking' && <p className="auth-subtitle">Confirming your email…</p>}
+        {state === 'checking' && <p className="auth-subtitle">{t('VerifyEmail.confirming_your_email')}</p>}
 
         {state === 'done' && (
           <>
-            <p className="auth-subtitle">Your email is confirmed and your account is ready.</p>
+            <p className="auth-subtitle">{t('VerifyEmail.your_email_is_confirmed_and_your_account')}</p>
             <button className="btn btn-primary btn-block" onClick={() => navigate('/login')}>
-              Sign in
+              {t('VerifyEmail.sign_in')}
             </button>
           </>
         )}
@@ -72,11 +73,11 @@ export default function VerifyEmail() {
         {state === 'needs-payment' && (
           <>
             <p className="auth-subtitle">
-              Email confirmed. One step left — choose your membership.
+              {t('VerifyEmail.email_confirmed_one_step_left_choose')}
             </p>
             <button className="btn btn-primary btn-block"
                     onClick={() => navigate(`/signup?email=${encodeURIComponent(message)}`)}>
-              Continue to payment
+              {t('VerifyEmail.continue_to_payment')}
             </button>
           </>
         )}
@@ -88,7 +89,7 @@ export default function VerifyEmail() {
                 all land here and each needs a route forward. */}
             <div className="auth-error" role="alert">{message}</div>
             <p className="auth-alt">
-              Links expire. <Link to="/signup">Start again</Link> and we will send a new one.
+              {t('VerifyEmail.links_expire')} <Link to="/signup">{t('VerifyEmail.start_again')}</Link> {t('VerifyEmail.and_we_will_send_a_new_one')}
             </p>
           </>
         )}

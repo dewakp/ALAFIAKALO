@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { Plus, Trash2, Moon } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
+import { t } from '../i18n';
 
 const today = () => localToday();
 
@@ -74,19 +75,19 @@ export default function Sleep() {
       setShowForm(false);
       load();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not save sleep log'));
+      alert(apiErrorMessage(err, t('Sleep.could_not_save_sleep_log')));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this sleep log?')) return;
+    if (!confirm(t('Sleep.delete_this_sleep_log'))) return;
     try {
       await api.delete(`/sleep/${id}`);
       load();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not delete'));
+      alert(apiErrorMessage(err, t('Sleep.could_not_delete')));
     }
   }
 
@@ -95,10 +96,10 @@ export default function Sleep() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Sleep</h1>
+          <h1 className="page-title">{t('Sleep.sleep')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
-          <Plus size={18} /> Log Sleep
+          <Plus size={18} /> {t('Sleep.log_sleep')}
         </button>
       </div>
 
@@ -107,41 +108,41 @@ export default function Sleep() {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Date</label>
+                <label className="form-label">{t('Sleep.date')}</label>
                 <input className="form-input" type="date" value={form.sleep_date}
                   onChange={(e) => update('sleep_date', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Total hours</label>
+                <label className="form-label">{t('Sleep.total_hours')}</label>
                 <input className="form-input" type="number" step="0.25" min="0" max="24" value={form.total_hours}
                   placeholder="e.g. 7.5"
                   onChange={(e) => update('total_hours', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Quality (1-10)</label>
+                <label className="form-label">{t('Sleep.quality_1_10')}</label>
                 <input className="form-input" type="number" min="1" max="10" value={form.quality_score}
                   onChange={(e) => update('quality_score', e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Bedtime</label>
+                <label className="form-label">{t('Sleep.bedtime')}</label>
                 <input className="form-input" type="time" value={form.bedtime}
                   onChange={(e) => update('bedtime', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Wake time</label>
+                <label className="form-label">{t('Sleep.wake_time')}</label>
                 <input className="form-input" type="time" value={form.wake_time}
                   onChange={(e) => update('wake_time', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Times awakened</label>
+                <label className="form-label">{t('Sleep.times_awakened')}</label>
                 <input className="form-input" type="number" min="0" value={form.times_awakened}
                   onChange={(e) => update('times_awakened', e.target.value)} />
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Notes</label>
+              <label className="form-label">{t('Sleep.notes')}</label>
               <textarea className="form-input" rows={2} value={form.notes}
                 onChange={(e) => update('notes', e.target.value)} />
             </div>
@@ -153,11 +154,11 @@ export default function Sleep() {
       )}
 
       {loading ? (
-        <div className="card">Loading…</div>
+        <div className="card">{t('Sleep.loading')}</div>
       ) : logs.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
           <Moon size={28} style={{ opacity: 0.5 }} />
-          <p>No sleep logged yet.</p>
+          <p>{t('Sleep.no_sleep_logged_yet')}</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -167,7 +168,7 @@ export default function Sleep() {
                 <strong>{s.total_hours != null ? `${s.total_hours} h` : 'Sleep'}</strong>
                 {s.quality_score != null && (
                   <span style={{ marginLeft: 8, fontSize: '.75rem', padding: '1px 8px', borderRadius: 10, background: 'var(--primary)', color: '#fff' }}>
-                    quality {s.quality_score}/10
+                    {t('Sleep.quality_10', { quality_score: s.quality_score })}
                   </span>
                 )}
                 <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
@@ -177,7 +178,7 @@ export default function Sleep() {
                 </div>
                 {s.notes && <div style={{ fontSize: '.85rem', marginTop: 4 }}>{s.notes}</div>}
               </div>
-              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s.id)} title="Delete">
+              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s.id)} title={t('Sleep.delete')}>
                 <Trash2 size={15} />
               </button>
             </div>

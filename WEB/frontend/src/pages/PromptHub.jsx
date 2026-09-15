@@ -4,16 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import { Send, Mic, Square, Camera, Loader2, Apple, Pill, BookOpen, Bot } from 'lucide-react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
+import { t as translate } from '../i18n';
 
 // Basis.md: "Use prompt as entry point. voice, text or image will determine
 // interface to surface." This screen is that entry point — it classifies the
 // user's input and surfaces the matching existing screen, pre-filled.
 
 const QUICK_ACTIONS = [
-  { label: 'Log a meal', icon: Apple, seed: 'I ate ' },
-  { label: 'Log medication', icon: Pill, seed: 'I took ' },
-  { label: 'Journal', icon: BookOpen, seed: '' },
-  { label: 'Ask a question', icon: Bot, seed: '' },
+  { get label() { return translate('PromptHub.log_a_meal'); }, icon: Apple, seed: 'I ate ' },
+  { get label() { return translate('PromptHub.log_medication'); }, icon: Pill, seed: 'I took ' },
+  { get label() { return translate('PromptHub.journal'); }, icon: BookOpen, seed: '' },
+  { get label() { return translate('PromptHub.ask_a_question'); }, icon: Bot, seed: '' },
 ];
 
 export default function PromptHub() {
@@ -36,7 +37,7 @@ export default function PromptHub() {
     const trimmed = (text || '').trim();
     if (!trimmed) return;
     setBusy(true);
-    setStatus('Understanding…');
+    setStatus(translate('PromptHub.understanding'));
     try {
       const { data } = await api.post('/ai/route', { text: trimmed, modality }, { timeout: LONG_TIMEOUT });
       setStatus(data.assistant_message || '');
@@ -48,7 +49,7 @@ export default function PromptHub() {
           : { prefill: data.prefill, fromPrompt: true, intent: data.intent };
       navigate(data.route, { state: navState });
     } catch (err) {
-      setStatus(apiErrorMessage(err, 'Could not understand that. Try the AI assistant.'));
+      setStatus(apiErrorMessage(err, translate('PromptHub.could_not_understand_that_try_the_ai')));
     } finally {
       setBusy(false);
     }
@@ -96,23 +97,23 @@ export default function PromptHub() {
         const transcript = event.results?.[0]?.[0]?.transcript || '';
         setInput(transcript);
         if (transcript) routeText(transcript, 'voice');
-        else setStatus('Did not catch that — please try again.');
+        else setStatus(translate('PromptHub.did_not_catch_that_please_try_again'));
       };
       recognition.onerror = (e) => {
         setRecording(false);
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-          setStatus('Microphone permission denied. You can type instead.');
+          setStatus(translate('PromptHub.microphone_permission_denied_you_can'));
         } else if (e.error === 'no-speech') {
-          setStatus('Did not hear anything — please try again.');
+          setStatus(translate('PromptHub.did_not_hear_anything_please_try_again'));
         } else {
-          setStatus('Voice recognition error. You can type instead.');
+          setStatus(translate('PromptHub.voice_recognition_error_you_can_type'));
         }
       };
       recognition.onend = () => setRecording(false);
       recognitionRef.current = recognition;
       recognition.start();
       setRecording(true);
-      setStatus('Listening… tap the stop button when done.');
+      setStatus(translate('PromptHub.listening_tap_the_stop_button_when_done'));
     } catch {
       startServerRecording();
     }
@@ -132,15 +133,15 @@ export default function PromptHub() {
       mediaRecorderRef.current = recorder;
       recorder.start();
       setRecording(true);
-      setStatus('Listening… tap the stop button when done.');
+      setStatus(translate('PromptHub.listening_tap_the_stop_button_when_done'));
     } catch {
-      setStatus('Microphone unavailable. You can type instead.');
+      setStatus(translate('PromptHub.microphone_unavailable_you_can_type'));
     }
   }
 
   async function transcribeAndRoute(blob) {
     setBusy(true);
-    setStatus('Transcribing…');
+    setStatus(translate('PromptHub.transcribing'));
     try {
       const form = new FormData();
       form.append('file', blob, 'note.webm');
@@ -154,10 +155,10 @@ export default function PromptHub() {
         setInput(transcript);
         await routeText(transcript, 'voice');
       } else {
-        setStatus('Did not catch that — please try again.');
+        setStatus(translate('PromptHub.did_not_catch_that_please_try_again'));
       }
     } catch (err) {
-      setStatus(apiErrorMessage(err, 'Voice transcription is unavailable. Please type instead.'));
+      setStatus(apiErrorMessage(err, translate('PromptHub.voice_transcription_is_unavailable')));
     } finally {
       setBusy(false);
     }
@@ -175,7 +176,7 @@ export default function PromptHub() {
     e.target.value = '';
     if (!file) return;
     setBusy(true);
-    setStatus('Looking at your photo…');
+    setStatus(translate('PromptHub.looking_at_your_photo'));
     try {
       const form = new FormData();
       form.append('file', file);
@@ -192,11 +193,11 @@ export default function PromptHub() {
         return;
       }
       // Nothing recognized — fall back to manual capture, keeping the photo.
-      setStatus('Saved to Capture for manual review.');
+      setStatus(translate('PromptHub.saved_to_capture_for_manual_review'));
       navigate('/capture', { state: { fromPrompt: true, intent: 'vision_capture' } });
     } catch (err) {
       // Vision backend not configured → graceful fallback to manual capture.
-      setStatus(apiErrorMessage(err, 'Image AI unavailable — opening manual capture.'));
+      setStatus(apiErrorMessage(err, translate('PromptHub.image_ai_unavailable_opening_manual')));
       navigate('/capture', { state: { fromPrompt: true, intent: 'vision_capture' } });
     } finally {
       setBusy(false);
@@ -206,9 +207,9 @@ export default function PromptHub() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', paddingTop: '8vh' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <h1 style={{ fontSize: '1.9rem', marginBottom: 6 }}>How are you doing today?</h1>
+        <h1 style={{ fontSize: '1.9rem', marginBottom: 6 }}>{translate('PromptHub.how_are_you_doing_today')}</h1>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Type, speak, or snap a photo — ALAFIA will take it from there.
+          {translate('PromptHub.type_speak_or_snap_a_photo_alafia_will')}
         </p>
       </div>
 
@@ -231,8 +232,8 @@ export default function PromptHub() {
             className="btn btn-outline"
             onClick={handleCameraClick}
             disabled={busy}
-            title="Take or upload a photo"
-            aria-label="Take or upload a photo"
+            title={translate('PromptHub.take_or_upload_a_photo')}
+            aria-label={translate('PromptHub.take_or_upload_a_photo')}
           >
             <Camera size={18} />
           </button>
@@ -251,7 +252,7 @@ export default function PromptHub() {
             style={{ flex: 1 }}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g. I ate jollof rice and took my 10mg lisinopril"
+            placeholder={translate('PromptHub.e_g_i_ate_jollof_rice_and_took_my_10mg')}
             disabled={busy}
             autoFocus
           />

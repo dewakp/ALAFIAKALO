@@ -5,6 +5,7 @@ import { UnitsProvider } from './context/UnitsContext';
 import { ClinicianModeProvider } from './context/ClinicianModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
+import { t } from './i18n';
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Landing = lazy(() => import('./pages/Landing'));
@@ -84,7 +85,7 @@ const Subscription = lazy(() => import('./pages/Subscription'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="loading">{t('App.loading')}</div>;
   return user ? children : <Navigate to="/landing" />;
 }
 
@@ -94,7 +95,7 @@ export default function App() {
       <ClinicianModeProvider>
       <UnitsProvider>
       <ErrorBoundary>
-      <Suspense fallback={<div className="loading">Loading...</div>}>
+      <Suspense fallback={<div className="loading">{t('App.loading')}</div>}>
         <Routes>
           <Route path="/landing" element={<Landing />} />
           <Route path="/contact" element={<Contact />} />

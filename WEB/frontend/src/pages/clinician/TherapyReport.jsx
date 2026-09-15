@@ -17,6 +17,7 @@ import {
 import { ArrowLeft, ShieldCheck, FileSignature } from 'lucide-react';
 import api from '../../services/api';
 import { colorAt, CHART_INK } from './chartPalette';
+import { t as translate } from '../../i18n';
 
 const num = (v, digits = 1) =>
   v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v).toFixed(digits);
@@ -67,7 +68,7 @@ export default function TherapyReport({ patientId, rows, days }) {
   if (!sessions.length) {
     return (
       <div className="card" style={{ padding: '1.25rem', color: 'var(--color-text-secondary)' }}>
-        No therapy sessions in this period.
+        {translate('TherapyReport.no_therapy_sessions_in_this_period')}
       </div>
     );
   }
@@ -75,11 +76,11 @@ export default function TherapyReport({ patientId, rows, days }) {
   // Server numbers when available; the client mean is the fallback, never the
   // preferred source.
   const tiles = [
-    { label: 'Sessions', value: String(summary?.total_sessions ?? sessions.length), tone: '#2a78d6' },
-    { label: 'Avg Pre Wt', value: fmtTile(summary?.avg_pre_weight_kg ?? mean(sessions, 'pre_weight_kg'), 1, 'kg'), tone: '#1baf7a' },
-    { label: 'Avg Post Wt', value: fmtTile(summary?.avg_post_weight_kg ?? mean(sessions, 'post_weight_kg'), 1, 'kg'), tone: '#1baf7a' },
-    { label: 'Avg UF', value: fmtTile(summary?.avg_fluid_removed_ml ?? mean(sessions, 'fluid_removed_ml'), 0, 'mL'), tone: '#eb6834' },
-    { label: 'Avg Duration', value: fmtTile(summary?.avg_duration_min ?? mean(sessions, 'duration_minutes'), 0, 'min'), tone: '#7c3aed' },
+    { label: translate('TherapyReport.sessions'), value: String(summary?.total_sessions ?? sessions.length), tone: '#2a78d6' },
+    { label: translate('TherapyReport.avg_pre_wt'), value: fmtTile(summary?.avg_pre_weight_kg ?? mean(sessions, 'pre_weight_kg'), 1, 'kg'), tone: '#1baf7a' },
+    { label: translate('TherapyReport.avg_post_wt'), value: fmtTile(summary?.avg_post_weight_kg ?? mean(sessions, 'post_weight_kg'), 1, 'kg'), tone: '#1baf7a' },
+    { label: translate('TherapyReport.avg_uf'), value: fmtTile(summary?.avg_fluid_removed_ml ?? mean(sessions, 'fluid_removed_ml'), 0, 'mL'), tone: '#eb6834' },
+    { label: translate('TherapyReport.avg_duration'), value: fmtTile(summary?.avg_duration_min ?? mean(sessions, 'duration_minutes'), 0, 'min'), tone: '#7c3aed' },
   ];
 
   return (
@@ -89,9 +90,9 @@ export default function TherapyReport({ patientId, rows, days }) {
       </div>
 
       <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>
-        {sessions.length} session{sessions.length === 1 ? '' : 's'} in this period
+        {(sessions.length === 1) ? translate('TherapyReport.session_in_this_period', { sessions: sessions.length }) : translate('TherapyReport.sessions_in_this_period', { sessions: sessions.length })}
         {summary?.total_sessions_all_time > (summary?.total_sessions ?? 0) && (
-          <> — {summary.total_sessions_all_time} on record since {summary.earliest_session}</>
+          <> {translate('TherapyReport.on_record_since', { total_sessions_all_time: summary.total_sessions_all_time, earliest_session: summary.earliest_session })}</>
         )}
       </div>
 
@@ -112,20 +113,20 @@ export default function TherapyReport({ patientId, rows, days }) {
                 {new Date(`${s.date}T00:00:00`).toLocaleDateString()}
               </button>
               <Chip>{s.status || 'completed'}</Chip>
-              {isReviewed && <Chip tone="#1baf7a"><ShieldCheck size={12} /> reviewed</Chip>}
+              {isReviewed && <Chip tone="#1baf7a"><ShieldCheck size={12} /> {translate('TherapyReport.reviewed')}</Chip>}
               <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
                 {weekday(s.date)}
               </span>
 
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
                 {s.pre_weight_kg != null && s.post_weight_kg != null && (
-                  <strong>{num(s.pre_weight_kg)} → {num(s.post_weight_kg)} kg</strong>
+                  <strong>{translate('TherapyReport.kg', { pre_weight_kg: num(s.pre_weight_kg), post_weight_kg: num(s.post_weight_kg) })}</strong>
                 )}
                 {s.fluid_removed_ml != null && (
-                  <span style={{ color: '#eb6834', fontWeight: 600 }}>{num(s.fluid_removed_ml, 0)} mL</span>
+                  <span style={{ color: '#eb6834', fontWeight: 600 }}>{translate('TherapyReport.ml', { fluid_removed_ml: num(s.fluid_removed_ml, 0) })}</span>
                 )}
                 {s.duration_minutes != null && (
-                  <span style={{ color: '#7c3aed', fontWeight: 600 }}>{s.duration_minutes} min</span>
+                  <span style={{ color: '#7c3aed', fontWeight: 600 }}>{translate('TherapyReport.min', { duration_minutes: s.duration_minutes })}</span>
                 )}
                 <button
                   onClick={() => setOpenId(openId === s.session_id ? null : s.session_id)}
@@ -133,14 +134,14 @@ export default function TherapyReport({ patientId, rows, days }) {
                   style={{ background: 'transparent', border: '1px solid var(--color-border)' }}
                   aria-expanded={openId === s.session_id}
                 >
-                  {s.readings} reading{s.readings === 1 ? '' : 's'}
+                  {(s.readings === 1) ? translate('TherapyReport.reading', { readings: s.readings }) : translate('TherapyReport.readings', { readings: s.readings })}
                 </button>
               </span>
             </div>
 
             {(s.pre_bp || s.post_bp) && (
               <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 6 }}>
-                <strong>BP:</strong> Pre {s.pre_bp || '—'} → Post {s.post_bp || '—'}
+                <strong>BP:</strong> {translate('TherapyReport.pre_post', { pre_bp: s.pre_bp || '—', post_bp: s.post_bp || '—' })}
                 {(s.pre_heart_rate || s.post_heart_rate) &&
                   <> {' | '}<strong>HR:</strong> {s.pre_heart_rate ?? '—'} → {s.post_heart_rate ?? '—'}</>}
               </div>
@@ -177,7 +178,7 @@ export function ReadingsTable({ readings }) {
   return (
     <div style={{ marginTop: 12 }}>
       <h4 style={{ margin: '0 0 6px', fontSize: '0.85rem', color: 'var(--color-primary)' }}>
-        Intradialytic Readings ({readings.length})
+        {translate('TherapyReport.intradialytic_readings', { readings: readings.length })}
       </h4>
       {/* Wide content scrolls inside its own container, never the page. */}
       <div style={{ overflowX: 'auto' }}>
@@ -223,7 +224,7 @@ function InlineSessionDetail({ patientId, sessionId, onOpenReport }) {
   }, [patientId, sessionId]);
 
   if (error) return <div style={{ marginTop: 10, color: 'var(--color-danger)' }}>{error}</div>;
-  if (!data) return <div style={{ marginTop: 10, color: 'var(--color-text-secondary)' }}>Loading…</div>;
+  if (!data) return <div style={{ marginTop: 10, color: 'var(--color-text-secondary)' }}>{translate('TherapyReport.loading')}</div>;
   const s = data.session;
   return (
     <div style={{ marginTop: 12, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
@@ -240,7 +241,7 @@ function InlineSessionDetail({ patientId, sessionId, onOpenReport }) {
       </div>
       <ReadingsTable readings={data.readings} />
       <button className="btn btn-sm btn-primary" style={{ marginTop: 10 }} onClick={onOpenReport}>
-        Open full report, comment and sign off
+        {translate('TherapyReport.open_full_report_comment_and_sign_off')}
       </button>
     </div>
   );
@@ -308,12 +309,12 @@ function SessionReport({ patientId, sessionId, onBack, onReviewed }) {
   if (error) {
     return (
       <div>
-        <BackBar onBack={onBack} title="Session" />
+        <BackBar onBack={onBack} title={translate('TherapyReport.session')} />
         <div className="card" style={{ padding: '1.5rem', color: 'var(--color-danger)' }}>{error}</div>
       </div>
     );
   }
-  if (!data) return <div className="loading">Loading session…</div>;
+  if (!data) return <div className="loading">{translate('TherapyReport.loading_session')}</div>;
 
   const s = data.session;
   const so = data.signoff || {};
@@ -330,7 +331,7 @@ function SessionReport({ patientId, sessionId, onBack, onReviewed }) {
         <a className="btn btn-secondary"
            href={`/therapy-report/${sessionId}?patient=${patientId}`}
            target="_blank" rel="noopener noreferrer">
-          Print / Save as PDF
+          {translate('TherapyReport.print_save_as_pdf')}
         </a>
       </div>
 
@@ -355,13 +356,13 @@ function SessionReport({ patientId, sessionId, onBack, onReviewed }) {
         ]} />
         {(s.complications || s.adverse_reactions) && (
           <div style={{ marginTop: 10, color: 'var(--color-danger)', fontSize: '0.85rem' }}>
-            {s.complications && <div><strong>Complications:</strong> {s.complications}</div>}
-            {s.adverse_reactions && <div><strong>Adverse reactions:</strong> {s.adverse_reactions}</div>}
+            {s.complications && <div><strong>{translate('TherapyReport.complications')}</strong> {s.complications}</div>}
+            {s.adverse_reactions && <div><strong>{translate('TherapyReport.adverse_reactions')}</strong> {s.adverse_reactions}</div>}
           </div>
         )}
         {s.patient_notes && (
           <div style={{ marginTop: 10, fontSize: '0.85rem' }}>
-            <strong>Patient notes:</strong> {s.patient_notes}
+            <strong>{translate('TherapyReport.patient_notes')}</strong> {s.patient_notes}
           </div>
         )}
       </div>
@@ -394,7 +395,7 @@ function BackBar({ onBack, title }) {
     <div className="page-header">
       <div className="page-header-left">
         <button className="btn btn-secondary btn-sm" onClick={onBack}>
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={16} /> {translate('TherapyReport.back')}
         </button>
         <h1 className="page-title">{title}</h1>
       </div>
@@ -404,7 +405,7 @@ function BackBar({ onBack, title }) {
 
 function Facts({ items }) {
   const shown = items.filter(([, v]) => v !== null && v !== undefined && v !== '');
-  if (!shown.length) return <div style={{ color: 'var(--color-text-secondary)' }}>No details recorded.</div>;
+  if (!shown.length) return <div style={{ color: 'var(--color-text-secondary)' }}>{translate('TherapyReport.no_details_recorded')}</div>;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
       {shown.map(([k, v]) => (
@@ -485,16 +486,16 @@ function SignOffPanel({ signoff, reviewed, busy, error, onSignOff }) {
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <FileSignature size={16} /> Sign-off
+        <FileSignature size={16} /> {translate('TherapyReport.sign_off')}
       </h3>
 
       <div style={{ fontSize: '0.83rem', color: 'var(--color-text-secondary)', marginBottom: 10 }}>
-        <div>Patient signature: {signoff.signed_at ? new Date(signoff.signed_at).toLocaleString() : 'not signed'}</div>
-        <div>Nurse countersignature: {signoff.countersigned_at ? new Date(signoff.countersigned_at).toLocaleString() : 'none'}</div>
-        <div>Physician review: {signoff.reviewed_at ? new Date(signoff.reviewed_at).toLocaleString() : 'not reviewed'}</div>
+        <div>{translate('TherapyReport.patient_signature', { value: signoff.signed_at ? new Date(signoff.signed_at).toLocaleString() : 'not signed' })}</div>
+        <div>{translate('TherapyReport.nurse_countersignature', { value: signoff.countersigned_at ? new Date(signoff.countersigned_at).toLocaleString() : 'none' })}</div>
+        <div>{translate('TherapyReport.physician_review', { value: signoff.reviewed_at ? new Date(signoff.reviewed_at).toLocaleString() : 'not reviewed' })}</div>
         {signoff.payload_hash && (
           <div style={{ marginTop: 6, wordBreak: 'break-all' }}>
-            <ShieldCheck size={12} style={{ verticalAlign: -2 }} /> Integrity hash:{' '}
+            <ShieldCheck size={12} style={{ verticalAlign: -2 }} /> {translate('TherapyReport.integrity_hash')}{' '}
             <code style={{ fontSize: '0.72rem' }}>{signoff.payload_hash.slice(0, 32)}…</code>
           </div>
         )}
@@ -503,7 +504,7 @@ function SignOffPanel({ signoff, reviewed, busy, error, onSignOff }) {
       {error && <div style={{ color: 'var(--color-danger)', marginBottom: 8 }}>{error}</div>}
 
       {reviewed ? (
-        <Chip tone="#1baf7a"><ShieldCheck size={12} /> Reviewed and anchored</Chip>
+        <Chip tone="#1baf7a"><ShieldCheck size={12} /> {translate('TherapyReport.reviewed_and_anchored')}</Chip>
       ) : (
         <button className="btn btn-primary" onClick={onSignOff} disabled={busy}>
           {busy ? 'Signing…' : 'Sign off on this session'}
@@ -542,10 +543,10 @@ function NotesPanel({ patientId, sessionId, notes, onAdded }) {
 
   return (
     <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
-      <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>Clinical notes</h3>
+      <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>{translate('TherapyReport.clinical_notes')}</h3>
       {notes.length === 0 && (
         <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
-          No notes on this session yet.
+          {translate('TherapyReport.no_notes_on_this_session_yet')}
         </div>
       )}
       {notes.map(n => (
@@ -560,8 +561,8 @@ function NotesPanel({ patientId, sessionId, notes, onAdded }) {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Add a clinical note…"
-        aria-label="Add a clinical note"
+        placeholder={translate('TherapyReport.add_a_clinical_note')}
+        aria-label={translate('TherapyReport.add_a_clinical_note_2')}
         rows={3}
         style={{ width: '100%', marginTop: 10, padding: 8, borderRadius: 6,
                  border: '1px solid var(--color-border)', background: 'transparent',
@@ -602,33 +603,33 @@ function IntegrityPanel({ patientId, sessionId }) {
   return (
     <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
       <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <ShieldCheck size={16} /> Record integrity
+        <ShieldCheck size={16} /> {translate('TherapyReport.record_integrity')}
       </h3>
       {!open && (
         <button className="btn btn-sm" style={{ border: '1px solid var(--color-border)', background: 'transparent' }}
                 onClick={check}>
-          Verify this record
+          {translate('TherapyReport.verify_this_record')}
         </button>
       )}
       {error && <div style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>{error}</div>}
       {data && (
         <div style={{ fontSize: '0.83rem' }}>
           <div>
-            Signed content:{' '}
+            {translate('TherapyReport.signed_content')}{' '}
             {data.payload_matches === null
-              ? <em style={{ color: 'var(--color-text-secondary)' }}>never signed — nothing to check</em>
+              ? <em style={{ color: 'var(--color-text-secondary)' }}>{translate('TherapyReport.never_signed_nothing_to_check')}</em>
               : data.payload_matches
-                ? <strong style={{ color: '#1baf7a' }}>unchanged since sign-off</strong>
-                : <strong style={{ color: 'var(--color-danger)' }}>DOES NOT MATCH the signed hash</strong>}
+                ? <strong style={{ color: '#1baf7a' }}>{translate('TherapyReport.unchanged_since_sign_off')}</strong>
+                : <strong style={{ color: 'var(--color-danger)' }}>{translate('TherapyReport.does_not_match_the_signed_hash')}</strong>}
           </div>
           <div>
-            Ledger chain:{' '}
+            {translate('TherapyReport.ledger_chain')}{' '}
             {data.chain_intact === null
-              ? <em style={{ color: 'var(--color-text-secondary)' }}>no ledger entries</em>
+              ? <em style={{ color: 'var(--color-text-secondary)' }}>{translate('TherapyReport.no_ledger_entries')}</em>
               : data.chain_intact
-                ? <strong style={{ color: '#1baf7a' }}>intact</strong>
+                ? <strong style={{ color: '#1baf7a' }}>{translate('TherapyReport.intact')}</strong>
                 : <strong style={{ color: 'var(--color-danger)' }}>BROKEN</strong>}
-            {' · '}{data.anchored_count} of {data.trail.length} anchored on-chain
+            {translate('TherapyReport.of_anchored_on_chain', { anchored_count: data.anchored_count, trail: data.trail.length })}
           </div>
           {data.trail.length > 0 && (
             <div style={{ overflowX: 'auto', marginTop: 8 }}>

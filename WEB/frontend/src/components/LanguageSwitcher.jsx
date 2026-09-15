@@ -1,34 +1,35 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { SUPPORTED_LANGUAGES } from '../i18n';
+import { SUPPORTED_LANGUAGES, normaliseLanguage, t } from '../i18n';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 /**
- * Language Switcher Component
- * 
- * Allows users to change the application language
- * Supports 20+ languages including African languages
+ * The language the app is drawn in and, for someone signed in, the saved
+ * preference the backend answers them in.
+ *
+ * Offered on the sign-in page too, where there is no profile: a PATCH there
+ * answers 401, which the API client reads as a dead session.
  */
 const LanguageSwitcher = ({ variant = 'dropdown' }) => {
   const { i18n } = useTranslation();
-  const currentLanguage = i18n.language;
+  const { user } = useAuth();
+  // i18n.language can be a browser tag ("en-US"); the options are product codes.
+  const currentLanguage = normaliseLanguage(i18n.language) || 'en';
 
-  const handleLanguageChange = (languageCode) => {
-    i18n.changeLanguage(languageCode);
-    // Save preference to localStorage (automatic with i18next config)
-    // Update user profile on backend (optional)
-    updateUserLanguagePreference(languageCode);
-  };
-
-  const updateUserLanguagePreference = async (languageCode) => {
-    try {
-      // The same PATCH the Profile screen saves with, through the shared client
-      // so auth, CSRF and the base URL are handled once. This used to PUT to
-      // `${VITE_API_URL}/api/v1/users/me` by hand, bypassing all three.
-      await api.patch('/users/me', { preferred_language: languageCode });
-    } catch (error) {
-      console.error('Failed to update language preference:', error);
+  const handleLanguageChange = async (languageCode) => {
+    if (user) {
+      try {
+        // Saved BEFORE switching. Switching remounts the app, which reloads the
+        // profile — and a profile read before this save lands still holds the
+        // old language, which AuthContext would adopt and switch straight back.
+        // The same PATCH the Profile screen saves with, through the shared client.
+        await api.patch('/users/me', { preferred_language: languageCode });
+      } catch (error) {
+        console.error('Failed to update language preference:', error);
+      }
     }
+    i18n.changeLanguage(languageCode);
   };
 
   if (variant === 'dropdown') {
@@ -38,6 +39,7 @@ const LanguageSwitcher = ({ variant = 'dropdown' }) => {
           value={currentLanguage}
           onChange={(e) => handleLanguageChange(e.target.value)}
           className="language-select"
+          aria-label={t('LanguageSwitcher.language')}
         >
           {SUPPORTED_LANGUAGES.map((lang) => (
             <option key={lang.code} value={lang.code}>

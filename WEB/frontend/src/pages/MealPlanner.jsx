@@ -14,6 +14,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 const MEAL_EMOJI = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', meal: '🍽️' };
 
@@ -51,7 +52,7 @@ function SuggestionCard({ s }) {
         </h4>
         <div style={{ display: 'flex', gap: '.75rem', fontSize: '.78rem', color: 'var(--color-text-secondary,#6b7280)' }}>
           {macro(<Flame size={13} />, s.calories, 'Calories')}
-          {s.calories != null && <span style={{ fontSize: '.72rem' }}>cal</span>}
+          {s.calories != null && <span style={{ fontSize: '.72rem' }}>{translate('MealPlanner.cal')}</span>}
           {macro(<Beef size={12} />, s.protein_g, 'Protein')}
           {macro(<Wheat size={12} />, s.carbs_g, 'Carbs')}
           {macro(<Droplets size={12} />, s.fat_g, 'Fat')}
@@ -108,7 +109,7 @@ function ShoppingList({ items }) {
     <div className="card" style={{ padding: '1.25rem', marginTop: '.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem' }}>
         <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-          <ShoppingCart size={18} /> Shopping List <span style={{ fontSize: '.75rem', fontWeight: 400, color: 'var(--color-text-tertiary,#9ca3af)' }}>(missing items)</span>
+          <ShoppingCart size={18} /> {translate('MealPlanner.shopping_list')} <span style={{ fontSize: '.75rem', fontWeight: 400, color: 'var(--color-text-tertiary,#9ca3af)' }}>{translate('MealPlanner.missing_items')}</span>
         </h4>
         <span style={{ fontSize: '.8rem', color: 'var(--color-text-tertiary,#6b7280)' }}>{done}/{items.length}</span>
       </div>
@@ -160,7 +161,7 @@ export default function MealPlanner() {
   const generate = async (e) => {
     e.preventDefault();
     if (!form.health_goals.trim()) {
-      setError('Please enter your main health goals first.');
+      setError(translate('MealPlanner.please_enter_your_main_health_goals'));
       return;
     }
     setGenerating(true);
@@ -175,7 +176,7 @@ export default function MealPlanner() {
       }, { timeout: AI_TIMEOUT_MS }); // must stay BELOW Cloud Run's 300s, not equal to it
       setResult(data);
     } catch (err) {
-      setError(apiErrorMessage(err, 'Failed to generate meal plan. Please try again.'));
+      setError(apiErrorMessage(err, translate('MealPlanner.failed_to_generate_meal_plan_please_try')));
     } finally {
       setGenerating(false);
     }
@@ -189,56 +190,56 @@ export default function MealPlanner() {
         <div className="page-header-left">
           <BackButton />
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-            <UtensilsCrossed size={28} color="var(--color-primary)" /> AI Meal Planner
+            <UtensilsCrossed size={28} color="var(--color-primary)" /> {translate('MealPlanner.ai_meal_planner')}
           </h1>
         </div>
         <p style={{ margin: '.25rem 0 0', color: 'var(--color-text-secondary,#6b7280)', fontSize: '.95rem' }}>
-          Get personalized meal recommendations based on your unique health profile and goals.
+          {translate('MealPlanner.get_personalized_meal_recommendations')}
         </p>
       </div>
 
       {/* Generator form */}
       <div className="card" style={{ padding: '1.75rem', marginBottom: '2rem' }}>
         <h3 style={{ margin: '0 0 .35rem', display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '1.15rem' }}>
-          <Sparkles size={20} color="var(--color-primary)" /> Generate Your Meal Plan
+          <Sparkles size={20} color="var(--color-primary)" /> {translate('MealPlanner.generate_your_meal_plan')}
         </h3>
         <p style={{ margin: '0 0 1.25rem', color: 'var(--color-text-secondary,#6b7280)', fontSize: '.88rem' }}>
-          Tell Alafia your goals and preferences. It will analyze your profile, logs, and lab results to create tailored recommendations.
+          {translate('MealPlanner.tell_alafia_your_goals_and_preferences')}
         </p>
 
         <form onSubmit={generate}>
           <div style={{ marginBottom: '1.1rem' }}>
-            <label style={label} htmlFor="health_goals">What are your main health goals right now?</label>
+            <label style={label} htmlFor="health_goals">{translate('MealPlanner.what_are_your_main_health_goals_right')}</label>
             <input
               id="health_goals" name="health_goals" className="form-input"
-              placeholder="e.g. improve hemoglobin, increase vitamin D & calcium, reduce phosphorus…"
+              placeholder={translate('MealPlanner.e_g_improve_hemoglobin_increase_vitamin')}
               value={form.health_goals} onChange={change} required
             />
           </div>
 
           <div style={{ marginBottom: '1.1rem' }}>
-            <label style={label} htmlFor="preferences">Any specific meal preferences, likes, or dislikes?</label>
+            <label style={label} htmlFor="preferences">{translate('MealPlanner.any_specific_meal_preferences_likes_or')}</label>
             <textarea
               id="preferences" name="preferences" className="form-input" rows={3}
-              placeholder="e.g. I enjoy a variety of foods, no fava beans, lentils or peanuts…"
+              placeholder={translate('MealPlanner.e_g_i_enjoy_a_variety_of_foods_no_fava')}
               value={form.preferences} onChange={change} style={{ resize: 'vertical' }}
             />
           </div>
 
           <div style={{ marginBottom: '.4rem' }}>
-            <label style={label} htmlFor="pantry_items">Pantry/Fridge Items (Optional)</label>
+            <label style={label} htmlFor="pantry_items">{translate('MealPlanner.pantry_fridge_items_optional')}</label>
             <textarea
               id="pantry_items" name="pantry_items" className="form-input" rows={3}
-              placeholder="e.g. brown eggs, brown rice, cashew butter, sardines, canola oil, vine tomatoes…"
+              placeholder={translate('MealPlanner.e_g_brown_eggs_brown_rice_cashew_butter')}
               value={form.pantry_items} onChange={change} style={{ resize: 'vertical' }}
             />
             <p style={{ margin: '.35rem 0 0', fontSize: '.78rem', color: 'var(--color-text-tertiary,#9ca3af)' }}>
-              List ingredients you have on hand to get recipes that use them. This list will be saved to your profile.
+              {translate('MealPlanner.list_ingredients_you_have_on_hand_to_get')}
             </p>
           </div>
 
           <div style={{ margin: '1.25rem 0' }}>
-            <label style={label} htmlFor="count">How many meal suggestions would you like?</label>
+            <label style={label} htmlFor="count">{translate('MealPlanner.how_many_meal_suggestions_would_you_like')}</label>
             <select id="count" name="count" className="form-select" value={form.count} onChange={change} style={{ maxWidth: 220 }}>
               {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -252,8 +253,8 @@ export default function MealPlanner() {
 
           <button type="submit" className="btn btn-primary" disabled={generating} style={{ minWidth: 210, opacity: generating ? 0.7 : 1 }}>
             {generating
-              ? <><Loader2 size={16} className="spin" style={{ marginRight: 6 }} /> Generating…</>
-              : <><Sparkles size={16} style={{ marginRight: 6 }} /> Generate My Meal Plan</>}
+              ? <><Loader2 size={16} className="spin" style={{ marginRight: 6 }} /> {translate('MealPlanner.generating')}</>
+              : <><Sparkles size={16} style={{ marginRight: 6 }} /> {translate('MealPlanner.generate_my_meal_plan')}</>}
           </button>
         </form>
       </div>
@@ -263,7 +264,7 @@ export default function MealPlanner() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.5rem' }}>
             <UtensilsCrossed size={20} color="var(--color-primary)" />
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Your Meal Suggestions</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{translate('MealPlanner.your_meal_suggestions')}</h3>
           </div>
           {result.advice && (
             <p style={{ margin: '0 0 1rem', fontSize: '.85rem', color: 'var(--color-text-secondary,#6b7280)' }}>{result.advice}</p>
@@ -275,7 +276,7 @@ export default function MealPlanner() {
 
           {result.pantry_saved > 0 && (
             <p style={{ margin: '.75rem 0 0', fontSize: '.78rem', color: 'var(--color-text-tertiary,#9ca3af)' }}>
-              {result.pantry_saved} new pantry item{result.pantry_saved === 1 ? '' : 's'} saved to your profile.
+              {(result.pantry_saved === 1) ? translate('MealPlanner.new_pantry_item_saved_to_your_profile', { pantry_saved: result.pantry_saved }) : translate('MealPlanner.new_pantry_items_saved_to_your_profile', { pantry_saved: result.pantry_saved })}
             </p>
           )}
         </div>

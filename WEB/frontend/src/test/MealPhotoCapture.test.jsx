@@ -14,10 +14,15 @@ import path from 'node:path';
 const src = fs.readFileSync(
   path.resolve(__dirname, '../pages/Nutrition.jsx'), 'utf8');
 
+// Screen text lives in the catalog, so a label is read through its key.
+const en = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../locales/en.json'), 'utf8'));
+const shown = src.replace(/\b(?:t|translate)\('([\w.]+)'[^)]*\)/g,
+  (call, key) => key.split('.').reduce((node, part) => node?.[part], en) ?? call);
+
 describe('meal photo capture', () => {
   it('offers a camera control, not only a file picker', () => {
     // The copy has always promised "or take a photo". Nothing did.
-    expect(src).toMatch(/Take Photo/);
+    expect(shown).toMatch(/Take Photo/);
     expect(src).toMatch(/capture="environment"/);
   });
 

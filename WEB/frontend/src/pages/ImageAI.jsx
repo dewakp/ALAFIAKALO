@@ -3,6 +3,7 @@ import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
 import { Camera, Pill, ShieldCheck, Upload, AlertTriangle, CheckCircle } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 /* Read a File as a data-URL. Uploads go as JSON {image_base64} rather than
    multipart — Safari's multipart encoding has proven flaky through the proxy,
@@ -20,9 +21,9 @@ function fileToDataURL(file) {
 const ANALYZE_TIMEOUT_MS = 180000;
 
 const tabs = [
-  { key: 'nutrition', label: 'Nutrition from Image', icon: Camera },
-  { key: 'medication', label: 'Medication from Image', icon: Pill },
-  { key: 'dosage', label: 'Dosage Verification', icon: ShieldCheck },
+  { key: 'nutrition', get label() { return t('ImageAI.nutrition_from_image'); }, icon: Camera },
+  { key: 'medication', get label() { return t('ImageAI.medication_from_image'); }, icon: Pill },
+  { key: 'dosage', get label() { return t('ImageAI.dosage_verification'); }, icon: ShieldCheck },
 ];
 
 export default function ImageAI() {
@@ -33,7 +34,7 @@ export default function ImageAI() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Image AI Tools</h1>
+          <h1 className="page-title">{t('ImageAI.image_ai_tools')}</h1>
         </div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -83,7 +84,7 @@ function NutritionFromImage() {
       setResult(data);
       setCorrection((data.food_items || []).map((i) => i.name).join('; '));
     } catch (err) {
-      alert(apiErrorMessage(err, 'Error analyzing image'));
+      alert(apiErrorMessage(err, t('ImageAI.error_analyzing_image')));
     } finally {
       setLoading(false);
     }
@@ -101,7 +102,7 @@ function NutritionFromImage() {
         { image_base64, foods: correction.trim() }, { timeout: ANALYZE_TIMEOUT_MS });
       setResult(data);
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not save the correction'));
+      alert(apiErrorMessage(err, t('ImageAI.could_not_save_the_correction')));
     } finally {
       setTeaching(false);
     }
@@ -109,32 +110,32 @@ function NutritionFromImage() {
 
   return (
     <div className="card" style={{ padding: '1.5rem' }}>
-      <h3 style={{ marginBottom: '1rem' }}>Identify Food from Photo</h3>
+      <h3 style={{ marginBottom: '1rem' }}>{t('ImageAI.identify_food_from_photo')}</h3>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label className="form-label">Upload Food Image</label>
+          <label className="form-label">{t('ImageAI.upload_food_image')}</label>
           <input type="file" accept="image/*" onChange={handleFile} className="form-input" />
         </div>
         {preview && (
-          <img src={preview} alt="Preview" style={{ maxWidth: 300, borderRadius: 8, marginBottom: '1rem' }} />
+          <img src={preview} alt={t('ImageAI.preview')} style={{ maxWidth: 300, borderRadius: 8, marginBottom: '1rem' }} />
         )}
         <button className="btn btn-primary" disabled={!file || loading}>
-          <Upload size={16} /> {loading ? 'Analyzing...' : 'Analyze'}
+          <Upload size={16} /> {(loading) ? t('ImageAI.analyzing') : t('ImageAI.analyze')}
         </button>
       </form>
 
       {result && (
         <div style={{ marginTop: '1.5rem' }}>
-          <h4>Results</h4>
+          <h4>{t('ImageAI.results')}</h4>
           <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                <th style={thStyle}>Food</th>
-                <th style={thStyle}>Serving</th>
-                <th style={thStyle}>Calories</th>
-                <th style={thStyle}>Protein</th>
-                <th style={thStyle}>Carbs</th>
-                <th style={thStyle}>Fat</th>
+                <th style={thStyle}>{t('ImageAI.food')}</th>
+                <th style={thStyle}>{t('ImageAI.serving')}</th>
+                <th style={thStyle}>{t('ImageAI.calories')}</th>
+                <th style={thStyle}>{t('ImageAI.protein')}</th>
+                <th style={thStyle}>{t('ImageAI.carbs')}</th>
+                <th style={thStyle}>{t('ImageAI.fat')}</th>
               </tr>
             </thead>
             <tbody>
@@ -149,7 +150,7 @@ function NutritionFromImage() {
                 </tr>
               ))}
               <tr style={{ fontWeight: 700, borderTop: '2px solid var(--color-primary)' }}>
-                <td style={tdStyle} colSpan={2}>Total</td>
+                <td style={tdStyle} colSpan={2}>{t('ImageAI.total')}</td>
                 <td style={tdStyle}>{result.total_calories}</td>
                 <td style={tdStyle}>{result.total_protein_g}g</td>
                 <td style={tdStyle}>{result.total_carbs_g}g</td>
@@ -170,18 +171,18 @@ function NutritionFromImage() {
 
           {/* Teach ALAFIA: correct the food list → learned for future photos */}
           <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
-            <label className="form-label">Not right? Teach ALAFIA what this actually is</label>
+            <label className="form-label">{t('ImageAI.not_right_teach_alafia_what_this')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
               <input className="form-input" style={{ flex: 1 }} value={correction}
                 onChange={(e) => setCorrection(e.target.value)}
-                placeholder="e.g. beans in palm oil; grilled chicken; fried plantain" />
+                placeholder={t('ImageAI.e_g_beans_in_palm_oil_grilled_chicken')} />
               <button type="button" className="btn btn-secondary" onClick={handleTeach}
                 disabled={teaching || !correction.trim()}>
                 {teaching ? 'Saving…' : 'Teach'}
               </button>
             </div>
             <p style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-              Separate foods with semicolons. ALAFIA will recognize this meal in future photos.
+              {t('ImageAI.separate_foods_with_semicolons_alafia')}
             </p>
           </div>
         </div>
@@ -211,7 +212,7 @@ function MedicationFromImage() {
         { timeout: ANALYZE_TIMEOUT_MS });
       setResult(data);
     } catch (err) {
-      alert(apiErrorMessage(err, 'Error analyzing image'));
+      alert(apiErrorMessage(err, t('ImageAI.error_analyzing_image')));
     } finally {
       setLoading(false);
     }
@@ -219,15 +220,15 @@ function MedicationFromImage() {
 
   return (
     <div className="card" style={{ padding: '1.5rem' }}>
-      <h3 style={{ marginBottom: '1rem' }}>Identify Medication from Photo</h3>
+      <h3 style={{ marginBottom: '1rem' }}>{t('ImageAI.identify_medication_from_photo')}</h3>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label className="form-label">Upload Medication Image</label>
+          <label className="form-label">{t('ImageAI.upload_medication_image')}</label>
           <input type="file" accept="image/*" onChange={handleFile} className="form-input" />
         </div>
-        {preview && <img src={preview} alt="Preview" style={{ maxWidth: 300, borderRadius: 8, marginBottom: '1rem' }} />}
+        {preview && <img src={preview} alt={t('ImageAI.preview')} style={{ maxWidth: 300, borderRadius: 8, marginBottom: '1rem' }} />}
         <button className="btn btn-primary" disabled={!file || loading}>
-          <Upload size={16} /> {loading ? 'Analyzing...' : 'Analyze'}
+          <Upload size={16} /> {(loading) ? t('ImageAI.analyzing') : t('ImageAI.analyze')}
         </button>
       </form>
 
@@ -235,12 +236,12 @@ function MedicationFromImage() {
         <div style={{ marginTop: '1.5rem' }}>
           <div className="card" style={{ padding: '1rem', background: 'var(--color-bg)' }}>
             <h4>{result.medication_name}</h4>
-            {result.generic_name && <p style={{ color: 'var(--color-text-secondary)' }}>Generic: {result.generic_name}</p>}
-            {result.drug_class && <p><strong>Class:</strong> {result.drug_class}</p>}
-            {result.common_dosages && <p><strong>Common Dosages:</strong> {result.common_dosages}</p>}
+            {result.generic_name && <p style={{ color: 'var(--color-text-secondary)' }}>{t('ImageAI.generic', { generic_name: result.generic_name })}</p>}
+            {result.drug_class && <p><strong>{t('ImageAI.class')}</strong> {result.drug_class}</p>}
+            {result.common_dosages && <p><strong>{t('ImageAI.common_dosages')}</strong> {result.common_dosages}</p>}
             {result.side_effects?.length > 0 && (
               <div style={{ marginTop: '0.5rem' }}>
-                <strong>Side Effects:</strong>
+                <strong>{t('ImageAI.side_effects')}</strong>
                 <ul style={{ marginLeft: '1.5rem', marginTop: '0.25rem' }}>
                   {result.side_effects.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
@@ -248,7 +249,7 @@ function MedicationFromImage() {
             )}
             {result.interactions?.length > 0 && (
               <div style={{ marginTop: '0.5rem' }}>
-                <strong>Interactions:</strong>
+                <strong>{t('ImageAI.interactions')}</strong>
                 <ul style={{ marginLeft: '1.5rem', marginTop: '0.25rem' }}>
                   {result.interactions.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
@@ -256,7 +257,7 @@ function MedicationFromImage() {
             )}
             {result.warnings?.length > 0 && (
               <div style={{ marginTop: '0.5rem', color: 'var(--color-danger)' }}>
-                <strong>Warnings:</strong>
+                <strong>{t('ImageAI.warnings')}</strong>
                 <ul style={{ marginLeft: '1.5rem', marginTop: '0.25rem' }}>
                   {result.warnings.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
@@ -289,7 +290,7 @@ function DosageVerification() {
       const { data } = await api.post('/image-ai/verify-dosage', payload);
       setResult(data);
     } catch (err) {
-      alert(apiErrorMessage(err, 'Error verifying dosage'));
+      alert(apiErrorMessage(err, t('ImageAI.error_verifying_dosage')));
     } finally {
       setLoading(false);
     }
@@ -297,33 +298,33 @@ function DosageVerification() {
 
   return (
     <div className="card" style={{ padding: '1.5rem' }}>
-      <h3 style={{ marginBottom: '1rem' }}>Verify Medication Dosage</h3>
+      <h3 style={{ marginBottom: '1rem' }}>{t('ImageAI.verify_medication_dosage')}</h3>
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div className="form-group">
-            <label className="form-label">Medication Name *</label>
+            <label className="form-label">{t('ImageAI.medication_name')}</label>
             <input className="form-input" required value={form.medication_name}
               onChange={e => setForm(p => ({ ...p, medication_name: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="form-label">Prescribed Dosage *</label>
+            <label className="form-label">{t('ImageAI.prescribed_dosage')}</label>
             <input className="form-input" required value={form.prescribed_dosage}
-              placeholder="e.g. 500mg twice daily"
+              placeholder={t('ImageAI.e_g_500mg_twice_daily')}
               onChange={e => setForm(p => ({ ...p, prescribed_dosage: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="form-label">Patient Weight (kg)</label>
+            <label className="form-label">{t('ImageAI.patient_weight_kg')}</label>
             <input className="form-input" type="number" value={form.patient_weight_kg}
               onChange={e => setForm(p => ({ ...p, patient_weight_kg: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="form-label">Patient Age</label>
+            <label className="form-label">{t('ImageAI.patient_age')}</label>
             <input className="form-input" type="number" value={form.patient_age}
               onChange={e => setForm(p => ({ ...p, patient_age: e.target.value }))} />
           </div>
         </div>
         <button className="btn btn-primary" disabled={!form.medication_name || !form.prescribed_dosage || loading}>
-          <ShieldCheck size={16} /> {loading ? 'Verifying...' : 'Verify Dosage'}
+          <ShieldCheck size={16} /> {(loading) ? t('ImageAI.verifying') : t('ImageAI.verify_dosage')}
         </button>
       </form>
 
@@ -337,13 +338,13 @@ function DosageVerification() {
             {result.is_within_range ? <CheckCircle color="#10b981" /> : <AlertTriangle color="#ef4444" />}
             <strong>{result.is_within_range ? 'Within Normal Range' : 'Outside Normal Range'}</strong>
           </div>
-          <p><strong>Medication:</strong> {result.medication_name}</p>
-          <p><strong>Prescribed:</strong> {result.prescribed_dosage}</p>
-          <p><strong>Standard Range:</strong> {result.standard_range}</p>
-          <p><strong>Recommendation:</strong> {result.recommendation}</p>
+          <p><strong>{t('ImageAI.medication')}</strong> {result.medication_name}</p>
+          <p><strong>{t('ImageAI.prescribed')}</strong> {result.prescribed_dosage}</p>
+          <p><strong>{t('ImageAI.standard_range')}</strong> {result.standard_range}</p>
+          <p><strong>{t('ImageAI.recommendation')}</strong> {result.recommendation}</p>
           {result.warnings?.length > 0 && (
             <div style={{ marginTop: '0.5rem', color: 'var(--color-danger)' }}>
-              <strong>Warnings:</strong>
+              <strong>{t('ImageAI.warnings')}</strong>
               <ul style={{ marginLeft: '1.5rem' }}>
                 {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
               </ul>

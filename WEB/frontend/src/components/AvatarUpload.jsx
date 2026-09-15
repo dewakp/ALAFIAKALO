@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import api from '../services/api';
 import Avatar from './Avatar';
 import { apiErrorMessage } from '../utils/apiError';
+import { t } from '../i18n';
 
 /**
  * Choose a photo, or take one.
@@ -33,7 +34,7 @@ export default function AvatarUpload({ user, onChange }) {
       const { data } = await api.post('/users/me/avatar', body);
       onChange?.(data);
     } catch (err) {
-      setError(apiErrorMessage(err, 'That photo could not be uploaded.'));
+      setError(apiErrorMessage(err, t('AvatarUpload.that_photo_could_not_be_uploaded')));
     } finally {
       setBusy(false);
       // Clear the input, or choosing the SAME file again fires no change event.
@@ -49,7 +50,7 @@ export default function AvatarUpload({ user, onChange }) {
       const { data } = await api.delete('/users/me/avatar');
       onChange?.(data);
     } catch (err) {
-      setError(apiErrorMessage(err, 'That photo could not be removed.'));
+      setError(apiErrorMessage(err, t('AvatarUpload.that_photo_could_not_be_removed')));
     } finally {
       setBusy(false);
     }
@@ -67,12 +68,12 @@ export default function AvatarUpload({ user, onChange }) {
           {HAS_CAMERA && (
             <button type="button" className="btn btn-secondary" disabled={busy}
                     onClick={() => cameraRef.current?.click()}>
-              Take Photo
+              {t('AvatarUpload.take_photo')}
             </button>
           )}
           {user?.profile_picture_url && (
             <button type="button" className="btn btn-secondary" disabled={busy} onClick={remove}>
-              Remove
+              {t('AvatarUpload.remove')}
             </button>
           )}
         </div>

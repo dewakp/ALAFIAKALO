@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useClinicianMode } from '../context/ClinicianModeContext';
 import api from '../services/api';
 import MembershipNudge from './MembershipNudge';
+import LanguageSwitcher from './LanguageSwitcher';
 import {
   Menu,
   LayoutDashboard,
@@ -56,93 +57,94 @@ import {
   Mail,
   Users,
 } from 'lucide-react';
+import { t } from '../i18n';
 
 const navGroups = [
   // Prompt Hub — the modality-aware entry point (Basis.md)
-  { to: '/', icon: Bot, label: 'Ask ALAFIA' },
+  { to: '/', icon: Bot, get label() { return t('Layout.ask_alafia'); } },
   // ── Firebase-matching primary nav ──
   {
-    label: 'Overview & Analysis', icon: LayoutDashboard, children: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/insights', icon: Network, label: 'Health Insights' },
-      { to: '/chart-dashboard', icon: TrendingUp, label: 'Health Trends' },
-      { to: '/wellness', icon: Gauge, label: 'Wellness Score' },
-      { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
+    get label() { return t('Layout.overview_analysis'); }, icon: LayoutDashboard, children: [
+      { to: '/dashboard', icon: LayoutDashboard, get label() { return t('Layout.dashboard'); } },
+      { to: '/insights', icon: Network, get label() { return t('Layout.health_insights'); } },
+      { to: '/chart-dashboard', icon: TrendingUp, get label() { return t('Layout.health_trends'); } },
+      { to: '/wellness', icon: Gauge, get label() { return t('Layout.wellness_score'); } },
+      { to: '/calendar', icon: CalendarDays, get label() { return t('Layout.calendar'); } },
     ],
   },
   {
-    label: 'Meals', icon: UtensilsCrossed, children: [
-      { to: '/meal-planner', icon: UtensilsCrossed, label: 'Meal Planner' },
-      { to: '/nutrition', icon: Apple, label: 'Log Food Intake' },
-      { to: '/meals-diary', icon: BookOpen, label: 'Meals Diary' },
-      { to: '/nutrient-tracking', icon: BarChart3, label: 'Nutrient Tracking' },
-      { to: '/pantry', icon: Package, label: 'Pantry' },
+    get label() { return t('Layout.meals'); }, icon: UtensilsCrossed, children: [
+      { to: '/meal-planner', icon: UtensilsCrossed, get label() { return t('Layout.meal_planner'); } },
+      { to: '/nutrition', icon: Apple, get label() { return t('Layout.log_food_intake'); } },
+      { to: '/meals-diary', icon: BookOpen, get label() { return t('Layout.meals_diary'); } },
+      { to: '/nutrient-tracking', icon: BarChart3, get label() { return t('Layout.nutrient_tracking'); } },
+      { to: '/pantry', icon: Package, get label() { return t('Layout.pantry'); } },
     ],
   },
   // Conditions are a cornerstone of the record (they drive nutrient limits,
   // the clinician board and the AI coach), so they sit at the top level rather
   // than inside a collapsed group.
-  { to: '/chronic-conditions', icon: Stethoscope, label: 'Conditions' },
-  { to: '/medications', icon: Pill, label: 'Medications' },
+  { to: '/chronic-conditions', icon: Stethoscope, get label() { return t('Layout.conditions'); } },
+  { to: '/medications', icon: Pill, get label() { return t('Layout.medications'); } },
   {
-    label: 'Activities & Logs', icon: Activity, children: [
-      { to: '/journal', icon: BookOpen, label: 'Journal' },
-      { to: '/vitals', icon: HeartPulse, label: 'Vitals' },
-      { to: '/elimination', icon: FlaskRound, label: 'Elimination Log' },
-      { to: '/symptoms', icon: Activity, label: 'Symptoms' },
-      { to: '/sleep', icon: Moon, label: 'Sleep' },
-      { to: '/mood', icon: HeartPulse, label: 'Mood' },
-      { to: '/lifestyle', icon: Activity, label: 'Lifestyle' },
+    get label() { return t('Layout.activities_logs'); }, icon: Activity, children: [
+      { to: '/journal', icon: BookOpen, get label() { return t('Layout.journal'); } },
+      { to: '/vitals', icon: HeartPulse, get label() { return t('Layout.vitals'); } },
+      { to: '/elimination', icon: FlaskRound, get label() { return t('Layout.elimination_log'); } },
+      { to: '/symptoms', icon: Activity, get label() { return t('Layout.symptoms'); } },
+      { to: '/sleep', icon: Moon, get label() { return t('Layout.sleep'); } },
+      { to: '/mood', icon: HeartPulse, get label() { return t('Layout.mood'); } },
+      { to: '/lifestyle', icon: Activity, get label() { return t('Layout.lifestyle'); } },
     ],
   },
   {
-    label: 'Labs & Records', icon: FlaskConical, children: [
-      { to: '/labs', icon: FlaskConical, label: 'Lab Tests' },
-      { to: '/lab-charts', icon: BarChart3, label: 'Charts' },
+    get label() { return t('Layout.labs_records'); }, icon: FlaskConical, children: [
+      { to: '/labs', icon: FlaskConical, get label() { return t('Layout.lab_tests'); } },
+      { to: '/lab-charts', icon: BarChart3, get label() { return t('Layout.charts'); } },
     ],
   },
   // Sharing is core, so it sits at the top level rather than inside a collapsed
   // group. It used to be "Connect Records" three clicks deep under
   // Labs & Records, where nobody could find it.
-  { to: '/data-sharing', icon: Share2, label: 'Share Records' },
+  { to: '/data-sharing', icon: Share2, get label() { return t('Layout.share_records'); } },
   {
-    label: 'Therapies', icon: Cross, children: [
-      { to: '/hemodialysis', icon: Activity, label: 'HD Flowsheet' },
-      { to: '/peritoneal-dialysis', icon: Droplets, label: 'PD Report' },
-      { to: '/therapy-history', icon: History, label: 'Therapy History' },
+    get label() { return t('Layout.therapies'); }, icon: Cross, children: [
+      { to: '/hemodialysis', icon: Activity, get label() { return t('Layout.hd_flowsheet'); } },
+      { to: '/peritoneal-dialysis', icon: Droplets, get label() { return t('Layout.pd_report'); } },
+      { to: '/therapy-history', icon: History, get label() { return t('Layout.therapy_history'); } },
     ],
   },
   {
-    label: 'Community Health', icon: Globe, children: [
-      { to: '/community', icon: Globe, label: 'Overview' },
-      { to: '/physicians', icon: Stethoscope, label: 'Physician Directory' },
-      { to: '/facilities', icon: Building, label: 'Facility Directory' },
-      { to: '/fda-recalls', icon: AlertTriangle, label: 'Food & Drug Recalls' },
-      { to: '/surveillance', icon: Radar, label: 'Disease Surveillance' },
+    get label() { return t('Layout.community_health'); }, icon: Globe, children: [
+      { to: '/community', icon: Globe, get label() { return t('Layout.overview'); } },
+      { to: '/physicians', icon: Stethoscope, get label() { return t('Layout.physician_directory'); } },
+      { to: '/facilities', icon: Building, get label() { return t('Layout.facility_directory'); } },
+      { to: '/fda-recalls', icon: AlertTriangle, get label() { return t('Layout.food_drug_recalls'); } },
+      { to: '/surveillance', icon: Radar, get label() { return t('Layout.disease_surveillance'); } },
     ],
   },
   // ── Additional web features ──
   {
-    label: 'More', icon: Wrench, children: [
-      { to: '/fitness', icon: Dumbbell, label: 'Fitness' },
-      { to: '/mental-health', icon: HeartPulse, label: 'Mental Health' },
-      { to: '/exercise-planner', icon: PersonStanding, label: 'Exercise Planner' },
-      { to: '/ai', icon: Bot, label: 'AI Assistant' },
-      { to: '/telehealth', icon: Video, label: 'Telehealth' },
-      { to: '/messaging', icon: MessageSquare, label: 'Messaging' },
-      { to: '/pharmacy', icon: Pill, label: 'Pharmacy' },
-      { to: '/image-ai', icon: ScanLine, label: 'Image AI' },
-      { to: '/pdf-tools', icon: FileText, label: 'PDF Tools' },
-      { to: '/capture', icon: Camera, label: 'Capture' },
+    get label() { return t('Layout.more'); }, icon: Wrench, children: [
+      { to: '/fitness', icon: Dumbbell, get label() { return t('Layout.fitness'); } },
+      { to: '/mental-health', icon: HeartPulse, get label() { return t('Layout.mental_health'); } },
+      { to: '/exercise-planner', icon: PersonStanding, get label() { return t('Layout.exercise_planner'); } },
+      { to: '/ai', icon: Bot, get label() { return t('Layout.ai_assistant'); } },
+      { to: '/telehealth', icon: Video, get label() { return t('Layout.telehealth'); } },
+      { to: '/messaging', icon: MessageSquare, get label() { return t('Layout.messaging'); } },
+      { to: '/pharmacy', icon: Pill, get label() { return t('Layout.pharmacy'); } },
+      { to: '/image-ai', icon: ScanLine, get label() { return t('Layout.image_ai'); } },
+      { to: '/pdf-tools', icon: FileText, get label() { return t('Layout.pdf_tools'); } },
+      { to: '/capture', icon: Camera, get label() { return t('Layout.capture'); } },
     ],
   },
   {
-    label: 'Profile', icon: User, children: [
-      { to: '/profile', icon: User, label: 'My Profile' },
-      { to: '/subscription', icon: Sparkles, label: 'ALAFIA Membership' },
-      { to: '/roles', icon: UserCog, label: 'Role' },
-      { to: '/advanced-directives', icon: FileHeart, label: 'Advanced Directives' },
-      { to: '/insurance', icon: Shield, label: 'Insurance' },
+    get label() { return t('Layout.profile'); }, icon: User, children: [
+      { to: '/profile', icon: User, get label() { return t('Layout.my_profile'); } },
+      { to: '/subscription', icon: Sparkles, get label() { return t('Layout.alafia_membership'); } },
+      { to: '/roles', icon: UserCog, get label() { return t('Layout.role'); } },
+      { to: '/advanced-directives', icon: FileHeart, get label() { return t('Layout.advanced_directives'); } },
+      { to: '/insurance', icon: Shield, get label() { return t('Layout.insurance'); } },
     ],
   },
 ];
@@ -151,18 +153,18 @@ const navGroups = [
 // physician reviewing patients does not want their own meal diary in the way,
 // and mixing the two is what made the clinical features hard to find.
 const clinicianNavGroups = [
-  { to: '/clinician-dashboard', icon: Users, label: 'My Patients' },
-  { to: '/data-sharing', icon: Share2, label: 'Share Records' },
-  { to: '/messaging', icon: MessageSquare, label: 'Messaging' },
-  { to: '/telehealth', icon: Video, label: 'Telehealth' },
-  { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
-  { to: '/physicians', icon: Stethoscope, label: 'Physician Directory' },
-  { to: '/facilities', icon: Building, label: 'Facilities' },
+  { to: '/clinician-dashboard', icon: Users, get label() { return t('Layout.my_patients'); } },
+  { to: '/data-sharing', icon: Share2, get label() { return t('Layout.share_records'); } },
+  { to: '/messaging', icon: MessageSquare, get label() { return t('Layout.messaging'); } },
+  { to: '/telehealth', icon: Video, get label() { return t('Layout.telehealth'); } },
+  { to: '/calendar', icon: CalendarDays, get label() { return t('Layout.calendar'); } },
+  { to: '/physicians', icon: Stethoscope, get label() { return t('Layout.physician_directory'); } },
+  { to: '/facilities', icon: Building, get label() { return t('Layout.facilities'); } },
   {
-    label: 'Account', icon: User, children: [
-      { to: '/profile', icon: User, label: 'My Profile' },
-      { to: '/roles', icon: UserCog, label: 'Role' },
-      { to: '/subscription', icon: Sparkles, label: 'ALAFIA Membership' },
+    get label() { return t('Layout.account'); }, icon: User, children: [
+      { to: '/profile', icon: User, get label() { return t('Layout.my_profile'); } },
+      { to: '/roles', icon: UserCog, get label() { return t('Layout.role'); } },
+      { to: '/subscription', icon: Sparkles, get label() { return t('Layout.alafia_membership'); } },
     ],
   },
 ];
@@ -188,8 +190,8 @@ function PersonaSwitcher() {
   return (
     <div style={{ margin: '0 12px 12px', display: 'flex', gap: 4, padding: 3, background: 'var(--color-bg)', borderRadius: 10 }}>
       {[
-        { label: 'Patient', icon: User, active: !clinicianMode, to: false },
-        { label: 'Clinician', icon: Stethoscope, active: clinicianMode, to: true },
+        { label: t('Layout.patient'), icon: User, active: !clinicianMode, to: false },
+        { label: t('Layout.clinician'), icon: Stethoscope, active: clinicianMode, to: true },
       ].map(({ label, icon: Icon, active, to }) => (
         <button
           key={label}
@@ -213,9 +215,9 @@ function PersonaSwitcher() {
 // Sidebar footer. These are the public marketing pages, which render outside
 // <Layout> — following one leaves the app shell, and its navbar links back in.
 const FOOTER_LINKS = [
-  { to: '/help', icon: HelpCircle, label: 'Help' },
-  { to: '/contact', icon: Mail, label: 'Contact Us' },
-  { to: '/investors', icon: Briefcase, label: 'Investors' },
+  { to: '/help', icon: HelpCircle, get label() { return t('Layout.help'); } },
+  { to: '/contact', icon: Mail, get label() { return t('Layout.contact_us'); } },
+  { to: '/investors', icon: Briefcase, get label() { return t('Layout.investors'); } },
 ];
 
 function SidebarGroup({ group }) {
@@ -304,7 +306,7 @@ export default function Layout() {
         <button
           type="button"
           className="mobile-nav-toggle"
-          aria-label="Open menu"
+          aria-label={t('Layout.open_menu')}
           aria-expanded={mobileNavOpen}
           onClick={() => setMobileNavOpen(true)}
         >
@@ -314,7 +316,7 @@ export default function Layout() {
         <button
           type="button"
           className="mobile-nav-toggle"
-          aria-label="Notifications"
+          aria-label={t('Layout.notifications')}
           onClick={() => navigate('/notifications')}
         >
           <Bell size={20} />
@@ -343,7 +345,7 @@ export default function Layout() {
           }}
         >
           <Bell size={18} />
-          <span style={{ flex: 1, textAlign: 'left' }}>Notifications</span>
+          <span style={{ flex: 1, textAlign: 'left' }}>{t('Layout.notifications')}</span>
           {unreadCount > 0 && (
             <span style={{
               background: '#d50000', color: '#fff', borderRadius: 10,
@@ -395,9 +397,10 @@ export default function Layout() {
               {user.primary_role.replace(/_/g, ' ')}
             </div>
           )}
+          <LanguageSwitcher />
           <div>
             <button className="btn btn-secondary btn-sm" onClick={logout}>
-              <LogOut size={16} /> Logout
+              <LogOut size={16} /> {t('Layout.logout')}
             </button>
           </div>
         </div>

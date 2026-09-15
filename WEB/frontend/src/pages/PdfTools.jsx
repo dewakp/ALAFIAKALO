@@ -2,10 +2,11 @@ import { useState } from 'react';
 import api from '../services/api';
 import { FileText, Download, Upload, FileBarChart, Check, X, AlertTriangle } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const tabs = [
-  { key: 'import', label: 'Import Document', icon: Upload },
-  { key: 'flowsheet', label: 'Generate Flowsheet', icon: FileBarChart },
+  { key: 'import', get label() { return t('PdfTools.import_document'); }, icon: Upload },
+  { key: 'flowsheet', get label() { return t('PdfTools.generate_flowsheet'); }, icon: FileBarChart },
 ];
 
 export default function PdfTools() {
@@ -16,7 +17,7 @@ export default function PdfTools() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">PDF Tools</h1>
+          <h1 className="page-title">{t('PdfTools.pdf_tools')}</h1>
         </div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
@@ -34,8 +35,8 @@ export default function PdfTools() {
 }
 
 const DEDUPE_BADGE = {
-  duplicate: { text: 'Already recorded', bg: '#e5e7eb', fg: '#4b5563' },
-  conflict: { text: 'Differs from existing', bg: '#fef3c7', fg: '#b45309' },
+  duplicate: { get text() { return t('PdfTools.already_recorded'); }, bg: '#e5e7eb', fg: '#4b5563' },
+  conflict: { get text() { return t('PdfTools.differs_from_existing'); }, bg: '#fef3c7', fg: '#b45309' },
 };
 
 const DOC_TYPE_LABEL = {
@@ -112,20 +113,19 @@ function ImportDocument() {
 
   return (
     <div className="card" style={{ padding: '1.5rem' }}>
-      <h3 style={{ marginBottom: '.25rem' }}>Import a Clinical Document</h3>
+      <h3 style={{ marginBottom: '.25rem' }}>{t('PdfTools.import_a_clinical_document')}</h3>
       <p style={{ fontSize: '.82rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-        Upload a lab report, medication list or flowsheet. Nothing is added to your
-        records until you review it and choose Import.
+        {t('PdfTools.upload_a_lab_report_medication_list_or')}
       </p>
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label className="form-label">Document (PDF or text)</label>
+          <label className="form-label">{t('PdfTools.document_pdf_or_text')}</label>
           <input type="file" accept=".pdf,.txt" className="form-input"
             onChange={e => { setFile(e.target.files[0]); setResult(null); setImported(null); setError(null); }} />
         </div>
         <button className="btn btn-primary" disabled={!file || loading}>
-          <Upload size={16} /> {loading ? 'Reading…' : 'Read Document'}
+          <Upload size={16} /> {(loading) ? t('PdfTools.reading') : t('PdfTools.read_document')}
         </button>
       </form>
 
@@ -145,7 +145,7 @@ function ImportDocument() {
 
       {result?.already_imported && (
         <div style={bannerStyle('#e0f2fe', '#7dd3fc', '#0369a1')}>
-          You have uploaded this file before — showing what was read then.
+          {t('PdfTools.you_have_uploaded_this_file_before')}
         </div>
       )}
 
@@ -159,14 +159,14 @@ function ImportDocument() {
         <div style={{ marginTop: '1.25rem' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', marginBottom: '.75rem', fontSize: '.85rem' }}>
             {result.doc_type && (
-              <div><strong>Type:</strong> {DOC_TYPE_LABEL[result.doc_type] || result.doc_type}</div>
+              <div><strong>{t('PdfTools.type')}</strong> {DOC_TYPE_LABEL[result.doc_type] || result.doc_type}</div>
             )}
-            {result.patient_name && <div><strong>Patient:</strong> {result.patient_name}</div>}
-            {result.report_date && <div><strong>Date:</strong> {result.report_date}</div>}
-            {result.lab_name && <div><strong>Lab:</strong> {result.lab_name}</div>}
-            {result.ordering_physician && <div><strong>Physician:</strong> {result.ordering_physician}</div>}
+            {result.patient_name && <div><strong>{t('PdfTools.patient')}</strong> {result.patient_name}</div>}
+            {result.report_date && <div><strong>{t('PdfTools.date')}</strong> {result.report_date}</div>}
+            {result.lab_name && <div><strong>{t('PdfTools.lab')}</strong> {result.lab_name}</div>}
+            {result.ordering_physician && <div><strong>{t('PdfTools.physician')}</strong> {result.ordering_physician}</div>}
             {result.confidence != null && (
-              <div><strong>Confidence:</strong> {Math.round(result.confidence * 100)}%</div>
+              <div><strong>{t('PdfTools.confidence')}</strong> {Math.round(result.confidence * 100)}%</div>
             )}
           </div>
 
@@ -180,18 +180,17 @@ function ImportDocument() {
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.5rem' }}>
                 <strong style={{ fontSize: '.9rem' }}>
-                  {result.items.length} reading{result.items.length === 1 ? '' : 's'} found
-                  {result.target_table && ` · ${selected.size} selected to import`}
+                  {(result.items.length === 1) ? t('PdfTools.reading_found', { items: result.items.length, target_table: result.target_table && ` · ${selected.size} selected to import` }) : t('PdfTools.readings_found', { items: result.items.length, target_table: result.target_table && ` · ${selected.size} selected to import` })}
                 </strong>
                 {!imported && result.target_table && (
                   <div style={{ display: 'flex', gap: '.4rem' }}>
                     <button className="btn btn-secondary btn-sm" type="button"
                       onClick={() => setSelected(new Set(result.items.map(i => i.item_id)))}>
-                      Select all
+                      {t('PdfTools.select_all')}
                     </button>
                     <button className="btn btn-secondary btn-sm" type="button"
                       onClick={() => setSelected(new Set())}>
-                      Clear
+                      {t('PdfTools.clear')}
                     </button>
                   </div>
                 )}
@@ -202,12 +201,12 @@ function ImportDocument() {
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                       {result.target_table && !imported && <th style={thStyle}></th>}
-                      <th style={thStyle}>Test</th>
-                      <th style={thStyle}>Value</th>
-                      <th style={thStyle}>Unit</th>
-                      <th style={thStyle}>Reference</th>
-                      <th style={thStyle}>Date</th>
-                      <th style={thStyle}>Status</th>
+                      <th style={thStyle}>{t('PdfTools.test')}</th>
+                      <th style={thStyle}>{t('PdfTools.value')}</th>
+                      <th style={thStyle}>{t('PdfTools.unit')}</th>
+                      <th style={thStyle}>{t('PdfTools.reference')}</th>
+                      <th style={thStyle}>{t('PdfTools.date_2')}</th>
+                      <th style={thStyle}>{t('PdfTools.status')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -226,7 +225,7 @@ function ImportDocument() {
                           {item.test_name}
                           {item.source_label && item.source_label !== item.test_name && (
                             <div style={{ fontSize: '.68rem', color: 'var(--color-text-tertiary)' }}>
-                              document: “{item.source_label}”
+                              {t('PdfTools.document', { source_label: item.source_label })}
                             </div>
                           )}
                           {item.note && (
@@ -239,7 +238,7 @@ function ImportDocument() {
                         <td style={tdStyle}>{item.test_date || '—'}</td>
                         <td style={tdStyle}>
                           {item.is_abnormal && (
-                            <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>Abnormal</span>
+                            <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>{t('PdfTools.abnormal')}</span>
                           )}
                           {DEDUPE_BADGE[item.dedupe_status] && (
                             <span style={{
@@ -264,15 +263,14 @@ function ImportDocument() {
                     <Check size={16} /> {importing ? 'Importing…' : `Import ${selected.size} selected`}
                   </button>
                   <button className="btn btn-secondary" onClick={handleDiscard} disabled={importing}>
-                    <X size={16} /> Discard
+                    <X size={16} /> {t('PdfTools.discard')}
                   </button>
                 </div>
               )}
 
               {!result.target_table && (
                 <p style={{ fontSize: '.78rem', color: 'var(--color-text-tertiary)', marginTop: '.6rem' }}>
-                  This document type can be read but not imported yet — the values above
-                  are shown for reference only.
+                  {t('PdfTools.this_document_type_can_be_read_but_not')}
                 </p>
               )}
             </>
@@ -281,7 +279,7 @@ function ImportDocument() {
           {result.raw_text_preview && (
             <div style={{ marginTop: '1rem' }}>
               <button className="btn btn-secondary btn-sm" onClick={() => setShowRaw(!showRaw)}>
-                <FileText size={14} /> {showRaw ? 'Hide' : 'Show'} extracted text
+                <FileText size={14} /> {(showRaw) ? t('PdfTools.hide_extracted_text') : t('PdfTools.show_extracted_text')}
               </button>
               {showRaw && <pre style={preStyle}>{result.raw_text_preview}</pre>}
             </div>
@@ -334,7 +332,7 @@ function GenerateFlowsheet() {
       anchor.click();
       URL.revokeObjectURL(url);
     } catch {
-      setError('The PDF could not be downloaded.');
+      setError(t('PdfTools.the_pdf_could_not_be_downloaded'));
     } finally {
       setDownloading(false);
     }
@@ -342,25 +340,25 @@ function GenerateFlowsheet() {
 
   return (
     <div className="card" style={{ padding: '1.5rem' }}>
-      <h3 style={{ marginBottom: '1rem' }}>Generate Dialysis Flowsheet</h3>
+      <h3 style={{ marginBottom: '1rem' }}>{t('PdfTools.generate_dialysis_flowsheet')}</h3>
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div className="form-group">
-            <label className="form-label">Session Type</label>
+            <label className="form-label">{t('PdfTools.session_type')}</label>
             <select className="form-select" value={form.session_type}
               onChange={e => setForm(p => ({ ...p, session_type: e.target.value }))}>
-              <option value="hemodialysis">Hemodialysis</option>
-              <option value="peritoneal_dialysis">Peritoneal Dialysis</option>
+              <option value="hemodialysis">{t('PdfTools.hemodialysis')}</option>
+              <option value="peritoneal_dialysis">{t('PdfTools.peritoneal_dialysis')}</option>
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Days</label>
+            <label className="form-label">{t('PdfTools.days')}</label>
             <input type="number" className="form-input" min={1} max={365} value={form.days}
               onChange={e => setForm(p => ({ ...p, days: e.target.value }))} />
           </div>
         </div>
         <button className="btn btn-primary" disabled={loading}>
-          <FileBarChart size={16} /> {loading ? 'Generating…' : 'Generate'}
+          <FileBarChart size={16} /> {(loading) ? t('PdfTools.generating') : t('PdfTools.generate')}
         </button>
       </form>
 
@@ -376,11 +374,11 @@ function GenerateFlowsheet() {
             <div>
               <h4 style={{ margin: 0 }}>{result.title}</h4>
               <p style={{ fontSize: '.85rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                {result.session_count} session{result.session_count === 1 ? '' : 's'} · Generated {result.generated_at}
+                {(result.session_count === 1) ? t('PdfTools.session_generated', { session_count: result.session_count, generated_at: result.generated_at }) : t('PdfTools.sessions_generated', { session_count: result.session_count, generated_at: result.generated_at })}
               </p>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={handleDownload} disabled={downloading}>
-              <Download size={14} /> {downloading ? 'Preparing…' : 'Download PDF'}
+              <Download size={14} /> {(downloading) ? t('PdfTools.preparing') : t('PdfTools.download_pdf')}
             </button>
           </div>
           <pre style={preStyle}>{result.content}</pre>

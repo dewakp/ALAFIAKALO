@@ -22,6 +22,7 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 /* ── colour palette ──────────────────────────────────────── */
 const PALETTE = [
@@ -30,27 +31,27 @@ const PALETTE = [
 ];
 
 const CHART_TYPES = [
-  { key: 'line',    label: 'Line' },
-  { key: 'bar',     label: 'Bar' },
-  { key: 'area',    label: 'Area' },
-  { key: 'scatter', label: 'Scatter' },
-  { key: 'pie',     label: 'Pie' },
-  { key: 'radar',   label: 'Radar' },
-  { key: 'composed',label: 'Composed' },
+  { key: 'line',    get label() { return t('ChartDashboard.line'); } },
+  { key: 'bar',     get label() { return t('ChartDashboard.bar'); } },
+  { key: 'area',    get label() { return t('ChartDashboard.area'); } },
+  { key: 'scatter', get label() { return t('ChartDashboard.scatter'); } },
+  { key: 'pie',     get label() { return t('ChartDashboard.pie'); } },
+  { key: 'radar',   get label() { return t('ChartDashboard.radar'); } },
+  { key: 'composed',get label() { return t('ChartDashboard.composed'); } },
 ];
 
 const AGG_OPTIONS = [
-  { key: 'daily',   label: 'Daily' },
-  { key: 'weekly',  label: 'Weekly' },
-  { key: 'monthly', label: 'Monthly' },
+  { key: 'daily',   get label() { return t('ChartDashboard.daily'); } },
+  { key: 'weekly',  get label() { return t('ChartDashboard.weekly'); } },
+  { key: 'monthly', get label() { return t('ChartDashboard.monthly'); } },
 ];
 
 const DAY_OPTIONS = [
-  { key: 30,  label: '30 days' },
-  { key: 90,  label: '90 days' },
-  { key: 180, label: '6 months' },
-  { key: 365, label: '1 year' },
-  { key: 730, label: '2 years' },
+  { key: 30,  get label() { return t('ChartDashboard.text_30_days'); } },
+  { key: 90,  get label() { return t('ChartDashboard.text_90_days'); } },
+  { key: 180, get label() { return t('ChartDashboard.text_6_months'); } },
+  { key: 365, get label() { return t('ChartDashboard.text_1_year'); } },
+  { key: 730, get label() { return t('ChartDashboard.text_2_years'); } },
 ];
 
 /* ── helpers ─────────────────────────────────────────────── */
@@ -143,7 +144,7 @@ export default function ChartDashboard() {
       } else {
         setCorrelateData(null);
       }
-    }).catch(e => setErr(apiErrorMessage(e, 'Failed to load chart data')))
+    }).catch(e => setErr(apiErrorMessage(e, t('ChartDashboard.failed_to_load_chart_data'))))
       .finally(() => setLoading(false));
   }, [selected, days, agg, chartType]);
 
@@ -218,17 +219,17 @@ export default function ChartDashboard() {
           <div className="page-header">
             <div className="page-header-left">
               <BackButton />
-              <h1 className="page-title"><BarChart3 size={28} /> Chart Dashboard</h1>
+              <h1 className="page-title"><BarChart3 size={28} /> {t('ChartDashboard.chart_dashboard')}</h1>
             </div>
           </div>
-          <p className="page-subtitle">Visualize &amp; compare any health metric across your data</p>
+          <p className="page-subtitle">{t('ChartDashboard.visualize_compare_any_health_metric')}</p>
         </div>
       </div>
 
       {/* ── Controls Bar ───────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
         <button className="btn btn-primary btn-sm" onClick={() => setShowPicker(p => !p)}>
-          <Plus size={14} /> {showPicker ? 'Hide' : 'Add'} Datasets
+          <Plus size={14} /> {(showPicker) ? t('ChartDashboard.hide_datasets') : t('ChartDashboard.add_datasets')}
         </button>
 
         {/* Chart type pills */}
@@ -257,7 +258,7 @@ export default function ChartDashboard() {
       {/* ── Dataset Picker ─────────────────────────────────── */}
       {showPicker && datasets && (
         <div className="card" style={{ marginBottom: 16, padding: 16 }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Available Datasets</h3>
+          <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>{t('ChartDashboard.available_datasets')}</h3>
           {Object.entries(datasets).map(([domain, items]) => (
             <div key={domain} style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 600, textTransform: 'capitalize', fontSize: 13, color: '#6b7280', marginBottom: 4 }}>{domain}</div>
@@ -277,7 +278,7 @@ export default function ChartDashboard() {
                         opacity: empty ? 0.45 : 1,
                       }}
                     >
-                      {ds.label} {ds.unit ? `(${ds.unit})` : ''}{empty ? ' — no data' : ''}
+                      {(empty) ? t('ChartDashboard.no_data', { label: ds.label, value: ds.unit ? `(${ds.unit})` : '' }) : t('ChartDashboard.text', { label: ds.label, value: ds.unit ? `(${ds.unit})` : '' })}
                     </button>
                   );
                 })}
@@ -314,7 +315,7 @@ export default function ChartDashboard() {
       {/* ── Loading / Error ────────────────────────────────── */}
       {loading && (
         <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>
-          <Loader2 size={28} className="spin" /> Loading chart data…
+          <Loader2 size={28} className="spin" /> {t('ChartDashboard.loading_chart_data')}
         </div>
       )}
       {err && (
@@ -327,8 +328,8 @@ export default function ChartDashboard() {
       {!loading && !err && !selected.length && (
         <div className="card" style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
           <BarChart3 size={48} style={{ marginBottom: 12, opacity: 0.4 }} />
-          <p style={{ fontSize: 16, fontWeight: 500 }}>Select one or more datasets to start charting</p>
-          <p style={{ fontSize: 13 }}>Use the <strong>Add Datasets</strong> button above to pick from Nutrition, Fitness, Mood, Vitals, and Lifestyle metrics</p>
+          <p style={{ fontSize: 16, fontWeight: 500 }}>{t('ChartDashboard.select_one_or_more_datasets_to_start')}</p>
+          <p style={{ fontSize: 13 }}>{t('ChartDashboard.use_the')} <strong>{t('ChartDashboard.add_datasets')}</strong> {t('ChartDashboard.button_above_to_pick_from_nutrition')}</p>
         </div>
       )}
 
@@ -338,11 +339,10 @@ export default function ChartDashboard() {
           <div className="card" style={{ padding: 40, textAlign: 'center', color: '#9ca3af', marginBottom: 16 }}>
             <AlertCircle size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
             <p style={{ fontSize: 16, fontWeight: 500, margin: '0 0 6px' }}>
-              No data points in the last {DAY_OPTIONS.find(o => o.key === days)?.label || `${days} days`} for the selected dataset{selected.length > 1 ? 's' : ''}
+              {t('ChartDashboard.no_data_points_in_the_last')} {DAY_OPTIONS.find(o => o.key === days)?.label || `${days} days`} {(selected.length > 1) ? t('ChartDashboard.for_the_selected_datasets') : t('ChartDashboard.for_the_selected_dataset')}
             </p>
             <p style={{ fontSize: 13, margin: 0 }}>
-              Datasets marked <strong>“no data”</strong> in the picker have no entries yet — pick a highlighted
-              metric, extend the time range, or start logging to see trends here.
+              {t('ChartDashboard.datasets_marked')} <strong>{t('ChartDashboard.no_data_2')}</strong> {t('ChartDashboard.in_the_picker_have_no_entries_yet_pick_a')}
             </p>
           </div>
         ) : (
@@ -369,12 +369,12 @@ export default function ChartDashboard() {
                   <span style={{ marginLeft: 'auto' }}>{trendIcon(s.trend)}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 13 }}>
-                  <div>Avg: <strong>{s.avg ?? '–'}</strong></div>
-                  <div>Std: <strong>{s.stddev ?? '–'}</strong></div>
-                  <div>Min: <strong>{s.min ?? '–'}</strong></div>
-                  <div>Max: <strong>{s.max ?? '–'}</strong></div>
-                  <div>Points: <strong>{s.count}</strong></div>
-                  <div style={{ textTransform: 'capitalize' }}>Trend: <strong>{s.trend}</strong></div>
+                  <div>{t('ChartDashboard.avg')} <strong>{s.avg ?? '–'}</strong></div>
+                  <div>{t('ChartDashboard.std')} <strong>{s.stddev ?? '–'}</strong></div>
+                  <div>{t('ChartDashboard.min')} <strong>{s.min ?? '–'}</strong></div>
+                  <div>{t('ChartDashboard.max')} <strong>{s.max ?? '–'}</strong></div>
+                  <div>{t('ChartDashboard.points')} <strong>{s.count}</strong></div>
+                  <div style={{ textTransform: 'capitalize' }}>{t('ChartDashboard.trend')} <strong>{s.trend}</strong></div>
                 </div>
               </div>
             );
@@ -386,10 +386,10 @@ export default function ChartDashboard() {
       {correlateData && chartType === 'scatter' && (
         <div className="card" style={{ padding: 16 }}>
           <h3 style={{ fontSize: 14, marginBottom: 8 }}>
-            <Info size={14} style={{ verticalAlign: 'middle' }} /> Correlation: {correlateData.x.label} vs {correlateData.y.label}
+            <Info size={14} style={{ verticalAlign: 'middle' }} /> {t('ChartDashboard.correlation_vs', { label: correlateData.x.label, label2: correlateData.y.label })}
           </h3>
           <p style={{ fontSize: 13, color: '#6b7280' }}>
-            {correlateData.points.length} matched data points found across {days} days.
+            {t('ChartDashboard.matched_data_points_found_across_days', { points: correlateData.points.length, days })}
           </p>
         </div>
       )}

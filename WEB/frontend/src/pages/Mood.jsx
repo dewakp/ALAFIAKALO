@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 export default function Mood() {
   const [entries, setEntries] = useState([]);
@@ -54,10 +55,10 @@ export default function Mood() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Mood / Mental Health</h1>
+          <h1 className="page-title">{t('Mood.mood_mental_health')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          <Plus size={18} /> Check In
+          <Plus size={18} /> {t('Mood.check_in')}
         </button>
       </div>
 
@@ -66,93 +67,93 @@ export default function Mood() {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Date</label>
+                <label className="form-label">{t('Mood.date')}</label>
                 <input className="form-input" type="date" value={form.entry_date}
                   onChange={(e) => setForm({ ...form, entry_date: e.target.value })} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Mood (1-10): {form.mood_score}</label>
+                <label className="form-label">{t('Mood.mood_1_10', { mood_score: form.mood_score })}</label>
                 <input className="form-input" type="range" min="1" max="10" value={form.mood_score}
                   onChange={(e) => setForm({ ...form, mood_score: parseInt(e.target.value) })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Energy (1-10): {form.energy_level}</label>
+                <label className="form-label">{t('Mood.energy_1_10', { energy_level: form.energy_level })}</label>
                 <input className="form-input" type="range" min="1" max="10" value={form.energy_level}
                   onChange={(e) => setForm({ ...form, energy_level: parseInt(e.target.value) })} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Stress (1-10): {form.stress_level}</label>
+                <label className="form-label">{t('Mood.stress_1_10', { stress_level: form.stress_level })}</label>
                 <input className="form-input" type="range" min="1" max="10" value={form.stress_level}
                   onChange={(e) => setForm({ ...form, stress_level: parseInt(e.target.value) })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Anxiety (1-10): {form.anxiety_level}</label>
+                <label className="form-label">{t('Mood.anxiety_1_10', { anxiety_level: form.anxiety_level })}</label>
                 <input className="form-input" type="range" min="1" max="10" value={form.anxiety_level}
                   onChange={(e) => setForm({ ...form, anxiety_level: parseInt(e.target.value) })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Sleep Quality (1-10): {form.sleep_quality}</label>
+                <label className="form-label">{t('Mood.sleep_quality_1_10', { sleep_quality: form.sleep_quality })}</label>
                 <input className="form-input" type="range" min="1" max="10" value={form.sleep_quality}
                   onChange={(e) => setForm({ ...form, sleep_quality: parseInt(e.target.value) })} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Sleep Hours</label>
+                <label className="form-label">{t('Mood.sleep_hours')}</label>
                 <input className="form-input" type="number" step="0.5" value={form.sleep_hours}
                   onChange={(e) => setForm({ ...form, sleep_hours: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Gratitude</label>
+                <label className="form-label">{t('Mood.gratitude')}</label>
                 <input className="form-input" value={form.gratitude}
                   onChange={(e) => setForm({ ...form, gratitude: e.target.value })} />
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Journal Entry</label>
+              <label className="form-label">{t('Mood.journal_entry')}</label>
               <textarea className="form-input" rows={3} value={form.journal_entry}
                 onChange={(e) => setForm({ ...form, journal_entry: e.target.value })} />
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Emotions</label>
-                <input className="form-input" placeholder="e.g. anxious, happy, frustrated"
+                <label className="form-label">{t('Mood.emotions')}</label>
+                <input className="form-input" placeholder={t('Mood.e_g_anxious_happy_frustrated')}
                   value={form.emotions}
                   onChange={(e) => setForm({ ...form, emotions: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Triggers</label>
-                <input className="form-input" placeholder="What triggered these emotions?"
+                <label className="form-label">{t('Mood.triggers')}</label>
+                <input className="form-input" placeholder={t('Mood.what_triggered_these_emotions')}
                   value={form.triggers}
                   onChange={(e) => setForm({ ...form, triggers: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Coping Strategies</label>
-                <input className="form-input" placeholder="e.g. meditation, exercise, talking"
+                <label className="form-label">{t('Mood.coping_strategies')}</label>
+                <input className="form-input" placeholder={t('Mood.e_g_meditation_exercise_talking')}
                   value={form.coping_strategies}
                   onChange={(e) => setForm({ ...form, coping_strategies: e.target.value })} />
               </div>
             </div>
-            <button className="btn btn-primary" type="submit">Save</button>
+            <button className="btn btn-primary" type="submit">{t('Mood.save')}</button>
           </form>
         </div>
       )}
 
       <div className="card">
         <div style={{ marginBottom: '.75rem', color: 'var(--color-text-secondary)', fontSize: '.8rem' }}>
-          Entries are editable but cannot be deleted.
+          {t('Mood.entries_are_editable_but_cannot_be')}
         </div>
         <table className="table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Mood</th>
-              <th>Energy</th>
-              <th>Stress</th>
-              <th>Sleep</th>
-              <th>Journal</th>
+              <th>{t('Mood.date')}</th>
+              <th>{t('Mood.mood')}</th>
+              <th>{t('Mood.energy')}</th>
+              <th>{t('Mood.stress')}</th>
+              <th>{t('Mood.sleep')}</th>
+              <th>{t('Mood.journal')}</th>
               <th></th>
             </tr>
           </thead>
@@ -171,7 +172,7 @@ export default function Mood() {
               </tr>
             ))}
             {entries.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>No mood entries yet</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t('Mood.no_mood_entries_yet')}</td></tr>
             )}
           </tbody>
         </table>

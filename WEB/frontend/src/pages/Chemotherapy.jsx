@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 /* ───────── constants ───────── */
 const ROUTES = ['IV Push', 'IV Drip', 'IV Infusion', 'Oral', 'Subcutaneous', 'Intramuscular', 'Intrathecal', 'Intraperitoneal', 'Topical'];
@@ -187,7 +188,7 @@ export default function Chemotherapy() {
   };
 
   const deleteSession = async (id) => {
-    if (!window.confirm('Delete this chemotherapy session?')) return;
+    if (!window.confirm(translate('Chemotherapy.delete_this_chemotherapy_session'))) return;
     try {
       await api.delete(`/chronic/therapy-sessions/${id}`);
       loadSessions();
@@ -254,24 +255,24 @@ export default function Chemotherapy() {
         <div className="page-header">
           <div className="page-header-left">
             <BackButton />
-            <h1 style={{ margin: 0, color: '#7b1fa2' }}>Chemotherapy</h1>
+            <h1 style={{ margin: 0, color: '#7b1fa2' }}>{translate('Chemotherapy.chemotherapy')}</h1>
           </div>
         </div>
         <button
           style={btnPrimary}
           onClick={() => { setFormData(emptyForm()); setSelectedSideEffects([]); setEditing(null); setTab('form'); }}
         >
-          + New Session
+          {translate('Chemotherapy.new_session')}
         </button>
       </div>
 
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Total Sessions', value: stats.total, color: '#7b1fa2' },
-          { label: 'Completed', value: stats.completed, color: '#4caf50' },
-          { label: 'Scheduled', value: stats.scheduled, color: '#ff9800' },
-          { label: 'Current / Planned', value: `${stats.currentCycle} / ${stats.totalPlanned}`, color: '#2196f3' },
+          { label: translate('Chemotherapy.total_sessions'), value: stats.total, color: '#7b1fa2' },
+          { label: translate('Chemotherapy.completed'), value: stats.completed, color: '#4caf50' },
+          { label: translate('Chemotherapy.scheduled'), value: stats.scheduled, color: '#ff9800' },
+          { label: translate('Chemotherapy.current_planned'), value: `${stats.currentCycle} / ${stats.totalPlanned}`, color: '#2196f3' },
         ].map(s => (
           <div key={s.label} style={{ ...card, textAlign: 'center', borderTop: `3px solid ${s.color}` }}>
             <div style={{ fontSize: 24, fontWeight: 700, color: s.color }}>{s.value}</div>
@@ -299,11 +300,11 @@ export default function Chemotherapy() {
 
       {/* ───── SESSION LIST ───── */}
       {tab === 'list' && (
-        loading ? <p>Loading…</p> : sessions.length === 0 ? (
+        loading ? <p>{translate('Chemotherapy.loading')}</p> : sessions.length === 0 ? (
           <div style={{ ...card, textAlign: 'center', padding: 60 }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>💉</div>
-            <h3>No Chemotherapy Sessions</h3>
-            <p style={{ color: '#666' }}>Click "+ New Session" to log your first chemotherapy session.</p>
+            <h3>{translate('Chemotherapy.no_chemotherapy_sessions')}</h3>
+            <p style={{ color: '#666' }}>{translate('Chemotherapy.click_new_session_to_log_your_first')}</p>
           </div>
         ) : (
           sessions.map(s => (
@@ -311,7 +312,7 @@ export default function Chemotherapy() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 16 }}>
-                    {s.therapy_name || 'Chemotherapy'} — Session #{s.session_number || '—'}
+                    {translate('Chemotherapy.session', { therapy_name: s.therapy_name || 'Chemotherapy', session_number: s.session_number || '—' })}
                     {s.total_sessions_planned && <span style={{ color: '#888', fontWeight: 400 }}> / {s.total_sessions_planned}</span>}
                   </div>
                   <div style={{ color: '#666', fontSize: 13, marginTop: 4 }}>
@@ -321,47 +322,47 @@ export default function Chemotherapy() {
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={tag(statusColor(s.status))}>{s.status?.replace('_', ' ')}</span>
-                  <button style={{ ...btnSecondary, padding: '4px 12px', fontSize: 12 }} onClick={() => startEdit(s)}>Edit</button>
+                  <button style={{ ...btnSecondary, padding: '4px 12px', fontSize: 12 }} onClick={() => startEdit(s)}>{translate('Chemotherapy.edit')}</button>
                   <button style={{ ...btnDanger }} onClick={() => deleteSession(s.id)}>✕</button>
                 </div>
               </div>
 
               <div style={{ ...grid3, marginTop: 16 }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 12, color: '#888' }}>Drugs</div>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: '#888' }}>{translate('Chemotherapy.drugs')}</div>
                   <div>{s.drugs_administered || '—'}</div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 12, color: '#888' }}>Dosage</div>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: '#888' }}>{translate('Chemotherapy.dosage')}</div>
                   <div>{s.dosage || '—'}</div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 12, color: '#888' }}>Route</div>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: '#888' }}>{translate('Chemotherapy.route')}</div>
                   <div>{s.route_of_administration || '—'}</div>
                 </div>
               </div>
 
               {(s.pre_systolic_bp || s.post_systolic_bp) && (
                 <div style={{ ...grid4, marginTop: 12, padding: '8px 12px', background: '#fafafa', borderRadius: 6 }}>
-                  <div><span style={{ fontSize: 12, color: '#888' }}>Pre BP:</span> {fmtBP(s.pre_systolic_bp, s.pre_diastolic_bp)}</div>
-                  <div><span style={{ fontSize: 12, color: '#888' }}>Post BP:</span> {fmtBP(s.post_systolic_bp, s.post_diastolic_bp)}</div>
-                  <div><span style={{ fontSize: 12, color: '#888' }}>Pre HR:</span> {s.pre_heart_rate || '—'}</div>
-                  <div><span style={{ fontSize: 12, color: '#888' }}>SpO₂:</span> {s.oxygen_saturation ? `${s.oxygen_saturation}%` : '—'}</div>
+                  <div><span style={{ fontSize: 12, color: '#888' }}>{translate('Chemotherapy.pre_bp')}</span> {fmtBP(s.pre_systolic_bp, s.pre_diastolic_bp)}</div>
+                  <div><span style={{ fontSize: 12, color: '#888' }}>{translate('Chemotherapy.post_bp')}</span> {fmtBP(s.post_systolic_bp, s.post_diastolic_bp)}</div>
+                  <div><span style={{ fontSize: 12, color: '#888' }}>{translate('Chemotherapy.pre_hr')}</span> {s.pre_heart_rate || '—'}</div>
+                  <div><span style={{ fontSize: 12, color: '#888' }}>{translate('Chemotherapy.spo')}</span> {s.oxygen_saturation ? `${s.oxygen_saturation}%` : '—'}</div>
                 </div>
               )}
 
               {(s.side_effects || s.adverse_reactions || s.patient_tolerance) && (
                 <div style={{ marginTop: 12, padding: '8px 12px', background: '#fff3e0', borderRadius: 6 }}>
-                  {s.patient_tolerance && <div><strong>Tolerance:</strong> {s.patient_tolerance}</div>}
-                  {s.side_effects && <div style={{ marginTop: 4 }}><strong>Side Effects:</strong> {s.side_effects}</div>}
-                  {s.adverse_reactions && <div style={{ marginTop: 4, color: '#d32f2f' }}><strong>Adverse Reactions:</strong> {s.adverse_reactions}</div>}
+                  {s.patient_tolerance && <div><strong>{translate('Chemotherapy.tolerance')}</strong> {s.patient_tolerance}</div>}
+                  {s.side_effects && <div style={{ marginTop: 4 }}><strong>{translate('Chemotherapy.side_effects')}</strong> {s.side_effects}</div>}
+                  {s.adverse_reactions && <div style={{ marginTop: 4, color: '#d32f2f' }}><strong>{translate('Chemotherapy.adverse_reactions')}</strong> {s.adverse_reactions}</div>}
                 </div>
               )}
 
               {(s.clinical_notes || s.patient_notes) && (
                 <div style={{ marginTop: 8, fontSize: 13, color: '#555' }}>
-                  {s.clinical_notes && <div><em>Clinical: {s.clinical_notes}</em></div>}
-                  {s.patient_notes && <div><em>Patient: {s.patient_notes}</em></div>}
+                  {s.clinical_notes && <div><em>{translate('Chemotherapy.clinical', { clinical_notes: s.clinical_notes })}</em></div>}
+                  {s.patient_notes && <div><em>{translate('Chemotherapy.patient', { patient_notes: s.patient_notes })}</em></div>}
                 </div>
               )}
 
@@ -380,100 +381,100 @@ export default function Chemotherapy() {
           <h2 style={{ marginTop: 0, color: '#7b1fa2' }}>{editing ? 'Edit Session' : 'Log Chemotherapy Session'}</h2>
 
           {/* Regimen & Scheduling */}
-          <div style={sectionHead}>Regimen & Scheduling</div>
+          <div style={sectionHead}>{translate('Chemotherapy.regimen_scheduling')}</div>
           <div style={grid3}>
-            <Field label="Protocol / Regimen Name">
+            <Field label={translate('Chemotherapy.protocol_regimen_name')}>
               <Input name="therapy_name" placeholder="e.g., FOLFOX, R-CHOP, AC-T" />
             </Field>
-            <Field label="Condition">
+            <Field label={translate('Chemotherapy.condition')}>
               <select value={formData.condition_id} onChange={e => setFormData({...formData, condition_id: e.target.value})} style={inputStyle}>
-                <option value="">Select condition</option>
+                <option value="">{translate('Chemotherapy.select_condition')}</option>
                 {conditions.map(c => <option key={c.id} value={c.id}>{c.condition_name}</option>)}
               </select>
             </Field>
-            <Field label="Status">
+            <Field label={translate('Chemotherapy.status')}>
               <Select name="status" options={STATUS_OPTIONS.map(s => ({ value: s, label: s.replace('_', ' ') }))} />
             </Field>
           </div>
           <div style={{ ...grid4, marginTop: 12 }}>
-            <Field label="Session #">
+            <Field label={translate('Chemotherapy.session_2')}>
               <Input name="session_number" type="number" placeholder="1" />
             </Field>
-            <Field label="Total Planned">
+            <Field label={translate('Chemotherapy.total_planned')}>
               <Input name="total_sessions_planned" type="number" placeholder="6" />
             </Field>
-            <Field label="Date">
+            <Field label={translate('Chemotherapy.date')}>
               <Input name="scheduled_date" type="date" />
             </Field>
-            <Field label="Duration (min)">
+            <Field label={translate('Chemotherapy.duration_min')}>
               <Input name="duration_minutes" type="number" placeholder="120" />
             </Field>
           </div>
           <div style={{ ...grid2, marginTop: 12 }}>
-            <Field label="Start Time">
+            <Field label={translate('Chemotherapy.start_time')}>
               <Input name="actual_start_time" type="time" />
             </Field>
-            <Field label="End Time">
+            <Field label={translate('Chemotherapy.end_time')}>
               <Input name="actual_end_time" type="time" />
             </Field>
           </div>
 
           {/* Drugs & Administration */}
-          <div style={sectionHead}>Drugs & Administration</div>
+          <div style={sectionHead}>{translate('Chemotherapy.drugs_administration')}</div>
           <div style={grid2}>
-            <Field label="Drugs Administered" span={2}>
-              <Input name="drugs_administered" placeholder="e.g., Cisplatin 75mg/m², Etoposide 100mg/m²" />
+            <Field label={translate('Chemotherapy.drugs_administered')} span={2}>
+              <Input name="drugs_administered" placeholder={translate('Chemotherapy.e_g_cisplatin_75mg_m_etoposide_100mg_m')} />
             </Field>
           </div>
           <div style={{ ...grid2, marginTop: 12 }}>
-            <Field label="Dosage">
-              <Input name="dosage" placeholder="e.g., 75mg/m², 500mg" />
+            <Field label={translate('Chemotherapy.dosage')}>
+              <Input name="dosage" placeholder={translate('Chemotherapy.e_g_75mg_m_500mg')} />
             </Field>
-            <Field label="Route of Administration">
+            <Field label={translate('Chemotherapy.route_of_administration')}>
               <Select name="route_of_administration" options={ROUTES} />
             </Field>
           </div>
 
           {/* Vitals */}
-          <div style={sectionHead}>Vital Signs</div>
+          <div style={sectionHead}>{translate('Chemotherapy.vital_signs')}</div>
           <div style={grid4}>
-            <Field label="Pre Systolic">
+            <Field label={translate('Chemotherapy.pre_systolic')}>
               <Input name="pre_systolic_bp" type="number" placeholder="120" />
             </Field>
-            <Field label="Pre Diastolic">
+            <Field label={translate('Chemotherapy.pre_diastolic')}>
               <Input name="pre_diastolic_bp" type="number" placeholder="80" />
             </Field>
-            <Field label="Pre Heart Rate">
+            <Field label={translate('Chemotherapy.pre_heart_rate')}>
               <Input name="pre_heart_rate" type="number" placeholder="72" />
             </Field>
-            <Field label="Pre Temp (°F)">
+            <Field label={translate('Chemotherapy.pre_temp_f')}>
               <Input name="pre_temperature" type="number" step="0.1" placeholder="98.6" />
             </Field>
           </div>
           <div style={{ ...grid4, marginTop: 12 }}>
-            <Field label="Post Systolic">
+            <Field label={translate('Chemotherapy.post_systolic')}>
               <Input name="post_systolic_bp" type="number" placeholder="120" />
             </Field>
-            <Field label="Post Diastolic">
+            <Field label={translate('Chemotherapy.post_diastolic')}>
               <Input name="post_diastolic_bp" type="number" placeholder="80" />
             </Field>
-            <Field label="Post Heart Rate">
+            <Field label={translate('Chemotherapy.post_heart_rate')}>
               <Input name="post_heart_rate" type="number" placeholder="72" />
             </Field>
-            <Field label="Post Temp (°F)">
+            <Field label={translate('Chemotherapy.post_temp_f')}>
               <Input name="post_temperature" type="number" step="0.1" placeholder="98.6" />
             </Field>
           </div>
           <div style={{ marginTop: 12 }}>
-            <Field label="SpO₂ (%)">
+            <Field label={translate('Chemotherapy.spo_2')}>
               <Input name="oxygen_saturation" type="number" placeholder="98" style={{ ...inputStyle, maxWidth: 200 }} />
             </Field>
           </div>
 
           {/* Side Effects */}
-          <div style={sectionHead}>Side Effects & Tolerance</div>
+          <div style={sectionHead}>{translate('Chemotherapy.side_effects_tolerance')}</div>
           <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>Common Side Effects (click to toggle)</label>
+            <label style={labelStyle}>{translate('Chemotherapy.common_side_effects_click_to_toggle')}</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {COMMON_SIDE_EFFECTS.map(effect => (
                 <button
@@ -492,50 +493,50 @@ export default function Chemotherapy() {
             </div>
           </div>
           <div style={grid2}>
-            <Field label="Patient Tolerance">
-              <Select name="patient_tolerance" options={[{ value: '', label: 'Select...' }, ...TOLERANCE_OPTIONS.map(t => ({ value: t, label: t }))]} />
+            <Field label={translate('Chemotherapy.patient_tolerance')}>
+              <Select name="patient_tolerance" options={[{ value: '', label: translate('Chemotherapy.select') }, ...TOLERANCE_OPTIONS.map(t => ({ value: t, label: t }))]} />
             </Field>
-            <Field label="Adverse Reactions">
-              <Input name="adverse_reactions" placeholder="Any severe / unexpected reactions" />
+            <Field label={translate('Chemotherapy.adverse_reactions_2')}>
+              <Input name="adverse_reactions" placeholder={translate('Chemotherapy.any_severe_unexpected_reactions')} />
             </Field>
           </div>
           <div style={{ marginTop: 12 }}>
-            <Field label="Complications">
-              <Input name="complications" placeholder="e.g., Extravasation, infusion reaction" />
+            <Field label={translate('Chemotherapy.complications')}>
+              <Input name="complications" placeholder={translate('Chemotherapy.e_g_extravasation_infusion_reaction')} />
             </Field>
           </div>
 
           {/* Facility & Staff */}
-          <div style={sectionHead}>Facility & Staff</div>
+          <div style={sectionHead}>{translate('Chemotherapy.facility_staff')}</div>
           <div style={grid3}>
-            <Field label="Facility">
-              <Input name="facility_name" placeholder="Infusion center / hospital" />
+            <Field label={translate('Chemotherapy.facility')}>
+              <Input name="facility_name" placeholder={translate('Chemotherapy.infusion_center_hospital')} />
             </Field>
-            <Field label="Physician">
-              <Input name="attending_physician" placeholder="Dr. name" />
+            <Field label={translate('Chemotherapy.physician')}>
+              <Input name="attending_physician" placeholder={translate('Chemotherapy.dr_name')} />
             </Field>
-            <Field label="Nurse">
-              <Input name="attending_nurse" placeholder="Nurse name" />
+            <Field label={translate('Chemotherapy.nurse')}>
+              <Input name="attending_nurse" placeholder={translate('Chemotherapy.nurse_name')} />
             </Field>
           </div>
 
           {/* Notes */}
-          <div style={sectionHead}>Notes</div>
+          <div style={sectionHead}>{translate('Chemotherapy.notes')}</div>
           <div style={grid2}>
-            <Field label="Clinical Notes">
+            <Field label={translate('Chemotherapy.clinical_notes')}>
               <textarea
                 value={formData.clinical_notes}
                 onChange={e => setFormData({ ...formData, clinical_notes: e.target.value })}
                 style={{ ...inputStyle, minHeight: 80 }}
-                placeholder="Clinical observations, lab values, pre-medication given..."
+                placeholder={translate('Chemotherapy.clinical_observations_lab_values_pre')}
               />
             </Field>
-            <Field label="Patient Notes">
+            <Field label={translate('Chemotherapy.patient_notes')}>
               <textarea
                 value={formData.patient_notes}
                 onChange={e => setFormData({ ...formData, patient_notes: e.target.value })}
                 style={{ ...inputStyle, minHeight: 80 }}
-                placeholder="How you felt, symptoms, concerns..."
+                placeholder={translate('Chemotherapy.how_you_felt_symptoms_concerns')}
               />
             </Field>
           </div>
@@ -543,7 +544,7 @@ export default function Chemotherapy() {
           {/* Actions */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
             <button style={btnSecondary} onClick={() => { setTab('list'); setEditing(null); setFormData(emptyForm()); setSelectedSideEffects([]); }}>
-              Cancel
+              {translate('Chemotherapy.cancel')}
             </button>
             <button style={btnPrimary} onClick={submitForm} disabled={saving}>
               {saving ? 'Saving…' : editing ? 'Update Session' : 'Save Session'}

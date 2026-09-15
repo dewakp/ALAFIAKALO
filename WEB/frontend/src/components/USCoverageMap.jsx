@@ -13,6 +13,7 @@
  * an unreadable strip.
  */
 import { useEffect, useState } from 'react';
+import { t } from '../i18n';
 
 // Albers-style conic for the contiguous 48. A plain lon/lat plot leans the
 // country visibly — Maine ends up level with Washington — because a degree of
@@ -87,7 +88,7 @@ export default function USCoverageMap({ covered = [], nationwide = false }) {
   if (states === null) {
     return <div style={{ height: H, display: 'grid', placeItems: 'center',
                          color: 'var(--color-text-secondary)', fontSize: '.85rem' }}>
-      Loading map…
+      {t('USCoverageMap.loading_map')}
     </div>;
   }
   if (!states.length) return null;
@@ -122,8 +123,8 @@ export default function USCoverageMap({ covered = [], nationwide = false }) {
       {lower48.map((f) => draw(f, placeMain))}
       {by(['AK']).map((f) => draw(f, placeAK))}
       {by(['HI']).map((f) => draw(f, placeHI))}
-      <text x={10} y={H - 6} fontSize={11} fill="var(--color-text-secondary, #64748b)">Alaska</text>
-      <text x={176} y={H - 6} fontSize={11} fill="var(--color-text-secondary, #64748b)">Hawaii</text>
+      <text x={10} y={H - 6} fontSize={11} fill="var(--color-text-secondary, #64748b)">{t('USCoverageMap.alaska')}</text>
+      <text x={176} y={H - 6} fontSize={11} fill="var(--color-text-secondary, #64748b)">{t('USCoverageMap.hawaii')}</text>
     </svg>
   );
 }

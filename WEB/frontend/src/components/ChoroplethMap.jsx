@@ -6,6 +6,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { NUM_TO_A2 } from '../data/isoCountries';
+import { t } from '../i18n';
 
 // Burden ramp: 0 = no data (grey), 1-4 = increasing intensity.
 export const LEVEL_COLORS = ['#e2e8f0', '#fde68a', '#fbbf24', '#f97316', '#dc2626'];
@@ -55,7 +56,7 @@ export default function ChoroplethMap({ data = {}, onSelect, selected }) {
   }, [features]);
 
   if (features === null) {
-    return <div style={{ fontSize: '.85rem', color: 'var(--color-text-tertiary)', padding: '2rem', textAlign: 'center' }}>Loading map…</div>;
+    return <div style={{ fontSize: '.85rem', color: 'var(--color-text-tertiary)', padding: '2rem', textAlign: 'center' }}>{t('ChoroplethMap.loading_map')}</div>;
   }
 
   // Draw low levels first so high-burden / selected countries paint on top.
@@ -69,7 +70,7 @@ export default function ChoroplethMap({ data = {}, onSelect, selected }) {
     <div>
       <svg viewBox="0 28 800 300"
            style={{ width: '100%', background: '#eff3f8', borderRadius: 10 }}
-           role="img" aria-label="World disease-surveillance map">
+           role="img" aria-label={t('ChoroplethMap.world_disease_surveillance_map')}>
         {ordered.map((s, i) => {
           const entry = s.iso2 ? data[s.iso2] : undefined;
           const level = entry?.level || 0;
@@ -89,7 +90,7 @@ export default function ChoroplethMap({ data = {}, onSelect, selected }) {
       </svg>
 
       <div style={{ display: 'flex', gap: '.9rem', marginTop: '.6rem', fontSize: '.74rem', color: 'var(--color-text-secondary)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontWeight: 600 }}>Burden:</span>
+        <span style={{ fontWeight: 600 }}>{t('ChoroplethMap.burden')}</span>
         {LEVEL_LABELS.map((lbl, i) => (
           <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
             <span style={{ width: 13, height: 13, borderRadius: 3, background: LEVEL_COLORS[i], border: '1px solid #cbd5e1', display: 'inline-block' }} />

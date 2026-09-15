@@ -9,12 +9,13 @@ import {
   UserCheck, Settings, Maximize, Minimize,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 /* ──────────────────────────── Constants ──────────────────────────── */
 const SESSION_TYPES = [
-  { key: 'video', label: 'Video', icon: Video, color: '#2196F3' },
-  { key: 'voice', label: 'Voice', icon: Phone, color: '#4CAF50' },
-  { key: 'chat', label: 'Chat', icon: MessageSquare, color: '#9C27B0' },
+  { key: 'video', get label() { return translate('Telehealth.video'); }, icon: Video, color: '#2196F3' },
+  { key: 'voice', get label() { return translate('Telehealth.voice'); }, icon: Phone, color: '#4CAF50' },
+  { key: 'chat', get label() { return translate('Telehealth.chat'); }, icon: MessageSquare, color: '#9C27B0' },
 ];
 const STATUS_COLORS = {
   scheduled: '#2196F3', waiting: '#FF9800', in_progress: '#4CAF50',
@@ -92,10 +93,10 @@ export default function Telehealth() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Telehealth</h1>
+          <h1 className="page-title">{translate('Telehealth.telehealth')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setView('create')}>
-          <Plus size={18} /> New Session
+          <Plus size={18} /> {translate('Telehealth.new_session')}
         </button>
       </div>
 
@@ -109,14 +110,14 @@ export default function Telehealth() {
         ))}
       </div>
 
-      {loading && <div className="card" style={{ textAlign: 'center', padding: '2rem' }}><Loader2 className="spin" size={24} /> Loading…</div>}
+      {loading && <div className="card" style={{ textAlign: 'center', padding: '2rem' }}><Loader2 className="spin" size={24} /> {translate('Telehealth.loading')}</div>}
 
       {!loading && sessions.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
-          No telehealth sessions found.
+          {translate('Telehealth.no_telehealth_sessions_found')}
           <br />
           <button className="btn btn-primary btn-sm" style={{ marginTop: 8 }} onClick={() => setView('create')}>
-            <Plus size={14} /> Schedule Visit
+            <Plus size={14} /> {translate('Telehealth.schedule_visit')}
           </button>
         </div>
       )}
@@ -160,7 +161,7 @@ export default function Telehealth() {
                   </span>
                 )}
                 <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <Users size={13} /> {s.participants?.length || 0} participant{(s.participants?.length || 0) !== 1 ? 's' : ''}
+                  <Users size={13} /> {((s.participants?.length || 0) !== 1) ? translate('Telehealth.participants', { participants: s.participants?.length || 0 }) : translate('Telehealth.participant', { participants: s.participants?.length || 0 })}
                 </span>
               </div>
             </div>
@@ -169,7 +170,7 @@ export default function Telehealth() {
             {['scheduled', 'waiting', 'in_progress'].includes(s.status) && (
               <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); openCall(s); }}
                 style={{ whiteSpace: 'nowrap' }}>
-                <Video size={14} /> Join
+                <Video size={14} /> {translate('Telehealth.join')}
               </button>
             )}
           </div>
@@ -218,7 +219,7 @@ function SessionForm({ onBack }) {
       await api.post('/telehealth/sessions', payload);
       onBack();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Error creating session'));
+      alert(apiErrorMessage(err, translate('Telehealth.error_creating_session')));
     }
     setSubmitting(false);
   }
@@ -226,14 +227,14 @@ function SessionForm({ onBack }) {
   return (
     <div>
       <div className="page-header">
-        <button className="btn btn-secondary btn-sm" onClick={onBack}><ChevronLeft size={16} /> Back</button>
-        <h1 className="page-title" style={{ marginLeft: 12 }}>Schedule Visit</h1>
+        <button className="btn btn-secondary btn-sm" onClick={onBack}><ChevronLeft size={16} /> {translate('Telehealth.back')}</button>
+        <h1 className="page-title" style={{ marginLeft: 12 }}>{translate('Telehealth.schedule_visit')}</h1>
       </div>
 
       <form className="card" onSubmit={handleSubmit}>
         {/* Session type */}
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Visit Type</label>
+          <label style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>{translate('Telehealth.visit_type')}</label>
           <div style={{ display: 'flex', gap: 8 }}>
             {SESSION_TYPES.map(t => (
               <button type="button" key={t.key}
@@ -248,20 +249,20 @@ function SessionForm({ onBack }) {
 
         {/* Title */}
         <div className="form-group">
-          <label className="form-label">Title (optional)</label>
+          <label className="form-label">{translate('Telehealth.title_optional')}</label>
           <input className="form-input" value={form.title} onChange={e => upd('title', e.target.value)}
-            placeholder="e.g. Follow-up consultation" />
+            placeholder={translate('Telehealth.e_g_follow_up_consultation')} />
         </div>
 
         {/* Schedule */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="form-group">
-            <label className="form-label">Start Date & Time *</label>
+            <label className="form-label">{translate('Telehealth.start_date_time')}</label>
             <input className="form-input" type="datetime-local" required
               value={form.scheduled_start} onChange={e => upd('scheduled_start', e.target.value)} />
           </div>
           <div className="form-group">
-            <label className="form-label">End Date & Time</label>
+            <label className="form-label">{translate('Telehealth.end_date_time')}</label>
             <input className="form-input" type="datetime-local"
               value={form.scheduled_end} onChange={e => upd('scheduled_end', e.target.value)} />
           </div>
@@ -269,43 +270,43 @@ function SessionForm({ onBack }) {
 
         {/* Clinical */}
         <div className="form-group">
-          <label className="form-label">Reason for Visit</label>
+          <label className="form-label">{translate('Telehealth.reason_for_visit')}</label>
           <input className="form-input" value={form.reason_for_visit} onChange={e => upd('reason_for_visit', e.target.value)}
-            placeholder="Brief reason for this visit" />
+            placeholder={translate('Telehealth.brief_reason_for_this_visit')} />
         </div>
         <div className="form-group">
-          <label className="form-label">Chief Complaint</label>
+          <label className="form-label">{translate('Telehealth.chief_complaint')}</label>
           <textarea className="form-input" rows={2} value={form.chief_complaint}
-            onChange={e => upd('chief_complaint', e.target.value)} placeholder="Primary symptoms or concerns" />
+            onChange={e => upd('chief_complaint', e.target.value)} placeholder={translate('Telehealth.primary_symptoms_or_concerns')} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="form-group">
-            <label className="form-label">Specialty</label>
+            <label className="form-label">{translate('Telehealth.specialty')}</label>
             <select className="form-input" value={form.specialty} onChange={e => upd('specialty', e.target.value)}>
-              <option value="">— Select —</option>
+              <option value="">{translate('Telehealth.select')}</option>
               {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Priority</label>
+            <label className="form-label">{translate('Telehealth.priority')}</label>
             <select className="form-input" value={form.priority} onChange={e => upd('priority', e.target.value)}>
-              <option value="routine">Routine</option>
-              <option value="urgent">Urgent</option>
-              <option value="emergency">Emergency</option>
+              <option value="routine">{translate('Telehealth.routine')}</option>
+              <option value="urgent">{translate('Telehealth.urgent')}</option>
+              <option value="emergency">{translate('Telehealth.emergency')}</option>
             </select>
           </div>
         </div>
 
         <div className="form-group">
-          <label className="form-label">Provider ID (optional)</label>
+          <label className="form-label">{translate('Telehealth.provider_id_optional')}</label>
           <input className="form-input" type="number" value={form.provider_id}
-            onChange={e => upd('provider_id', e.target.value)} placeholder="Assigned provider user ID" />
+            onChange={e => upd('provider_id', e.target.value)} placeholder={translate('Telehealth.assigned_provider_user_id')} />
         </div>
 
         {/* Feature toggles */}
         <div style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
-          <label style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Features</label>
+          <label style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>{translate('Telehealth.features')}</label>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
               ['transcription_enabled', 'Live Transcription'],
@@ -321,7 +322,7 @@ function SessionForm({ onBack }) {
         </div>
 
         <button className="btn btn-primary" type="submit" disabled={submitting} style={{ width: '100%' }}>
-          {submitting ? <><Loader2 className="spin" size={16} /> Scheduling…</> : <><CalIcon size={16} /> Schedule Visit</>}
+          {submitting ? <><Loader2 className="spin" size={16} /> {translate('Telehealth.scheduling')}</> : <><CalIcon size={16} /> {translate('Telehealth.schedule_visit')}</>}
         </button>
       </form>
     </div>
@@ -358,7 +359,7 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
   }
 
   async function handleCancel() {
-    if (!confirm('Cancel this session?')) return;
+    if (!confirm(translate('Telehealth.cancel_this_session'))) return;
     try {
       await api.patch(`/telehealth/sessions/${session.id}`, { status: 'cancelled' });
       reload();
@@ -380,7 +381,7 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
   }
 
   async function deleteNote(id) {
-    if (!confirm('Delete this note?')) return;
+    if (!confirm(translate('Telehealth.delete_this_note'))) return;
     try {
       await api.delete(`/telehealth/sessions/${session.id}/notes/${id}`);
       reload();
@@ -392,13 +393,13 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
   return (
     <div>
       <div className="page-header">
-        <button className="btn btn-secondary btn-sm" onClick={onBack}><ChevronLeft size={16} /> Back</button>
+        <button className="btn btn-secondary btn-sm" onClick={onBack}><ChevronLeft size={16} /> {translate('Telehealth.back')}</button>
         <h1 className="page-title" style={{ marginLeft: 12, flex: 1 }}>
           {session.title || session.reason_for_visit || 'Session Details'}
         </h1>
         {canJoin && (
           <button className="btn btn-primary" onClick={onJoinCall}>
-            <Video size={16} /> Join Call
+            <Video size={16} /> {translate('Telehealth.join_call')}
           </button>
         )}
       </div>
@@ -420,11 +421,11 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
           }}>{statusLabel(session.priority)}</span>
         )}
         <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-          Code: <strong>{session.session_code?.slice(0, 8)}…</strong>
+          {translate('Telehealth.code')} <strong>{session.session_code?.slice(0, 8)}…</strong>
         </span>
         {session.status !== 'cancelled' && session.status !== 'completed' && (
           <button className="btn btn-sm" style={{ marginLeft: 'auto', color: '#f44336', borderColor: '#f44336' }}
-            onClick={handleCancel}><X size={14} /> Cancel</button>
+            onClick={handleCancel}><X size={14} /> {translate('Telehealth.cancel')}</button>
         )}
       </div>
 
@@ -441,42 +442,42 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
         <div className="card">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Scheduled Start</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{translate('Telehealth.scheduled_start')}</div>
               <div style={{ fontWeight: 600 }}>{fmtDateTime(session.scheduled_start)}</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Scheduled End</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{translate('Telehealth.scheduled_end')}</div>
               <div style={{ fontWeight: 600 }}>{fmtDateTime(session.scheduled_end)}</div>
             </div>
             {session.actual_start && <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Actual Start</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{translate('Telehealth.actual_start')}</div>
               <div style={{ fontWeight: 600 }}>{fmtDateTime(session.actual_start)}</div>
             </div>}
             {session.actual_end && <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Actual End</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{translate('Telehealth.actual_end')}</div>
               <div style={{ fontWeight: 600 }}>{fmtDateTime(session.actual_end)}</div>
             </div>}
             {session.duration_minutes != null && <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Duration</div>
-              <div style={{ fontWeight: 600 }}>{session.duration_minutes} min</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{translate('Telehealth.duration')}</div>
+              <div style={{ fontWeight: 600 }}>{translate('Telehealth.min', { duration_minutes: session.duration_minutes })}</div>
             </div>}
             {session.specialty && <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Specialty</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{translate('Telehealth.specialty')}</div>
               <div style={{ fontWeight: 600 }}>{session.specialty}</div>
             </div>}
             {session.reason_for_visit && <div style={{ gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Reason for Visit</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{translate('Telehealth.reason_for_visit')}</div>
               <div style={{ fontWeight: 600 }}>{session.reason_for_visit}</div>
             </div>}
             {session.chief_complaint && <div style={{ gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Chief Complaint</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{translate('Telehealth.chief_complaint')}</div>
               <div style={{ fontWeight: 600 }}>{session.chief_complaint}</div>
             </div>}
           </div>
           {/* Follow-up */}
           {session.follow_up_needed && (
             <div style={{ marginTop: 16, padding: 12, background: 'var(--color-primary-light)', borderRadius: 8 }}>
-              <strong>Follow-up Needed</strong>
+              <strong>{translate('Telehealth.follow_up_needed')}</strong>
               {session.follow_up_date && <span> — {fmtDate(session.follow_up_date)}</span>}
               {session.follow_up_notes && <div style={{ fontSize: '0.85rem', marginTop: 4 }}>{session.follow_up_notes}</div>}
             </div>
@@ -498,13 +499,13 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <textarea className="form-input" rows={2} value={noteText}
-                onChange={e => setNoteText(e.target.value)} placeholder="Add a clinical note…" style={{ flex: 1 }} />
+                onChange={e => setNoteText(e.target.value)} placeholder={translate('Telehealth.add_a_clinical_note')} style={{ flex: 1 }} />
               <button className="btn btn-primary" type="submit"><Send size={16} /></button>
             </div>
           </form>
           {notes.length === 0 && (
             <div className="card" style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '1.5rem' }}>
-              No notes yet.
+              {translate('Telehealth.no_notes_yet')}
             </div>
           )}
           {notes.map(n => (
@@ -533,14 +534,14 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
         <div>
           {transcripts.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '1.5rem' }}>
-              No transcripts recorded.
+              {translate('Telehealth.no_transcripts_recorded')}
             </div>
           ) : (
             <div className="card" style={{ maxHeight: 400, overflowY: 'auto' }}>
               {transcripts.map(t => (
                 <div key={t.id} style={{ marginBottom: 10, padding: '6px 0', borderBottom: '1px solid var(--color-border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                    <span>Speaker #{t.speaker_id || '?'}</span>
+                    <span>{translate('Telehealth.speaker', { speaker_id: t.speaker_id || '?' })}</span>
                     <span>{t.confidence != null ? `${(t.confidence * 100).toFixed(0)}%` : ''}</span>
                   </div>
                   <div style={{ fontSize: '0.9rem' }}>{t.reviewed_content || t.content}</div>
@@ -556,13 +557,13 @@ function SessionDetail({ session: initial, user, onBack, onJoinCall, onReload })
         <div>
           {(session.participants || []).length === 0 ? (
             <div className="card" style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '1.5rem' }}>
-              No participants.
+              {translate('Telehealth.no_participants')}
             </div>
           ) : (
             session.participants.map(p => (
               <div key={p.id} className="card" style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>User #{p.user_id}</div>
+                  <div style={{ fontWeight: 600 }}>{translate('Telehealth.user', { user_id: p.user_id })}</div>
                   <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
                     {statusLabel(p.role)} — {statusLabel(p.status)}
                   </div>
@@ -891,7 +892,7 @@ function VideoCall({ session, user, onEnd }) {
           ) : (
             <div style={{ textAlign: 'center' }}>
               <Phone size={64} style={{ opacity: 0.3 }} />
-              <div style={{ marginTop: 12, fontSize: '1.2rem', opacity: 0.7 }}>Voice Call</div>
+              <div style={{ marginTop: 12, fontSize: '1.2rem', opacity: 0.7 }}>{translate('Telehealth.voice_call')}</div>
               <div style={{ marginTop: 4, fontFamily: 'monospace', fontSize: '1.5rem' }}>{elapsedStr}</div>
             </div>
           )}
@@ -904,8 +905,8 @@ function VideoCall({ session, user, onEnd }) {
               background: 'rgba(0,0,0,0.7)', zIndex: 5,
             }}>
               <Loader2 className="spin" size={48} style={{ marginBottom: 16 }} />
-              <div style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: 8 }}>Waiting Room</div>
-              <div style={{ opacity: 0.7 }}>Please wait while the provider admits you to the session.</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: 8 }}>{translate('Telehealth.waiting_room')}</div>
+              <div style={{ opacity: 0.7 }}>{translate('Telehealth.please_wait_while_the_provider_admits')}</div>
             </div>
           )}
         </div>
@@ -937,7 +938,7 @@ function VideoCall({ session, user, onEnd }) {
             borderLeft: '1px solid rgba(255,255,255,0.1)',
           }}>
             <div style={{ padding: '8px 12px', fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Chat</span>
+              <span>{translate('Telehealth.chat')}</span>
               <button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
@@ -953,7 +954,7 @@ function VideoCall({ session, user, onEnd }) {
                     background: m.isMine ? 'var(--color-primary)' : 'rgba(255,255,255,0.15)',
                     fontSize: '0.85rem',
                   }}>
-                    {!m.isMine && <div style={{ fontSize: '0.7rem', opacity: 0.7, marginBottom: 2 }}>User #{m.user_id}</div>}
+                    {!m.isMine && <div style={{ fontSize: '0.7rem', opacity: 0.7, marginBottom: 2 }}>{translate('Telehealth.user', { user_id: m.user_id })}</div>}
                     {m.content}
                   </div>
                   <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: 2 }}>
@@ -965,7 +966,7 @@ function VideoCall({ session, user, onEnd }) {
             </div>
             <form onSubmit={sendChat} style={{ display: 'flex', gap: 6, padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
               <input value={chatInput} onChange={e => setChatInput(e.target.value)}
-                placeholder="Type a message…"
+                placeholder={translate('Telehealth.type_a_message')}
                 style={{
                   flex: 1, padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)',
                   background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.85rem', outline: 'none',
@@ -988,7 +989,7 @@ function VideoCall({ session, user, onEnd }) {
           }}>
             {transcripts.slice(-5).map(t => (
               <div key={t.id} style={{ marginBottom: 4 }}>
-                <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>Speaker #{t.speaker_id}: </span>
+                <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>{translate('Telehealth.speaker_2', { speaker_id: t.speaker_id })} </span>
                 {t.content}
               </div>
             ))}
@@ -1024,7 +1025,7 @@ function VideoCall({ session, user, onEnd }) {
         {session.chat_enabled && (
           <ControlBtn active={chatOpen} onClick={() => setChatOpen(!chatOpen)}
             icon={<MessageSquare size={20} />}
-            label="Chat" color={chatOpen ? '#2196F3' : undefined} />
+            label={translate('Telehealth.chat')} color={chatOpen ? '#2196F3' : undefined} />
         )}
 
         {/* Fullscreen */}
@@ -1037,7 +1038,7 @@ function VideoCall({ session, user, onEnd }) {
           background: '#f44336', color: '#fff', border: 'none', borderRadius: '50%',
           width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', boxShadow: '0 2px 8px rgba(244,67,54,0.4)',
-        }} title="End Call">
+        }} title={translate('Telehealth.end_call')}>
           <PhoneOff size={24} />
         </button>
       </div>

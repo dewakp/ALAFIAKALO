@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { t } from '../i18n';
 
 /**
  * App-wide error boundary. Prevents a blank white screen when a render throws
@@ -58,11 +59,11 @@ export default class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div style={{ maxWidth: 560, margin: '4rem auto', padding: '2rem', textAlign: 'center' }}>
-          <h2 style={{ marginBottom: '.5rem' }}>Something went wrong</h2>
+          <h2 style={{ marginBottom: '.5rem' }}>{t('ErrorBoundary.something_went_wrong')}</h2>
           <p style={{ color: 'var(--color-text-secondary, #666)', marginBottom: '1.25rem' }}>
-            This page hit an error. If the app was just updated, reloading usually fixes it.
+            {t('ErrorBoundary.this_page_hit_an_error_if_the_app_was')}
           </p>
-          <button className="btn btn-primary" onClick={this.handleReload}>Reload</button>
+          <button className="btn btn-primary" onClick={this.handleReload}>{t('ErrorBoundary.reload')}</button>
           <pre style={{
             textAlign: 'left', marginTop: '1.5rem', padding: '0.75rem',
             background: 'rgba(0,0,0,.05)', borderRadius: 8, overflow: 'auto',

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 const PrivacySettings = () => {
   const { t } = useTranslation();
@@ -23,7 +24,7 @@ const PrivacySettings = () => {
       setLoading(false);
     } catch (error) {
       console.error('Failed to load privacy settings:', error);
-      setMessage('Failed to load settings');
+      setMessage(translate('PrivacySettings.failed_to_load_settings'));
       setLoading(false);
     }
   };
@@ -32,11 +33,11 @@ const PrivacySettings = () => {
     try {
       const response = await api.put('/privacy/settings', { [key]: value });
       setSettings(response.data);
-      setMessage('Settings updated successfully');
+      setMessage(translate('PrivacySettings.settings_updated_successfully'));
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Failed to update setting:', error);
-      setMessage('Failed to update settings');
+      setMessage(translate('PrivacySettings.failed_to_update_settings'));
     }
   };
 
@@ -45,11 +46,11 @@ const PrivacySettings = () => {
     try {
       const response = await api.post('/privacy/export?export_format=json', {});
       setExportStatus(response.data);
-      setMessage('Data export requested. Check back in a few minutes.');
+      setMessage(translate('PrivacySettings.data_export_requested_check_back_in_a'));
       setTimeout(() => setMessage(''), 5000);
     } catch (error) {
       console.error('Failed to request export:', error);
-      setMessage('Failed to request export');
+      setMessage(translate('PrivacySettings.failed_to_request_export'));
     }
     setSaving(false);
   };
@@ -58,7 +59,7 @@ const PrivacySettings = () => {
     setSaving(true);
     try {
       await api.post('/privacy/delete-account', { reason: 'User requested deletion' });
-      setMessage('Account deletion requested. You will be contacted for confirmation.');
+      setMessage(translate('PrivacySettings.account_deletion_requested_you_will_be'));
       setShowDeleteConfirm(false);
       setTimeout(() => {
         localStorage.removeItem('token');
@@ -66,7 +67,7 @@ const PrivacySettings = () => {
       }, 3000);
     } catch (error) {
       console.error('Failed to request deletion:', error);
-      setMessage('Failed to request deletion');
+      setMessage(translate('PrivacySettings.failed_to_request_deletion'));
     }
     setSaving(false);
   };
@@ -104,7 +105,7 @@ const PrivacySettings = () => {
 
       {/* Data Sharing Section */}
       <section className="settings-section">
-        <h2>Data Sharing & Privacy</h2>
+        <h2>{translate('PrivacySettings.data_sharing_privacy')}</h2>
         
         <div className="setting-item">
           <label>
@@ -114,8 +115,8 @@ const PrivacySettings = () => {
               onChange={(e) => updateSetting('allow_anonymized_analytics', e.target.checked)}
             />
             <div>
-              <strong>Anonymized Analytics</strong>
-              <p>Help improve the platform by sharing anonymized usage data</p>
+              <strong>{translate('PrivacySettings.anonymized_analytics')}</strong>
+              <p>{translate('PrivacySettings.help_improve_the_platform_by_sharing')}</p>
             </div>
           </label>
         </div>
@@ -129,7 +130,7 @@ const PrivacySettings = () => {
             />
             <div>
               <strong>{t('privacy.consent.data_sharing')}</strong>
-              <p>Your data will be anonymized and used to improve AI recommendations for everyone</p>
+              <p>{translate('PrivacySettings.your_data_will_be_anonymized_and_used_to')}</p>
             </div>
           </label>
         </div>
@@ -143,7 +144,7 @@ const PrivacySettings = () => {
             />
             <div>
               <strong>{t('privacy.consent.research')}</strong>
-              <p>Participate in de-identified health research studies</p>
+              <p>{translate('PrivacySettings.participate_in_de_identified_health')}</p>
             </div>
           </label>
         </div>
@@ -151,7 +152,7 @@ const PrivacySettings = () => {
 
       {/* Communications Section */}
       <section className="settings-section">
-        <h2>Communications</h2>
+        <h2>{translate('PrivacySettings.communications')}</h2>
         
         <div className="setting-item">
           <label>
@@ -162,7 +163,7 @@ const PrivacySettings = () => {
             />
             <div>
               <strong>{t('privacy.consent.marketing')}</strong>
-              <p>Receive promotional emails and special offers</p>
+              <p>{translate('PrivacySettings.receive_promotional_emails_and_special')}</p>
             </div>
           </label>
         </div>
@@ -175,8 +176,8 @@ const PrivacySettings = () => {
               onChange={(e) => updateSetting('allow_product_updates', e.target.checked)}
             />
             <div>
-              <strong>Product Updates</strong>
-              <p>Receive notifications about new features and updates</p>
+              <strong>{translate('PrivacySettings.product_updates')}</strong>
+              <p>{translate('PrivacySettings.receive_notifications_about_new_features')}</p>
             </div>
           </label>
         </div>
@@ -189,8 +190,8 @@ const PrivacySettings = () => {
               onChange={(e) => updateSetting('allow_health_reminders', e.target.checked)}
             />
             <div>
-              <strong>Health Reminders</strong>
-              <p>Receive reminders for medications, appointments, and health tracking</p>
+              <strong>{translate('PrivacySettings.health_reminders')}</strong>
+              <p>{translate('PrivacySettings.receive_reminders_for_medications')}</p>
             </div>
           </label>
         </div>
@@ -198,7 +199,7 @@ const PrivacySettings = () => {
 
       {/* AI Settings Section */}
       <section className="settings-section">
-        <h2>AI Preferences</h2>
+        <h2>{translate('PrivacySettings.ai_preferences')}</h2>
         
         <div className="setting-item">
           <label>
@@ -209,7 +210,7 @@ const PrivacySettings = () => {
             />
             <div>
               <strong>{t('privacy.consent.ai_coaching')}</strong>
-              <p>Receive personalized health recommendations from AI</p>
+              <p>{translate('PrivacySettings.receive_personalized_health')}</p>
             </div>
           </label>
         </div>
@@ -222,23 +223,23 @@ const PrivacySettings = () => {
               onChange={(e) => updateSetting('ai_memory_enabled', e.target.checked)}
             />
             <div>
-              <strong>AI Memory</strong>
-              <p>Allow AI to learn from your patterns for better personalization</p>
+              <strong>{translate('PrivacySettings.ai_memory')}</strong>
+              <p>{translate('PrivacySettings.allow_ai_to_learn_from_your_patterns_for')}</p>
             </div>
           </label>
         </div>
 
         <div className="setting-item">
           <label>
-            <strong>AI Explanation Detail</strong>
+            <strong>{translate('PrivacySettings.ai_explanation_detail')}</strong>
             <select
               value={settings.ai_explainability_level || 'standard'}
               onChange={(e) => updateSetting('ai_explainability_level', e.target.value)}
               className="select-input"
             >
-              <option value="minimal">Minimal - Just recommendations</option>
-              <option value="standard">Standard - Brief explanations</option>
-              <option value="detailed">Detailed - Full reasoning</option>
+              <option value="minimal">{translate('PrivacySettings.minimal_just_recommendations')}</option>
+              <option value="standard">{translate('PrivacySettings.standard_brief_explanations')}</option>
+              <option value="detailed">{translate('PrivacySettings.detailed_full_reasoning')}</option>
             </select>
           </label>
         </div>
@@ -246,7 +247,7 @@ const PrivacySettings = () => {
 
       {/* Security Section */}
       <section className="settings-section">
-        <h2>Security</h2>
+        <h2>{translate('PrivacySettings.security')}</h2>
         
         <div className="setting-item">
           <label>
@@ -256,25 +257,25 @@ const PrivacySettings = () => {
               onChange={(e) => updateSetting('require_biometric_auth', e.target.checked)}
             />
             <div>
-              <strong>Biometric Authentication</strong>
-              <p>Require fingerprint or face recognition on mobile devices</p>
+              <strong>{translate('PrivacySettings.biometric_authentication')}</strong>
+              <p>{translate('PrivacySettings.require_fingerprint_or_face_recognition')}</p>
             </div>
           </label>
         </div>
 
         <div className="setting-item">
           <label>
-            <strong>Session Timeout</strong>
+            <strong>{translate('PrivacySettings.session_timeout')}</strong>
             <select
               value={settings.session_timeout_minutes}
               onChange={(e) => updateSetting('session_timeout_minutes', parseInt(e.target.value))}
               className="select-input"
             >
-              <option value="15">15 minutes</option>
-              <option value="30">30 minutes</option>
-              <option value="60">1 hour</option>
-              <option value="120">2 hours</option>
-              <option value="1440">24 hours</option>
+              <option value="15">{translate('PrivacySettings.text_15_minutes')}</option>
+              <option value="30">{translate('PrivacySettings.text_30_minutes')}</option>
+              <option value="60">{translate('PrivacySettings.text_1_hour')}</option>
+              <option value="120">{translate('PrivacySettings.text_2_hours')}</option>
+              <option value="1440">{translate('PrivacySettings.text_24_hours')}</option>
             </select>
           </label>
         </div>
@@ -282,29 +283,29 @@ const PrivacySettings = () => {
 
       {/* Compliance Info Section */}
       <section className="settings-section compliance-info">
-        <h2>Compliance & Regulations</h2>
+        <h2>{translate('PrivacySettings.compliance_regulations')}</h2>
         <div className="info-grid">
           <div className="info-item">
-            <strong>GDPR Status:</strong>
+            <strong>{translate('PrivacySettings.gdpr_status')}</strong>
             <span className={settings.gdpr_applies ? 'applies' : 'not-applies'}>
               {settings.gdpr_applies ? '✓ Applies' : '○ Does not apply'}
             </span>
           </div>
           <div className="info-item">
-            <strong>HIPAA Status:</strong>
+            <strong>{translate('PrivacySettings.hipaa_status')}</strong>
             <span className={settings.hipaa_applies ? 'applies' : 'not-applies'}>
               {settings.hipaa_applies ? '✓ Applies' : '○ Does not apply'}
             </span>
           </div>
         </div>
         <p className="compliance-note">
-          Your data is protected according to applicable healthcare privacy regulations.
+          {translate('PrivacySettings.your_data_is_protected_according_to')}
         </p>
       </section>
 
       {/* Data Export Section */}
       <section className="settings-section danger-zone">
-        <h2>Your Data Rights</h2>
+        <h2>{translate('PrivacySettings.your_data_rights')}</h2>
         
         <div className="data-action">
           <div>
@@ -322,10 +323,10 @@ const PrivacySettings = () => {
 
         {exportStatus && (
           <div className="export-status">
-            Status: {exportStatus.status}
+            {translate('PrivacySettings.status', { status: exportStatus.status })}
             {exportStatus.download_url && (
               <a href={exportStatus.download_url} className="download-link">
-                Download Now
+                {translate('PrivacySettings.download_now')}
               </a>
             )}
           </div>
@@ -340,7 +341,7 @@ const PrivacySettings = () => {
             onClick={() => setShowDeleteConfirm(true)}
             className="btn-danger"
           >
-            Delete Account
+            {translate('PrivacySettings.delete_account')}
           </button>
         </div>
       </section>
@@ -349,13 +350,12 @@ const PrivacySettings = () => {
       {showDeleteConfirm && (
         <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>⚠️ Confirm Account Deletion</h2>
+            <h2>{translate('PrivacySettings.confirm_account_deletion')}</h2>
             <p>
-              This action cannot be undone. All your health data, AI memories, and account 
-              information will be permanently deleted.
+              {translate('PrivacySettings.this_action_cannot_be_undone_all_your')}
             </p>
             <p>
-              Are you absolutely sure you want to delete your account?
+              {translate('PrivacySettings.are_you_absolutely_sure_you_want_to')}
             </p>
             <div className="modal-actions">
               <button 

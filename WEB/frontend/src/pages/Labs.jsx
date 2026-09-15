@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 export default function Labs() {
   const [results, setResults] = useState([]);
@@ -87,21 +88,21 @@ export default function Labs() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Labs / EHR</h1>
+          <h1 className="page-title">{t('Labs.labs_ehr')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          <Plus size={18} /> Add Result
+          <Plus size={18} /> {t('Labs.add_result')}
         </button>
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div className="card-header">
-          <span className="card-title">EHR Connections (FHIR)</span>
+          <span className="card-title">{t('Labs.ehr_connections_fhir')}</span>
         </div>
         <form onSubmit={handleConnect}>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Provider</label>
+              <label className="form-label">{t('Labs.provider')}</label>
               <select
                 className="form-input"
                 value={connectForm.provider}
@@ -113,7 +114,7 @@ export default function Labs() {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">FHIR Base URL</label>
+              <label className="form-label">{t('Labs.fhir_base_url')}</label>
               <input
                 className="form-input"
                 value={connectForm.fhir_base_url}
@@ -122,7 +123,7 @@ export default function Labs() {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Patient ID</label>
+              <label className="form-label">{t('Labs.patient_id')}</label>
               <input
                 className="form-input"
                 value={connectForm.patient_id}
@@ -132,16 +133,16 @@ export default function Labs() {
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Scopes</label>
+              <label className="form-label">{t('Labs.scopes')}</label>
               <input
                 className="form-input"
                 value={connectForm.scopes}
                 onChange={(e) => setConnectForm({ ...connectForm, scopes: e.target.value })}
-                placeholder="patient/Observation.read patient/Condition.read"
+                placeholder={t('Labs.patient_observation_read_patient')}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Notes</label>
+              <label className="form-label">{t('Labs.notes')}</label>
               <input
                 className="form-input"
                 value={connectForm.notes}
@@ -149,12 +150,12 @@ export default function Labs() {
               />
             </div>
           </div>
-          <button className="btn btn-primary" type="submit">Add Connection</button>
+          <button className="btn btn-primary" type="submit">{t('Labs.add_connection')}</button>
         </form>
 
         <div style={{ marginTop: '1rem' }}>
           {connections.length === 0 && (
-            <div style={{ color: 'var(--color-text-secondary)' }}>No EHR connections yet.</div>
+            <div style={{ color: 'var(--color-text-secondary)' }}>{t('Labs.no_ehr_connections_yet')}</div>
           )}
           {connections.map((conn) => (
             <div key={conn.id} className="card" style={{ marginTop: '0.75rem' }}>
@@ -162,7 +163,7 @@ export default function Labs() {
                 <div>
                   <div style={{ fontWeight: 600 }}>{conn.provider}</div>
                   <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-                    Status: {conn.status}
+                    {t('Labs.status', { status: conn.status })}
                   </div>
                   {conn.fhir_base_url && (
                     <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
@@ -171,7 +172,7 @@ export default function Labs() {
                   )}
                 </div>
                 <button className="btn btn-danger btn-sm" onClick={() => handleDisconnect(conn.id)}>
-                  Disconnect
+                  {t('Labs.disconnect')}
                 </button>
               </div>
             </div>
@@ -184,56 +185,56 @@ export default function Labs() {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Date</label>
+                <label className="form-label">{t('Labs.date')}</label>
                 <input className="form-input" type="date" value={form.test_date}
                   onChange={(e) => setForm({ ...form, test_date: e.target.value })} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Test Name</label>
+                <label className="form-label">{t('Labs.test_name')}</label>
                 <input className="form-input" value={form.test_name}
                   onChange={(e) => setForm({ ...form, test_name: e.target.value })} required />
               </div>
               <div className="form-group">
-                <label className="form-label">LOINC Code</label>
+                <label className="form-label">{t('Labs.loinc_code')}</label>
                 <input className="form-input" value={form.loinc_code}
                   onChange={(e) => setForm({ ...form, loinc_code: e.target.value })} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Value</label>
+                <label className="form-label">{t('Labs.value')}</label>
                 <input className="form-input" type="number" step="any" value={form.value}
                   onChange={(e) => setForm({ ...form, value: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Unit</label>
+                <label className="form-label">{t('Labs.unit')}</label>
                 <input className="form-input" value={form.unit}
                   onChange={(e) => setForm({ ...form, unit: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Reference Low</label>
+                <label className="form-label">{t('Labs.reference_low')}</label>
                 <input className="form-input" type="number" step="any" value={form.reference_range_low}
                   onChange={(e) => setForm({ ...form, reference_range_low: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Reference High</label>
+                <label className="form-label">{t('Labs.reference_high')}</label>
                 <input className="form-input" type="number" step="any" value={form.reference_range_high}
                   onChange={(e) => setForm({ ...form, reference_range_high: e.target.value })} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Category</label>
+                <label className="form-label">{t('Labs.category')}</label>
                 <input className="form-input" value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Performing Lab</label>
+                <label className="form-label">{t('Labs.performing_lab')}</label>
                 <input className="form-input" value={form.performing_lab}
                   onChange={(e) => setForm({ ...form, performing_lab: e.target.value })} />
               </div>
             </div>
-            <button className="btn btn-primary" type="submit">Save</button>
+            <button className="btn btn-primary" type="submit">{t('Labs.save')}</button>
           </form>
         </div>
       )}
@@ -242,12 +243,12 @@ export default function Labs() {
         <table className="table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Test</th>
-              <th>Value</th>
-              <th>Unit</th>
-              <th>Range</th>
-              <th>Status</th>
+              <th>{t('Labs.date')}</th>
+              <th>{t('Labs.test')}</th>
+              <th>{t('Labs.value')}</th>
+              <th>{t('Labs.unit')}</th>
+              <th>{t('Labs.range')}</th>
+              <th>{t('Labs.status_2')}</th>
               <th></th>
             </tr>
           </thead>
@@ -261,12 +262,12 @@ export default function Labs() {
                 <td>{r.reference_range_low != null ? `${r.reference_range_low} - ${r.reference_range_high}` : '-'}</td>
                 <td>{r.is_abnormal ? '⚠️ Abnormal' : '✅ Normal'}</td>
                 <td>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(r.id)}>Delete</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(r.id)}>{t('Labs.delete')}</button>
                 </td>
               </tr>
             ))}
             {results.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>No lab results yet</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t('Labs.no_lab_results_yet')}</td></tr>
             )}
           </tbody>
         </table>

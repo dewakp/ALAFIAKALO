@@ -2,10 +2,19 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
+import { useTranslation } from 'react-i18next';
 import './i18n';  // Initialize i18n before App
 import App from './App';
 import './index.css';
 import { ThemeProvider } from './context/ThemeContext';
+
+// Screens read their text through i18n.js's plain `t`, which subscribes to
+// nothing. Keying the app on the language remounts it when the language
+// changes, so every string is read again in the new one.
+function LanguageRoot({ children }) {
+  const { i18n } = useTranslation();
+  return <React.Fragment key={i18n.language}>{children}</React.Fragment>;
+}
 
 // Sentry: initialise only when DSN is configured (production)
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
@@ -25,7 +34,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <ThemeProvider>
-        <App />
+        <LanguageRoot>
+          <App />
+        </LanguageRoot>
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>

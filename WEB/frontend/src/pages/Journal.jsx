@@ -6,6 +6,7 @@ import api from '../services/api';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Save, BookOpen, Smile } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
+import { t as translate } from '../i18n';
 
 const todayStr = () => localToday();
 const fmtDate = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -111,12 +112,12 @@ export default function Journal() {
       setShowForm(false);
       load(selDate);
     } catch (err) {
-      alert(apiErrorMessage(err, 'Error saving entry'));
+      alert(apiErrorMessage(err, translate('Journal.error_saving_entry')));
     } finally { setSaving(false); }
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this journal entry?')) return;
+    if (!confirm(translate('Journal.delete_this_journal_entry'))) return;
     await api.delete(`/mood/${id}`);
     load(selDate);
   }
@@ -128,10 +129,10 @@ export default function Journal() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title"><BookOpen size={22} style={{ marginRight: '.4rem', verticalAlign: 'middle' }}/>Journal</h1>
+          <h1 className="page-title"><BookOpen size={22} style={{ marginRight: '.4rem', verticalAlign: 'middle' }}/>{translate('Journal.journal')}</h1>
         </div>
         <button className="btn btn-primary" onClick={openForm}>
-          <Plus size={16}/> New Entry
+          <Plus size={16}/> {translate('Journal.new_entry')}
         </button>
       </div>
 
@@ -142,7 +143,7 @@ export default function Journal() {
         </button>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontWeight: 700, fontSize: '1rem' }}>{fmtDate(selDate)}</div>
-          {isToday && <div style={{ fontSize: '.72rem', color: 'var(--color-primary)', fontWeight: 600 }}>Today</div>}
+          {isToday && <div style={{ fontSize: '.72rem', color: 'var(--color-primary)', fontWeight: 600 }}>{translate('Journal.today')}</div>}
         </div>
         <button className="btn btn-secondary btn-sm" onClick={() => changeDate(1)} disabled={isToday}>
           <ChevronRight size={16}/>
@@ -154,26 +155,25 @@ export default function Journal() {
         <div className="card" style={{ marginBottom: '1rem', border: '2px solid var(--color-primary)' }}>
           <h3 style={{ margin: '0 0 .75rem 0', fontSize: '.95rem', fontWeight: 700 }}>
             <Smile size={16} style={{ marginRight: '.3rem', verticalAlign: 'middle', color: 'var(--color-primary)' }}/>
-            New Journal Entry
+            {translate('Journal.new_journal_entry')}
           </h3>
           <form onSubmit={handleSave}>
             <div style={{ marginBottom: '.75rem' }}>
               <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>
-                How are you feeling? ({form.mood_score}/10 — {MOOD_LABELS[form.mood_score] || ''})
+                {translate('Journal.how_are_you_feeling_10', { mood_score: form.mood_score, MOOD_LABELS: MOOD_LABELS[form.mood_score] || '' })}
               </label>
               <input type="range" min="1" max="10" value={form.mood_score}
                 onChange={e => { setMoodTouched(true); setMoodSuggestion(null);
                                  setForm({ ...form, mood_score: Number(e.target.value) }); }}
                 style={{ width: '100%', accentColor: MOOD_COLOR(form.mood_score) }}/>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.68rem', color: 'var(--color-text-tertiary)' }}>
-                <span>1 — Very Low</span><span>10 — Outstanding</span>
+                <span>{translate('Journal.text_1_very_low')}</span><span>{translate('Journal.text_10_outstanding')}</span>
               </div>
               {/* Provenance: say where the number came from, always. */}
               {moodSuggestion?.available && moodSuggestion.mood_score ? (
                 <div style={{ fontSize: '.72rem', color: 'var(--color-text-secondary)', marginTop: '.35rem' }}>
-                  Read from what you wrote: <strong>{moodSuggestion.mood_score}/10</strong>
-                  {moodSuggestion.rationale ? ` — ${moodSuggestion.rationale}` : ''}
-                  {' '}Drag the slider if that is not right.
+                  {translate('Journal.read_from_what_you_wrote')} <strong>{moodSuggestion.mood_score}/10</strong>
+                  {translate('Journal.drag_the_slider_if_that_is_not_right', { value: moodSuggestion.rationale ? ` — ${moodSuggestion.rationale}` : '' })}
                 </div>
               ) : moodSuggestion && !moodSuggestion.available ? (
                 <div style={{ fontSize: '.72rem', color: '#f59e0b', marginTop: '.35rem' }}>
@@ -181,24 +181,23 @@ export default function Journal() {
                 </div>
               ) : !moodTouched && (
                 <div style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)', marginTop: '.35rem' }}>
-                  Neutral by default — write below and this is scored from your
-                  own words, or drag the slider.
+                  {translate('Journal.neutral_by_default_write_below_and_this')}
                 </div>
               )}
             </div>
             <div style={{ marginBottom: '.75rem' }}>
-              <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>Energy Level (1–10)</label>
+              <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>{translate('Journal.energy_level_1_10')}</label>
               <input type="number" min="1" max="10" className="form-input"
                 value={form.energy_level}
                 onChange={e => setForm({ ...form, energy_level: e.target.value })}
-                style={{ maxWidth: 100 }} placeholder="optional"/>
+                style={{ maxWidth: 100 }} placeholder={translate('Journal.optional')}/>
             </div>
             <div style={{ marginBottom: '.75rem' }}>
-              <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>Write your thoughts…</label>
+              <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>{translate('Journal.write_your_thoughts')}</label>
               <textarea className="form-input" rows={5} value={form.notes}
                 onChange={e => setForm({ ...form, notes: e.target.value })}
                 onBlur={() => { if (!moodTouched) suggestMood(); }}
-                placeholder="How was your day? Any symptoms, reflections, or things you're grateful for?"
+                placeholder={translate('Journal.how_was_your_day_any_symptoms')}
                 style={{ resize: 'vertical', fontFamily: 'inherit' }}/>
               {form.notes.trim() && (
                 <button type="button" onClick={suggestMood} disabled={suggestingMood}
@@ -209,30 +208,30 @@ export default function Journal() {
               )}
             </div>
             <div style={{ marginBottom: '.75rem' }}>
-              <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>Tags (comma-separated, optional)</label>
+              <label style={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' }}>{translate('Journal.tags_comma_separated_optional')}</label>
               <input className="form-input" value={form.tags}
                 onChange={e => setForm({ ...form, tags: e.target.value })}
-                placeholder="e.g. fatigue, dialysis, pain"/>
+                placeholder={translate('Journal.e_g_fatigue_dialysis_pain')}/>
             </div>
             <div style={{ display: 'flex', gap: '.5rem' }}>
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                <Save size={14}/> {saving ? 'Saving…' : 'Save Entry'}
+                <Save size={14}/> {(saving) ? translate('Journal.saving') : translate('Journal.save_entry')}
               </button>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>{translate('Journal.cancel')}</button>
             </div>
           </form>
         </div>
       )}
 
       {/* ── Entries ── */}
-      {loading && <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>Loading…</div>}
+      {loading && <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>{translate('Journal.loading')}</div>}
 
       {!loading && entries.length === 0 && !showForm && (
         <div className="card" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--color-text-secondary)' }}>
           <BookOpen size={36} style={{ marginBottom: '.75rem', opacity: 0.35 }}/>
-          <p style={{ margin: 0 }}>No journal entries for this day.</p>
+          <p style={{ margin: 0 }}>{translate('Journal.no_journal_entries_for_this_day')}</p>
           <button className="btn btn-primary btn-sm" style={{ marginTop: '.75rem' }} onClick={openForm}>
-            <Plus size={14}/> Write something
+            <Plus size={14}/> {translate('Journal.write_something')}
           </button>
         </div>
       )}
@@ -251,7 +250,7 @@ export default function Journal() {
                 </span>
                 {entry.energy_level && (
                   <span style={{ fontSize: '.78rem', color: 'var(--color-text-tertiary)', marginLeft: '.5rem' }}>
-                    ⚡ Energy: {entry.energy_level}/10
+                    {translate('Journal.energy_10', { energy_level: entry.energy_level })}
                   </span>
                 )}
               </div>
@@ -282,7 +281,7 @@ export default function Journal() {
       <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
         <button className="btn btn-secondary btn-sm" onClick={() => navigate('/mental-health')}
           style={{ fontSize: '.8rem' }}>
-          View full Mental Health dashboard →
+          {translate('Journal.view_full_mental_health_dashboard')}
         </button>
       </div>
     </div>

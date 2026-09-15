@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { t } from '../i18n';
 
 /**
  * Serves two routes:
@@ -31,15 +32,15 @@ export default function ForgotPassword() {
   async function handleRequest(e) {
     e.preventDefault();
     setError('');
-    if (!email.trim()) { setError('Email is required'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Please enter a valid email address'); return; }
+    if (!email.trim()) { setError(t('ForgotPassword.email_is_required')); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError(t('ForgotPassword.please_enter_a_valid_email_address')); return; }
     setBusy(true);
     try {
       const data = await requestPasswordReset(email);
       setMessage(data.message);
       setStep('sent');
     } catch (err) {
-      setError(apiErrorMessage(err, 'Failed to request reset'));
+      setError(apiErrorMessage(err, t('ForgotPassword.failed_to_request_reset')));
     } finally {
       setBusy(false);
     }
@@ -48,15 +49,15 @@ export default function ForgotPassword() {
   async function handleConfirm(e) {
     e.preventDefault();
     setError('');
-    if (!token) { setError('This reset link is missing its token. Request a new link below.'); return; }
-    if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return; }
-    if (newPassword !== confirmPw) { setError('Passwords do not match'); return; }
+    if (!token) { setError(t('ForgotPassword.this_reset_link_is_missing_its_token')); return; }
+    if (newPassword.length < 6) { setError(t('ForgotPassword.password_must_be_at_least_6_characters')); return; }
+    if (newPassword !== confirmPw) { setError(t('ForgotPassword.passwords_do_not_match')); return; }
     setBusy(true);
     try {
       await confirmPasswordReset(token, newPassword);
       setStep('done');
     } catch (err) {
-      setError(apiErrorMessage(err, 'This reset link is invalid or has expired. Request a new one.'));
+      setError(apiErrorMessage(err, t('ForgotPassword.this_reset_link_is_invalid_or_has')));
     } finally {
       setBusy(false);
     }
@@ -65,7 +66,7 @@ export default function ForgotPassword() {
   return (
     <div className="auth-page">
       <div className="card auth-card">
-        <h1 className="auth-title">Reset Password</h1>
+        <h1 className="auth-title">{t('ForgotPassword.reset_password')}</h1>
 
         {error && (
           <div style={{ color: 'var(--color-danger)', textAlign: 'center', marginBottom: '1rem' }}>
@@ -75,10 +76,10 @@ export default function ForgotPassword() {
 
         {step === 'request' && (
           <>
-            <p className="auth-subtitle">Enter your email and we'll send you a reset link.</p>
+            <p className="auth-subtitle">{t('ForgotPassword.enter_your_email_and_we_ll_send_you_a')}</p>
             <form onSubmit={handleRequest}>
               <div className="form-group">
-                <label className="form-label">Email</label>
+                <label className="form-label">{t('ForgotPassword.email')}</label>
                 <input
                   className="form-input"
                   type="email"
@@ -99,18 +100,17 @@ export default function ForgotPassword() {
           <>
             <p className="auth-subtitle">{message}</p>
             <p className="auth-subtitle" style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-              Open the link in that email to choose a new password. It expires shortly,
-              and your current password keeps working until you do.
+              {t('ForgotPassword.open_the_link_in_that_email_to_choose_a')}
             </p>
           </>
         )}
 
         {step === 'confirm' && (
           <>
-            <p className="auth-subtitle">Choose a new password for your account.</p>
+            <p className="auth-subtitle">{t('ForgotPassword.choose_a_new_password_for_your_account')}</p>
             <form onSubmit={handleConfirm}>
               <div className="form-group">
-                <label className="form-label">New Password</label>
+                <label className="form-label">{t('ForgotPassword.new_password')}</label>
                 <PasswordInput
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -120,7 +120,7 @@ export default function ForgotPassword() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Confirm Password</label>
+                <label className="form-label">{t('ForgotPassword.confirm_password')}</label>
                 <PasswordInput
                   value={confirmPw}
                   onChange={(e) => setConfirmPw(e.target.value)}
@@ -139,11 +139,11 @@ export default function ForgotPassword() {
         {step === 'done' && (
           <>
             <p className="auth-subtitle" style={{ color: 'var(--color-success)' }}>
-              Password reset successfully!
+              {t('ForgotPassword.password_reset_successfully')}
             </p>
             <Link to="/login">
               <button className="btn btn-primary" style={{ width: '100%' }}>
-                Back to Login
+                {t('ForgotPassword.back_to_login')}
               </button>
             </Link>
           </>
@@ -151,9 +151,9 @@ export default function ForgotPassword() {
 
         <div className="auth-footer">
           {step === 'confirm' || step === 'sent' ? (
-            <Link to="/forgot-password">Request a new link</Link>
+            <Link to="/forgot-password">{t('ForgotPassword.request_a_new_link')}</Link>
           ) : (
-            <Link to="/login">Back to Sign In</Link>
+            <Link to="/login">{t('ForgotPassword.back_to_sign_in')}</Link>
           )}
         </div>
       </div>

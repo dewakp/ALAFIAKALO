@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus, Trash2, Edit2, Refrigerator, Snowflake, Package, AlertTriangle } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const CATEGORIES = [
   'produce', 'dairy', 'meat', 'seafood', 'grains', 'canned',
@@ -9,9 +10,9 @@ const CATEGORIES = [
 ];
 
 const LOCATIONS = [
-  { value: 'refrigerator', label: 'Refrigerator', icon: Refrigerator },
-  { value: 'freezer', label: 'Freezer', icon: Snowflake },
-  { value: 'pantry', label: 'Pantry', icon: Package },
+  { value: 'refrigerator', get label() { return t('Pantry.refrigerator'); }, icon: Refrigerator },
+  { value: 'freezer', get label() { return t('Pantry.freezer'); }, icon: Snowflake },
+  { value: 'pantry', get label() { return t('Pantry.pantry'); }, icon: Package },
 ];
 
 const UNITS = ['pieces', 'lbs', 'oz', 'kg', 'g', 'liters', 'ml', 'cups', 'gallons', 'bags', 'boxes', 'cans', 'bottles'];
@@ -100,13 +101,13 @@ export default function Pantry() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Pantry & Refrigerator</h1>
+          <h1 className="page-title">{t('Pantry.pantry_refrigerator')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => {
           setShowForm(!showForm);
           if (showForm) { setEditingId(null); setForm({ ...EMPTY_FORM }); }
         }}>
-          <Plus size={18} /> {showForm ? 'Cancel' : 'Add Item'}
+          <Plus size={18} /> {(showForm) ? t('Pantry.cancel') : t('Pantry.add_item')}
         </button>
       </div>
 
@@ -115,7 +116,7 @@ export default function Pantry() {
         <button
           className={`btn ${filterLocation === 'all' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setFilterLocation('all')}
-        >All</button>
+        >{t('Pantry.all')}</button>
         {LOCATIONS.map(loc => (
           <button
             key={loc.value}
@@ -132,12 +133,12 @@ export default function Pantry() {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Item Name</label>
+                <label className="form-label">{t('Pantry.item_name')}</label>
                 <input className="form-input" value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Category</label>
+                <label className="form-label">{t('Pantry.category')}</label>
                 <select className="form-input" value={form.category}
                   onChange={e => setForm({ ...form, category: e.target.value })}>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
@@ -146,19 +147,19 @@ export default function Pantry() {
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Quantity</label>
+                <label className="form-label">{t('Pantry.quantity')}</label>
                 <input className="form-input" type="number" step="0.1" min="0" value={form.quantity}
                   onChange={e => setForm({ ...form, quantity: e.target.value })} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Unit</label>
+                <label className="form-label">{t('Pantry.unit')}</label>
                 <select className="form-input" value={form.unit}
                   onChange={e => setForm({ ...form, unit: e.target.value })}>
                   {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Location</label>
+                <label className="form-label">{t('Pantry.location')}</label>
                 <select className="form-input" value={form.location}
                   onChange={e => setForm({ ...form, location: e.target.value })}>
                   {LOCATIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
@@ -167,12 +168,12 @@ export default function Pantry() {
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Expiration Date</label>
+                <label className="form-label">{t('Pantry.expiration_date')}</label>
                 <input className="form-input" type="date" value={form.expiration_date}
                   onChange={e => setForm({ ...form, expiration_date: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Notes</label>
+                <label className="form-label">{t('Pantry.notes')}</label>
                 <input className="form-input" value={form.notes}
                   onChange={e => setForm({ ...form, notes: e.target.value })} />
               </div>
@@ -181,21 +182,21 @@ export default function Pantry() {
             {/* Future: Auto-replenish settings */}
             <details style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
               <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                Auto-Replenish (Coming Soon)
+                {t('Pantry.auto_replenish_coming_soon')}
               </summary>
               <div className="form-row" style={{ marginTop: '0.5rem', opacity: 0.5, pointerEvents: 'none' }}>
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <input type="checkbox" checked={form.auto_replenish}
                       onChange={e => setForm({ ...form, auto_replenish: e.target.checked })} />
-                    Enable auto-replenish
+                    {t('Pantry.enable_auto_replenish')}
                   </label>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>
-                    Will connect to grocery services (Instacart, Kroger, Walmart, etc.) to auto-order when stock is low.
+                    {t('Pantry.will_connect_to_grocery_services')}
                   </p>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Low Stock Threshold</label>
+                  <label className="form-label">{t('Pantry.low_stock_threshold')}</label>
                   <input className="form-input" type="number" step="0.1" min="0" value={form.low_threshold}
                     onChange={e => setForm({ ...form, low_threshold: e.target.value })} placeholder="e.g. 2" />
                 </div>
@@ -212,7 +213,7 @@ export default function Pantry() {
       {items.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
           <Package size={48} style={{ color: 'var(--text-secondary)', margin: '0 auto 1rem' }} />
-          <p style={{ color: 'var(--text-secondary)' }}>No items yet. Add items from your pantry, refrigerator, or freezer.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>{t('Pantry.no_items_yet_add_items_from_your_pantry')}</p>
         </div>
       ) : (
         grouped.map(group => (
@@ -221,19 +222,19 @@ export default function Pantry() {
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <group.icon size={22} /> {group.label}
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>
-                  ({group.items.length} items)
+                  {t('Pantry.items', { items: group.items.length })}
                 </span>
               </h2>
               <div className="data-table-wrapper">
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Item</th>
-                      <th>Category</th>
-                      <th>Qty</th>
-                      <th>Expires</th>
-                      <th>Notes</th>
-                      <th style={{ width: '100px' }}>Actions</th>
+                      <th>{t('Pantry.item')}</th>
+                      <th>{t('Pantry.category')}</th>
+                      <th>{t('Pantry.qty')}</th>
+                      <th>{t('Pantry.expires')}</th>
+                      <th>{t('Pantry.notes')}</th>
+                      <th style={{ width: '100px' }}>{t('Pantry.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>

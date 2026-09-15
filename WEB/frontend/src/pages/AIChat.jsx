@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import api, { ensureCsrfToken, refreshAccessToken } from '../services/api';
-import i18n from '../i18n';
+import i18n, { t as translate } from '../i18n';
 import { apiErrorMessage } from '../utils/apiError';
 import { Send, RefreshCw, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
 import BackButton from '../components/BackButton';
@@ -22,7 +22,7 @@ const REGION_LABELS = {
 // baked into the app). If /ai/personas can't be reached, fall back to a single
 // neutral assistant so chat still works; cultural guides render only when fetched.
 const FALLBACK_PERSONAS = [
-  { key: 'general_practitioner', title: 'Assistant', origin: '', region: 'specialist', greeting: 'Welcome', icon: '🩺', description: 'Your personal health guide.' },
+  { key: 'general_practitioner', get title() { return translate('AIChat.assistant'); }, origin: '', region: 'specialist', greeting: 'Welcome', icon: '🩺', get description() { return translate('AIChat.your_personal_health_guide'); } },
 ];
 
 function groupByRegion(personas) {
@@ -362,10 +362,10 @@ export default function AIChat() {
         <div className="page-header">
           <div className="page-header-left">
             <BackButton />
-            <h1 className="page-title">AI Health Assistant</h1>
+            <h1 className="page-title">{translate('AIChat.ai_health_assistant')}</h1>
           </div>
           <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>
-            Choose a specialist agent or a cultural health guide
+            {translate('AIChat.choose_a_specialist_agent_or_a_cultural')}
           </p>
         </div>
 
@@ -374,10 +374,10 @@ export default function AIChat() {
           {/* ── Specialist Agents ── */}
           <div style={{ marginBottom: 32 }}>
             <h3 style={{ marginBottom: 4, fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              🏥 Specialist Agents
+              {translate('AIChat.specialist_agents')}
             </h3>
             <p style={{ marginBottom: 12, fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-              Clinically-trained agents that read your full health record and answer from their specialty
+              {translate('AIChat.clinically_trained_agents_that_read_your')}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
               {displaySpecialists.map((p) => (
@@ -408,7 +408,7 @@ export default function AIChat() {
                             background: 'var(--primary)', color: '#fff', fontWeight: 600,
                             textTransform: 'uppercase', letterSpacing: '.5px',
                           }}>
-                            Specialist
+                            {translate('AIChat.specialist')}
                           </span>
                         )}
                       </div>
@@ -437,16 +437,16 @@ export default function AIChat() {
               }}
             >
               {showCultural ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-              🌍 Cultural Health Guides
+              {translate('AIChat.cultural_health_guides')}
               <span style={{ fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                ({culturalPersonas.length} guides)
+                {translate('AIChat.guides', { culturalPersonas: culturalPersonas.length })}
               </span>
             </button>
 
             {showCultural && (
               <>
                 <p style={{ marginBottom: 14, fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-                  A culturally-named health guide that reads your record and responds in its own voice
+                  {translate('AIChat.a_culturally_named_health_guide_that')}
                 </p>
                 {culturalGroups.map((g) => (
                   <div key={g.region} style={{ marginBottom: 20 }}>
@@ -490,17 +490,17 @@ export default function AIChat() {
     <div className="chat-container">
       <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 className="page-title">AI Health Assistant</h1>
+          <h1 className="page-title">{translate('AIChat.ai_health_assistant')}</h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
             {selectedPersona.icon && <span>{selectedPersona.icon}</span>}
-            Speaking with <strong style={{ marginLeft: 4 }}>{selectedPersona.title}</strong>
+            {translate('AIChat.speaking_with')} <strong style={{ marginLeft: 4 }}>{selectedPersona.title}</strong>
             {isSpecialist && (
               <span style={{
                 fontSize: '.65rem', padding: '1px 7px', borderRadius: 10,
                 background: 'var(--primary)', color: '#fff', fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.5px',
               }}>
-                Specialist
+                {translate('AIChat.specialist')}
               </span>
             )}
             <span style={{ fontSize: '.75rem', color: 'var(--text-secondary)' }}>({selectedPersona.origin})</span>
@@ -509,9 +509,9 @@ export default function AIChat() {
         <button
           className="btn btn-outline"
           onClick={() => { setSelectedPersona(null); setMessages([]); }}
-          title="Change agent"
+          title={translate('AIChat.change_agent')}
         >
-          <RefreshCw size={16} /> Change
+          <RefreshCw size={16} /> {translate('AIChat.change')}
         </button>
       </div>
 

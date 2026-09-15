@@ -8,6 +8,7 @@ import { Plus, Trash2, Pill, ChevronLeft, ChevronRight, Camera, Loader2 } from '
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
 import { useTempUnit } from '../hooks/useTempUnit';
+import { t as translate } from '../i18n';
 
 // Combined medication view (ALAFIA.app reference): a "Log New Medication Intake"
 // form with the history calendar beside it, and date-filtered intake cards.
@@ -125,7 +126,7 @@ export default function Medications() {
         dosage: data.dosage && data.dosage !== 'See label' ? data.dosage : f.dosage,
       }));
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not scan the label'));
+      alert(apiErrorMessage(err, translate('Medications.could_not_scan_the_label')));
     } finally { setScanning(false); }
   }
 
@@ -276,7 +277,7 @@ export default function Medications() {
 
   async function submitLog(e, acknowledgeUnusual = false) {
     if (e) e.preventDefault();
-    if (!log.medication_name.trim()) { alert('Medication name is required'); return; }
+    if (!log.medication_name.trim()) { alert(translate('Medications.medication_name_is_required')); return; }
     setSavingLog(true);
     if (!acknowledgeUnusual) setDoseFindings(null);
     try {
@@ -312,7 +313,7 @@ export default function Medications() {
         setDoseFindings(detail);
         return;
       }
-      alert(apiErrorMessage(err, 'Could not log medication'));
+      alert(apiErrorMessage(err, translate('Medications.could_not_log_medication')));
     } finally { setSavingLog(false); }
   }
 
@@ -322,14 +323,14 @@ export default function Medications() {
       await api.post('/medications/promote-logged');
       await Promise.all([loadMeds(), loadLogged()]);
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not add these to your prescriptions'));
+      alert(apiErrorMessage(err, translate('Medications.could_not_add_these_to_your')));
     } finally { setPromoting(false); }
   }
 
   async function deleteDose(id) {
-    if (!confirm('Delete this intake entry?')) return;
+    if (!confirm(translate('Medications.delete_this_intake_entry'))) return;
     try { await api.delete(`/medications/dose-logs/${id}`); loadDoseLogs(); }
-    catch (err) { alert(apiErrorMessage(err, 'Could not delete')); }
+    catch (err) { alert(apiErrorMessage(err, translate('Medications.could_not_delete'))); }
   }
 
   async function saveRx(e) {
@@ -341,17 +342,17 @@ export default function Medications() {
       Object.entries(rx).filter(([, v]) => !(typeof v === 'string' && v.trim() === '')),
     );
     try { await api.post('/medications/', payload); setRx({ ...EMPTY_RX }); loadMeds(); }
-    catch (err) { alert(apiErrorMessage(err, 'Could not save medication')); }
+    catch (err) { alert(apiErrorMessage(err, translate('Medications.could_not_save_medication'))); }
   }
   /* The rejection used to vanish: no catch, so a refused delete left the row in
      place with nothing said, and the button read as broken. */
   async function deleteRx(id, name) {
-    if (!window.confirm(`Remove ${name || 'this prescription'} from your list?`)) return;
+    if (!window.confirm(translate('Medications.remove_from_your_list', { name: name || 'this prescription' }))) return;
     try {
       await api.delete(`/medications/${id}`);
       loadMeds();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not remove this prescription'));
+      alert(apiErrorMessage(err, translate('Medications.could_not_remove_this_prescription')));
     }
   }
 
@@ -404,7 +405,7 @@ export default function Medications() {
         <div className="page-header-left">
           <BackButton />
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Pill size={22} /> Medications
+            <Pill size={22} /> {translate('Medications.medications')}
           </h1>
         </div>
         <label className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', margin: 0 }}>
@@ -422,13 +423,13 @@ export default function Medications() {
         {/* Log New Medication Intake */}
         <div className="card">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
-            <Plus size={18} /> Log New Medication Intake
+            <Plus size={18} /> {translate('Medications.log_new_medication_intake')}
           </h3>
           {/* ── Say it in words ── */}
           <div data-testid="intake-intent" style={{ marginBottom: 14, padding: 12, borderRadius: 10, background: '#f6f4ff' }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <input className="form-input" style={{ flex: 1 }}
-                placeholder='e.g. "I take Calcitriol" or "took 2 tablets of calcium carbonate"'
+                placeholder={translate('Medications.e_g_i_take_calcitriol_or_took_2_tablets')}
                 value={intakeText} onChange={(e) => setIntakeText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); readIntake(); } }} />
               <button type="button" className="btn btn-secondary" onClick={readIntake}
@@ -470,16 +471,16 @@ export default function Medications() {
           <form onSubmit={submitLog}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Date</label>
+                <label className="form-label">{translate('Medications.date')}</label>
                 <input className="form-input" type="date" value={log.log_date} onChange={(e) => up('log_date', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Time</label>
+                <label className="form-label">{translate('Medications.time')}</label>
                 <input className="form-input" type="time" value={log.log_time} onChange={(e) => up('log_time', e.target.value)} />
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Medication</label>
+              <label className="form-label">{translate('Medications.medication')}</label>
               <MedicationPicker
                 value={log.medication_name}
                 onChange={(v) => up('medication_name', v)}
@@ -491,10 +492,8 @@ export default function Medications() {
                               background: 'var(--color-bg-secondary)',
                               border: '1px solid var(--color-border)' }}>
                   <div style={{ fontSize: '.82rem' }}>
-                    You regularly log {unlisted.slice(0, 3).map((h) => h.name).join(', ')}
-                    {unlisted.length > 3 ? ` and ${unlisted.length - 3} more` : ''}, but
-                    {unlisted.length === 1 ? ' it is' : ' they are'} not on your
-                    prescription list.
+                    {translate('Medications.you_regularly_log')} {unlisted.slice(0, 3).map((h) => h.name).join(', ')}
+                    {(unlisted.length === 1) ? translate('Medications.but_it_is_not_on_your_prescription_list', { value: unlisted.length > 3 ? ` and ${unlisted.length - 3} more` : '' }) : translate('Medications.but_they_are_not_on_your_prescription', { value: unlisted.length > 3 ? ` and ${unlisted.length - 3} more` : '' })}
                   </div>
                   <button type="button" className="btn btn-secondary btn-sm"
                           style={{ marginTop: 6 }} disabled={promoting}
@@ -506,10 +505,7 @@ export default function Medications() {
 
               {onlyStaleMeds && (
                 <p data-testid="stale-meds-hint" style={{ fontSize: 12, color: '#856404', marginTop: 6 }}>
-                  Your profile has {meds.length} prescription{meds.length === 1 ? '' : 's'}, but
-                  {meds.length === 1 ? ' it is' : ' all of them are'} marked stopped — so
-                  {meds.length === 1 ? ' it is' : ' none are'} offered above. Type the
-                  medication — logging it adds it to your record.
+                  {(meds.length === 1) ? translate('Medications.your_profile_has_prescription_but_marked', { meds: meds.length, value: meds.length === 1 ? ' it is' : ' all of them are', value2: meds.length === 1 ? ' it is' : ' none are' }) : translate('Medications.your_profile_has_prescriptions_but', { meds: meds.length, value: meds.length === 1 ? ' it is' : ' all of them are', value2: meds.length === 1 ? ' it is' : ' none are' })}
                   {/* This used to say "add a current one under Prescriptions".
                       That section is gone, and an instruction pointing at a
                       screen that no longer exists is worse than none: it tells
@@ -520,8 +516,8 @@ export default function Medications() {
               )}
             </div>
             <div className="form-group">
-              <label className="form-label">Dosage Taken</label>
-              <input className="form-input" placeholder="e.g., 1 pill, 10mg" value={log.dosage} onChange={(e) => up('dosage', e.target.value)} />
+              <label className="form-label">{translate('Medications.dosage_taken')}</label>
+              <input className="form-input" placeholder={translate('Medications.e_g_1_pill_10mg')} value={log.dosage} onChange={(e) => up('dosage', e.target.value)} />
 
               {/* The guard refused. Say WHY, and offer the way through it —
                   the dose it questions is often correct (calcium carbonate at
@@ -536,7 +532,7 @@ export default function Medications() {
                     {doseFindings.findings.map((f, i) => (
                       <li key={i}>
                         {f.message}
-                        {f.suggestion && <> <em>Suggested: {f.suggestion}</em></>}
+                        {f.suggestion && <> <em>{translate('Medications.suggested', { suggestion: f.suggestion })}</em></>}
                       </li>
                     ))}
                   </ul>
@@ -551,40 +547,40 @@ export default function Medications() {
 
             <fieldset style={{ border: '1px solid var(--border,#e5e7eb)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
               <legend style={{ fontSize: '.85rem', fontWeight: 600, padding: '0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                Pre-Medication Vitals (optional)
+                {translate('Medications.pre_medication_vitals_optional')}
                 <button type="button" onClick={handleTempToggle}
                   style={{ fontSize: '.65rem', padding: '1px 6px', borderRadius: 8, border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}
-                  title="Toggle temperature unit (stored in °C)">temp: {temp.label}</button>
+                  title={translate('Medications.toggle_temperature_unit_stored_in_c')}>{translate('Medications.temp', { label: temp.label })}</button>
               </legend>
               <div className="form-row">
-                <div className="form-group"><label className="form-label">Systolic BP</label>
+                <div className="form-group"><label className="form-label">{translate('Medications.systolic_bp')}</label>
                   <input className="form-input" type="number" placeholder="120" value={log.pre_systolic_bp} onChange={(e) => up('pre_systolic_bp', e.target.value)} /></div>
-                <div className="form-group"><label className="form-label">Diastolic BP</label>
+                <div className="form-group"><label className="form-label">{translate('Medications.diastolic_bp')}</label>
                   <input className="form-input" type="number" placeholder="80" value={log.pre_diastolic_bp} onChange={(e) => up('pre_diastolic_bp', e.target.value)} /></div>
-                <div className="form-group"><label className="form-label">Heart Rate</label>
+                <div className="form-group"><label className="form-label">{translate('Medications.heart_rate')}</label>
                   <input className="form-input" type="number" placeholder="70" value={log.pre_heart_rate} onChange={(e) => up('pre_heart_rate', e.target.value)} /></div>
-                <div className="form-group"><label className="form-label">Temp ({temp.label})</label>
+                <div className="form-group"><label className="form-label">{translate('Medications.temp_2', { label: temp.label })}</label>
                   <input className="form-input" type="number" step="0.1" placeholder={temp.unit === 'F' ? '98.6' : '37.0'} value={log.pre_temp} onChange={(e) => up('pre_temp', e.target.value)} /></div>
               </div>
             </fieldset>
 
             <fieldset style={{ border: '1px solid var(--border,#e5e7eb)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
-              <legend style={{ fontSize: '.85rem', fontWeight: 600, padding: '0 6px' }}>Post-Medication Vitals (optional)</legend>
+              <legend style={{ fontSize: '.85rem', fontWeight: 600, padding: '0 6px' }}>{translate('Medications.post_medication_vitals_optional')}</legend>
               <div className="form-row">
-                <div className="form-group"><label className="form-label">Systolic BP</label>
+                <div className="form-group"><label className="form-label">{translate('Medications.systolic_bp')}</label>
                   <input className="form-input" type="number" placeholder="118" value={log.post_systolic_bp} onChange={(e) => up('post_systolic_bp', e.target.value)} /></div>
-                <div className="form-group"><label className="form-label">Diastolic BP</label>
+                <div className="form-group"><label className="form-label">{translate('Medications.diastolic_bp')}</label>
                   <input className="form-input" type="number" placeholder="78" value={log.post_diastolic_bp} onChange={(e) => up('post_diastolic_bp', e.target.value)} /></div>
-                <div className="form-group"><label className="form-label">Heart Rate</label>
+                <div className="form-group"><label className="form-label">{translate('Medications.heart_rate')}</label>
                   <input className="form-input" type="number" placeholder="68" value={log.post_heart_rate} onChange={(e) => up('post_heart_rate', e.target.value)} /></div>
-                <div className="form-group"><label className="form-label">Temp ({temp.label})</label>
+                <div className="form-group"><label className="form-label">{translate('Medications.temp_2', { label: temp.label })}</label>
                   <input className="form-input" type="number" step="0.1" placeholder={temp.unit === 'F' ? '98.6' : '37.0'} value={log.post_temp} onChange={(e) => up('post_temp', e.target.value)} /></div>
               </div>
             </fieldset>
 
             <div className="form-group">
-              <label className="form-label">Notes (optional)</label>
-              <textarea className="form-input" rows={2} placeholder="e.g., Taken with food" value={log.notes} onChange={(e) => up('notes', e.target.value)} />
+              <label className="form-label">{translate('Medications.notes_optional')}</label>
+              <textarea className="form-input" rows={2} placeholder={translate('Medications.e_g_taken_with_food')} value={log.notes} onChange={(e) => up('notes', e.target.value)} />
             </div>
             <button className="btn btn-primary" type="submit" disabled={savingLog}>
               {savingLog ? 'Saving…' : 'Add Medication Entry'}
@@ -595,7 +591,7 @@ export default function Medications() {
         {/* Calendar + history */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>📅 Select Date</h3>
+            <h3 style={{ marginTop: 0 }}>{translate('Medications.select_date')}</h3>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <button type="button" className="btn btn-outline btn-sm" onClick={() => shiftMonth(-1)}><ChevronLeft size={16} /></button>
               <strong>{monthLabel}</strong>
@@ -618,7 +614,7 @@ export default function Medications() {
               ))}
             </div>
             <p style={{ fontSize: '.72rem', color: 'var(--text-secondary)', marginTop: 8, marginBottom: 0 }}>
-              Dates with a <span style={{ color: 'var(--primary)' }}>●</span> have logged entries.
+              {translate('Medications.dates_with_a')} <span style={{ color: 'var(--primary)' }}>●</span> {translate('Medications.have_logged_entries')}
             </p>
           </div>
 
@@ -631,9 +627,9 @@ export default function Medications() {
               the screen a patient uses to log a tablet. */}
 
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>Medications for {fmtLong(selectedDate)}</h3>
+            <h3 style={{ marginTop: 0 }}>{translate('Medications.medications_for', { selectedDate: fmtLong(selectedDate) })}</h3>
             {dayDoses.length === 0 && flowsheetOnly.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)' }}>Nothing recorded for this date.</p>
+              <p style={{ color: 'var(--text-secondary)' }}>{translate('Medications.nothing_recorded_for_this_date')}</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Recorded at a treatment and backed by no dose log. Shown so
@@ -649,10 +645,10 @@ export default function Medications() {
                         fontSize: '.68rem', padding: '1px 6px', borderRadius: 999,
                         border: '1px solid var(--border,#e5e7eb)',
                         color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-                      }}>On your flowsheet</span>
+                      }}>{translate('Medications.on_your_flowsheet')}</span>
                     </div>
                     <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-                      Given during treatment — already on your record, no need to log it.
+                      {translate('Medications.given_during_treatment_already_on_your')}
                     </div>
                   </div>
                 ))}
@@ -669,22 +665,20 @@ export default function Medications() {
                               fontSize: '.68rem', padding: '1px 6px', borderRadius: 999,
                               border: '1px solid var(--border,#e5e7eb)',
                               color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-                            }}>Also on your flowsheet</span>
+                            }}>{translate('Medications.also_on_your_flowsheet')}</span>
                           )}
-                          <button className="btn btn-danger btn-sm" onClick={() => deleteDose(d.id)} title="Delete"><Trash2 size={14} /></button>
+                          <button className="btn btn-danger btn-sm" onClick={() => deleteDose(d.id)} title={translate('Medications.delete')}><Trash2 size={14} /></button>
                         </div>
                       </div>
                       <div style={{ fontSize: '.85rem', color: 'var(--text-secondary)' }}>{d.dose_amount} {d.dose_unit}</div>
                       {(d.pre_systolic_bp || d.pre_heart_rate || d.pre_temperature_c != null) && (
                         <div style={{ fontSize: '.78rem', marginTop: 4 }}>
-                          Pre: {d.pre_systolic_bp ?? '–'}/{d.pre_diastolic_bp ?? '–'} mmHg, HR {d.pre_heart_rate ?? '–'}
-                          {d.pre_temperature_c != null && `, ${temp.fmt(d.pre_temperature_c)}`}
+                          {translate('Medications.pre_mmhg_hr', { pre_systolic_bp: d.pre_systolic_bp ?? '–', pre_diastolic_bp: d.pre_diastolic_bp ?? '–', pre_heart_rate: d.pre_heart_rate ?? '–', pre_temperature_c: d.pre_temperature_c != null && `, ${temp.fmt(d.pre_temperature_c)}` })}
                         </div>
                       )}
                       {(d.post_systolic_bp || d.post_heart_rate || d.post_temperature_c != null) && (
                         <div style={{ fontSize: '.78rem' }}>
-                          Post: {d.post_systolic_bp ?? '–'}/{d.post_diastolic_bp ?? '–'} mmHg, HR {d.post_heart_rate ?? '–'}
-                          {d.post_temperature_c != null && `, ${temp.fmt(d.post_temperature_c)}`}
+                          {translate('Medications.post_mmhg_hr', { post_systolic_bp: d.post_systolic_bp ?? '–', post_diastolic_bp: d.post_diastolic_bp ?? '–', post_heart_rate: d.post_heart_rate ?? '–', post_temperature_c: d.post_temperature_c != null && `, ${temp.fmt(d.post_temperature_c)}` })}
                         </div>
                       )}
                       {note && <div style={{ fontSize: '.82rem', marginTop: 4 }}>{note}</div>}

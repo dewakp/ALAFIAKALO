@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import api from '../services/api';
+import { t } from '../i18n';
 
 /**
  * Structured capture for drugs given DURING a dialysis session.
@@ -97,13 +98,13 @@ export default function DrugsAdministered({ value, onChange, label = 'Drugs Admi
       {optionsError && (
         <div data-testid="drug-options-error"
              style={{ fontSize: '.75rem', color: '#c62828', marginBottom: '.4rem' }}>
-          Could not load the drug list — you can still type a name and dose.
+          {t('DrugsAdministered.could_not_load_the_drug_list_you_can')}
         </div>
       )}
 
       {rows.length === 0 && (
         <div style={{ fontSize: '.8rem', color: 'var(--color-text-tertiary, #888)', marginBottom: '.4rem' }}>
-          No drugs recorded for this session.
+          {t('DrugsAdministered.no_drugs_recorded_for_this_session')}
         </div>
       )}
 
@@ -114,7 +115,7 @@ export default function DrugsAdministered({ value, onChange, label = 'Drugs Admi
             aria-label={`Drug ${i + 1} name`}
             value={row.name}
             onChange={(e) => setRow(i, { name: e.target.value })}
-            placeholder="Drug"
+            placeholder={t('DrugsAdministered.drug')}
             style={{ flex: 2, padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}
           />
           <input
@@ -142,7 +143,7 @@ export default function DrugsAdministered({ value, onChange, label = 'Drugs Admi
 
       <button type="button" onClick={addRow} className="btn btn-secondary btn-sm"
               style={{ marginTop: '.2rem' }}>
-        <Plus size={12} /> Add drug
+        <Plus size={12} /> {t('DrugsAdministered.add_drug')}
       </button>
     </div>
   );

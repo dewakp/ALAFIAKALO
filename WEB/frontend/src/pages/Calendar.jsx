@@ -4,17 +4,18 @@ import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import { Plus, ChevronLeft, ChevronRight, Check, Trash2, X, Clock, MapPin, Calendar as CalIcon, Repeat } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const CATEGORIES = [
-  { key: 'appointment', label: 'Appointment', color: '#2196F3' },
-  { key: 'meal', label: 'Meal', color: '#4CAF50' },
-  { key: 'medication', label: 'Medication', color: '#FF9800' },
-  { key: 'exercise', label: 'Exercise', color: '#E91E63' },
-  { key: 'meditation', label: 'Meditation', color: '#9C27B0' },
-  { key: 'therapy', label: 'Therapy', color: '#00BCD4' },
-  { key: 'lab', label: 'Lab / Test', color: '#795548' },
-  { key: 'wellness', label: 'Wellness', color: '#607D8B' },
-  { key: 'custom', label: 'Custom', color: '#9E9E9E' },
+  { key: 'appointment', get label() { return t('Calendar.appointment'); }, color: '#2196F3' },
+  { key: 'meal', get label() { return t('Calendar.meal'); }, color: '#4CAF50' },
+  { key: 'medication', get label() { return t('Calendar.medication'); }, color: '#FF9800' },
+  { key: 'exercise', get label() { return t('Calendar.exercise'); }, color: '#E91E63' },
+  { key: 'meditation', get label() { return t('Calendar.meditation'); }, color: '#9C27B0' },
+  { key: 'therapy', get label() { return t('Calendar.therapy'); }, color: '#00BCD4' },
+  { key: 'lab', get label() { return t('Calendar.lab_test'); }, color: '#795548' },
+  { key: 'wellness', get label() { return t('Calendar.wellness'); }, color: '#607D8B' },
+  { key: 'custom', get label() { return t('Calendar.custom'); }, color: '#9E9E9E' },
 ];
 const STATUS_OPTIONS = ['scheduled', 'completed', 'missed', 'cancelled', 'skipped'];
 const RECURRENCE_OPTIONS = ['none', 'daily', 'weekly', 'biweekly', 'monthly', 'yearly'];
@@ -133,12 +134,12 @@ export default function Calendar() {
       setShowForm(false);
       loadMonth();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Error saving event'));
+      alert(apiErrorMessage(err, t('Calendar.error_saving_event')));
     }
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this event?')) return;
+    if (!confirm(t('Calendar.delete_this_event'))) return;
     await api.delete(`/calendar/${id}`);
     loadMonth();
   }
@@ -156,10 +157,10 @@ export default function Calendar() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Calendar</h1>
+          <h1 className="page-title">{t('Calendar.calendar')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => openCreate(selectedDate)}>
-          <Plus size={18} /> New Event
+          <Plus size={18} /> {t('Calendar.new_event')}
         </button>
       </div>
 
@@ -219,7 +220,7 @@ export default function Calendar() {
 
       {/* Category filter */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '1rem' }}>
-        <button className={`btn btn-sm ${!filterCat ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterCat('')}>All</button>
+        <button className={`btn btn-sm ${!filterCat ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterCat('')}>{t('Calendar.all')}</button>
         {CATEGORIES.map(c => (
           <button key={c.key}
             className={`btn btn-sm ${filterCat === c.key ? 'btn-primary' : 'btn-secondary'}`}
@@ -233,14 +234,14 @@ export default function Calendar() {
       <div style={{ marginBottom: '1rem' }}>
         <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>
           {new Date(selectedDate + 'T12:00:00').toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric' })}
-          <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}> — {eventsOnDate.length} event{eventsOnDate.length !== 1 ? 's' : ''}</span>
+          <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}> {(eventsOnDate.length !== 1) ? t('Calendar.events', { eventsOnDate: eventsOnDate.length }) : t('Calendar.event', { eventsOnDate: eventsOnDate.length })}</span>
         </h3>
         {eventsOnDate.length === 0 && (
           <div className="card" style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>
-            No events on this day.
+            {t('Calendar.no_events_on_this_day')}
             <br />
             <button className="btn btn-primary btn-sm" style={{ marginTop: 8 }} onClick={() => openCreate(selectedDate)}>
-              <Plus size={14} /> Add Event
+              <Plus size={14} /> {t('Calendar.add_event')}
             </button>
           </div>
         )}
@@ -289,11 +290,11 @@ export default function Calendar() {
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 {ev.status === 'scheduled' && (
-                  <button className="btn btn-sm" title="Complete" style={{ background: '#4caf50', color: '#fff', border: 'none' }}
+                  <button className="btn btn-sm" title={t('Calendar.complete')} style={{ background: '#4caf50', color: '#fff', border: 'none' }}
                     onClick={() => handleComplete(ev.id)}><Check size={14} /></button>
                 )}
-                <button className="btn btn-secondary btn-sm" title="Edit" onClick={() => openEdit(ev)}>Edit</button>
-                <button className="btn btn-danger btn-sm" title="Delete" onClick={() => handleDelete(ev.id)}><Trash2 size={14} /></button>
+                <button className="btn btn-secondary btn-sm" title={t('Calendar.edit')} onClick={() => openEdit(ev)}>{t('Calendar.edit')}</button>
+                <button className="btn btn-danger btn-sm" title={t('Calendar.delete')} onClick={() => handleDelete(ev.id)}><Trash2 size={14} /></button>
               </div>
             </div>
           </div>
@@ -314,32 +315,32 @@ export default function Calendar() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">Title *</label>
+                <label className="form-label">{t('Calendar.title')}</label>
                 <input className="form-input" value={form.title} required
                   onChange={e => setForm({ ...form, title: e.target.value })} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Category</label>
+                  <label className="form-label">{t('Calendar.category')}</label>
                   <select className="form-input" value={form.category}
                     onChange={e => setForm({ ...form, category: e.target.value })}>
                     {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Date *</label>
+                  <label className="form-label">{t('Calendar.date')}</label>
                   <input className="form-input" type="date" value={form.event_date} required
                     onChange={e => setForm({ ...form, event_date: e.target.value })} />
                 </div>
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Start Time</label>
+                  <label className="form-label">{t('Calendar.start_time')}</label>
                   <input className="form-input" type="time" value={form.start_time} disabled={form.all_day}
                     onChange={e => setForm({ ...form, start_time: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">End Time</label>
+                  <label className="form-label">{t('Calendar.end_time')}</label>
                   <input className="form-input" type="time" value={form.end_time} disabled={form.all_day}
                     onChange={e => setForm({ ...form, end_time: e.target.value })} />
                 </div>
@@ -347,23 +348,23 @@ export default function Calendar() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                     <input type="checkbox" checked={form.all_day}
                       onChange={e => setForm({ ...form, all_day: e.target.checked })} />
-                    All day
+                    {t('Calendar.all_day')}
                   </label>
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Description</label>
+                <label className="form-label">{t('Calendar.description')}</label>
                 <textarea className="form-input" rows={2} value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Location</label>
-                <input className="form-input" value={form.location} placeholder="e.g., Dr. Smith's Clinic"
+                <label className="form-label">{t('Calendar.location')}</label>
+                <input className="form-input" value={form.location} placeholder={t('Calendar.e_g_dr_smith_s_clinic')}
                   onChange={e => setForm({ ...form, location: e.target.value })} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Recurrence</label>
+                  <label className="form-label">{t('Calendar.recurrence')}</label>
                   <select className="form-input" value={form.recurrence}
                     onChange={e => setForm({ ...form, recurrence: e.target.value })}>
                     {RECURRENCE_OPTIONS.map(r => <option key={r} value={r}>{r === 'none' ? 'No repeat' : r}</option>)}
@@ -371,7 +372,7 @@ export default function Calendar() {
                 </div>
                 {form.recurrence !== 'none' && (
                   <div className="form-group">
-                    <label className="form-label">Repeat Until</label>
+                    <label className="form-label">{t('Calendar.repeat_until')}</label>
                     <input className="form-input" type="date" value={form.recurrence_end_date}
                       onChange={e => setForm({ ...form, recurrence_end_date: e.target.value })} />
                   </div>
@@ -379,27 +380,27 @@ export default function Calendar() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Priority</label>
+                  <label className="form-label">{t('Calendar.priority')}</label>
                   <select className="form-input" value={form.priority}
                     onChange={e => setForm({ ...form, priority: e.target.value })}>
-                    <option value="">None</option>
+                    <option value="">{t('Calendar.none')}</option>
                     {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Reminder (minutes before)</label>
+                  <label className="form-label">{t('Calendar.reminder_minutes_before')}</label>
                   <input className="form-input" type="number" min={0} value={form.reminder_minutes}
                     placeholder="e.g., 30"
                     onChange={e => setForm({ ...form, reminder_minutes: e.target.value })} />
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Notes</label>
+                <label className="form-label">{t('Calendar.notes')}</label>
                 <textarea className="form-input" rows={2} value={form.notes}
                   onChange={e => setForm({ ...form, notes: e.target.value })} />
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>{t('Calendar.cancel')}</button>
                 <button type="submit" className="btn btn-primary">{editId ? 'Save Changes' : 'Create Event'}</button>
               </div>
             </form>

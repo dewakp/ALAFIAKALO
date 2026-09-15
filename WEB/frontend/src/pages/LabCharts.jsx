@@ -21,6 +21,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const LINE_COLORS = [
   '#10b981',
@@ -119,14 +120,13 @@ function GroupChart({ group }) {
           </span>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 13, color: '#6b7280' }}>
-          {group.series.length} test{group.series.length !== 1 ? 's' : ''} &middot;{' '}
-          {chartData.length} data point{chartData.length !== 1 ? 's' : ''}
+          {(group.series.length !== 1) ? t('LabCharts.tests_data_point', { series: group.series.length, chartData: chartData.length, value: chartData.length !== 1 ? 's' : '' }) : t('LabCharts.test_data_point', { series: group.series.length, chartData: chartData.length, value: chartData.length !== 1 ? 's' : '' })}
         </span>
       </div>
 
       {chartData.length === 0 ? (
         <p style={{ color: '#9ca3af', textAlign: 'center', padding: 24 }}>
-          No data points available for this group.
+          {t('LabCharts.no_data_points_available_for_this_group')}
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
@@ -226,7 +226,7 @@ export default function LabCharts() {
       setGroups(Array.isArray(res.data) ? res.data : res.data.groups || []);
     } catch (err) {
       console.error('Failed to load lab chart groups:', err);
-      setError(apiErrorMessage(err, 'Failed to load lab chart data.'));
+      setError(apiErrorMessage(err, t('LabCharts.failed_to_load_lab_chart_data')));
     } finally {
       setLoading(false);
     }
@@ -241,18 +241,18 @@ export default function LabCharts() {
           <BackButton />
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Activity size={28} style={{ color: 'var(--color-primary)' }} />
-            Lab Charts
+            {t('LabCharts.lab_charts')}
           </h1>
         </div>
         <p style={{ color: '#6b7280', margin: '4px 0 0', fontSize: 14 }}>
-          Interactive visualizations of your lab results over time
+          {t('LabCharts.interactive_visualizations_of_your_lab')}
         </p>
       </div>
 
       {loading && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 10 }}>
           <Loader2 size={24} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} />
-          <span style={{ color: '#6b7280', fontSize: 15 }}>Loading lab charts…</span>
+          <span style={{ color: '#6b7280', fontSize: 15 }}>{t('LabCharts.loading_lab_charts')}</span>
         </div>
       )}
 
@@ -269,7 +269,7 @@ export default function LabCharts() {
         >
           <AlertCircle size={20} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
           <div>
-            <p style={{ margin: 0, fontWeight: 600, color: '#991b1b' }}>Error loading data</p>
+            <p style={{ margin: 0, fontWeight: 600, color: '#991b1b' }}>{t('LabCharts.error_loading_data')}</p>
             <p style={{ margin: '4px 0 0', color: '#b91c1c', fontSize: 14 }}>{error}</p>
           </div>
           <button
@@ -277,7 +277,7 @@ export default function LabCharts() {
             onClick={fetchGroups}
             style={{ marginLeft: 'auto' }}
           >
-            Retry
+            {t('LabCharts.retry')}
           </button>
         </div>
       )}
@@ -286,7 +286,7 @@ export default function LabCharts() {
         <div className="card" style={{ textAlign: 'center', padding: 48 }}>
           <FlaskConical size={40} style={{ color: '#d1d5db', marginBottom: 12 }} />
           <p style={{ color: '#6b7280', fontSize: 15, margin: 0 }}>
-            No lab results available yet. Your lab charts will appear here once results are recorded.
+            {t('LabCharts.no_lab_results_available_yet_your_lab')}
           </p>
         </div>
       )}
@@ -325,7 +325,7 @@ export default function LabCharts() {
                   {groups.length}
                 </p>
                 <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>
-                  Test Group{groups.length !== 1 ? 's' : ''}
+                  {(groups.length !== 1) ? t('LabCharts.test_groups') : t('LabCharts.test_group')}
                 </p>
               </div>
             </div>
@@ -357,7 +357,7 @@ export default function LabCharts() {
                   {totalTests}
                 </p>
                 <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>
-                  Total Test{totalTests !== 1 ? 's' : ''}
+                  {(totalTests !== 1) ? t('LabCharts.total_tests') : t('LabCharts.total_test')}
                 </p>
               </div>
             </div>

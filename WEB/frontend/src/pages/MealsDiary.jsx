@@ -5,6 +5,7 @@ import api from '../services/api';
 import NutrientPanel from '../components/NutrientPanel';
 import { ChevronLeft, ChevronRight, Clock, Weight, Plus, RefreshCw, Edit2 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 /* ─── helpers ─── */
 const today = () => localToday();
@@ -21,21 +22,21 @@ const MEAL_EMOJI = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: 
    they were fixed for every patient (phosphorus 1000 mg, sodium 2300 mg),
    which is not a dialysis patient's limit. */
 const MACRO_PILLS = [
-  { key: 'calories',      label: 'Cal',   unit: 'kcal', danger: null },
+  { key: 'calories',      get label() { return t('MealsDiary.cal'); },   unit: 'kcal', danger: null },
   { key: 'protein_g',     label: 'P',     unit: 'g',    danger: null },
   { key: 'carbs_g',       label: 'C',     unit: 'g',    danger: null },
   { key: 'fat_g',         label: 'F',     unit: 'g',    danger: null },
-  { key: 'fiber_g',       label: 'Fib',   unit: 'g',    danger: null },
-  { key: 'sugar_g',       label: 'Sug',   unit: 'g',    danger: 50  },
-  { key: 'iron_mg',       label: 'Fe',    unit: 'mg',   danger: null },
-  { key: 'phosphorus_mg', label: 'Phos',  unit: 'mg',   danger: 1000 },
-  { key: 'calcium_mg',    label: 'Ca',    unit: 'mg',   danger: null },
-  { key: 'sodium_mg',     label: 'Na',    unit: 'mg',   danger: 2300 },
-  { key: 'vitamin_d_iu',  label: 'VitD',  unit: 'IU',   danger: null },
+  { key: 'fiber_g',       get label() { return t('MealsDiary.fib'); },   unit: 'g',    danger: null },
+  { key: 'sugar_g',       get label() { return t('MealsDiary.sug'); },   unit: 'g',    danger: 50  },
+  { key: 'iron_mg',       get label() { return t('MealsDiary.fe'); },    unit: 'mg',   danger: null },
+  { key: 'phosphorus_mg', get label() { return t('MealsDiary.phos'); },  unit: 'mg',   danger: 1000 },
+  { key: 'calcium_mg',    get label() { return t('MealsDiary.ca'); },    unit: 'mg',   danger: null },
+  { key: 'sodium_mg',     get label() { return t('MealsDiary.na'); },    unit: 'mg',   danger: 2300 },
+  { key: 'vitamin_d_iu',  get label() { return t('MealsDiary.vitd'); },  unit: 'IU',   danger: null },
   { key: 'potassium_mg',  label: 'K',     unit: 'mg',   danger: null },
   { key: 'vitamin_b12_mcg','label': 'B12', unit: 'µg',  danger: null },
-  { key: 'vitamin_b9_folate_mcg','label':'Fol','unit':'µg',danger:null },
-  { key: 'cholesterol_mg','label': 'Chol','unit': 'mg', danger: 300 },
+  { key: 'vitamin_b9_folate_mcg',get label() { return t('MealsDiary.fol'); },'unit':'µg',danger:null },
+  { key: 'cholesterol_mg',get label() { return t('MealsDiary.chol'); },'unit': 'mg', danger: 300 },
 ];
 
 function pillColor(pill, value) {
@@ -157,10 +158,10 @@ export default function MealsDiary() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Meals Diary</h1>
+          <h1 className="page-title">{t('MealsDiary.meals_diary')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/nutrition')}>
-          <Plus size={16}/> Log New Food Intake
+          <Plus size={16}/> {t('MealsDiary.log_new_food_intake')}
         </button>
       </div>
 
@@ -203,7 +204,7 @@ export default function MealsDiary() {
             })}
           </div>
           <div style={{ marginTop: '.75rem', fontSize: '.72rem', color: 'var(--color-text-tertiary)', textAlign: 'center' }}>
-            Dates with a <span style={{ color: 'var(--color-primary)', fontSize: '1em' }}>●</span> have logged meals.
+            {t('MealsDiary.dates_with_a')} <span style={{ color: 'var(--color-primary)', fontSize: '1em' }}>●</span> {t('MealsDiary.have_logged_meals')}
           </div>
         </div>
 
@@ -214,16 +215,16 @@ export default function MealsDiary() {
         {/* ── RIGHT: Meals for selected date ── */}
         <div>
           <h2 style={{ margin: '0 0 .75rem', fontSize: '1.1rem', fontWeight: 700 }}>
-            Meals for {fmt(selectedDate)}
+            {t('MealsDiary.meals_for', { selectedDate: fmt(selectedDate) })}
           </h2>
 
-          {loading && <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>Loading…</div>}
+          {loading && <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>{t('MealsDiary.loading')}</div>}
 
           {!loading && selectedLogs.length === 0 && (
             <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>
-              No meals logged for this date.
+              {t('MealsDiary.no_meals_logged_for_this_date')}
               <div style={{ marginTop: '1rem' }}>
-                <button className="btn btn-primary btn-sm" onClick={() => navigate('/nutrition')}>Log New Food Intake</button>
+                <button className="btn btn-primary btn-sm" onClick={() => navigate('/nutrition')}>{t('MealsDiary.log_new_food_intake')}</button>
               </div>
             </div>
           )}
@@ -241,19 +242,19 @@ export default function MealsDiary() {
                   {/* Header row: description + buttons */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '.5rem', marginBottom: '.4rem' }}>
                     <p style={{ margin: 0, fontSize: '.88rem', fontWeight: 500, flex: 1 }}>
-                      <strong>Description:</strong> {log.food_name}
+                      <strong>{t('MealsDiary.description')}</strong> {log.food_name}
                     </p>
                     <div style={{ display: 'flex', gap: '.4rem', flexShrink: 0 }}>
                       <button className="btn btn-secondary btn-sm" onClick={() => reanalyze(log)}
                         disabled={reanalyzing === log.id}
                         style={{ fontSize: '.72rem', padding: '.25rem .5rem', display: 'flex', alignItems: 'center', gap: '.25rem' }}>
                         <RefreshCw size={11} style={reanalyzing === log.id ? { animation: 'spin 1s linear infinite' } : {}}/>
-                        Re-analyze
+                        {t('MealsDiary.re_analyze')}
                       </button>
                       <button className="btn btn-secondary btn-sm"
                         onClick={() => navigate(`/nutrition?edit=${log.id}`)}
                         style={{ fontSize: '.72rem', padding: '.25rem .5rem', display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                        <Edit2 size={11}/> Edit
+                        <Edit2 size={11}/> {t('MealsDiary.edit')}
                       </button>
                     </div>
                   </div>
@@ -269,12 +270,12 @@ export default function MealsDiary() {
                     )}
                     {log.pre_meal_weight_kg && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                        <Weight size={12}/> Pre-Meal: {log.pre_meal_weight_kg} kg
+                        <Weight size={12}/> {t('MealsDiary.pre_meal_kg', { pre_meal_weight_kg: log.pre_meal_weight_kg })}
                       </span>
                     )}
                     {log.post_meal_weight_kg && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                        <Weight size={12}/> Post-Meal: {log.post_meal_weight_kg} kg
+                        <Weight size={12}/> {t('MealsDiary.post_meal_kg', { post_meal_weight_kg: log.post_meal_weight_kg })}
                       </span>
                     )}
                   </div>
@@ -333,12 +334,12 @@ function BalanceLine({ balance, unit }) {
   return (
     <div style={{ fontSize: '.64rem', marginTop: '.15rem', lineHeight: 1.35 }}>
       <span style={{ color: gained ? '#b45309' : 'var(--color-primary)', fontWeight: 600 }}>
-        {gained ? '+' : ''}{fmtNum(balance.delta)}{unit} from dialysis
+        {(gained) ? t('MealsDiary.from_dialysis', { delta: fmtNum(balance.delta), unit }) : t('MealsDiary.from_dialysis_2', { delta: fmtNum(balance.delta), unit })}
       </span>
       <span style={{ color: 'var(--color-text-tertiary)' }}>
-        {' '}· net {fmtNum(balance.net)}{unit}
+        {' '}{t('MealsDiary.net', { net: fmtNum(balance.net), unit })}
       </span>
-      {!balance.calibrated && <span style={{ color: 'var(--color-text-tertiary)' }}> · est.</span>}
+      {!balance.calibrated && <span style={{ color: 'var(--color-text-tertiary)' }}> {t('MealsDiary.est')}</span>}
     </div>
   );
 }
@@ -357,7 +358,7 @@ function NutrientGoalsCard({ data }) {
   if (!data) {
     return (
       <div className="card" style={{ padding: '1rem', fontSize: '.8rem', color: 'var(--color-text-tertiary)' }}>
-        Daily nutrient goals will appear here.
+        {t('MealsDiary.daily_nutrient_goals_will_appear_here')}
       </div>
     );
   }
@@ -366,7 +367,7 @@ function NutrientGoalsCard({ data }) {
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.5rem' }}>
-        <span style={{ fontWeight: 700, fontSize: '.9rem' }}>Daily Nutrient Goals</span>
+        <span style={{ fontWeight: 700, fontSize: '.9rem' }}>{t('MealsDiary.daily_nutrient_goals')}</span>
       </div>
 
       {/* Condition chips — what the goals are tuned for */}
@@ -383,7 +384,7 @@ function NutrientGoalsCard({ data }) {
 
       {!data.profile_complete && (
         <div style={{ fontSize: '.7rem', color: 'var(--color-text-tertiary)', marginBottom: '.6rem', lineHeight: 1.35 }}>
-          Add your age, height &amp; weight in Profile for goals tailored to you. Showing general guidance for now.
+          {t('MealsDiary.add_your_age_height_weight_in_profile')}
         </div>
       )}
 
@@ -391,11 +392,10 @@ function NutrientGoalsCard({ data }) {
         <div style={{ marginBottom: '.6rem', padding: '.45rem .55rem', borderRadius: 6,
           background: 'var(--color-primary-light, #e0f2fe)', border: '1px solid #7dd3fc' }}>
           <div style={{ fontSize: '.72rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-            Dialysis on this day — {dialysis.session_count} session{dialysis.session_count === 1 ? '' : 's'}
+            {(dialysis.session_count === 1) ? t('MealsDiary.dialysis_on_this_day_session', { session_count: dialysis.session_count }) : t('MealsDiary.dialysis_on_this_day_sessions', { session_count: dialysis.session_count })}
           </div>
           <div style={{ fontSize: '.66rem', color: 'var(--color-text-secondary)', marginTop: '.1rem' }}>
-            Your limits are unchanged — they already assume your usual treatment. What changes is
-            the day's balance.
+            {t('MealsDiary.your_limits_are_unchanged_they_already')}
           </div>
           {/* When the model could not run, say so. Silence here is what made a
               missing dialysate volume look like "dialysis had no effect". */}
@@ -431,8 +431,7 @@ function NutrientGoalsCard({ data }) {
       </div>
 
       <div style={{ marginTop: '.7rem', fontSize: '.66rem', color: 'var(--color-text-tertiary)', lineHeight: 1.4 }}>
-        <span style={{ color: '#22c55e' }}>↑</span> aim for · <span style={{ color: '#ef4444' }}>↓</span> stay under.
-        Based on your biology &amp; conditions (NIH/USDA guidance) — not medical advice.
+        <span style={{ color: '#22c55e' }}>↑</span> {t('MealsDiary.aim_for')} <span style={{ color: '#ef4444' }}>↓</span> {t('MealsDiary.stay_under_based_on_your_biology')}
       </div>
     </div>
   );

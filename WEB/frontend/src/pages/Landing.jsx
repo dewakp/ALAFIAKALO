@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Angel, MarketingFooter, MarketingNav, Orb, SnowCanvas } from '../components/MarketingChrome';
 import './Landing.css';
+import { t } from '../i18n';
 
 // ── Feature Card ──────────────────────────────────────────────────────────────
 function FeatureCard({ icon, title, desc, delay = 0 }) {
@@ -30,15 +31,15 @@ export default function Landing() {
   const { user } = useAuth();
 
   const features = [
-    { icon: '🤖', title: 'AI Health Companion', desc: 'Agentic AI that learns your patterns and delivers personalized health guidance around the clock.' },
-    { icon: '🧬', title: 'Lab Intelligence', desc: 'Upload lab results and unlock AI-powered trend charts, anomaly detection, and plain-language explanations.' },
-    { icon: '💊', title: 'Smart Medications', desc: 'Track every prescription, dosage, and refill across all providers with pharmacy integration.' },
-    { icon: '🥗', title: 'Nutrition & Pantry', desc: 'Log meals, manage pantry inventory, scan ingredients, and receive AI-generated meal plans.' },
-    { icon: '🏋️', title: 'Fitness & Exercise', desc: 'Log workouts, generate personalized exercise plans, and visualize progress over time.' },
-    { icon: '🧠', title: 'Mental Wellness', desc: 'Mood tracking, stress journaling, mindfulness tools, and mental health resource library.' },
-    { icon: '🏥', title: 'Telehealth', desc: 'Connect with physicians, coordinate your care team, and manage appointments from one hub.' },
-    { icon: '📊', title: 'Health Charts', desc: 'Beautiful AI-powered dashboards visualizing every dimension of your health over time.' },
-    { icon: '🌍', title: 'Community & Safety', desc: 'FDA recall alerts, wellness resources, and evidence-based community health knowledge.' },
+    { icon: '🤖', title: t('Landing.ai_health_companion'), desc: t('Landing.agentic_ai_that_learns_your_patterns_and') },
+    { icon: '🧬', title: t('Landing.lab_intelligence'), desc: t('Landing.upload_lab_results_and_unlock_ai_powered') },
+    { icon: '💊', title: t('Landing.smart_medications'), desc: t('Landing.track_every_prescription_dosage_and') },
+    { icon: '🥗', title: t('Landing.nutrition_pantry'), desc: t('Landing.log_meals_manage_pantry_inventory_scan') },
+    { icon: '🏋️', title: t('Landing.fitness_exercise'), desc: t('Landing.log_workouts_generate_personalized') },
+    { icon: '🧠', title: t('Landing.mental_wellness'), desc: t('Landing.mood_tracking_stress_journaling') },
+    { icon: '🏥', title: t('Landing.telehealth'), desc: t('Landing.connect_with_physicians_coordinate_your') },
+    { icon: '📊', title: t('Landing.health_charts'), desc: t('Landing.beautiful_ai_powered_dashboards') },
+    { icon: '🌍', title: t('Landing.community_safety'), desc: t('Landing.fda_recall_alerts_wellness_resources_and') },
   ];
 
   return (
@@ -65,18 +66,16 @@ export default function Landing() {
         <div className="hero-content">
           <div className="hero-badge">
             <span className="badge-orb" />
-            ✦ Agentic Health Intelligence · Est. 2026 ✦
+            {t('Landing.agentic_health_intelligence_est_2026')}
           </div>
 
           <h1 className="hero-h1">
-            <span className="h1-plain">Heal Smarter.</span>
-            <span className="h1-gradient">Live Infinitely.</span>
+            <span className="h1-plain">{t('Landing.heal_smarter')}</span>
+            <span className="h1-gradient">{t('Landing.live_infinitely')}</span>
           </h1>
 
           <p className="hero-sub">
-            ALAFIA is an Intelligent health platform that unifies your entire health universe —
-            labs, medications, fitness, nutrition, mental wellness, and clinical care — into one
-            intelligent, wholesome experience.
+            {t('Landing.alafia_is_an_intelligent_health_platform')}
           </p>
 
           <div className="hero-actions">
@@ -85,19 +84,19 @@ export default function Landing() {
             </button>
             {!user && (
               <button className="btn-ghost-lg" onClick={() => navigate('/login')}>
-                Sign In
+                {t('Landing.sign_in')}
               </button>
             )}
           </div>
 
           <div className="hero-stats">
-            <Stat value="30+" label="Health Modules" />
+            <Stat value="30+" label={t('Landing.health_modules')} />
             <div className="stat-divider" />
-            <Stat value="AI" label="Powered" />
+            <Stat value="AI" label={t('Landing.powered')} />
             <div className="stat-divider" />
-            <Stat value="3" label="Platforms" />
+            <Stat value="3" label={t('Landing.platforms')} />
             <div className="stat-divider" />
-            <Stat value="∞" label="Possibilities" />
+            <Stat value="∞" label={t('Landing.possibilities')} />
           </div>
         </div>
 
@@ -107,21 +106,21 @@ export default function Landing() {
 
       {/* ══ TAGLINE BAND ════════════════════════════════════════════════════ */}
       <div className="tagline-band">
-        <span>🕊️ Wholeness of Body</span>
+        <span>{t('Landing.wholeness_of_body')}</span>
         <span className="divider">✦</span>
-        <span>💡 Intelligence of Mind</span>
+        <span>{t('Landing.intelligence_of_mind')}</span>
         <span className="divider">✦</span>
-        <span>🌿 Healing of Spirit</span>
+        <span>{t('Landing.healing_of_spirit')}</span>
         <span className="divider">✦</span>
-        <span>🌍 Health for All Humanity</span>
+        <span>{t('Landing.health_for_all_humanity')}</span>
       </div>
 
       {/* ══ FEATURES ════════════════════════════════════════════════════════ */}
       <section className="section-wrap" id="features">
         <div className="section-head">
           <span className="eyebrow">PLATFORM CAPABILITIES</span>
-          <h2>Everything Your Health Deserves</h2>
-          <p>A complete health ecosystem — intelligent, connected, and beautifully human.</p>
+          <h2>{t('Landing.everything_your_health_deserves')}</h2>
+          <p>{t('Landing.a_complete_health_ecosystem_intelligent')}</p>
         </div>
         <div className="features-grid">
           {features.map((f, i) => (
@@ -139,22 +138,17 @@ export default function Landing() {
           </div>
           <div className="vision-text">
             <span className="eyebrow">OUR VISION</span>
-            <h2>A Health Utopia for Every Human</h2>
+            <h2>{t('Landing.a_health_utopia_for_every_human')}</h2>
             <p>
-              We believe every person deserves a guardian angel for their health — an intelligent,
-              compassionate companion that never sleeps, never forgets, and always advocates for
-              your total wellbeing.
+              {t('Landing.we_believe_every_person_deserves_a')}
             </p>
             <p>
-              ALAFIA (meaning <em>"health/peace/wellbeing"</em> in Yoruba) was born from the vision that
-              advanced healthcare intelligence should be universal — not a privilege for the few,
-              but a fundamental right for all.
+              {t('Landing.alafia_meaning')} <em>{t('Landing.health_peace_wellbeing')}</em> {t('Landing.in_yoruba_was_born_from_the_vision_that')}
             </p>
             <p>
-              Our agentic AI doesn't just store data. It understands you, learns from you, and
-              works alongside you to chart a course toward optimal health — mind, body, and spirit.
+              {t('Landing.our_agentic_ai_doesn_t_just_store_data')}
             </p>
-            <Link to="/register" className="btn-vision">Join the Movement ✦</Link>
+            <Link to="/register" className="btn-vision">{t('Landing.join_the_movement')}</Link>
           </div>
         </div>
       </section>
@@ -163,28 +157,28 @@ export default function Landing() {
       <section className="section-wrap section-wrap--narrow" id="platforms">
         <div className="section-head">
           <span className="eyebrow">AVAILABLE ON</span>
-          <h2>Your Health, Everywhere</h2>
-          <p>Seamlessly experience ALAFIA across all your devices.</p>
+          <h2>{t('Landing.your_health_everywhere')}</h2>
+          <p>{t('Landing.seamlessly_experience_alafia_across_all')}</p>
         </div>
         <div className="platforms-grid">
           <div className="platform-card">
             <span className="platform-icon">🌐</span>
-            <h3>Web</h3>
-            <p>Full-featured dashboard accessible from any modern browser.</p>
-            <Link to="/login" className="platform-link">Launch App →</Link>
+            <h3>{t('Landing.web')}</h3>
+            <p>{t('Landing.full_featured_dashboard_accessible_from')}</p>
+            <Link to="/login" className="platform-link">{t('Landing.launch_app')}</Link>
           </div>
           <div className="platform-card platform-card--featured">
-            <div className="platform-badge">Most Popular</div>
+            <div className="platform-badge">{t('Landing.most_popular')}</div>
             <span className="platform-icon">📱</span>
-            <h3>iOS</h3>
-            <p>Native SwiftUI app built for iPhone and iPad.</p>
-            <span className="platform-link platform-link--soon">Coming to App Store</span>
+            <h3>{t('Landing.ios')}</h3>
+            <p>{t('Landing.native_swiftui_app_built_for_iphone_and')}</p>
+            <span className="platform-link platform-link--soon">{t('Landing.coming_to_app_store')}</span>
           </div>
           <div className="platform-card">
             <span className="platform-icon">🤖</span>
-            <h3>Android</h3>
-            <p>Native Jetpack Compose app for all Android devices.</p>
-            <span className="platform-link platform-link--soon">Coming to Play Store</span>
+            <h3>{t('Landing.android')}</h3>
+            <p>{t('Landing.native_jetpack_compose_app_for_all')}</p>
+            <span className="platform-link platform-link--soon">{t('Landing.coming_to_play_store')}</span>
           </div>
         </div>
       </section>
@@ -197,11 +191,11 @@ export default function Landing() {
         </div>
         <div className="cta-glow" />
         <span className="eyebrow">START TODAY — IT'S FREE</span>
-        <h2>Your Guardian Angel Awaits</h2>
-        <p>Join the movement toward total health sovereignty and intelligent living.</p>
+        <h2>{t('Landing.your_guardian_angel_awaits')}</h2>
+        <p>{t('Landing.join_the_movement_toward_total_health')}</p>
         <div className="cta-actions">
-          <Link to="/register" className="btn-primary-lg">Create Free Account ✦</Link>
-          <Link to="/login" className="btn-ghost-lg">Sign In</Link>
+          <Link to="/register" className="btn-primary-lg">{t('Landing.create_free_account')}</Link>
+          <Link to="/login" className="btn-ghost-lg">{t('Landing.sign_in')}</Link>
         </div>
       </section>
 

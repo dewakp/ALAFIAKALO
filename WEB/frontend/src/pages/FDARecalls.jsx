@@ -5,11 +5,12 @@ import BackButton from '../components/BackButton';
 import { summariseRecall } from '../utils/recallText';
 import USCoverageMap from '../components/USCoverageMap';
 import { flagEmoji, COUNTRY_NAMES } from '../components/WorldCoverageMap';
+import { t } from '../i18n';
 
 const classColors = {
-  'Class I': { bg: '#fee2e2', color: '#ef4444', label: 'Class I — Dangerous' },
-  'Class II': { bg: '#fef3c7', color: '#f59e0b', label: 'Class II — May Cause Harm' },
-  'Class III': { bg: '#dbeafe', color: '#3b82f6', label: 'Class III — Minor Violations' },
+  'Class I': { bg: '#fee2e2', color: '#ef4444', get label() { return t('FDARecalls.class_i_dangerous'); } },
+  'Class II': { bg: '#fef3c7', color: '#f59e0b', get label() { return t('FDARecalls.class_ii_may_cause_harm'); } },
+  'Class III': { bg: '#dbeafe', color: '#3b82f6', get label() { return t('FDARecalls.class_iii_minor_violations'); } },
 };
 
 /** openFDA dates are "YYYYMMDD" → "YYYY-MM-DD". */
@@ -37,7 +38,7 @@ export default function FDARecalls() {
       const { data } = await api.get(`/fda-recalls/?${params}`);
       setResults(data);
     } catch (err) {
-      alert('Error searching FDA recalls');
+      alert(t('FDARecalls.error_searching_fda_recalls'));
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,7 @@ export default function FDARecalls() {
       setResults(data);
       setForm(p => ({ ...p, search_term: '', days: 90 }));
     } catch (err) {
-      alert('Error loading recent recalls');
+      alert(t('FDARecalls.error_loading_recent_recalls'));
     } finally {
       setLoading(false);
     }
@@ -64,10 +65,10 @@ export default function FDARecalls() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">FDA Food &amp; Drug Recalls</h1>
+          <h1 className="page-title">{t('FDARecalls.fda_food_drug_recalls')}</h1>
         </div>
         <button className="btn btn-secondary" onClick={loadRecent} disabled={loading}>
-          <Clock size={16} /> Recent (90 days)
+          <Clock size={16} /> {t('FDARecalls.recent_90_days')}
         </button>
       </div>
 
@@ -85,22 +86,22 @@ export default function FDARecalls() {
       <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="form-group" style={{ flex: 2, minWidth: 200 }}>
-            <label className="form-label">Search Term</label>
-            <input className="form-input" placeholder="e.g. peanut, salmonella..." value={form.search_term}
+            <label className="form-label">{t('FDARecalls.search_term')}</label>
+            <input className="form-input" placeholder={t('FDARecalls.e_g_peanut_salmonella')} value={form.search_term}
               onChange={e => setForm(p => ({ ...p, search_term: e.target.value }))} />
           </div>
           <div className="form-group" style={{ flex: 0.5, minWidth: 100 }}>
-            <label className="form-label">Days</label>
+            <label className="form-label">{t('FDARecalls.days')}</label>
             <input type="number" className="form-input" min={1} max={365} value={form.days}
               onChange={e => setForm(p => ({ ...p, days: e.target.value }))} />
           </div>
           <div className="form-group" style={{ flex: 0.5, minWidth: 80 }}>
-            <label className="form-label">Limit</label>
+            <label className="form-label">{t('FDARecalls.limit')}</label>
             <input type="number" className="form-input" min={1} max={100} value={form.limit}
               onChange={e => setForm(p => ({ ...p, limit: e.target.value }))} />
           </div>
           <button className="btn btn-primary" disabled={loading} style={{ height: 42 }}>
-            <Search size={16} /> {loading ? 'Searching...' : 'Search'}
+            <Search size={16} /> {(loading) ? t('FDARecalls.searching') : t('FDARecalls.search')}
           </button>
         </form>
       </div>
@@ -108,12 +109,12 @@ export default function FDARecalls() {
       {results && (
         <div>
           <p style={{ marginBottom: '1rem', color: 'var(--color-text-secondary)' }}>
-            <strong>{results.total}</strong> recall{results.total !== 1 ? 's' : ''} found
+            <strong>{results.total}</strong> {(results.total !== 1) ? t('FDARecalls.recalls_found') : t('FDARecalls.recall_found')}
           </p>
 
           {results.results?.length === 0 && (
             <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-              No recalls found for the given criteria.
+              {t('FDARecalls.no_recalls_found_for_the_given_criteria')}
             </div>
           )}
 
@@ -133,13 +134,13 @@ export default function FDARecalls() {
               <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '.5rem', marginBottom: '.75rem' }}>
                   <h4 style={{ display: 'flex', alignItems: 'center', gap: '.4rem', margin: 0 }}>
-                    <MapPin size={16} /> Regions covered
+                    <MapPin size={16} /> {t('FDARecalls.regions_covered')}
                   </h4>
                   <div style={{ display: 'flex', gap: '.35rem' }}>
                     <button className={`btn btn-sm ${mapMode === 'aggregate' ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => setMapMode('aggregate')}>Aggregate</button>
+                      onClick={() => setMapMode('aggregate')}>{t('FDARecalls.aggregate')}</button>
                     <button className={`btn btn-sm ${mapMode === 'per' ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => setMapMode('per')}>Per recall</button>
+                      onClick={() => setMapMode('per')}>{t('FDARecalls.per_recall')}</button>
                   </div>
                 </div>
                 {mapMode === 'aggregate' ? (
@@ -157,13 +158,13 @@ export default function FDARecalls() {
                         </span>
                       ))}
                       <span style={{ fontSize: '.8rem', color: 'var(--color-text-secondary)' }}>
-                        {results.results.length} recall{results.results.length !== 1 ? 's' : ''}
+                        {(results.results.length !== 1) ? t('FDARecalls.recalls', { results: results.results.length }) : t('FDARecalls.recall', { results: results.results.length })}
                       </span>
                     </div>
                     {usCovered && (states.size > 0 || nationwide) && (
                       <div style={{ marginTop: '.75rem' }}>
                         <div style={{ fontSize: '.8rem', fontWeight: 600, marginBottom: '.4rem' }}>
-                          🇺🇸 United States — {nationwide ? 'Nationwide' : `${states.size} state${states.size !== 1 ? 's' : ''}`}
+                          {t('FDARecalls.united_states', { value: nationwide ? 'Nationwide' : `${states.size} state${states.size !== 1 ? 's' : ''}` })}
                         </div>
                         {/* Only drawn when it DISTINGUISHES something. Fifty
                             highlighted tiles under the word "Nationwide" is a
@@ -174,7 +175,7 @@ export default function FDARecalls() {
                   </>
                 ) : (
                   <div style={{ fontSize: '.82rem', color: 'var(--color-text-secondary)' }}>
-                    Showing each recall's coverage on its card below.
+                    {t('FDARecalls.showing_each_recall_s_coverage_on_its')}
                   </div>
                 )}
               </div>
@@ -219,7 +220,7 @@ export default function FDARecalls() {
                     return (
                       <details style={{ marginBottom: '0.75rem' }}>
                         <summary style={{ cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
-                          Packaging &amp; UPCs ({items.length})
+                          {t('FDARecalls.packaging_upcs', { items: items.length })}
                         </summary>
                         <ul style={{ margin: '.5rem 0 0', paddingLeft: '1.1rem', fontSize: '0.82rem',
                                      color: 'var(--color-text-secondary)', lineHeight: 1.55 }}>
@@ -230,16 +231,16 @@ export default function FDARecalls() {
                   })()}
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    <div><strong>Source:</strong> {flagEmoji(item.country)} {item.source}</div>
-                    {item.recalling_firm && <div><strong>Firm:</strong> {item.recalling_firm}</div>}
-                    {(item.city || item.state) && <div><strong>Location:</strong> {[item.city, item.state].filter(Boolean).join(', ')}</div>}
-                    {(item.recall_initiation_date || item.report_date) && <div><strong>Date:</strong> {fmtDate(item.recall_initiation_date || item.report_date)}</div>}
+                    <div><strong>{t('FDARecalls.source')}</strong> {flagEmoji(item.country)} {item.source}</div>
+                    {item.recalling_firm && <div><strong>{t('FDARecalls.firm')}</strong> {item.recalling_firm}</div>}
+                    {(item.city || item.state) && <div><strong>{t('FDARecalls.location')}</strong> {[item.city, item.state].filter(Boolean).join(', ')}</div>}
+                    {(item.recall_initiation_date || item.report_date) && <div><strong>{t('FDARecalls.date')}</strong> {fmtDate(item.recall_initiation_date || item.report_date)}</div>}
                     {(item.nationwide || item.states?.length > 0) && (
-                      <div><strong>Coverage:</strong> {item.nationwide ? 'Nationwide' : item.states.join(', ')}</div>
+                      <div><strong>{t('FDARecalls.coverage')}</strong> {item.nationwide ? 'Nationwide' : item.states.join(', ')}</div>
                     )}
-                    {item.status && <div><strong>Status:</strong> {item.status}</div>}
-                    {item.recall_number && <div><strong>Recall #:</strong> {item.recall_number}</div>}
-                    {item.voluntary_mandated && <div><strong>Type:</strong> {item.voluntary_mandated}</div>}
+                    {item.status && <div><strong>{t('FDARecalls.status')}</strong> {item.status}</div>}
+                    {item.recall_number && <div><strong>{t('FDARecalls.recall_2')}</strong> {item.recall_number}</div>}
+                    {item.voluntary_mandated && <div><strong>{t('FDARecalls.type')}</strong> {item.voluntary_mandated}</div>}
                   </div>
 
                   {mapMode === 'per' && (() => {
@@ -251,7 +252,7 @@ export default function FDARecalls() {
                         {showUS && !item.nationwide && <USCoverageMap covered={item.states || []} nationwide={false} />}
                         {cc.length > 0 && (
                           <div style={{ marginTop: showUS ? '.5rem' : 0, fontSize: '.85rem' }}>
-                            <strong>Countries:</strong> {cc.map((c) => `${flagEmoji(c)} ${COUNTRY_NAMES[c] || c}`).join('  ·  ')}
+                            <strong>{t('FDARecalls.countries')}</strong> {cc.map((c) => `${flagEmoji(c)} ${COUNTRY_NAMES[c] || c}`).join('  ·  ')}
                           </div>
                         )}
                       </div>
@@ -261,14 +262,14 @@ export default function FDARecalls() {
                   {item.url && (
                     <a href={item.url} target="_blank" rel="noopener noreferrer"
                        style={{ display: 'inline-block', marginTop: '.6rem', fontSize: '.82rem', color: 'var(--color-info)', fontWeight: 600 }}>
-                      Official notice ↗
+                      {t('FDARecalls.official_notice')}
                     </a>
                   )}
 
                   {item.distribution && (
                     <details style={{ marginTop: '0.75rem' }}>
                       <summary style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--color-info)' }}>
-                        Distribution Pattern
+                        {t('FDARecalls.distribution_pattern')}
                       </summary>
                       <p style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                         {item.distribution}

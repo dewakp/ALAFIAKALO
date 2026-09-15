@@ -13,6 +13,7 @@ import { fmtDateTime } from '../utils/datetime';
 import {
   Users, Activity, Cpu, RefreshCw, Search, ShieldAlert, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { t } from '../i18n';
 
 const PAGE = 25;
 
@@ -61,33 +62,33 @@ function UserDetailPanel({ detail, error, onClose }) {
                     boxShadow: '-8px 0 24px rgba(0,0,0,.15)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0 }}>{detail?.full_name || (error ? 'User' : 'Loading…')}</h3>
-          <button className="btn btn-secondary btn-sm" onClick={onClose}>Close</button>
+          <button className="btn btn-secondary btn-sm" onClick={onClose}>{t('Admin.close')}</button>
         </div>
 
         {error && (
           <p style={{ color: '#ef4444', fontSize: '.85rem', marginTop: '1rem' }}>
-            Couldn’t load this user: {error}
+            {t('Admin.couldn_t_load_this_user', { error })}
           </p>
         )}
 
         {!error && !detail && (
-          <p style={{ color: 'var(--color-text-tertiary)', marginTop: '1rem' }}>Loading…</p>
+          <p style={{ color: 'var(--color-text-tertiary)', marginTop: '1rem' }}>{t('Admin.loading')}</p>
         )}
 
         {detail && (
           <>
             <p style={{ color: 'var(--color-text-tertiary)', fontSize: '.8rem', marginTop: '.25rem' }}>
-              {detail.email} · id {detail.id}
-              {!detail.is_active && <span style={{ color: '#ef4444' }}> · inactive</span>}
+              {t('Admin.id', { email: detail.email, id: detail.id })}
+              {!detail.is_active && <span style={{ color: '#ef4444' }}> {t('Admin.inactive')}</span>}
             </p>
 
-            <h4 style={{ marginBottom: '.4rem' }}>Unique ID</h4>
+            <h4 style={{ marginBottom: '.4rem' }}>{t('Admin.unique_id')}</h4>
             <p style={{ fontSize: '.75rem', color: 'var(--color-text-tertiary)', marginTop: 0 }}>
-              The System Identifier — this is the value that must match FLOWSHEET.
+              {t('Admin.the_system_identifier_this_is_the_value')}
             </p>
             <div style={{ ...mono, fontSize: '.72rem', background: 'var(--color-bg-subtle, #f6f7f9)',
                           padding: '.5rem', borderRadius: 6 }}>
-              {detail.identifiers?.system_id || <em>not assigned</em>}
+              {detail.identifiers?.system_id || <em>{t('Admin.not_assigned')}</em>}
             </div>
             {detail.identifiers?.system_id_segments && (
               <table style={{ width: '100%', marginTop: '.5rem' }}>
@@ -104,17 +105,17 @@ function UserDetailPanel({ detail, error, onClose }) {
             <table style={{ width: '100%', marginTop: '.5rem' }}>
               <tbody>
                 <tr>
-                  <td style={{ ...cell, color: 'var(--color-text-tertiary)' }}>identity_uid</td>
+                  <td style={{ ...cell, color: 'var(--color-text-tertiary)' }}>{t('Admin.identity_uid')}</td>
                   <td style={{ ...cell, ...mono }}>{detail.identifiers?.identity_uid || '—'}</td>
                 </tr>
                 <tr>
-                  <td style={{ ...cell, color: 'var(--color-text-tertiary)' }}>AI subject token</td>
+                  <td style={{ ...cell, color: 'var(--color-text-tertiary)' }}>{t('Admin.ai_subject_token')}</td>
                   <td style={{ ...cell, ...mono }}>{detail.identifiers?.subject_token || '—'}</td>
                 </tr>
               </tbody>
             </table>
 
-            <h4 style={{ marginBottom: '.4rem' }}>Activity</h4>
+            <h4 style={{ marginBottom: '.4rem' }}>{t('Admin.activity')}</h4>
             <table style={{ width: '100%' }}>
               <tbody>
                 {Object.entries(detail.activity || {}).map(([k, v]) => (
@@ -123,7 +124,7 @@ function UserDetailPanel({ detail, error, onClose }) {
                     <td style={{ ...cell, textAlign: 'right' }}>
                       {/* A failed lookup must not read as "this patient logs nothing". */}
                       {v.unavailable
-                        ? <span style={{ color: '#ef4444' }}>unavailable</span>
+                        ? <span style={{ color: '#ef4444' }}>{t('Admin.unavailable')}</span>
                         : <strong>{v.count}</strong>}
                     </td>
                     <td style={{ ...cell, color: 'var(--color-text-tertiary)', textAlign: 'right' }}>
@@ -134,7 +135,7 @@ function UserDetailPanel({ detail, error, onClose }) {
               </tbody>
             </table>
 
-            <h4 style={{ marginBottom: '.4rem' }}>Profile</h4>
+            <h4 style={{ marginBottom: '.4rem' }}>{t('Admin.profile')}</h4>
             <table style={{ width: '100%' }}>
               <tbody>
                 {Object.entries(detail.profile || {}).map(([k, v]) => (
@@ -146,12 +147,11 @@ function UserDetailPanel({ detail, error, onClose }) {
               </tbody>
             </table>
 
-            <h4 style={{ marginBottom: '.4rem' }}>AI usage</h4>
+            <h4 style={{ marginBottom: '.4rem' }}>{t('Admin.ai_usage')}</h4>
             <p style={{ fontSize: '.8rem', margin: 0 }}>
-              {detail.usage?.ai_interactions ?? 0} calls · {detail.usage?.tokens_used ?? 0} tokens
-              {detail.usage?.last_interaction
+              {t('Admin.calls_tokens', { ai_interactions: detail.usage?.ai_interactions ?? 0, tokens_used: detail.usage?.tokens_used ?? 0, value: detail.usage?.last_interaction
                 ? ` · last ${String(detail.usage.last_interaction).slice(0, 10)}`
-                : ''}
+                : '' })}
             </p>
           </>
         )}
@@ -196,7 +196,7 @@ export default function Admin() {
       // require_admin returns 404 to non-admins so the console's existence is
       // not confirmed to a logged-in prober.
       if (err?.response?.status === 404) setDenied(true);
-      else setError(apiErrorMessage(err, 'Could not load admin data.'));
+      else setError(apiErrorMessage(err, t('Admin.could_not_load_admin_data')));
     } finally { setLoading(false); }
   }, [tab, q, sort, offset, call]);
 
@@ -221,9 +221,9 @@ export default function Admin() {
     return (
       <div style={{ maxWidth: 560, margin: '12vh auto', textAlign: 'center' }}>
         <ShieldAlert size={40} style={{ color: '#ef4444' }} />
-        <h2 style={{ marginTop: '1rem' }}>Not authorised</h2>
+        <h2 style={{ marginTop: '1rem' }}>{t('Admin.not_authorised')}</h2>
         <p style={{ color: 'var(--color-text-secondary)' }}>
-          This console is restricted to the ALAFIA administrator.
+          {t('Admin.this_console_is_restricted_to_the_alafia')}
         </p>
       </div>
     );
@@ -239,12 +239,12 @@ export default function Admin() {
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: '1.25rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', marginBottom: '1rem' }}>
-        <h1 style={{ fontSize: '1.45rem', margin: 0 }}>ALAFIA Admin</h1>
+        <h1 style={{ fontSize: '1.45rem', margin: 0 }}>{t('Admin.alafia_admin')}</h1>
         <span style={{ fontSize: '.7rem', padding: '.15rem .5rem', borderRadius: 4,
           background: '#fee2e2', color: '#991b1b', fontWeight: 600 }}>RESTRICTED</span>
         <div style={{ flex: 1 }} />
         <button className="btn btn-secondary btn-sm" onClick={load} disabled={loading}>
-          <RefreshCw size={13}/> {loading ? 'Loading…' : 'Refresh'}
+          <RefreshCw size={13}/> {(loading) ? t('Admin.loading') : t('Admin.refresh')}
         </button>
       </div>
 
@@ -266,20 +266,20 @@ export default function Admin() {
       {tab === 'overview' && overview && (
         <>
           <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <Stat label="Registered users" value={num(overview.users.total)}
+            <Stat label={t('Admin.registered_users')} value={num(overview.users.total)}
               sub={`${num(overview.users.signups_30d)} new in 30d`} />
-            <Stat label="Active 24h" value={num(overview.users.logged_in_24h)}
+            <Stat label={t('Admin.active_24h')} value={num(overview.users.logged_in_24h)}
               sub={`${num(overview.users.logged_in_7d)} in 7d · ${num(overview.users.logged_in_30d)} in 30d`} />
-            <Stat label="Never signed in" value={num(overview.users.never_logged_in)}
+            <Stat label={t('Admin.never_signed_in')} value={num(overview.users.never_logged_in)}
               sub="since last-login tracking began"
               tone={overview.users.never_logged_in ? '#b45309' : undefined} />
-            <Stat label="AI interactions 30d" value={num(overview.ai.interactions_30d)}
+            <Stat label={t('Admin.ai_interactions_30d')} value={num(overview.ai.interactions_30d)}
               sub={`${num(overview.ai.tokens_30d)} tokens`} />
           </div>
           <div className="card" style={{ padding: '.9rem' }}>
-            <h3 style={{ marginTop: 0, fontSize: '.9rem' }}>Subscriptions</h3>
+            <h3 style={{ marginTop: 0, fontSize: '.9rem' }}>{t('Admin.subscriptions')}</h3>
             {Object.keys(overview.subscriptions_by_status || {}).length === 0
-              ? <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.82rem' }}>None recorded.</div>
+              ? <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.82rem' }}>{t('Admin.none_recorded')}</div>
               : Object.entries(overview.subscriptions_by_status).map(([status, n]) => (
                 <div key={status} style={{ display: 'flex', justifyContent: 'space-between',
                   fontSize: '.85rem', padding: '.2rem 0' }}>
@@ -288,7 +288,7 @@ export default function Admin() {
               ))}
           </div>
           <div style={{ fontSize: '.7rem', color: 'var(--color-text-tertiary)', marginTop: '.6rem' }}>
-            Generated {fmtDateTime(overview.generated_at)}
+            {t('Admin.generated', { generated_at: fmtDateTime(overview.generated_at) })}
           </div>
         </>
       )}
@@ -301,15 +301,15 @@ export default function Admin() {
               <Search size={13} style={{ position: 'absolute', left: 9, top: 10,
                 color: 'var(--color-text-tertiary)' }}/>
               <input className="form-input" style={{ paddingLeft: 28 }}
-                placeholder="Search email or name…" value={q}
+                placeholder={t('Admin.search_email_or_name')} value={q}
                 onChange={(e) => { setQ(e.target.value); setOffset(0); }}/>
             </div>
             <select className="form-input" style={{ width: 170 }} value={sort}
               onChange={(e) => { setSort(e.target.value); setOffset(0); }}>
-              <option value="last_login">Sort: last login</option>
-              <option value="created_at">Sort: signed up</option>
-              <option value="tokens">Sort: token usage</option>
-              <option value="email">Sort: email</option>
+              <option value="last_login">{t('Admin.sort_last_login')}</option>
+              <option value="created_at">{t('Admin.sort_signed_up')}</option>
+              <option value="tokens">{t('Admin.sort_token_usage')}</option>
+              <option value="email">{t('Admin.sort_email')}</option>
             </select>
           </div>
 
@@ -319,12 +319,12 @@ export default function Admin() {
                 <thead>
                   <tr style={{ textAlign: 'left', color: 'var(--color-text-tertiary)',
                     fontSize: '.7rem', textTransform: 'uppercase' }}>
-                    <th style={{ padding: '.6rem .7rem' }}>User</th>
-                    <th style={{ padding: '.6rem .7rem' }}>Signed up</th>
-                    <th style={{ padding: '.6rem .7rem' }}>Last login</th>
-                    <th style={{ padding: '.6rem .7rem' }}>Subscription</th>
-                    <th style={{ padding: '.6rem .7rem', textAlign: 'right' }}>Tokens</th>
-                    <th style={{ padding: '.6rem .7rem', textAlign: 'right' }}>AI calls</th>
+                    <th style={{ padding: '.6rem .7rem' }}>{t('Admin.user')}</th>
+                    <th style={{ padding: '.6rem .7rem' }}>{t('Admin.signed_up')}</th>
+                    <th style={{ padding: '.6rem .7rem' }}>{t('Admin.last_login')}</th>
+                    <th style={{ padding: '.6rem .7rem' }}>{t('Admin.subscription')}</th>
+                    <th style={{ padding: '.6rem .7rem', textAlign: 'right' }}>{t('Admin.tokens')}</th>
+                    <th style={{ padding: '.6rem .7rem', textAlign: 'right' }}>{t('Admin.ai_calls')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -332,19 +332,19 @@ export default function Admin() {
                     <tr key={u.id}
                         onClick={() => setDetailId(u.id)}
                         style={{ borderTop: '1px solid var(--color-border)', cursor: 'pointer' }}
-                        title="Open user detail">
+                        title={t('Admin.open_user_detail')}>
                       <td style={{ padding: '.55rem .7rem' }}>
                         <div style={{ fontWeight: 600 }}>{u.full_name || '—'}</div>
                         <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.75rem' }}>
                           {u.email}
-                          {!u.is_active && <span style={{ color: '#ef4444' }}> · inactive</span>}
+                          {!u.is_active && <span style={{ color: '#ef4444' }}> {t('Admin.inactive')}</span>}
                         </div>
                       </td>
                       <td style={{ padding: '.55rem .7rem', whiteSpace: 'nowrap' }}>{ago(u.created_at) || '—'}</td>
                       <td style={{ padding: '.55rem .7rem', whiteSpace: 'nowrap' }}>
                         {u.last_login
                           ? ago(u.last_login)
-                          : <span style={{ color: 'var(--color-text-tertiary)' }}>never</span>}
+                          : <span style={{ color: 'var(--color-text-tertiary)' }}>{t('Admin.never')}</span>}
                       </td>
                       <td style={{ padding: '.55rem .7rem' }}>{u.subscription_status || '—'}</td>
                       <td style={{ padding: '.55rem .7rem', textAlign: 'right' }}>{num(u.tokens_used)}</td>
@@ -356,7 +356,7 @@ export default function Admin() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem',
                 padding: '.6rem .7rem', fontSize: '.78rem' }}>
                 <span style={{ color: 'var(--color-text-tertiary)' }}>
-                  {offset + 1}–{Math.min(offset + PAGE, users.total)} of {num(users.total)}
+                  {t('Admin.of', { offset: offset + 1, offset2: Math.min(offset + PAGE, users.total), total: num(users.total) })}
                 </span>
                 <div style={{ flex: 1 }} />
                 <button className="btn btn-secondary btn-sm" disabled={offset === 0}
@@ -391,7 +391,7 @@ export default function Admin() {
               <span style={{ fontSize: '.78rem', color: 'var(--color-text-secondary)', flex: 1 }}>
                 {String(c.detail)}
               </span>
-              <span style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)' }}>{c.latency_ms} ms</span>
+              <span style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)' }}>{t('Admin.ms', { latency_ms: c.latency_ms })}</span>
             </div>
           ))}
         </div>
@@ -402,29 +402,29 @@ export default function Admin() {
         <>
           <div style={{ display: 'flex', gap: '.6rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
             <Stat label={`Tokens (${usage.window_days}d)`} value={num(usage.totals.tokens)} />
-            <Stat label="Interactions" value={num(usage.totals.interactions)} />
+            <Stat label={t('Admin.interactions')} value={num(usage.totals.interactions)} />
           </div>
           <div className="card" style={{ padding: '.9rem', marginBottom: '1rem' }}>
-            <h3 style={{ marginTop: 0, fontSize: '.9rem' }}>By model</h3>
+            <h3 style={{ marginTop: 0, fontSize: '.9rem' }}>{t('Admin.by_model')}</h3>
             {usage.by_model.length === 0
-              ? <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.82rem' }}>No usage in window.</div>
+              ? <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.82rem' }}>{t('Admin.no_usage_in_window')}</div>
               : usage.by_model.map((m, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between',
                   fontSize: '.82rem', padding: '.25rem 0' }}>
                   <span>{m.provider} · {m.model}</span>
-                  <span>{num(m.tokens)} tokens · {num(m.interactions)} calls</span>
+                  <span>{t('Admin.tokens_calls', { tokens: num(m.tokens), interactions: num(m.interactions) })}</span>
                 </div>
               ))}
           </div>
           <div className="card" style={{ padding: '.9rem' }}>
-            <h3 style={{ marginTop: 0, fontSize: '.9rem' }}>Top users</h3>
+            <h3 style={{ marginTop: 0, fontSize: '.9rem' }}>{t('Admin.top_users')}</h3>
             {usage.top_users.length === 0
-              ? <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.82rem' }}>No usage in window.</div>
+              ? <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.82rem' }}>{t('Admin.no_usage_in_window')}</div>
               : usage.top_users.map((u) => (
                 <div key={u.user_id} style={{ display: 'flex', justifyContent: 'space-between',
                   fontSize: '.82rem', padding: '.25rem 0' }}>
                   <span>{u.email}</span>
-                  <span>{num(u.tokens)} tokens · {num(u.interactions)} calls</span>
+                  <span>{t('Admin.tokens_calls', { tokens: num(u.tokens), interactions: num(u.interactions) })}</span>
                 </div>
               ))}
           </div>

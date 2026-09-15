@@ -18,13 +18,14 @@ import {
   Check,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 const FITNESS_OPTIONS = [
-  { value: 'beginner', label: 'Beginner' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'advanced', label: 'Advanced' },
+  { value: 'beginner', get label() { return t('ExercisePlanner.beginner'); } },
+  { value: 'moderate', get label() { return t('ExercisePlanner.moderate'); } },
+  { value: 'advanced', get label() { return t('ExercisePlanner.advanced'); } },
 ];
 
 const levelColor = (level) => {
@@ -58,7 +59,7 @@ function ExerciseCard({ exercise }) {
           }}
         >
           <Clock size={13} />
-          {exercise.duration_minutes} min
+          {t('ExercisePlanner.min', { duration_minutes: exercise.duration_minutes })}
         </span>
       </div>
 
@@ -70,7 +71,7 @@ function ExerciseCard({ exercise }) {
         )}
         {exercise.sets != null && exercise.reps == null && (
           <span style={{ fontSize: '0.75rem', color: '#374151', fontWeight: 500 }}>
-            {exercise.sets} sets
+            {t('ExercisePlanner.sets', { sets: exercise.sets })}
           </span>
         )}
         {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
@@ -101,8 +102,8 @@ function DayExercises({ exercises }) {
     return (
       <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#9ca3af' }}>
         <Moon size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>Rest Day</p>
-        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>Recovery is part of the plan.</p>
+        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>{t('ExercisePlanner.rest_day')}</p>
+        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>{t('ExercisePlanner.recovery_is_part_of_the_plan')}</p>
       </div>
     );
   }
@@ -113,7 +114,7 @@ function DayExercises({ exercises }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
         <span style={{ fontSize: '0.8rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Timer size={13} /> {totalMinutes} min total
+          <Timer size={13} /> {t('ExercisePlanner.min_total', { totalMinutes })}
         </span>
       </div>
       {exercises.map((exercise, i) => (
@@ -147,22 +148,22 @@ function PlanViewer({ plan }) {
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
         <div className="card" style={{ padding: '0.75rem', textAlign: 'center' }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>{totalWeeklyMinutes}</div>
-          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Weekly Minutes</div>
+          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{t('ExercisePlanner.weekly_minutes')}</div>
         </div>
         <div className="card" style={{ padding: '0.75rem', textAlign: 'center' }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-info)' }}>{activeDays}</div>
-          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Active Days</div>
+          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{t('ExercisePlanner.active_days')}</div>
         </div>
         <div className="card" style={{ padding: '0.75rem', textAlign: 'center' }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#6b7280' }}>{7 - activeDays}</div>
-          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Rest Days</div>
+          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{t('ExercisePlanner.rest_days')}</div>
         </div>
         {plan.weekly_minutes_target && (
           <div className="card" style={{ padding: '0.75rem', textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: totalWeeklyMinutes >= plan.weekly_minutes_target ? 'var(--color-primary)' : 'var(--color-warning)' }}>
               {Math.round((totalWeeklyMinutes / plan.weekly_minutes_target) * 100)}%
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Goal Met</div>
+            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{t('ExercisePlanner.goal_met')}</div>
           </div>
         )}
       </div>
@@ -204,7 +205,7 @@ function PlanViewer({ plan }) {
       {plan.advice && (
         <div className="card" style={{ padding: '1rem', marginTop: '1rem', borderLeft: '3px solid var(--color-info)' }}>
           <h4 style={{ margin: '0 0 0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-            <Lightbulb size={16} color="var(--color-warning)" /> Trainer Advice
+            <Lightbulb size={16} color="var(--color-warning)" /> {t('ExercisePlanner.trainer_advice')}
           </h4>
           <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151', lineHeight: 1.6 }}>{plan.advice}</p>
         </div>
@@ -219,7 +220,7 @@ function SavedPlanCard({ plan, onDelete }) {
 
   const handleDelete = async (e) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this exercise plan?')) return;
+    if (!window.confirm(t('ExercisePlanner.delete_this_exercise_plan'))) return;
     setDeleting(true);
     try {
       await api.delete(`/planners/exercise-plans/${plan.id}`);
@@ -275,13 +276,13 @@ function SavedPlanCard({ plan, onDelete }) {
             </span>
             {totalMinutes != null && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                <Timer size={13} /> {totalMinutes} min/week
+                <Timer size={13} /> {t('ExercisePlanner.min_week', { totalMinutes })}
               </span>
             )}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button className="btn btn-sm" onClick={handleDelete} disabled={deleting} title="Delete plan" style={{ color: 'var(--color-danger)', padding: '0.3rem' }}>
+          <button className="btn btn-sm" onClick={handleDelete} disabled={deleting} title={t('ExercisePlanner.delete_plan')} style={{ color: 'var(--color-danger)', padding: '0.3rem' }}>
             {deleting ? <Loader2 size={15} className="spin" /> : <Trash2 size={15} />}
           </button>
           {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -345,7 +346,7 @@ export default function ExercisePlanner() {
       setGeneratedPlan(data);
       fetchSavedPlans();
     } catch (err) {
-      setError(apiErrorMessage(err, 'Failed to generate exercise plan. Please try again.'));
+      setError(apiErrorMessage(err, t('ExercisePlanner.failed_to_generate_exercise_plan_please')));
     } finally {
       setGenerating(false);
     }
@@ -363,23 +364,23 @@ export default function ExercisePlanner() {
           <BackButton />
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Dumbbell size={28} color="var(--color-primary)" />
-            AI Exercise Planner
+            {t('ExercisePlanner.ai_exercise_planner')}
           </h1>
         </div>
         <p style={{ margin: '0.25rem 0 0', color: '#6b7280', fontSize: '0.9rem' }}>
-          Generate personalized weekly exercise plans matched to your fitness level.
+          {t('ExercisePlanner.generate_personalized_weekly_exercise')}
         </p>
       </div>
 
       {/* Generate form */}
       <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
         <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
-          <Plus size={18} /> Generate New Plan
+          <Plus size={18} /> {t('ExercisePlanner.generate_new_plan')}
         </h3>
         <form onSubmit={handleGenerate}>
           <div className="card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
             <div className="form-group">
-              <label className="form-label" htmlFor="fitness_level">Fitness Level</label>
+              <label className="form-label" htmlFor="fitness_level">{t('ExercisePlanner.fitness_level')}</label>
               <select
                 id="fitness_level"
                 name="fitness_level"
@@ -393,7 +394,7 @@ export default function ExercisePlanner() {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="weekly_minutes_target">Weekly Minutes Target</label>
+              <label className="form-label" htmlFor="weekly_minutes_target">{t('ExercisePlanner.weekly_minutes_target')}</label>
               <input
                 id="weekly_minutes_target"
                 name="weekly_minutes_target"
@@ -407,13 +408,13 @@ export default function ExercisePlanner() {
               />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="limitations">Physical Limitations</label>
+              <label className="form-label" htmlFor="limitations">{t('ExercisePlanner.physical_limitations')}</label>
               <input
                 id="limitations"
                 name="limitations"
                 type="text"
                 className="form-input"
-                placeholder="e.g. knee injury, lower back pain"
+                placeholder={t('ExercisePlanner.e_g_knee_injury_lower_back_pain')}
                 value={form.limitations}
                 onChange={handleChange}
               />
@@ -431,12 +432,12 @@ export default function ExercisePlanner() {
               {generating ? (
                 <>
                   <Loader2 size={16} className="spin" style={{ marginRight: 6 }} />
-                  Generating…
+                  {t('ExercisePlanner.generating')}
                 </>
               ) : (
                 <>
                   <Dumbbell size={16} style={{ marginRight: 6 }} />
-                  Generate Exercise Plan
+                  {t('ExercisePlanner.generate_exercise_plan')}
                 </>
               )}
             </button>
@@ -469,7 +470,7 @@ export default function ExercisePlanner() {
                 </span>
                 {generatedPlan.weekly_minutes_target && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <Activity size={13} /> Target: {generatedPlan.weekly_minutes_target} min/week
+                    <Activity size={13} /> {t('ExercisePlanner.target_min_week', { weekly_minutes_target: generatedPlan.weekly_minutes_target })}
                   </span>
                 )}
               </div>
@@ -483,22 +484,22 @@ export default function ExercisePlanner() {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
-            <Calendar size={18} /> Saved Plans
+            <Calendar size={18} /> {t('ExercisePlanner.saved_plans')}
           </h3>
           <button className="btn btn-secondary btn-sm" onClick={fetchSavedPlans} disabled={loadingPlans}>
-            <RefreshCw size={14} style={{ marginRight: 4 }} /> Refresh
+            <RefreshCw size={14} style={{ marginRight: 4 }} /> {t('ExercisePlanner.refresh')}
           </button>
         </div>
 
         {loadingPlans ? (
           <div style={{ textAlign: 'center', padding: '2rem 0', color: '#9ca3af' }}>
             <Loader2 size={24} className="spin" />
-            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>Loading saved plans…</p>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>{t('ExercisePlanner.loading_saved_plans')}</p>
           </div>
         ) : savedPlans.length === 0 ? (
           <div className="card" style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
             <Dumbbell size={36} style={{ marginBottom: '0.5rem', opacity: 0.4 }} />
-            <p style={{ margin: 0, fontSize: '0.9rem' }}>No saved exercise plans yet. Generate your first plan above!</p>
+            <p style={{ margin: 0, fontSize: '0.9rem' }}>{t('ExercisePlanner.no_saved_exercise_plans_yet_generate')}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

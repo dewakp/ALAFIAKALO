@@ -16,6 +16,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import { t as translate } from '../i18n';
 
 const PAGE_SIZE = 10;
 
@@ -128,19 +129,19 @@ export default function Physicians() {
   // ── Nearby (our directory) ──
   async function searchNearby(center) {
     const c = await resolveCenter(center);
-    if (!c) { alert('Enter an address to locate, or allow location access.'); return; }
+    if (!c) { alert(translate('Physicians.enter_an_address_to_locate_or_allow')); return; }
     setLoading(true);
     try {
       const { data } = await api.get(`/physicians/nearby?lat=${c.lat}&lon=${c.lon}&radius_km=${radiusKm}`);
       setNearbyResults(data.results || []);
-    } catch (err) { alert(apiErrorMessage(err, 'Nearby search failed')); }
+    } catch (err) { alert(apiErrorMessage(err, translate('Physicians.nearby_search_failed'))); }
     setLoading(false);
   }
 
   // ── OSM Discover ──
   async function discoverOSM(center) {
     const c = await resolveCenter(center);
-    if (!c) { alert('Enter an address to locate, or allow location access.'); return; }
+    if (!c) { alert(translate('Physicians.enter_an_address_to_locate_or_allow')); return; }
     setLoading(true);
     try {
       const { data } = await api.get(
@@ -148,14 +149,14 @@ export default function Physicians() {
         { timeout: 90000 });
       const results = data.results || [];
       setOsmResults(results);
-      if (!results.length) alert('No OpenStreetMap healthcare places found in this area — try a larger radius.');
-    } catch (err) { alert(apiErrorMessage(err, 'OSM discovery failed')); }
+      if (!results.length) alert(translate('Physicians.no_openstreetmap_healthcare_places_found'));
+    } catch (err) { alert(apiErrorMessage(err, translate('Physicians.osm_discovery_failed'))); }
     setLoading(false);
   }
 
   // ── Geocode ── (returns {lat, lon} | null and sets the map center)
   async function handleGeocode() {
-    if (!geocodeQuery) { alert('Type a place or address first.'); return null; }
+    if (!geocodeQuery) { alert(translate('Physicians.type_a_place_or_address_first')); return null; }
     try {
       const { data } = await api.get(`/physicians/geocode?address=${encodeURIComponent(geocodeQuery)}`);
       setGeocodeResults(data);
@@ -165,9 +166,9 @@ export default function Physicians() {
         setUserLon(c.lon);
         return c;
       }
-      alert('Location not found — try a more specific address.');
+      alert(translate('Physicians.location_not_found_try_a_more_specific'));
       return null;
-    } catch (err) { alert(apiErrorMessage(err, 'Geocoding failed')); return null; }
+    } catch (err) { alert(apiErrorMessage(err, translate('Physicians.geocoding_failed'))); return null; }
   }
 
   // ── Save / Unsave ──
@@ -210,11 +211,11 @@ export default function Physicians() {
 
   // ── Delete ──
   async function deletePhysician(id) {
-    if (!confirm('Delete this physician from the directory?')) return;
+    if (!confirm(translate('Physicians.delete_this_physician_from_the_directory'))) return;
     try {
       await api.delete(`/physicians/${id}`);
       setPhysicians(prev => prev.filter(p => p.id !== id));
-    } catch (err) { alert(apiErrorMessage(err, 'Cannot delete')); }
+    } catch (err) { alert(apiErrorMessage(err, translate('Physicians.cannot_delete'))); }
   }
 
   // ── Map ──
@@ -327,7 +328,7 @@ export default function Physicians() {
     } else {
       c = await resolveCenter();
     }
-    if (!c) { alert('Pan the map or search a place first.'); return; }
+    if (!c) { alert(translate('Physicians.pan_the_map_or_search_a_place_first')); return; }
     setDiscovering(true);
     try {
       const { data } = await api.post('/facilities/discover-here', null, {
@@ -336,9 +337,9 @@ export default function Physicians() {
       });
       await loadFacilityPoints(bboxAround(c));
       const added = (data.inserted || 0);
-      alert(`Discovered ${data.fetched || 0} facilities here (${added} new, ${data.updated || 0} updated).`);
+      alert(translate('Physicians.discovered_facilities_here_new_updated', { fetched: data.fetched || 0, added, updated: data.updated || 0 }));
     } catch (err) {
-      alert(apiErrorMessage(err, 'Facility discovery failed — OpenStreetMap may be busy; try again.'));
+      alert(apiErrorMessage(err, translate('Physicians.facility_discovery_failed_openstreetmap')));
     } finally { setDiscovering(false); }
   }
 
@@ -364,7 +365,7 @@ export default function Physicians() {
 
   // ── Render ──
   if (loading && physicians.length === 0) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}><div className="loading">Loading physicians...</div></div>;
+    return <div style={{ padding: '2rem', textAlign: 'center' }}><div className="loading">{translate('Physicians.loading_physicians')}</div></div>;
   }
 
   return (
@@ -372,21 +373,21 @@ export default function Physicians() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title"><Stethoscope size={24} /> Physician Directory</h1>
+          <h1 className="page-title"><Stethoscope size={24} /> {translate('Physicians.physician_directory')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
-          <Plus size={18} /> Add Physician
+          <Plus size={18} /> {translate('Physicians.add_physician')}
         </button>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
         {[
-          { key: 'directory', label: 'Directory', icon: <Users size={16} /> },
+          { key: 'directory', label: translate('Physicians.directory'), icon: <Users size={16} /> },
           { key: 'saved', label: `Saved (${savedPhysicians.length})`, icon: <Heart size={16} /> },
-          { key: 'discover', label: 'Discover (OSM)', icon: <Navigation size={16} /> },
-          { key: 'map', label: 'Map View', icon: <MapPin size={16} /> },
-          { key: 'globalmap', label: 'Global Map', icon: <Globe2 size={16} /> },
+          { key: 'discover', label: translate('Physicians.discover_osm'), icon: <Navigation size={16} /> },
+          { key: 'map', label: translate('Physicians.map_view'), icon: <MapPin size={16} /> },
+          { key: 'globalmap', label: translate('Physicians.global_map'), icon: <Globe2 size={16} /> },
         ].map(t => (
           <button key={t.key} className={`btn ${tab === t.key ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setTab(t.key)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -402,28 +403,28 @@ export default function Physicians() {
           <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <input className="form-input" style={{ flex: 1, minWidth: '200px' }}
-                placeholder="Search by name..." value={searchQ}
+                placeholder={translate('Physicians.search_by_name')} value={searchQ}
                 onChange={e => setSearchQ(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()} />
-              <button className="btn btn-primary" onClick={handleSearch}><Search size={16} /> Search</button>
+              <button className="btn btn-primary" onClick={handleSearch}><Search size={16} /> {translate('Physicians.search')}</button>
               <button className="btn btn-secondary" onClick={() => setShowFilters(!showFilters)}>
-                <Filter size={16} /> Filters {showFilters ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                <Filter size={16} /> {translate('Physicians.filters')} {showFilters ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </button>
             </div>
             {showFilters && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem', marginTop: '0.75rem' }}>
                 <select className="form-input" value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setFilterSpecialty(''); }}>
-                  <option value="">All Categories</option>
+                  <option value="">{translate('Physicians.all_categories')}</option>
                   {Object.keys(specialties).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <select className="form-input" value={filterSpecialty} onChange={e => setFilterSpecialty(e.target.value)}>
-                  <option value="">All Specialties</option>
+                  <option value="">{translate('Physicians.all_specialties')}</option>
                   {(filterCategory ? specialties[filterCategory] || [] : Object.values(specialties).flat()).map(s =>
                     <option key={s} value={s}>{s}</option>)}
                 </select>
-                <input className="form-input" placeholder="City" value={filterCity} onChange={e => setFilterCity(e.target.value)} />
+                <input className="form-input" placeholder={translate('Physicians.city')} value={filterCity} onChange={e => setFilterCity(e.target.value)} />
                 <button className="btn btn-secondary" onClick={() => { setSearchQ(''); setFilterSpecialty(''); setFilterCategory(''); setFilterCity(''); loadAll(); }}>
-                  Clear
+                  {translate('Physicians.clear')}
                 </button>
               </div>
             )}
@@ -433,8 +434,8 @@ export default function Physicians() {
           {physicians.length === 0 ? (
             <div className="card" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>
               <Stethoscope size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-              <h3>No physicians found</h3>
-              <p>Add a physician or adjust your search filters</p>
+              <h3>{translate('Physicians.no_physicians_found')}</h3>
+              <p>{translate('Physicians.add_a_physician_or_adjust_your_search')}</p>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '1rem' }}>
@@ -456,12 +457,12 @@ export default function Physicians() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1.25rem' }}>
               <button className="btn btn-secondary btn-sm" disabled={page === 0 || loading}
                 onClick={() => loadDirectory(page - 1)}>
-                <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> Prev
+                <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> {translate('Physicians.prev')}
               </button>
-              <span style={{ fontSize: '0.85rem', color: '#666' }}>Page {page + 1}</span>
+              <span style={{ fontSize: '0.85rem', color: '#666' }}>{translate('Physicians.page', { page: page + 1 })}</span>
               <button className="btn btn-secondary btn-sm" disabled={!hasMore || loading}
                 onClick={() => loadDirectory(page + 1)}>
-                Next <ChevronRight size={14} />
+                {translate('Physicians.next')} <ChevronRight size={14} />
               </button>
             </div>
           )}
@@ -474,8 +475,8 @@ export default function Physicians() {
           {savedPhysicians.length === 0 ? (
             <div className="card" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>
               <Heart size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-              <h3>No saved physicians</h3>
-              <p>Bookmark physicians from the directory to quickly access them here</p>
+              <h3>{translate('Physicians.no_saved_physicians')}</h3>
+              <p>{translate('Physicians.bookmark_physicians_from_the_directory')}</p>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '1rem' }}>
@@ -490,7 +491,7 @@ export default function Physicians() {
                       </div>
                       <p style={{ margin: '0.25rem 0', color: '#666' }}>{s.physician?.specialty} {s.physician?.credentials ? `• ${s.physician.credentials}` : ''}</p>
                       {s.physician?.facility_name && <p style={{ margin: '0.25rem 0', color: '#888', fontSize: '0.9rem' }}><Building size={14} /> {s.physician.facility_name}</p>}
-                      {s.nickname && <p style={{ margin: '0.25rem 0', fontSize: '0.85rem' }}>Nickname: {s.nickname}</p>}
+                      {s.nickname && <p style={{ margin: '0.25rem 0', fontSize: '0.85rem' }}>{translate('Physicians.nickname', { nickname: s.nickname })}</p>}
                       {s.notes && <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', fontStyle: 'italic' }}>{s.notes}</p>}
                     </div>
                     <button className="btn btn-danger btn-sm" onClick={() => unsavePhysician(s.id)}>
@@ -508,49 +509,48 @@ export default function Physicians() {
       {tab === 'discover' && (
         <div>
           <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
-            <h3 style={{ margin: '0 0 0.25rem' }}><Navigation size={18} /> Discover Healthcare Facilities Nearby (OpenStreetMap)</h3>
+            <h3 style={{ margin: '0 0 0.25rem' }}><Navigation size={18} /> {translate('Physicians.discover_healthcare_facilities_nearby')}</h3>
             <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: '#888' }}>
-              Facilities (hospitals, clinics, pharmacies) — places, not individual clinicians.
+              {translate('Physicians.facilities_hospitals_clinics_pharmacies')}
             </p>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               <input className="form-input" style={{ flex: 1, minWidth: '200px' }}
-                placeholder="Enter address to search near..." value={geocodeQuery}
+                placeholder={translate('Physicians.enter_address_to_search_near')} value={geocodeQuery}
                 onChange={e => setGeocodeQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleGeocode()} />
-              <button className="btn btn-primary" onClick={handleGeocode}><MapPin size={16} /> Locate</button>
+              <button className="btn btn-primary" onClick={handleGeocode}><MapPin size={16} /> {translate('Physicians.locate')}</button>
             </div>
             {geocodeResults.length > 0 && (
               <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#666' }}>
-                📍 Location: {geocodeResults[0].display_name?.substring(0, 80)}...
-                ({geocodeResults[0].latitude?.toFixed(4)}, {geocodeResults[0].longitude?.toFixed(4)})
+                {translate('Physicians.location', { display_name: geocodeResults[0].display_name?.substring(0, 80), latitude: geocodeResults[0].latitude?.toFixed(4), longitude: geocodeResults[0].longitude?.toFixed(4) })}
               </div>
             )}
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <select className="form-input" style={{ width: 'auto' }} value={placeType} onChange={e => setPlaceType(e.target.value)}>
-                <option value="all">All Healthcare</option>
-                <option value="hospital">Hospitals</option>
-                <option value="clinic">Clinics</option>
-                <option value="pharmacy">Pharmacies</option>
-                <option value="dentist">Dentists</option>
-                <option value="doctors">Doctors</option>
+                <option value="all">{translate('Physicians.all_healthcare')}</option>
+                <option value="hospital">{translate('Physicians.hospitals')}</option>
+                <option value="clinic">{translate('Physicians.clinics')}</option>
+                <option value="pharmacy">{translate('Physicians.pharmacies')}</option>
+                <option value="dentist">{translate('Physicians.dentists')}</option>
+                <option value="doctors">{translate('Physicians.doctors')}</option>
               </select>
               <select className="form-input" style={{ width: 'auto' }} value={radiusKm} onChange={e => setRadiusKm(Number(e.target.value))}>
-                <option value={5}>5 km</option>
-                <option value={10}>10 km</option>
-                <option value={25}>25 km</option>
-                <option value={50}>50 km</option>
-                <option value={100}>100 km</option>
+                <option value={5}>{translate('Physicians.text_5_km')}</option>
+                <option value={10}>{translate('Physicians.text_10_km')}</option>
+                <option value={25}>{translate('Physicians.text_25_km')}</option>
+                <option value={50}>{translate('Physicians.text_50_km')}</option>
+                <option value={100}>{translate('Physicians.text_100_km')}</option>
               </select>
               <button className="btn btn-primary" onClick={() => discoverOSM()} disabled={loading}>
-                <Search size={16} /> Discover
+                <Search size={16} /> {translate('Physicians.discover')}
               </button>
-              {!userLat && <span style={{ fontSize: '0.85rem', color: '#999' }}>Uses the address above (click Locate) or your location</span>}
+              {!userLat && <span style={{ fontSize: '0.85rem', color: '#999' }}>{translate('Physicians.uses_the_address_above_click_locate_or')}</span>}
             </div>
           </div>
 
           {osmResults.length > 0 && (
             <div>
-              <h4 style={{ marginBottom: '0.5rem' }}>Found {osmResults.length} facilities</h4>
+              <h4 style={{ marginBottom: '0.5rem' }}>{translate('Physicians.found_facilities', { osmResults: osmResults.length })}</h4>
               <div style={{ display: 'grid', gap: '0.75rem' }}>
                 {osmResults.map((r, i) => (
                   <div key={i} className="card" style={{ padding: '1rem' }}>
@@ -558,7 +558,7 @@ export default function Physicians() {
                       <div>
                         <h4 style={{ margin: '0 0 0.25rem' }}>{r.name}</h4>
                         <p style={{ margin: '0.25rem 0', color: '#666', fontSize: '0.9rem' }}>
-                          {r.amenity_type} • {r.distance_km} km away
+                          {translate('Physicians.km_away', { amenity_type: r.amenity_type, distance_km: r.distance_km })}
                         </p>
                         {r.address && <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#888' }}><MapPin size={12} /> {r.address}</p>}
                         {r.phone && <p style={{ margin: '0.25rem 0', fontSize: '0.85rem' }}><Phone size={12} /> {r.phone}</p>}
@@ -569,7 +569,7 @@ export default function Physicians() {
                         // Pre-fill from OSM data — the add form will pick these up
                         window.__osmPrefill = { full_name: r.name, city: r.address?.split(',')[1]?.trim(), latitude: r.latitude, longitude: r.longitude, phone: r.phone, website: r.website, specialty: r.healthcare_specialty || '' };
                       }}>
-                        <Plus size={14} /> Add to Directory
+                        <Plus size={14} /> {translate('Physicians.add_to_directory')}
                       </button>
                     </div>
                   </div>
@@ -586,7 +586,7 @@ export default function Physicians() {
           <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <input className="form-input" style={{ flex: 1, minWidth: '200px' }}
-                placeholder="Search location..." value={geocodeQuery}
+                placeholder={translate('Physicians.search_location')} value={geocodeQuery}
                 onChange={e => setGeocodeQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleGeocode()} />
               <button className="btn btn-primary" onClick={async () => {
@@ -597,23 +597,21 @@ export default function Physicians() {
                 loadDirectoryPoints(bb);  // clinicians in this area (DB)
                 loadFacilityPoints(bb);   // facilities in this area (DB)
               }}>
-                <Search size={16} /> Search Area
+                <Search size={16} /> {translate('Physicians.search_area')}
               </button>
               <select className="form-input" value={mapRole} onChange={e => setMapRole(e.target.value)} style={{ maxWidth: 180 }}>
                 {DIRECTORY_ROLES.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
               </select>
               <button className="btn btn-secondary" onClick={discoverFacilitiesHere} disabled={discovering}
-                title="Find healthcare facilities (OpenStreetMap) for the current map area and add them to the directory">
-                <Navigation size={16} /> {discovering ? 'Discovering…' : 'Discover facilities here'}
+                title={translate('Physicians.find_healthcare_facilities_openstreetmap')}>
+                <Navigation size={16} /> {(discovering) ? translate('Physicians.discovering') : translate('Physicians.discover_facilities_here')}
               </button>
             </div>
           </div>
           <div ref={mapRef} style={{ height: '500px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }} />
           <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#999' }}>
-            <strong>{directoryPoints.length}</strong> verified clinician{directoryPoints.length !== 1 ? 's' : ''}
-            {facilityPoints.length ? <> · <strong>{facilityPoints.length}</strong> facilities</> : null} &nbsp;·&nbsp;
-            🟢 You &nbsp; 🔵 Clinicians (filled = exact, hollow = approx.) &nbsp; 🟣 Facilities (OSM) &nbsp;·&nbsp;
-            Map data © <a href="https://osm.org" target="_blank" rel="noreferrer">OpenStreetMap</a>
+            <strong>{directoryPoints.length}</strong> {(directoryPoints.length !== 1) ? translate('Physicians.verified_clinicians') : translate('Physicians.verified_clinician')}
+            {facilityPoints.length ? <> · <strong>{facilityPoints.length}</strong> {translate('Physicians.facilities')}</> : null} {translate('Physicians.you_clinicians_filled_exact_hollow')} <a href="https://osm.org" target="_blank" rel="noreferrer">{translate('Physicians.openstreetmap')}</a>
           </div>
         </div>
       )}
@@ -652,7 +650,7 @@ function PhysicianCard({ physician: p, isSaved, onSave, onUnsave, onReview, onDe
             <h3 style={{ margin: 0 }}>{p.full_name}</h3>
             {p.credentials && <span style={{ color: '#666', fontSize: '0.85rem' }}>{p.credentials}</span>}
             <VerificationBadge physician={p} />
-            {p.telehealth_available && <span style={{ background: '#14b8a6', color: '#fff', padding: '2px 6px', borderRadius: '12px', fontSize: '0.7rem' }} title="Telehealth available"><Video size={10} /></span>}
+            {p.telehealth_available && <span style={{ background: '#14b8a6', color: '#fff', padding: '2px 6px', borderRadius: '12px', fontSize: '0.7rem' }} title={translate('Physicians.telehealth_available')}><Video size={10} /></span>}
           </div>
           <p style={{ margin: '0.25rem 0', color: '#f97316', fontWeight: 500 }}>{p.specialty} {p.specialty_category ? `• ${p.specialty_category}` : ''}</p>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
@@ -664,11 +662,11 @@ function PhysicianCard({ physician: p, isSaved, onSave, onUnsave, onReview, onDe
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.35rem', fontSize: '0.85rem' }}>
               <Star size={14} fill="#f59e0b" color="#f59e0b" />
               <span style={{ fontWeight: 600 }}>{p.average_rating?.toFixed(1)}</span>
-              <span style={{ color: '#888' }}>({p.review_count} review{p.review_count > 1 ? 's' : ''})</span>
+              <span style={{ color: '#888' }}>{(p.review_count > 1) ? translate('Physicians.reviews', { review_count: p.review_count }) : translate('Physicians.review', { review_count: p.review_count })}</span>
             </div>
           )}
           <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
-            {p.accepting_new_patients && <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>Accepting patients</span>}
+            {p.accepting_new_patients && <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>{translate('Physicians.accepting_patients')}</span>}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }} onClick={e => e.stopPropagation()}>
@@ -680,10 +678,10 @@ function PhysicianCard({ physician: p, isSaved, onSave, onUnsave, onReview, onDe
               : 'License not verified — cannot add to your care team'}>
             {isSaved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
           </button>
-          <button className="btn btn-sm btn-secondary" onClick={onReview} title="Review">
+          <button className="btn btn-sm btn-secondary" onClick={onReview} title={translate('Physicians.review_2')}>
             <MessageSquare size={14} />
           </button>
-          <button className="btn btn-sm btn-danger" onClick={onDelete} title="Delete">
+          <button className="btn btn-sm btn-danger" onClick={onDelete} title={translate('Physicians.delete')}>
             <Trash2 size={14} />
           </button>
         </div>
@@ -742,8 +740,8 @@ function GlobalDirectoryMap() {
       <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <ShieldCheck size={16} color="#22c55e" />
-          <span style={{ fontWeight: 600 }}>Verified clinicians only.</span>
-          <span style={{ color: '#666', fontSize: '0.85rem' }}>Unverified / unlicensed records are held and never shown here or linked to patients.</span>
+          <span style={{ fontWeight: 600 }}>{translate('Physicians.verified_clinicians_only')}</span>
+          <span style={{ color: '#666', fontSize: '0.85rem' }}>{translate('Physicians.unverified_unlicensed_records_are_held')}</span>
         </div>
         <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
           {DIRECTORY_ROLES.map(([val, label]) => (
@@ -756,24 +754,24 @@ function GlobalDirectoryMap() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(260px, 1fr)', gap: '1rem', alignItems: 'start' }}>
         <div className="card" style={{ padding: '1.25rem' }}>
           {data == null
-            ? <div style={{ padding: '3rem', textAlign: 'center', color: '#999' }}>Loading directory map…</div>
+            ? <div style={{ padding: '3rem', textAlign: 'center', color: '#999' }}>{translate('Physicians.loading_directory_map')}</div>
             : <ChoroplethMap data={mapData} selected={selected} onSelect={pick} />}
           <div style={{ fontSize: '0.78rem', color: '#999', marginTop: '0.6rem' }}>
-            {data ? <><strong>{data.total_verified}</strong> verified clinicians across <strong>{data.countries.length}</strong> countries. Click a country to drill down.</> : null}
+            {data ? <><strong>{data.total_verified}</strong> {translate('Physicians.verified_clinicians_across')} <strong>{data.countries.length}</strong> {translate('Physicians.countries_click_a_country_to_drill_down')}</> : null}
           </div>
         </div>
 
         <div className="card" style={{ padding: '1.25rem', minHeight: 200 }}>
           {!selected && (
             <div style={{ color: '#666' }}>
-              <h4 style={{ marginTop: 0 }}><Globe2 size={16} style={{ verticalAlign: -3 }} /> By country</h4>
+              <h4 style={{ marginTop: 0 }}><Globe2 size={16} style={{ verticalAlign: -3 }} /> {translate('Physicians.by_country')}</h4>
               {(data?.countries || []).slice(0, 12).map((c) => (
                 <button key={c.iso2} onClick={() => pick(c.iso2)}
                   style={{ display: 'flex', width: '100%', justifyContent: 'space-between', padding: '0.4rem 0.5rem', border: 'none', background: 'none', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
                   <span>{flagEmoji(c.iso2)} {c.name}</span><strong>{c.count}</strong>
                 </button>
               ))}
-              {data && !data.countries.length && <p>No verified clinicians yet. Seed from CMS in the admin tools.</p>}
+              {data && !data.countries.length && <p>{translate('Physicians.no_verified_clinicians_yet_seed_from_cms')}</p>}
             </div>
           )}
           {selected && (
@@ -782,8 +780,8 @@ function GlobalDirectoryMap() {
                 <h3 style={{ margin: 0 }}>{flagEmoji(selected)} {data?.countries.find((c) => c.iso2 === selected)?.name || selected}</h3>
                 <button className="btn btn-sm btn-secondary" onClick={() => { setSelected(null); setList(null); }}><X size={14} /></button>
               </div>
-              {listLoading && <p style={{ color: '#999' }}>Loading…</p>}
-              {list && list.length === 0 && !listLoading && <p style={{ color: '#999' }}>No verified clinicians listed.</p>}
+              {listLoading && <p style={{ color: '#999' }}>{translate('Physicians.loading')}</p>}
+              {list && list.length === 0 && !listLoading && <p style={{ color: '#999' }}>{translate('Physicians.no_verified_clinicians_listed')}</p>}
               {list && list.map((c) => (
                 <div key={c.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid #eee' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
@@ -823,8 +821,8 @@ function PhysicianDetail({ physician: p, onClose, reviews, onLoadReviews }) {
         {p.operating_hours && <p><Clock size={14} /> {p.operating_hours}</p>}
         {p.insurance_accepted && <p><Shield size={14} /> {p.insurance_accepted}</p>}
       </div>
-      <h3>Reviews ({reviews.length})</h3>
-      {reviews.length === 0 ? <p style={{ color: '#888' }}>No reviews yet</p> : reviews.map(r => (
+      <h3>{translate('Physicians.reviews_2', { reviews: reviews.length })}</h3>
+      {reviews.length === 0 ? <p style={{ color: '#888' }}>{translate('Physicians.no_reviews_yet')}</p> : reviews.map(r => (
         <div key={r.id} style={{ borderBottom: '1px solid #eee', padding: '0.75rem 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < r.rating ? '#f59e0b' : '#e5e7eb'} color={i < r.rating ? '#f59e0b' : '#e5e7eb'} />)}
@@ -855,19 +853,19 @@ function AddPhysicianDialog({ specialties, onSave, onClose }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div className="card" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0 }}>Add Physician</h2>
+          <h2 style={{ margin: 0 }}>{translate('Physicians.add_physician')}</h2>
           <button className="btn btn-sm btn-secondary" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={e => { e.preventDefault(); onSave(form); }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div style={{ gridColumn: '1/3' }}>
-              <label className="form-label">Full Name *</label>
+              <label className="form-label">{translate('Physicians.full_name')}</label>
               <input className="form-input" required value={form.full_name} onChange={e => set('full_name', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">Specialty *</label>
+              <label className="form-label">{translate('Physicians.specialty')}</label>
               <select className="form-input" required value={form.specialty} onChange={e => set('specialty', e.target.value)}>
-                <option value="">Select...</option>
+                <option value="">{translate('Physicians.select')}</option>
                 {Object.entries(specialties).map(([cat, specs]) => (
                   <optgroup key={cat} label={cat}>
                     {specs.map(s => <option key={s} value={s}>{s}</option>)}
@@ -876,53 +874,53 @@ function AddPhysicianDialog({ specialties, onSave, onClose }) {
               </select>
             </div>
             <div>
-              <label className="form-label">Credentials</label>
+              <label className="form-label">{translate('Physicians.credentials')}</label>
               <input className="form-input" placeholder="MD, DO, NP..." value={form.credentials} onChange={e => set('credentials', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">Facility Name</label>
+              <label className="form-label">{translate('Physicians.facility_name')}</label>
               <input className="form-input" value={form.facility_name} onChange={e => set('facility_name', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">NPI Number</label>
+              <label className="form-label">{translate('Physicians.npi_number')}</label>
               <input className="form-input" value={form.npi_number} onChange={e => set('npi_number', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">Phone</label>
+              <label className="form-label">{translate('Physicians.phone')}</label>
               <input className="form-input" value={form.phone} onChange={e => set('phone', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">Email</label>
+              <label className="form-label">{translate('Physicians.email')}</label>
               <input className="form-input" type="email" value={form.email} onChange={e => set('email', e.target.value)} />
             </div>
             <div style={{ gridColumn: '1/3' }}>
-              <label className="form-label">Address</label>
+              <label className="form-label">{translate('Physicians.address')}</label>
               <input className="form-input" value={form.address_line1} onChange={e => set('address_line1', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">City</label>
+              <label className="form-label">{translate('Physicians.city')}</label>
               <input className="form-input" value={form.city} onChange={e => set('city', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">State / Province</label>
+              <label className="form-label">{translate('Physicians.state_province')}</label>
               <input className="form-input" value={form.state_province} onChange={e => set('state_province', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">Country</label>
+              <label className="form-label">{translate('Physicians.country')}</label>
               <input className="form-input" value={form.country} onChange={e => set('country', e.target.value)} />
             </div>
             <div>
-              <label className="form-label">Languages</label>
-              <input className="form-input" placeholder="English, Spanish..." value={form.languages_spoken} onChange={e => set('languages_spoken', e.target.value)} />
+              <label className="form-label">{translate('Physicians.languages')}</label>
+              <input className="form-input" placeholder={translate('Physicians.english_spanish')} value={form.languages_spoken} onChange={e => set('languages_spoken', e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <label><input type="checkbox" checked={form.accepting_new_patients} onChange={e => set('accepting_new_patients', e.target.checked)} /> Accepting patients</label>
-              <label><input type="checkbox" checked={form.telehealth_available} onChange={e => set('telehealth_available', e.target.checked)} /> Telehealth</label>
+              <label><input type="checkbox" checked={form.accepting_new_patients} onChange={e => set('accepting_new_patients', e.target.checked)} /> {translate('Physicians.accepting_patients')}</label>
+              <label><input type="checkbox" checked={form.telehealth_available} onChange={e => set('telehealth_available', e.target.checked)} /> {translate('Physicians.telehealth')}</label>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary"><Plus size={16} /> Add Physician</button>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>{translate('Physicians.cancel')}</button>
+            <button type="submit" className="btn btn-primary"><Plus size={16} /> {translate('Physicians.add_physician')}</button>
           </div>
         </form>
       </div>
@@ -939,29 +937,29 @@ function SaveDialog({ physician, onSave, onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1001, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div className="card" style={{ width: '400px', padding: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 1rem' }}>Save {physician.full_name}</h3>
+        <h3 style={{ margin: '0 0 1rem' }}>{translate('Physicians.save', { full_name: physician.full_name })}</h3>
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <div>
-            <label className="form-label">Nickname (optional)</label>
-            <input className="form-input" placeholder="e.g. My kidney doctor" value={nickname} onChange={e => setNickname(e.target.value)} />
+            <label className="form-label">{translate('Physicians.nickname_optional')}</label>
+            <input className="form-input" placeholder={translate('Physicians.e_g_my_kidney_doctor')} value={nickname} onChange={e => setNickname(e.target.value)} />
           </div>
           <div>
-            <label className="form-label">Relationship</label>
+            <label className="form-label">{translate('Physicians.relationship')}</label>
             <select className="form-input" value={relType} onChange={e => setRelType(e.target.value)}>
-              <option value="">Select...</option>
+              <option value="">{translate('Physicians.select')}</option>
               {RELATIONSHIP_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>
-            <label className="form-label">Notes</label>
+            <label className="form-label">{translate('Physicians.notes')}</label>
             <textarea className="form-input" rows={3} value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
-          <label><input type="checkbox" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)} /> Primary Care Provider</label>
+          <label><input type="checkbox" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)} /> {translate('Physicians.primary_care_provider')}</label>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-secondary" onClick={onClose}>{translate('Physicians.cancel')}</button>
           <button className="btn btn-primary" onClick={() => onSave({ nickname, notes, is_primary_care: isPrimary, relationship_type: relType })}>
-            <Heart size={16} /> Save
+            <Heart size={16} /> {translate('Physicians.save_2')}
           </button>
         </div>
       </div>
@@ -978,10 +976,10 @@ function ReviewDialog({ physician, onSubmit, onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1001, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div className="card" style={{ width: '400px', padding: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 1rem' }}>Review {physician.full_name}</h3>
+        <h3 style={{ margin: '0 0 1rem' }}>{translate('Physicians.review_3', { full_name: physician.full_name })}</h3>
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <div>
-            <label className="form-label">Rating</label>
+            <label className="form-label">{translate('Physicians.rating')}</label>
             <div style={{ display: 'flex', gap: '0.25rem' }}>
               {[1, 2, 3, 4, 5].map(n => (
                 <Star key={n} size={24} style={{ cursor: 'pointer' }}
@@ -991,19 +989,19 @@ function ReviewDialog({ physician, onSubmit, onClose }) {
             </div>
           </div>
           <div>
-            <label className="form-label">Title</label>
+            <label className="form-label">{translate('Physicians.title')}</label>
             <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} />
           </div>
           <div>
-            <label className="form-label">Review</label>
+            <label className="form-label">{translate('Physicians.review_2')}</label>
             <textarea className="form-input" rows={4} value={text} onChange={e => setText(e.target.value)} />
           </div>
-          <label><input type="checkbox" checked={anon} onChange={e => setAnon(e.target.checked)} /> Post anonymously</label>
+          <label><input type="checkbox" checked={anon} onChange={e => setAnon(e.target.checked)} /> {translate('Physicians.post_anonymously')}</label>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-secondary" onClick={onClose}>{translate('Physicians.cancel')}</button>
           <button className="btn btn-primary" onClick={() => onSubmit({ rating, title, review_text: text, is_anonymous: anon })}>
-            <Star size={16} /> Submit Review
+            <Star size={16} /> {translate('Physicians.submit_review')}
           </button>
         </div>
       </div>

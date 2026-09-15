@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, X } from 'lucide-react';
 import api from '../services/api';
+import { t } from '../i18n';
 
 /**
  * App-wide nudge for grandfathered users whose complimentary access is winding
@@ -37,14 +38,14 @@ export default function MembershipNudge() {
     <div style={wrap}>
       <Sparkles size={18} color="#7c4dff" style={{ flexShrink: 0 }} />
       <span style={{ flex: 1, fontSize: 14, lineHeight: 1.4 }}>
-        Your complimentary access ends in <strong>{days} day{days === 1 ? '' : 's'}</strong>
-        {' '}({end.toLocaleDateString()}). Subscribe to keep your ALAFIA Membership.
+        {t('MembershipNudge.your_complimentary_access_ends_in')} <strong>{(days === 1) ? t('MembershipNudge.day', { days }) : t('MembershipNudge.days', { days })}</strong>
+        {' '}{t('MembershipNudge.subscribe_to_keep_your_alafia_membership', { end: end.toLocaleDateString() })}
       </span>
-      <Link to="/subscription" style={cta}>Choose a plan</Link>
+      <Link to="/subscription" style={cta}>{t('MembershipNudge.choose_a_plan')}</Link>
       <button
         onClick={() => { try { localStorage.setItem(key, '1'); } catch { /* ignore */ } setDismissed(true); }}
         style={xBtn}
-        aria-label="Dismiss"
+        aria-label={t('MembershipNudge.dismiss')}
       >
         <X size={16} />
       </button>

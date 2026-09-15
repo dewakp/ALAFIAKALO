@@ -12,6 +12,7 @@ import {
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from 'recharts';
+import { t as translate } from '../i18n';
 
 /* ─── helpers ─── */
 const todayStr = () => localToday();
@@ -159,20 +160,19 @@ function WellnessScoreCard() {
     <div className="card" style={{ marginBottom: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.75rem' }}>
         <Heart size={18} style={{ color: 'var(--color-primary)' }}/>
-        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>Current Wellness Score</h3>
+        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>{translate('Dashboard.current_wellness_score')}</h3>
       </div>
       {failed ? (
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
-          Score unavailable right now. <Link to="/wellness" style={{ color: 'var(--color-primary)' }}>Open Wellness Score</Link>
+          {translate('Dashboard.score_unavailable_right_now')} <Link to="/wellness" style={{ color: 'var(--color-primary)' }}>{translate('Dashboard.open_wellness_score')}</Link>
         </p>
       ) : nothingMeasured ? (
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
-          Not enough data yet to score. Log a meal, a set of vitals or a
-          check-in and this fills in.{' '}
-          <Link to="/wellness" style={{ color: 'var(--color-primary)' }}>Open Wellness Score</Link>
+          {translate('Dashboard.not_enough_data_yet_to_score_log_a_meal')}{' '}
+          <Link to="/wellness" style={{ color: 'var(--color-primary)' }}>{translate('Dashboard.open_wellness_score')}</Link>
         </p>
       ) : value == null ? (
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>Calculating…</p>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>{translate('Dashboard.calculating')}</p>
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '.25rem' }}>
@@ -187,7 +187,7 @@ function WellnessScoreCard() {
           </p>
           {score.confidence != null && score.confidence < 1 && (
             <p style={{ color: 'var(--color-text-tertiary)', fontSize: '.72rem', margin: '.35rem 0 0' }}>
-              Based on {Math.round(score.confidence * 100)}% of the usual picture.
+              {translate('Dashboard.based_on_of_the_usual_picture', { confidence: Math.round(score.confidence * 100) })}
             </p>
           )}
         </>
@@ -221,25 +221,25 @@ function LatestLabsCard() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
           <FlaskConical size={18} style={{ color: 'var(--color-primary)' }}/>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>Latest Lab Results</h3>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>{translate('Dashboard.latest_lab_results')}</h3>
         </div>
         <button onClick={() => navigate('/labs')}
           style={{ display: 'flex', alignItems: 'center', gap: '.3rem', background: 'none', border: 'none',
             color: 'var(--color-primary)', cursor: 'pointer', fontSize: '.85rem', padding: 0 }}>
-          <FileText size={14}/> View All
+          <FileText size={14}/> {translate('Dashboard.view_all')}
         </button>
       </div>
       {labs == null ? (
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>Loading…</p>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>{translate('Dashboard.loading')}</p>
       ) : !latest ? (
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
-          No lab results yet. <Link to="/labs" style={{ color: 'var(--color-primary)' }}>Add your first result</Link>
+          {translate('Dashboard.no_lab_results_yet')} <Link to="/labs" style={{ color: 'var(--color-primary)' }}>{translate('Dashboard.add_your_first_result')}</Link>
         </p>
       ) : (
         <>
-          <div style={{ fontWeight: 700, fontSize: '.95rem' }}>Lab Draw Report</div>
+          <div style={{ fontWeight: 700, fontSize: '.95rem' }}>{translate('Dashboard.lab_draw_report')}</div>
           <div style={{ color: 'var(--color-text-secondary)', fontSize: '.8rem', marginBottom: '.6rem' }}>
-            Date: {fmtDateLabel(latest.date)}
+            {translate('Dashboard.date', { date: fmtDateLabel(latest.date) })}
           </div>
           {latest.items.slice(0, 3).map(l => (
             <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.88rem', padding: '.2rem 0' }}>
@@ -249,7 +249,7 @@ function LatestLabsCard() {
           ))}
           {latest.items.length > 3 && (
             <div style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)', fontSize: '.8rem', marginTop: '.35rem' }}>
-              …and {latest.items.length - 3} more.
+              {translate('Dashboard.and_more', { items: latest.items.length - 3 })}
             </div>
           )}
         </>
@@ -283,17 +283,17 @@ function VitalsTrendCard() {
   }, [vitals]);
 
   return (
-    <OverviewCard icon={Activity} title="Historical Vitals Trend"
+    <OverviewCard icon={Activity} title={translate('Dashboard.historical_vitals_trend')}
       subtitle={
-        <>A quick look at your blood pressure and heart rate over the last 7 entries.{' '}
-          <Link to="/chart-dashboard" style={{ color: 'var(--color-primary)' }}>View full trends page.</Link></>
+        <>{translate('Dashboard.a_quick_look_at_your_blood_pressure_and')}{' '}
+          <Link to="/chart-dashboard" style={{ color: 'var(--color-primary)' }}>{translate('Dashboard.view_full_trends_page')}</Link></>
       }>
       {vitals == null ? (
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>Loading…</p>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>{translate('Dashboard.loading')}</p>
       ) : chartData.length === 0 ? (
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
-          No blood pressure or heart rate entries yet.{' '}
-          <Link to="/vitals" style={{ color: 'var(--color-primary)' }}>Log your vitals</Link> to see the trend.
+          {translate('Dashboard.no_blood_pressure_or_heart_rate_entries')}{' '}
+          <Link to="/vitals" style={{ color: 'var(--color-primary)' }}>{translate('Dashboard.log_your_vitals')}</Link> {translate('Dashboard.to_see_the_trend')}
         </p>
       ) : (
         <div style={{ width: '100%', height: 320 }}>
@@ -347,22 +347,22 @@ function RecommendationsCard() {
 
   const taStyle = { width: '100%', minHeight: 90, resize: 'vertical' };
   return (
-    <OverviewCard icon={MessageSquareText} title="Alafia Personalized Recommendations"
+    <OverviewCard icon={MessageSquareText} title={translate('Dashboard.alafia_personalized_recommendations')}
       subtitle="Enter supplementary notes or preferences. Alafia will primarily use your latest profile, journal, nutrition, vitals, and lab data.">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '.85rem' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 600, fontSize: '.88rem', marginBottom: '.35rem' }}>
-            Supplementary Journal Notes (Optional)
+            {translate('Dashboard.supplementary_journal_notes_optional')}
           </label>
           <textarea className="form-input" style={taStyle} value={notes} onChange={e => setNotes(e.target.value)}
-            placeholder="e.g., Feeling particularly tired today, specific dietary craving…"/>
+            placeholder={translate('Dashboard.e_g_feeling_particularly_tired_today')}/>
         </div>
         <div>
           <label style={{ display: 'block', fontWeight: 600, fontSize: '.88rem', marginBottom: '.35rem' }}>
-            Personal Preferences for Today (Optional)
+            {translate('Dashboard.personal_preferences_for_today_optional')}
           </label>
           <textarea className="form-input" style={taStyle} value={prefs} onChange={e => setPrefs(e.target.value)}
-            placeholder="e.g., prefer indoor activities, looking for quick meal ideas"/>
+            placeholder={translate('Dashboard.e_g_prefer_indoor_activities_looking_for')}/>
         </div>
       </div>
       <button className="btn btn-primary" onClick={run} disabled={busy}
@@ -390,7 +390,7 @@ function InsightsCard() {
 
   async function run() {
     if (symptoms.trim().length < 10) {
-      setError('Please describe your symptoms in a bit more detail (at least 10 characters).');
+      setError(translate('Dashboard.please_describe_your_symptoms_in_a_bit'));
       return;
     }
     setBusy(true); setError(null); setResult(null);
@@ -407,14 +407,14 @@ function InsightsCard() {
   }
 
   return (
-    <OverviewCard icon={Sparkles} title="Alafia Health Insights (Experimental)"
+    <OverviewCard icon={Sparkles} title={translate('Dashboard.alafia_health_insights_experimental')}
       subtitle="Describe your current symptoms. Alafia will use your full health context (profile, journals, vitals, labs) to provide general insights. This is NOT a medical diagnosis.">
       <label style={{ display: 'block', fontWeight: 600, fontSize: '.88rem', marginBottom: '.35rem' }}>
-        Describe your current symptoms
+        {translate('Dashboard.describe_your_current_symptoms')}
       </label>
       <textarea className="form-input" style={{ width: '100%', minHeight: 90, resize: 'vertical', marginBottom: '.85rem' }}
         value={symptoms} onChange={e => setSymptoms(e.target.value)}
-        placeholder="e.g., I've had a persistent cough for 3 days, and a slight headache…"/>
+        placeholder={translate('Dashboard.e_g_i_ve_had_a_persistent_cough_for_3')}/>
       <button className="btn btn-primary" onClick={run} disabled={busy}
         style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
         {busy && <Loader2 size={15} style={{ animation: 'spin-anim 1s linear infinite' }}/>}
@@ -484,15 +484,15 @@ function DailyFoodIdeaCard() {
 
   const { status, meal } = state;
   return (
-    <OverviewCard icon={UtensilsCrossed} title="Daily Food Ideas"
+    <OverviewCard icon={UtensilsCrossed} title={translate('Dashboard.daily_food_ideas')}
       subtitle="An auto-generated meal suggestion based on your health data.">
       {status === 'loading' ? (
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.9rem', margin: '0 0 .85rem 0' }}>
-          Generating today's meal idea…
+          {translate('Dashboard.generating_today_s_meal_idea')}
         </p>
       ) : status === 'error' ? (
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.95rem', margin: '0 0 .85rem 0' }}>
-          Could not generate a meal idea. Try again later or visit the full planner.
+          {translate('Dashboard.could_not_generate_a_meal_idea_try_again')}
         </p>
       ) : (
         <div style={{ marginBottom: '.85rem' }}>
@@ -504,16 +504,13 @@ function DailyFoodIdeaCard() {
           )}
           {meal.calories != null && (
             <p style={{ margin: '.35rem 0 0 0', fontSize: '.8rem', color: 'var(--color-text-secondary)' }}>
-              ~{Math.round(meal.calories)} kcal
-              {meal.protein_g != null && ` · ${Math.round(meal.protein_g)}g protein`}
-              {meal.carbs_g != null && ` · ${Math.round(meal.carbs_g)}g carbs`}
-              {meal.fat_g != null && ` · ${Math.round(meal.fat_g)}g fat`}
+              {translate('Dashboard.kcal', { calories: Math.round(meal.calories), protein_g: meal.protein_g != null && ` · ${Math.round(meal.protein_g)}g protein`, carbs_g: meal.carbs_g != null && ` · ${Math.round(meal.carbs_g)}g carbs`, fat_g: meal.fat_g != null && ` · ${Math.round(meal.fat_g)}g fat` })}
             </p>
           )}
         </div>
       )}
       <Link to="/meal-planner" style={{ color: 'var(--color-primary)', fontSize: '.9rem', fontWeight: 600 }}>
-        Go to AI Meal Planner for more
+        {translate('Dashboard.go_to_ai_meal_planner_for_more')}
       </Link>
     </OverviewCard>
   );
@@ -521,20 +518,20 @@ function DailyFoodIdeaCard() {
 
 /* ─── overview: resources quick links ─── */
 const RESOURCES = [
-  { label: 'My Profile', to: '/profile', icon: User },
-  { label: 'Chat with Alafia', to: '/ai', icon: Bot },
-  { label: 'Health Journal', to: '/journal', icon: BookOpen },
-  { label: 'Daily Vitals', to: '/vitals', icon: HeartPulse },
-  { label: 'HD Flowsheet', to: '/hemodialysis', icon: Activity },
-  { label: 'PD Report', to: '/peritoneal-dialysis', icon: Droplets },
-  { label: 'Food & Meds Log', to: '/nutrition', icon: Apple },
-  { label: 'Meals Diary', to: '/meals-diary', icon: UtensilsCrossed },
-  { label: 'Lab Tests', to: '/labs', icon: FlaskConical },
-  { label: 'Daily Calendar', to: '/calendar', icon: CalendarDays },
-  { label: 'Food & Drug Recalls', to: '/fda-recalls', icon: AlertTriangle },
-  { label: 'Connect Records', to: '/data-sharing', icon: Share2 },
-  { label: 'CDC Health Info', href: 'https://www.cdc.gov/health-topics.html', icon: Globe },
-  { label: 'WHO Wellness Tips', href: 'https://www.who.int/health-topics', icon: Globe },
+  { get label() { return translate('Dashboard.my_profile'); }, to: '/profile', icon: User },
+  { get label() { return translate('Dashboard.chat_with_alafia'); }, to: '/ai', icon: Bot },
+  { get label() { return translate('Dashboard.health_journal'); }, to: '/journal', icon: BookOpen },
+  { get label() { return translate('Dashboard.daily_vitals'); }, to: '/vitals', icon: HeartPulse },
+  { get label() { return translate('Dashboard.hd_flowsheet'); }, to: '/hemodialysis', icon: Activity },
+  { get label() { return translate('Dashboard.pd_report'); }, to: '/peritoneal-dialysis', icon: Droplets },
+  { get label() { return translate('Dashboard.food_meds_log'); }, to: '/nutrition', icon: Apple },
+  { get label() { return translate('Dashboard.meals_diary'); }, to: '/meals-diary', icon: UtensilsCrossed },
+  { get label() { return translate('Dashboard.lab_tests'); }, to: '/labs', icon: FlaskConical },
+  { get label() { return translate('Dashboard.daily_calendar'); }, to: '/calendar', icon: CalendarDays },
+  { get label() { return translate('Dashboard.food_drug_recalls'); }, to: '/fda-recalls', icon: AlertTriangle },
+  { get label() { return translate('Dashboard.connect_records'); }, to: '/data-sharing', icon: Share2 },
+  { get label() { return translate('Dashboard.cdc_health_info'); }, href: 'https://www.cdc.gov/health-topics.html', icon: Globe },
+  { get label() { return translate('Dashboard.who_wellness_tips'); }, href: 'https://www.who.int/health-topics', icon: Globe },
 ];
 
 function ResourceTile({ item }) {
@@ -565,7 +562,7 @@ function ResourceTile({ item }) {
 
 function ResourcesSection() {
   return (
-    <OverviewCard title="Resources" subtitle="Quick links to helpful sections and external resources.">
+    <OverviewCard title={translate('Dashboard.resources')} subtitle="Quick links to helpful sections and external resources.">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '1rem' }}>
         {RESOURCES.map(item => <ResourceTile key={item.label} item={item}/>)}
       </div>
@@ -579,7 +576,7 @@ function DashboardFooter() {
     <footer style={{ borderTop: '1px solid var(--color-border)', marginTop: '2rem', padding: '1.25rem 0 .5rem',
       display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem',
       color: 'var(--color-text-secondary)', fontSize: '.85rem' }}>
-      <span>Alafia is a 6igma Health App.</span>
+      <span>{translate('Dashboard.alafia_is_a_6igma_health_app')}</span>
       <span style={{ display: 'flex', gap: '1.25rem' }}>
         {[
           ['About Us', '/landing'],
@@ -675,10 +672,10 @@ export default function Dashboard() {
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
           <Sparkles size={28} style={{ color: 'var(--color-primary)' }}/>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Health Dashboard</h1>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{translate('Dashboard.health_dashboard')}</h1>
         </div>
         <p style={{ margin: '.35rem 0 0 0', color: 'var(--color-text-secondary)', fontSize: '1rem' }}>
-          Your personal health overview and Alafia-powered insights.
+          {translate('Dashboard.your_personal_health_overview_and_alafia')}
         </p>
       </div>
 
@@ -692,13 +689,13 @@ export default function Dashboard() {
       <DailyFoodIdeaCard/>
 
       {/* ═══ Daily review (calendar + logged data) ═══ */}
-      <h2 style={{ margin: '2rem 0 1rem 0', fontSize: '1.25rem', fontWeight: 700 }}>Daily Review</h2>
+      <h2 style={{ margin: '2rem 0 1rem 0', fontSize: '1.25rem', fontWeight: 700 }}>{translate('Dashboard.daily_review')}</h2>
       <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.25rem', alignItems: 'start' }}>
 
       {/* ── LEFT: Calendar ── */}
       <div className="card" style={{ position: 'sticky', top: '1rem' }}>
         <h3 style={{ margin: '0 0 .75rem 0', fontSize: '.9rem', fontWeight: 700, color: 'var(--color-text-secondary)',
-          textTransform: 'uppercase', letterSpacing: '.05em' }}>Select Date</h3>
+          textTransform: 'uppercase', letterSpacing: '.05em' }}>{translate('Dashboard.select_date')}</h3>
         <MiniCalendar selected={selDate} onChange={setSelDate} dotDates={dotDates}/>
         <div style={{ marginTop: '1rem', paddingTop: '.75rem', borderTop: '1px solid var(--color-border)',
           fontSize: '.8rem', color: 'var(--color-text-secondary)', textAlign: 'center' }}>
@@ -717,7 +714,7 @@ export default function Dashboard() {
                   {m.notes && <p style={{ margin: 0, fontSize: '.88rem' }}>{m.notes}</p>}
                   {m.mood_score != null && (
                     <span style={{ fontSize: '.75rem', color: 'var(--color-text-secondary)' }}>
-                      Mood score: {m.mood_score}/10
+                      {translate('Dashboard.mood_score_10', { mood_score: m.mood_score })}
                     </span>
                   )}
                 </div>
@@ -726,7 +723,7 @@ export default function Dashboard() {
         </Section>
 
         {/* Meals & Nutrition */}
-        <Section icon={Apple} title="Meals & Nutrition"
+        <Section icon={Apple} title={translate('Dashboard.meals_nutrition')}
           badge={nutrition.length ? `Daily Totals (${nutrition.length} item${nutrition.length > 1 ? 's' : ''})` : null}
           link={true} linkLabel="View Full Meals Diary" onLink={() => navigate('/meals-diary')}
           accentColor="#10b981">
@@ -746,7 +743,7 @@ export default function Dashboard() {
                       {item.calories > 0 && (
                         <span style={{ fontSize: '.75rem', color: 'var(--color-text-tertiary)',
                           fontFamily: 'monospace', marginLeft: '.5rem' }}>
-                          {Math.round(item.calories)} kcal
+                          {translate('Dashboard.kcal_2', { calories: Math.round(item.calories) })}
                         </span>
                       )}
                     </div>
@@ -756,7 +753,7 @@ export default function Dashboard() {
         </Section>
 
         {/* General Activities & Events (Elimination) */}
-        <Section icon={Zap} title="General Activities & Events"
+        <Section icon={Zap} title={translate('Dashboard.general_activities_events')}
           link={elimEvents.length > 0} linkLabel="View Full Elimination Log"
           onLink={() => navigate('/elimination')} accentColor="#f59e0b">
           {elimEvents.length === 0
@@ -764,7 +761,7 @@ export default function Dashboard() {
             : (
               <div>
                 <div style={{ fontWeight: 600, fontSize: '.82rem', color: 'var(--color-text-secondary)', marginBottom: '.35rem' }}>
-                  Elimination Events:
+                  {translate('Dashboard.elimination_events')}
                 </div>
                 {elimEvents.map((e, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '.4rem',
@@ -772,7 +769,7 @@ export default function Dashboard() {
                     <span style={{ color: 'var(--color-text-secondary)', minWidth: 24 }}>•</span>
                     <span>
                       <strong>{e.type}</strong>
-                      {e.time && <span style={{ color: 'var(--color-text-tertiary)' }}> at {fmtTime(typeof e.time === 'string' && e.time.length <= 8 ? e.time : new Date(e.time).toTimeString().slice(0,5))}</span>}
+                      {e.time && <span style={{ color: 'var(--color-text-tertiary)' }}> {translate('Dashboard.at', { value: fmtTime(typeof e.time === 'string' && e.time.length <= 8 ? e.time : new Date(e.time).toTimeString().slice(0,5)) })}</span>}
                       {e.note && <span style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)' }}> — {e.note}</span>}
                     </span>
                   </div>
@@ -782,7 +779,7 @@ export default function Dashboard() {
         </Section>
 
         {/* Medications Taken */}
-        <Section icon={Pill} title="Medications Taken" accentColor="#ef4444">
+        <Section icon={Pill} title={translate('Dashboard.medications_taken')} accentColor="#ef4444">
           {meds.length === 0
             ? noData('No medications logged for this date.')
             : (
@@ -798,7 +795,7 @@ export default function Dashboard() {
                 ))}
                 {meds.length > 5 && (
                   <p style={{ fontSize: '.78rem', color: 'var(--color-text-tertiary)', marginTop: '.5rem', marginBottom: 0 }}>
-                    +{meds.length - 5} more
+                    {translate('Dashboard.more', { meds: meds.length - 5 })}
                   </p>
                 )}
               </div>
@@ -806,13 +803,13 @@ export default function Dashboard() {
         </Section>
 
         {/* Schedules & Appointments */}
-        <Section icon={CalendarDays} title="Schedules & Appointments"
+        <Section icon={CalendarDays} title={translate('Dashboard.schedules_appointments')}
           accentColor="#3b82f6"
           badge={
             <button className="btn btn-primary btn-sm"
               onClick={e => { e.stopPropagation(); navigate('/calendar'); }}
               style={{ padding: '3px 10px', fontSize: '.75rem', display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-              <Plus size={12}/> Add New
+              <Plus size={12}/> {translate('Dashboard.add_new')}
             </button>
           }>
           {events.length === 0

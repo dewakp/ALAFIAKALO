@@ -6,6 +6,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { Plus, Trash2, Activity, Camera, Loader2 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
+import { t } from '../i18n';
 
 const today = () => localToday();
 
@@ -58,7 +59,7 @@ export default function Symptoms() {
       setAiNote(data.disclaimer || '');
       setShowForm(true);
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not analyze the photo'));
+      alert(apiErrorMessage(err, t('Symptoms.could_not_analyze_the_photo')));
     } finally { setAnalyzing(false); }
   }
 
@@ -106,19 +107,19 @@ export default function Symptoms() {
       setShowForm(false);
       load();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not save symptom'));
+      alert(apiErrorMessage(err, t('Symptoms.could_not_save_symptom')));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this symptom log?')) return;
+    if (!confirm(t('Symptoms.delete_this_symptom_log'))) return;
     try {
       await api.delete(`/symptoms/${id}`);
       load();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Could not delete'));
+      alert(apiErrorMessage(err, t('Symptoms.could_not_delete')));
     }
   }
 
@@ -127,7 +128,7 @@ export default function Symptoms() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Symptoms</h1>
+          <h1 className="page-title">{t('Symptoms.symptoms')}</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <label className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', margin: 0 }}>
@@ -139,7 +140,7 @@ export default function Symptoms() {
               style={{ display: 'none' }} disabled={analyzing} />
           </label>
           <button className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
-            <Plus size={18} /> Log Symptom
+            <Plus size={18} /> {t('Symptoms.log_symptom')}
           </button>
         </div>
       </div>
@@ -156,49 +157,49 @@ export default function Symptoms() {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Date</label>
+                <label className="form-label">{t('Symptoms.date')}</label>
                 <input className="form-input" type="date" value={form.log_date}
                   onChange={(e) => update('log_date', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Symptom *</label>
+                <label className="form-label">{t('Symptoms.symptom')}</label>
                 <input className="form-input" required value={form.symptom_name}
-                  placeholder="e.g. headache, knee pain"
+                  placeholder={t('Symptoms.e_g_headache_knee_pain')}
                   onChange={(e) => update('symptom_name', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Body part</label>
+                <label className="form-label">{t('Symptoms.body_part')}</label>
                 <input className="form-input" value={form.body_part}
-                  placeholder="e.g. head, left knee"
+                  placeholder={t('Symptoms.e_g_head_left_knee')}
                   onChange={(e) => update('body_part', e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Severity (1-10)</label>
+                <label className="form-label">{t('Symptoms.severity_1_10')}</label>
                 <input className="form-input" type="number" min="1" max="10" value={form.severity}
                   onChange={(e) => update('severity', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Type</label>
+                <label className="form-label">{t('Symptoms.type')}</label>
                 <input className="form-input" value={form.symptom_type}
-                  placeholder="pain, nausea, fatigue…"
+                  placeholder={t('Symptoms.pain_nausea_fatigue')}
                   onChange={(e) => update('symptom_type', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Duration (hours)</label>
+                <label className="form-label">{t('Symptoms.duration_hours')}</label>
                 <input className="form-input" type="number" step="0.5" min="0" value={form.duration_hours}
                   onChange={(e) => update('duration_hours', e.target.value)} />
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Triggers</label>
+              <label className="form-label">{t('Symptoms.triggers')}</label>
               <input className="form-input" value={form.triggers}
-                placeholder="what makes it worse?"
+                placeholder={t('Symptoms.what_makes_it_worse')}
                 onChange={(e) => update('triggers', e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label">Notes</label>
+              <label className="form-label">{t('Symptoms.notes')}</label>
               <textarea className="form-input" rows={2} value={form.notes}
                 onChange={(e) => update('notes', e.target.value)} />
             </div>
@@ -210,11 +211,11 @@ export default function Symptoms() {
       )}
 
       {loading ? (
-        <div className="card">Loading…</div>
+        <div className="card">{t('Symptoms.loading')}</div>
       ) : logs.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
           <Activity size={28} style={{ opacity: 0.5 }} />
-          <p>No symptoms logged yet.</p>
+          <p>{t('Symptoms.no_symptoms_logged_yet')}</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -224,7 +225,7 @@ export default function Symptoms() {
                 <strong>{s.symptom_name}</strong>
                 {s.severity != null && (
                   <span style={{ marginLeft: 8, fontSize: '.75rem', padding: '1px 8px', borderRadius: 10, background: 'var(--primary)', color: '#fff' }}>
-                    severity {s.severity}/10
+                    {t('Symptoms.severity_10', { severity: s.severity })}
                   </span>
                 )}
                 <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
@@ -232,7 +233,7 @@ export default function Symptoms() {
                 </div>
                 {s.notes && <div style={{ fontSize: '.85rem', marginTop: 4 }}>{s.notes}</div>}
               </div>
-              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s.id)} title="Delete">
+              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s.id)} title={t('Symptoms.delete')}>
                 <Trash2 size={15} />
               </button>
             </div>

@@ -1,5 +1,6 @@
 import { useUnits } from '../context/UnitsContext';
 import { METRIC, IMPERIAL } from '../utils/units';
+import { t } from '../i18n';
 
 /**
  * Segmented Metric / Imperial control. Reads and writes the shared UnitsContext,
@@ -24,7 +25,7 @@ export default function UnitToggle({ size = 'md' }) {
   return (
     <div
       role="group"
-      aria-label="Measurement system"
+      aria-label={t('UnitToggle.measurement_system')}
       style={{
         display: 'inline-flex',
         border: '1px solid var(--color-border, #d1d5db)',
@@ -38,7 +39,7 @@ export default function UnitToggle({ size = 'md' }) {
         style={optionStyle(system === METRIC)}
         onClick={() => setSystem(METRIC)}
       >
-        Metric
+        {t('UnitToggle.metric')}
       </button>
       <button
         type="button"
@@ -46,7 +47,7 @@ export default function UnitToggle({ size = 'md' }) {
         style={optionStyle(system === IMPERIAL)}
         onClick={() => setSystem(IMPERIAL)}
       >
-        Imperial
+        {t('UnitToggle.imperial')}
       </button>
     </div>
   );

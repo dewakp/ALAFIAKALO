@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
+import { t as translate } from '../i18n';
 
 /* ─── tiny helpers ─── */
 const today = () => localToday();
@@ -202,7 +203,7 @@ export default function Nutrition() {
         error: src ? '' : 'This photo could not be read from storage.' }));
     } catch (err) {
       setMealPhoto((prev) => ({ ...prev, loading: false, src: null,
-        error: apiErrorMessage(err, 'Could not load this photo.') }));
+        error: apiErrorMessage(err, translate('Nutrition.could_not_load_this_photo')) }));
     }
   };
 
@@ -230,7 +231,7 @@ export default function Nutrition() {
         (data.learned ? '. Published nutrition learned for this dish.' : '')
       );
     } catch (err) {
-      setRecipeInfo(apiErrorMessage(err, 'Could not analyze that recipe link'));
+      setRecipeInfo(apiErrorMessage(err, translate('Nutrition.could_not_analyze_that_recipe_link')));
     } finally { setAnalyzingRecipe(false); }
   };
 
@@ -284,7 +285,7 @@ export default function Nutrition() {
       setImageAnalysisResult(data.notes || '');
     } catch (err) {
       // 503 = no vision backend configured. Manual entry still works.
-      setImageAnalysisResult(apiErrorMessage(err, 'Image analysis unavailable — enter the meal manually.'));
+      setImageAnalysisResult(apiErrorMessage(err, translate('Nutrition.image_analysis_unavailable_enter_the')));
     } finally {
       setIsAnalyzingImages(false);
     }
@@ -319,7 +320,7 @@ export default function Nutrition() {
       // Reflect the correction in the meal form too.
       setForm((prev) => ({ ...prev, food_name: items.map((i) => i.name).join(', ') }));
     } catch (err) {
-      setTeachState(apiErrorMessage(err, 'Could not save your correction.'));
+      setTeachState(apiErrorMessage(err, translate('Nutrition.could_not_save_your_correction')));
     }
   };
 
@@ -339,7 +340,7 @@ export default function Nutrition() {
       if (!data?.source) {
         setEstimatePreview(null);
         if (!silent) {
-          setEstimateError('No nutrient estimate available yet. You can still save this entry.');
+          setEstimateError(translate('Nutrition.no_nutrient_estimate_available_yet_you'));
         }
         return;
       }
@@ -348,7 +349,7 @@ export default function Nutrition() {
       setEstimateError('');
     } catch {
       if (!silent) {
-        setEstimateError('Failed to fetch nutrient suggestion. Please try again.');
+        setEstimateError(translate('Nutrition.failed_to_fetch_nutrient_suggestion'));
       }
     } finally {
       setEstimating(false);
@@ -452,7 +453,7 @@ export default function Nutrition() {
       loadLogs(filterStart, filterEnd);
       if (tab === 'summary') loadSummary(summaryDate);
     } catch (err) {
-      alert(`Could not save: ${err?.response?.data?.detail || err.message || 'unknown error'}`);
+      alert(translate('Nutrition.could_not_save', { detail: err?.response?.data?.detail || err.message || 'unknown error' }));
     } finally {
       setSubmitting(false);
     }
@@ -522,18 +523,18 @@ export default function Nutrition() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Nutrition</h1>
+          <h1 className="page-title">{translate('Nutrition.nutrition')}</h1>
         </div>
         <div style={{ display: 'flex', gap: '.5rem' }}>
           <button className={`btn ${tab === 'log' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('log')}>
-            <Utensils size={16}/> Food Log
+            <Utensils size={16}/> {translate('Nutrition.food_log')}
           </button>
           <button className={`btn ${tab === 'summary' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('summary')}>
-            <BarChart3 size={16}/> Daily Summary
+            <BarChart3 size={16}/> {translate('Nutrition.daily_summary')}
           </button>
           {tab === 'log' && (
             <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-              <Plus size={18}/> Add Entry
+              <Plus size={18}/> {translate('Nutrition.add_entry')}
             </button>
           )}
         </div>
@@ -552,12 +553,12 @@ export default function Nutrition() {
                 border: `1px solid ${estimating ? 'rgba(245,158,11,.3)' : 'rgba(34,197,94,.3)'}`,
                 borderRadius: 12, padding: '.2rem .6rem', fontWeight: 600 }}>
                 {estimating
-                  ? <><Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }}/> NLM analyzing…</>
-                  : <><Zap size={11}/> NLM active</>}
+                  ? <><Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }}/> {translate('Nutrition.nlm_analyzing')}</>
+                  : <><Zap size={11}/> {translate('Nutrition.nlm_active')}</>}
               </span>
               <button className="btn btn-secondary btn-sm" type="button"
                 onClick={() => { setShowSearch(!showSearch); setSearchResults([]); setSearchQuery(''); }}>
-                <Search size={14}/> Search USDA Database
+                <Search size={14}/> {translate('Nutrition.search_usda_database')}
               </button>
             </div>
           </div>
@@ -566,7 +567,7 @@ export default function Nutrition() {
           {showSearch && (
             <div style={{ marginBottom: '1rem', position: 'relative' }}>
               <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
-                <input className="form-input" placeholder="Search foods (e.g. banana, chicken breast)..."
+                <input className="form-input" placeholder={translate('Nutrition.search_foods_e_g_banana_chicken_breast')}
                   value={searchQuery} onChange={(e) => handleSearchInput(e.target.value)} autoFocus
                   style={{ flex: 1 }}/>
                 {searching && <Loader2 size={18} className="spin" style={{ animation: 'spin 1s linear infinite' }}/>}
@@ -583,7 +584,7 @@ export default function Nutrition() {
                       <div>
                         <div style={{ fontWeight: 500 }}>{f.description}</div>
                         <div style={{ fontSize: '.75rem', color: 'var(--color-text-tertiary)' }}>
-                          {f.data_type}{f.brand_owner ? ` · ${f.brand_owner}` : ''} · {Object.keys(f.nutrients).length} nutrients
+                          {translate('Nutrition.nutrients', { data_type: f.data_type, value: f.brand_owner ? ` · ${f.brand_owner}` : '', nutrients: Object.keys(f.nutrients).length })}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', fontSize: '.75rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
@@ -600,11 +601,10 @@ export default function Nutrition() {
           {/* Image Analysis Section */}
           <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: '.75rem', marginBottom: '1rem' }}>
             <div style={{ fontSize: '.8rem', fontWeight: 600, marginBottom: '.5rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
-              <Image size={14}/> Identify Food from Image (Optional – Max 3 images)
+              <Image size={14}/> {translate('Nutrition.identify_food_from_image_optional_max_3')}
             </div>
             <div style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)', marginBottom: '.5rem' }}>
-              Upload image(s) or take a photo for Alafia analysis. Several shots of the
-              same meal are read together as one plate.
+              {translate('Nutrition.upload_image_s_or_take_a_photo_for')}
             </div>
             <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
               onChange={async (e) => {
@@ -676,7 +676,7 @@ export default function Nutrition() {
               <button type="button" className="btn btn-secondary btn-sm"
                 onClick={() => imageInputRef.current?.click()}
                 disabled={imageFiles.length >= 3}>
-                Choose Files
+                {translate('Nutrition.choose_files')}
               </button>
               {/* The copy above has always said "or take a photo" and there was
                   no control that did — the meal is in front of the patient at
@@ -685,9 +685,9 @@ export default function Nutrition() {
               <button type="button" className="btn btn-secondary btn-sm"
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={imageFiles.length >= 3}>
-                Take Photo
+                {translate('Nutrition.take_photo')}
               </button>
-              {imageFiles.length === 0 && <span style={{ fontSize: '.8rem', color: 'var(--color-text-tertiary)', alignSelf: 'center' }}>no files selected</span>}
+              {imageFiles.length === 0 && <span style={{ fontSize: '.8rem', color: 'var(--color-text-tertiary)', alignSelf: 'center' }}>{translate('Nutrition.no_files_selected')}</span>}
               {imageFiles.map((f, i) => (
                 <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.75rem',
                   background: 'var(--color-bg-secondary)', borderRadius: 4, padding: '.2rem .4rem' }}>
@@ -716,14 +716,14 @@ export default function Nutrition() {
             <button type="button" className="btn btn-primary" style={{ width: '100%' }}
               disabled={imageFiles.length === 0 || isAnalyzingImages}
               onClick={analyzeImages}>
-              {isAnalyzingImages ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }}/> Analysing…</> : <><Sparkles size={14}/> Analyse Image(s) with Alafia</>}
+              {isAnalyzingImages ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }}/> {translate('Nutrition.analysing')}</> : <><Sparkles size={14}/> {translate('Nutrition.analyse_image_s_with_alafia')}</>}
             </button>
 
             {visionResult && (
               <div style={{ marginTop: '.5rem', fontSize: '.78rem' }}>
                 {visionResult.source === 'learned-recall' && (
                   <div style={{ color: '#16a34a', marginBottom: '.4rem' }}>
-                    ✓ Recognised from a meal you labelled before — no model needed.
+                    {translate('Nutrition.recognised_from_a_meal_you_labelled')}
                   </div>
                 )}
 
@@ -735,7 +735,7 @@ export default function Nutrition() {
                         value={row.name} aria-label={`Food ${i + 1}`}
                         onChange={(e) => setVisionEdits((prev) =>
                           prev.map((r, j) => (j === i ? { ...r, name: e.target.value } : r)))}/>
-                      <input className="form-input" type="number" min="0" step="1" placeholder="grams"
+                      <input className="form-input" type="number" min="0" step="1" placeholder={translate('Nutrition.grams')}
                         style={{ width: 82, fontSize: '.78rem', padding: '.25rem .4rem' }}
                         value={row.estimated_grams} aria-label={`Grams ${i + 1}`}
                         onChange={(e) => setVisionEdits((prev) =>
@@ -743,7 +743,7 @@ export default function Nutrition() {
                       <span style={{ fontSize: '.68rem', color: 'var(--color-text-tertiary)', width: 96 }}>
                         {visionResult.items[i]?.grams_basis || ''}
                       </span>
-                      <button type="button" title="Remove"
+                      <button type="button" title={translate('Nutrition.remove')}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)' }}
                         onClick={() => setVisionEdits((prev) => prev.filter((_, j) => j !== i))}>
                         <X size={12}/>
@@ -753,7 +753,7 @@ export default function Nutrition() {
                   <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center' }}>
                     <button type="button" className="btn btn-secondary btn-sm"
                       onClick={() => setVisionEdits((prev) => [...prev, { name: '', estimated_grams: '' }])}>
-                      + Add food
+                      {translate('Nutrition.add_food')}
                     </button>
                     <button type="button" className="btn btn-secondary btn-sm"
                       disabled={!visionResult.sample_id || teachState === 'saving'}
@@ -775,12 +775,12 @@ export default function Nutrition() {
                   ].filter(Boolean);
                   return parts.length ? (
                     <div style={{ color: 'var(--color-text-secondary)' }}>
-                      Rough estimate: {parts.join(' · ')}
+                      {translate('Nutrition.rough_estimate', { parts: parts.join(' · ') })}
                     </div>
                   ) : null;
                 })()}
                 <div style={{ color: 'var(--color-text-tertiary)', fontSize: '.72rem', marginTop: '.3rem' }}>
-                  Estimate only — check the food name and serving size below before saving.
+                  {translate('Nutrition.estimate_only_check_the_food_name_and')}
                 </div>
               </div>
             )}
@@ -792,22 +792,22 @@ export default function Nutrition() {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Date</label>
+                <label className="form-label">{translate('Nutrition.date')}</label>
                 <input className="form-input" type="date" value={form.log_date}
                   onChange={(e) => setForm({ ...form, log_date: e.target.value })} required/>
               </div>
               <div className="form-group">
-                <label className="form-label">Meal</label>
+                <label className="form-label">{translate('Nutrition.meal')}</label>
                 <select className="form-input" value={form.meal_type}
                   onChange={(e) => setForm({ ...form, meal_type: e.target.value })}>
-                  <option value="breakfast">Breakfast</option>
-                  <option value="lunch">Lunch</option>
-                  <option value="dinner">Dinner</option>
-                  <option value="snack">Snack</option>
+                  <option value="breakfast">{translate('Nutrition.breakfast')}</option>
+                  <option value="lunch">{translate('Nutrition.lunch')}</option>
+                  <option value="dinner">{translate('Nutrition.dinner')}</option>
+                  <option value="snack">{translate('Nutrition.snack')}</option>
                 </select>
               </div>
               <div className="form-group" style={{ flex: 2 }}>
-                <label className="form-label">Food {form.fdc_id && <span style={{ color: '#22c55e', fontSize: '.7rem' }}>✓ USDA linked</span>}</label>
+                <label className="form-label">{translate('Nutrition.food')} {form.fdc_id && <span style={{ color: '#22c55e', fontSize: '.7rem' }}>{translate('Nutrition.usda_linked')}</span>}</label>
                 <input className="form-input" value={form.food_name}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -824,7 +824,7 @@ export default function Nutrition() {
                   required/>
               </div>
               <div className="form-group">
-                <label className="form-label">Serving Size</label>
+                <label className="form-label">{translate('Nutrition.serving_size')}</label>
                 <input className="form-input" value={form.serving_size} placeholder="e.g. 100 g"
                   onChange={(e) => setForm({ ...form, serving_size: e.target.value })}/>
               </div>
@@ -833,10 +833,10 @@ export default function Nutrition() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', padding: '.5rem .75rem',
                 background: 'rgba(34,197,94,.08)', borderRadius: 8, marginBottom: '.75rem', fontSize: '.8rem' }}>
                 <Zap size={14} style={{ color: '#22c55e' }}/>
-                <span>Nutrients will be auto-populated from the USDA database when saved.</span>
+                <span>{translate('Nutrition.nutrients_will_be_auto_populated_from')}</span>
                 <button type="button" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)' }}
                   onClick={() => openFoodDetail(form.fdc_id, form.food_name)}>
-                  <Info size={14}/> Preview nutrients
+                  <Info size={14}/> {translate('Nutrition.preview_nutrients')}
                 </button>
               </div>
             )}
@@ -845,18 +845,16 @@ export default function Nutrition() {
                 background: 'rgba(59,130,246,.08)', borderRadius: 8, marginBottom: '.75rem', fontSize: '.8rem', border: '1px solid rgba(59,130,246,.2)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
                   <Info size={14} style={{ color: '#3b82f6' }}/>
-                  <strong style={{ color: '#1d4ed8' }}>Pre-save nutrient suggestion</strong>
+                  <strong style={{ color: '#1d4ed8' }}>{translate('Nutrition.pre_save_nutrient_suggestion')}</strong>
                   <span style={{ color: 'var(--color-text-secondary)' }}>
-                    Source: {estimatePreview.source?.toUpperCase() || 'UNKNOWN'}
-                    {estimatePreview.confidence != null ? ` · ${Math.round(estimatePreview.confidence * 100)}% confidence` : ''}
-                    {estimatePreview.cached ? ' · cached' : ''}
+                    {(estimatePreview.cached) ? translate('Nutrition.source_cached', { source: estimatePreview.source?.toUpperCase() || 'UNKNOWN', value: estimatePreview.confidence != null ? ` · ${Math.round(estimatePreview.confidence * 100)}% confidence` : '' }) : translate('Nutrition.source', { source: estimatePreview.source?.toUpperCase() || 'UNKNOWN', value: estimatePreview.confidence != null ? ` · ${Math.round(estimatePreview.confidence * 100)}% confidence` : '' })}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '.75rem', flexWrap: 'wrap', color: 'var(--color-text-secondary)' }}>
-                  <span>Calories: <strong>{estimatePreview.nutrients?.calories ?? '—'}</strong></span>
-                  <span>Protein: <strong>{estimatePreview.nutrients?.protein_g ?? '—'}g</strong></span>
-                  <span>Carbs: <strong>{estimatePreview.nutrients?.carbs_g ?? '—'}g</strong></span>
-                  <span>Fat: <strong>{estimatePreview.nutrients?.fat_g ?? '—'}g</strong></span>
+                  <span>{translate('Nutrition.calories')} <strong>{estimatePreview.nutrients?.calories ?? '—'}</strong></span>
+                  <span>{translate('Nutrition.protein')} <strong>{estimatePreview.nutrients?.protein_g ?? '—'}g</strong></span>
+                  <span>{translate('Nutrition.carbs')} <strong>{estimatePreview.nutrients?.carbs_g ?? '—'}g</strong></span>
+                  <span>{translate('Nutrition.fat')} <strong>{estimatePreview.nutrients?.fat_g ?? '—'}g</strong></span>
                 </div>
                 {(estimatePreview.fdc_id || estimatePreview.serving_size) && (
                   <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -867,9 +865,9 @@ export default function Nutrition() {
                         serving_size: prev.serving_size || estimatePreview.serving_size || '',
                       }));
                     }}>
-                      Apply suggestion
+                      {translate('Nutrition.apply_suggestion')}
                     </button>
-                    {estimatePreview.fdc_id && <span style={{ color: 'var(--color-text-secondary)' }}>USDA FDC linked from suggestion.</span>}
+                    {estimatePreview.fdc_id && <span style={{ color: 'var(--color-text-secondary)' }}>{translate('Nutrition.usda_fdc_linked_from_suggestion')}</span>}
                   </div>
                 )}
               </div>
@@ -879,30 +877,30 @@ export default function Nutrition() {
             )}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Start Time</label>
+                <label className="form-label">{translate('Nutrition.start_time')}</label>
                 <input className="form-input" type="time" value={form.start_time}
                   onChange={(e) => setForm({ ...form, start_time: e.target.value })}/>
               </div>
               <div className="form-group">
-                <label className="form-label">End Time</label>
+                <label className="form-label">{translate('Nutrition.end_time')}</label>
                 <input className="form-input" type="time" value={form.end_time}
                   onChange={(e) => setForm({ ...form, end_time: e.target.value })}/>
               </div>
               <div className="form-group">
-                <label className="form-label">Pre-meal Weight (kg)</label>
+                <label className="form-label">{translate('Nutrition.pre_meal_weight_kg')}</label>
                 <input className="form-input" type="number" step="0.1" placeholder="e.g. 72.5"
                   value={form.pre_meal_weight_kg}
                   onChange={(e) => setForm({ ...form, pre_meal_weight_kg: e.target.value })}/>
               </div>
               <div className="form-group">
-                <label className="form-label">Post-meal Weight (kg)</label>
+                <label className="form-label">{translate('Nutrition.post_meal_weight_kg')}</label>
                 <input className="form-input" type="number" step="0.1" placeholder="e.g. 73.2"
                   value={form.post_meal_weight_kg}
                   onChange={(e) => setForm({ ...form, post_meal_weight_kg: e.target.value })}/>
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label"><Link size={12} style={{ verticalAlign: 'middle', marginRight: 4 }}/>Recipe URL (Optional)</label>
+              <label className="form-label"><Link size={12} style={{ verticalAlign: 'middle', marginRight: 4 }}/>{translate('Nutrition.recipe_url_optional')}</label>
               <div style={{ display: 'flex', gap: '.5rem' }}>
                 <input className="form-input" type="url" placeholder="https://example.com/recipe" style={{ flex: 1 }}
                   value={form.recipe_url}
@@ -917,7 +915,7 @@ export default function Nutrition() {
               )}
             </div>
             <div className="form-group">
-              <label className="form-label">Notes</label>
+              <label className="form-label">{translate('Nutrition.notes')}</label>
               <input className="form-input" value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}/>
             </div>
@@ -928,7 +926,7 @@ export default function Nutrition() {
               <button className="btn btn-secondary" type="button" onClick={resetForm} disabled={submitting}>{editingId ? 'Cancel Edit' : 'Cancel'}</button>
             </div>
             <div style={{ marginTop: '.5rem', color: 'var(--color-text-secondary)', fontSize: '.78rem' }}>
-              Nutrient values shown here are suggestions. Final nutrient data is persisted server-side when you save.
+              {translate('Nutrition.nutrient_values_shown_here_are')}
             </div>
           </form>
         </div>
@@ -944,46 +942,46 @@ export default function Nutrition() {
             <input type="date" className="form-input" value={filterStart}
               onChange={(e) => setFilterStart(e.target.value)}
               style={{ maxWidth: 148, padding: '.3rem .5rem', fontSize: '.82rem' }}/>
-            <span style={{ color: 'var(--color-text-tertiary)', fontSize: '.82rem' }}>to</span>
+            <span style={{ color: 'var(--color-text-tertiary)', fontSize: '.82rem' }}>{translate('Nutrition.to')}</span>
             <input type="date" className="form-input" value={filterEnd}
               onChange={(e) => setFilterEnd(e.target.value)}
               style={{ maxWidth: 148, padding: '.3rem .5rem', fontSize: '.82rem' }}/>
             <div style={{ display: 'flex', gap: '.35rem' }}>
               {[
-                { label: 'Today',  fn: () => { setFilterStart(today()); setFilterEnd(today()); } },
-                { label: '7 days', fn: () => { const d = new Date(); d.setDate(d.getDate()-6); setFilterStart(toDateInput(d)); setFilterEnd(today()); } },
-                { label: '30 days',fn: () => { const d = new Date(); d.setDate(d.getDate()-29); setFilterStart(toDateInput(d)); setFilterEnd(today()); } },
-                { label: 'All',    fn: () => { setFilterStart(''); setFilterEnd(''); } },
+                { label: translate('Nutrition.today'),  fn: () => { setFilterStart(today()); setFilterEnd(today()); } },
+                { label: translate('Nutrition.text_7_days'), fn: () => { const d = new Date(); d.setDate(d.getDate()-6); setFilterStart(toDateInput(d)); setFilterEnd(today()); } },
+                { label: translate('Nutrition.text_30_days'),fn: () => { const d = new Date(); d.setDate(d.getDate()-29); setFilterStart(toDateInput(d)); setFilterEnd(today()); } },
+                { label: translate('Nutrition.all'),    fn: () => { setFilterStart(''); setFilterEnd(''); } },
               ].map(({ label, fn }) => (
                 <button key={label} className="btn btn-secondary btn-sm" type="button" onClick={fn}
                   style={{ padding: '.25rem .6rem', fontSize: '.75rem' }}>{label}</button>
               ))}
             </div>
             <span style={{ marginLeft: 'auto', fontSize: '.8rem', color: 'var(--color-text-tertiary)' }}>
-              {logs.length} {logs.length === 1 ? 'entry' : 'entries'}
+              {(logs.length === 1) ? translate('Nutrition.entry', { logs: logs.length }) : translate('Nutrition.entries', { logs: logs.length })}
             </span>
           </div>
 
           <div style={{ marginBottom: '.75rem', color: 'var(--color-text-secondary)', fontSize: '.8rem' }}>
-            Entries are editable but cannot be deleted.
+            {translate('Nutrition.entries_are_editable_but_cannot_be')}
           </div>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>Loading...</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>{translate('Nutrition.loading')}</div>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Meal</th>
-                  <th>Food</th>
-                  <th>Serving</th>
-                  <th>Time</th>
-                  <th style={{ textAlign: 'right' }}>Calories</th>
-                  <th style={{ textAlign: 'right' }}>Protein</th>
-                  <th style={{ textAlign: 'right' }}>Carbs</th>
-                  <th style={{ textAlign: 'right' }}>Fat</th>
-                  <th style={{ textAlign: 'right' }}>Pre kg</th>
-                  <th style={{ textAlign: 'right' }}>Post kg</th>
+                  <th>{translate('Nutrition.date')}</th>
+                  <th>{translate('Nutrition.meal')}</th>
+                  <th>{translate('Nutrition.food')}</th>
+                  <th>{translate('Nutrition.serving')}</th>
+                  <th>{translate('Nutrition.time')}</th>
+                  <th style={{ textAlign: 'right' }}>{translate('Nutrition.calories_2')}</th>
+                  <th style={{ textAlign: 'right' }}>{translate('Nutrition.protein_2')}</th>
+                  <th style={{ textAlign: 'right' }}>{translate('Nutrition.carbs_2')}</th>
+                  <th style={{ textAlign: 'right' }}>{translate('Nutrition.fat_2')}</th>
+                  <th style={{ textAlign: 'right' }}>{translate('Nutrition.pre_kg')}</th>
+                  <th style={{ textAlign: 'right' }}>{translate('Nutrition.post_kg')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -1016,7 +1014,7 @@ export default function Nutrition() {
                           thumbnails existed. Dropping it would hide their
                           pictures. */}
                       {log.food_image_uris && !log.food_thumbnail && (
-                        <button onClick={() => openMealPhoto(log)} title="See the photo this meal was estimated from"
+                        <button onClick={() => openMealPhoto(log)} title={translate('Nutrition.see_the_photo_this_meal_was_estimated')}
                           style={{ marginLeft: '.35rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.8rem' }}>
                           📷
                         </button>
@@ -1039,14 +1037,14 @@ export default function Nutrition() {
                       {log.calories != null
                         ? Math.round(log.calories)
                         : log.nutrient_status === 'pending'
-                          ? <span title="Working out the nutrients for this meal"
+                          ? <span title={translate('Nutrition.working_out_the_nutrients_for_this_meal')}
                               style={{ fontSize: '.7rem', color: 'var(--color-text-tertiary)', fontFamily: 'inherit' }}>
-                              estimating…
+                              {translate('Nutrition.estimating')}
                             </span>
                           : log.nutrient_status === 'failed'
-                            ? <span title="Could not work out nutrients — edit the entry to retry"
+                            ? <span title={translate('Nutrition.could_not_work_out_nutrients_edit_the')}
                                 style={{ fontSize: '.7rem', color: '#b45309', fontFamily: 'inherit' }}>
-                                unavailable
+                                {translate('Nutrition.unavailable')}
                               </span>
                             : '—'}
                     </td>
@@ -1056,13 +1054,13 @@ export default function Nutrition() {
                     <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '.8rem' }}>{log.pre_meal_weight_kg != null ? `${log.pre_meal_weight_kg}` : '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '.8rem' }}>{log.post_meal_weight_kg != null ? `${log.post_meal_weight_kg}` : '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => startEdit(log)}>Edit</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => startEdit(log)}>{translate('Nutrition.edit')}</button>
                     </td>
                   </tr>
                 ))}
                 {logs.length === 0 && (
                   <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>
-                    No entries yet — search the USDA database to add foods with full nutrient data
+                    {translate('Nutrition.no_entries_yet_search_the_usda_database')}
                   </td></tr>
                 )}
               </tbody>
@@ -1085,16 +1083,16 @@ export default function Nutrition() {
           </div>
 
           {loadingSummary ? (
-            <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>Loading summary...</div>
+            <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>{translate('Nutrition.loading_summary')}</div>
           ) : summary && summary.meal_count > 0 ? (
             <>
               {/* Macro cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                 {[
-                  { label: 'Calories', val: summary.total_calories, unit: 'kcal', rda: 2000, color: '#f59e0b' },
-                  { label: 'Protein', val: summary.total_protein_g, unit: 'g', rda: 50, color: '#3b82f6' },
-                  { label: 'Carbs', val: summary.total_carbs_g, unit: 'g', rda: 275, color: '#8b5cf6' },
-                  { label: 'Fat', val: summary.total_fat_g, unit: 'g', rda: 78, color: '#ef4444' },
+                  { label: translate('Nutrition.calories_2'), val: summary.total_calories, unit: 'kcal', rda: 2000, color: '#f59e0b' },
+                  { label: translate('Nutrition.protein_2'), val: summary.total_protein_g, unit: 'g', rda: 50, color: '#3b82f6' },
+                  { label: translate('Nutrition.carbs_2'), val: summary.total_carbs_g, unit: 'g', rda: 275, color: '#8b5cf6' },
+                  { label: translate('Nutrition.fat_2'), val: summary.total_fat_g, unit: 'g', rda: 78, color: '#ef4444' },
                 ].map((m) => {
                   const p = pct(m.val, m.rda);
                   return (
@@ -1114,12 +1112,12 @@ export default function Nutrition() {
 
               {/* Full nutrient breakdown */}
               <div className="card">
-                <NutrientBreakdown nutrients={summary.nutrients} title="Complete Nutrient Breakdown — % Daily Value"/>
+                <NutrientBreakdown nutrients={summary.nutrients} title={translate('Nutrition.complete_nutrient_breakdown_daily_value')}/>
               </div>
             </>
           ) : (
             <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
-              No meals logged for this date. Add entries in the Food Log tab.
+              {translate('Nutrition.no_meals_logged_for_this_date_add')}
             </div>
           )}
         </div>
@@ -1148,18 +1146,18 @@ export default function Nutrition() {
               </button>
             </div>
             {loadingDetail ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>Loading nutrient data...</div>
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>{translate('Nutrition.loading_nutrient_data')}</div>
             ) : foodDetail ? (
               <>
                 {foodDetail.portions?.length > 0 && (
                   <div style={{ marginBottom: '.75rem', padding: '.5rem .75rem', background: 'var(--color-bg-secondary)', borderRadius: 8, fontSize: '.8rem' }}>
-                    <strong>Portions:</strong> {foodDetail.portions.map((p) => `${p.description} (${p.gram_weight}g)`).join(' · ')}
+                    <strong>{translate('Nutrition.portions')}</strong> {foodDetail.portions.map((p) => `${p.description} (${p.gram_weight}g)`).join(' · ')}
                   </div>
                 )}
                 <NutrientBreakdown nutrients={foodDetail.nutrient_breakdown} title={`Nutrients per 100g — ${foodDetail.nutrient_breakdown.length} total`}/>
               </>
             ) : (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>Failed to load nutrient data.</div>
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>{translate('Nutrition.failed_to_load_nutrient_data')}</div>
             )}
           </div>
         </div>
@@ -1178,7 +1176,7 @@ export default function Nutrition() {
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
             </div>
             {mealPhoto.loading && (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>Loading photo…</div>
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>{translate('Nutrition.loading_photo')}</div>
             )}
             {mealPhoto.error && (
               <div style={{ textAlign: 'center', padding: '1.5rem', color: '#ef4444' }}>{mealPhoto.error}</div>

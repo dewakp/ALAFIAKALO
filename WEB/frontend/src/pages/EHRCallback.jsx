@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { t } from '../i18n';
 
 /* OAuth redirect target for MyChart (SMART on FHIR) sign-ins.
    The portal sends ?code&state here; we finish the exchange server-side. */
@@ -32,10 +33,10 @@ export default function EHRCallback() {
 
     api.post('/ehr/exchange', { code, state })
       .then(({ data }) => {
-        setStatus({ phase: 'done', text: `Connected to ${data.org_name || 'your portal'}. Redirecting…` });
+        setStatus({ phase: 'done', text: t('EHRCallback.connected_to_redirecting', { org_name: data.org_name || 'your portal' }) });
         setTimeout(() => navigate('/data-sharing', { replace: true }), 1500);
       })
-      .catch(err => setStatus({ phase: 'error', text: apiErrorMessage(err, 'Could not complete the connection.') }));
+      .catch(err => setStatus({ phase: 'error', text: apiErrorMessage(err, t('EHRCallback.could_not_complete_the_connection')) }));
   }, [params, navigate]);
 
   return (
@@ -48,7 +49,7 @@ export default function EHRCallback() {
         {status.phase === 'error' && (
           <button className="btn btn-primary" style={{ marginTop: '.5rem' }}
             onClick={() => navigate('/data-sharing')}>
-            Back to Connect Records
+            {t('EHRCallback.back_to_connect_records')}
           </button>
         )}
       </div>

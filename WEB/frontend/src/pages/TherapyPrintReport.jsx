@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { apiErrorMessage } from '../utils/apiError';
 import './TherapyPrintReport.css';
+import { t } from '../i18n';
 
 /**
  * A printable hemodialysis treatment report.
@@ -130,7 +131,7 @@ export default function TherapyPrintReport() {
     } catch (err) {
       // A failed fetch must never render as a blank report — a clinician would
       // read empty fields as findings.
-      setError(apiErrorMessage(err, 'This report could not be loaded.'));
+      setError(apiErrorMessage(err, t('TherapyPrintReport.this_report_could_not_be_loaded')));
     } finally {
       setLoading(false);
     }
@@ -165,13 +166,13 @@ export default function TherapyPrintReport() {
     } catch (err) {
       // A print that silently does nothing is indistinguishable from a button
       // that was never wired.
-      setPrintError(apiErrorMessage(err, 'This report could not be prepared for printing.'));
+      setPrintError(apiErrorMessage(err, t('TherapyPrintReport.this_report_could_not_be_prepared_for')));
       return;
     }
 
     const w = window.open('', '_blank');
     if (!w) {
-      setPrintError('Your browser blocked the print window — allow pop-ups for this site.');
+      setPrintError(t('TherapyPrintReport.your_browser_blocked_the_print_window'));
       return;
     }
     w.document.open();
@@ -184,13 +185,13 @@ export default function TherapyPrintReport() {
 
 
 
-  if (loading) return <div className="tr-page"><p>Loading report…</p></div>;
+  if (loading) return <div className="tr-page"><p>{t('TherapyPrintReport.loading_report')}</p></div>;
 
   if (error) {
     return (
       <div className="tr-page">
         <div className="tr-error" role="alert">{error}</div>
-        <button className="btn btn-secondary tr-noprint" onClick={load}>Try again</button>
+        <button className="btn btn-secondary tr-noprint" onClick={load}>{t('TherapyPrintReport.try_again')}</button>
       </div>
     );
   }
@@ -237,7 +238,7 @@ export default function TherapyPrintReport() {
     <div className="tr-page">
       <div className="tr-noprint tr-actions">
         <button className="btn btn-primary" onClick={printReport}>
-          Print / Save as PDF
+          {t('TherapyPrintReport.print_save_as_pdf')}
         </button>
         {printError && (
           <span style={{ color: '#b91c1c', fontSize: '.85rem', marginLeft: '.6rem' }}>
@@ -248,36 +249,36 @@ export default function TherapyPrintReport() {
 
       <header className="tr-header">
         <div>
-          <h1>Hemodialysis Treatment Report</h1>
+          <h1>{t('TherapyPrintReport.hemodialysis_treatment_report')}</h1>
           {/* The patient's name is the IDENTIFIER on a clinical document, not
               a detail — a printed report that could be confused between two
               people is worse than no report. It is stated first and on its own
               line, and its absence is stated too rather than leaving a gap a
               reader would fill in themselves. */}
           <p className="tr-patient">
-            {patient?.full_name || <span className="tr-missing">Patient name not recorded</span>}
+            {patient?.full_name || <span className="tr-missing">{t('TherapyPrintReport.patient_name_not_recorded')}</span>}
           </p>
           <p className="tr-sub">
-            Session {s.session_number ?? s.id} · {day(s.scheduled_date || s.date)}
+            {t('TherapyPrintReport.session', { session_number: s.session_number ?? s.id, scheduled_date: day(s.scheduled_date || s.date) })}
           </p>
         </div>
         <div className="tr-brand">ALAFIA</div>
       </header>
 
-      <Section title="Session">
-        <Row label="Date">{day(s.scheduled_date || s.date)}</Row>
-        <Row label="Facility">{val(s.facility_name)}</Row>
-        <Row label="Attending physician">{val(s.attending_physician)}</Row>
-        <Row label="Attending nurse">{val(s.attending_nurse)}</Row>
+      <Section title={t('TherapyPrintReport.session_2')}>
+        <Row label={t('TherapyPrintReport.date')}>{day(s.scheduled_date || s.date)}</Row>
+        <Row label={t('TherapyPrintReport.facility')}>{val(s.facility_name)}</Row>
+        <Row label={t('TherapyPrintReport.attending_physician')}>{val(s.attending_physician)}</Row>
+        <Row label={t('TherapyPrintReport.attending_nurse')}>{val(s.attending_nurse)}</Row>
         {/* Clock times — the date is on the line above. Where a time falls on
             a different day the full stamp is shown, so the mismatch is not
             hidden by only ever printing the clock. */}
-        <Row label="Start">
+        <Row label={t('TherapyPrintReport.start')}>
           {parts(s.actual_start_time) && day(s.actual_start_time) !== day(s.scheduled_date || s.date)
             ? `${dt(s.actual_start_time)} — not the session date`
             : clockOf(s.actual_start_time)}
         </Row>
-        <Row label="End">
+        <Row label={t('TherapyPrintReport.end')}>
           {parts(s.actual_end_time) && day(s.actual_end_time) !== day(s.scheduled_date || s.date)
             ? `${dt(s.actual_end_time)} — not the session date`
             : clockOf(s.actual_end_time)}
@@ -285,79 +286,78 @@ export default function TherapyPrintReport() {
         {/* Two different numbers, printed as two different numbers. The clock
             is end − start; the machine reports time actually dialysing and
             excludes alarms and pauses. Kt/V follows the machine figure. */}
-        <Row label="Clock time (end − start)">
+        <Row label={t('TherapyPrintReport.clock_time_end_start')}>
           {clockMinutes == null ? NOT_RECORDED : `${clockMinutes} min`}
         </Row>
-        <Row label="Machine total time">{val(s.machine_total_time_minutes, ' min')}</Row>
+        <Row label={t('TherapyPrintReport.machine_total_time')}>{val(s.machine_total_time_minutes, ' min')}</Row>
       </Section>
 
-      <Section title="Access (pre-treatment)">
-        <Row label="Access type">{val(s.dialysis_access_type)}</Row>
-        <Row label="Needle gauge">{val(s.needle_gauge)}</Row>
-        <Row label="Needle length">{val(s.needle_length, ' mm')}</Row>
-        <Row label="Buttonhole">{s.buttonhole_technique ? 'Yes' : 'No'}</Row>
-        <Row label="Thrill / bruit">{thrill(s.access_thrill_bruit)}</Row>
-        <Row label="Redness / drainage">{s.access_redness_drainage ? 'Yes' : 'No'}</Row>
-        <Row label="Alarm test complete">{s.alarm_test_completed ? 'Yes' : 'No'}</Row>
+      <Section title={t('TherapyPrintReport.access_pre_treatment')}>
+        <Row label={t('TherapyPrintReport.access_type')}>{val(s.dialysis_access_type)}</Row>
+        <Row label={t('TherapyPrintReport.needle_gauge')}>{val(s.needle_gauge)}</Row>
+        <Row label={t('TherapyPrintReport.needle_length')}>{val(s.needle_length, ' mm')}</Row>
+        <Row label={t('TherapyPrintReport.buttonhole')}>{s.buttonhole_technique ? 'Yes' : 'No'}</Row>
+        <Row label={t('TherapyPrintReport.thrill_bruit')}>{thrill(s.access_thrill_bruit)}</Row>
+        <Row label={t('TherapyPrintReport.redness_drainage')}>{s.access_redness_drainage ? 'Yes' : 'No'}</Row>
+        <Row label={t('TherapyPrintReport.alarm_test_complete')}>{s.alarm_test_completed ? 'Yes' : 'No'}</Row>
       </Section>
 
-      <Section title="Weights &amp; fluid">
-        <Row label="Dry weight">{val(s.dry_weight_kg, ' kg')}</Row>
-        <Row label="Previous post weight">{val(s.previous_post_weight_kg, ' kg')}</Row>
-        <Row label="Pre weight">{val(s.pre_dialysis_weight_kg, ' kg')}</Row>
-        <Row label="Post weight">{val(s.post_dialysis_weight_kg, ' kg')}</Row>
-        <Row label="Fluid to remove">{val(s.fluid_to_remove_kg, ' kg')}</Row>
-        <Row label="Fluid removed">{val(s.fluid_removed_ml, ' mL')}</Row>
-        <Row label="Saline added">{val(s.saline_added_ml, ' mL')}</Row>
-        <Row label="Total UF (machine)">{val(s.total_uf_liters, ' L')}</Row>
-        <Row label="Net from machine (UF − saline)">
+      <Section title={t('TherapyPrintReport.weights_fluid')}>
+        <Row label={t('TherapyPrintReport.dry_weight')}>{val(s.dry_weight_kg, ' kg')}</Row>
+        <Row label={t('TherapyPrintReport.previous_post_weight')}>{val(s.previous_post_weight_kg, ' kg')}</Row>
+        <Row label={t('TherapyPrintReport.pre_weight')}>{val(s.pre_dialysis_weight_kg, ' kg')}</Row>
+        <Row label={t('TherapyPrintReport.post_weight')}>{val(s.post_dialysis_weight_kg, ' kg')}</Row>
+        <Row label={t('TherapyPrintReport.fluid_to_remove')}>{val(s.fluid_to_remove_kg, ' kg')}</Row>
+        <Row label={t('TherapyPrintReport.fluid_removed')}>{val(s.fluid_removed_ml, ' mL')}</Row>
+        <Row label={t('TherapyPrintReport.saline_added')}>{val(s.saline_added_ml, ' mL')}</Row>
+        <Row label={t('TherapyPrintReport.total_uf_machine')}>{val(s.total_uf_liters, ' L')}</Row>
+        <Row label={t('TherapyPrintReport.net_from_machine_uf_saline')}>
           {netFromMachine == null ? NOT_RECORDED : `${netFromMachine} mL`}
         </Row>
       </Section>
 
-      <Section title="Vitals">
-        <Row label="Pre BP (sitting)">
+      <Section title={t('TherapyPrintReport.vitals')}>
+        <Row label={t('TherapyPrintReport.pre_bp_sitting')}>
           {s.pre_systolic_bp || s.pre_diastolic_bp
             ? `${val(s.pre_systolic_bp)}/${val(s.pre_diastolic_bp)} mmHg` : NOT_RECORDED}
         </Row>
-        <Row label="Pre heart rate">{val(s.pre_heart_rate, ' bpm')}</Row>
-        <Row label="Post BP (sitting)">
+        <Row label={t('TherapyPrintReport.pre_heart_rate')}>{val(s.pre_heart_rate, ' bpm')}</Row>
+        <Row label={t('TherapyPrintReport.post_bp_sitting')}>
           {s.post_systolic_bp || s.post_diastolic_bp
             ? `${val(s.post_systolic_bp)}/${val(s.post_diastolic_bp)} mmHg` : NOT_RECORDED}
         </Row>
-        <Row label="Post heart rate">{val(s.post_heart_rate, ' bpm')}</Row>
+        <Row label={t('TherapyPrintReport.post_heart_rate')}>{val(s.post_heart_rate, ' bpm')}</Row>
       </Section>
 
-      <Section title="Treatment totals">
-        <Row label="Blood flow rate">{val(s.blood_flow_rate, ' mL/min')}</Row>
-        <Row label="Dialysate flow rate">{val(s.dialysate_flow_rate, ' mL/min')}</Row>
-        <Row label="Total dialysate">{val(s.total_dialysate_liters, ' L')}</Row>
-        <Row label="Blood volume processed">{val(s.total_blood_volume_processed, ' L')}</Row>
-        <Row label="Dialyzer appearance">{val(s.dialyzer_appearance)}</Row>
+      <Section title={t('TherapyPrintReport.treatment_totals')}>
+        <Row label={t('TherapyPrintReport.blood_flow_rate')}>{val(s.blood_flow_rate, ' mL/min')}</Row>
+        <Row label={t('TherapyPrintReport.dialysate_flow_rate')}>{val(s.dialysate_flow_rate, ' mL/min')}</Row>
+        <Row label={t('TherapyPrintReport.total_dialysate')}>{val(s.total_dialysate_liters, ' L')}</Row>
+        <Row label={t('TherapyPrintReport.blood_volume_processed')}>{val(s.total_blood_volume_processed, ' L')}</Row>
+        <Row label={t('TherapyPrintReport.dialyzer_appearance')}>{val(s.dialyzer_appearance)}</Row>
       </Section>
 
-      <Section title="Post-treatment assessment">
-        <Row label="Thrill / bruit">{thrill(s.post_access_thrill_bruit)}</Row>
-        <Row label="Bleeding stop time">{val(s.post_bleeding_stop_time)}</Row>
-        <Row label="Bruising">{s.post_bruising ? 'Yes' : 'No'}</Row>
-        <Row label="Infiltration">{s.post_infiltration ? 'Yes' : 'No'}</Row>
-        <Row label="Shortness of breath">{s.post_shortness_of_breath ? 'Yes' : 'No'}</Row>
-        <Row label="Swelling">{s.post_swelling ? 'Yes' : 'No'}</Row>
+      <Section title={t('TherapyPrintReport.post_treatment_assessment')}>
+        <Row label={t('TherapyPrintReport.thrill_bruit')}>{thrill(s.post_access_thrill_bruit)}</Row>
+        <Row label={t('TherapyPrintReport.bleeding_stop_time')}>{val(s.post_bleeding_stop_time)}</Row>
+        <Row label={t('TherapyPrintReport.bruising')}>{s.post_bruising ? 'Yes' : 'No'}</Row>
+        <Row label={t('TherapyPrintReport.infiltration')}>{s.post_infiltration ? 'Yes' : 'No'}</Row>
+        <Row label={t('TherapyPrintReport.shortness_of_breath')}>{s.post_shortness_of_breath ? 'Yes' : 'No'}</Row>
+        <Row label={t('TherapyPrintReport.swelling')}>{s.post_swelling ? 'Yes' : 'No'}</Row>
       </Section>
 
       {/* The readings, as they were taken. A flowsheet without them is a
           summary, not a record — and a mean hides the ending, which is the
           part that matters (§3am: the nadir is the finding). */}
       <section className="tr-section tr-readings">
-        <h2>Intradialytic readings{readings.length ? ` (${readings.length})` : ''}</h2>
+        <h2>{t('TherapyPrintReport.intradialytic_readings', { value: readings.length ? ` (${readings.length})` : '' })}</h2>
         {readings.length === 0 ? (
-          <p className="tr-free">{NOT_RECORDED} None recorded for this session.</p>
+          <p className="tr-free">{t('TherapyPrintReport.none_recorded_for_this_session', { NOT_RECORDED })}</p>
         ) : (
           <>
             {lowReadings > 0 && (
               <p className="tr-free tr-low">
-                <strong>{lowReadings} reading{lowReadings === 1 ? '' : 's'} below 90 mmHg
-                systolic</strong> — intradialytic hypotension.
+                <strong>{(lowReadings === 1) ? t('TherapyPrintReport.reading_below_90_mmhg_systolic', { lowReadings }) : t('TherapyPrintReport.readings_below_90_mmhg_systolic', { lowReadings })}</strong> {t('TherapyPrintReport.intradialytic_hypotension')}
               </p>
             )}
             <div style={{ overflowX: 'auto' }}>
@@ -397,26 +397,26 @@ export default function TherapyPrintReport() {
 
       {s.drugs_administered && (
         <section className="tr-section">
-          <h2>Drugs given this session</h2>
+          <h2>{t('TherapyPrintReport.drugs_given_this_session')}</h2>
           <p className="tr-free">{s.drugs_administered}</p>
         </section>
       )}
 
       {(s.patient_notes || s.complications || s.side_effects) && (
         <section className="tr-section">
-          <h2>Notes</h2>
-          {s.complications && <p className="tr-free"><strong>Complications:</strong> {s.complications}</p>}
-          {s.side_effects && <p className="tr-free"><strong>Side effects:</strong> {s.side_effects}</p>}
+          <h2>{t('TherapyPrintReport.notes')}</h2>
+          {s.complications && <p className="tr-free"><strong>{t('TherapyPrintReport.complications')}</strong> {s.complications}</p>}
+          {s.side_effects && <p className="tr-free"><strong>{t('TherapyPrintReport.side_effects')}</strong> {s.side_effects}</p>}
           {s.patient_notes && <p className="tr-free">{s.patient_notes}</p>}
         </section>
       )}
 
       <footer className="tr-footer">
-        <span>Generated {new Date().toLocaleString()}</span>
+        <span>{t('TherapyPrintReport.generated', { value: new Date().toLocaleString() })}</span>
         <span>
           {/* Stated on every page: a printed copy is a snapshot, and a reader
               must not take an unrecorded field for a normal one. */}
-          “{NOT_RECORDED}” means not recorded, not normal.
+          {t('TherapyPrintReport.means_not_recorded_not_normal', { NOT_RECORDED })}
         </span>
       </footer>
     </div>

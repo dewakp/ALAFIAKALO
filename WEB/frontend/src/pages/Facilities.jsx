@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { Building2, Search, MapPin, Users, X, ChevronRight, Phone, BadgeCheck } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const PAGE_SIZE = 10;
 const TYPES = [
@@ -52,25 +53,24 @@ export default function Facilities() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title"><Building2 size={20} style={{ verticalAlign: -3, marginRight: 6 }} />Facility Directory</h1>
+          <h1 className="page-title"><Building2 size={20} style={{ verticalAlign: -3, marginRight: 6 }} />{t('Facilities.facility_directory')}</h1>
         </div>
       </div>
       <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem', maxWidth: 720 }}>
-        Healthcare <strong>places</strong> — hospitals, clinics, pharmacies, and practice
-        locations. Click a facility to see the clinicians who practice there.
+        {t('Facilities.healthcare')} <strong>{t('Facilities.places')}</strong> {t('Facilities.hospitals_clinics_pharmacies_and')}
       </p>
 
       <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <input className="form-input" style={{ flex: 1, minWidth: 200 }} placeholder="Search by name…"
+          <input className="form-input" style={{ flex: 1, minWidth: 200 }} placeholder={t('Facilities.search_by_name')}
             value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && load(0)} />
-          <input className="form-input" style={{ width: 160 }} placeholder="City"
+          <input className="form-input" style={{ width: 160 }} placeholder={t('Facilities.city')}
             value={city} onChange={e => setCity(e.target.value)} onKeyDown={e => e.key === 'Enter' && load(0)} />
           <select className="form-input" style={{ width: 180 }} value={ftype} onChange={e => setFtype(e.target.value)}>
             {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
           <button className="btn btn-primary" onClick={() => load(0)} disabled={loading}>
-            <Search size={16} /> Search
+            <Search size={16} /> {t('Facilities.search')}
           </button>
         </div>
       </div>
@@ -78,8 +78,8 @@ export default function Facilities() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 1fr)', gap: '1rem', alignItems: 'start' }}>
         {/* List */}
         <div>
-          {loading ? <div className="card" style={{ padding: '2rem', textAlign: 'center', color: '#999' }}>Loading…</div>
-            : items.length === 0 ? <div className="card" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>No facilities found.</div>
+          {loading ? <div className="card" style={{ padding: '2rem', textAlign: 'center', color: '#999' }}>{t('Facilities.loading')}</div>
+            : items.length === 0 ? <div className="card" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>{t('Facilities.no_facilities_found')}</div>
             : (
               <div style={{ display: 'grid', gap: '0.6rem' }}>
                 {items.map(f => (
@@ -103,11 +103,11 @@ export default function Facilities() {
           {(page > 0 || hasMore) && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center', marginTop: '1rem' }}>
               <button className="btn btn-secondary btn-sm" disabled={page === 0 || loading} onClick={() => load(page - 1)}>
-                <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> Prev
+                <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> {t('Facilities.prev')}
               </button>
-              <span style={{ fontSize: '0.85rem', color: '#666' }}>Page {page + 1}</span>
+              <span style={{ fontSize: '0.85rem', color: '#666' }}>{t('Facilities.page', { page: page + 1 })}</span>
               <button className="btn btn-secondary btn-sm" disabled={!hasMore || loading} onClick={() => load(page + 1)}>
-                Next <ChevronRight size={14} />
+                {t('Facilities.next')} <ChevronRight size={14} />
               </button>
             </div>
           )}
@@ -118,7 +118,7 @@ export default function Facilities() {
           {!selected ? (
             <div style={{ color: 'var(--color-text-secondary)', textAlign: 'center', paddingTop: '2rem' }}>
               <Users size={40} style={{ opacity: 0.3 }} />
-              <p>Select a facility to see its clinicians.</p>
+              <p>{t('Facilities.select_a_facility_to_see_its_clinicians')}</p>
             </div>
           ) : (
             <div>
@@ -129,16 +129,16 @@ export default function Facilities() {
               <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0.75rem' }}>
                 {[selected.address_line1, selected.city, selected.state_province, selected.postal_code].filter(Boolean).join(', ')}
                 {selected.phone && <><br /><Phone size={12} style={{ verticalAlign: -1 }} /> {selected.phone}</>}
-                {selected.location_precision && <> · <span title="map location precision">{selected.location_precision === 'exact' ? '📍 exact location' : '≈ approx location'}</span></>}
+                {selected.location_precision && <> · <span title={t('Facilities.map_location_precision')}>{selected.location_precision === 'exact' ? '📍 exact location' : '≈ approx location'}</span></>}
               </div>
-              <h4 style={{ margin: '0 0 0.4rem' }}><Users size={15} style={{ verticalAlign: -2 }} /> Clinicians who practice here</h4>
-              {rosterLoading && <p style={{ color: '#999' }}>Loading…</p>}
-              {roster && roster.length === 0 && !rosterLoading && <p style={{ color: '#999', fontSize: '0.85rem' }}>No clinicians linked to this facility.</p>}
+              <h4 style={{ margin: '0 0 0.4rem' }}><Users size={15} style={{ verticalAlign: -2 }} /> {t('Facilities.clinicians_who_practice_here')}</h4>
+              {rosterLoading && <p style={{ color: '#999' }}>{t('Facilities.loading')}</p>}
+              {roster && roster.length === 0 && !rosterLoading && <p style={{ color: '#999', fontSize: '0.85rem' }}>{t('Facilities.no_clinicians_linked_to_this_facility')}</p>}
               {roster && roster.map(c => (
                 <div key={c.id} style={{ padding: '0.45rem 0', borderBottom: '1px solid var(--color-border, #eee)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <strong style={{ fontSize: '0.9rem' }}>{c.full_name}{c.credentials ? `, ${c.credentials}` : ''}</strong>
-                    {c.credential_verified && <BadgeCheck size={15} style={{ color: '#22c55e', flexShrink: 0 }} title="Verified" />}
+                    {c.credential_verified && <BadgeCheck size={15} style={{ color: '#22c55e', flexShrink: 0 }} title={t('Facilities.verified')} />}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                     {c.specialty || c.clinician_role}
@@ -146,7 +146,7 @@ export default function Facilities() {
                 </div>
               ))}
               {roster && roster.length > 0 && (
-                <div style={{ fontSize: '0.78rem', color: '#999', marginTop: '0.6rem' }}>{roster.length} clinician{roster.length !== 1 ? 's' : ''}</div>
+                <div style={{ fontSize: '0.78rem', color: '#999', marginTop: '0.6rem' }}>{(roster.length !== 1) ? t('Facilities.clinicians', { roster: roster.length }) : t('Facilities.clinician', { roster: roster.length })}</div>
               )}
             </div>
           )}

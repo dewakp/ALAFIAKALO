@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
 import { useClinicianMode, CLINICIAN_ROLES } from '../context/ClinicianModeContext';
+import { t as translate } from '../i18n';
 
 /* ── helpers ──────────────────────────────────────────────────────── */
 
@@ -89,19 +90,19 @@ export default function Roles() {
       await loadAll();
       setTab('overview');
     } catch (err) {
-      alert(apiErrorMessage(err, 'Failed to add role'));
+      alert(apiErrorMessage(err, translate('Roles.failed_to_add_role')));
     }
     setAdding(false);
   }
 
   /* ── Remove role ───────────────────────────────────────────── */
   async function handleRemove(roleId) {
-    if (!confirm('Remove this role? Associated professional profile will also be deleted.')) return;
+    if (!confirm(translate('Roles.remove_this_role_associated_professional'))) return;
     try {
       await api.delete(`/users/roles/${roleId}`);
       await loadAll();
     } catch (err) {
-      alert(apiErrorMessage(err, 'Failed to remove role'));
+      alert(apiErrorMessage(err, translate('Roles.failed_to_remove_role')));
     }
   }
 
@@ -170,7 +171,7 @@ export default function Roles() {
       setProfileMsg('Professional profile saved successfully.');
       await loadAll();
     } catch (err) {
-      setProfileMsg(apiErrorMessage(err, 'Failed to save profile.'));
+      setProfileMsg(apiErrorMessage(err, translate('Roles.failed_to_save_profile')));
     }
     setSavingProfile(false);
   }
@@ -190,8 +191,8 @@ export default function Roles() {
     })).filter(cat => cat.roles.length > 0);
   }, [catalog, selectedCategory, roleSearch, persona]);
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!persona) return <div className="card">Unable to load persona data.</div>;
+  if (loading) return <div className="loading">{translate('Roles.loading')}</div>;
+  if (!persona) return <div className="card">{translate('Roles.unable_to_load_persona_data')}</div>;
 
   /* ─────────────────────────────────────────────────────────── */
   return (
@@ -200,7 +201,7 @@ export default function Roles() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Role</h1>
+          <h1 className="page-title">{translate('Roles.role')}</h1>
         </div>
       </div>
 
@@ -225,13 +226,13 @@ export default function Roles() {
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
             <Badge label={persona.primary_role.replace(/_/g, ' ').toUpperCase()} />
             {persona.is_healthcare_professional && (
-              <Badge label="Healthcare Professional" color="var(--color-info)" />
+              <Badge label={translate('Roles.healthcare_professional')} color="var(--color-info)" />
             )}
           </div>
         </div>
 
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: 6 }}>Active Roles</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: 6 }}>{translate('Roles.active_roles')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {persona.active_roles.map(r => (
               <Badge key={r} label={r.replace(/_/g, ' ')} outline color="var(--color-primary)" />
@@ -241,7 +242,7 @@ export default function Roles() {
 
         {persona.role_categories.length > 0 && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: 6 }}>Categories</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: 6 }}>{translate('Roles.categories')}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {persona.role_categories.map(c => (
                 <Badge key={c} label={`${CATEGORY_ICONS[c] || '📌'} ${c.replace(/_/g, ' ')}`} color="#334155" />
@@ -253,7 +254,7 @@ export default function Roles() {
         {persona.permissions.length > 0 && (
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-              Permissions ({persona.permissions.length})
+              {translate('Roles.permissions', { permissions: persona.permissions.length })}
             </summary>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
               {persona.permissions.map(p => (
@@ -272,8 +273,8 @@ export default function Roles() {
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
         {[
-          { id: 'overview', label: 'My Roles' },
-          { id: 'add', label: '+ Add Role' },
+          { id: 'overview', label: translate('Roles.my_roles') },
+          { id: 'add', label: translate('Roles.add_role') },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             padding: '8px 20px', borderRadius: 8,
@@ -293,7 +294,7 @@ export default function Roles() {
             color: tab === 'profile' ? '#fff' : 'var(--color-text)',
             fontWeight: tab === 'profile' ? 700 : 400, cursor: 'pointer',
           }}>
-            Edit Profile
+            {translate('Roles.edit_profile')}
           </button>
         )}
       </div>
@@ -305,9 +306,9 @@ export default function Roles() {
           <div className="card" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ fontSize: 28 }}>🧑</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>Patient</div>
+              <div style={{ fontWeight: 600 }}>{translate('Roles.patient')}</div>
               <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                Core role — always active
+                {translate('Roles.core_role_always_active')}
               </div>
             </div>
             <Badge label="ALWAYS ACTIVE" color="#64748b" />
@@ -346,26 +347,26 @@ export default function Roles() {
                 )}
                 {rd.granted_at && (
                   <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 4 }}>
-                    Added {new Date(rd.granted_at).toLocaleDateString()}
+                    {translate('Roles.added', { value: new Date(rd.granted_at).toLocaleDateString() })}
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
                 {rd.is_active && CLINICIAN_ROLES.includes(rd.role) && (
                   <button className="btn btn-sm btn-primary" onClick={openClinicianView}>
-                    Open Clinician View
+                    {translate('Roles.open_clinician_view')}
                   </button>
                 )}
                 {!rd.is_primary && (
                   <button className="btn btn-sm btn-secondary" onClick={() => handleSetPrimary(rd.id)}>
-                    Set Primary
+                    {translate('Roles.set_primary')}
                   </button>
                 )}
                 <button className="btn btn-sm btn-primary" onClick={() => openProfileEditor(rd)}>
                   {rd.professional_profile ? 'Edit Profile' : 'Add Profile'}
                 </button>
                 <button className="btn btn-sm btn-danger" onClick={() => handleRemove(rd.id)}>
-                  Remove
+                  {translate('Roles.remove')}
                 </button>
               </div>
             </div>
@@ -373,7 +374,7 @@ export default function Roles() {
 
           {persona.role_details.length === 0 && (
             <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
-              No professional roles added yet. Click "+ Add Role" to get started.
+              {translate('Roles.no_professional_roles_added_yet_click')}
             </div>
           )}
         </div>
@@ -385,10 +386,10 @@ export default function Roles() {
           <div className="card" style={{ marginBottom: '1rem' }}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Filter by Category</label>
+                <label className="form-label">{translate('Roles.filter_by_category')}</label>
                 <select className="form-input" value={selectedCategory}
                   onChange={e => setSelectedCategory(e.target.value)}>
-                  <option value="">All Categories</option>
+                  <option value="">{translate('Roles.all_categories')}</option>
                   {catalog.map(c => (
                     <option key={c.id} value={c.id}>
                       {CATEGORY_ICONS[c.id] || '📌'} {c.name} ({c.roles.length})
@@ -397,8 +398,8 @@ export default function Roles() {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Search Roles</label>
-                <input className="form-input" placeholder="e.g. cardiologist, nurse..."
+                <label className="form-label">{translate('Roles.search_roles')}</label>
+                <input className="form-input" placeholder={translate('Roles.e_g_cardiologist_nurse')}
                   value={roleSearch} onChange={e => setRoleSearch(e.target.value)} />
               </div>
             </div>
@@ -420,7 +421,7 @@ export default function Roles() {
                     <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{role.name}</span>
                     <button className="btn btn-sm btn-primary" disabled={adding}
                       onClick={() => handleAddRole(role.id)}>
-                      Add
+                      {translate('Roles.add')}
                     </button>
                   </div>
                 ))}
@@ -441,82 +442,82 @@ export default function Roles() {
       {/* ── Professional profile editor ───────────────────────── */}
       {tab === 'profile' && editRoleId && (
         <div className="card">
-          <h3 style={{ marginBottom: '1rem' }}>Professional Profile</h3>
+          <h3 style={{ marginBottom: '1rem' }}>{translate('Roles.professional_profile')}</h3>
           <form onSubmit={handleSaveProfile}>
             {/* Credentials */}
             <h4 style={{ marginBottom: 8, marginTop: 16, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-              Credentials & Licensing
+              {translate('Roles.credentials_licensing')}
             </h4>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">License Number</label>
+                <label className="form-label">{translate('Roles.license_number')}</label>
                 <input className="form-input" value={profileForm.license_number || ''}
                   onChange={e => updatePF('license_number', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">License State</label>
+                <label className="form-label">{translate('Roles.license_state')}</label>
                 <input className="form-input" value={profileForm.license_state || ''}
                   onChange={e => updatePF('license_state', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">License Country</label>
+                <label className="form-label">{translate('Roles.license_country')}</label>
                 <input className="form-input" value={profileForm.license_country || ''}
                   onChange={e => updatePF('license_country', e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">License Expiry</label>
+                <label className="form-label">{translate('Roles.license_expiry')}</label>
                 <input className="form-input" type="date" value={profileForm.license_expiry || ''}
                   onChange={e => updatePF('license_expiry', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">NPI Number</label>
+                <label className="form-label">{translate('Roles.npi_number')}</label>
                 <input className="form-input" value={profileForm.npi_number || ''}
                   onChange={e => updatePF('npi_number', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">DEA Number</label>
+                <label className="form-label">{translate('Roles.dea_number')}</label>
                 <input className="form-input" value={profileForm.dea_number || ''}
                   onChange={e => updatePF('dea_number', e.target.value)} />
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Board Certifications (comma-separated)</label>
+              <label className="form-label">{translate('Roles.board_certifications_comma_separated')}</label>
               <input className="form-input" value={profileForm.board_certifications || ''}
                 onChange={e => updatePF('board_certifications', e.target.value)}
-                placeholder="e.g. ABIM Internal Medicine, ABMS Cardiology" />
+                placeholder={translate('Roles.e_g_abim_internal_medicine_abms')} />
             </div>
 
             {/* Education */}
             <h4 style={{ marginBottom: 8, marginTop: 24, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-              Education & Training
+              {translate('Roles.education_training')}
             </h4>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Medical School / Institution</label>
+                <label className="form-label">{translate('Roles.medical_school_institution')}</label>
                 <input className="form-input" value={profileForm.medical_school || ''}
                   onChange={e => updatePF('medical_school', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Degree</label>
+                <label className="form-label">{translate('Roles.degree')}</label>
                 <input className="form-input" value={profileForm.degree || ''}
                   onChange={e => updatePF('degree', e.target.value)} placeholder="e.g. MD, DO, DNP" />
               </div>
               <div className="form-group">
-                <label className="form-label">Graduation Year</label>
+                <label className="form-label">{translate('Roles.graduation_year')}</label>
                 <input className="form-input" type="number" value={profileForm.graduation_year || ''}
                   onChange={e => updatePF('graduation_year', e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Residency Program</label>
+                <label className="form-label">{translate('Roles.residency_program')}</label>
                 <input className="form-input" value={profileForm.residency_program || ''}
                   onChange={e => updatePF('residency_program', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Fellowship Program</label>
+                <label className="form-label">{translate('Roles.fellowship_program')}</label>
                 <input className="form-input" value={profileForm.fellowship_program || ''}
                   onChange={e => updatePF('fellowship_program', e.target.value)} />
               </div>
@@ -524,68 +525,68 @@ export default function Roles() {
 
             {/* Practice */}
             <h4 style={{ marginBottom: 8, marginTop: 24, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-              Specialty & Practice
+              {translate('Roles.specialty_practice')}
             </h4>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Specialty</label>
+                <label className="form-label">{translate('Roles.specialty')}</label>
                 <input className="form-input" value={profileForm.specialty || ''}
                   onChange={e => updatePF('specialty', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Sub-specialty</label>
+                <label className="form-label">{translate('Roles.sub_specialty')}</label>
                 <input className="form-input" value={profileForm.sub_specialty || ''}
                   onChange={e => updatePF('sub_specialty', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Years of Experience</label>
+                <label className="form-label">{translate('Roles.years_of_experience')}</label>
                 <input className="form-input" type="number" value={profileForm.years_of_experience || ''}
                   onChange={e => updatePF('years_of_experience', e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Practice Name</label>
+                <label className="form-label">{translate('Roles.practice_name')}</label>
                 <input className="form-input" value={profileForm.practice_name || ''}
                   onChange={e => updatePF('practice_name', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Practice Type</label>
+                <label className="form-label">{translate('Roles.practice_type')}</label>
                 <select className="form-input" value={profileForm.practice_type || ''}
                   onChange={e => updatePF('practice_type', e.target.value)}>
-                  <option value="">Select...</option>
-                  <option value="solo">Solo Practice</option>
-                  <option value="group">Group Practice</option>
-                  <option value="hospital">Hospital</option>
-                  <option value="clinic">Clinic</option>
-                  <option value="academic">Academic/Teaching</option>
-                  <option value="government">Government</option>
-                  <option value="telehealth">Telehealth Only</option>
-                  <option value="community_health">Community Health Center</option>
-                  <option value="research">Research Institution</option>
+                  <option value="">{translate('Roles.select')}</option>
+                  <option value="solo">{translate('Roles.solo_practice')}</option>
+                  <option value="group">{translate('Roles.group_practice')}</option>
+                  <option value="hospital">{translate('Roles.hospital')}</option>
+                  <option value="clinic">{translate('Roles.clinic')}</option>
+                  <option value="academic">{translate('Roles.academic_teaching')}</option>
+                  <option value="government">{translate('Roles.government')}</option>
+                  <option value="telehealth">{translate('Roles.telehealth_only')}</option>
+                  <option value="community_health">{translate('Roles.community_health_center')}</option>
+                  <option value="research">{translate('Roles.research_institution')}</option>
                 </select>
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Practice Address</label>
+                <label className="form-label">{translate('Roles.practice_address')}</label>
                 <input className="form-input" value={profileForm.practice_address || ''}
                   onChange={e => updatePF('practice_address', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Practice Phone</label>
+                <label className="form-label">{translate('Roles.practice_phone')}</label>
                 <input className="form-input" value={profileForm.practice_phone || ''}
                   onChange={e => updatePF('practice_phone', e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Practice Email</label>
+                <label className="form-label">{translate('Roles.practice_email')}</label>
                 <input className="form-input" type="email" value={profileForm.practice_email || ''}
                   onChange={e => updatePF('practice_email', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Practice Website</label>
+                <label className="form-label">{translate('Roles.practice_website')}</label>
                 <input className="form-input" value={profileForm.practice_website || ''}
                   onChange={e => updatePF('practice_website', e.target.value)} />
               </div>
@@ -593,77 +594,77 @@ export default function Roles() {
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <input type="checkbox" checked={profileForm.accepting_patients || false}
                     onChange={e => updatePF('accepting_patients', e.target.checked)} />
-                  <span className="form-label" style={{ margin: 0 }}>Accepting Patients</span>
+                  <span className="form-label" style={{ margin: 0 }}>{translate('Roles.accepting_patients')}</span>
                 </label>
               </div>
             </div>
 
             {/* Hospital & Department */}
             <h4 style={{ marginBottom: 8, marginTop: 24, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-              Hospital & Affiliations
+              {translate('Roles.hospital_affiliations')}
             </h4>
             <div className="form-group">
-              <label className="form-label">Hospital Affiliations (comma-separated)</label>
+              <label className="form-label">{translate('Roles.hospital_affiliations_comma_separated')}</label>
               <input className="form-input" value={profileForm.hospital_affiliations || ''}
                 onChange={e => updatePF('hospital_affiliations', e.target.value)}
-                placeholder="e.g. Johns Hopkins, Mayo Clinic" />
+                placeholder={translate('Roles.e_g_johns_hopkins_mayo_clinic')} />
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Department</label>
+                <label className="form-label">{translate('Roles.department')}</label>
                 <input className="form-input" value={profileForm.department || ''}
                   onChange={e => updatePF('department', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Title</label>
+                <label className="form-label">{translate('Roles.title')}</label>
                 <input className="form-input" value={profileForm.title || ''}
-                  onChange={e => updatePF('title', e.target.value)} placeholder="e.g. Chief of Surgery, Attending" />
+                  onChange={e => updatePF('title', e.target.value)} placeholder={translate('Roles.e_g_chief_of_surgery_attending')} />
               </div>
             </div>
 
             {/* Languages & Telemedicine */}
             <h4 style={{ marginBottom: 8, marginTop: 24, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-              Languages & Telemedicine
+              {translate('Roles.languages_telemedicine')}
             </h4>
             <div className="form-group">
-              <label className="form-label">Clinical Languages (comma-separated)</label>
+              <label className="form-label">{translate('Roles.clinical_languages_comma_separated')}</label>
               <input className="form-input" value={profileForm.clinical_languages || ''}
                 onChange={e => updatePF('clinical_languages', e.target.value)}
-                placeholder="e.g. English, Spanish, French" />
+                placeholder={translate('Roles.e_g_english_spanish_french')} />
             </div>
             <div className="form-row">
               <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <input type="checkbox" checked={profileForm.telemedicine_available || false}
                     onChange={e => updatePF('telemedicine_available', e.target.checked)} />
-                  <span className="form-label" style={{ margin: 0 }}>Telemedicine Available</span>
+                  <span className="form-label" style={{ margin: 0 }}>{translate('Roles.telemedicine_available')}</span>
                 </label>
               </div>
               <div className="form-group">
-                <label className="form-label">Telemedicine Platforms (comma-separated)</label>
+                <label className="form-label">{translate('Roles.telemedicine_platforms_comma_separated')}</label>
                 <input className="form-input" value={profileForm.telemedicine_platforms || ''}
                   onChange={e => updatePF('telemedicine_platforms', e.target.value)}
-                  placeholder="e.g. Zoom, Doxy.me, Teladoc" />
+                  placeholder={translate('Roles.e_g_zoom_doxy_me_teladoc')} />
               </div>
             </div>
 
             {/* Bio & Research */}
             <h4 style={{ marginBottom: 8, marginTop: 24, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-              Bio & Research
+              {translate('Roles.bio_research')}
             </h4>
             <div className="form-group">
-              <label className="form-label">Professional Bio</label>
+              <label className="form-label">{translate('Roles.professional_bio')}</label>
               <textarea className="form-input" rows={4} value={profileForm.professional_bio || ''}
                 onChange={e => updatePF('professional_bio', e.target.value)}
-                placeholder="Brief professional biography..." />
+                placeholder={translate('Roles.brief_professional_biography')} />
             </div>
             <div className="form-group">
-              <label className="form-label">Publications (comma-separated)</label>
+              <label className="form-label">{translate('Roles.publications_comma_separated')}</label>
               <textarea className="form-input" rows={2} value={profileForm.publications || ''}
                 onChange={e => updatePF('publications', e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label">Research Interests (comma-separated)</label>
+              <label className="form-label">{translate('Roles.research_interests_comma_separated')}</label>
               <input className="form-input" value={profileForm.research_interests || ''}
                 onChange={e => updatePF('research_interests', e.target.value)} />
             </div>
@@ -683,7 +684,7 @@ export default function Roles() {
               </button>
               <button className="btn btn-secondary" type="button"
                 onClick={() => { setTab('overview'); setEditRoleId(null); }}>
-                Cancel
+                {translate('Roles.cancel')}
               </button>
             </div>
           </form>

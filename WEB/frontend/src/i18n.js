@@ -103,6 +103,27 @@ i18n
     },
   });
 
+/**
+ * The translation function the screens use (scripts/i18n-extract.cjs put it
+ * there). The plain function, not the hook, so it works in any function that
+ * renders JSX; main.jsx remounts the app when the language changes, so every
+ * call is read again.
+ *
+ * An interpolated value must be text. With an element in it, `{icon} Save`
+ * renders "[object Object] Save" once it passes through a string — silently —
+ * so development and tests say so.
+ */
+export const t = (key, options) => {
+  if (options && import.meta.env.MODE !== 'production') {
+    for (const [name, value] of Object.entries(options)) {
+      if (value && typeof value === 'object' && '$$typeof' in value) {
+        console.error(`[i18n] ${key}: {{${name}}} was given a React element and will render as [object Object]`);
+      }
+    }
+  }
+  return i18n.t(key, options);
+};
+
 // Helper function to check if language is RTL
 export const isRTL = (languageCode) => {
   return RTL_LANGUAGES.includes(languageCode);

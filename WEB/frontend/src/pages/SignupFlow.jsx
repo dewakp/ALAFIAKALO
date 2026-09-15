@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import api from '../services/api';
 import PasswordInput from '../components/PasswordInput';
 import { apiErrorMessage } from '../utils/apiError';
+import { t } from '../i18n';
 
 /**
  * Two-step signup: account details → payment → verified account.
@@ -61,7 +62,7 @@ export default function SignupFlow() {
       // be false and would read as money lost.
       setStep('payment');
       setEmail(sessionStorage.getItem(PARKED) || '');
-      setNotice('No payment was taken. You can pick a plan whenever you are ready.');
+      setNotice(t('SignupFlow.no_payment_was_taken_you_can_pick_a_plan'));
     }
   }, [cancelled]);
 
@@ -86,7 +87,7 @@ export default function SignupFlow() {
         sessionStorage.removeItem(PARKED);
         setStep('done');
       } catch (err) {
-        setError(apiErrorMessage(err, 'We could not confirm that payment.'));
+        setError(apiErrorMessage(err, t('SignupFlow.we_could_not_confirm_that_payment')));
         setEmail(parked);
         setStep('payment');
       } finally {
@@ -106,7 +107,7 @@ export default function SignupFlow() {
       setStatus(data);
       setStep('done');
     } catch (err) {
-      setError(apiErrorMessage(err, 'We could not confirm that payment.'));
+      setError(apiErrorMessage(err, t('SignupFlow.we_could_not_confirm_that_payment')));
     } finally {
       setBusy(false);
     }
@@ -115,11 +116,11 @@ export default function SignupFlow() {
   async function submitDetails(e) {
     e.preventDefault();
     setError('');
-    if (firstName.trim().length < 3) { setError('First name must be at least 3 characters'); return; }
-    if (lastName.trim().length < 3) { setError('Last name must be at least 3 characters'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Please enter a valid email address'); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
-    if (!dateOfBirth) { setError('Date of birth is required'); return; }
+    if (firstName.trim().length < 3) { setError(t('SignupFlow.first_name_must_be_at_least_3_characters')); return; }
+    if (lastName.trim().length < 3) { setError(t('SignupFlow.last_name_must_be_at_least_3_characters')); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError(t('SignupFlow.please_enter_a_valid_email_address')); return; }
+    if (password.length < 8) { setError(t('SignupFlow.password_must_be_at_least_8_characters')); return; }
+    if (!dateOfBirth) { setError(t('SignupFlow.date_of_birth_is_required')); return; }
     if (busy) return;
 
     setBusy(true);
@@ -137,7 +138,7 @@ export default function SignupFlow() {
                 + 'You can set up payment now — the link will still be waiting.');
       setStep('payment');
     } catch (err) {
-      setError(apiErrorMessage(err, 'We could not start your signup.'));
+      setError(apiErrorMessage(err, t('SignupFlow.we_could_not_start_your_signup')));
     } finally {
       setBusy(false);
     }
@@ -159,7 +160,7 @@ export default function SignupFlow() {
       // number ever touches this origin.
       window.location.href = data.checkout_url;
     } catch (err) {
-      setError(apiErrorMessage(err, 'We could not open the payment page.'));
+      setError(apiErrorMessage(err, t('SignupFlow.we_could_not_open_the_payment_page')));
       setBusy(false);
     }
   }
@@ -168,9 +169,9 @@ export default function SignupFlow() {
     setError(''); setNotice('');
     try {
       await api.post('/auth/signup/resend', { email: email.trim() });
-      setNotice('Sent. Check your inbox, and your spam folder.');
+      setNotice(t('SignupFlow.sent_check_your_inbox_and_your_spam'));
     } catch (err) {
-      setError(apiErrorMessage(err, 'We could not resend that email.'));
+      setError(apiErrorMessage(err, t('SignupFlow.we_could_not_resend_that_email')));
     }
   }
 
@@ -185,7 +186,7 @@ export default function SignupFlow() {
           {step === 'done' && 'Almost there'}
         </p>
 
-        <ol className="signup-steps" aria-label="Signup progress">
+        <ol className="signup-steps" aria-label={t('SignupFlow.signup_progress')}>
           {STEPS.map((s, i) => (
             <li key={s}
                 className={STEPS.indexOf(step) >= i ? 'is-done' : ''}
@@ -202,42 +203,41 @@ export default function SignupFlow() {
           <form onSubmit={submitDetails}>
             <div className="name-row">
               <div className="form-group">
-                <label className="form-label" htmlFor="su-first">First Name</label>
+                <label className="form-label" htmlFor="su-first">{t('SignupFlow.first_name')}</label>
                 <input id="su-first" className="form-input" autoComplete="given-name"
                        minLength={3} value={firstName}
                        onChange={(e) => setFirstName(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label className="form-label" htmlFor="su-last">Last Name</label>
+                <label className="form-label" htmlFor="su-last">{t('SignupFlow.last_name')}</label>
                 <input id="su-last" className="form-input" autoComplete="family-name"
                        minLength={3} value={lastName}
                        onChange={(e) => setLastName(e.target.value)} required />
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="su-email">Email</label>
+              <label className="form-label" htmlFor="su-email">{t('SignupFlow.email')}</label>
               <input id="su-email" className="form-input" type="email" autoComplete="email"
                      value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="su-dob">Date of Birth</label>
+              <label className="form-label" htmlFor="su-dob">{t('SignupFlow.date_of_birth')}</label>
               <input id="su-dob" className="form-input" type="date" value={dateOfBirth}
                      onChange={(e) => setDateOfBirth(e.target.value)} required />
               <p className="form-hint">
-                An account holder must be an adult. A child is tracked as a
-                dependent profile under a parent or guardian's account.
+                {t('SignupFlow.an_account_holder_must_be_an_adult_a')}
               </p>
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="su-phone">
-                Phone Number <span className="form-optional">(optional — enables phone login)</span>
+                {t('SignupFlow.phone_number')} <span className="form-optional">{t('SignupFlow.optional_enables_phone_login')}</span>
               </label>
               <input id="su-phone" className="form-input" type="tel" autoComplete="tel"
                      placeholder="+1 555 123 4567" value={phone}
                      onChange={(e) => setPhone(e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="su-password">Password</label>
+              <label className="form-label" htmlFor="su-password">{t('SignupFlow.password')}</label>
               <PasswordInput id="su-password" value={password}
                              onChange={(e) => setPassword(e.target.value)} required />
             </div>
@@ -250,7 +250,7 @@ export default function SignupFlow() {
         {step === 'payment' && (
           <div>
             <fieldset className="plan-choice">
-              <legend className="form-label">Billing</legend>
+              <legend className="form-label">{t('SignupFlow.billing')}</legend>
               {[['month', 'Monthly'], ['year', 'Yearly']].map(([value, label]) => (
                 <label key={value} className={interval === value ? 'is-selected' : ''}>
                   <input type="radio" name="interval" value={value}
@@ -264,7 +264,7 @@ export default function SignupFlow() {
               {busy ? 'Opening payment…' : 'Continue to payment'}
             </button>
             <button type="button" className="btn-link" onClick={resend}>
-              Resend the verification email
+              {t('SignupFlow.resend_the_verification_email')}
             </button>
           </div>
         )}
@@ -272,11 +272,10 @@ export default function SignupFlow() {
         {step === 'recover' && (
           <form onSubmit={(e) => { e.preventDefault(); completeWith(email); }}>
             <p className="auth-notice">
-              Your payment went through. Confirm the email address you signed up
-              with and we will finish setting up your account.
+              {t('SignupFlow.your_payment_went_through_confirm_the')}
             </p>
             <div className="form-group">
-              <label className="form-label" htmlFor="su-recover">Email</label>
+              <label className="form-label" htmlFor="su-recover">{t('SignupFlow.email')}</label>
               <input id="su-recover" className="form-input" type="email" required
                      value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
@@ -290,9 +289,9 @@ export default function SignupFlow() {
           <div>
             {status?.email_verified ? (
               <>
-                <p>Your membership is active and your account is ready.</p>
+                <p>{t('SignupFlow.your_membership_is_active_and_your')}</p>
                 <button className="btn btn-primary btn-block" onClick={() => navigate('/login')}>
-                  Sign in
+                  {t('SignupFlow.sign_in')}
                 </button>
               </>
             ) : (
@@ -302,12 +301,10 @@ export default function SignupFlow() {
                     failed" here would be false, and saying nothing is how
                     someone concludes their money vanished. */}
                 <p>
-                  <strong>Payment received.</strong> One step left — open the
-                  verification link we emailed to {status?.email || email} and
-                  your account will be created.
+                  <strong>{t('SignupFlow.payment_received')}</strong> {t('SignupFlow.one_step_left_open_the_verification_link', { email: status?.email || email })}
                 </p>
                 <button type="button" className="btn-link" onClick={resend}>
-                  Resend the verification email
+                  {t('SignupFlow.resend_the_verification_email')}
                 </button>
               </>
             )}
@@ -315,7 +312,7 @@ export default function SignupFlow() {
         )}
 
         <p className="auth-alt">
-          Already have an account? <Link to="/login">Sign In</Link>
+          {t('SignupFlow.already_have_an_account')} <Link to="/login">{t('SignupFlow.sign_in_2')}</Link>
         </p>
       </div>
     </div>

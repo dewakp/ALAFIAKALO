@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import MarketingPage from '../components/MarketingChrome';
+import { t as translate } from '../i18n';
 
 /**
  * Contact — a form that routes, not a wall of mailto: links.
@@ -22,10 +23,10 @@ import MarketingPage from '../components/MarketingChrome';
  */
 
 const FALLBACK_TOPICS = [
-  { key: 'support', label: 'General & Support' },
-  { key: 'privacy', label: 'Privacy' },
-  { key: 'dpo', label: 'Data Protection Officer' },
-  { key: 'security', label: 'Security Disclosure' },
+  { key: 'support', get label() { return translate('Contact.general_support'); } },
+  { key: 'privacy', get label() { return translate('Contact.privacy'); } },
+  { key: 'dpo', get label() { return translate('Contact.data_protection_officer'); } },
+  { key: 'security', get label() { return translate('Contact.security_disclosure'); } },
 ];
 
 // What each desk is for. Copy lives here because it is presentation; the
@@ -92,7 +93,7 @@ export default function Contact() {
     setError('');
 
     if (parseInt(captcha, 10) !== sum.answer) {
-      setError('That sum is not right — please try again.');
+      setError(translate('Contact.that_sum_is_not_right_please_try_again'));
       return;
     }
 
@@ -132,21 +133,19 @@ export default function Contact() {
         <section className="section-wrap section-wrap--top section-wrap--narrow">
           <div className="section-head">
             <span className="eyebrow">MESSAGE SENT</span>
-            <h2>Thank you — we have it</h2>
+            <h2>{translate('Contact.thank_you_we_have_it')}</h2>
             <p>
-              Your message reached our{' '}
-              <strong>{sentDesk || 'support'}</strong> desk. We reply to the
-              address you gave us, usually within two working days.
+              {translate('Contact.your_message_reached_our')}{' '}
+              <strong>{sentDesk || 'support'}</strong> {translate('Contact.desk_we_reply_to_the_address_you_gave_us')}
             </p>
             {reference && (
               <p>
-                Your reference is <strong>{reference}</strong> — quote it if you
-                follow up.
+                {translate('Contact.your_reference_is')} <strong>{reference}</strong> {translate('Contact.quote_it_if_you_follow_up')}
               </p>
             )}
           </div>
           <div className="mk-cta">
-            <Link to="/help" className="btn-primary-lg">Browse Help ✦</Link>
+            <Link to="/help" className="btn-primary-lg">{translate('Contact.browse_help')}</Link>
           </div>
         </section>
       </MarketingPage>
@@ -158,16 +157,15 @@ export default function Contact() {
       <section className="section-wrap section-wrap--top section-wrap--narrow">
         <div className="section-head">
           <span className="eyebrow">GET IN TOUCH</span>
-          <h2>Contact Us</h2>
+          <h2>{translate('Contact.contact_us')}</h2>
           <p>
-            Tell us what it is about and we will route it to the right desk.
-            We read everything that comes in.
+            {translate('Contact.tell_us_what_it_is_about_and_we_will')}
           </p>
         </div>
 
         <form className="contact-form" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="contact-topic">What is this about?</label>
+            <label htmlFor="contact-topic">{translate('Contact.what_is_this_about')}</label>
             <select
               id="contact-topic" className="form-input"
               value={form.topic} onChange={set('topic')} required
@@ -183,14 +181,14 @@ export default function Contact() {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="contact-name">Your name</label>
+              <label htmlFor="contact-name">{translate('Contact.your_name')}</label>
               <input
                 id="contact-name" className="form-input" type="text"
                 autoComplete="name" value={form.name} onChange={set('name')} required
               />
             </div>
             <div className="form-group">
-              <label htmlFor="contact-email">Email</label>
+              <label htmlFor="contact-email">{translate('Contact.email')}</label>
               <input
                 id="contact-email" className="form-input" type="email"
                 autoComplete="email" value={form.email} onChange={set('email')} required
@@ -200,14 +198,14 @@ export default function Contact() {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="contact-org">Organisation <span className="opt">(optional)</span></label>
+              <label htmlFor="contact-org">{translate('Contact.organisation')} <span className="opt">{translate('Contact.optional')}</span></label>
               <input
                 id="contact-org" className="form-input" type="text"
                 autoComplete="organization" value={form.organization} onChange={set('organization')}
               />
             </div>
             <div className="form-group">
-              <label htmlFor="contact-phone">Phone <span className="opt">(optional)</span></label>
+              <label htmlFor="contact-phone">{translate('Contact.phone')} <span className="opt">{translate('Contact.optional')}</span></label>
               <input
                 id="contact-phone" className="form-input" type="tel"
                 autoComplete="tel" value={form.phone} onChange={set('phone')}
@@ -216,21 +214,20 @@ export default function Contact() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="contact-message">How can we help?</label>
+            <label htmlFor="contact-message">{translate('Contact.how_can_we_help')}</label>
             <textarea
               id="contact-message" className="form-input" rows="6"
               value={form.message} onChange={set('message')} required minLength={10}
             />
             <p className="form-hint">
-              Please do not include passwords. For your own safety, share only
-              what we need to help.
+              {translate('Contact.please_do_not_include_passwords_for_your')}
             </p>
           </div>
 
           {/* Honeypot — off-screen rather than display:none so it is not an
               obvious tell, and hidden from assistive tech and the tab order. */}
           <div aria-hidden="true" className="hp-field">
-            <label htmlFor="contact-website">Leave this field empty</label>
+            <label htmlFor="contact-website">{translate('Contact.leave_this_field_empty')}</label>
             <input
               id="contact-website" type="text" tabIndex={-1} autoComplete="off"
               value={form.website} onChange={set('website')}
@@ -239,7 +236,7 @@ export default function Contact() {
 
           <div className="form-group">
             <label htmlFor="contact-captcha">
-              Quick check: what is {sum.a} + {sum.b}?
+              {translate('Contact.quick_check_what_is', { a: sum.a, b: sum.b })}
             </label>
             <input
               id="contact-captcha" className="form-input" type="text"
@@ -256,16 +253,14 @@ export default function Contact() {
         </form>
 
         <div className="callout callout--danger">
-          <strong>Not for emergencies.</strong> ALAFIA is not an emergency service and nobody
-          monitors these inboxes around the clock. If you are having a medical emergency, call
-          your local emergency number or go to the nearest emergency department.
+          <strong>{translate('Contact.not_for_emergencies')}</strong> {translate('Contact.alafia_is_not_an_emergency_service_and')}
         </div>
 
         <div className="mk-cta">
           <p className="mk-cta-note">
-            Looking for answers rather than a person? Most questions are already covered in the{' '}
-            <Link to="/help">Help centre</Link>. Investment and partnership enquiries belong on the{' '}
-            <Link to="/investors">Investors</Link> page.
+            {translate('Contact.looking_for_answers_rather_than_a_person')}{' '}
+            <Link to="/help">{translate('Contact.help_centre')}</Link>{translate('Contact.investment_and_partnership_enquiries')}{' '}
+            <Link to="/investors">{translate('Contact.investors')}</Link> {translate('Contact.page')}
           </p>
         </div>
       </section>

@@ -5,6 +5,7 @@ import api from '../services/api';
 import BackButton from '../components/BackButton';
 import DrugsAdministered from '../components/DrugsAdministered';
 import { useTempUnit } from '../hooks/useTempUnit';
+import { t as translate } from '../i18n';
 
 /* ───────── constants ───────── */
 const ACCESS_TYPES = ['AV Fistula', 'AV Graft', 'Central Catheter', 'Buttonhole'];
@@ -294,14 +295,14 @@ function FluidReconciliation({ totalUfLiters, saline, fluidRemovedMl }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'flex-end' }}>
       <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
-        Net from machine (UF − saline)
+        {translate('Hemodialysis.net_from_machine_uf_saline')}
       </span>
       <div style={{ padding: '6px 8px', borderRadius: 6, background: 'var(--bg-secondary, #f8fafc)',
                     border: '1px dashed var(--border, #cbd5e1)', fontWeight: 700 }}>
         {netFromMachine == null ? '—' : `${Math.round(netFromMachine)} mL`}
         {gap != null && Math.abs(gap) >= 300 && (
           <div style={{ fontWeight: 400, fontSize: '.72rem', color: '#b45309', marginTop: 2 }}>
-            {Math.abs(gap)} mL apart from the scale ({Math.round(scale)} mL) — check
+            {translate('Hemodialysis.ml_apart_from_the_scale_ml_check', { gap: Math.abs(gap), scale: Math.round(scale) })}
           </div>
         )}
       </div>
@@ -330,11 +331,11 @@ function ClockVsMachine({ start, end, machine }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'flex-end' }}>
       <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
-        Clock Time (end − start)
+        {translate('Hemodialysis.clock_time_end_start')}
       </span>
       <div style={{ padding: '6px 8px', borderRadius: 6, background: 'var(--bg-secondary, #f8fafc)',
                     border: '1px dashed var(--border, #cbd5e1)' }}>
-        <strong>{clock} min</strong>
+        <strong>{translate('Hemodialysis.min', { clock })}</strong>
         {gap != null && gap !== 0 && (
           <span style={{ fontSize: '.72rem', color: gap > 15 ? '#b45309' : '#64748b', marginLeft: 6 }}>
             {gap > 0 ? `${gap} min not dialysing` : `machine reads ${-gap} min longer`}
@@ -362,14 +363,14 @@ function MachineTimeField({ value, onChange }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
-        Machine Total Time
+        {translate('Hemodialysis.machine_total_time')}
       </span>
       <input
         type="text"
         inputMode="numeric"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="7:27 or 447"
+        placeholder={translate('Hemodialysis.text_7_27_or_447')}
         style={{
           padding: '6px 8px', borderRadius: 6,
           border: `1px solid ${unreadable ? '#b91c1c' : 'var(--border, #cbd5e1)'}`,
@@ -377,11 +378,11 @@ function MachineTimeField({ value, onChange }) {
       />
       {unreadable ? (
         <span style={{ fontSize: '.72rem', color: '#b91c1c' }}>
-          Enter it as HR:MIN (7:27) or as minutes (447).
+          {translate('Hemodialysis.enter_it_as_hr_min_7_27_or_as_minutes')}
         </span>
       ) : minutes != null ? (
         <span style={{ fontSize: '.72rem', color: 'var(--text-secondary, #64748b)' }}>
-          = <strong>{minutes} min</strong>
+          = <strong>{translate('Hemodialysis.min_2', { minutes })}</strong>
           {typed.includes(':') ? '' : ` (${formatMachineTime(minutes)})`}
         </span>
       ) : null}
@@ -411,7 +412,7 @@ function ThrillBruit({ value, onChange }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 200 }}>
       <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
-        Access Thrill / Bruit
+        {translate('Hemodialysis.access_thrill_bruit')}
       </span>
       <select
         value={state}
@@ -421,9 +422,9 @@ function ThrillBruit({ value, onChange }) {
         }}
         style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border, #cbd5e1)', ...tone }}
       >
-        <option value="">Not assessed</option>
-        <option value="present">Present — normal</option>
-        <option value="absent">ABSENT — urgent</option>
+        <option value="">{translate('Hemodialysis.not_assessed')}</option>
+        <option value="present">{translate('Hemodialysis.present_normal')}</option>
+        <option value="absent">{translate('Hemodialysis.absent_urgent')}</option>
       </select>
     </label>
   );
@@ -778,7 +779,7 @@ export default function Hemodialysis() {
   const renderForm = () => (
     <form onSubmit={handleSubmit}>
       {/* ──── SESSION INFO ──── */}
-      <div style={sectionHead}>Session Information</div>
+      <div style={sectionHead}>{translate('Hemodialysis.session_information')}</div>
       <div style={grid4}>
         <Input lbl="Date *" value={formData.scheduled_date} onChange={set('scheduled_date')} type="date" required />
         <Field lbl="Day of Week">
@@ -789,10 +790,10 @@ export default function Hemodialysis() {
         </Field>
         <Field lbl="Status">
           <select value={formData.status} onChange={set('status')} style={input}>
-            <option value="SCHEDULED">Scheduled</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
+            <option value="SCHEDULED">{translate('Hemodialysis.scheduled')}</option>
+            <option value="IN_PROGRESS">{translate('Hemodialysis.in_progress')}</option>
+            <option value="COMPLETED">{translate('Hemodialysis.completed')}</option>
+            <option value="CANCELLED">{translate('Hemodialysis.cancelled')}</option>
           </select>
         </Field>
         <Input lbl="Start Time" value={timeOnly(formData.actual_start_time)}
@@ -808,10 +809,10 @@ export default function Hemodialysis() {
       </div>
 
       {/* ──── ACCESS & WEIGHTS ──── */}
-      <div style={sectionHead}>Vascular Access & Weights</div>
+      <div style={sectionHead}>{translate('Hemodialysis.vascular_access_weights')}</div>
       {defaults?.carried_from_date && (
         <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
-          Pre-filled from your treatment on {defaults.carried_from_date}. Change anything that differs today.
+          {translate('Hemodialysis.pre_filled_from_your_treatment_on_change', { carried_from_date: defaults.carried_from_date })}
           {defaults.notes?.map((n, i) => (
             <div key={i} style={{ color: '#b45309', marginTop: 2 }}>{n}</div>
           ))}
@@ -832,7 +833,7 @@ export default function Hemodialysis() {
         <Input lbl="Needle Length (mm)" value={formData.needle_length} onChange={set('needle_length')}
           type="number" step="0.1" disabled={isCatheter} title={isCatheter ? CATHETER_HINT : undefined} />
         <Checkbox checked={formData.buttonhole_technique} onChange={set('buttonhole_technique')}
-          label="Buttonhole" disabled={isCatheter} />
+          label={translate('Hemodialysis.buttonhole')} disabled={isCatheter} />
       </div>
       <div style={{ ...grid3, marginTop: 12 }}>
         <Input lbl="Dry Weight (kg)" value={formData.dry_weight_kg} onChange={set('dry_weight_kg')} type="number" step="0.1" />
@@ -845,15 +846,15 @@ export default function Hemodialysis() {
 
       {/* ──── PRE-TREATMENT VITALS ──── */}
       <div style={{ ...sectionHead, display: 'flex', alignItems: 'center', gap: 10 }}>
-        Pre-Treatment Vitals
+        {translate('Hemodialysis.pre_treatment_vitals')}
         <button type="button" onClick={handleTempToggle}
           style={{ fontSize: '.7rem', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}
-          title="Toggle temperature unit (stored in °C)">temp: {temp.label}</button>
+          title={translate('Hemodialysis.toggle_temperature_unit_stored_in_c')}>{translate('Hemodialysis.temp', { label: temp.label })}</button>
       </div>
       <div style={grid4}>
-        <Input lbl="Sitting BP Sys" value={formData.pre_systolic_bp} onChange={set('pre_systolic_bp')} type="number" placeholder="mmHg" />
-        <Input lbl="Sitting BP Dia" value={formData.pre_diastolic_bp} onChange={set('pre_diastolic_bp')} type="number" placeholder="mmHg" />
-        <Input lbl="Heart Rate" value={formData.pre_heart_rate} onChange={set('pre_heart_rate')} type="number" placeholder="bpm" />
+        <Input lbl="Sitting BP Sys" value={formData.pre_systolic_bp} onChange={set('pre_systolic_bp')} type="number" placeholder={translate('Hemodialysis.mmhg')} />
+        <Input lbl="Sitting BP Dia" value={formData.pre_diastolic_bp} onChange={set('pre_diastolic_bp')} type="number" placeholder={translate('Hemodialysis.mmhg')} />
+        <Input lbl="Heart Rate" value={formData.pre_heart_rate} onChange={set('pre_heart_rate')} type="number" placeholder={translate('Hemodialysis.bpm')} />
         <Input lbl={`Temperature (${temp.label})`} value={formData.pre_temperature} onChange={set('pre_temperature')} type="number" step="0.1" />
       </div>
       <div style={{ ...grid3, marginTop: 12 }}>
@@ -863,25 +864,25 @@ export default function Hemodialysis() {
       </div>
 
       {/* ──── PRE-TREATMENT SYMPTOM CHECKLIST ──── */}
-      <div style={sectionHead}>Pre-Treatment Assessment</div>
+      <div style={sectionHead}>{translate('Hemodialysis.pre_treatment_assessment')}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-        <Checkbox checked={formData.pre_shortness_of_breath} onChange={set('pre_shortness_of_breath')} label="Shortness of Breath" />
-        <Checkbox checked={formData.pre_swelling} onChange={set('pre_swelling')} label="Swelling / Edema" />
-        <Checkbox checked={formData.pre_change_in_mobility} onChange={set('pre_change_in_mobility')} label="Change in Mobility" />
-        <Checkbox checked={formData.pre_digestion_problems} onChange={set('pre_digestion_problems')} label="Digestion Problems" />
-        <Checkbox checked={formData.pre_hosp_er_since_last} onChange={set('pre_hosp_er_since_last')} label="Hospital/ER Since Last" />
+        <Checkbox checked={formData.pre_shortness_of_breath} onChange={set('pre_shortness_of_breath')} label={translate('Hemodialysis.shortness_of_breath')} />
+        <Checkbox checked={formData.pre_swelling} onChange={set('pre_swelling')} label={translate('Hemodialysis.swelling_edema')} />
+        <Checkbox checked={formData.pre_change_in_mobility} onChange={set('pre_change_in_mobility')} label={translate('Hemodialysis.change_in_mobility')} />
+        <Checkbox checked={formData.pre_digestion_problems} onChange={set('pre_digestion_problems')} label={translate('Hemodialysis.digestion_problems')} />
+        <Checkbox checked={formData.pre_hosp_er_since_last} onChange={set('pre_hosp_er_since_last')} label={translate('Hemodialysis.hospital_er_since_last')} />
         <ThrillBruit value={formData.access_thrill_bruit}
           onChange={(v) => setFormData((f) => ({ ...f, access_thrill_bruit: v }))} />
         {/* The alarm test is run BEFORE the patient goes on. It sat under
             Machine Maintenance, below the post-treatment section, which put a
             pre-treatment safety check after the treatment it guards. */}
         <Checkbox checked={formData.alarm_test_completed} onChange={set('alarm_test_completed')}
-          label="Alarm Test Complete (pre-treatment)" />
-        <Checkbox checked={formData.access_redness_drainage} onChange={set('access_redness_drainage')} label="Access Redness/Drainage" />
+          label={translate('Hemodialysis.alarm_test_complete_pre_treatment')} />
+        <Checkbox checked={formData.access_redness_drainage} onChange={set('access_redness_drainage')} label={translate('Hemodialysis.access_redness_drainage')} />
       </div>
 
       {/* ──── DIALYSATE PRESCRIPTION ──── */}
-      <div style={sectionHead}>Dialysate Prescription</div>
+      <div style={sectionHead}>{translate('Hemodialysis.dialysate_prescription')}</div>
       <div style={grid4}>
         <Input lbl="Blood Flow (mL/min)" value={formData.blood_flow_rate} onChange={set('blood_flow_rate')} type="number" />
         <Input lbl="Dialysate Flow (mL/min)" value={formData.dialysate_flow_rate} onChange={set('dialysate_flow_rate')} type="number" />
@@ -895,7 +896,7 @@ export default function Hemodialysis() {
       </div>
 
       {/* ──── EQUIPMENT ──── */}
-      <div style={sectionHead}>Equipment Tracking</div>
+      <div style={sectionHead}>{translate('Hemodialysis.equipment_tracking')}</div>
       <div style={grid4}>
         <Input lbl="Cartridge Lot" value={formData.cartridge_lot} onChange={set('cartridge_lot')} />
         <Input lbl="SAK Lot" value={formData.sak_lot} onChange={set('sak_lot')} />
@@ -905,16 +906,16 @@ export default function Hemodialysis() {
 
       {/* ──── INTRADIALYTIC READINGS ──── */}
       <div style={sectionHead}>
-        Intradialytic Readings
-        <button type="button" onClick={addReading} style={{ ...btnPrimary, fontSize: 12, padding: '4px 14px', marginLeft: 16 }}>+ Add Reading</button>
+        {translate('Hemodialysis.intradialytic_readings')}
+        <button type="button" onClick={addReading} style={{ ...btnPrimary, fontSize: 12, padding: '4px 14px', marginLeft: 16 }}>{translate('Hemodialysis.add_reading')}</button>
       </div>
-      {readings.length === 0 && <p style={{ color: '#888', fontSize: 14 }}>No readings yet. Click "+ Add Reading" to log vitals during treatment.</p>}
+      {readings.length === 0 && <p style={{ color: '#888', fontSize: 14 }}>{translate('Hemodialysis.no_readings_yet_click_add_reading_to_log')}</p>}
       {readings.map((r, idx) => (
         <div key={idx} style={{ background: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: 6, padding: 14, marginBottom: 10, position: 'relative' }}>
           <div style={{ position: 'absolute', top: 8, right: 8 }}>
             <button type="button" onClick={() => removeReading(idx)} style={{ ...btnDanger, fontSize: 11, padding: '3px 10px' }}>✕</button>
           </div>
-          <div style={{ fontWeight: 600, fontSize: 13, color: '#1565c0', marginBottom: 8 }}>Reading #{idx + 1}</div>
+          <div style={{ fontWeight: 600, fontSize: 13, color: '#1565c0', marginBottom: 8 }}>{translate('Hemodialysis.reading', { idx: idx + 1 })}</div>
           <div style={grid4}>
             <Input lbl="Time (HH:MM)" value={r.reading_time} onChange={setReading(idx, 'reading_time')} placeholder="14:30" />
             <Input lbl="BP Sys" value={r.systolic_bp} onChange={setReading(idx, 'systolic_bp')} type="number" />
@@ -941,10 +942,10 @@ export default function Hemodialysis() {
       ))}
 
       {/* ──── POST-TREATMENT ──── */}
-      <div style={sectionHead}>Post-Treatment Vitals</div>
+      <div style={sectionHead}>{translate('Hemodialysis.post_treatment_vitals')}</div>
       <div style={grid4}>
-        <Input lbl="Sitting BP Sys" value={formData.post_systolic_bp} onChange={set('post_systolic_bp')} type="number" placeholder="mmHg" />
-        <Input lbl="Sitting BP Dia" value={formData.post_diastolic_bp} onChange={set('post_diastolic_bp')} type="number" placeholder="mmHg" />
+        <Input lbl="Sitting BP Sys" value={formData.post_systolic_bp} onChange={set('post_systolic_bp')} type="number" placeholder={translate('Hemodialysis.mmhg')} />
+        <Input lbl="Sitting BP Dia" value={formData.post_diastolic_bp} onChange={set('post_diastolic_bp')} type="number" placeholder={translate('Hemodialysis.mmhg')} />
         <Input lbl="Heart Rate" value={formData.post_heart_rate} onChange={set('post_heart_rate')} type="number" />
         <Input lbl={`Temperature (${temp.label})`} value={formData.post_temperature} onChange={set('post_temperature')} type="number" step="0.1" />
       </div>
@@ -954,7 +955,7 @@ export default function Hemodialysis() {
         <Input lbl="Standing HR" value={formData.post_standing_heart_rate} onChange={set('post_standing_heart_rate')} type="number" />
       </div>
 
-      <div style={sectionHead}>Post-Treatment Totals & Assessment</div>
+      <div style={sectionHead}>{translate('Hemodialysis.post_treatment_totals_assessment')}</div>
       <div style={grid4}>
         {/* Measured at the END of treatment, so it lives here rather than
             beside the pre-treatment weights where it used to sit. */}
@@ -963,7 +964,7 @@ export default function Hemodialysis() {
         {/* Saline given during the session is volume put BACK. Without it,
             fluid removed overstates what actually came off. */}
         <Input lbl="Saline Added (mL)" value={formData.saline_added_ml} onChange={set('saline_added_ml')} type="number"
-          placeholder="boluses, rinseback" />
+          placeholder={translate('Hemodialysis.boluses_rinseback')} />
         {/* The machine's gross removal sits beside the saline it is reduced by,
             so the reconciliation below has both of its inputs in view. */}
         <Input lbl="Total UF (L) — machine" value={formData.total_uf_liters} onChange={set('total_uf_liters')} type="number" step="0.1" />
@@ -987,21 +988,21 @@ export default function Hemodialysis() {
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 14 }}>
         <Input lbl="Bleeding Stop Time" value={formData.post_bleeding_stop_time} onChange={set('post_bleeding_stop_time')} />
-        <Checkbox checked={formData.post_bruising} onChange={set('post_bruising')} label="Bruising" />
-        <Checkbox checked={formData.post_infiltration} onChange={set('post_infiltration')} label="Infiltration" />
+        <Checkbox checked={formData.post_bruising} onChange={set('post_bruising')} label={translate('Hemodialysis.bruising')} />
+        <Checkbox checked={formData.post_infiltration} onChange={set('post_infiltration')} label={translate('Hemodialysis.infiltration')} />
         <Checkbox checked={formData.post_shortness_of_breath} onChange={set('post_shortness_of_breath')} label="SOB" />
-        <Checkbox checked={formData.post_swelling} onChange={set('post_swelling')} label="Swelling" />
-        <Checkbox checked={formData.post_digestion_problems} onChange={set('post_digestion_problems')} label="GI Issues" />
+        <Checkbox checked={formData.post_swelling} onChange={set('post_swelling')} label={translate('Hemodialysis.swelling')} />
+        <Checkbox checked={formData.post_digestion_problems} onChange={set('post_digestion_problems')} label={translate('Hemodialysis.gi_issues')} />
         <ThrillBruit value={formData.post_access_thrill_bruit}
           onChange={(v) => setFormData((f) => ({ ...f, post_access_thrill_bruit: v }))} />
       </div>
 
       {/* ──── MACHINE MAINTENANCE ──── */}
-      <div style={sectionHead}>Machine Maintenance</div>
+      <div style={sectionHead}>{translate('Hemodialysis.machine_maintenance')}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-        <Checkbox checked={formData.purification_pak_change} onChange={set('purification_pak_change')} label="Purification Pak Change" />
-        <Checkbox checked={formData.air_filter_cleaned} onChange={set('air_filter_cleaned')} label="Air Filter Cleaned" />
-        <Checkbox checked={formData.waste_line_bleach_disinfection} onChange={set('waste_line_bleach_disinfection')} label="Waste Line Bleach" />
+        <Checkbox checked={formData.purification_pak_change} onChange={set('purification_pak_change')} label={translate('Hemodialysis.purification_pak_change')} />
+        <Checkbox checked={formData.air_filter_cleaned} onChange={set('air_filter_cleaned')} label={translate('Hemodialysis.air_filter_cleaned')} />
+        <Checkbox checked={formData.waste_line_bleach_disinfection} onChange={set('waste_line_bleach_disinfection')} label={translate('Hemodialysis.waste_line_bleach')} />
       </div>
       <div style={{ ...grid3, marginTop: 12 }}>
         <Input lbl="SAK Use #" value={formData.sak_use_number} onChange={set('sak_use_number')} type="number" />
@@ -1014,7 +1015,7 @@ export default function Hemodialysis() {
           and Doxercalciferol reached the database only by import, and nothing
           else in the app could see it (§3aa: the medication picture has THREE
           sources, and this is the unread one). */}
-      <div style={sectionHead}>Drugs Given This Session</div>
+      <div style={sectionHead}>{translate('Hemodialysis.drugs_given_this_session')}</div>
       <div style={{ marginBottom: 16 }}>
         <DrugsAdministered
           label=""
@@ -1024,10 +1025,10 @@ export default function Hemodialysis() {
       </div>
 
       {/* ──── NOTES ──── */}
-      <div style={sectionHead}>Notes</div>
+      <div style={sectionHead}>{translate('Hemodialysis.notes')}</div>
       <div style={grid2}>
         <Field lbl="Side Effects">
-          <textarea value={formData.side_effects || ''} onChange={set('side_effects')} style={{ ...input, minHeight: 60 }} placeholder="Cramping, nausea, dizziness..." />
+          <textarea value={formData.side_effects || ''} onChange={set('side_effects')} style={{ ...input, minHeight: 60 }} placeholder={translate('Hemodialysis.cramping_nausea_dizziness')} />
         </Field>
         <Field lbl="Clinical Notes">
           {/* Not newClinicalNote() here: it trims, which would stop the user
@@ -1037,7 +1038,7 @@ export default function Hemodialysis() {
       </div>
       <div style={{ marginTop: 12 }}>
         <Field lbl="Patient Notes">
-          <textarea value={formData.patient_notes || ''} onChange={set('patient_notes')} style={{ ...input, minHeight: 60 }} placeholder="How did you feel during/after treatment?" />
+          <textarea value={formData.patient_notes || ''} onChange={set('patient_notes')} style={{ ...input, minHeight: 60 }} placeholder={translate('Hemodialysis.how_did_you_feel_during_after_treatment')} />
         </Field>
       </div>
 
@@ -1047,7 +1048,7 @@ export default function Hemodialysis() {
           {saving ? 'Saving...' : editing ? 'Update Session' : 'Save Session'}
         </button>
         <button type="button" style={btnSecondary} onClick={() => { setTab('reports'); setEditing(null); setFormData({ ...emptyForm(), condition_id: conditionId }); setReadings([]); }}>
-          Cancel
+          {translate('Hemodialysis.cancel')}
         </button>
       </div>
     </form>
@@ -1061,11 +1062,11 @@ export default function Hemodialysis() {
       {summary && summary.total_sessions > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
           {[
-            { label: 'Sessions', value: summary.total_sessions, color: '#1565c0' },
-            { label: 'Avg Pre Wt', value: summary.avg_pre_weight_kg ? `${summary.avg_pre_weight_kg} kg` : '—', color: '#2e7d32' },
-            { label: 'Avg Post Wt', value: summary.avg_post_weight_kg ? `${summary.avg_post_weight_kg} kg` : '—', color: '#2e7d32' },
-            { label: 'Avg UF', value: summary.avg_fluid_removed_ml ? `${summary.avg_fluid_removed_ml} mL` : '—', color: '#e65100' },
-            { label: 'Avg Duration', value: summary.avg_duration_min ? `${summary.avg_duration_min} min` : '—', color: '#6a1b9a' },
+            { label: translate('Hemodialysis.sessions_2'), value: summary.total_sessions, color: '#1565c0' },
+            { label: translate('Hemodialysis.avg_pre_wt'), value: summary.avg_pre_weight_kg ? `${summary.avg_pre_weight_kg} kg` : '—', color: '#2e7d32' },
+            { label: translate('Hemodialysis.avg_post_wt'), value: summary.avg_post_weight_kg ? `${summary.avg_post_weight_kg} kg` : '—', color: '#2e7d32' },
+            { label: translate('Hemodialysis.avg_uf'), value: summary.avg_fluid_removed_ml ? `${summary.avg_fluid_removed_ml} mL` : '—', color: '#e65100' },
+            { label: translate('Hemodialysis.avg_duration'), value: summary.avg_duration_min ? `${summary.avg_duration_min} min` : '—', color: '#6a1b9a' },
           ].map((c, i) => (
             <div key={i} style={{ ...card, textAlign: 'center', borderTop: `3px solid ${c.color}` }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>{c.value}</div>
@@ -1077,7 +1078,7 @@ export default function Hemodialysis() {
 
       {/* Filter */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
-        <label style={{ fontSize: 14, fontWeight: 600 }}>Period:</label>
+        <label style={{ fontSize: 14, fontWeight: 600 }}>{translate('Hemodialysis.period')}</label>
         {[30, 90, 180, 365, 3650].map(d => (
           <button key={d} onClick={() => setFilter(f => ({ ...f, days: d, page: 0 }))}
             style={filter.days === d ? tabActive : { ...tabInactive, borderRadius: 4 }}>
@@ -1085,11 +1086,11 @@ export default function Hemodialysis() {
           </button>
         ))}
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 14, color: '#666' }}>{sessions.length} sessions</span>
+        <span style={{ fontSize: 14, color: '#666' }}>{translate('Hemodialysis.sessions', { sessions: sessions.length })}</span>
       </div>
 
       {/* Session List */}
-      {loading ? <p>Loading sessions...</p> : paged.length === 0 ? (
+      {loading ? <p>{translate('Hemodialysis.loading_sessions')}</p> : paged.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
           <p>{loadError || 'No hemodialysis sessions found for this period.'}</p>
         </div>
@@ -1113,11 +1114,11 @@ export default function Hemodialysis() {
                   </div>
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 14 }}>
                     {session.pre_dialysis_weight_kg && session.post_dialysis_weight_kg && (
-                      <span><b>{session.pre_dialysis_weight_kg}</b> → <b>{session.post_dialysis_weight_kg}</b> kg</span>
+                      <span><b>{session.pre_dialysis_weight_kg}</b> → <b>{session.post_dialysis_weight_kg}</b> {translate('Hemodialysis.kg')}</span>
                     )}
-                    {session.fluid_removed_ml && <span style={{ color: '#e65100' }}><b>{session.fluid_removed_ml}</b> mL</span>}
-                    {session.duration_minutes && <span style={{ color: '#6a1b9a' }}>{session.duration_minutes} min</span>}
-                    {rdgs.length > 0 && <span style={{ fontSize: 12, color: '#1565c0' }}>{rdgs.length} readings</span>}
+                    {session.fluid_removed_ml && <span style={{ color: '#e65100' }}><b>{session.fluid_removed_ml}</b> {translate('Hemodialysis.ml')}</span>}
+                    {session.duration_minutes && <span style={{ color: '#6a1b9a' }}>{translate('Hemodialysis.min_3', { duration_minutes: session.duration_minutes })}</span>}
+                    {rdgs.length > 0 && <span style={{ fontSize: 12, color: '#1565c0' }}>{translate('Hemodialysis.readings', { rdgs: rdgs.length })}</span>}
                     <span style={{ fontSize: 18, color: '#999' }}>{expanded ? '▲' : '▼'}</span>
                   </div>
                 </div>
@@ -1125,8 +1126,7 @@ export default function Hemodialysis() {
                 {/* Vitals summary */}
                 {(session.pre_systolic_bp || session.post_systolic_bp) && (
                   <div style={{ fontSize: 13, color: '#666', marginTop: 6 }}>
-                    <b>BP:</b> Pre {fmtBP(session.pre_systolic_bp, session.pre_diastolic_bp)}
-                    {' → Post '}{fmtBP(session.post_systolic_bp, session.post_diastolic_bp)}
+                    <b>BP:</b> {translate('Hemodialysis.pre_post', { pre_systolic_bp: fmtBP(session.pre_systolic_bp, session.pre_diastolic_bp), post_systolic_bp: fmtBP(session.post_systolic_bp, session.post_diastolic_bp) })}
                     {session.pre_heart_rate && <span> | <b>HR:</b> {session.pre_heart_rate}{session.post_heart_rate && ` → ${session.post_heart_rate}`}</span>}
                   </div>
                 )}
@@ -1139,28 +1139,27 @@ export default function Hemodialysis() {
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
                       <a href={`/therapy-report/${session.id}`} target="_blank" rel="noopener noreferrer"
                          style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-block' }}>
-                        Print / Save as PDF
+                        {translate('Hemodialysis.print_save_as_pdf')}
                       </a>
                     </div>
                     <div style={grid4}>
-                      <div><b style={{ fontSize: 12, color: '#888' }}>Facility</b><br />{session.facility_name || '—'}</div>
-                      <div><b style={{ fontSize: 12, color: '#888' }}>Access</b><br />{session.dialysis_access_type || '—'}</div>
-                      <div><b style={{ fontSize: 12, color: '#888' }}>Dry Weight</b><br />{fmtWeight(session.dry_weight_kg)}</div>
-                      <div><b style={{ fontSize: 12, color: '#888' }}>Blood Flow</b><br />{session.blood_flow_rate ? `${session.blood_flow_rate} mL/min` : '—'}</div>
+                      <div><b style={{ fontSize: 12, color: '#888' }}>{translate('Hemodialysis.facility')}</b><br />{session.facility_name || '—'}</div>
+                      <div><b style={{ fontSize: 12, color: '#888' }}>{translate('Hemodialysis.access')}</b><br />{session.dialysis_access_type || '—'}</div>
+                      <div><b style={{ fontSize: 12, color: '#888' }}>{translate('Hemodialysis.dry_weight')}</b><br />{fmtWeight(session.dry_weight_kg)}</div>
+                      <div><b style={{ fontSize: 12, color: '#888' }}>{translate('Hemodialysis.blood_flow')}</b><br />{session.blood_flow_rate ? `${session.blood_flow_rate} mL/min` : '—'}</div>
                     </div>
 
                     {/* Standing vitals */}
                     {(session.pre_standing_systolic_bp || session.post_standing_systolic_bp) && (
                       <div style={{ marginTop: 12, fontSize: 13 }}>
-                        <b>Standing BP:</b> Pre {fmtBP(session.pre_standing_systolic_bp, session.pre_standing_diastolic_bp)}
-                        {' → Post '}{fmtBP(session.post_standing_systolic_bp, session.post_standing_diastolic_bp)}
+                        <b>{translate('Hemodialysis.standing_bp')}</b> {translate('Hemodialysis.pre_post_2', { pre_standing_systolic_bp: fmtBP(session.pre_standing_systolic_bp, session.pre_standing_diastolic_bp), post_standing_systolic_bp: fmtBP(session.post_standing_systolic_bp, session.post_standing_diastolic_bp) })}
                       </div>
                     )}
 
                     {/* Intradialytic readings table */}
                     {rdgs.length > 0 && (
                       <div style={{ marginTop: 16 }}>
-                        <h4 style={{ margin: '0 0 8px', color: '#1565c0', fontSize: 14 }}>Intradialytic Readings ({rdgs.length})</h4>
+                        <h4 style={{ margin: '0 0 8px', color: '#1565c0', fontSize: 14 }}>{translate('Hemodialysis.intradialytic_readings_2', { rdgs: rdgs.length })}</h4>
                         <div style={{ overflowX: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                             <thead>
@@ -1195,23 +1194,23 @@ export default function Hemodialysis() {
                     {/* Post-treatment & notes */}
                     {(session.total_dialysate_liters || session.total_uf_liters || session.total_blood_volume_processed) && (
                       <div style={{ ...grid3, marginTop: 12, fontSize: 13 }}>
-                        <div><b>Total Dialysate:</b> {session.total_dialysate_liters ? `${session.total_dialysate_liters} L` : '—'}</div>
-                        <div><b>Total UF:</b> {session.total_uf_liters ? `${session.total_uf_liters} L` : '—'}</div>
-                        <div><b>Blood Vol:</b> {session.total_blood_volume_processed ? `${session.total_blood_volume_processed} L` : '—'}</div>
+                        <div><b>{translate('Hemodialysis.total_dialysate')}</b> {session.total_dialysate_liters ? `${session.total_dialysate_liters} L` : '—'}</div>
+                        <div><b>{translate('Hemodialysis.total_uf')}</b> {session.total_uf_liters ? `${session.total_uf_liters} L` : '—'}</div>
+                        <div><b>{translate('Hemodialysis.blood_vol')}</b> {session.total_blood_volume_processed ? `${session.total_blood_volume_processed} L` : '—'}</div>
                       </div>
                     )}
-                    {session.side_effects && <p style={{ marginTop: 10, fontSize: 13, color: '#d32f2f' }}><b>Side Effects:</b> {session.side_effects}</p>}
+                    {session.side_effects && <p style={{ marginTop: 10, fontSize: 13, color: '#d32f2f' }}><b>{translate('Hemodialysis.side_effects')}</b> {session.side_effects}</p>}
                     {session.clinical_notes?.length > 0 && (
                       <p style={{ marginTop: 6, fontSize: 13 }}>
-                        <b>Clinical Notes:</b>{' '}
+                        <b>{translate('Hemodialysis.clinical_notes')}</b>{' '}
                         {session.clinical_notes.map(n => n.note_text).join(' · ')}
                       </p>
                     )}
-                    {session.patient_notes && <p style={{ marginTop: 6, fontSize: 13, background: '#f5f5f5', padding: 10, borderRadius: 4 }}><b>Patient Notes:</b> {session.patient_notes}</p>}
+                    {session.patient_notes && <p style={{ marginTop: 6, fontSize: 13, background: '#f5f5f5', padding: 10, borderRadius: 4 }}><b>{translate('Hemodialysis.patient_notes')}</b> {session.patient_notes}</p>}
 
                     {/* Actions */}
                     <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
-                      <button onClick={() => startEdit(session)} style={btnPrimary}>Edit Session</button>
+                      <button onClick={() => startEdit(session)} style={btnPrimary}>{translate('Hemodialysis.edit_session')}</button>
                     </div>
                   </div>
                 )}
@@ -1222,9 +1221,9 @@ export default function Hemodialysis() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
-              <button disabled={filter.page === 0} onClick={() => setFilter(f => ({ ...f, page: f.page - 1 }))} style={btnSecondary}>← Prev</button>
-              <span style={{ padding: '10px 16px', fontSize: 14 }}>Page {filter.page + 1} of {totalPages}</span>
-              <button disabled={filter.page >= totalPages - 1} onClick={() => setFilter(f => ({ ...f, page: f.page + 1 }))} style={btnSecondary}>Next →</button>
+              <button disabled={filter.page === 0} onClick={() => setFilter(f => ({ ...f, page: f.page - 1 }))} style={btnSecondary}>{translate('Hemodialysis.prev')}</button>
+              <span style={{ padding: '10px 16px', fontSize: 14 }}>{translate('Hemodialysis.page_of', { page: filter.page + 1, totalPages })}</span>
+              <button disabled={filter.page >= totalPages - 1} onClick={() => setFilter(f => ({ ...f, page: f.page + 1 }))} style={btnSecondary}>{translate('Hemodialysis.next')}</button>
             </div>
           )}
         </>
@@ -1239,15 +1238,15 @@ export default function Hemodialysis() {
         <div className="page-header">
           <div className="page-header-left">
             <BackButton />
-            <h1 style={{ margin: 0 }}>Hemodialysis</h1>
+            <h1 style={{ margin: 0 }}>{translate('Hemodialysis.hemodialysis')}</h1>
           </div>
         </div>
-        <button onClick={startNew} style={btnPrimary}>+ New Session</button>
+        <button onClick={startNew} style={btnPrimary}>{translate('Hemodialysis.new_session')}</button>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 0 }}>
-        <button onClick={() => setTab('reports')} style={tab === 'reports' ? tabActive : tabInactive}>Session Reports</button>
+        <button onClick={() => setTab('reports')} style={tab === 'reports' ? tabActive : tabInactive}>{translate('Hemodialysis.session_reports')}</button>
         <button onClick={() => setTab('form')} style={tab === 'form' ? tabActive : tabInactive}>
           {editing ? 'Edit Session' : 'Session Form'}
         </button>

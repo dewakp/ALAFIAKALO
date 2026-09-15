@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Sparkles, Check, CreditCard, Loader2, ShieldCheck, Smartphone, AlertCircle } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const MEMBERSHIP_FEATURES = [
   'Unlimited AI health-guide conversations',
@@ -87,7 +88,7 @@ export default function Subscription() {
   }
 
   async function cancel() {
-    if (!window.confirm('Cancel your subscription? You’ll keep access until the end of the paid period.')) return;
+    if (!window.confirm(t('Subscription.cancel_your_subscription_you_ll_keep'))) return;
     setBusy('cancel');
     try {
       const { data } = await api.post('/subscription/cancel', { at_period_end: true });
@@ -134,7 +135,7 @@ export default function Subscription() {
         <h1 style={{ margin: 0 }}>{plans?.product_name || 'ALAFIA Membership'}</h1>
       </div>
       <p style={{ color: '#666', marginTop: 0 }}>
-        Unlock the full ALAFIA experience across every device.
+        {t('Subscription.unlock_the_full_alafia_experience_across')}
       </p>
 
       {banner && (
@@ -157,7 +158,7 @@ export default function Subscription() {
         <div style={{ border: '1px solid #c8e6c9', background: '#f1f8f4', borderRadius: 14, padding: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <ShieldCheck size={22} color="#2e7d32" />
-            <strong style={{ fontSize: 18 }}>You’re subscribed</strong>
+            <strong style={{ fontSize: 18 }}>{t('Subscription.you_re_subscribed')}</strong>
             <span style={{
               marginLeft: 'auto', fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
               background: '#2e7d32', color: '#fff', padding: '3px 10px', borderRadius: 20,
@@ -166,11 +167,11 @@ export default function Subscription() {
             </span>
           </div>
           <div style={{ fontSize: 14, color: '#333', lineHeight: 1.8 }}>
-            <div>Plan: <strong>{status.product_name}</strong> · {money(status.price_usd)}{status.plan === 'plus_annual' ? '/yr' : '/mo'}</div>
-            <div>Billing via: <strong>{prettyProvider(status.provider)}</strong></div>
+            <div>{t('Subscription.plan')} <strong>{status.product_name}</strong> {(status.plan === 'plus_annual') ? t('Subscription.yr', { price_usd: money(status.price_usd) }) : t('Subscription.mo', { price_usd: money(status.price_usd) })}</div>
+            <div>{t('Subscription.billing_via')} <strong>{prettyProvider(status.provider)}</strong></div>
             {status.current_period_end && (
               <div>
-                {status.cancel_at_period_end ? 'Access ends' : 'Renews'} on{' '}
+                {(status.cancel_at_period_end) ? t('Subscription.access_ends_on') : t('Subscription.renews_on')}{' '}
                 <strong>{new Date(status.current_period_end).toLocaleDateString()}</strong>
               </div>
             )}
@@ -182,8 +183,7 @@ export default function Subscription() {
           )}
           {(status.provider === 'google_play' || status.provider === 'apple') && (
             <p style={{ fontSize: 13, color: '#666', marginTop: 12 }}>
-              Manage or cancel this subscription in your{' '}
-              {status.provider === 'google_play' ? 'Google Play' : 'App Store'} account settings.
+              {(status.provider === 'google_play') ? t('Subscription.manage_or_cancel_this_subscription_in') : t('Subscription.manage_or_cancel_this_subscription_in_2')}
             </p>
           )}
         </div>
@@ -192,11 +192,11 @@ export default function Subscription() {
           <div style={{ border: '1px solid #c8e6c9', background: '#f1f8f4', borderRadius: 14, padding: 20, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <ShieldCheck size={22} color="#2e7d32" />
-              <strong style={{ fontSize: 18 }}>Complimentary access</strong>
+              <strong style={{ fontSize: 18 }}>{t('Subscription.complimentary_access')}</strong>
             </div>
             {status.current_period_end && (
               <div style={{ fontSize: 14, color: '#333' }}>
-                Ends on <strong>{new Date(status.current_period_end).toLocaleDateString()}</strong> — subscribe below to keep your membership after that.
+                {t('Subscription.ends_on')} <strong>{new Date(status.current_period_end).toLocaleDateString()}</strong> {t('Subscription.subscribe_below_to_keep_your_membership')}
               </div>
             )}
           </div>
@@ -205,10 +205,9 @@ export default function Subscription() {
           <div style={paymentFailedCard} role="alert" data-testid="payment-failed">
             <AlertCircle size={20} color="#c62828" style={{ flexShrink: 0, marginTop: 1 }} />
             <div>
-              <strong style={{ display: 'block', marginBottom: 2 }}>Your last payment didn’t go through</strong>
+              <strong style={{ display: 'block', marginBottom: 2 }}>{t('Subscription.your_last_payment_didn_t_go_through')}</strong>
               <span style={{ fontSize: 14 }}>
-                Your card was declined, so your membership never started. Try again below —
-                a different card usually works.
+                {t('Subscription.your_card_was_declined_so_your')}
               </span>
             </div>
           </div>
@@ -216,15 +215,15 @@ export default function Subscription() {
         {canBuy && (
         <div style={{ border: '1px solid #e0e0e0', borderRadius: 14, padding: 24 }}>
           {isComp && (
-            <h2 style={{ margin: '0 0 14px', fontSize: 18 }}>Keep your ALAFIA Membership</h2>
+            <h2 style={{ margin: '0 0 14px', fontSize: 18 }}>{t('Subscription.keep_your_alafia_membership')}</h2>
           )}
           {hasAnnual && (
             <div style={billingToggle}>
               <button onClick={() => setBillingInterval('month')} style={toggleBtn(interval === 'month')}>
-                Monthly
+                {t('Subscription.monthly')}
               </button>
               <button onClick={() => setBillingInterval('year')} style={toggleBtn(interval === 'year')}>
-                Annual{annualSavings > 0 ? ` · save $${annualSavings}` : ''}
+                {t('Subscription.annual', { value: annualSavings > 0 ? ` · save $${annualSavings}` : '' })}
               </button>
             </div>
           )}
@@ -234,8 +233,7 @@ export default function Subscription() {
           </div>
           {interval === 'year' && typeof annualWeb === 'number' && (
             <div style={{ color: '#2e7d32', fontSize: 13, marginTop: 2 }}>
-              ≈ ${(annualWeb / 12).toFixed(2)}/mo, billed yearly
-              {annualSavings > 0 ? ` — save $${annualSavings} vs monthly` : ''}
+              {t('Subscription.mo_billed_yearly', { annualWeb: (annualWeb / 12).toFixed(2), value: annualSavings > 0 ? ` — save $${annualSavings} vs monthly` : '' })}
             </div>
           )}
           <ul style={{ listStyle: 'none', padding: 0, margin: '18px 0' }}>
@@ -249,18 +247,17 @@ export default function Subscription() {
 
           <button onClick={() => startCheckout('stripe')} disabled={!!busy} style={primaryBtn}>
             {busy === 'stripe' ? <Loader2 className="spin" size={18} /> : <CreditCard size={18} />}
-            Pay with card
+            {t('Subscription.pay_with_card')}
           </button>
 
           <p style={{ fontSize: 12, color: '#999', marginTop: 14, textAlign: 'center' }}>
-            Secure checkout. Cancel anytime.
+            {t('Subscription.secure_checkout_cancel_anytime')}
           </p>
 
           <div style={{ borderTop: '1px solid #eee', marginTop: 18, paddingTop: 14, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <Smartphone size={16} color="#888" style={{ marginTop: 2, flexShrink: 0 }} />
             <p style={{ fontSize: 12, color: '#888', margin: 0 }}>
-              Prefer to subscribe in the app? {money(androidRail?.price_usd)}/mo on Android (Google Play)
-              and {money(iosRail?.price_usd)}/mo on iOS (App Store).
+              {t('Subscription.prefer_to_subscribe_in_the_app_mo_on', { price_usd: money(androidRail?.price_usd), price_usd2: money(iosRail?.price_usd) })}
             </p>
           </div>
         </div>

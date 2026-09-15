@@ -6,17 +6,18 @@ import api from '../../services/api';
 import { ArrowLeft } from 'lucide-react';
 import { colorAt, CHART_INK } from './chartPalette';
 import TherapyReport from './TherapyReport';
+import { t } from '../../i18n';
 
 // Mirrors the patient's own period control. "All" was 1825 days, which on the
 // reference record returned 1048 of 2005 sessions — history starts 2013-05-21 —
 // so the physician pressed "All" and was shown half the chart with nothing
 // saying so. A window labelled All must not have a horizon.
 const WINDOWS = [
-  { days: 30, label: '30 days' },
-  { days: 90, label: '90 days' },
-  { days: 180, label: '180 days' },
-  { days: 365, label: '1 year' },
-  { days: 36500, label: 'All' },
+  { days: 30, get label() { return t('CategoryDetail.text_30_days'); } },
+  { days: 90, get label() { return t('CategoryDetail.text_90_days'); } },
+  { days: 180, get label() { return t('CategoryDetail.text_180_days'); } },
+  { days: 365, get label() { return t('CategoryDetail.text_1_year'); } },
+  { days: 36500, get label() { return t('CategoryDetail.all'); } },
 ];
 
 const fmtDate = (s) => {
@@ -114,12 +115,12 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
   if (error) {
     return (
       <div>
-        <Header onBack={onBack} title="Category" />
+        <Header onBack={onBack} title={t('CategoryDetail.category')} />
         <div className="card" style={{ padding: '2rem', color: 'var(--color-danger)' }}>{error}</div>
       </div>
     );
   }
-  if (!data) return <div className="loading">Loading…</div>;
+  if (!data) return <div className="loading">{t('CategoryDetail.loading')}</div>;
 
   return (
     <div>
@@ -147,8 +148,7 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
         ))}
         {categoryKey === 'labs' && (
           <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', alignSelf: 'center' }}>
-            Labs show the most recent results across all history — they are drawn
-            in panels, not daily, so a short window shows no trend.
+            {t('CategoryDetail.labs_show_the_most_recent_results_across')}
           </span>
         )}
       </div>
@@ -156,7 +156,7 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
       {manySeries && (
         <div style={{ marginBottom: '1rem' }}>
           <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginBottom: 6 }}>
-            {data.series.length} measures have enough history to trend — pick the ones to plot:
+            {t('CategoryDetail.measures_have_enough_history_to_trend', { series: data.series.length })}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {data.series.map((s2) => {
@@ -193,7 +193,7 @@ export default function CategoryDetail({ patientId, categoryKey, onBack }) {
 
       {groups.length === 0 && (
         <div className="card" style={{ padding: '1.25rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-          No trend to plot for this period — the table below has the records.
+          {t('CategoryDetail.no_trend_to_plot_for_this_period_the')}
         </div>
       )}
 
@@ -260,7 +260,7 @@ function Header({ onBack, title }) {
     <div className="page-header">
       <div className="page-header-left">
         <button className="btn btn-secondary btn-sm" onClick={onBack}>
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={16} /> {t('CategoryDetail.back')}
         </button>
         <h1 className="page-title">{title}</h1>
       </div>
@@ -367,7 +367,7 @@ function DataTable({ columns, rows, label, patientId }) {
   if (!rows?.length) {
     return (
       <div className="card" style={{ padding: '1.25rem', color: 'var(--color-text-secondary)' }}>
-        No {label.toLowerCase()} records in this period.
+        {t('CategoryDetail.no_records_in_this_period', { label: label.toLowerCase() })}
       </div>
     );
   }
@@ -390,7 +390,7 @@ function DataTable({ columns, rows, label, patientId }) {
                 textAlign: 'left', padding: '0.6rem 0.9rem',
                 borderBottom: '1px solid var(--color-border)',
                 color: 'var(--color-text-secondary)', fontWeight: 600,
-              }}>Photo</th>
+              }}>{t('CategoryDetail.photo')}</th>
             )}
           </tr>
         </thead>
@@ -414,7 +414,7 @@ function DataTable({ columns, rows, label, patientId }) {
                 }}>
                   {r.photo != null ? (
                     <button onClick={() => openPhoto(r.photo)}
-                      title="See the photo the patient captured"
+                      title={t('CategoryDetail.see_the_photo_the_patient_captured')}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '.9rem' }}>
                       📷
                     </button>
@@ -437,13 +437,13 @@ function DataTable({ columns, rows, label, patientId }) {
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
             </div>
             {photo.loading && (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>Loading photo…</div>
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>{t('CategoryDetail.loading_photo')}</div>
             )}
             {photo.error && (
               <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-danger)' }}>{photo.error}</div>
             )}
             {photo.src && (
-              <img src={photo.src} alt="Meal photographed by the patient"
+              <img src={photo.src} alt={t('CategoryDetail.meal_photographed_by_the_patient')}
                 style={{ width: '100%', borderRadius: 8, display: 'block' }} />
             )}
           </div>

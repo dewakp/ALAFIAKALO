@@ -2,13 +2,14 @@ import { fmtDateTime, toDateTimeInput } from '../utils/datetime';
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const categories = [
-  { value: 'food', label: 'Food' },
-  { value: 'elimination', label: 'Elimination' },
-  { value: 'medication', label: 'Medication' },
-  { value: 'injury', label: 'Injury' },
-  { value: 'other', label: 'Other' },
+  { value: 'food', get label() { return t('Capture.food'); } },
+  { value: 'elimination', get label() { return t('Capture.elimination'); } },
+  { value: 'medication', get label() { return t('Capture.medication'); } },
+  { value: 'injury', get label() { return t('Capture.injury'); } },
+  { value: 'other', get label() { return t('Capture.other'); } },
 ];
 
 export default function Capture() {
@@ -94,7 +95,7 @@ export default function Capture() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Capture</h1>
+          <h1 className="page-title">{t('Capture.capture')}</h1>
         </div>
       </div>
 
@@ -102,7 +103,7 @@ export default function Capture() {
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Category</label>
+              <label className="form-label">{t('Capture.category')}</label>
               <select
                 className="form-input"
                 value={form.category}
@@ -114,7 +115,7 @@ export default function Capture() {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Title</label>
+              <label className="form-label">{t('Capture.title')}</label>
               <input
                 className="form-input"
                 value={form.title}
@@ -122,7 +123,7 @@ export default function Capture() {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Captured At</label>
+              <label className="form-label">{t('Capture.captured_at')}</label>
               <input
                 className="form-input"
                 type="datetime-local"
@@ -134,7 +135,7 @@ export default function Capture() {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Notes</label>
+              <label className="form-label">{t('Capture.notes')}</label>
               <input
                 className="form-input"
                 value={form.notes}
@@ -142,7 +143,7 @@ export default function Capture() {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Image</label>
+              <label className="form-label">{t('Capture.image')}</label>
               <input
                 className="form-input"
                 type="file"
@@ -172,13 +173,13 @@ export default function Capture() {
               <div className="media-subtitle">{fmtDateTime(item.created_at)}</div>
             </div>
             <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item.id)}>
-              Delete
+              {t('Capture.delete')}
             </button>
           </div>
         ))}
         {items.length === 0 && (
           <div className="card" style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-            No captures yet.
+            {t('Capture.no_captures_yet')}
           </div>
         )}
       </div>

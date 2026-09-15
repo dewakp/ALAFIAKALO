@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Plus } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
+import { t } from '../i18n';
 
 export default function Fitness() {
   const [logs, setLogs] = useState([]);
@@ -52,10 +53,10 @@ export default function Fitness() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Fitness</h1>
+          <h1 className="page-title">{t('Fitness.fitness')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          <Plus size={18} /> Add Workout
+          <Plus size={18} /> {t('Fitness.add_workout')}
         </button>
       </div>
 
@@ -64,60 +65,60 @@ export default function Fitness() {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Date</label>
+                <label className="form-label">{t('Fitness.date')}</label>
                 <input className="form-input" type="date" value={form.log_date}
                   onChange={(e) => setForm({ ...form, log_date: e.target.value })} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Activity</label>
+                <label className="form-label">{t('Fitness.activity')}</label>
                 <input className="form-input" value={form.activity_type}
                   onChange={(e) => setForm({ ...form, activity_type: e.target.value })} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Duration (min)</label>
+                <label className="form-label">{t('Fitness.duration_min')}</label>
                 <input className="form-input" type="number" value={form.duration_minutes}
                   onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Calories Burned</label>
+                <label className="form-label">{t('Fitness.calories_burned')}</label>
                 <input className="form-input" type="number" value={form.calories_burned}
                   onChange={(e) => setForm({ ...form, calories_burned: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Steps</label>
+                <label className="form-label">{t('Fitness.steps')}</label>
                 <input className="form-input" type="number" value={form.steps}
                   onChange={(e) => setForm({ ...form, steps: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Intensity</label>
+                <label className="form-label">{t('Fitness.intensity')}</label>
                 <select className="form-input" value={form.intensity}
                   onChange={(e) => setForm({ ...form, intensity: e.target.value })}>
-                  <option value="low">Low</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="high">High</option>
+                  <option value="low">{t('Fitness.low')}</option>
+                  <option value="moderate">{t('Fitness.moderate')}</option>
+                  <option value="high">{t('Fitness.high')}</option>
                 </select>
               </div>
             </div>
-            <button className="btn btn-primary" type="submit">Save</button>
+            <button className="btn btn-primary" type="submit">{t('Fitness.save')}</button>
           </form>
         </div>
       )}
 
       <div className="card">
         <div style={{ marginBottom: '.75rem', color: 'var(--color-text-secondary)', fontSize: '.8rem' }}>
-          Entries are editable but cannot be deleted.
+          {t('Fitness.entries_are_editable_but_cannot_be')}
         </div>
         <table className="table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Activity</th>
-              <th>Duration</th>
-              <th>Calories</th>
-              <th>Steps</th>
-              <th>Intensity</th>
+              <th>{t('Fitness.date')}</th>
+              <th>{t('Fitness.activity')}</th>
+              <th>{t('Fitness.duration')}</th>
+              <th>{t('Fitness.calories')}</th>
+              <th>{t('Fitness.steps')}</th>
+              <th>{t('Fitness.intensity')}</th>
               <th></th>
             </tr>
           </thead>
@@ -134,7 +135,7 @@ export default function Fitness() {
               </tr>
             ))}
             {logs.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>No workouts yet</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t('Fitness.no_workouts_yet')}</td></tr>
             )}
           </tbody>
         </table>

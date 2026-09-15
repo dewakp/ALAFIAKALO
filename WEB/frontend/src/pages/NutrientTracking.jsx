@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { Calendar, BarChart3, Target } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 /* ─── helpers ─── */
 const today = () => localToday();
@@ -17,26 +18,26 @@ const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { m
    age, sex, weight, activity and active chronic conditions
    (app/services/nutrient_goals_service.py). iOS and Android already use it. */
 const FALLBACK_TARGETS = [
-  { key: 'calories',      label: 'Calories',            unit: 'kcal', target: 2000  },
-  { key: 'protein_g',     label: 'Protein',             unit: 'g',    target: 75    },
-  { key: 'carbs_g',       label: 'Carbohydrates',       unit: 'g',    target: 250   },
-  { key: 'fat_g',         label: 'Total Fat',           unit: 'g',    target: 65    },
-  { key: 'fiber_g',       label: 'Dietary Fiber',       unit: 'g',    target: 30    },
-  { key: 'sugar_g',       label: 'Added Sugar Limit',   unit: 'g',    target: 50    },
-  { key: 'iron_mg',       label: 'Iron',                unit: 'mg',   target: 10    },
-  { key: 'phosphorus_mg', label: 'Phosphate',           unit: 'mg',   target: 700   },
-  { key: 'calcium_mg',    label: 'Calcium',             unit: 'mg',   target: 1000  },
-  { key: 'sodium_mg',     label: 'Sodium',              unit: 'mg',   target: 1500  },
-  { key: 'vitamin_d_iu',  label: 'Vitamin D',           unit: 'IU',   target: 600   },
-  { key: 'potassium_mg',  label: 'Potassium',           unit: 'mg',   target: 3000  },
-  { key: 'vitamin_b12_mcg','label':'Vitamin B12',       unit: 'µg',   target: 2.4   },
-  { key: 'vitamin_b9_folate_mcg','label':'Folic Acid',  unit: 'µg',   target: 400   },
-  { key: 'cholesterol_mg','label': 'Cholesterol',       unit: 'mg',   target: 300   },
-  { key: 'magnesium_mg',  label: 'Magnesium',           unit: 'mg',   target: 420   },
-  { key: 'zinc_mg',       label: 'Zinc',                unit: 'mg',   target: 11    },
-  { key: 'vitamin_c_mg',  label: 'Vitamin C',           unit: 'mg',   target: 90    },
-  { key: 'vitamin_a_iu',  label: 'Vitamin A',           unit: 'IU',   target: 3000  },
-  { key: 'omega3_g',      label: 'Omega-3',             unit: 'g',    target: 1.6   },
+  { key: 'calories',      get label() { return translate('NutrientTracking.calories'); },            unit: 'kcal', target: 2000  },
+  { key: 'protein_g',     get label() { return translate('NutrientTracking.protein'); },             unit: 'g',    target: 75    },
+  { key: 'carbs_g',       get label() { return translate('NutrientTracking.carbohydrates'); },       unit: 'g',    target: 250   },
+  { key: 'fat_g',         get label() { return translate('NutrientTracking.total_fat'); },           unit: 'g',    target: 65    },
+  { key: 'fiber_g',       get label() { return translate('NutrientTracking.dietary_fiber'); },       unit: 'g',    target: 30    },
+  { key: 'sugar_g',       get label() { return translate('NutrientTracking.added_sugar_limit'); },   unit: 'g',    target: 50    },
+  { key: 'iron_mg',       get label() { return translate('NutrientTracking.iron'); },                unit: 'mg',   target: 10    },
+  { key: 'phosphorus_mg', get label() { return translate('NutrientTracking.phosphate'); },           unit: 'mg',   target: 700   },
+  { key: 'calcium_mg',    get label() { return translate('NutrientTracking.calcium'); },             unit: 'mg',   target: 1000  },
+  { key: 'sodium_mg',     get label() { return translate('NutrientTracking.sodium'); },              unit: 'mg',   target: 1500  },
+  { key: 'vitamin_d_iu',  get label() { return translate('NutrientTracking.vitamin_d'); },           unit: 'IU',   target: 600   },
+  { key: 'potassium_mg',  get label() { return translate('NutrientTracking.potassium'); },           unit: 'mg',   target: 3000  },
+  { key: 'vitamin_b12_mcg',get label() { return translate('NutrientTracking.vitamin_b12'); },       unit: 'µg',   target: 2.4   },
+  { key: 'vitamin_b9_folate_mcg',get label() { return translate('NutrientTracking.folic_acid'); },  unit: 'µg',   target: 400   },
+  { key: 'cholesterol_mg',get label() { return translate('NutrientTracking.cholesterol'); },       unit: 'mg',   target: 300   },
+  { key: 'magnesium_mg',  get label() { return translate('NutrientTracking.magnesium'); },           unit: 'mg',   target: 420   },
+  { key: 'zinc_mg',       get label() { return translate('NutrientTracking.zinc'); },                unit: 'mg',   target: 11    },
+  { key: 'vitamin_c_mg',  get label() { return translate('NutrientTracking.vitamin_c'); },           unit: 'mg',   target: 90    },
+  { key: 'vitamin_a_iu',  get label() { return translate('NutrientTracking.vitamin_a'); },           unit: 'IU',   target: 3000  },
+  { key: 'omega3_g',      get label() { return translate('NutrientTracking.omega_3'); },             unit: 'g',    target: 1.6   },
 ];
 
 /* Treatment effect on one nutrient, shown beside the intake figure and never
@@ -54,13 +55,13 @@ function BalanceLine({ balance, unit }) {
       ) : (
         <>
           <span style={{ color: gained ? '#b45309' : 'var(--color-primary)', fontWeight: 600 }}>
-            {gained ? '+' : ''}{fmtAmount(balance.delta)}{showUnit(unit)} from dialysis
+            {(gained) ? translate('NutrientTracking.from_dialysis', { delta: fmtAmount(balance.delta), unit: showUnit(unit) }) : translate('NutrientTracking.from_dialysis_2', { delta: fmtAmount(balance.delta), unit: showUnit(unit) })}
           </span>
           <span style={{ color: 'var(--color-text-tertiary)' }}>
-            {' '}· net {fmtAmount(balance.net)}{showUnit(unit)} retained today
+            {' '}{translate('NutrientTracking.net_retained_today', { net: fmtAmount(balance.net), unit: showUnit(unit) })}
           </span>
           {!balance.calibrated && (
-            <span style={{ color: 'var(--color-text-tertiary)' }}> · estimated</span>
+            <span style={{ color: 'var(--color-text-tertiary)' }}> {translate('NutrientTracking.estimated')}</span>
           )}
         </>
       )}
@@ -116,7 +117,7 @@ export default function NutrientTracking() {
       /* Never fall through to the generic table pretending it is personalized —
          say the personalization failed. */
       setProgress(null);
-      setGoalsError('Your personalized targets could not be loaded, so the generic reference values below are shown instead.');
+      setGoalsError(translate('NutrientTracking.your_personalized_targets_could_not_be'));
     }
     setLoading(false);
   }, []);
@@ -161,20 +162,20 @@ export default function NutrientTracking() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Nutrient Tracking</h1>
+          <h1 className="page-title">{translate('NutrientTracking.nutrient_tracking')}</h1>
         </div>
       </div>
 
       {/* ── Date selector ── */}
       <div className="card" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap' }}>
         <Calendar size={16} style={{ color: 'var(--color-primary)' }}/>
-        <strong style={{ fontSize: '.9rem' }}>Track for Date:</strong>
+        <strong style={{ fontSize: '.9rem' }}>{translate('NutrientTracking.track_for_date')}</strong>
         <input type="date" className="form-input" value={trackDate}
           onChange={e => setTrackDate(e.target.value)}
           style={{ maxWidth: 180, padding: '.35rem .6rem', fontSize: '.88rem' }}/>
         {summary && (
           <span style={{ fontSize: '.82rem', color: 'var(--color-text-secondary)' }}>
-            {summary.meal_count} meal(s) logged
+            {translate('NutrientTracking.meal_s_logged', { meal_count: summary.meal_count })}
           </span>
         )}
       </div>
@@ -185,12 +186,10 @@ export default function NutrientTracking() {
         <div className="card" style={{ marginBottom: '1rem', padding: '.75rem 1rem',
           background: 'var(--color-primary-light, #e0f2fe)', border: '1px solid #7dd3fc' }}>
           <strong style={{ fontSize: '.88rem', color: 'var(--color-primary)' }}>
-            Dialysis on this day — {dialysis.session_count} session{dialysis.session_count === 1 ? '' : 's'}
+            {(dialysis.session_count === 1) ? translate('NutrientTracking.dialysis_on_this_day_session', { session_count: dialysis.session_count }) : translate('NutrientTracking.dialysis_on_this_day_sessions', { session_count: dialysis.session_count })}
           </strong>
           <div style={{ fontSize: '.78rem', color: 'var(--color-text-secondary)', marginTop: '.2rem' }}>
-            Your limits are unchanged: they already assume your usual treatment. What changes is
-            the day's balance — some of what you ate was removed, and some minerals crossed in
-            from the dialysate.
+            {translate('NutrientTracking.your_limits_are_unchanged_they_already')}
           </div>
           {dialysis.notes?.map((note, i) => (
             <div key={i} style={{ fontSize: '.74rem', color: '#b45309', marginTop: '.25rem' }}>{note}</div>
@@ -205,17 +204,17 @@ export default function NutrientTracking() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '1rem' }}>
             <BarChart3 size={16} style={{ color: 'var(--color-primary)' }}/>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
-              Your Intake for {fmtDate(trackDate)}
+              {translate('NutrientTracking.your_intake_for', { trackDate: fmtDate(trackDate) })}
             </h3>
           </div>
 
-          {loading && <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>Loading…</div>}
+          {loading && <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>{translate('NutrientTracking.loading')}</div>}
 
           {!loading && (
             <>
               {summary && (
                 <p style={{ fontSize: '.78rem', color: 'var(--color-text-tertiary)', marginBottom: '1rem' }}>
-                  {summary.meal_count} food {summary.meal_count === 1 ? 'entry' : 'entries'} included.
+                  {(summary.meal_count === 1) ? translate('NutrientTracking.food_entry_included', { meal_count: summary.meal_count }) : translate('NutrientTracking.food_entries_included', { meal_count: summary.meal_count })}
                 </p>
               )}
               {rows.map(r => {
@@ -228,7 +227,7 @@ export default function NutrientTracking() {
                         {r.label}
                         {r.isLimit && (
                           <span style={{ fontSize: '.68rem', color: 'var(--color-text-tertiary)', marginLeft: '.35rem' }}>
-                            limit
+                            {translate('NutrientTracking.limit')}
                           </span>
                         )}
                       </span>
@@ -242,7 +241,7 @@ export default function NutrientTracking() {
                     </div>
                     {r.isLimit && pct > 100 && (
                       <div style={{ fontSize: '.68rem', color: '#ef4444', marginTop: '.15rem' }}>
-                        Limit exceeded ({pct}% of daily limit)
+                        {translate('NutrientTracking.limit_exceeded_of_daily_limit', { pct })}
                       </div>
                     )}
                     {r.balance && <BalanceLine balance={r.balance} unit={r.unit} />}
@@ -257,7 +256,7 @@ export default function NutrientTracking() {
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '1rem' }}>
             <Target size={16} style={{ color: 'var(--color-primary)' }}/>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Your Personalized Daily Targets</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>{translate('NutrientTracking.your_personalized_daily_targets')}</h3>
           </div>
           <p style={{ fontSize: '.78rem', color: 'var(--color-text-tertiary)', marginBottom: '.5rem' }}>
             {personalized
@@ -275,8 +274,7 @@ export default function NutrientTracking() {
           {personalized && progress?.profile_complete === false && (
             <p style={{ fontSize: '.78rem', color: '#b45309', background: '#fef3c7',
               border: '1px solid #fcd34d', borderRadius: 6, padding: '.5rem .6rem', marginBottom: '.75rem' }}>
-              Your profile is incomplete, so some targets fall back to general reference values.
-              Add your height, weight and date of birth to sharpen them.
+              {translate('NutrientTracking.your_profile_is_incomplete_so_some')}
             </p>
           )}
 
@@ -299,7 +297,7 @@ export default function NutrientTracking() {
                 <span style={{ color: 'var(--color-text-secondary)' }}>
                   {r.label}
                   {r.isLimit && (
-                    <span style={{ fontSize: '.68rem', color: '#b45309', marginLeft: '.35rem' }}>limit</span>
+                    <span style={{ fontSize: '.68rem', color: '#b45309', marginLeft: '.35rem' }}>{translate('NutrientTracking.limit')}</span>
                   )}
                 </span>
                 <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>
@@ -314,7 +312,7 @@ export default function NutrientTracking() {
             </div>
           ))}
           <p style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)', marginTop: '.75rem', fontStyle: 'italic' }}>
-            These are AI-generated estimates and not medical advice. Consult a healthcare professional or registered dietitian for personalized nutritional guidance.
+            {translate('NutrientTracking.these_are_ai_generated_estimates_and_not')}
           </p>
         </div>
       </div>

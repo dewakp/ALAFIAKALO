@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
 import DrugsAdministered from '../components/DrugsAdministered';
+import { t as translate } from '../i18n';
 
 const TherapySessions = () => {
   const [sessions, setSessions] = useState([]);
@@ -43,25 +44,25 @@ const TherapySessions = () => {
   });
 
   const therapyTypes = [
-    { value: 'dialysis', label: 'Dialysis' },
-    { value: 'hemodialysis', label: 'Hemodialysis' },
-    { value: 'peritoneal_dialysis', label: 'Peritoneal Dialysis' },
-    { value: 'chemotherapy', label: 'Chemotherapy' },
-    { value: 'radiation_therapy', label: 'Radiation Therapy' },
-    { value: 'immunotherapy', label: 'Immunotherapy' },
-    { value: 'targeted_therapy', label: 'Targeted Therapy' },
-    { value: 'hormone_therapy', label: 'Hormone Therapy' },
-    { value: 'infusion_therapy', label: 'Infusion Therapy' },
-    { value: 'blood_transfusion', label: 'Blood Transfusion' },
-    { value: 'other', label: 'Other' }
+    { value: 'dialysis', label: translate('TherapySessions.dialysis') },
+    { value: 'hemodialysis', label: translate('TherapySessions.hemodialysis') },
+    { value: 'peritoneal_dialysis', label: translate('TherapySessions.peritoneal_dialysis') },
+    { value: 'chemotherapy', label: translate('TherapySessions.chemotherapy') },
+    { value: 'radiation_therapy', label: translate('TherapySessions.radiation_therapy') },
+    { value: 'immunotherapy', label: translate('TherapySessions.immunotherapy') },
+    { value: 'targeted_therapy', label: translate('TherapySessions.targeted_therapy') },
+    { value: 'hormone_therapy', label: translate('TherapySessions.hormone_therapy') },
+    { value: 'infusion_therapy', label: translate('TherapySessions.infusion_therapy') },
+    { value: 'blood_transfusion', label: translate('TherapySessions.blood_transfusion') },
+    { value: 'other', label: translate('TherapySessions.other') }
   ];
 
   const statuses = [
-    { value: 'scheduled', label: 'Scheduled' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
-    { value: 'missed', label: 'Missed' }
+    { value: 'scheduled', label: translate('TherapySessions.scheduled_2') },
+    { value: 'in_progress', label: translate('TherapySessions.in_progress') },
+    { value: 'completed', label: translate('TherapySessions.completed') },
+    { value: 'cancelled', label: translate('TherapySessions.cancelled') },
+    { value: 'missed', label: translate('TherapySessions.missed') }
   ];
 
   useEffect(() => {
@@ -122,7 +123,7 @@ const TherapySessions = () => {
       loadSessions();
     } catch (error) {
       console.error('Failed to save session:', error);
-      alert('Failed to save therapy session');
+      alert(translate('TherapySessions.failed_to_save_therapy_session'));
     }
   };
 
@@ -159,14 +160,14 @@ const TherapySessions = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this therapy session?')) return;
+    if (!confirm(translate('TherapySessions.are_you_sure_you_want_to_delete_this'))) return;
     
     try {
       await api.delete(`/chronic/therapy-sessions/${id}`);
       loadSessions();
     } catch (error) {
       console.error('Failed to delete session:', error);
-      alert('Failed to delete therapy session');
+      alert(translate('TherapySessions.failed_to_delete_therapy_session'));
     }
   };
 
@@ -220,7 +221,7 @@ const TherapySessions = () => {
   };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>;
+    return <div style={{ textAlign: 'center', padding: '50px' }}>{translate('TherapySessions.loading')}</div>;
   }
 
   return (
@@ -229,7 +230,7 @@ const TherapySessions = () => {
         <div className="page-header">
           <div className="page-header-left">
             <BackButton />
-            <h1>Therapy Sessions</h1>
+            <h1>{translate('TherapySessions.therapy_sessions')}</h1>
           </div>
         </div>
         <button
@@ -248,7 +249,7 @@ const TherapySessions = () => {
             fontSize: '16px'
           }}
         >
-          + Add Session
+          {translate('TherapySessions.add_session')}
         </button>
       </div>
 
@@ -264,7 +265,7 @@ const TherapySessions = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Therapy Type *
+                  {translate('TherapySessions.therapy_type')}
                 </label>
                 <select
                   value={formData.therapy_type}
@@ -280,14 +281,14 @@ const TherapySessions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Related Condition
+                  {translate('TherapySessions.related_condition')}
                 </label>
                 <select
                   value={formData.condition_id}
                   onChange={(e) => setFormData({ ...formData, condition_id: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                 >
-                  <option value="">-- Select Condition --</option>
+                  <option value="">{translate('TherapySessions.select_condition')}</option>
                   {conditions.map(cond => (
                     <option key={cond.id} value={cond.id}>{cond.condition_name}</option>
                   ))}
@@ -296,20 +297,20 @@ const TherapySessions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Therapy Name
+                  {translate('TherapySessions.therapy_name')}
                 </label>
                 <input
                   type="text"
                   value={formData.therapy_name}
                   onChange={(e) => setFormData({ ...formData, therapy_name: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="e.g., Cisplatin + Etoposide Protocol"
+                  placeholder={translate('TherapySessions.e_g_cisplatin_etoposide_protocol')}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Session Number
+                  {translate('TherapySessions.session_number')}
                 </label>
                 <input
                   type="number"
@@ -322,7 +323,7 @@ const TherapySessions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Total Sessions Planned
+                  {translate('TherapySessions.total_sessions_planned')}
                 </label>
                 <input
                   type="number"
@@ -335,7 +336,7 @@ const TherapySessions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Scheduled Date *
+                  {translate('TherapySessions.scheduled_date')}
                 </label>
                 <input
                   type="date"
@@ -348,7 +349,7 @@ const TherapySessions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Status *
+                  {translate('TherapySessions.status')}
                 </label>
                 <select
                   value={formData.status}
@@ -364,7 +365,7 @@ const TherapySessions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Facility Name
+                  {translate('TherapySessions.facility_name')}
                 </label>
                 <input
                   type="text"
@@ -376,7 +377,7 @@ const TherapySessions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Attending Physician
+                  {translate('TherapySessions.attending_physician')}
                 </label>
                 <input
                   type="text"
@@ -388,7 +389,7 @@ const TherapySessions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Attending Nurse
+                  {translate('TherapySessions.attending_nurse')}
                 </label>
                 <input
                   type="text"
@@ -401,23 +402,23 @@ const TherapySessions = () => {
 
             {isDialysisSession() && (
               <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#e3f2fd', borderRadius: '6px' }}>
-                <h3 style={{ marginTop: 0 }}>Dialysis-Specific Data</h3>
+                <h3 style={{ marginTop: 0 }}>{translate('TherapySessions.dialysis_specific_data')}</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Access Type
+                      {translate('TherapySessions.access_type')}
                     </label>
                     <input
                       type="text"
                       value={formData.dialysis_access_type}
                       onChange={(e) => setFormData({ ...formData, dialysis_access_type: e.target.value })}
                       style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                      placeholder="e.g., AV Fistula, Central Catheter"
+                      placeholder={translate('TherapySessions.e_g_av_fistula_central_catheter')}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Pre-Dialysis Weight (kg)
+                      {translate('TherapySessions.pre_dialysis_weight_kg')}
                     </label>
                     <input
                       type="number"
@@ -429,7 +430,7 @@ const TherapySessions = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Post-Dialysis Weight (kg)
+                      {translate('TherapySessions.post_dialysis_weight_kg')}
                     </label>
                     <input
                       type="number"
@@ -441,7 +442,7 @@ const TherapySessions = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Fluid Removed (mL)
+                      {translate('TherapySessions.fluid_removed_ml')}
                     </label>
                     <input
                       type="number"
@@ -457,7 +458,7 @@ const TherapySessions = () => {
 
             {isChemoSession() && (
               <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#fff3e0', borderRadius: '6px' }}>
-                <h3 style={{ marginTop: 0 }}>Chemotherapy/Infusion Data</h3>
+                <h3 style={{ marginTop: 0 }}>{translate('TherapySessions.chemotherapy_infusion_data')}</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                   <div>
                     <DrugsAdministered
@@ -468,26 +469,26 @@ const TherapySessions = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                     <div>
                       <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                        Dosage
+                        {translate('TherapySessions.dosage')}
                       </label>
                       <input
                         type="text"
                         value={formData.dosage}
                         onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
                         style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                        placeholder="e.g., 75mg/m²"
+                        placeholder={translate('TherapySessions.e_g_75mg_m')}
                       />
                     </div>
                     <div>
                       <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                        Route of Administration
+                        {translate('TherapySessions.route_of_administration')}
                       </label>
                       <input
                         type="text"
                         value={formData.route_of_administration}
                         onChange={(e) => setFormData({ ...formData, route_of_administration: e.target.value })}
                         style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                        placeholder="e.g., IV, Oral"
+                        placeholder={translate('TherapySessions.e_g_iv_oral')}
                       />
                     </div>
                   </div>
@@ -496,54 +497,54 @@ const TherapySessions = () => {
             )}
 
             <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f1f8e9', borderRadius: '6px' }}>
-              <h3 style={{ marginTop: 0 }}>Vital Signs</h3>
+              <h3 style={{ marginTop: 0 }}>{translate('TherapySessions.vital_signs')}</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
-                    Pre-BP Systolic
+                    {translate('TherapySessions.pre_bp_systolic')}
                   </label>
                   <input
                     type="number"
                     value={formData.pre_systolic_bp}
                     onChange={(e) => setFormData({ ...formData, pre_systolic_bp: e.target.value })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    placeholder="mmHg"
+                    placeholder={translate('TherapySessions.mmhg')}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
-                    Pre-BP Diastolic
+                    {translate('TherapySessions.pre_bp_diastolic')}
                   </label>
                   <input
                     type="number"
                     value={formData.pre_diastolic_bp}
                     onChange={(e) => setFormData({ ...formData, pre_diastolic_bp: e.target.value })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    placeholder="mmHg"
+                    placeholder={translate('TherapySessions.mmhg')}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
-                    Post-BP Systolic
+                    {translate('TherapySessions.post_bp_systolic')}
                   </label>
                   <input
                     type="number"
                     value={formData.post_systolic_bp}
                     onChange={(e) => setFormData({ ...formData, post_systolic_bp: e.target.value })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    placeholder="mmHg"
+                    placeholder={translate('TherapySessions.mmhg')}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
-                    Post-BP Diastolic
+                    {translate('TherapySessions.post_bp_diastolic')}
                   </label>
                   <input
                     type="number"
                     value={formData.post_diastolic_bp}
                     onChange={(e) => setFormData({ ...formData, post_diastolic_bp: e.target.value })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    placeholder="mmHg"
+                    placeholder={translate('TherapySessions.mmhg')}
                   />
                 </div>
               </div>
@@ -551,37 +552,37 @@ const TherapySessions = () => {
 
             <div style={{ marginTop: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Side Effects
+                {translate('TherapySessions.side_effects')}
               </label>
               <textarea
                 value={formData.side_effects}
                 onChange={(e) => setFormData({ ...formData, side_effects: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '60px' }}
-                placeholder="Any side effects experienced..."
+                placeholder={translate('TherapySessions.any_side_effects_experienced')}
               />
             </div>
 
             <div style={{ marginTop: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Clinical Notes
+                {translate('TherapySessions.clinical_notes')}
               </label>
               <textarea
                 value={formData.clinical_notes}
                 onChange={(e) => setFormData({ ...formData, clinical_notes: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '60px' }}
-                placeholder="Clinical observations..."
+                placeholder={translate('TherapySessions.clinical_observations')}
               />
             </div>
 
             <div style={{ marginTop: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Patient Notes
+                {translate('TherapySessions.patient_notes')}
               </label>
               <textarea
                 value={formData.patient_notes}
                 onChange={(e) => setFormData({ ...formData, patient_notes: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '60px' }}
-                placeholder="Your personal notes about the session..."
+                placeholder={translate('TherapySessions.your_personal_notes_about_the_session')}
               />
             </div>
 
@@ -617,7 +618,7 @@ const TherapySessions = () => {
                   fontSize: '16px'
                 }}
               >
-                Cancel
+                {translate('TherapySessions.cancel')}
               </button>
             </div>
           </form>
@@ -626,8 +627,8 @@ const TherapySessions = () => {
 
       {sessions.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
-          <p>No therapy sessions recorded yet.</p>
-          <p>Click "Add Session" to record your first session.</p>
+          <p>{translate('TherapySessions.no_therapy_sessions_recorded_yet')}</p>
+          <p>{translate('TherapySessions.click_add_session_to_record_your_first')}</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gap: '20px' }}>
@@ -664,45 +665,43 @@ const TherapySessions = () => {
                   
                   <div style={{ color: '#666', marginBottom: '15px' }}>
                     <p style={{ margin: '5px 0' }}>
-                      <strong>Scheduled:</strong> {fmtDateTime(session.scheduled_date)}
+                      <strong>{translate('TherapySessions.scheduled')}</strong> {fmtDateTime(session.scheduled_date)}
                     </p>
                     {session.therapy_name && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Protocol:</strong> {session.therapy_name}
+                        <strong>{translate('TherapySessions.protocol')}</strong> {session.therapy_name}
                       </p>
                     )}
                     {session.facility_name && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Facility:</strong> {session.facility_name}
+                        <strong>{translate('TherapySessions.facility')}</strong> {session.facility_name}
                       </p>
                     )}
                     {session.attending_physician && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Physician:</strong> {session.attending_physician}
+                        <strong>{translate('TherapySessions.physician')}</strong> {session.attending_physician}
                       </p>
                     )}
                     {session.pre_dialysis_weight_kg && session.post_dialysis_weight_kg && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Weight:</strong> {session.pre_dialysis_weight_kg}kg → {session.post_dialysis_weight_kg}kg 
-                        {session.fluid_removed_ml && ` (${session.fluid_removed_ml}mL removed)`}
+                        <strong>{translate('TherapySessions.weight')}</strong> {translate('TherapySessions.kg_kg', { pre_dialysis_weight_kg: session.pre_dialysis_weight_kg, post_dialysis_weight_kg: session.post_dialysis_weight_kg, fluid_removed_ml: session.fluid_removed_ml && ` (${session.fluid_removed_ml}mL removed)` })}
                       </p>
                     )}
                     {session.drugs_administered && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Drugs:</strong> {session.drugs_administered}
+                        <strong>{translate('TherapySessions.drugs')}</strong> {session.drugs_administered}
                         {session.dosage && ` - ${session.dosage}`}
                       </p>
                     )}
                     {(session.pre_systolic_bp && session.pre_diastolic_bp) && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>BP:</strong> Pre: {session.pre_systolic_bp}/{session.pre_diastolic_bp}
-                        {(session.post_systolic_bp && session.post_diastolic_bp) && 
-                          ` → Post: ${session.post_systolic_bp}/${session.post_diastolic_bp}`}
+                        <strong>BP:</strong> {translate('TherapySessions.pre', { pre_systolic_bp: session.pre_systolic_bp, pre_diastolic_bp: session.pre_diastolic_bp, post_systolic_bp: (session.post_systolic_bp && session.post_diastolic_bp) && 
+                          ` → Post: ${session.post_systolic_bp}/${session.post_diastolic_bp}` })}
                       </p>
                     )}
                     {session.patient_notes && (
                       <p style={{ margin: '10px 0', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                        <strong>Notes:</strong> {session.patient_notes}
+                        <strong>{translate('TherapySessions.notes')}</strong> {session.patient_notes}
                       </p>
                     )}
                   </div>
@@ -719,7 +718,7 @@ const TherapySessions = () => {
                       cursor: 'pointer'
                     }}
                   >
-                    Edit
+                    {translate('TherapySessions.edit')}
                   </button>
                   <button
                     onClick={() => handleDelete(session.id)}
@@ -732,7 +731,7 @@ const TherapySessions = () => {
                       cursor: 'pointer'
                     }}
                   >
-                    Delete
+                    {translate('TherapySessions.delete')}
                   </button>
                 </div>
               </div>

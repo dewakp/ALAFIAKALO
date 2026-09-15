@@ -1,26 +1,27 @@
 import { Link } from 'react-router-dom';
 import MarketingPage from '../components/MarketingChrome';
+import { t as translate } from '../i18n';
 
 const THESIS = [
   {
     icon: '📐',
-    title: 'A modelled wellness score',
-    desc: 'Most platforms aggregate metrics. ALAFIA models wellness as a mathematical system with a stable manifold and a distance function.',
+    get title() { return translate('Investors.a_modelled_wellness_score'); },
+    get desc() { return translate('Investors.most_platforms_aggregate_metrics_alafia'); },
   },
   {
     icon: '🩺',
-    title: 'Physician sharing is the wedge',
-    desc: 'Data sharing plugs into clinical workflows instead of living beside them. That is what turns a consumer app into something a health system or an insurer buys.',
+    get title() { return translate('Investors.physician_sharing_is_the_wedge'); },
+    get desc() { return translate('Investors.data_sharing_plugs_into_clinical'); },
   },
   {
     icon: '🧭',
-    title: 'A companion, not a tracker',
-    desc: 'AI medical personas and the unified score act on the data in real time, and sharing closes the loop back to actual care.',
+    get title() { return translate('Investors.a_companion_not_a_tracker'); },
+    get desc() { return translate('Investors.ai_medical_personas_and_the_unified'); },
   },
   {
     icon: '🌍',
-    title: 'Holistic by construction',
-    desc: 'Nutrients, medications, labs, fitness, environment and mental health feed one view of a person — a 360° picture with no gap.',
+    get title() { return translate('Investors.holistic_by_construction'); },
+    get desc() { return translate('Investors.nutrients_medications_labs_fitness'); },
   },
 ];
 
@@ -36,22 +37,16 @@ export default function Investors() {
       <section className="section-wrap section-wrap--top section-wrap--narrow">
         <div className="section-head">
           <span className="eyebrow">INVESTORS</span>
-          <h2>Why ALAFIA</h2>
-          <p>An intelligent health platform built for the patients who cost the system the most.</p>
+          <h2>{translate('Investors.why_alafia')}</h2>
+          <p>{translate('Investors.an_intelligent_health_platform_built_for')}</p>
         </div>
 
         <div className="prose">
           <p>
-            ALAFIA is a 6igma health platform. It unifies labs, medications, nutrition, fitness,
-            mental health and clinical care into a single model of a person, and puts an intelligent
-            agent on top of that model rather than beside it.
+            {translate('Investors.alafia_is_a_6igma_health_platform_it')}
           </p>
           <p>
-            The entry point is chronic disease — ESRD and dialysis, diabetes, and anyone whose
-            condition has to be managed daily rather than occasionally. That cohort needs the
-            “distance from a stable operating manifold” framing every day, is the most expensive
-            population in the system, and is where the return is clearest to patients, clinicians,
-            administrators and insurers alike.
+            {translate('Investors.the_entry_point_is_chronic_disease_esrd')}
           </p>
         </div>
 
@@ -69,7 +64,7 @@ export default function Investors() {
       <section className="section-wrap section-wrap--narrow" style={{ paddingTop: 0 }}>
         <div className="section-head">
           <span className="eyebrow">GO TO MARKET</span>
-          <h2>Who ALAFIA serves</h2>
+          <h2>{translate('Investors.who_alafia_serves')}</h2>
         </div>
 
         <ol className="segment-list">
@@ -85,24 +80,22 @@ export default function Investors() {
         </ol>
 
         <div className="prose" style={{ marginTop: '3rem' }}>
-          <h3>Market</h3>
+          <h3>{translate('Investors.market')}</h3>
           <p>
-            Global, spanning wellness, health, fitness, nutrition and public health.
+            {translate('Investors.global_spanning_wellness_health_fitness')}
           </p>
-          <h3>Talking to us</h3>
+          <h3>{translate('Investors.talking_to_us')}</h3>
           <p>
-            We share the deck, the technical detail behind the wellness model, and current status
-            on request. There is no public offering here — this page is an overview, not a
-            solicitation, and nothing on it is a projection or a promise of returns.
+            {translate('Investors.we_share_the_deck_the_technical_detail')}
           </p>
         </div>
 
         <div className="mk-cta">
           <p className="mk-cta-note">
-            Investment, partnership and enterprise pilots:{' '}
+            {translate('Investors.investment_partnership_and_enterprise')}{' '}
             <a href="mailto:contact@alafia.app">contact@alafia.app</a>
           </p>
-          <Link to="/contact" className="btn-primary-lg">Request the Deck ✦</Link>
+          <Link to="/contact" className="btn-primary-lg">{translate('Investors.request_the_deck')}</Link>
         </div>
       </section>
     </MarketingPage>

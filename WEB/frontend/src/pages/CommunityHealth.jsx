@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 const SEV_COLORS = { critical: '#b71c1c', high: '#f44336', moderate: '#ff9800', low: '#4caf50', info: '#2196f3' };
 const SEV_LABELS = { critical: 'CRITICAL', high: 'High', moderate: 'Moderate', low: 'Low', info: 'Info' };
@@ -121,18 +122,18 @@ export default function CommunityHealth() {
     } catch (err) { console.error(err); }
   }
 
-  if (loading) return <div className="page"><p>Loading community health data...</p></div>;
+  if (loading) return <div className="page"><p>{translate('CommunityHealth.loading_community_health_data')}</p></div>;
 
   return (
     <div className="page">
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1>🌍 Community Health</h1>
+          <h1>{translate('CommunityHealth.community_health')}</h1>
         </div>
       </div>
       <p style={{ color: '#666', marginBottom: 20 }}>
-        Alerts, recalls, guidelines & community health reports from WHO, CDC, FDA, EMA, Health Canada and more.
+        {translate('CommunityHealth.alerts_recalls_guidelines_community')}
       </p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -176,7 +177,7 @@ export default function CommunityHealth() {
 // ── DASHBOARD ──────────────────────────────────────────────────────────
 
 function DashboardTab({ stats, onViewAlert }) {
-  if (!stats) return <p>No community health data available.</p>;
+  if (!stats) return <p>{translate('CommunityHealth.no_community_health_data_available')}</p>;
   const {
     total_active_alerts, critical_alerts, active_recalls, active_outbreaks,
     active_advisories, active_poison_alerts, total_guidelines, user_reports_30d,
@@ -184,16 +185,16 @@ function DashboardTab({ stats, onViewAlert }) {
   } = stats;
 
   const statCards = [
-    { label: 'Active Alerts', value: total_active_alerts, color: '#2196f3', icon: '🚨' },
-    { label: 'Critical', value: critical_alerts, color: '#b71c1c', icon: '🔴' },
-    { label: 'Active Recalls', value: active_recalls, color: '#f44336', icon: '💊' },
-    { label: 'Outbreaks', value: active_outbreaks, color: '#ff9800', icon: '🦠' },
-    { label: 'Advisories', value: active_advisories, color: '#9c27b0', icon: '📢' },
-    { label: 'Poison Alerts', value: active_poison_alerts, color: '#8b0000', icon: '☠️' },
-    { label: 'Guidelines', value: total_guidelines, color: '#4caf50', icon: '📋' },
-    { label: 'Your Reports', value: user_reports_30d, color: '#607d8b', icon: '📝' },
-    { label: 'Unread', value: unread_alerts, color: '#e91e63', icon: '📬' },
-    { label: 'Bookmarked', value: bookmarked_alerts, color: '#ff9800', icon: '🔖' },
+    { label: translate('CommunityHealth.active_alerts'), value: total_active_alerts, color: '#2196f3', icon: '🚨' },
+    { label: translate('CommunityHealth.critical'), value: critical_alerts, color: '#b71c1c', icon: '🔴' },
+    { label: translate('CommunityHealth.active_recalls'), value: active_recalls, color: '#f44336', icon: '💊' },
+    { label: translate('CommunityHealth.outbreaks'), value: active_outbreaks, color: '#ff9800', icon: '🦠' },
+    { label: translate('CommunityHealth.advisories'), value: active_advisories, color: '#9c27b0', icon: '📢' },
+    { label: translate('CommunityHealth.poison_alerts'), value: active_poison_alerts, color: '#8b0000', icon: '☠️' },
+    { label: translate('CommunityHealth.guidelines'), value: total_guidelines, color: '#4caf50', icon: '📋' },
+    { label: translate('CommunityHealth.your_reports'), value: user_reports_30d, color: '#607d8b', icon: '📝' },
+    { label: translate('CommunityHealth.unread'), value: unread_alerts, color: '#e91e63', icon: '📬' },
+    { label: translate('CommunityHealth.bookmarked'), value: bookmarked_alerts, color: '#ff9800', icon: '🔖' },
   ];
 
   return (
@@ -214,9 +215,9 @@ function DashboardTab({ stats, onViewAlert }) {
       </div>
 
       {/* Latest Sections */}
-      <AlertSection title="🦠 Latest Outbreaks & Epidemics" alerts={latest_outbreaks} onView={onViewAlert} />
-      <AlertSection title="💊 Recent Recalls" alerts={latest_recalls} onView={onViewAlert} />
-      <AlertSection title="📢 Active Advisories" alerts={latest_advisories} onView={onViewAlert} />
+      <AlertSection title={translate('CommunityHealth.latest_outbreaks_epidemics')} alerts={latest_outbreaks} onView={onViewAlert} />
+      <AlertSection title={translate('CommunityHealth.recent_recalls')} alerts={latest_recalls} onView={onViewAlert} />
+      <AlertSection title={translate('CommunityHealth.active_advisories')} alerts={latest_advisories} onView={onViewAlert} />
     </div>
   );
 }
@@ -251,9 +252,9 @@ function AlertCard({ alert, onClick, onBookmark }) {
           <SeverityBadge severity={a.severity} />
           <SourceBadge source={a.source} />
           {a.issued_date && <span style={{ fontSize: 10, color: '#999' }}>{a.issued_date}</span>}
-          {a.confirmed_cases && <span style={{ fontSize: 10, color: '#f44336' }}>📊 {a.confirmed_cases.toLocaleString()} cases</span>}
+          {a.confirmed_cases && <span style={{ fontSize: 10, color: '#f44336' }}>{translate('CommunityHealth.cases', { confirmed_cases: a.confirmed_cases.toLocaleString() })}</span>}
           {a.product_name && <span style={{ fontSize: 10, color: '#666' }}>📦 {a.product_name}</span>}
-          {a.is_global && <span style={{ fontSize: 10, background: '#e3f2fd', padding: '1px 6px', borderRadius: 4 }}>🌍 Global</span>}
+          {a.is_global && <span style={{ fontSize: 10, background: '#e3f2fd', padding: '1px 6px', borderRadius: 4 }}>{translate('CommunityHealth.global')}</span>}
           {a.affected_countries?.length > 0 && (
             <span style={{ fontSize: 10, color: '#666' }}>📍 {a.affected_countries.join(', ')}</span>
           )}
@@ -282,35 +283,35 @@ function AlertsTab({ alerts, categories, sources, filterCategory, setFilterCateg
     <div>
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input type="text" placeholder="🔍 Search alerts..." value={searchQuery}
+        <input type="text" placeholder={translate('CommunityHealth.search_alerts')} value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           style={{ ...filterStyle, minWidth: 200 }} />
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={filterStyle}>
-          <option value="">All Categories</option>
+          <option value="">{translate('CommunityHealth.all_categories')}</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
         <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} style={filterStyle}>
-          <option value="">All Severities</option>
+          <option value="">{translate('CommunityHealth.all_severities')}</option>
           {['critical', 'high', 'moderate', 'low', 'info'].map(s => (
             <option key={s} value={s}>{SEV_LABELS[s]}</option>
           ))}
         </select>
         <select value={filterSource} onChange={e => setFilterSource(e.target.value)} style={filterStyle}>
-          <option value="">All Sources</option>
+          <option value="">{translate('CommunityHealth.all_sources')}</option>
           {sources.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         {(filterCategory || filterSeverity || filterSource || searchQuery) && (
           <button onClick={() => { setFilterCategory(''); setFilterSeverity(''); setFilterSource(''); setSearchQuery(''); }}
-            style={{ ...filterStyle, background: '#f5f5f5', fontWeight: 600 }}>Clear</button>
+            style={{ ...filterStyle, background: '#f5f5f5', fontWeight: 600 }}>{translate('CommunityHealth.clear')}</button>
         )}
       </div>
 
-      <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>{alerts.length} alert(s)</div>
+      <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>{translate('CommunityHealth.alert_s', { alerts: alerts.length })}</div>
 
       {alerts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
           <div style={{ fontSize: 48 }}>✅</div>
-          <p>No alerts matching your criteria.</p>
+          <p>{translate('CommunityHealth.no_alerts_matching_your_criteria')}</p>
         </div>
       ) : alerts.map(a => <AlertCard key={a.id} alert={a} onClick={() => onView(a.id)} onBookmark={onBookmark} />)}
     </div>
@@ -327,7 +328,7 @@ function AlertDetail({ alert, onBack, onBookmark }) {
   return (
     <div>
       <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', marginBottom: 12, color: 'var(--primary)', fontWeight: 600 }}>
-        ← Back to alerts
+        {translate('CommunityHealth.back_to_alerts')}
       </button>
 
       <div style={{
@@ -340,7 +341,7 @@ function AlertDetail({ alert, onBack, onBookmark }) {
               <CategoryIcon category={a.category} />
               <SeverityBadge severity={a.severity} />
               <SourceBadge source={a.source} />
-              {a.is_global && <span style={{ fontSize: 11, background: '#e3f2fd', padding: '2px 8px', borderRadius: 4 }}>🌍 Global</span>}
+              {a.is_global && <span style={{ fontSize: 11, background: '#e3f2fd', padding: '2px 8px', borderRadius: 4 }}>{translate('CommunityHealth.global')}</span>}
             </div>
             <h2 style={{ margin: 0, fontSize: 20 }}>{a.title}</h2>
           </div>
@@ -354,21 +355,21 @@ function AlertDetail({ alert, onBack, onBookmark }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 20 }}>
           {/* Dates */}
           <div style={section}>
-            <div style={sectionTitle}>📅 Dates</div>
+            <div style={sectionTitle}>{translate('CommunityHealth.dates')}</div>
             <div style={{ fontSize: 13, color: '#666' }}>
-              {a.issued_date && <div>Issued: <strong>{a.issued_date}</strong></div>}
-              {a.effective_date && <div>Effective: <strong>{a.effective_date}</strong></div>}
-              {a.expiry_date && <div>Expires: <strong>{a.expiry_date}</strong></div>}
+              {a.issued_date && <div>{translate('CommunityHealth.issued')} <strong>{a.issued_date}</strong></div>}
+              {a.effective_date && <div>{translate('CommunityHealth.effective')} <strong>{a.effective_date}</strong></div>}
+              {a.expiry_date && <div>{translate('CommunityHealth.expires')} <strong>{a.expiry_date}</strong></div>}
             </div>
           </div>
 
           {/* Geographic */}
           {(a.affected_countries?.length > 0 || a.affected_regions?.length > 0) && (
             <div style={section}>
-              <div style={sectionTitle}>📍 Affected Areas</div>
+              <div style={sectionTitle}>{translate('CommunityHealth.affected_areas')}</div>
               <div style={{ fontSize: 13, color: '#666' }}>
-                {a.affected_countries?.length > 0 && <div>Countries: {a.affected_countries.join(', ')}</div>}
-                {a.affected_regions?.length > 0 && <div>Regions: {a.affected_regions.join(', ')}</div>}
+                {a.affected_countries?.length > 0 && <div>{translate('CommunityHealth.countries', { affected_countries: a.affected_countries.join(', ') })}</div>}
+                {a.affected_regions?.length > 0 && <div>{translate('CommunityHealth.regions', { affected_regions: a.affected_regions.join(', ') })}</div>}
               </div>
             </div>
           )}
@@ -376,12 +377,12 @@ function AlertDetail({ alert, onBack, onBookmark }) {
           {/* Outbreak info */}
           {a.disease_name && (
             <div style={section}>
-              <div style={sectionTitle}>🦠 Outbreak Details</div>
+              <div style={sectionTitle}>{translate('CommunityHealth.outbreak_details')}</div>
               <div style={{ fontSize: 13, color: '#666' }}>
-                <div>Disease: <strong>{a.disease_name}</strong></div>
-                {a.pathogen && <div>Pathogen: {a.pathogen}</div>}
-                {a.confirmed_cases != null && <div>Confirmed cases: <strong style={{ color: '#f44336' }}>{a.confirmed_cases.toLocaleString()}</strong></div>}
-                {a.deaths != null && <div>Deaths: <strong style={{ color: '#b71c1c' }}>{a.deaths.toLocaleString()}</strong></div>}
+                <div>{translate('CommunityHealth.disease')} <strong>{a.disease_name}</strong></div>
+                {a.pathogen && <div>{translate('CommunityHealth.pathogen', { pathogen: a.pathogen })}</div>}
+                {a.confirmed_cases != null && <div>{translate('CommunityHealth.confirmed_cases')} <strong style={{ color: '#f44336' }}>{a.confirmed_cases.toLocaleString()}</strong></div>}
+                {a.deaths != null && <div>{translate('CommunityHealth.deaths')} <strong style={{ color: '#b71c1c' }}>{a.deaths.toLocaleString()}</strong></div>}
               </div>
             </div>
           )}
@@ -389,14 +390,14 @@ function AlertDetail({ alert, onBack, onBookmark }) {
           {/* Recall info  */}
           {a.product_name && (
             <div style={section}>
-              <div style={sectionTitle}>📦 Recall Details</div>
+              <div style={sectionTitle}>{translate('CommunityHealth.recall_details')}</div>
               <div style={{ fontSize: 13, color: '#666' }}>
-                <div>Product: <strong>{a.product_name}</strong></div>
-                {a.product_type && <div>Type: {a.product_type}</div>}
-                {a.manufacturer && <div>Manufacturer: {a.manufacturer}</div>}
-                {a.recall_class && <div>Class: <strong>Class {a.recall_class}</strong></div>}
-                {a.reason_for_recall && <div>Reason: {a.reason_for_recall}</div>}
-                {a.lot_numbers?.length > 0 && <div>Lot #: {a.lot_numbers.join(', ')}</div>}
+                <div>{translate('CommunityHealth.product')} <strong>{a.product_name}</strong></div>
+                {a.product_type && <div>{translate('CommunityHealth.type', { product_type: a.product_type })}</div>}
+                {a.manufacturer && <div>{translate('CommunityHealth.manufacturer', { manufacturer: a.manufacturer })}</div>}
+                {a.recall_class && <div>{translate('CommunityHealth.class')} <strong>{translate('CommunityHealth.class_2', { recall_class: a.recall_class })}</strong></div>}
+                {a.reason_for_recall && <div>{translate('CommunityHealth.reason', { reason_for_recall: a.reason_for_recall })}</div>}
+                {a.lot_numbers?.length > 0 && <div>{translate('CommunityHealth.lot', { lot_numbers: a.lot_numbers.join(', ') })}</div>}
               </div>
             </div>
           )}
@@ -405,7 +406,7 @@ function AlertDetail({ alert, onBack, onBookmark }) {
         {/* Recommended actions */}
         {a.recommended_actions?.length > 0 && (
           <div style={{ ...section, marginTop: 12 }}>
-            <div style={sectionTitle}>✅ Recommended Actions</div>
+            <div style={sectionTitle}>{translate('CommunityHealth.recommended_actions')}</div>
             <ul style={{ margin: 0, paddingLeft: 20 }}>
               {a.recommended_actions.map((act, i) => (
                 <li key={i} style={{ fontSize: 13, color: '#444', marginBottom: 4 }}>{act}</li>
@@ -417,7 +418,7 @@ function AlertDetail({ alert, onBack, onBookmark }) {
         {/* Target population */}
         {a.target_population?.length > 0 && (
           <div style={section}>
-            <div style={sectionTitle}>👥 Target Population</div>
+            <div style={sectionTitle}>{translate('CommunityHealth.target_population')}</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {a.target_population.map((p, i) => (
                 <span key={i} style={{ fontSize: 11, background: '#f0f0f0', padding: '2px 8px', borderRadius: 8 }}>{p}</span>
@@ -431,7 +432,7 @@ function AlertDetail({ alert, onBack, onBookmark }) {
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #eee' }}>
             <a href={a.source_url} target="_blank" rel="noopener noreferrer"
               style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 13 }}>
-              🔗 View Original Source →
+              {translate('CommunityHealth.view_original_source')}
             </a>
           </div>
         )}
@@ -467,12 +468,12 @@ function GuidelinesTab({ guidelines, onView }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input type="text" placeholder="🔍 Search guidelines..." value={search}
+        <input type="text" placeholder={translate('CommunityHealth.search_guidelines')} value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #ddd', minWidth: 200 }} />
         <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
           style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #ddd' }}>
-          <option value="">All Categories</option>
+          <option value="">{translate('CommunityHealth.all_categories')}</option>
           {cats.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
         </select>
       </div>
@@ -480,7 +481,7 @@ function GuidelinesTab({ guidelines, onView }) {
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
           <div style={{ fontSize: 48 }}>📋</div>
-          <p>No guidelines found.</p>
+          <p>{translate('CommunityHealth.no_guidelines_found')}</p>
         </div>
       ) : filtered.map(g => (
         <div key={g.id} onClick={() => onView(g)} style={{
@@ -501,7 +502,7 @@ function GuidelinesTab({ guidelines, onView }) {
           </div>
           <div style={{ fontWeight: 700, fontSize: 14 }}>{g.title}</div>
           <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>{g.summary}</div>
-          {g.effective_date && <div style={{ fontSize: 10, color: '#999', marginTop: 4 }}>Effective: {g.effective_date}</div>}
+          {g.effective_date && <div style={{ fontSize: 10, color: '#999', marginTop: 4 }}>{translate('CommunityHealth.effective_2', { effective_date: g.effective_date })}</div>}
         </div>
       ))}
     </div>
@@ -513,7 +514,7 @@ function GuidelineDetail({ guideline, onBack }) {
   return (
     <div>
       <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', marginBottom: 12, color: 'var(--primary)', fontWeight: 600 }}>
-        ← Back to guidelines
+        {translate('CommunityHealth.back_to_guidelines')}
       </button>
       <div style={{
         background: '#fff', borderRadius: 16, padding: 28,
@@ -524,8 +525,8 @@ function GuidelineDetail({ guideline, onBack }) {
           <span style={{ fontSize: 11, background: '#e8f5e9', padding: '2px 8px', borderRadius: 4, textTransform: 'capitalize' }}>
             {(g.category || '').replace(/_/g, ' ')}
           </span>
-          {g.version && <span style={{ fontSize: 11, color: '#999' }}>Version {g.version}</span>}
-          {g.is_current && <span style={{ fontSize: 11, background: '#c8e6c9', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>✅ Current</span>}
+          {g.version && <span style={{ fontSize: 11, color: '#999' }}>{translate('CommunityHealth.version', { version: g.version })}</span>}
+          {g.is_current && <span style={{ fontSize: 11, background: '#c8e6c9', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>{translate('CommunityHealth.current')}</span>}
         </div>
         <h2 style={{ margin: '0 0 12px' }}>{g.title}</h2>
         <p style={{ color: '#555', lineHeight: 1.6 }}>{g.summary}</p>
@@ -533,7 +534,7 @@ function GuidelineDetail({ guideline, onBack }) {
 
         {g.recommendations?.length > 0 && (
           <div style={{ marginTop: 20 }}>
-            <h4 style={{ marginBottom: 8 }}>📌 Key Recommendations</h4>
+            <h4 style={{ marginBottom: 8 }}>{translate('CommunityHealth.key_recommendations')}</h4>
             <ul style={{ paddingLeft: 20, margin: 0 }}>
               {g.recommendations.map((r, i) => (
                 <li key={i} style={{ fontSize: 13, color: '#444', marginBottom: 6, lineHeight: 1.4 }}>{r}</li>
@@ -544,11 +545,11 @@ function GuidelineDetail({ guideline, onBack }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 20 }}>
           {g.effective_date && (
-            <div><strong style={{ fontSize: 12 }}>Effective Date:</strong> <span style={{ fontSize: 13 }}>{g.effective_date}</span></div>
+            <div><strong style={{ fontSize: 12 }}>{translate('CommunityHealth.effective_date')}</strong> <span style={{ fontSize: 13 }}>{g.effective_date}</span></div>
           )}
           {g.target_population?.length > 0 && (
             <div>
-              <strong style={{ fontSize: 12 }}>Target Population:</strong>
+              <strong style={{ fontSize: 12 }}>{translate('CommunityHealth.target_population_2')}</strong>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
                 {g.target_population.map((p, i) => (
                   <span key={i} style={{ fontSize: 11, background: '#f0f0f0', padding: '2px 8px', borderRadius: 8 }}>{p}</span>
@@ -557,7 +558,7 @@ function GuidelineDetail({ guideline, onBack }) {
             </div>
           )}
           {g.applicable_countries?.length > 0 && (
-            <div><strong style={{ fontSize: 12 }}>Countries:</strong> <span style={{ fontSize: 13 }}>{g.applicable_countries.join(', ')}</span></div>
+            <div><strong style={{ fontSize: 12 }}>{translate('CommunityHealth.countries_2')}</strong> <span style={{ fontSize: 13 }}>{g.applicable_countries.join(', ')}</span></div>
           )}
         </div>
 
@@ -565,7 +566,7 @@ function GuidelineDetail({ guideline, onBack }) {
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #eee' }}>
             <a href={g.source_url} target="_blank" rel="noopener noreferrer"
               style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 13 }}>
-              🔗 View Full Guideline →
+              {translate('CommunityHealth.view_full_guideline')}
             </a>
           </div>
         )}
@@ -606,7 +607,7 @@ function ReportsTab({ reports, onSubmit }) {
       setForm({ report_type: 'symptom_cluster', title: '', description: '', location_name: '',
         country: '', severity: 'moderate', number_affected: 1, symptoms_reported: '' });
       onSubmit();
-    } catch (err) { console.error(err); alert('Failed to submit report'); }
+    } catch (err) { console.error(err); alert(translate('CommunityHealth.failed_to_submit_report')); }
     setSubmitting(false);
   }
 
@@ -618,7 +619,7 @@ function ReportsTab({ reports, onSubmit }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>📝 Community Health Reports</h3>
+        <h3 style={{ margin: 0 }}>{translate('CommunityHealth.community_health_reports')}</h3>
         <button onClick={() => setShowForm(!showForm)}
           className="btn btn-primary" style={{ fontSize: 13 }}>
           {showForm ? 'Cancel' : '+ Submit Report'}
@@ -630,17 +631,17 @@ function ReportsTab({ reports, onSubmit }) {
           background: '#fff', borderRadius: 12, padding: 20, marginBottom: 20,
           boxShadow: '0 2px 8px rgba(0,0,0,.08)',
         }}>
-          <h4 style={{ marginTop: 0 }}>Submit a Community Health Report</h4>
+          <h4 style={{ marginTop: 0 }}>{translate('CommunityHealth.submit_a_community_health_report')}</h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Report Type</label>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>{translate('CommunityHealth.report_type')}</label>
               <select value={form.report_type} onChange={e => setForm({ ...form, report_type: e.target.value })}
                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }}>
                 {reportTypes.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Severity</label>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>{translate('CommunityHealth.severity')}</label>
               <select value={form.severity} onChange={e => setForm({ ...form, severity: e.target.value })}
                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }}>
                 {['info', 'low', 'moderate', 'high', 'critical'].map(s => (
@@ -649,36 +650,36 @@ function ReportsTab({ reports, onSubmit }) {
               </select>
             </div>
             <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Title</label>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>{translate('CommunityHealth.title')}</label>
               <input type="text" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }} />
             </div>
             <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Description</label>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>{translate('CommunityHealth.description')}</label>
               <textarea required value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
                 rows={3} style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd', resize: 'vertical' }} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Location</label>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>{translate('CommunityHealth.location')}</label>
               <input type="text" value={form.location_name} onChange={e => setForm({ ...form, location_name: e.target.value })}
-                placeholder="City, State" style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }} />
+                placeholder={translate('CommunityHealth.city_state')} style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Country</label>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>{translate('CommunityHealth.country')}</label>
               <input type="text" value={form.country} onChange={e => setForm({ ...form, country: e.target.value })}
                 placeholder="US, CA, EU..." style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}># Affected</label>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>{translate('CommunityHealth.affected')}</label>
               <input type="number" min="1" value={form.number_affected}
                 onChange={e => setForm({ ...form, number_affected: e.target.value })}
                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Symptoms (comma-separated)</label>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>{translate('CommunityHealth.symptoms_comma_separated')}</label>
               <input type="text" value={form.symptoms_reported}
                 onChange={e => setForm({ ...form, symptoms_reported: e.target.value })}
-                placeholder="fever, cough, nausea"
+                placeholder={translate('CommunityHealth.fever_cough_nausea')}
                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }} />
             </div>
           </div>
@@ -691,7 +692,7 @@ function ReportsTab({ reports, onSubmit }) {
       {reports.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
           <div style={{ fontSize: 48 }}>📝</div>
-          <p>No community reports yet. Be the first to submit one!</p>
+          <p>{translate('CommunityHealth.no_community_reports_yet_be_the_first_to')}</p>
         </div>
       ) : reports.map(r => (
         <div key={r.id} style={{
@@ -704,7 +705,7 @@ function ReportsTab({ reports, onSubmit }) {
             <span style={{ fontSize: 10, background: '#f0f0f0', padding: '2px 6px', borderRadius: 4, textTransform: 'capitalize' }}>
               {(r.report_type || '').replace(/_/g, ' ')}
             </span>
-            {r.is_verified && <span style={{ fontSize: 10, color: '#4caf50', fontWeight: 700 }}>✅ Verified</span>}
+            {r.is_verified && <span style={{ fontSize: 10, color: '#4caf50', fontWeight: 700 }}>{translate('CommunityHealth.verified')}</span>}
             {r.location_name && <span style={{ fontSize: 10, color: '#666' }}>📍 {r.location_name}</span>}
           </div>
           <div style={{ fontWeight: 700, fontSize: 14 }}>{r.title}</div>
@@ -753,7 +754,7 @@ function SettingsTab({ subscription, categories, sources, onSave }) {
         countries: countriesInput.split(',').map(s => s.trim()).filter(Boolean),
       });
       onSave();
-    } catch (err) { console.error(err); alert('Failed to save preferences'); }
+    } catch (err) { console.error(err); alert(translate('CommunityHealth.failed_to_save_preferences')); }
     setSaving(false);
   }
 
@@ -766,14 +767,14 @@ function SettingsTab({ subscription, categories, sources, onSave }) {
 
   return (
     <div style={{ maxWidth: 700 }}>
-      <h3>⚙️ Alert Subscription Preferences</h3>
+      <h3>{translate('CommunityHealth.alert_subscription_preferences')}</h3>
       <p style={{ color: '#666', fontSize: 13, marginBottom: 20 }}>
-        Choose which alert categories, sources, and severity levels you want to be notified about.
+        {translate('CommunityHealth.choose_which_alert_categories_sources')}
       </p>
 
       {/* Categories */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>Categories</label>
+        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>{translate('CommunityHealth.categories')}</label>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {categories.map(c => (
             <button key={c.id} type="button"
@@ -787,7 +788,7 @@ function SettingsTab({ subscription, categories, sources, onSave }) {
 
       {/* Sources */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>Sources</label>
+        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>{translate('CommunityHealth.sources')}</label>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {sources.map(s => (
             <button key={s.id} type="button"
@@ -801,7 +802,7 @@ function SettingsTab({ subscription, categories, sources, onSave }) {
 
       {/* Severities */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>Minimum Severity</label>
+        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>{translate('CommunityHealth.minimum_severity')}</label>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['critical', 'high', 'moderate', 'low', 'info'].map(s => (
             <button key={s} type="button"
@@ -815,7 +816,7 @@ function SettingsTab({ subscription, categories, sources, onSave }) {
 
       {/* Countries */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>Countries (ISO codes)</label>
+        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>{translate('CommunityHealth.countries_iso_codes')}</label>
         <input type="text" value={countriesInput} onChange={e => setCountriesInput(e.target.value)}
           placeholder="US, CA, EU, UK, AU..."
           style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', width: '100%', maxWidth: 400 }} />
@@ -823,11 +824,11 @@ function SettingsTab({ subscription, categories, sources, onSave }) {
 
       {/* Notification channels */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>Notification Channels</label>
+        <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 8 }}>{translate('CommunityHealth.notification_channels')}</label>
         <div style={{ display: 'flex', gap: 16 }}>
           {[
-            { key: 'push_enabled', label: '🔔 Push', },
-            { key: 'email_enabled', label: '📧 Email' },
+            { key: 'push_enabled', label: translate('CommunityHealth.push'), },
+            { key: 'email_enabled', label: translate('CommunityHealth.email') },
             { key: 'sms_enabled', label: '📱 SMS' },
           ].map(({ key, label }) => (
             <label key={key} style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer', fontSize: 13 }}>
@@ -848,9 +849,9 @@ function SettingsTab({ subscription, categories, sources, onSave }) {
 // ── FDA RECALLS ────────────────────────────────────────────────────────
 
 const FDA_CLASS_COLORS = {
-  'Class I': { bg: '#fee2e2', color: '#ef4444', label: 'Class I — Dangerous' },
-  'Class II': { bg: '#fef3c7', color: '#f59e0b', label: 'Class II — May Cause Harm' },
-  'Class III': { bg: '#dbeafe', color: '#3b82f6', label: 'Class III — Minor Violations' },
+  'Class I': { bg: '#fee2e2', color: '#ef4444', get label() { return translate('CommunityHealth.class_i_dangerous'); } },
+  'Class II': { bg: '#fef3c7', color: '#f59e0b', get label() { return translate('CommunityHealth.class_ii_may_cause_harm'); } },
+  'Class III': { bg: '#dbeafe', color: '#3b82f6', get label() { return translate('CommunityHealth.class_iii_minor_violations'); } },
 };
 
 function FDARecallsTab() {
@@ -869,7 +870,7 @@ function FDARecallsTab() {
       const { data } = await api.get(`/fda-recalls/?${params}`);
       setResults(data);
     } catch (err) {
-      alert('Error searching FDA recalls');
+      alert(translate('CommunityHealth.error_searching_fda_recalls'));
     } finally {
       setLoading(false);
     }
@@ -882,7 +883,7 @@ function FDARecallsTab() {
       setResults(data);
       setForm(p => ({ ...p, search_term: '', days: 7 }));
     } catch (err) {
-      alert('Error loading recent recalls');
+      alert(translate('CommunityHealth.error_loading_recent_recalls'));
     } finally {
       setLoading(false);
     }
@@ -891,29 +892,29 @@ function FDARecallsTab() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>🏛️ FDA Food & Drug Recalls</h3>
+        <h3 style={{ margin: 0 }}>{translate('CommunityHealth.fda_food_drug_recalls')}</h3>
         <button className="btn btn-secondary" onClick={loadRecent} disabled={loading}
           style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          🕐 Recent (7 days)
+          {translate('CommunityHealth.recent_7_days')}
         </button>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,.06)', marginBottom: 20 }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: 2, minWidth: 200 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>Search Term</label>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>{translate('CommunityHealth.search_term')}</label>
             <input style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', width: '100%' }}
-              placeholder="e.g. peanut, salmonella..." value={form.search_term}
+              placeholder={translate('CommunityHealth.e_g_peanut_salmonella')} value={form.search_term}
               onChange={e => setForm(p => ({ ...p, search_term: e.target.value }))} />
           </div>
           <div style={{ flex: 0.5, minWidth: 90 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>Days</label>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>{translate('CommunityHealth.days')}</label>
             <input type="number" min={1} max={365} value={form.days}
               style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', width: '100%' }}
               onChange={e => setForm(p => ({ ...p, days: e.target.value }))} />
           </div>
           <div style={{ flex: 0.5, minWidth: 80 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>Limit</label>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>{translate('CommunityHealth.limit')}</label>
             <input type="number" min={1} max={100} value={form.limit}
               style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', width: '100%' }}
               onChange={e => setForm(p => ({ ...p, limit: e.target.value }))} />
@@ -927,13 +928,13 @@ function FDARecallsTab() {
       {results && (
         <div>
           <p style={{ marginBottom: 12, color: '#666', fontSize: 13 }}>
-            <strong>{results.total}</strong> recall{results.total !== 1 ? 's' : ''} found
+            <strong>{results.total}</strong> {(results.total !== 1) ? translate('CommunityHealth.recalls_found') : translate('CommunityHealth.recall_found')}
           </p>
 
           {results.results?.length === 0 && (
             <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
               <div style={{ fontSize: 48 }}>✅</div>
-              <p>No recalls found for the given criteria.</p>
+              <p>{translate('CommunityHealth.no_recalls_found_for_the_given_criteria')}</p>
             </div>
           )}
 
@@ -961,18 +962,18 @@ function FDARecallsTab() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 6, fontSize: 12, color: '#666' }}>
-                  {item.recalling_firm && <div><strong>Firm:</strong> {item.recalling_firm}</div>}
-                  {(item.city || item.state) && <div><strong>Location:</strong> {[item.city, item.state, item.country].filter(Boolean).join(', ')}</div>}
-                  {item.recall_date && <div><strong>Date:</strong> {item.recall_date}</div>}
-                  {item.status && <div><strong>Status:</strong> {item.status}</div>}
-                  {item.recall_number && <div><strong>Recall #:</strong> {item.recall_number}</div>}
-                  {item.voluntary_mandated && <div><strong>Type:</strong> {item.voluntary_mandated}</div>}
+                  {item.recalling_firm && <div><strong>{translate('CommunityHealth.firm')}</strong> {item.recalling_firm}</div>}
+                  {(item.city || item.state) && <div><strong>{translate('CommunityHealth.location_2')}</strong> {[item.city, item.state, item.country].filter(Boolean).join(', ')}</div>}
+                  {item.recall_date && <div><strong>{translate('CommunityHealth.date')}</strong> {item.recall_date}</div>}
+                  {item.status && <div><strong>{translate('CommunityHealth.status')}</strong> {item.status}</div>}
+                  {item.recall_number && <div><strong>{translate('CommunityHealth.recall')}</strong> {item.recall_number}</div>}
+                  {item.voluntary_mandated && <div><strong>{translate('CommunityHealth.type_2')}</strong> {item.voluntary_mandated}</div>}
                 </div>
 
                 {item.distribution_pattern && (
                   <details style={{ marginTop: 10 }}>
                     <summary style={{ cursor: 'pointer', fontSize: 12, color: '#2196f3', fontWeight: 600 }}>
-                      Distribution Pattern
+                      {translate('CommunityHealth.distribution_pattern')}
                     </summary>
                     <p style={{ marginTop: 4, fontSize: 12, color: '#888' }}>
                       {item.distribution_pattern}

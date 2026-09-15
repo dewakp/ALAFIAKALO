@@ -5,6 +5,7 @@ import {
   Dumbbell, Droplets, Brain, BookOpen, Link2, ChevronRight, Lock,
   Thermometer, Cross, Heart, MessageSquare,
 } from 'lucide-react';
+import { t } from '../../i18n';
 
 // Icon per category key. The backend sends an icon name so every client can
 // agree on the board's shape; each client maps it to its own icon set.
@@ -38,8 +39,8 @@ export default function PatientBoard({ patientId, onBack, onOpenCategory }) {
       .catch((err) => {
         if (cancelled) return;
         setError(err.response?.status === 403
-          ? 'This patient has revoked access.'
-          : 'Could not load this patient.');
+          ? t('PatientBoard.this_patient_has_revoked_access')
+          : t('PatientBoard.could_not_load_this_patient'));
       });
     return () => { cancelled = true; };
   }, [patientId]);
@@ -47,12 +48,12 @@ export default function PatientBoard({ patientId, onBack, onOpenCategory }) {
   if (error) {
     return (
       <div>
-        <Header onBack={onBack} title="Patient" />
+        <Header onBack={onBack} title={t('PatientBoard.patient')} />
         <div className="card" style={{ padding: '2rem', color: 'var(--color-danger)' }}>{error}</div>
       </div>
     );
   }
-  if (!board) return <div className="loading">Loading patient…</div>;
+  if (!board) return <div className="loading">{t('PatientBoard.loading_patient')}</div>;
 
   const sharesAll = board.permissions.includes('all');
 
@@ -96,7 +97,7 @@ function Header({ onBack, title, right }) {
     <div className="page-header">
       <div className="page-header-left">
         <button className="btn btn-secondary btn-sm" onClick={onBack}>
-          <ArrowLeft size={16} /> All patients
+          <ArrowLeft size={16} /> {t('PatientBoard.all_patients')}
         </button>
         <h1 className="page-title">{title}</h1>
       </div>
@@ -171,7 +172,7 @@ function CategoryCard({ card, onOpen }) {
 
       {card.last_updated && (
         <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 'auto' }}>
-          Updated {String(card.last_updated).slice(0, 10)}
+          {t('PatientBoard.updated', { last_updated: String(card.last_updated).slice(0, 10) })}
         </div>
       )}
     </button>

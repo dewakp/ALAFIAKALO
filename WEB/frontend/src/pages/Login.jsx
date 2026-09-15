@@ -4,11 +4,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Mail, Phone, Loader2 } from 'lucide-react';
 import PasswordInput from '../components/PasswordInput';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import {
   signInWithGoogle,
   signInWithApple,
   firebaseErrorMessage,
 } from '../services/firebase';
+import { t } from '../i18n';
 
 /* Simple brand glyphs (lucide has no Google/Apple logos) */
 const GoogleIcon = () => (
@@ -41,15 +43,15 @@ export default function Login() {
   async function handleEmailSubmit(e) {
     e.preventDefault();
     setError('');
-    if (!email.trim()) { setError('Email is required'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Please enter a valid email address'); return; }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (!email.trim()) { setError(t('Login.email_is_required')); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError(t('Login.please_enter_a_valid_email_address')); return; }
+    if (password.length < 6) { setError(t('Login.password_must_be_at_least_6_characters')); return; }
     setBusy('email');
     try {
       await login(email, password);
       done();
     } catch (err) {
-      setError(apiErrorMessage(err, 'Login failed'));
+      setError(apiErrorMessage(err, t('Login.login_failed')));
     } finally { setBusy(''); }
   }
 
@@ -58,17 +60,17 @@ export default function Login() {
     setError('');
     const p = phone.trim();
     if (!/^\+?[0-9][0-9\s\-()]{6,}$/.test(p)) {
-      setError('Enter a valid phone number, e.g. +15551234567');
+      setError(t('Login.enter_a_valid_phone_number_e_g'));
       return;
     }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (password.length < 6) { setError(t('Login.password_must_be_at_least_6_characters')); return; }
     setBusy('phone');
     try {
       // Phone is just another identifier for the PostgreSQL IdP (no OTP/Firebase).
       await login(p, password);
       done();
     } catch (err) {
-      setError(apiErrorMessage(err, 'Login failed'));
+      setError(apiErrorMessage(err, t('Login.login_failed')));
     } finally { setBusy(''); }
   }
 
@@ -80,7 +82,7 @@ export default function Login() {
       await loginWithFirebase(idToken);
       done();
     } catch (err) {
-      setError(err?.code ? firebaseErrorMessage(err, 'Sign-in failed.') : apiErrorMessage(err, 'Login failed'));
+      setError(err?.code ? firebaseErrorMessage(err, t('Login.sign_in_failed')) : apiErrorMessage(err, t('Login.login_failed')));
     } finally { setBusy(''); }
   }
 
@@ -106,26 +108,26 @@ export default function Login() {
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
             fontSize: '2.2rem', fontWeight: 800, margin: 0 }}>
-            <LogIn size={32} style={{ color: 'var(--color-primary)' }} /> Login to Alafia
+            <LogIn size={32} style={{ color: 'var(--color-primary)' }} /> {t('Login.login_to_alafia')}
           </h1>
           <p style={{ color: 'var(--color-text-secondary)', marginTop: 8, fontSize: '1.05rem' }}>
-            Access your wellness dashboard.
+            {t('Login.access_your_wellness_dashboard')}
           </p>
         </div>
 
         <div className="card auth-card" style={{ maxWidth: 480 }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 1.25rem' }}>Welcome Back</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 1.25rem' }}>{t('Login.welcome_back')}</h2>
 
           {/* ── Email / Phone tabs ── */}
           <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', paddingBottom: '1.25rem',
             borderBottom: '1px solid var(--color-border)' }}>
             <button type="button" style={tabStyle(mode === 'email')}
               onClick={() => { setMode('email'); setError(''); }}>
-              <Mail size={17} /> Email
+              <Mail size={17} /> {t('Login.email')}
             </button>
             <button type="button" style={tabStyle(mode === 'phone')}
               onClick={() => { setMode('phone'); setError(''); }}>
-              <Phone size={17} /> Phone
+              <Phone size={17} /> {t('Login.phone')}
             </button>
           </div>
 
@@ -139,17 +141,17 @@ export default function Login() {
           {mode === 'email' && (
             <form onSubmit={handleEmailSubmit}>
               <div className="form-group">
-                <label className="form-label" htmlFor="login-email">Email Address</label>
+                <label className="form-label" htmlFor="login-email">{t('Login.email_address')}</label>
                 <input id="login-email" className="form-input" type="email" placeholder="your@email.com"
                   value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label className="form-label" htmlFor="login-password">Password</label>
+                <label className="form-label" htmlFor="login-password">{t('Login.password')}</label>
                 <PasswordInput id="login-password"
                   value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
               <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={!!busy}>
-                {busy === 'email' ? spinner : null} Login with Email
+                {busy === 'email' ? spinner : null} {t('Login.login_with_email')}
               </button>
             </form>
           )}
@@ -158,17 +160,17 @@ export default function Login() {
           {mode === 'phone' && (
             <form onSubmit={handlePhoneSubmit}>
               <div className="form-group">
-                <label className="form-label">Phone Number</label>
+                <label className="form-label">{t('Login.phone_number')}</label>
                 <input className="form-input" type="tel" placeholder="+1 555 123 4567"
                   value={phone} onChange={(e) => setPhone(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Password</label>
+                <label className="form-label">{t('Login.password')}</label>
                 <PasswordInput
                   value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
               <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={!!busy}>
-                {busy === 'phone' ? spinner : null} Login with Phone
+                {busy === 'phone' ? spinner : null} {t('Login.login_with_phone')}
               </button>
             </form>
           )}
@@ -176,17 +178,18 @@ export default function Login() {
           {/* ── Social sign-in ── */}
           <div style={{ margin: '1.25rem 0 0', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
             <button type="button" style={socialBtnStyle} disabled={!!busy} onClick={() => handleSocial('google')}>
-              {busy === 'google' ? spinner : <GoogleIcon />} Sign in with Google
+              {busy === 'google' ? spinner : <GoogleIcon />} {t('Login.sign_in_with_google')}
             </button>
             <button type="button" style={socialBtnStyle} disabled={!!busy} onClick={() => handleSocial('apple')}>
-              {busy === 'apple' ? spinner : <AppleIcon />} Sign in with Apple
+              {busy === 'apple' ? spinner : <AppleIcon />} {t('Login.sign_in_with_apple')}
             </button>
           </div>
 
           <div className="auth-footer">
-            Don't have an account? <Link to="/register">Register here</Link>
+            {t('Login.don_t_have_an_account')} <Link to="/register">{t('Login.register_here')}</Link>
             <br />
-            <Link to="/forgot-password">Forgot Password?</Link>
+            <Link to="/forgot-password">{t('Login.forgot_password')}</Link>
+            <LanguageSwitcher />
           </div>
         </div>
       </div>

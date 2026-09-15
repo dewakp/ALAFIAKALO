@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
+import { t } from '../i18n';
 
 /**
  * Every nutrient recorded for one meal, paginated.
@@ -65,7 +66,7 @@ export default function NutrientPanel({ log }) {
       .then((d) => alive && setCatalog(d))
       // A failed catalog fetch must say so. Falling back to raw keys would
       // present "fa_20_5_epa_g" to a patient as though that were the name.
-      .catch(() => alive && setError('Could not load the nutrient reference.'));
+      .catch(() => alive && setError(t('NutrientPanel.could_not_load_the_nutrient_reference')));
     return () => { alive = false; };
   }, []);
 
@@ -100,12 +101,12 @@ export default function NutrientPanel({ log }) {
     return <div style={{ fontSize: '.75rem', color: '#b45309', padding: '.5rem 0' }}>{error}</div>;
   }
   if (!catalog) {
-    return <div style={{ fontSize: '.75rem', color: 'var(--color-text-tertiary)', padding: '.5rem 0' }}>Loading nutrients…</div>;
+    return <div style={{ fontSize: '.75rem', color: 'var(--color-text-tertiary)', padding: '.5rem 0' }}>{t('NutrientPanel.loading_nutrients')}</div>;
   }
   if (!present.length) {
     return (
       <div style={{ fontSize: '.75rem', color: 'var(--color-text-tertiary)', padding: '.5rem 0' }}>
-        No nutrient values recorded for this meal yet.
+        {t('NutrientPanel.no_nutrient_values_recorded_for_this')}
       </div>
     );
   }
@@ -116,7 +117,7 @@ export default function NutrientPanel({ log }) {
         <button
           onClick={() => { setCategory(''); setPage(1); }}
           style={chipStyle(category === '')}>
-          All ({present.length})
+          {t('NutrientPanel.all', { present: present.length })}
         </button>
         {categoriesPresent.map((c) => (
           <button key={c} onClick={() => { setCategory(c); setPage(1); }} style={chipStyle(category === c)}>
@@ -153,13 +154,13 @@ export default function NutrientPanel({ log }) {
       {totalPages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.5rem', fontSize: '.72rem' }}>
           <button disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} style={pagerStyle(safePage <= 1)}>
-            ‹ Prev
+            {t('NutrientPanel.prev')}
           </button>
           <span style={{ color: 'var(--color-text-tertiary)' }}>
-            Page {safePage} of {totalPages} · {filtered.length} nutrients
+            {t('NutrientPanel.page_of_nutrients', { safePage, totalPages, filtered: filtered.length })}
           </span>
           <button disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)} style={pagerStyle(safePage >= totalPages)}>
-            Next ›
+            {t('NutrientPanel.next')}
           </button>
         </div>
       )}

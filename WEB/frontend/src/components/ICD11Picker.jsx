@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import api from '../services/api';
+import { t } from '../i18n';
 
 /**
  * Type-ahead for ICD-11 codes, backed by GET /chronic/icd11/search.
@@ -73,8 +74,8 @@ export default function ICD11Picker({
       setResults([]);
       setLoadError(
         err?.response?.status === 401
-          ? 'Your session expired — sign in again to search ICD-11.'
-          : 'Could not reach the ICD-11 catalog. Your condition may still be there.',
+          ? t('ICD11Picker.your_session_expired_sign_in_again_to')
+          : t('ICD11Picker.could_not_reach_the_icd_11_catalog_your'),
       );
     } finally {
       if (seq === requestSeq.current) setLoading(false);
@@ -239,20 +240,19 @@ export default function ICD11Picker({
                   padding: 0,
                 }}
               >
-                Retry
+                {t('ICD11Picker.retry')}
               </button>
             </li>
           ) : loading ? (
             <li style={{ padding: '10px 12px', color: '#666', fontSize: '0.88rem' }}>
-              Searching…
+              {t('ICD11Picker.searching')}
             </li>
           ) : results.length === 0 ? (
             <li
               data-testid="icd11-empty"
               style={{ padding: '10px 12px', color: '#666', fontSize: '0.88rem' }}
             >
-              No ICD-11 match for “{query.trim()}”. You can still save the condition
-              by name.
+              {t('ICD11Picker.no_icd_11_match_for_you_can_still_save', { query: query.trim() })}
             </li>
           ) : (
             results.map((entry, idx) => (

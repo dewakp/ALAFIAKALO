@@ -7,18 +7,19 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const CATEGORY_META = {
-  therapy_session: { icon: Activity, color: '#1976d2', label: 'Therapy Session' },
-  calendar:        { icon: Calendar, color: '#7b1fa2', label: 'Calendar Event' },
-  lab_anomaly:     { icon: FlaskConical, color: '#d32f2f', label: 'Lab Anomaly' },
-  treatment_anomaly: { icon: AlertTriangle, color: '#e65100', label: 'Treatment Alert' },
-  medication_conflict: { icon: Pill, color: '#c62828', label: 'Medication Conflict' },
-  nutrition_alert: { icon: Apple, color: '#2e7d32', label: 'Nutrition Alert' },
+  therapy_session: { icon: Activity, color: '#1976d2', get label() { return t('Notifications.therapy_session'); } },
+  calendar:        { icon: Calendar, color: '#7b1fa2', get label() { return t('Notifications.calendar_event'); } },
+  lab_anomaly:     { icon: FlaskConical, color: '#d32f2f', get label() { return t('Notifications.lab_anomaly'); } },
+  treatment_anomaly: { icon: AlertTriangle, color: '#e65100', get label() { return t('Notifications.treatment_alert'); } },
+  medication_conflict: { icon: Pill, color: '#c62828', get label() { return t('Notifications.medication_conflict'); } },
+  nutrition_alert: { icon: Apple, color: '#2e7d32', get label() { return t('Notifications.nutrition_alert'); } },
   // Someone other than the patient opened their chart. Deliberately not red:
   // an authorised clinician reading a record is normal care, not an alarm.
-  record_access:   { icon: Eye, color: '#00838f', label: 'Record Access' },
-  system:          { icon: Bell, color: '#546e7a', label: 'System' },
+  record_access:   { icon: Eye, color: '#00838f', get label() { return t('Notifications.record_access'); } },
+  system:          { icon: Bell, color: '#546e7a', get label() { return t('Notifications.system'); } },
 };
 
 const PRIORITY_COLORS = {
@@ -101,16 +102,16 @@ export default function Notifications() {
         <div className="page-header">
           <div className="page-header-left">
             <BackButton />
-            <h1 style={{ flex: 1, margin: 0 }}>Notifications</h1>
+            <h1 style={{ flex: 1, margin: 0 }}>{t('Notifications.notifications')}</h1>
           </div>
         </div>
         {unreadCount > 0 && (
           <button className="btn btn-secondary btn-sm" onClick={markAllRead}>
-            <CheckCheck size={16} /> Mark all read
+            <CheckCheck size={16} /> {t('Notifications.mark_all_read')}
           </button>
         )}
         <button className="btn btn-secondary btn-sm" onClick={loadPrefs}>
-          <Settings size={16} /> Preferences
+          <Settings size={16} /> {t('Notifications.preferences')}
         </button>
       </div>
 
@@ -129,19 +130,19 @@ export default function Notifications() {
       </div>
 
       {loading ? (
-        <p>Loading…</p>
+        <p>{t('Notifications.loading')}</p>
       ) : loadError ? (
         <div style={{ textAlign: 'center', padding: 60, color: '#c62828' }} role="alert" data-testid="notifications-error">
-          <p style={{ fontWeight: 600, marginBottom: 4 }}>Couldn’t load your notifications</p>
+          <p style={{ fontWeight: 600, marginBottom: 4 }}>{t('Notifications.couldn_t_load_your_notifications')}</p>
           <p style={{ fontSize: 14 }}>{loadError}</p>
           <button onClick={load} style={{ marginTop: 12, padding: '8px 16px', cursor: 'pointer' }}>
-            Try again
+            {t('Notifications.try_again')}
           </button>
         </div>
       ) : notifications.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
           <BellOff size={48} style={{ marginBottom: 12 }} />
-          <p>No notifications</p>
+          <p>{t('Notifications.no_notifications')}</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -196,7 +197,7 @@ export default function Notifications() {
                     <button
                       className="btn btn-sm btn-secondary"
                       onClick={e => { e.stopPropagation(); markRead(n.id); }}
-                      title="Mark read"
+                      title={t('Notifications.mark_read')}
                       style={{ padding: 4 }}
                     >
                       <Check size={14} />
@@ -205,7 +206,7 @@ export default function Notifications() {
                   <button
                     className="btn btn-sm btn-secondary"
                     onClick={e => { e.stopPropagation(); remove(n.id); }}
-                    title="Delete"
+                    title={t('Notifications.delete')}
                     style={{ padding: 4 }}
                   >
                     <Trash2 size={14} />
@@ -232,7 +233,7 @@ export default function Notifications() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ margin: 0 }}>Notification Preferences</h2>
+              <h2 style={{ margin: 0 }}>{t('Notifications.notification_preferences')}</h2>
               <button className="btn btn-sm btn-secondary" onClick={() => setShowPrefs(false)}>
                 <X size={16} />
               </button>
@@ -240,11 +241,11 @@ export default function Notifications() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', padding: 6 }}>Category</th>
-                  <th style={{ padding: 6 }}>Enabled</th>
-                  <th style={{ padding: 6 }}>In-App</th>
-                  <th style={{ padding: 6 }}>Push</th>
-                  <th style={{ padding: 6 }}>Email</th>
+                  <th style={{ textAlign: 'left', padding: 6 }}>{t('Notifications.category')}</th>
+                  <th style={{ padding: 6 }}>{t('Notifications.enabled')}</th>
+                  <th style={{ padding: 6 }}>{t('Notifications.in_app')}</th>
+                  <th style={{ padding: 6 }}>{t('Notifications.push')}</th>
+                  <th style={{ padding: 6 }}>{t('Notifications.email')}</th>
                   <th style={{ padding: 6 }}>SMS</th>
                 </tr>
               </thead>

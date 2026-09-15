@@ -3,6 +3,7 @@ import api from '../services/api';
 import { Share2, Plus, Trash2, Mail, Check, X, Clock, Shield } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import EHRPortals from '../components/EHRPortals';
+import { t as translate } from '../i18n';
 
 export default function DataSharing() {
   const [activeTab, setActiveTab] = useState('grants');
@@ -41,12 +42,12 @@ export default function DataSharing() {
       setGrantForm({ grantee_email: '', data_type: 'all', can_read: true, can_write: false, expires_at: '' });
       loadAll();
     } catch (err) {
-      alert('Error creating grant');
+      alert(translate('DataSharing.error_creating_grant'));
     }
   }
 
   async function deleteGrant(id) {
-    if (!confirm('Revoke this data sharing grant?')) return;
+    if (!confirm(translate('DataSharing.revoke_this_data_sharing_grant'))) return;
     await api.delete(`/data-sharing/grants/${id}`);
     loadAll();
   }
@@ -64,7 +65,7 @@ export default function DataSharing() {
       setInviteForm({ recipient_email: '', data_types: ['all'], message: '' });
       loadAll();
     } catch (err) {
-      alert('Error creating invitation');
+      alert(translate('DataSharing.error_creating_invitation'));
     }
   }
 
@@ -74,8 +75,8 @@ export default function DataSharing() {
   }
 
   const tabs = [
-    { key: 'grants', label: 'Active Grants', count: grants.length },
-    { key: 'invitations', label: 'Invitations', count: invitations.length },
+    { key: 'grants', label: translate('DataSharing.active_grants'), count: grants.length },
+    { key: 'invitations', label: translate('DataSharing.invitations'), count: invitations.length },
   ];
 
   return (
@@ -83,14 +84,14 @@ export default function DataSharing() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Data Sharing</h1>
+          <h1 className="page-title">{translate('DataSharing.data_sharing')}</h1>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-primary" onClick={() => setShowGrantForm(!showGrantForm)}>
-            <Plus size={16} /> Grant Access
+            <Plus size={16} /> {translate('DataSharing.grant_access')}
           </button>
           <button className="btn btn-secondary" onClick={() => setShowInviteForm(!showInviteForm)}>
-            <Mail size={16} /> Invite
+            <Mail size={16} /> {translate('DataSharing.invite')}
           </button>
         </div>
       </div>
@@ -109,16 +110,16 @@ export default function DataSharing() {
 
       {showGrantForm && (
         <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Grant Data Access</h3>
+          <h3 style={{ marginBottom: '1rem' }}>{translate('DataSharing.grant_data_access')}</h3>
           <form onSubmit={createGrant}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
-                <label className="form-label">Recipient Email *</label>
+                <label className="form-label">{translate('DataSharing.recipient_email')}</label>
                 <input className="form-input" type="email" required value={grantForm.grantee_email}
                   onChange={e => setGrantForm(p => ({ ...p, grantee_email: e.target.value }))} />
               </div>
               <div className="form-group">
-                <label className="form-label">Data Type</label>
+                <label className="form-label">{translate('DataSharing.data_type')}</label>
                 <select className="form-select" value={grantForm.data_type}
                   onChange={e => setGrantForm(p => ({ ...p, data_type: e.target.value }))}>
                   {dataTypes.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -127,24 +128,24 @@ export default function DataSharing() {
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input type="checkbox" checked={grantForm.can_read}
-                    onChange={e => setGrantForm(p => ({ ...p, can_read: e.target.checked }))} /> Read Access
+                    onChange={e => setGrantForm(p => ({ ...p, can_read: e.target.checked }))} /> {translate('DataSharing.read_access')}
                 </label>
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input type="checkbox" checked={grantForm.can_write}
-                    onChange={e => setGrantForm(p => ({ ...p, can_write: e.target.checked }))} /> Write Access
+                    onChange={e => setGrantForm(p => ({ ...p, can_write: e.target.checked }))} /> {translate('DataSharing.write_access')}
                 </label>
               </div>
               <div className="form-group">
-                <label className="form-label">Expires (optional)</label>
+                <label className="form-label">{translate('DataSharing.expires_optional')}</label>
                 <input type="datetime-local" className="form-input" value={grantForm.expires_at}
                   onChange={e => setGrantForm(p => ({ ...p, expires_at: e.target.value }))} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              <button type="submit" className="btn btn-primary">Create Grant</button>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowGrantForm(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">{translate('DataSharing.create_grant')}</button>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowGrantForm(false)}>{translate('DataSharing.cancel')}</button>
             </div>
           </form>
         </div>
@@ -152,15 +153,15 @@ export default function DataSharing() {
 
       {showInviteForm && (
         <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Send Sharing Invitation</h3>
+          <h3 style={{ marginBottom: '1rem' }}>{translate('DataSharing.send_sharing_invitation')}</h3>
           <form onSubmit={createInvitation}>
             <div className="form-group">
-              <label className="form-label">Recipient Email *</label>
+              <label className="form-label">{translate('DataSharing.recipient_email')}</label>
               <input className="form-input" type="email" required value={inviteForm.recipient_email}
                 onChange={e => setInviteForm(p => ({ ...p, recipient_email: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="form-label">Data Types</label>
+              <label className="form-label">{translate('DataSharing.data_types')}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {dataTypes.map(t => (
                   <label key={t} style={{
@@ -179,13 +180,13 @@ export default function DataSharing() {
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Message (optional)</label>
+              <label className="form-label">{translate('DataSharing.message_optional')}</label>
               <textarea className="form-input" rows={2} value={inviteForm.message}
                 onChange={e => setInviteForm(p => ({ ...p, message: e.target.value }))} />
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              <button type="submit" className="btn btn-primary">Send Invitation</button>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowInviteForm(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">{translate('DataSharing.send_invitation')}</button>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowInviteForm(false)}>{translate('DataSharing.cancel')}</button>
             </div>
           </form>
         </div>
@@ -196,7 +197,7 @@ export default function DataSharing() {
           {grants.length === 0 ? (
             <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
               <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <p>No active data sharing grants. Grant access to let others view your health data.</p>
+              <p>{translate('DataSharing.no_active_data_sharing_grants_grant')}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -210,9 +211,9 @@ export default function DataSharing() {
                           padding: '1px 8px', borderRadius: 8, background: 'var(--color-primary-light)',
                           color: 'var(--color-primary-dark)', fontWeight: 600,
                         }}>{g.data_type}</span>
-                        {g.can_read && <span style={{ color: 'var(--color-info)' }}>Read</span>}
-                        {g.can_write && <span style={{ color: 'var(--color-warning)' }}>Write</span>}
-                        {g.expires_at && <span style={{ color: 'var(--color-text-secondary)' }}>Expires: {new Date(g.expires_at).toLocaleDateString()}</span>}
+                        {g.can_read && <span style={{ color: 'var(--color-info)' }}>{translate('DataSharing.read')}</span>}
+                        {g.can_write && <span style={{ color: 'var(--color-warning)' }}>{translate('DataSharing.write')}</span>}
+                        {g.expires_at && <span style={{ color: 'var(--color-text-secondary)' }}>{translate('DataSharing.expires', { value: new Date(g.expires_at).toLocaleDateString() })}</span>}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -237,7 +238,7 @@ export default function DataSharing() {
           {invitations.length === 0 ? (
             <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
               <Mail size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <p>No invitations.</p>
+              <p>{translate('DataSharing.no_invitations')}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -255,18 +256,18 @@ export default function DataSharing() {
                           }}>{inv.status}</span>
                         </div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-                          Types: {inv.data_types?.join(', ')}
+                          {translate('DataSharing.types', { data_types: inv.data_types?.join(', ') })}
                           {inv.message && <span> · "{inv.message}"</span>}
                         </div>
                       </div>
                       {inv.status === 'pending' && (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button className="btn btn-sm btn-primary" onClick={() => respondToInvitation(inv.id, 'accept')}>
-                            <Check size={14} /> Accept
+                            <Check size={14} /> {translate('DataSharing.accept')}
                           </button>
                           <button className="btn btn-sm" style={{ color: 'var(--color-danger)' }}
                             onClick={() => respondToInvitation(inv.id, 'decline')}>
-                            <X size={14} /> Decline
+                            <X size={14} /> {translate('DataSharing.decline')}
                           </button>
                         </div>
                       )}

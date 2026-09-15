@@ -36,26 +36,27 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import BackButton from '../components/BackButton';
+import { t } from '../i18n';
 
 const TABS = [
-  { key: 'score', label: 'Score', icon: Star },
+  { key: 'score', get label() { return t('Wellness.score'); }, icon: Star },
   { key: 'omega', label: 'HEBCS Ω', icon: FlaskConical },
-  { key: 'trends', label: 'Trends', icon: TrendingUp },
-  { key: 'recommendations', label: 'Recs', icon: Lightbulb },
-  { key: 'improvements', label: 'Improve', icon: Award },
+  { key: 'trends', get label() { return t('Wellness.trends'); }, icon: TrendingUp },
+  { key: 'recommendations', get label() { return t('Wellness.recs'); }, icon: Lightbulb },
+  { key: 'improvements', get label() { return t('Wellness.improve'); }, icon: Award },
 ];
 
 const SUB_SCORE_META = {
-  nutrition_score: { label: 'Nutrition', color: '#10b981', icon: Utensils },
-  fitness_score: { label: 'Fitness', color: '#3b82f6', icon: Dumbbell },
-  sleep_score: { label: 'Sleep', color: '#8b5cf6', icon: Moon },
-  mood_score: { label: 'Mood', color: '#f59e0b', icon: Smile },
-  vitals_score: { label: 'Vitals', color: '#ef4444', icon: Activity },
-  medication_adherence_score: { label: 'Medication', color: '#ec4899', icon: Pill },
+  nutrition_score: { get label() { return t('Wellness.nutrition'); }, color: '#10b981', icon: Utensils },
+  fitness_score: { get label() { return t('Wellness.fitness'); }, color: '#3b82f6', icon: Dumbbell },
+  sleep_score: { get label() { return t('Wellness.sleep'); }, color: '#8b5cf6', icon: Moon },
+  mood_score: { get label() { return t('Wellness.mood'); }, color: '#f59e0b', icon: Smile },
+  vitals_score: { get label() { return t('Wellness.vitals'); }, color: '#ef4444', icon: Activity },
+  medication_adherence_score: { get label() { return t('Wellness.medication'); }, color: '#ec4899', icon: Pill },
 };
 
 const PRIORITY_COLORS = {
-  high: { bg: '#fef2f2', text: '#dc2626', border: '#fecaca' },
+  high: { bg: '#fef2f2', get text() { return t('Wellness.dc2626'); }, border: '#fecaca' },
   medium: { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
   low: { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
 };
@@ -63,7 +64,7 @@ const PRIORITY_COLORS = {
 const TREND_COLORS = {
   improving: { bg: '#f0fdf4', text: '#16a34a', icon: TrendingUp },
   stable: { bg: '#f3f4f6', text: '#6b7280', icon: Minus },
-  declining: { bg: '#fef2f2', text: '#dc2626', icon: TrendingDown },
+  declining: { bg: '#fef2f2', get text() { return t('Wellness.dc2626'); }, icon: TrendingDown },
 };
 
 const STREAM_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -122,7 +123,7 @@ function CircularScore({ score, size = 160, strokeWidth = 12 }) {
         }}
       >
         <span style={{ fontSize: 36, fontWeight: 800, color }}>{Math.round(score || 0)}</span>
-        <span style={{ fontSize: 12, color: '#9ca3af', marginTop: -2 }}>out of 100</span>
+        <span style={{ fontSize: 12, color: '#9ca3af', marginTop: -2 }}>{t('Wellness.out_of_100')}</span>
       </div>
     </div>
   );
@@ -180,7 +181,7 @@ function ErrorState({ message, onRetry }) {
       <p style={{ margin: 0, color: '#b91c1c', fontSize: 14, flex: 1 }}>{message}</p>
       {onRetry && (
         <button className="btn btn-secondary btn-sm" onClick={onRetry}>
-          Retry
+          {t('Wellness.retry')}
         </button>
       )}
     </div>
@@ -217,7 +218,7 @@ function ScoreTab() {
       );
     } catch (err) {
       console.error('Failed to load wellness score:', err);
-      setError(apiErrorMessage(err, 'Failed to load wellness score.'));
+      setError(apiErrorMessage(err, t('Wellness.failed_to_load_wellness_score')));
     } finally {
       setLoading(false);
     }
@@ -225,7 +226,7 @@ function ScoreTab() {
 
   if (loading) return <LoadingState message="Loading wellness score…" />;
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
-  if (!score) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>No score data available.</p>;
+  if (!score) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>{t('Wellness.no_score_data_available')}</p>;
 
   return (
     <div>
@@ -234,18 +235,18 @@ function ScoreTab() {
         {/* null means nothing could be measured — not a score of zero. */}
         {score.overall_score == null ? (
           <div style={{ minWidth: 140, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
-            Not enough<br/>data to score
+            {t('Wellness.not_enough')}<br/>{t('Wellness.data_to_score')}
           </div>
         ) : (
           <CircularScore score={score.overall_score} />
         )}
         <div style={{ flex: 1, minWidth: 240 }}>
           <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
-            Overall Wellness Score
+            {t('Wellness.overall_wellness_score')}
           </h3>
           {score.score_date && (
             <p style={{ margin: '0 0 16px', fontSize: 13, color: '#9ca3af' }}>
-              as of {new Date(score.score_date).toLocaleDateString()}
+              {t('Wellness.as_of', { value: new Date(score.score_date).toLocaleDateString() })}
             </p>
           )}
 
@@ -260,7 +261,7 @@ function ScoreTab() {
       {/* Explanation */}
       {score.explanation && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <h4 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: '#374151' }}>Analysis</h4>
+          <h4 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: '#374151' }}>{t('Wellness.analysis')}</h4>
           <p style={{ margin: 0, fontSize: 14, color: '#4b5563', lineHeight: 1.6 }}>{score.explanation}</p>
         </div>
       )}
@@ -269,7 +270,7 @@ function ScoreTab() {
       {history.length > 0 && (
         <div className="card">
           <h4 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600, color: '#374151' }}>
-            Score History (Last 30 Days)
+            {t('Wellness.score_history_last_30_days')}
           </h4>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={history} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
@@ -397,7 +398,7 @@ function HEBCSTab() {
       });
       setWiValues(prev => ({ ...seeds, ...prev }));
     } catch (err) {
-      setError(apiErrorMessage(err, 'Failed to load HEBCS Ω score.'));
+      setError(apiErrorMessage(err, t('Wellness.failed_to_load_hebcs_score')));
     } finally { setLoading(false); }
   }
 
@@ -413,7 +414,7 @@ function HEBCSTab() {
       const res = await api.post('/wellness/whatif', payload);
       setWiResult(res.data);
     } catch (err) {
-      setWiError(apiErrorMessage(err, 'What-If failed.'));
+      setWiError(apiErrorMessage(err, t('Wellness.what_if_failed')));
     } finally { setWiRunning(false); }
   }
 
@@ -428,7 +429,7 @@ function HEBCSTab() {
   if (omega.omega_pct == null) {
     return (
       <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-        <h3 style={{ margin: '0 0 .5rem', fontSize: '1.05rem' }}>No wellness score yet</h3>
+        <h3 style={{ margin: '0 0 .5rem', fontSize: '1.05rem' }}>{t('Wellness.no_wellness_score_yet')}</h3>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '.85rem', margin: 0 }}>
           {omega.interpretation
             || 'There are no lab results on file yet, so a score cannot be calculated. This is not a score of zero — nothing has been measured.'}
@@ -447,24 +448,24 @@ function HEBCSTab() {
         <OmegaGauge omega={omega.omega} />
         <div style={{ flex: 1, minWidth: 220 }}>
           <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
-            HEBCS Wellness Score
+            {t('Wellness.hebcs_wellness_score')}
           </h3>
           <p style={{ margin: '0 0 4px', fontSize: 13, color: '#6b7280' }}>
-            7-pathway trapezoidal scoring (J-BHI 2026)
+            {t('Wellness.text_7_pathway_trapezoidal_scoring_j_bhi_2026')}
           </p>
           {omega.lab_date_used && (
             <p style={{ margin: '0 0 12px', fontSize: 12, color: '#9ca3af' }}>
-              Latest labs: {new Date(omega.lab_date_used).toLocaleDateString()}
+              {t('Wellness.latest_labs', { value: new Date(omega.lab_date_used).toLocaleDateString() })}
             </p>
           )}
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6' }}>{Math.round(omega.omega_pct)}%</div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>Score (0–100)</div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>{t('Wellness.score_0_100')}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: covPct >= 60 ? '#10b981' : '#f59e0b' }}>{covPct}%</div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>Data coverage</div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>{t('Wellness.data_coverage')}</div>
             </div>
           </div>
         </div>
@@ -481,7 +482,7 @@ function HEBCSTab() {
       <div className="card" style={{ marginBottom: 20 }}>
         <h4 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600, color: '#374151' }}>
           <FlaskConical size={15} style={{ marginRight: 6, verticalAlign: -2, color: '#3b82f6' }} />
-          Pathway Breakdown
+          {t('Wellness.pathway_breakdown')}
         </h4>
         {Object.entries(pathways).map(([name, pw]) => (
           <PathwayBar key={name} name={name} score={pw.score} weight={pw.weight} />
@@ -492,10 +493,10 @@ function HEBCSTab() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <Sliders size={16} style={{ color: '#8b5cf6' }} />
-          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#374151' }}>What-If Simulator</h4>
+          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#374151' }}>{t('Wellness.what_if_simulator')}</h4>
         </div>
         <p style={{ margin: '0 0 18px', fontSize: 13, color: '#6b7280' }}>
-          Enable sliders for any biomarkers you want to adjust, then run the simulation to see the projected Ω impact.
+          {t('Wellness.enable_sliders_for_any_biomarkers_you')}
         </p>
 
         {WHATIF_INPUTS.map(wi => {
@@ -553,10 +554,10 @@ function HEBCSTab() {
           <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
             <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
               {[
-                { label: 'Baseline Ω', value: wiResult.baseline_omega?.toFixed(3), color: '#6b7280' },
-                { label: 'Scenario Ω', value: wiResult.scenario_omega?.toFixed(3), color: wiResult.delta_omega > 0 ? '#10b981' : wiResult.delta_omega < 0 ? '#ef4444' : '#6b7280' },
+                { label: t('Wellness.baseline'), value: wiResult.baseline_omega?.toFixed(3), color: '#6b7280' },
+                { label: t('Wellness.scenario'), value: wiResult.scenario_omega?.toFixed(3), color: wiResult.delta_omega > 0 ? '#10b981' : wiResult.delta_omega < 0 ? '#ef4444' : '#6b7280' },
                 {
-                  label: 'Change',
+                  label: t('Wellness.change'),
                   value: wiResult.delta_pct != null ? `${wiResult.delta_pct > 0 ? '+' : ''}${wiResult.delta_pct.toFixed(1)}pp` : '—',
                   color: wiResult.delta_omega > 0 ? '#10b981' : wiResult.delta_omega < 0 ? '#ef4444' : '#6b7280',
                 },
@@ -582,7 +583,7 @@ function HEBCSTab() {
                   <DeltaIcon size={14} style={{ color: deltaColor }} />
                   <span style={{ fontSize: 12, color: '#9ca3af' }}>{d.scenario_score != null ? `${Math.round(d.scenario_score * 100)}%` : '—'}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: deltaColor, minWidth: 48, textAlign: 'right' }}>
-                    {d.delta > 0 ? '+' : ''}{(d.delta * 100).toFixed(1)}pp
+                    {(d.delta > 0) ? t('Wellness.pp', { delta: (d.delta * 100).toFixed(1) }) : t('Wellness.pp_2', { delta: (d.delta * 100).toFixed(1) })}
                   </span>
                 </div>
               );
@@ -620,7 +621,7 @@ function TrendsTab() {
       setData(res.data);
     } catch (err) {
       console.error('Failed to load wellness trends:', err);
-      setError(apiErrorMessage(err, 'Failed to load trends.'));
+      setError(apiErrorMessage(err, t('Wellness.failed_to_load_trends')));
     } finally {
       setLoading(false);
     }
@@ -628,7 +629,7 @@ function TrendsTab() {
 
   if (loading) return <LoadingState message="Loading trends…" />;
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
-  if (!data) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>No trend data available.</p>;
+  if (!data) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>{t('Wellness.no_trend_data_available')}</p>;
 
   const streams = data.streams || [];
 
@@ -694,7 +695,7 @@ function TrendsTab() {
               </ResponsiveContainer>
             ) : (
               <p style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: 20 }}>
-                No data points
+                {t('Wellness.no_data_points')}
               </p>
             )}
           </div>
@@ -704,7 +705,7 @@ function TrendsTab() {
       {/* Correlations */}
       {data.correlations && data.correlations.length > 0 && (
         <div className="card" style={{ marginBottom: 16 }}>
-          <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 600, color: '#374151' }}>Correlations</h4>
+          <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 600, color: '#374151' }}>{t('Wellness.correlations')}</h4>
           <ul style={{ margin: 0, paddingLeft: 20 }}>
             {data.correlations.map((c, i) => (
               <li key={i} style={{ fontSize: 14, color: '#4b5563', marginBottom: 6, lineHeight: 1.5 }}>
@@ -720,7 +721,7 @@ function TrendsTab() {
         <div className="card">
           <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 600, color: '#374151' }}>
             <Lightbulb size={15} style={{ marginRight: 6, verticalAlign: -2, color: '#f59e0b' }} />
-            Suggestions
+            {t('Wellness.suggestions')}
           </h4>
           <ul style={{ margin: 0, paddingLeft: 20 }}>
             {data.suggestions.map((s, i) => (
@@ -755,7 +756,7 @@ function RecommendationsTab() {
       setData(res.data);
     } catch (err) {
       console.error('Failed to load recommendations:', err);
-      setError(apiErrorMessage(err, 'Failed to load recommendations.'));
+      setError(apiErrorMessage(err, t('Wellness.failed_to_load_recommendations')));
     } finally {
       setLoading(false);
     }
@@ -763,7 +764,7 @@ function RecommendationsTab() {
 
   if (loading) return <LoadingState message="Loading recommendations…" />;
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
-  if (!data) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>No recommendations available.</p>;
+  if (!data) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>{t('Wellness.no_recommendations_available')}</p>;
 
   // Gather all recommendation items – combine the general list with named category arrays
   const allRecs = [];
@@ -796,14 +797,14 @@ function RecommendationsTab() {
     <div>
       {data.date && (
         <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 16 }}>
-          Generated on {new Date(data.date).toLocaleDateString()}
+          {t('Wellness.generated_on', { value: new Date(data.date).toLocaleDateString() })}
         </p>
       )}
 
       {Object.keys(grouped).length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: 40 }}>
           <Lightbulb size={36} style={{ color: '#d1d5db', marginBottom: 10 }} />
-          <p style={{ margin: 0, color: '#6b7280' }}>No recommendations at this time.</p>
+          <p style={{ margin: 0, color: '#6b7280' }}>{t('Wellness.no_recommendations_at_this_time')}</p>
         </div>
       )}
 
@@ -897,11 +898,11 @@ function RecommendationsTab() {
    IMPROVEMENTS TAB
    ============================================================ */
 const IMPROVEMENT_SECTIONS = [
-  { key: 'nutrition_improvements', label: 'Nutrition', icon: Utensils, color: '#10b981' },
-  { key: 'fitness_improvements', label: 'Fitness', icon: Dumbbell, color: '#3b82f6' },
-  { key: 'sleep_improvements', label: 'Sleep', icon: Moon, color: '#8b5cf6' },
-  { key: 'mood_improvements', label: 'Mood', icon: Smile, color: '#f59e0b' },
-  { key: 'medical_improvements', label: 'Medical', icon: Stethoscope, color: '#ef4444' },
+  { key: 'nutrition_improvements', get label() { return t('Wellness.nutrition'); }, icon: Utensils, color: '#10b981' },
+  { key: 'fitness_improvements', get label() { return t('Wellness.fitness'); }, icon: Dumbbell, color: '#3b82f6' },
+  { key: 'sleep_improvements', get label() { return t('Wellness.sleep'); }, icon: Moon, color: '#8b5cf6' },
+  { key: 'mood_improvements', get label() { return t('Wellness.mood'); }, icon: Smile, color: '#f59e0b' },
+  { key: 'medical_improvements', get label() { return t('Wellness.medical'); }, icon: Stethoscope, color: '#ef4444' },
 ];
 
 function ImprovementsTab() {
@@ -928,7 +929,7 @@ function ImprovementsTab() {
       setExpanded(expMap);
     } catch (err) {
       console.error('Failed to load improvements:', err);
-      setError(apiErrorMessage(err, 'Failed to load improvements.'));
+      setError(apiErrorMessage(err, t('Wellness.failed_to_load_improvements')));
     } finally {
       setLoading(false);
     }
@@ -940,7 +941,7 @@ function ImprovementsTab() {
 
   if (loading) return <LoadingState message="Loading improvements…" />;
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
-  if (!data) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>No improvement data available.</p>;
+  if (!data) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>{t('Wellness.no_improvement_data_available')}</p>;
 
   return (
     <div>
@@ -953,7 +954,7 @@ function ImprovementsTab() {
         )}
         <div style={{ flex: 1, minWidth: 200 }}>
           <h3 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#1f2937' }}>
-            Improvement Plan
+            {t('Wellness.improvement_plan')}
           </h3>
           {data.summary && (
             <p style={{ margin: 0, fontSize: 14, color: '#4b5563', lineHeight: 1.6 }}>{data.summary}</p>
@@ -1011,7 +1012,7 @@ function ImprovementsTab() {
                   marginRight: 8,
                 }}
               >
-                {items.length} item{items.length !== 1 ? 's' : ''}
+                {(items.length !== 1) ? t('Wellness.items', { items: items.length }) : t('Wellness.item', { items: items.length })}
               </span>
               {isOpen ? (
                 <ChevronDown size={18} style={{ color: '#9ca3af' }} />
@@ -1095,11 +1096,11 @@ export default function Wellness() {
           <BackButton />
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Heart size={28} style={{ color: 'var(--color-primary)' }} />
-            Wellness
+            {t('Wellness.wellness')}
           </h1>
         </div>
         <p style={{ color: '#6b7280', margin: '4px 0 0', fontSize: 14 }}>
-          Track your overall health and wellness journey
+          {t('Wellness.track_your_overall_health_and_wellness')}
         </p>
       </div>
 

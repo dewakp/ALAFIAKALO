@@ -11,6 +11,7 @@ import {
   AlertCircle, Star, Shield, Clock, ArrowLeft, AtSign, TrendingUp,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 /* ═══════════════════════════════════════════════
    MAIN MESSAGING COMPONENT
@@ -64,30 +65,30 @@ export default function Messaging() {
             <BackButton />
             <h1 style={{ fontSize: '1.8rem', margin: 0 }}>
               <MessageSquare size={28} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-              Messaging
+              {translate('Messaging.messaging')}
             </h1>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <HubCard icon={<MessageSquare size={32} />} title="Direct Messages"
+          <HubCard icon={<MessageSquare size={32} />} title={translate('Messaging.direct_messages')}
             desc="Private 1-on-1 conversations with peers or clinicians"
             onClick={() => { setConvFilter('direct'); setView('conversations'); }} />
-          <HubCard icon={<Users size={32} />} title="Clinical Channels"
+          <HubCard icon={<Users size={32} />} title={translate('Messaging.clinical_channels')}
             desc="Communicate with your care team — physicians, nurses, social workers"
             onClick={() => { setConvFilter('clinical'); setView('conversations'); }} />
-          <HubCard icon={<MessageCircle size={32} />} title="Group Chats"
+          <HubCard icon={<MessageCircle size={32} />} title={translate('Messaging.group_chats')}
             desc="Group conversations and care team channels"
             onClick={() => { setConvFilter('group'); setView('conversations'); }} />
-          <HubCard icon={<Globe size={32} />} title="Community Feed"
+          <HubCard icon={<Globe size={32} />} title={translate('Messaging.community_feed')}
             desc="Public timeline — share, discuss, and support each other"
             onClick={() => setView('feed')} />
         </div>
         <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
           <button className="btn btn-primary" onClick={() => { setConvFilter('all'); setView('conversations'); }}>
-            All Conversations
+            {translate('Messaging.all_conversations')}
           </button>
           <button className="btn btn-secondary" onClick={() => setView('feed')}>
-            Browse Feed
+            {translate('Messaging.browse_feed')}
           </button>
         </div>
       </div>
@@ -100,7 +101,7 @@ export default function Messaging() {
       <div className="page-container">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setView('hub')}>
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> {translate('Messaging.back')}
           </button>
           <h2 style={{ flex: 1, margin: 0 }}>
             {convFilter === 'all' ? 'All Conversations' :
@@ -109,7 +110,7 @@ export default function Messaging() {
              convFilter === 'group' ? 'Group Chats' : 'Care Team'}
           </h2>
           <button className="btn btn-primary btn-sm" onClick={() => setShowCreate('conv')}>
-            <Plus size={16} /> New
+            <Plus size={16} /> {translate('Messaging.new')}
           </button>
         </div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -125,9 +126,9 @@ export default function Messaging() {
          conversations.length === 0 ? (
           <div className="text-center" style={{ padding: 40, color: '#888' }}>
             <MessageSquare size={48} style={{ opacity: 0.3 }} />
-            <p>No conversations yet</p>
+            <p>{translate('Messaging.no_conversations_yet')}</p>
             <button className="btn btn-primary" onClick={() => setShowCreate('conv')}>
-              Start a Conversation
+              {translate('Messaging.start_a_conversation')}
             </button>
           </div>
         ) : (
@@ -167,11 +168,11 @@ export default function Messaging() {
       <div className="page-container">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setView('hub')}>
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> {translate('Messaging.back')}
           </button>
-          <h2 style={{ flex: 1, margin: 0 }}>Community Feed</h2>
+          <h2 style={{ flex: 1, margin: 0 }}>{translate('Messaging.community_feed')}</h2>
           <button className="btn btn-primary btn-sm" onClick={() => setShowCreate('post')}>
-            <Plus size={16} /> Post
+            <Plus size={16} /> {translate('Messaging.post')}
           </button>
         </div>
 
@@ -181,9 +182,9 @@ export default function Messaging() {
          posts.length === 0 ? (
           <div className="text-center" style={{ padding: 40, color: '#888' }}>
             <Globe size={48} style={{ opacity: 0.3 }} />
-            <p>No posts yet. Be the first to share!</p>
+            <p>{translate('Messaging.no_posts_yet_be_the_first_to_share')}</p>
             <button className="btn btn-primary" onClick={() => setShowCreate('post')}>
-              Create Post
+              {translate('Messaging.create_post')}
             </button>
           </div>
         ) : (
@@ -289,10 +290,10 @@ function ConversationRow({ conv, onClick }) {
    ═══════════════════════════════════════════════ */
 
 const CONVERSATION_TYPES = [
-  { value: 'direct',    label: 'Direct Message' },
-  { value: 'clinical',  label: 'Clinical' },
-  { value: 'group',     label: 'Group Chat' },
-  { value: 'care_team', label: 'Care Team' },
+  { value: 'direct',    get label() { return translate('Messaging.direct_message'); } },
+  { value: 'clinical',  get label() { return translate('Messaging.clinical'); } },
+  { value: 'group',     get label() { return translate('Messaging.group_chat'); } },
+  { value: 'care_team', get label() { return translate('Messaging.care_team'); } },
 ];
 
 const typeLabel = (v) => CONVERSATION_TYPES.find(t => t.value === v)?.label || v;
@@ -332,8 +333,8 @@ export function RecipientPicker({ selected, onChange, max }) {
         if (!cancelled) {
           setResults([]);
           setSearchError(e?.response?.status === 429
-            ? 'Too many searches just now — pause a moment and try again.'
-            : 'Could not search right now.');
+            ? translate('Messaging.too_many_searches_just_now_pause_a')
+            : translate('Messaging.could_not_search_right_now'));
         }
       } finally {
         if (!cancelled) { setSearching(false); setTouched(true); }
@@ -377,7 +378,7 @@ export function RecipientPicker({ selected, onChange, max }) {
         <div style={{ position: 'relative' }}>
           <input className="form-control" value={term} autoComplete="off"
             onChange={e => { setTerm(e.target.value); setTouched(false); }}
-            placeholder="Search by name, email or phone" />
+            placeholder={translate('Messaging.search_by_name_email_or_phone')} />
           {searching && (
             <Loader2 size={16} className="spin"
               style={{ position: 'absolute', right: 10, top: 11, color: '#888' }} />
@@ -401,7 +402,7 @@ export function RecipientPicker({ selected, onChange, max }) {
                   <div style={{ fontWeight: 600 }}>{p.full_name}</div>
                   <div style={{ fontSize: '0.78rem', color: '#888' }}>
                     {p.email || p.email_hint || p.phone_hint || ''}
-                    {p.connected && <span style={{ marginLeft: 6 }}>· shared contact</span>}
+                    {p.connected && <span style={{ marginLeft: 6 }}>{translate('Messaging.shared_contact')}</span>}
                   </div>
                     </div>
                   </div>
@@ -416,13 +417,12 @@ export function RecipientPicker({ selected, onChange, max }) {
         ? <div style={{ fontSize: '0.78rem', color: '#d32f2f', marginTop: 6 }}>{searchError}</div>
         : touched && term.trim().length >= 2 && results.length === 0 && (
             <div style={{ fontSize: '0.78rem', color: '#888', marginTop: 6 }}>
-              Nobody found. You can find your own contacts by name — to reach
-              anyone else, enter their full email address or phone number.
+              {translate('Messaging.nobody_found_you_can_find_your_own')}
             </div>
           )}
       {full && (
         <div style={{ fontSize: '0.78rem', color: '#888', marginTop: 6 }}>
-          A direct message goes to one person. Remove them to pick someone else.
+          {translate('Messaging.a_direct_message_goes_to_one_person')}
         </div>
       )}
     </div>
@@ -453,7 +453,7 @@ export function CreateConversationModal({ defaultType, typeLocked, onClose, onCr
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (recipients.length === 0) {
-      setError(isDirect ? 'Choose who to message.' : 'Add at least one person.');
+      setError(isDirect ? translate('Messaging.choose_who_to_message') : translate('Messaging.add_at_least_one_person'));
       return;
     }
     setSubmitting(true);
@@ -476,8 +476,8 @@ export function CreateConversationModal({ defaultType, typeLocked, onClose, onCr
     <div className="modal-overlay" onClick={onClose}>
       <div className="card modal-content" onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <h3 style={{ margin: 0 }}>New Conversation</h3>
-          <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close"><X size={16} /></button>
+          <h3 style={{ margin: 0 }}>{translate('Messaging.new_conversation')}</h3>
+          <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label={translate('Messaging.close')}><X size={16} /></button>
         </div>
 
         {!editingType ? (
@@ -486,7 +486,7 @@ export function CreateConversationModal({ defaultType, typeLocked, onClose, onCr
             <button type="button" onClick={() => setEditingType(true)}
               style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer',
                        color: 'var(--color-primary)', fontSize: '0.85rem', fontWeight: 600 }}>
-              Change
+              {translate('Messaging.change')}
             </button>
           </div>
         ) : <div style={{ marginBottom: 12 }} />}
@@ -494,7 +494,7 @@ export function CreateConversationModal({ defaultType, typeLocked, onClose, onCr
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {editingType && (
             <div>
-              <label className="form-label">Type</label>
+              <label className="form-label">{translate('Messaging.type')}</label>
               <select className="form-control" value={form.conversation_type}
                 onChange={e => setForm({ ...form, conversation_type: e.target.value })}>
                 {CONVERSATION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -511,42 +511,42 @@ export function CreateConversationModal({ defaultType, typeLocked, onClose, onCr
           {/* A direct message is named by whoever is in it. */}
           {!isDirect && (
             <div>
-              <label className="form-label">Name</label>
+              <label className="form-label">{translate('Messaging.name')}</label>
               <input className="form-control" value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
-                placeholder="Channel name" />
+                placeholder={translate('Messaging.channel_name')} />
             </div>
           )}
 
           {isClinical && (
             <>
               <div>
-                <label className="form-label">Specialty</label>
+                <label className="form-label">{translate('Messaging.specialty')}</label>
                 <input className="form-control" value={form.specialty}
-                  onChange={e => setForm({ ...form, specialty: e.target.value })} placeholder="e.g. Cardiology" />
+                  onChange={e => setForm({ ...form, specialty: e.target.value })} placeholder={translate('Messaging.e_g_cardiology')} />
               </div>
               <div>
-                <label className="form-label">Priority</label>
+                <label className="form-label">{translate('Messaging.priority')}</label>
                 <select className="form-control" value={form.priority}
                   onChange={e => setForm({ ...form, priority: e.target.value })}>
-                  <option value="routine">Routine</option>
-                  <option value="urgent">Urgent</option>
-                  <option value="stat">Stat</option>
+                  <option value="routine">{translate('Messaging.routine')}</option>
+                  <option value="urgent">{translate('Messaging.urgent')}</option>
+                  <option value="stat">{translate('Messaging.stat')}</option>
                 </select>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input type="checkbox" checked={form.is_urgent}
                   onChange={e => setForm({ ...form, is_urgent: e.target.checked })} />
-                Mark as urgent
+                {translate('Messaging.mark_as_urgent')}
               </label>
             </>
           )}
 
           <div>
-            <label className="form-label">Description</label>
+            <label className="form-label">{translate('Messaging.description')}</label>
             <textarea className="form-control" rows={2} value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="Optional" />
+              placeholder={translate('Messaging.optional')} />
           </div>
 
           {error && (
@@ -654,8 +654,7 @@ function ChatView({ conv, onBack, userId }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700 }}>{conv.title || typeLabels[conv.conversation_type] || 'Chat'}</div>
           <div style={{ fontSize: 12, color: '#888' }}>
-            {conv.members?.length || 0} members · {typeLabels[conv.conversation_type]}
-            {conv.specialty && ` · ${conv.specialty}`}
+            {translate('Messaging.members', { members: conv.members?.length || 0, typeLabels: typeLabels[conv.conversation_type], specialty: conv.specialty && ` · ${conv.specialty}` })}
           </div>
         </div>
         <button className="btn btn-secondary btn-sm" onClick={() => setShowInfo(!showInfo)}>
@@ -671,7 +670,7 @@ function ChatView({ conv, onBack, userId }) {
           ) : messages.length === 0 ? (
             <div className="text-center" style={{ color: '#888', margin: 'auto' }}>
               <MessageSquare size={48} style={{ opacity: 0.3 }} />
-              <p>No messages yet. Start the conversation!</p>
+              <p>{translate('Messaging.no_messages_yet_start_the_conversation')}</p>
             </div>
           ) : (
             <>
@@ -686,15 +685,15 @@ function ChatView({ conv, onBack, userId }) {
         {/* Info panel */}
         {showInfo && (
           <div style={{ width: 260, borderLeft: '1px solid #e0e0e0', padding: 16, overflowY: 'auto' }}>
-            <h4 style={{ marginTop: 0 }}>Details</h4>
+            <h4 style={{ marginTop: 0 }}>{translate('Messaging.details')}</h4>
             <p style={{ fontSize: 13, color: '#666' }}>{conv.description || 'No description'}</p>
-            {conv.specialty && <p style={{ fontSize: 13 }}><strong>Specialty:</strong> {conv.specialty}</p>}
-            {conv.priority && <p style={{ fontSize: 13 }}><strong>Priority:</strong> {conv.priority}</p>}
-            <h4>Members ({conv.members?.length || 0})</h4>
+            {conv.specialty && <p style={{ fontSize: 13 }}><strong>{translate('Messaging.specialty_2')}</strong> {conv.specialty}</p>}
+            {conv.priority && <p style={{ fontSize: 13 }}><strong>{translate('Messaging.priority_2')}</strong> {conv.priority}</p>}
+            <h4>{translate('Messaging.members_2', { members: conv.members?.length || 0 })}</h4>
             {(conv.members || []).map(m => (
               <div key={m.id} style={{ fontSize: 13, padding: '4px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Users size={14} />
-                User #{m.user_id}
+                {translate('Messaging.user', { user_id: m.user_id })}
                 <span style={{ fontSize: 11, color: '#888' }}>({m.role})</span>
               </div>
             ))}
@@ -713,7 +712,7 @@ function ChatView({ conv, onBack, userId }) {
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-          placeholder="Type a message..."
+          placeholder={translate('Messaging.type_a_message')}
           disabled={sending}
         />
         <button className="btn btn-primary" onClick={sendMessage} disabled={sending || !text.trim()}>
@@ -728,7 +727,7 @@ function MessageBubble({ msg, isOwn }) {
   if (msg.is_deleted) {
     return (
       <div style={{ textAlign: 'center', margin: '8px 0', fontSize: 12, color: '#aaa', fontStyle: 'italic' }}>
-        Message deleted
+        {translate('Messaging.message_deleted')}
       </div>
     );
   }
@@ -927,7 +926,7 @@ function CreatePostModal({ onClose, onCreated }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="card modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 550, width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h3 style={{ margin: 0 }}>Create Post</h3>
+          <h3 style={{ margin: 0 }}>{translate('Messaging.create_post')}</h3>
           <button className="btn btn-secondary btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -936,7 +935,7 @@ function CreatePostModal({ onClose, onCreated }) {
             rows={4}
             value={form.content}
             onChange={e => setForm({ ...form, content: e.target.value })}
-            placeholder="What's on your mind? Share your health journey..."
+            placeholder={translate('Messaging.what_s_on_your_mind_share_your_health')}
             maxLength={5000}
             style={{ resize: 'vertical' }}
           />
@@ -944,45 +943,45 @@ function CreatePostModal({ onClose, onCreated }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div>
-              <label className="form-label">Visibility</label>
+              <label className="form-label">{translate('Messaging.visibility')}</label>
               <select className="form-control" value={form.visibility}
                 onChange={e => setForm({ ...form, visibility: e.target.value })}>
-                <option value="public">🌍 Public</option>
-                <option value="followers">👥 Followers</option>
-                <option value="connections">🤝 Connections</option>
-                <option value="private">🔒 Private</option>
+                <option value="public">{translate('Messaging.public')}</option>
+                <option value="followers">{translate('Messaging.followers')}</option>
+                <option value="connections">{translate('Messaging.connections')}</option>
+                <option value="private">{translate('Messaging.private')}</option>
               </select>
             </div>
             <div>
-              <label className="form-label">Topic</label>
+              <label className="form-label">{translate('Messaging.topic')}</label>
               <select className="form-control" value={form.topic}
                 onChange={e => setForm({ ...form, topic: e.target.value })}>
-                <option value="">— None —</option>
+                <option value="">{translate('Messaging.none')}</option>
                 {TOPICS.filter(Boolean).map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="form-label">Health Category</label>
+              <label className="form-label">{translate('Messaging.health_category')}</label>
               <select className="form-control" value={form.health_category}
                 onChange={e => setForm({ ...form, health_category: e.target.value })}>
-                <option value="">— None —</option>
+                <option value="">{translate('Messaging.none')}</option>
                 {HEALTH_CATEGORIES.filter(Boolean).map(c => (
                   <option key={c} value={c}>{c.replace('_', ' ')}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="form-label">Hashtags</label>
+              <label className="form-label">{translate('Messaging.hashtags')}</label>
               <input className="form-control" value={form.hashtags}
                 onChange={e => setForm({ ...form, hashtags: e.target.value })}
-                placeholder="e.g. wellness, fitness" />
+                placeholder={translate('Messaging.e_g_wellness_fitness')} />
             </div>
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" checked={form.is_anonymous}
               onChange={e => setForm({ ...form, is_anonymous: e.target.checked })} />
-            Post anonymously
+            {translate('Messaging.post_anonymously')}
           </label>
 
           <button className="btn btn-primary" type="submit" disabled={submitting || !form.content.trim()}>
@@ -1042,12 +1041,12 @@ function PostDetailView({ postId, userId, onBack }) {
   };
 
   if (loading) return <div className="text-center" style={{ padding: 40 }}><Loader2 size={24} className="spin" /></div>;
-  if (!post) return <div className="text-center" style={{ padding: 40 }}>Post not found</div>;
+  if (!post) return <div className="text-center" style={{ padding: 40 }}>{translate('Messaging.post_not_found')}</div>;
 
   return (
     <div className="page-container" style={{ maxWidth: 700, margin: '0 auto' }}>
       <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ marginBottom: 16 }}>
-        <ArrowLeft size={16} /> Back to Feed
+        <ArrowLeft size={16} /> {translate('Messaging.back_to_feed')}
       </button>
 
       {/* Post */}
@@ -1064,7 +1063,7 @@ function PostDetailView({ postId, userId, onBack }) {
             <div style={{ fontSize: 12, color: '#888' }}>
               {fmtDateTime(post.created_at)}
               {post.topic && <span style={{ marginLeft: 8 }}><Hash size={10} style={{ verticalAlign: 'middle' }} />{post.topic}</span>}
-              {post.is_edited && <span style={{ marginLeft: 8, fontStyle: 'italic' }}>(edited)</span>}
+              {post.is_edited && <span style={{ marginLeft: 8, fontStyle: 'italic' }}>{translate('Messaging.edited')}</span>}
             </div>
           </div>
         </div>
@@ -1113,7 +1112,7 @@ function PostDetailView({ postId, userId, onBack }) {
           value={replyText}
           onChange={e => setReplyText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); sendReply(); } }}
-          placeholder="Write a reply..."
+          placeholder={translate('Messaging.write_a_reply')}
           disabled={sending}
         />
         <button className="btn btn-primary" onClick={sendReply} disabled={sending || !replyText.trim()}>
@@ -1122,9 +1121,9 @@ function PostDetailView({ postId, userId, onBack }) {
       </div>
 
       {/* Replies */}
-      <h3>Replies ({replies.length})</h3>
+      <h3>{translate('Messaging.replies', { replies: replies.length })}</h3>
       {replies.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 14 }}>No replies yet. Be the first to respond!</p>
+        <p style={{ color: '#888', fontSize: 14 }}>{translate('Messaging.no_replies_yet_be_the_first_to_respond')}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {replies.map(r => (
@@ -1137,9 +1136,9 @@ function PostDetailView({ postId, userId, onBack }) {
                 }}>
                   #{r.author_id}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>User #{r.author_id}</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{translate('Messaging.user_2', { author_id: r.author_id })}</div>
                 <div style={{ fontSize: 11, color: '#888' }}>{fmtDateTime(r.created_at)}</div>
-                {r.is_edited && <span style={{ fontSize: 11, fontStyle: 'italic', color: '#888' }}>(edited)</span>}
+                {r.is_edited && <span style={{ fontSize: 11, fontStyle: 'italic', color: '#888' }}>{translate('Messaging.edited')}</span>}
               </div>
               <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{r.content}</div>
             </div>

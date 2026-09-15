@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
 import { Hospital, Search, Link2, RefreshCw, Trash2, CheckCircle2, Loader2 } from 'lucide-react';
+import { t } from '../i18n';
 
 /* Patient-portal (MyChart / SMART on FHIR) connections: search any Epic-hosted
    organization (Kaiser Permanente, Trinity Health, …), sign in on the portal's
@@ -30,9 +31,9 @@ export default function EHRPortals() {
     try {
       const { data } = await api.get('/ehr/organizations', { params: { search: query } });
       setOrgs(data);
-      if (!data.length) setMessage({ type: 'info', text: 'No organizations matched — try a different name (e.g. "Kaiser", "Trinity").' });
+      if (!data.length) setMessage({ type: 'info', text: t('EHRPortals.no_organizations_matched_try_a_different') });
     } catch (err) {
-      setMessage({ type: 'error', text: apiErrorMessage(err, 'Search failed') });
+      setMessage({ type: 'error', text: apiErrorMessage(err, t('EHRPortals.search_failed')) });
     } finally { setSearching(false); }
   }
 
@@ -43,7 +44,7 @@ export default function EHRPortals() {
       // Off to the portal's own MyChart sign-in page.
       window.location.href = data.authorize_url;
     } catch (err) {
-      setMessage({ type: 'error', text: apiErrorMessage(err, 'Could not start the connection') });
+      setMessage({ type: 'error', text: apiErrorMessage(err, t('EHRPortals.could_not_start_the_connection')) });
       setBusyId(null);
     }
   }
@@ -55,16 +56,16 @@ export default function EHRPortals() {
       const s = data.synced;
       setMessage({
         type: 'success',
-        text: `Synced from ${data.org_name}: ${s.labs} labs, ${s.vitals} vitals, ${s.medications} medications, ${s.conditions} conditions.`,
+        text: t('EHRPortals.synced_from_labs_vitals_medications', { org_name: data.org_name, labs: s.labs, vitals: s.vitals, medications: s.medications, conditions: s.conditions }),
       });
       loadConnections();
     } catch (err) {
-      setMessage({ type: 'error', text: apiErrorMessage(err, 'Sync failed') });
+      setMessage({ type: 'error', text: apiErrorMessage(err, t('EHRPortals.sync_failed')) });
     } finally { setBusyId(null); }
   }
 
   async function disconnect(conn) {
-    if (!confirm(`Disconnect ${conn.org_name || conn.provider}?`)) return;
+    if (!confirm(t('EHRPortals.disconnect', { org_name: conn.org_name || conn.provider }))) return;
     await api.delete(`/ehr/connections/${conn.id}`);
     loadConnections();
   }
@@ -75,11 +76,10 @@ export default function EHRPortals() {
     <div className="card" style={{ marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.25rem' }}>
         <Hospital size={20} style={{ color: 'var(--color-primary)' }} />
-        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Patient Portals (MyChart)</h2>
+        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>{t('EHRPortals.patient_portals_mychart')}</h2>
       </div>
       <p style={{ margin: '0 0 1rem', color: 'var(--color-text-secondary)', fontSize: '.9rem' }}>
-        Connect any MyChart portal — Kaiser Permanente, Trinity Health, and hundreds more. You sign in on
-        your portal's own page; ALAFIA never sees your portal password.
+        {t('EHRPortals.connect_any_mychart_portal_kaiser')}
       </p>
 
       {message && (
@@ -113,7 +113,7 @@ export default function EHRPortals() {
               <button className="btn btn-primary btn-sm" disabled={busyId === `conn-${conn.id}`}
                 onClick={() => syncNow(conn)}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {busyId === `conn-${conn.id}` ? spinner : <RefreshCw size={13} />} Sync
+                {busyId === `conn-${conn.id}` ? spinner : <RefreshCw size={13} />} {t('EHRPortals.sync')}
               </button>
               <button className="btn btn-secondary btn-sm" onClick={() => disconnect(conn)}>
                 <Trash2 size={13} />
@@ -127,10 +127,10 @@ export default function EHRPortals() {
       <form onSubmit={search} style={{ display: 'flex', gap: '.5rem', marginBottom: '.75rem' }}>
         <input className="form-input" style={{ flex: 1 }} value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Find your healthcare organization — e.g. Kaiser, Trinity…" />
+          placeholder={t('EHRPortals.find_your_healthcare_organization_e_g')} />
         <button className="btn btn-primary" type="submit" disabled={searching}
           style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {searching ? spinner : <Search size={15} />} Search
+          {searching ? spinner : <Search size={15} />} {t('EHRPortals.search')}
         </button>
       </form>
 
@@ -146,14 +146,14 @@ export default function EHRPortals() {
                 {org.vendor === 'sandbox' && (
                   <span style={{ marginLeft: 8, fontSize: '.72rem', padding: '1px 8px', borderRadius: 10,
                     background: 'var(--color-bg-secondary, var(--color-bg))', color: 'var(--color-text-secondary)' }}>
-                    test portal
+                    {t('EHRPortals.test_portal')}
                   </span>
                 )}
               </span>
               <button className="btn btn-secondary btn-sm" disabled={busyId === `org-${org.id}`}
                 onClick={() => connect(org)}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {busyId === `org-${org.id}` ? spinner : <Link2 size={13} />} Connect
+                {busyId === `org-${org.id}` ? spinner : <Link2 size={13} />} {t('EHRPortals.connect')}
               </button>
             </div>
           ))}

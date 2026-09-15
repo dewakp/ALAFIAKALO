@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import i18n, { SUPPORTED_LANGUAGES, normaliseLanguage } from '../i18n';
+import i18n, { SUPPORTED_LANGUAGES, normaliseLanguage, t as translate } from '../i18n';
 import AvatarUpload from '../components/AvatarUpload';
 import BackButton from '../components/BackButton';
 import UnitToggle from '../components/UnitToggle';
@@ -150,7 +150,7 @@ export default function Profile() {
       // header the assistant reads never contradicts the choice just made.
       const chosen = normaliseLanguage(payload.preferred_language);
       if (chosen && chosen !== i18n.language) i18n.changeLanguage(chosen);
-      setMessage('Profile updated successfully.');
+      setMessage(translate('Profile.profile_updated_successfully'));
       setMessageType('info');
       // Re-lock set-once fields after save
       setLocked({
@@ -159,7 +159,7 @@ export default function Profile() {
         blood_type: !!form.blood_type,
       });
     } catch (err) {
-      setMessage(apiErrorMessage(err, 'Failed to update profile.'));
+      setMessage(apiErrorMessage(err, translate('Profile.failed_to_update_profile')));
       setMessageType('error');
     } finally {
       setSaving(false);
@@ -201,7 +201,7 @@ export default function Profile() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">Profile</h1>
+          <h1 className="page-title">{translate('Profile.profile')}</h1>
         </div>
       </div>
 
@@ -209,7 +209,7 @@ export default function Profile() {
       <div className="card" style={sectionStyle}>
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">{translate('Profile.email')}</label>
             <input className="form-input" value={email} readOnly style={{ opacity: 0.6 }} />
           </div>
         </div>
@@ -228,12 +228,12 @@ export default function Profile() {
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">First Name</label>
+                <label className="form-label">{translate('Profile.first_name')}</label>
                 <input className="form-input" autoComplete="given-name" minLength={3}
                        value={form.first_name} onChange={(e) => updateField('first_name', e.target.value)} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Last Name</label>
+                <label className="form-label">{translate('Profile.last_name')}</label>
                 <input className="form-input" autoComplete="family-name" minLength={3}
                        value={form.last_name} onChange={(e) => updateField('last_name', e.target.value)} required />
               </div>
@@ -244,39 +244,39 @@ export default function Profile() {
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Prefix</label>
-                <input className="form-input" placeholder="Dr., Mrs., Chief"
+                <label className="form-label">{translate('Profile.prefix')}</label>
+                <input className="form-input" placeholder={translate('Profile.dr_mrs_chief')}
                        value={form.name_prefix} onChange={(e) => updateField('name_prefix', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Middle Name</label>
+                <label className="form-label">{translate('Profile.middle_name')}</label>
                 <input className="form-input" autoComplete="additional-name"
                        value={form.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Suffix</label>
-                <input className="form-input" placeholder="Jr., III, RN"
+                <label className="form-label">{translate('Profile.suffix')}</label>
+                <input className="form-input" placeholder={translate('Profile.jr_iii_rn')}
                        value={form.name_suffix} onChange={(e) => updateField('name_suffix', e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Gender Identity</label>
+                <label className="form-label">{translate('Profile.gender_identity')}</label>
                 <select className="form-input" value={form.gender} onChange={(e) => updateField('gender', e.target.value)}>
                   <option value="">—</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
+                  <option value="Male">{translate('Profile.male')}</option>
+                  <option value="Female">{translate('Profile.female')}</option>
+                  <option value="Non-binary">{translate('Profile.non_binary')}</option>
+                  <option value="Prefer not to say">{translate('Profile.prefer_not_to_say')}</option>
                 </select>
               </div>
               <div className="form-group">
                 <label className="form-label">{'Sex at Birth' + (locked.gender_at_birth ? lockLabel : '')}</label>
                 <select className="form-input" value={form.gender_at_birth} onChange={(e) => updateField('gender_at_birth', e.target.value)} disabled={locked.gender_at_birth} style={locked.gender_at_birth ? { opacity: 0.6 } : {}}>
                   <option value="">—</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Intersex">Intersex</option>
+                  <option value="Male">{translate('Profile.male')}</option>
+                  <option value="Female">{translate('Profile.female')}</option>
+                  <option value="Intersex">{translate('Profile.intersex')}</option>
                 </select>
               </div>
               <div className="form-group">
@@ -289,7 +289,7 @@ export default function Profile() {
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Profile Picture URL</label>
+                <label className="form-label">{translate('Profile.profile_picture_url')}</label>
                 <input className="form-input" value={form.profile_picture_url} onChange={(e) => updateField('profile_picture_url', e.target.value)} />
               </div>
             </div>
@@ -300,15 +300,15 @@ export default function Profile() {
             {sectionTitle('Insurance')}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Insurance ID</label>
+                <label className="form-label">{translate('Profile.insurance_id')}</label>
                 <input className="form-input" value={form.insurance_id} onChange={(e) => updateField('insurance_id', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Provider</label>
+                <label className="form-label">{translate('Profile.provider')}</label>
                 <input className="form-input" value={form.insurance_provider} onChange={(e) => updateField('insurance_provider', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Country</label>
+                <label className="form-label">{translate('Profile.country')}</label>
                 <input className="form-input" value={form.insurance_country} onChange={(e) => updateField('insurance_country', e.target.value)} />
               </div>
             </div>
@@ -333,7 +333,7 @@ export default function Profile() {
             </div>
             {isImperial && (
               <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary, #777)', margin: '0.25rem 0 0' }}>
-                Values are stored in metric and shown here in imperial.
+                {translate('Profile.values_are_stored_in_metric_and_shown')}
               </p>
             )}
           </div>
@@ -343,15 +343,15 @@ export default function Profile() {
             {sectionTitle('Location & Preferences')}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Country</label>
+                <label className="form-label">{translate('Profile.country')}</label>
                 <input className="form-input" value={form.country} onChange={(e) => updateField('country', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Timezone</label>
-                <input className="form-input" value={form.timezone} onChange={(e) => updateField('timezone', e.target.value)} placeholder="e.g. America/New_York" />
+                <label className="form-label">{translate('Profile.timezone')}</label>
+                <input className="form-input" value={form.timezone} onChange={(e) => updateField('timezone', e.target.value)} placeholder={translate('Profile.e_g_america_new_york')} />
               </div>
               <div className="form-group">
-                <label className="form-label">Preferred Language</label>
+                <label className="form-label">{translate('Profile.preferred_language')}</label>
                 {/* All eleven languages, each in its own name. A stored "English"
                     (iOS saves names) resolves to its code so the select shows it. */}
                 <select className="form-input" value={normaliseLanguage(form.preferred_language) || ''} onChange={(e) => updateField('preferred_language', e.target.value)}>
@@ -364,12 +364,12 @@ export default function Profile() {
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Units</label>
+                <label className="form-label">{translate('Profile.units')}</label>
                 <div>
                   <UnitToggle />
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary, #777)', margin: '0.35rem 0 0' }}>
-                  Applies across the app and is saved to your profile.
+                  {translate('Profile.applies_across_the_app_and_is_saved_to')}
                 </p>
               </div>
             </div>
@@ -380,28 +380,28 @@ export default function Profile() {
             {sectionTitle('Health Profile')}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Allergies (comma-separated)</label>
-                <input className="form-input" value={form.allergies} onChange={(e) => updateField('allergies', e.target.value)} placeholder="e.g. penicillin, shellfish, latex" />
+                <label className="form-label">{translate('Profile.allergies_comma_separated')}</label>
+                <input className="form-input" value={form.allergies} onChange={(e) => updateField('allergies', e.target.value)} placeholder={translate('Profile.e_g_penicillin_shellfish_latex')} />
               </div>
               <div className="form-group">
-                <label className="form-label">Food Intolerances</label>
-                <input className="form-input" value={form.food_intolerances} onChange={(e) => updateField('food_intolerances', e.target.value)} placeholder="e.g. gluten, lactose" />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Dietary Restrictions</label>
-                <input className="form-input" value={form.dietary_restrictions} onChange={(e) => updateField('dietary_restrictions', e.target.value)} placeholder="e.g. gluten-free, halal, vegan" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Dietary Preferences</label>
-                <input className="form-input" value={form.dietary_preferences} onChange={(e) => updateField('dietary_preferences', e.target.value)} placeholder="e.g. low-carb, keto, mediterranean" />
+                <label className="form-label">{translate('Profile.food_intolerances')}</label>
+                <input className="form-input" value={form.food_intolerances} onChange={(e) => updateField('food_intolerances', e.target.value)} placeholder={translate('Profile.e_g_gluten_lactose')} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Family History</label>
-                <input className="form-input" value={form.family_history} onChange={(e) => updateField('family_history', e.target.value)} placeholder="e.g. heart disease, diabetes" />
+                <label className="form-label">{translate('Profile.dietary_restrictions')}</label>
+                <input className="form-input" value={form.dietary_restrictions} onChange={(e) => updateField('dietary_restrictions', e.target.value)} placeholder={translate('Profile.e_g_gluten_free_halal_vegan')} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{translate('Profile.dietary_preferences')}</label>
+                <input className="form-input" value={form.dietary_preferences} onChange={(e) => updateField('dietary_preferences', e.target.value)} placeholder={translate('Profile.e_g_low_carb_keto_mediterranean')} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">{translate('Profile.family_history')}</label>
+                <input className="form-input" value={form.family_history} onChange={(e) => updateField('family_history', e.target.value)} placeholder={translate('Profile.e_g_heart_disease_diabetes')} />
               </div>
             </div>
           </div>
@@ -423,7 +423,7 @@ export default function Profile() {
                 color: 'inherit', background: 'var(--color-surface-alt, #fafafa)'
               }}
             >
-              <span>Data sharing, export and deletion</span>
+              <span>{translate('Profile.data_sharing_export_and_deletion')}</span>
               <span aria-hidden="true">›</span>
             </Link>
           </div>
@@ -446,7 +446,7 @@ export default function Profile() {
             >
               <span>
                 <span style={{ display: 'block', fontWeight: 600 }}>
-                  Conditions &amp; diagnoses
+                  {translate('Profile.conditions_diagnoses')}
                 </span>
                 <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary, #666)' }}>
                   {conditionsError
@@ -485,29 +485,29 @@ export default function Profile() {
             {sectionTitle('Fitness')}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Activity Level</label>
+                <label className="form-label">{translate('Profile.activity_level')}</label>
                 <select className="form-input" value={form.activity_level} onChange={(e) => updateField('activity_level', e.target.value)}>
                   <option value="">—</option>
-                  <option value="sedentary">Sedentary</option>
-                  <option value="lightly_active">Lightly Active</option>
-                  <option value="moderately_active">Moderately Active</option>
-                  <option value="very_active">Very Active</option>
-                  <option value="extremely_active">Extremely Active</option>
+                  <option value="sedentary">{translate('Profile.sedentary')}</option>
+                  <option value="lightly_active">{translate('Profile.lightly_active')}</option>
+                  <option value="moderately_active">{translate('Profile.moderately_active')}</option>
+                  <option value="very_active">{translate('Profile.very_active')}</option>
+                  <option value="extremely_active">{translate('Profile.extremely_active')}</option>
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Exercise / Week</label>
+                <label className="form-label">{translate('Profile.exercise_week')}</label>
                 <input className="form-input" type="number" min="0" max="14" value={form.exercise_frequency_per_week} onChange={(e) => updateField('exercise_frequency_per_week', e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Fitness Goals</label>
-                <input className="form-input" value={form.fitness_goals} onChange={(e) => updateField('fitness_goals', e.target.value)} placeholder="e.g. weight loss, endurance, muscle gain" />
+                <label className="form-label">{translate('Profile.fitness_goals')}</label>
+                <input className="form-input" value={form.fitness_goals} onChange={(e) => updateField('fitness_goals', e.target.value)} placeholder={translate('Profile.e_g_weight_loss_endurance_muscle_gain')} />
               </div>
               <div className="form-group">
-                <label className="form-label">Preferred Activities</label>
-                <input className="form-input" value={form.preferred_activities} onChange={(e) => updateField('preferred_activities', e.target.value)} placeholder="e.g. running, yoga, swimming" />
+                <label className="form-label">{translate('Profile.preferred_activities')}</label>
+                <input className="form-input" value={form.preferred_activities} onChange={(e) => updateField('preferred_activities', e.target.value)} placeholder={translate('Profile.e_g_running_yoga_swimming')} />
               </div>
             </div>
           </div>
@@ -517,46 +517,46 @@ export default function Profile() {
             {sectionTitle('Lifestyle')}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Occupation</label>
+                <label className="form-label">{translate('Profile.occupation')}</label>
                 <input className="form-input" value={form.occupation} onChange={(e) => updateField('occupation', e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Smoking Status</label>
+                <label className="form-label">{translate('Profile.smoking_status')}</label>
                 <select className="form-input" value={form.smoking_status} onChange={(e) => updateField('smoking_status', e.target.value)}>
                   <option value="">—</option>
-                  <option value="never">Never</option>
-                  <option value="former">Former</option>
-                  <option value="current">Current</option>
+                  <option value="never">{translate('Profile.never')}</option>
+                  <option value="former">{translate('Profile.former')}</option>
+                  <option value="current">{translate('Profile.current')}</option>
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Alcohol</label>
+                <label className="form-label">{translate('Profile.alcohol')}</label>
                 <select className="form-input" value={form.alcohol_consumption} onChange={(e) => updateField('alcohol_consumption', e.target.value)}>
                   <option value="">—</option>
-                  <option value="none">None</option>
-                  <option value="occasional">Occasional</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="heavy">Heavy</option>
+                  <option value="none">{translate('Profile.none')}</option>
+                  <option value="occasional">{translate('Profile.occasional')}</option>
+                  <option value="moderate">{translate('Profile.moderate')}</option>
+                  <option value="heavy">{translate('Profile.heavy')}</option>
                 </select>
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Sleep Schedule</label>
+                <label className="form-label">{translate('Profile.sleep_schedule')}</label>
                 <select className="form-input" value={form.sleep_schedule} onChange={(e) => updateField('sleep_schedule', e.target.value)}>
                   <option value="">—</option>
-                  <option value="early_bird">Early Bird</option>
-                  <option value="night_owl">Night Owl</option>
-                  <option value="shift_worker">Shift Worker</option>
+                  <option value="early_bird">{translate('Profile.early_bird')}</option>
+                  <option value="night_owl">{translate('Profile.night_owl')}</option>
+                  <option value="shift_worker">{translate('Profile.shift_worker')}</option>
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Stress Level</label>
+                <label className="form-label">{translate('Profile.stress_level')}</label>
                 <select className="form-input" value={form.stress_level} onChange={(e) => updateField('stress_level', e.target.value)}>
                   <option value="">—</option>
-                  <option value="low">Low</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="high">High</option>
+                  <option value="low">{translate('Profile.low')}</option>
+                  <option value="moderate">{translate('Profile.moderate')}</option>
+                  <option value="high">{translate('Profile.high')}</option>
                 </select>
               </div>
             </div>
@@ -569,26 +569,26 @@ export default function Profile() {
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input type="checkbox" checked={form.ai_coaching_enabled} onChange={(e) => updateField('ai_coaching_enabled', e.target.checked)} />
-                  AI Coaching Enabled
+                  {translate('Profile.ai_coaching_enabled')}
                 </label>
               </div>
               <div className="form-group">
-                <label className="form-label">AI Personality</label>
+                <label className="form-label">{translate('Profile.ai_personality')}</label>
                 <select className="form-input" value={form.ai_personality_preference} onChange={(e) => updateField('ai_personality_preference', e.target.value)}>
                   <option value="">—</option>
-                  <option value="supportive">Supportive</option>
-                  <option value="motivational">Motivational</option>
-                  <option value="clinical">Clinical</option>
-                  <option value="casual">Casual</option>
+                  <option value="supportive">{translate('Profile.supportive')}</option>
+                  <option value="motivational">{translate('Profile.motivational')}</option>
+                  <option value="clinical">{translate('Profile.clinical')}</option>
+                  <option value="casual">{translate('Profile.casual')}</option>
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Language Complexity</label>
+                <label className="form-label">{translate('Profile.language_complexity')}</label>
                 <select className="form-input" value={form.ai_language_complexity} onChange={(e) => updateField('ai_language_complexity', e.target.value)}>
                   <option value="">—</option>
-                  <option value="simple">Simple</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="technical">Technical</option>
+                  <option value="simple">{translate('Profile.simple')}</option>
+                  <option value="moderate">{translate('Profile.moderate')}</option>
+                  <option value="technical">{translate('Profile.technical')}</option>
                 </select>
               </div>
             </div>
@@ -601,13 +601,13 @@ export default function Profile() {
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input type="checkbox" checked={form.data_sharing_consent} onChange={(e) => updateField('data_sharing_consent', e.target.checked)} />
-                  Data Sharing Consent
+                  {translate('Profile.data_sharing_consent')}
                 </label>
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input type="checkbox" checked={form.ai_training_consent} onChange={(e) => updateField('ai_training_consent', e.target.checked)} />
-                  AI Training Consent
+                  {translate('Profile.ai_training_consent')}
                 </label>
               </div>
             </div>

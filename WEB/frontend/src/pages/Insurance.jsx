@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus, Shield, Star, Trash2, ChevronDown, ChevronRight, Globe, X, Edit3 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 const REGIONS = [
   { code: 'north_america', name: 'North America', emoji: '🌎' },
@@ -113,7 +114,7 @@ export default function Insurance() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Remove this insurance plan?')) return;
+    if (!confirm(translate('Insurance.remove_this_insurance_plan'))) return;
     await api.delete(`/insurance/${id}`); loadPlans();
   }
 
@@ -129,10 +130,10 @@ export default function Insurance() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title"><Shield size={28} style={{ marginRight: 8, verticalAlign: 'middle' }} />Insurance Plans</h1>
+          <h1 className="page-title"><Shield size={28} style={{ marginRight: 8, verticalAlign: 'middle' }} />{translate('Insurance.insurance_plans')}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => { resetForm(); setShowForm(!showForm); }}>
-          {showForm ? <><X size={18} /> Cancel</> : <><Plus size={18} /> Add Plan</>}
+          {showForm ? <><X size={18} /> {translate('Insurance.cancel')}</> : <><Plus size={18} /> {translate('Insurance.add_plan')}</>}
         </button>
       </div>
 
@@ -143,23 +144,23 @@ export default function Insurance() {
             {/* Region & Country */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label className="form-label">Region *</label>
+                <label className="form-label">{translate('Insurance.region')}</label>
                 <select className="form-input" value={region} onChange={e => handleRegionChange(e.target.value)} required>
-                  <option value="">Select Region</option>
+                  <option value="">{translate('Insurance.select_region')}</option>
                   {REGIONS.map(r => <option key={r.code} value={r.code}>{r.emoji} {r.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="form-label">Country *</label>
+                <label className="form-label">{translate('Insurance.country')}</label>
                 <select className="form-input" value={countryCode} onChange={e => handleCountryChange(e.target.value)} required disabled={!region}>
-                  <option value="">Select Country</option>
+                  <option value="">{translate('Insurance.select_country')}</option>
                   {(regionCountries[region] || []).map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="form-label">Insurance Provider *</label>
+                <label className="form-label">{translate('Insurance.insurance_provider')}</label>
                 <select className="form-input" value={providerCode} onChange={e => handleProviderChange(e.target.value)} required disabled={!countryCode}>
-                  <option value="">Select Provider</option>
+                  <option value="">{translate('Insurance.select_provider')}</option>
                   {providers.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
                 </select>
               </div>
@@ -168,21 +169,21 @@ export default function Insurance() {
             {/* Policy details */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label className="form-label">Policy / ID Number</label>
+                <label className="form-label">{translate('Insurance.policy_id_number')}</label>
                 <input className="form-input" value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} placeholder="e.g. 1EG4-TE5-MK72" />
               </div>
               <div>
-                <label className="form-label">Group Number</label>
+                <label className="form-label">{translate('Insurance.group_number')}</label>
                 <input className="form-input" value={groupNumber} onChange={e => setGroupNumber(e.target.value)} />
               </div>
               <div>
-                <label className="form-label">Member ID</label>
+                <label className="form-label">{translate('Insurance.member_id')}</label>
                 <input className="form-input" value={memberId} onChange={e => setMemberId(e.target.value)} />
               </div>
               <div>
-                <label className="form-label">Plan Type</label>
+                <label className="form-label">{translate('Insurance.plan_type')}</label>
                 <select className="form-input" value={planType} onChange={e => setPlanType(e.target.value)}>
-                  <option value="">Select</option>
+                  <option value="">{translate('Insurance.select')}</option>
                   {PLAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
@@ -191,15 +192,15 @@ export default function Insurance() {
             {/* Plan name & coverage dates */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label className="form-label">Plan Name</label>
-                <input className="form-input" value={planName} onChange={e => setPlanName(e.target.value)} placeholder="e.g. Gold PPO" />
+                <label className="form-label">{translate('Insurance.plan_name')}</label>
+                <input className="form-input" value={planName} onChange={e => setPlanName(e.target.value)} placeholder={translate('Insurance.e_g_gold_ppo')} />
               </div>
               <div>
-                <label className="form-label">Coverage Start</label>
+                <label className="form-label">{translate('Insurance.coverage_start')}</label>
                 <input className="form-input" type="date" value={coverageStart} onChange={e => setCoverageStart(e.target.value)} />
               </div>
               <div>
-                <label className="form-label">Coverage End</label>
+                <label className="form-label">{translate('Insurance.coverage_end')}</label>
                 <input className="form-input" type="date" value={coverageEnd} onChange={e => setCoverageEnd(e.target.value)} />
               </div>
             </div>
@@ -207,27 +208,27 @@ export default function Insurance() {
             {/* Subscriber */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label className="form-label">Subscriber Name</label>
+                <label className="form-label">{translate('Insurance.subscriber_name')}</label>
                 <input className="form-input" value={subscriberName} onChange={e => setSubscriberName(e.target.value)} />
               </div>
               <div>
-                <label className="form-label">Relationship</label>
+                <label className="form-label">{translate('Insurance.relationship')}</label>
                 <select className="form-input" value={subscriberRelationship} onChange={e => setSubscriberRelationship(e.target.value)}>
                   {RELATIONSHIPS.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                 </select>
               </div>
               <div>
-                <label className="form-label">Insurance Phone</label>
+                <label className="form-label">{translate('Insurance.insurance_phone')}</label>
                 <input className="form-input" value={insurancePhone} onChange={e => setInsurancePhone(e.target.value)} placeholder="+1-800-..." />
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', paddingBottom: '0.25rem' }}>
                 <input type="checkbox" id="isPrimary" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)} />
-                <label htmlFor="isPrimary" style={{ fontWeight: 600, cursor: 'pointer' }}>Primary Plan</label>
+                <label htmlFor="isPrimary" style={{ fontWeight: 600, cursor: 'pointer' }}>{translate('Insurance.primary_plan')}</label>
               </div>
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label className="form-label">Notes</label>
+              <label className="form-label">{translate('Insurance.notes')}</label>
               <textarea className="form-input" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
             </div>
 
@@ -241,15 +242,15 @@ export default function Insurance() {
       {plans.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
           <Shield size={48} style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }} />
-          <h3>No Insurance Plans</h3>
-          <p style={{ color: 'var(--color-text-secondary)' }}>Add your insurance plans to keep them handy. You can add multiple plans across different countries.</p>
+          <h3>{translate('Insurance.no_insurance_plans')}</h3>
+          <p style={{ color: 'var(--color-text-secondary)' }}>{translate('Insurance.add_your_insurance_plans_to_keep_them')}</p>
         </div>
       ) : (
         <>
           {activePlans.length > 0 && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h3 style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Shield size={18} /> Active Plans ({activePlans.length})
+                <Shield size={18} /> {translate('Insurance.active_plans', { activePlans: activePlans.length })}
               </h3>
               <div style={{ display: 'grid', gap: '1rem' }}>
                 {activePlans.map(plan => (
@@ -260,7 +261,7 @@ export default function Insurance() {
           )}
           {inactivePlans.length > 0 && (
             <div>
-              <h3 style={{ marginBottom: '0.75rem', color: 'var(--color-text-secondary)' }}>Inactive Plans ({inactivePlans.length})</h3>
+              <h3 style={{ marginBottom: '0.75rem', color: 'var(--color-text-secondary)' }}>{translate('Insurance.inactive_plans', { inactivePlans: inactivePlans.length })}</h3>
               <div style={{ display: 'grid', gap: '1rem' }}>
                 {inactivePlans.map(plan => (
                   <InsuranceCard key={plan.id} plan={plan} onDelete={handleDelete} onSetPrimary={handleSetPrimary} onEdit={startEdit} />
@@ -300,14 +301,14 @@ function InsuranceCard({ plan, onDelete, onSetPrimary, onEdit }) {
               <span><Globe size={13} style={{ marginRight: 3 }} />{plan.country_name}</span>
               {plan.plan_name && <span>{plan.plan_name}</span>}
               {plan.plan_type && <span style={{ background: 'var(--color-bg-secondary)', padding: '1px 8px', borderRadius: 8, fontSize: '0.78rem' }}>{plan.plan_type}</span>}
-              {plan.policy_number && <span>Policy: {plan.policy_number}</span>}
+              {plan.policy_number && <span>{translate('Insurance.policy', { policy_number: plan.policy_number })}</span>}
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {!plan.is_primary && plan.is_active && (
-            <button className="btn" style={{ fontSize: '0.75rem', padding: '4px 10px' }} title="Set as Primary" onClick={() => onSetPrimary(plan.id)}>
-              <Star size={14} /> Primary
+            <button className="btn" style={{ fontSize: '0.75rem', padding: '4px 10px' }} title={translate('Insurance.set_as_primary')} onClick={() => onSetPrimary(plan.id)}>
+              <Star size={14} /> {translate('Insurance.primary')}
             </button>
           )}
           <button className="btn" style={{ fontSize: '0.75rem', padding: '4px 8px' }} onClick={() => onEdit(plan)}><Edit3 size={14} /></button>
@@ -317,20 +318,20 @@ function InsuranceCard({ plan, onDelete, onSetPrimary, onEdit }) {
 
       {expanded && (
         <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.88rem' }}>
-          <Detail label="Region" value={regionLabel ? `${regionLabel.emoji} ${regionLabel.name}` : plan.region} />
-          <Detail label="Country" value={plan.country_name} />
-          <Detail label="Provider" value={plan.provider_name} />
-          <Detail label="Policy Number" value={plan.policy_number} />
-          <Detail label="Group Number" value={plan.group_number} />
-          <Detail label="Member ID" value={plan.member_id} />
-          <Detail label="Plan Name" value={plan.plan_name} />
-          <Detail label="Plan Type" value={plan.plan_type} />
-          <Detail label="Coverage Start" value={plan.coverage_start} />
-          <Detail label="Coverage End" value={plan.coverage_end} />
-          <Detail label="Subscriber" value={plan.subscriber_name} />
-          <Detail label="Relationship" value={plan.subscriber_relationship} />
-          <Detail label="Phone" value={plan.insurance_phone} />
-          {plan.notes && <div style={{ gridColumn: '1 / -1' }}><Detail label="Notes" value={plan.notes} /></div>}
+          <Detail label={translate('Insurance.region_2')} value={regionLabel ? `${regionLabel.emoji} ${regionLabel.name}` : plan.region} />
+          <Detail label={translate('Insurance.country_2')} value={plan.country_name} />
+          <Detail label={translate('Insurance.provider')} value={plan.provider_name} />
+          <Detail label={translate('Insurance.policy_number')} value={plan.policy_number} />
+          <Detail label={translate('Insurance.group_number')} value={plan.group_number} />
+          <Detail label={translate('Insurance.member_id')} value={plan.member_id} />
+          <Detail label={translate('Insurance.plan_name')} value={plan.plan_name} />
+          <Detail label={translate('Insurance.plan_type')} value={plan.plan_type} />
+          <Detail label={translate('Insurance.coverage_start')} value={plan.coverage_start} />
+          <Detail label={translate('Insurance.coverage_end')} value={plan.coverage_end} />
+          <Detail label={translate('Insurance.subscriber')} value={plan.subscriber_name} />
+          <Detail label={translate('Insurance.relationship')} value={plan.subscriber_relationship} />
+          <Detail label={translate('Insurance.phone')} value={plan.insurance_phone} />
+          {plan.notes && <div style={{ gridColumn: '1 / -1' }}><Detail label={translate('Insurance.notes')} value={plan.notes} /></div>}
         </div>
       )}
     </div>

@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../pages/Landing.css';
+import { t } from '../i18n';
 
 // ── Snow + Star Particle Canvas ────────────────────────────────────────────────
 export function SnowCanvas() {
@@ -182,19 +183,19 @@ export function MarketingNav() {
         <span className="land-logo-text">ALAFIA</span>
       </Link>
       <ul className="land-navlinks">
-        <li><SectionLink hash="features">Features</SectionLink></li>
-        <li><SectionLink hash="vision">Vision</SectionLink></li>
-        <li><SectionLink hash="platforms">Platforms</SectionLink></li>
+        <li><SectionLink hash="features">{t('MarketingChrome.features')}</SectionLink></li>
+        <li><SectionLink hash="vision">{t('MarketingChrome.vision')}</SectionLink></li>
+        <li><SectionLink hash="platforms">{t('MarketingChrome.platforms')}</SectionLink></li>
         {user ? (
           <li>
             <button className="nav-cta nav-cta--primary" onClick={() => navigate('/')}>
-              Go to Dashboard
+              {t('MarketingChrome.go_to_dashboard')}
             </button>
           </li>
         ) : (
           <>
-            <li><Link to="/login" className="nav-cta nav-cta--ghost">Sign In</Link></li>
-            <li><Link to="/register" className="nav-cta nav-cta--primary">Get Started ✦</Link></li>
+            <li><Link to="/login" className="nav-cta nav-cta--ghost">{t('MarketingChrome.sign_in')}</Link></li>
+            <li><Link to="/register" className="nav-cta nav-cta--primary">{t('MarketingChrome.get_started')}</Link></li>
           </>
         )}
       </ul>
@@ -210,19 +211,19 @@ export function MarketingFooter() {
         <span className="land-logo-icon">⚕</span>
         <span className="land-logo-text">ALAFIA</span>
       </div>
-      <p className="footer-tagline">Healing Intelligence for All Humanity</p>
+      <p className="footer-tagline">{t('MarketingChrome.healing_intelligence_for_all_humanity')}</p>
       <div className="footer-links">
-        <Link to="/login">Sign In</Link>
-        <Link to="/register">Register</Link>
-        <SectionLink hash="features">Features</SectionLink>
-        <SectionLink hash="vision">Vision</SectionLink>
-        <SectionLink hash="platforms">Platforms</SectionLink>
-        <Link to="/help">Help</Link>
-        <Link to="/investors">Investors</Link>
-        <Link to="/contact">Contact Us</Link>
-        <Link to="/privacy">Privacy</Link>
+        <Link to="/login">{t('MarketingChrome.sign_in')}</Link>
+        <Link to="/register">{t('MarketingChrome.register')}</Link>
+        <SectionLink hash="features">{t('MarketingChrome.features')}</SectionLink>
+        <SectionLink hash="vision">{t('MarketingChrome.vision')}</SectionLink>
+        <SectionLink hash="platforms">{t('MarketingChrome.platforms')}</SectionLink>
+        <Link to="/help">{t('MarketingChrome.help')}</Link>
+        <Link to="/investors">{t('MarketingChrome.investors')}</Link>
+        <Link to="/contact">{t('MarketingChrome.contact_us')}</Link>
+        <Link to="/privacy">{t('MarketingChrome.privacy')}</Link>
       </div>
-      <p className="footer-copy">© 2026 ALAFIA. All rights reserved. Built with ❤️ for humanity.</p>
+      <p className="footer-copy">{t('MarketingChrome.text_2026_alafia_all_rights_reserved_built')}</p>
     </footer>
   );
 }

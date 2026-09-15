@@ -9,6 +9,7 @@ import BackButton from '../components/BackButton';
 import { useClinicianMode } from '../context/ClinicianModeContext';
 import PatientBoard from './clinician/PatientBoard';
 import CategoryDetail from './clinician/CategoryDetail';
+import { t as translate } from '../i18n';
 
 const categoryIcons = {
   vitals: Activity, medications: Pill, labs: FlaskConical,
@@ -41,19 +42,19 @@ export default function ClinicianDashboard() {
       setRole(data.role || null);
     } catch (err) {
       setError(err.response?.status === 403
-        ? 'Access denied. This view is available to clinicians and social workers only.'
-        : 'Could not load your patients.');
+        ? translate('ClinicianDashboard.access_denied_this_view_is_available_to')
+        : translate('ClinicianDashboard.could_not_load_your_patients'));
     } finally {
       setLoading(false);
     }
   }
 
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="loading">{translate('ClinicianDashboard.loading')}</div>;
 
   if (error) return (
     <div>
-      <div className="page-header"><h1 className="page-title">My Patients</h1></div>
+      <div className="page-header"><h1 className="page-title">{translate('ClinicianDashboard.my_patients')}</h1></div>
       <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-danger)' }}>
         {error}
       </div>
@@ -85,7 +86,7 @@ export default function ClinicianDashboard() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title">My Patients</h1>
+          <h1 className="page-title">{translate('ClinicianDashboard.my_patients')}</h1>
         </div>
         <span style={{ color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
           {role && (
@@ -93,17 +94,17 @@ export default function ClinicianDashboard() {
               <Stethoscope size={15} /> {role.replace(/_/g, ' ')}
             </span>
           )}
-          · {patients.length} patient{patients.length !== 1 ? 's' : ''}
+          {(patients.length !== 1) ? translate('ClinicianDashboard.patients', { patients: patients.length }) : translate('ClinicianDashboard.patient', { patients: patients.length })}
         </span>
       </div>
 
       {patients.length === 0 ? (
         <div className="card" style={{ padding: '3rem 2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
           <Users size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-          <h3>No patients yet</h3>
-          <p>Patients appear here as soon as they share their records with you.</p>
+          <h3>{translate('ClinicianDashboard.no_patients_yet')}</h3>
+          <p>{translate('ClinicianDashboard.patients_appear_here_as_soon_as_they')}</p>
           <p style={{ fontSize: '0.85rem', marginTop: '0.75rem' }}>
-            They do that from <strong>Share Records</strong>, using your account email.
+            {translate('ClinicianDashboard.they_do_that_from')} <strong>{translate('ClinicianDashboard.share_records')}</strong>{translate('ClinicianDashboard.using_your_account_email')}
           </p>
         </div>
       ) : (
@@ -155,15 +156,15 @@ function PatientCard({ patient: p, onOpen }) {
       <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.85rem' }}>
         <Metric label="BP" value={vitals?.bp} />
         <Metric label="HR" value={vitals?.hr ? `${vitals.hr}` : null} />
-        <Metric label="Weight" value={vitals?.weight_kg ? `${vitals.weight_kg} kg` : null} />
+        <Metric label={translate('ClinicianDashboard.weight')} value={vitals?.weight_kg ? `${vitals.weight_kg} kg` : null} />
       </div>
 
       <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-        <span>{(p.latest_labs || []).length} labs</span>
-        <span>{(p.medications || []).length} meds</span>
+        <span>{translate('ClinicianDashboard.labs', { latest_labs: (p.latest_labs || []).length })}</span>
+        <span>{translate('ClinicianDashboard.meds', { medications: (p.medications || []).length })}</span>
         {abnormalLabs > 0 && (
           <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>
-            ⚠ {abnormalLabs} abnormal
+            {translate('ClinicianDashboard.abnormal', { abnormalLabs })}
           </span>
         )}
       </div>

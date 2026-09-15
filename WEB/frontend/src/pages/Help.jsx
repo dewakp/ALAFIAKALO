@@ -1,29 +1,30 @@
 import { Link } from 'react-router-dom';
 import MarketingPage from '../components/MarketingChrome';
+import { t } from '../i18n';
 
 const START_HERE = [
   {
     icon: '✨',
-    title: 'Ask ALAFIA',
-    desc: 'The fastest way in. Describe what you want to log or know in plain language and ALAFIA routes it to the right place.',
+    get title() { return t('Help.ask_alafia'); },
+    get desc() { return t('Help.the_fastest_way_in_describe_what_you'); },
     to: '/',
   },
   {
     icon: '🥗',
-    title: 'Log a meal',
-    desc: 'Type or photograph what you ate. Calories and nutrients are filled in for you a few seconds later.',
+    get title() { return t('Help.log_a_meal'); },
+    get desc() { return t('Help.type_or_photograph_what_you_ate_calories'); },
     to: '/nutrition',
   },
   {
     icon: '🧬',
-    title: 'Add lab results',
-    desc: 'Upload a PDF or enter values by hand, then watch each marker trend over time on the charts.',
+    get title() { return t('Help.add_lab_results'); },
+    get desc() { return t('Help.upload_a_pdf_or_enter_values_by_hand'); },
     to: '/labs',
   },
   {
     icon: '🔗',
-    title: 'Connect your records',
-    desc: 'Link an existing patient portal so your history comes across instead of being retyped.',
+    get title() { return t('Help.connect_your_records'); },
+    get desc() { return t('Help.link_an_existing_patient_portal_so_your'); },
     to: '/data-sharing',
   },
 ];
@@ -33,10 +34,7 @@ const FAQ = [
     q: 'Why does my meal say “estimating…” instead of showing calories?',
     a: (
       <>
-        Because it is still being worked out. Your meal is saved the moment you submit it, and the
-        nutrient breakdown is estimated in the background straight afterwards — that lookup can take
-        several seconds for a long meal. The entry updates itself when it lands, so there is nothing
-        to re-submit. If it ends up marked as failed, edit the entry and save it again.
+        {t('Help.because_it_is_still_being_worked_out')}
       </>
     ),
   },
@@ -44,9 +42,7 @@ const FAQ = [
     q: 'I forgot my password.',
     a: (
       <>
-        Use <Link to="/forgot-password">Forgot password</Link>. We email you a link that opens the
-        reset form; the link is single-use and expires, so request a fresh one if it has been
-        sitting in your inbox for a while.
+        {t('Help.use')} <Link to="/forgot-password">{t('Help.forgot_password')}</Link>{t('Help.we_email_you_a_link_that_opens_the_reset')}
       </>
     ),
   },
@@ -54,10 +50,8 @@ const FAQ = [
     q: 'The verification or reset email never arrived.',
     a: (
       <>
-        Check your spam and promotions folders first, and confirm the address on the account is
-        spelled correctly. If it still has not appeared, email{' '}
-        <a href="mailto:contact@alafia.app">contact@alafia.app</a> from the address you signed up
-        with and we will sort it out manually.
+        {t('Help.check_your_spam_and_promotions_folders')}{' '}
+        <a href="mailto:contact@alafia.app">contact@alafia.app</a> {t('Help.from_the_address_you_signed_up_with_and')}
       </>
     ),
   },
@@ -65,10 +59,7 @@ const FAQ = [
     q: 'Who can see my health data?',
     a: (
       <>
-        You, and whoever you deliberately share it with. Sharing with a clinician is something you
-        switch on per recipient, and it can be switched off again. A meal photo stays with your meal
-        so you can see it later; it is only used to train a shared model if you have opted in to
-        collective insights — that setting is off unless you turn it on.
+        {t('Help.you_and_whoever_you_deliberately_share')}
       </>
     ),
   },
@@ -76,9 +67,8 @@ const FAQ = [
     q: 'Can I use ALAFIA on my phone?',
     a: (
       <>
-        The web app works in any modern mobile browser today. Native iOS and Android apps are
-        built and heading for the App Store and Play Store — see{' '}
-        <a href="/landing#platforms">Platforms</a> for where each one stands.
+        {t('Help.the_web_app_works_in_any_modern_mobile')}{' '}
+        <a href="/landing#platforms">{t('Help.platforms')}</a> {t('Help.for_where_each_one_stands')}
       </>
     ),
   },
@@ -86,9 +76,8 @@ const FAQ = [
     q: 'What does a membership change?',
     a: (
       <>
-        Tiers and what each one unlocks are listed on the{' '}
-        <Link to="/subscription">Membership</Link> page inside the app, where you can also change or
-        cancel your plan.
+        {t('Help.tiers_and_what_each_one_unlocks_are')}{' '}
+        <Link to="/subscription">{t('Help.membership')}</Link> {t('Help.page_inside_the_app_where_you_can_also')}
       </>
     ),
   },
@@ -96,9 +85,8 @@ const FAQ = [
     q: 'How do I delete my account and my data?',
     a: (
       <>
-        Ask us and we will do it. Email{' '}
-        <a href="mailto:privacy@alafia.app">privacy@alafia.app</a> from your account address; we
-        confirm it is really you before anything is erased, because deletion cannot be undone.
+        {t('Help.ask_us_and_we_will_do_it_email')}{' '}
+        <a href="mailto:privacy@alafia.app">privacy@alafia.app</a> {t('Help.from_your_account_address_we_confirm_it')}
       </>
     ),
   },
@@ -106,9 +94,7 @@ const FAQ = [
     q: 'Is ALAFIA medical advice?',
     a: (
       <>
-        No. ALAFIA organises your health information and points out patterns in it. It does not
-        diagnose, prescribe, or replace your clinician, and it must never be used to decide whether
-        an emergency needs attention.
+        {t('Help.no_alafia_organises_your_health')}
       </>
     ),
   },
@@ -120,8 +106,8 @@ export default function Help() {
       <section className="section-wrap section-wrap--top">
         <div className="section-head">
           <span className="eyebrow">HELP CENTRE</span>
-          <h2>How can we help?</h2>
-          <p>Start with the basics below, then check the questions we get asked most.</p>
+          <h2>{t('Help.how_can_we_help')}</h2>
+          <p>{t('Help.start_with_the_basics_below_then_check')}</p>
         </div>
 
         <div className="features-grid">
@@ -130,7 +116,7 @@ export default function Help() {
               <span className="feat-icon">{s.icon}</span>
               <h3>{s.title}</h3>
               <p>{s.desc}</p>
-              <Link className="card-link" to={s.to}>Open →</Link>
+              <Link className="card-link" to={s.to}>{t('Help.open')}</Link>
             </div>
           ))}
         </div>
@@ -139,7 +125,7 @@ export default function Help() {
       <section className="section-wrap section-wrap--narrow" style={{ paddingTop: 0 }}>
         <div className="section-head">
           <span className="eyebrow">FREQUENTLY ASKED</span>
-          <h2>Questions</h2>
+          <h2>{t('Help.questions')}</h2>
         </div>
 
         <div className="faq-list">
@@ -152,13 +138,12 @@ export default function Help() {
         </div>
 
         <div className="callout callout--danger">
-          <strong>In an emergency, do not use ALAFIA.</strong> Call your local emergency number or
-          go to the nearest emergency department.
+          <strong>{t('Help.in_an_emergency_do_not_use_alafia')}</strong> {t('Help.call_your_local_emergency_number_or_go')}
         </div>
 
         <div className="mk-cta">
-          <p className="mk-cta-note">Still stuck? A human will read it.</p>
-          <Link to="/contact" className="btn-primary-lg">Contact Us ✦</Link>
+          <p className="mk-cta-note">{t('Help.still_stuck_a_human_will_read_it')}</p>
+          <Link to="/contact" className="btn-primary-lg">{t('Help.contact_us')}</Link>
         </div>
       </section>
     </MarketingPage>

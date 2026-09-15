@@ -2,6 +2,7 @@ import { localToday } from '../utils/datetime';
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 const EMOJI_MAP = { 1: '😢', 2: '😢', 3: '😔', 4: '😔', 5: '😐', 6: '😐', 7: '🙂', 8: '🙂', 9: '😄', 10: '😄' };
 const SEVERITY_COLORS = { minimal: '#4caf50', mild: '#8bc34a', moderate: '#ff9800', moderately_severe: '#f44336', severe: '#b71c1c', good: '#4caf50', low: '#ff9800', very_low: '#f44336' };
@@ -34,14 +35,14 @@ export default function MentalHealth() {
     setLoading(false);
   }
 
-  if (loading) return <div className="page"><p>Loading mental health data...</p></div>;
+  if (loading) return <div className="page"><p>{translate('MentalHealth.loading_mental_health_data')}</p></div>;
 
   return (
     <div className="page">
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1>🧠 Mental Health</h1>
+          <h1>{translate('MentalHealth.mental_health')}</h1>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -117,7 +118,7 @@ function MoodTab() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>😊 Mood Check-In</h2>
+        <h2 style={{ margin: 0 }}>{translate('MentalHealth.mood_check_in')}</h2>
         <button onClick={() => setShowForm(!showForm)}
           style={{ padding: '8px 20px', borderRadius: 8, background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
           {showForm ? 'Cancel' : '+ New Check-In'}
@@ -129,78 +130,78 @@ function MoodTab() {
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Date</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.date')}</label>
                 <input type="date" value={form.entry_date} onChange={e => setForm({ ...form, entry_date: e.target.value })}
                   style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} required />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Mood (1-10): {moodEmoji(form.mood_score)} {form.mood_score}</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.mood_1_10', { mood_score: moodEmoji(form.mood_score), mood_score2: form.mood_score })}</label>
                 <input type="range" min="1" max="10" value={form.mood_score}
                   onChange={e => setForm({ ...form, mood_score: parseInt(e.target.value) })} style={{ width: '100%' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Energy (1-10): {form.energy_level}</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.energy_1_10', { energy_level: form.energy_level })}</label>
                 <input type="range" min="1" max="10" value={form.energy_level}
                   onChange={e => setForm({ ...form, energy_level: parseInt(e.target.value) })} style={{ width: '100%' }} />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Stress (1-10): {form.stress_level}</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.stress_1_10', { stress_level: form.stress_level })}</label>
                 <input type="range" min="1" max="10" value={form.stress_level}
                   onChange={e => setForm({ ...form, stress_level: parseInt(e.target.value) })} style={{ width: '100%' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Anxiety (1-10): {form.anxiety_level}</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.anxiety_1_10', { anxiety_level: form.anxiety_level })}</label>
                 <input type="range" min="1" max="10" value={form.anxiety_level}
                   onChange={e => setForm({ ...form, anxiety_level: parseInt(e.target.value) })} style={{ width: '100%' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Sleep Quality (1-10): {form.sleep_quality}</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.sleep_quality_1_10', { sleep_quality: form.sleep_quality })}</label>
                 <input type="range" min="1" max="10" value={form.sleep_quality}
                   onChange={e => setForm({ ...form, sleep_quality: parseInt(e.target.value) })} style={{ width: '100%' }} />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Sleep Hours</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.sleep_hours')}</label>
                 <input type="number" step="0.5" value={form.sleep_hours}
                   onChange={e => setForm({ ...form, sleep_hours: e.target.value })}
                   style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Emotions</label>
-                <input placeholder="anxious, happy, frustrated..." value={form.emotions}
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.emotions')}</label>
+                <input placeholder={translate('MentalHealth.anxious_happy_frustrated')} value={form.emotions}
                   onChange={e => setForm({ ...form, emotions: e.target.value })}
                   style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Triggers</label>
-                <input placeholder="What triggered these emotions?" value={form.triggers}
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.triggers')}</label>
+                <input placeholder={translate('MentalHealth.what_triggered_these_emotions')} value={form.triggers}
                   onChange={e => setForm({ ...form, triggers: e.target.value })}
                   style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Coping Strategies</label>
-                <input placeholder="meditation, exercise, talking..." value={form.coping_strategies}
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.coping_strategies')}</label>
+                <input placeholder={translate('MentalHealth.meditation_exercise_talking')} value={form.coping_strategies}
                   onChange={e => setForm({ ...form, coping_strategies: e.target.value })}
                   style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Gratitude</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.gratitude')}</label>
                 <input value={form.gratitude} onChange={e => setForm({ ...form, gratitude: e.target.value })}
                   style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Journal Entry</label>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{translate('MentalHealth.journal_entry')}</label>
               <textarea rows={3} value={form.journal_entry} onChange={e => setForm({ ...form, journal_entry: e.target.value })}
                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box', resize: 'vertical' }} />
             </div>
             <button type="submit" style={{ padding: '10px 32px', borderRadius: 8, background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-              Save Check-In
+              {translate('MentalHealth.save_check_in')}
             </button>
           </form>
         </div>
@@ -211,12 +212,12 @@ function MoodTab() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #eee' }}>
-              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>Date</th>
-              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>Mood</th>
-              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>Energy</th>
-              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>Stress</th>
-              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>Sleep</th>
-              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>Journal</th>
+              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>{translate('MentalHealth.date')}</th>
+              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>{translate('MentalHealth.mood')}</th>
+              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>{translate('MentalHealth.energy')}</th>
+              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>{translate('MentalHealth.stress')}</th>
+              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>{translate('MentalHealth.sleep')}</th>
+              <th style={{ textAlign: 'left', padding: 10, fontSize: 13 }}>{translate('MentalHealth.journal')}</th>
               <th style={{ padding: 10 }}></th>
             </tr>
           </thead>
@@ -234,13 +235,13 @@ function MoodTab() {
                 <td style={{ padding: 10 }}>
                   <button onClick={() => handleDelete(e.id)}
                     style={{ padding: '4px 12px', borderRadius: 6, background: '#fee2e2', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-                    Delete
+                    {translate('MentalHealth.delete')}
                   </button>
                 </td>
               </tr>
             ))}
             {entries.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: '#999' }}>No mood entries yet. Click "+ New Check-In" to log your first entry.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: '#999' }}>{translate('MentalHealth.no_mood_entries_yet_click_new_check_in')}</td></tr>
             )}
           </tbody>
         </table>
@@ -249,7 +250,7 @@ function MoodTab() {
   );
 }
 function Dashboard({ stats }) {
-  if (!stats) return <p>No data yet. Start by logging your mood!</p>;
+  if (!stats) return <p>{translate('MentalHealth.no_data_yet_start_by_logging_your_mood')}</p>;
 
   const { wellness_score, avg_mood_7d, avg_stress_7d, avg_anxiety_7d, avg_sleep_quality_7d,
     avg_sleep_hours_7d, mood_trend, total_entries_30d, streak_days,
@@ -265,30 +266,30 @@ function Dashboard({ stats }) {
         <div style={{ fontSize: 64, fontWeight: 800, color: wellness_score >= 70 ? '#4caf50' : wellness_score >= 40 ? '#ff9800' : '#f44336' }}>
           {wellness_score ?? '—'}
         </div>
-        <div style={{ fontSize: 16, color: '#666' }}>Wellness Score (0–100)</div>
+        <div style={{ fontSize: 16, color: '#666' }}>{translate('MentalHealth.wellness_score_0_100')}</div>
       </div>
 
       {/* Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <StatCard label="Avg Mood (7d)" value={avg_mood_7d ? `${avg_mood_7d}/10 ${EMOJI_MAP[Math.round(avg_mood_7d)] || ''}` : '—'} />
-        <StatCard label="Mood Trend" value={mood_trend ? `${trendIcon} ${mood_trend}` : '—'} />
-        <StatCard label="Stress (7d)" value={avg_stress_7d ? `${avg_stress_7d}/10` : '—'} color={avg_stress_7d > 6 ? '#f44336' : '#4caf50'} />
-        <StatCard label="Anxiety (7d)" value={avg_anxiety_7d ? `${avg_anxiety_7d}/10` : '—'} color={avg_anxiety_7d > 6 ? '#f44336' : '#4caf50'} />
-        <StatCard label="Sleep Quality" value={avg_sleep_quality_7d ? `${avg_sleep_quality_7d}/10` : '—'} />
-        <StatCard label="Sleep Hours" value={avg_sleep_hours_7d ? `${avg_sleep_hours_7d}h` : '—'} />
-        <StatCard label="Streak" value={`${streak_days} days 🔥`} />
-        <StatCard label="Entries (30d)" value={total_entries_30d} />
-        <StatCard label="Breathing (30d)" value={`${total_breathing_minutes_30d} min`} />
+        <StatCard label={translate('MentalHealth.avg_mood_7d')} value={avg_mood_7d ? `${avg_mood_7d}/10 ${EMOJI_MAP[Math.round(avg_mood_7d)] || ''}` : '—'} />
+        <StatCard label={translate('MentalHealth.mood_trend')} value={mood_trend ? `${trendIcon} ${mood_trend}` : '—'} />
+        <StatCard label={translate('MentalHealth.stress_7d')} value={avg_stress_7d ? `${avg_stress_7d}/10` : '—'} color={avg_stress_7d > 6 ? '#f44336' : '#4caf50'} />
+        <StatCard label={translate('MentalHealth.anxiety_7d')} value={avg_anxiety_7d ? `${avg_anxiety_7d}/10` : '—'} color={avg_anxiety_7d > 6 ? '#f44336' : '#4caf50'} />
+        <StatCard label={translate('MentalHealth.sleep_quality')} value={avg_sleep_quality_7d ? `${avg_sleep_quality_7d}/10` : '—'} />
+        <StatCard label={translate('MentalHealth.sleep_hours')} value={avg_sleep_hours_7d ? `${avg_sleep_hours_7d}h` : '—'} />
+        <StatCard label={translate('MentalHealth.streak')} value={`${streak_days} days 🔥`} />
+        <StatCard label={translate('MentalHealth.entries_30d')} value={total_entries_30d} />
+        <StatCard label={translate('MentalHealth.breathing_30d')} value={`${total_breathing_minutes_30d} min`} />
       </div>
 
       {/* Clinical Assessments Summary */}
       {(latest_phq9_score !== null || latest_gad7_score !== null || latest_who5_score !== null) && (
         <div style={{ background: '#f9f9f9', borderRadius: 12, padding: 20, marginBottom: 24 }}>
-          <h3 style={{ marginTop: 0 }}>📋 Clinical Assessments</h3>
+          <h3 style={{ marginTop: 0 }}>{translate('MentalHealth.clinical_assessments')}</h3>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {latest_phq9_score !== null && (
               <div>
-                <strong>PHQ-9 (Depression):</strong> {latest_phq9_score}/27
+                <strong>{translate('MentalHealth.phq_9_depression')}</strong> {latest_phq9_score}/27
                 <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, fontSize: 12,
                   background: SEVERITY_COLORS[latest_phq9_severity] || '#999', color: '#fff' }}>
                   {SEVERITY_LABELS[latest_phq9_severity] || latest_phq9_severity}
@@ -297,7 +298,7 @@ function Dashboard({ stats }) {
             )}
             {latest_gad7_score !== null && (
               <div>
-                <strong>GAD-7 (Anxiety):</strong> {latest_gad7_score}/21
+                <strong>{translate('MentalHealth.gad_7_anxiety')}</strong> {latest_gad7_score}/21
                 <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, fontSize: 12,
                   background: SEVERITY_COLORS[latest_gad7_severity] || '#999', color: '#fff' }}>
                   {SEVERITY_LABELS[latest_gad7_severity] || latest_gad7_severity}
@@ -305,7 +306,7 @@ function Dashboard({ stats }) {
               </div>
             )}
             {latest_who5_score !== null && (
-              <div><strong>WHO-5 Well-Being:</strong> {latest_who5_score}%</div>
+              <div><strong>{translate('MentalHealth.who_5_well_being')}</strong> {latest_who5_score}%</div>
             )}
           </div>
         </div>
@@ -404,12 +405,12 @@ function BreathingTab({ exercises, onComplete }) {
   if (done && active) {
     return (
       <div style={{ textAlign: 'center', padding: 40 }}>
-        <h2>✅ Session Complete!</h2>
-        <p>How do you feel now?</p>
-        <label>Mood After (1-10): <input type="range" min={1} max={10} value={moodAfter} onChange={e => setMoodAfter(+e.target.value)} /> {moodAfter}</label>
+        <h2>{translate('MentalHealth.session_complete')}</h2>
+        <p>{translate('MentalHealth.how_do_you_feel_now')}</p>
+        <label>{translate('MentalHealth.mood_after_1_10')} <input type="range" min={1} max={10} value={moodAfter} onChange={e => setMoodAfter(+e.target.value)} /> {moodAfter}</label>
         <br /><br />
         <button onClick={saveSession} style={{ padding: '12px 32px', borderRadius: 8, background: 'var(--primary)', color: '#fff', border: 'none', fontSize: 16, cursor: 'pointer' }}>
-          Save Session
+          {translate('MentalHealth.save_session')}
         </button>
       </div>
     );
@@ -421,17 +422,17 @@ function BreathingTab({ exercises, onComplete }) {
         <h2>{active.name}</h2>
         <div style={{ fontSize: 80, fontWeight: 800, color: PHASE_COLORS[phase], transition: 'color 0.5s' }}>{timer}</div>
         <div style={{ fontSize: 24, fontWeight: 600, marginBottom: 16 }}>{PHASE_LABELS[phase]}</div>
-        <div style={{ fontSize: 14, color: '#888' }}>Cycle {cycle} of {active.recommended_cycles}</div>
-        <button onClick={() => { setRunning(false); setActive(null); }} style={{ marginTop: 24, padding: '8px 24px', cursor: 'pointer' }}>Stop</button>
+        <div style={{ fontSize: 14, color: '#888' }}>{translate('MentalHealth.cycle_of', { cycle, recommended_cycles: active.recommended_cycles })}</div>
+        <button onClick={() => { setRunning(false); setActive(null); }} style={{ marginTop: 24, padding: '8px 24px', cursor: 'pointer' }}>{translate('MentalHealth.stop')}</button>
       </div>
     );
   }
 
   return (
     <div>
-      <h2>🫁 Breathing Exercises</h2>
+      <h2>{translate('MentalHealth.breathing_exercises')}</h2>
       <p style={{ color: '#666', marginBottom: 16 }}>
-        Before starting, rate your current mood:
+        {translate('MentalHealth.before_starting_rate_your_current_mood')}
         <input type="range" min={1} max={10} value={moodBefore} onChange={e => setMoodBefore(+e.target.value)} style={{ marginLeft: 8, verticalAlign: 'middle' }} /> {moodBefore}/10
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
@@ -440,9 +441,7 @@ function BreathingTab({ exercises, onComplete }) {
             <h3 style={{ marginTop: 0 }}>{ex.name}</h3>
             <p style={{ color: '#666', fontSize: 14 }}>{ex.description}</p>
             <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>
-              {ex.inhale_seconds}s in → {ex.hold_seconds}s hold → {ex.exhale_seconds}s out
-              {ex.hold_after_exhale_seconds > 0 && ` → ${ex.hold_after_exhale_seconds}s hold`}
-              {' · '}{ex.recommended_cycles} cycles
+              {translate('MentalHealth.s_in_s_hold_s_out_cycles', { inhale_seconds: ex.inhale_seconds, hold_seconds: ex.hold_seconds, exhale_seconds: ex.exhale_seconds, hold_after_exhale_seconds: ex.hold_after_exhale_seconds > 0 && ` → ${ex.hold_after_exhale_seconds}s hold`, recommended_cycles: ex.recommended_cycles })}
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
               {ex.benefits.map(b => (
@@ -450,7 +449,7 @@ function BreathingTab({ exercises, onComplete }) {
               ))}
             </div>
             <button onClick={() => startExercise(ex)} style={{ width: '100%', padding: '10px 0', borderRadius: 8, background: 'var(--primary)', color: '#fff', border: 'none', fontSize: 15, cursor: 'pointer' }}>
-              Start Exercise
+              {translate('MentalHealth.start_exercise')}
             </button>
           </div>
         ))}
@@ -482,16 +481,16 @@ function GratitudeTab({ entries, onSave }) {
 
   return (
     <div>
-      <h2>🙏 Gratitude Journal</h2>
+      <h2>{translate('MentalHealth.gratitude_journal')}</h2>
       <form onSubmit={handleSubmit} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 12, padding: 20, marginBottom: 24 }}>
-        <p style={{ color: '#666' }}>What are you grateful for today?</p>
-        <input placeholder="1. I'm grateful for..." value={form.item_1} onChange={e => setForm({ ...form, item_1: e.target.value })} required
+        <p style={{ color: '#666' }}>{translate('MentalHealth.what_are_you_grateful_for_today')}</p>
+        <input placeholder={translate('MentalHealth.text_1_i_m_grateful_for')} value={form.item_1} onChange={e => setForm({ ...form, item_1: e.target.value })} required
           style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
-        <input placeholder="2. I'm grateful for..." value={form.item_2} onChange={e => setForm({ ...form, item_2: e.target.value })}
+        <input placeholder={translate('MentalHealth.text_2_i_m_grateful_for')} value={form.item_2} onChange={e => setForm({ ...form, item_2: e.target.value })}
           style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
-        <input placeholder="3. I'm grateful for..." value={form.item_3} onChange={e => setForm({ ...form, item_3: e.target.value })}
+        <input placeholder={translate('MentalHealth.text_3_i_m_grateful_for')} value={form.item_3} onChange={e => setForm({ ...form, item_3: e.target.value })}
           style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
-        <textarea placeholder="Reflection..." value={form.reflection} onChange={e => setForm({ ...form, reflection: e.target.value })} rows={3}
+        <textarea placeholder={translate('MentalHealth.reflection')} value={form.reflection} onChange={e => setForm({ ...form, reflection: e.target.value })} rows={3}
           style={{ width: '100%', padding: 10, marginBottom: 12, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box', resize: 'vertical' }} />
         <button type="submit" disabled={saving} style={{ padding: '10px 32px', borderRadius: 8, background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer' }}>
           {saving ? 'Saving...' : 'Save Entry'}
@@ -500,7 +499,7 @@ function GratitudeTab({ entries, onSave }) {
 
       {entries.length > 0 && (
         <div>
-          <h3>Recent Entries</h3>
+          <h3>{translate('MentalHealth.recent_entries')}</h3>
           {entries.map(e => (
             <div key={e.id} style={{ background: '#fffde7', borderRadius: 12, padding: 16, marginBottom: 12, borderLeft: '4px solid #ffc107' }}>
               <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>{e.entry_date}</div>
@@ -524,31 +523,31 @@ function AssessmentTab({ assessments, onSave }) {
   const [saving, setSaving] = useState(false);
 
   const PHQ9_QUESTIONS = [
-    { key: 'phq_interest', text: 'Little interest or pleasure in doing things' },
-    { key: 'phq_feeling_down', text: 'Feeling down, depressed, or hopeless' },
-    { key: 'phq_sleep', text: 'Trouble falling/staying asleep, or sleeping too much' },
-    { key: 'phq_energy', text: 'Feeling tired or having little energy' },
-    { key: 'phq_appetite', text: 'Poor appetite or overeating' },
-    { key: 'phq_self_esteem', text: 'Feeling bad about yourself' },
-    { key: 'phq_concentration', text: 'Trouble concentrating' },
-    { key: 'phq_psychomotor', text: 'Moving or speaking slowly / being fidgety' },
-    { key: 'phq_suicidal_ideation', text: 'Thoughts of self-harm' },
+    { key: 'phq_interest', text: translate('MentalHealth.little_interest_or_pleasure_in_doing') },
+    { key: 'phq_feeling_down', text: translate('MentalHealth.feeling_down_depressed_or_hopeless') },
+    { key: 'phq_sleep', text: translate('MentalHealth.trouble_falling_staying_asleep_or') },
+    { key: 'phq_energy', text: translate('MentalHealth.feeling_tired_or_having_little_energy') },
+    { key: 'phq_appetite', text: translate('MentalHealth.poor_appetite_or_overeating') },
+    { key: 'phq_self_esteem', text: translate('MentalHealth.feeling_bad_about_yourself') },
+    { key: 'phq_concentration', text: translate('MentalHealth.trouble_concentrating') },
+    { key: 'phq_psychomotor', text: translate('MentalHealth.moving_or_speaking_slowly_being_fidgety') },
+    { key: 'phq_suicidal_ideation', text: translate('MentalHealth.thoughts_of_self_harm') },
   ];
   const GAD7_QUESTIONS = [
-    { key: 'gad_nervous', text: 'Feeling nervous, anxious, or on edge' },
-    { key: 'gad_uncontrollable_worry', text: 'Not being able to stop worrying' },
-    { key: 'gad_excessive_worry', text: 'Worrying too much about different things' },
-    { key: 'gad_trouble_relaxing', text: 'Trouble relaxing' },
-    { key: 'gad_restless', text: 'Being so restless that it\'s hard to sit still' },
-    { key: 'gad_irritable', text: 'Becoming easily annoyed or irritable' },
-    { key: 'gad_afraid', text: 'Feeling afraid something awful might happen' },
+    { key: 'gad_nervous', text: translate('MentalHealth.feeling_nervous_anxious_or_on_edge') },
+    { key: 'gad_uncontrollable_worry', text: translate('MentalHealth.not_being_able_to_stop_worrying') },
+    { key: 'gad_excessive_worry', text: translate('MentalHealth.worrying_too_much_about_different_things') },
+    { key: 'gad_trouble_relaxing', text: translate('MentalHealth.trouble_relaxing') },
+    { key: 'gad_restless', text: translate('MentalHealth.being_so_restless_that_it_s_hard_to_sit') },
+    { key: 'gad_irritable', text: translate('MentalHealth.becoming_easily_annoyed_or_irritable') },
+    { key: 'gad_afraid', text: translate('MentalHealth.feeling_afraid_something_awful_might') },
   ];
   const WHO5_QUESTIONS = [
-    { key: 'who5_cheerful', text: 'I have felt cheerful and in good spirits' },
-    { key: 'who5_calm', text: 'I have felt calm and relaxed' },
-    { key: 'who5_active', text: 'I have felt active and vigorous' },
-    { key: 'who5_rested', text: 'I woke up feeling fresh and rested' },
-    { key: 'who5_interesting', text: 'My daily life has been filled with things that interest me' },
+    { key: 'who5_cheerful', text: translate('MentalHealth.i_have_felt_cheerful_and_in_good_spirits') },
+    { key: 'who5_calm', text: translate('MentalHealth.i_have_felt_calm_and_relaxed') },
+    { key: 'who5_active', text: translate('MentalHealth.i_have_felt_active_and_vigorous') },
+    { key: 'who5_rested', text: translate('MentalHealth.i_woke_up_feeling_fresh_and_rested') },
+    { key: 'who5_interesting', text: translate('MentalHealth.my_daily_life_has_been_filled_with') },
   ];
 
   const OPTIONS_03 = ['Not at all (0)', 'Several days (1)', 'More than half (2)', 'Nearly every day (3)'];
@@ -574,8 +573,8 @@ function AssessmentTab({ assessments, onSave }) {
 
   return (
     <div>
-      <h2>📋 Clinical Assessments</h2>
-      <p style={{ color: '#666' }}>Over the last 2 weeks, how often have you been bothered by the following?</p>
+      <h2>{translate('MentalHealth.clinical_assessments')}</h2>
+      <p style={{ color: '#666' }}>{translate('MentalHealth.over_the_last_2_weeks_how_often_have_you')}</p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {[['phq9', 'PHQ-9 (Depression)'], ['gad7', 'GAD-7 (Anxiety)'], ['who5', 'WHO-5 (Well-Being)']].map(([k, l]) => (
@@ -611,13 +610,13 @@ function AssessmentTab({ assessments, onSave }) {
 
       {assessments.length > 0 && (
         <div>
-          <h3>Assessment History</h3>
+          <h3>{translate('MentalHealth.assessment_history')}</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr style={{ borderBottom: '2px solid #eee' }}>
-              <th style={{ textAlign: 'left', padding: 8 }}>Date</th>
-              <th style={{ textAlign: 'left', padding: 8 }}>Type</th>
-              <th style={{ textAlign: 'left', padding: 8 }}>Score</th>
-              <th style={{ textAlign: 'left', padding: 8 }}>Severity</th>
+              <th style={{ textAlign: 'left', padding: 8 }}>{translate('MentalHealth.date')}</th>
+              <th style={{ textAlign: 'left', padding: 8 }}>{translate('MentalHealth.type')}</th>
+              <th style={{ textAlign: 'left', padding: 8 }}>{translate('MentalHealth.score')}</th>
+              <th style={{ textAlign: 'left', padding: 8 }}>{translate('MentalHealth.severity')}</th>
             </tr></thead>
             <tbody>
               {assessments.map(a => (

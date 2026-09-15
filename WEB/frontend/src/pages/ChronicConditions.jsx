@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import BackButton from '../components/BackButton';
 import ICD11Picker from '../components/ICD11Picker';
+import { t } from '../i18n';
 
 const ChronicConditions = () => {
   const [conditions, setConditions] = useState([]);
@@ -35,24 +36,24 @@ const ChronicConditions = () => {
   });
 
   const categories = [
-    { value: 'cancer', label: 'Cancer' },
-    { value: 'renal', label: 'Kidney/Renal Disease' },
-    { value: 'diabetes', label: 'Diabetes' },
-    { value: 'blood_disorder', label: 'Blood Disorder (G6PD, etc.)' },
-    { value: 'cardiovascular', label: 'Cardiovascular' },
-    { value: 'respiratory', label: 'Respiratory' },
-    { value: 'autoimmune', label: 'Autoimmune' },
-    { value: 'neurological', label: 'Neurological' },
-    { value: 'endocrine', label: 'Endocrine' },
-    { value: 'other', label: 'Other' }
+    { value: 'cancer', label: t('ChronicConditions.cancer') },
+    { value: 'renal', label: t('ChronicConditions.kidney_renal_disease') },
+    { value: 'diabetes', label: t('ChronicConditions.diabetes') },
+    { value: 'blood_disorder', label: t('ChronicConditions.blood_disorder_g6pd_etc') },
+    { value: 'cardiovascular', label: t('ChronicConditions.cardiovascular') },
+    { value: 'respiratory', label: t('ChronicConditions.respiratory') },
+    { value: 'autoimmune', label: t('ChronicConditions.autoimmune') },
+    { value: 'neurological', label: t('ChronicConditions.neurological') },
+    { value: 'endocrine', label: t('ChronicConditions.endocrine') },
+    { value: 'other', label: t('ChronicConditions.other') }
   ];
 
   const severities = [
-    { value: 'mild', label: 'Mild' },
-    { value: 'moderate', label: 'Moderate' },
-    { value: 'severe', label: 'Severe' },
-    { value: 'critical', label: 'Critical' },
-    { value: 'remission', label: 'In Remission' }
+    { value: 'mild', label: t('ChronicConditions.mild') },
+    { value: 'moderate', label: t('ChronicConditions.moderate') },
+    { value: 'severe', label: t('ChronicConditions.severe') },
+    { value: 'critical', label: t('ChronicConditions.critical') },
+    { value: 'remission', label: t('ChronicConditions.in_remission') }
   ];
 
   useEffect(() => {
@@ -104,7 +105,7 @@ const ChronicConditions = () => {
       // specific problem ("code 'ZZ99.9' does not exist"); a flat "failed to
       // save" leaves the patient with no idea which field to correct.
       const detail = error?.response?.data?.detail;
-      alert(typeof detail === 'string' ? detail : 'Failed to save condition');
+      alert(typeof detail === 'string' ? detail : t('ChronicConditions.failed_to_save_condition'));
     }
   };
 
@@ -136,14 +137,14 @@ const ChronicConditions = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this condition?')) return;
+    if (!confirm(t('ChronicConditions.are_you_sure_you_want_to_delete_this'))) return;
     
     try {
       await api.delete(`/chronic/conditions/${id}`);
       loadConditions();
     } catch (error) {
       console.error('Failed to delete condition:', error);
-      alert('Failed to delete condition');
+      alert(t('ChronicConditions.failed_to_delete_condition'));
     }
   };
 
@@ -184,7 +185,7 @@ const ChronicConditions = () => {
   };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>;
+    return <div style={{ textAlign: 'center', padding: '50px' }}>{t('ChronicConditions.loading')}</div>;
   }
 
   return (
@@ -193,7 +194,7 @@ const ChronicConditions = () => {
         <div className="page-header">
           <div className="page-header-left">
             <BackButton />
-            <h1>Chronic Health Conditions</h1>
+            <h1>{t('ChronicConditions.chronic_health_conditions')}</h1>
           </div>
         </div>
         <button
@@ -212,7 +213,7 @@ const ChronicConditions = () => {
             fontSize: '16px'
           }}
         >
-          + Add Condition
+          {t('ChronicConditions.add_condition')}
         </button>
       </div>
 
@@ -228,7 +229,7 @@ const ChronicConditions = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Condition Name *
+                  {t('ChronicConditions.condition_name')}
                 </label>
                 <input
                   type="text"
@@ -236,13 +237,13 @@ const ChronicConditions = () => {
                   onChange={(e) => setFormData({ ...formData, condition_name: e.target.value })}
                   required
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="e.g., Type 2 Diabetes, Chronic Kidney Disease Stage 3"
+                  placeholder={t('ChronicConditions.e_g_type_2_diabetes_chronic_kidney')}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Category *
+                  {t('ChronicConditions.category')}
                 </label>
                 <select
                   value={formData.category}
@@ -266,20 +267,20 @@ const ChronicConditions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  ICD-10 Code
+                  {t('ChronicConditions.icd_10_code')}
                 </label>
                 <input
                   type="text"
                   value={formData.icd10_code}
                   onChange={(e) => setFormData({ ...formData, icd10_code: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="e.g., E11.9, N18.3 — usually filled in from an imported record"
+                  placeholder={t('ChronicConditions.e_g_e11_9_n18_3_usually_filled_in_from')}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Severity *
+                  {t('ChronicConditions.severity')}
                 </label>
                 <select
                   value={formData.severity}
@@ -295,7 +296,7 @@ const ChronicConditions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Diagnosis Date
+                  {t('ChronicConditions.diagnosis_date')}
                 </label>
                 <input
                   type="date"
@@ -307,59 +308,59 @@ const ChronicConditions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Diagnosed By
+                  {t('ChronicConditions.diagnosed_by')}
                 </label>
                 <input
                   type="text"
                   value={formData.diagnosed_by}
                   onChange={(e) => setFormData({ ...formData, diagnosed_by: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="Doctor's name"
+                  placeholder={t('ChronicConditions.doctor_s_name')}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Diagnosing Facility
+                  {t('ChronicConditions.diagnosing_facility')}
                 </label>
                 <input
                   type="text"
                   value={formData.diagnosing_facility}
                   onChange={(e) => setFormData({ ...formData, diagnosing_facility: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="Hospital/clinic name"
+                  placeholder={t('ChronicConditions.hospital_clinic_name')}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Stage/Classification
+                  {t('ChronicConditions.stage_classification')}
                 </label>
                 <input
                   type="text"
                   value={formData.stage}
                   onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="e.g., Stage IIIA, ESRD"
+                  placeholder={t('ChronicConditions.e_g_stage_iiia_esrd')}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Grade
+                  {t('ChronicConditions.grade')}
                 </label>
                 <input
                   type="text"
                   value={formData.grade}
                   onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="e.g., Grade 2"
+                  placeholder={t('ChronicConditions.e_g_grade_2')}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Primary Physician
+                  {t('ChronicConditions.primary_physician')}
                 </label>
                 <input
                   type="text"
@@ -371,7 +372,7 @@ const ChronicConditions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Specialist Physician
+                  {t('ChronicConditions.specialist_physician')}
                 </label>
                 <input
                   type="text"
@@ -383,20 +384,20 @@ const ChronicConditions = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Monitoring Frequency
+                  {t('ChronicConditions.monitoring_frequency')}
                 </label>
                 <input
                   type="text"
                   value={formData.monitoring_frequency}
                   onChange={(e) => setFormData({ ...formData, monitoring_frequency: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                  placeholder="e.g., Monthly, Every 3 months"
+                  placeholder={t('ChronicConditions.e_g_monthly_every_3_months')}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Next Appointment
+                  {t('ChronicConditions.next_appointment')}
                 </label>
                 <input
                   type="date"
@@ -409,49 +410,49 @@ const ChronicConditions = () => {
 
             <div style={{ marginTop: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Current Treatment Plan
+                {t('ChronicConditions.current_treatment_plan')}
               </label>
               <textarea
                 value={formData.current_treatment_plan}
                 onChange={(e) => setFormData({ ...formData, current_treatment_plan: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '80px' }}
-                placeholder="Describe the current treatment approach..."
+                placeholder={t('ChronicConditions.describe_the_current_treatment_approach')}
               />
             </div>
 
             <div style={{ marginTop: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Symptoms
+                {t('ChronicConditions.symptoms')}
               </label>
               <textarea
                 value={formData.symptoms}
                 onChange={(e) => setFormData({ ...formData, symptoms: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '60px' }}
-                placeholder="Common symptoms experienced..."
+                placeholder={t('ChronicConditions.common_symptoms_experienced')}
               />
             </div>
 
             <div style={{ marginTop: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Complications
+                {t('ChronicConditions.complications')}
               </label>
               <textarea
                 value={formData.complications}
                 onChange={(e) => setFormData({ ...formData, complications: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '60px' }}
-                placeholder="Any complications or concerns..."
+                placeholder={t('ChronicConditions.any_complications_or_concerns')}
               />
             </div>
 
             <div style={{ marginTop: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Notes
+                {t('ChronicConditions.notes')}
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '80px' }}
-                placeholder="Additional notes..."
+                placeholder={t('ChronicConditions.additional_notes')}
               />
             </div>
 
@@ -463,7 +464,7 @@ const ChronicConditions = () => {
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                   style={{ marginRight: '8px' }}
                 />
-                <span style={{ fontWeight: 'bold' }}>Condition is currently active</span>
+                <span style={{ fontWeight: 'bold' }}>{t('ChronicConditions.condition_is_currently_active')}</span>
               </label>
             </div>
 
@@ -499,7 +500,7 @@ const ChronicConditions = () => {
                   fontSize: '16px'
                 }}
               >
-                Cancel
+                {t('ChronicConditions.cancel')}
               </button>
             </div>
           </form>
@@ -523,13 +524,13 @@ const ChronicConditions = () => {
               border: 'none', backgroundColor: '#a12622', color: 'white', cursor: 'pointer'
             }}
           >
-            Retry
+            {t('ChronicConditions.retry')}
           </button>
         </div>
       ) : conditions.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
-          <p>No chronic conditions recorded yet.</p>
-          <p>Click "Add Condition" to get started.</p>
+          <p>{t('ChronicConditions.no_chronic_conditions_recorded_yet')}</p>
+          <p>{t('ChronicConditions.click_add_condition_to_get_started')}</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gap: '20px' }}>
@@ -575,7 +576,7 @@ const ChronicConditions = () => {
                   
                   <div style={{ color: '#666', marginBottom: '15px' }}>
                     <p style={{ margin: '5px 0' }}>
-                      <strong>Category:</strong> {categories.find(c => c.value === condition.category)?.label}
+                      <strong>{t('ChronicConditions.category_2')}</strong> {categories.find(c => c.value === condition.category)?.label}
                       {condition.icd11_code && ` | ICD-11: ${condition.icd11_code}`}
                       {condition.icd10_code && ` | ICD-10: ${condition.icd10_code}`}
                     </p>
@@ -586,34 +587,34 @@ const ChronicConditions = () => {
                     )}
                     {condition.diagnosis_date && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Diagnosed:</strong> {new Date(condition.diagnosis_date).toLocaleDateString()}
+                        <strong>{t('ChronicConditions.diagnosed')}</strong> {new Date(condition.diagnosis_date).toLocaleDateString()}
                         {condition.diagnosed_by && ` by ${condition.diagnosed_by}`}
                       </p>
                     )}
                     {condition.stage && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Stage:</strong> {condition.stage}
+                        <strong>{t('ChronicConditions.stage')}</strong> {condition.stage}
                         {condition.grade && ` | Grade: ${condition.grade}`}
                       </p>
                     )}
                     {condition.primary_physician && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Primary Physician:</strong> {condition.primary_physician}
+                        <strong>{t('ChronicConditions.primary_physician_2')}</strong> {condition.primary_physician}
                       </p>
                     )}
                     {condition.specialist_physician && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Specialist:</strong> {condition.specialist_physician}
+                        <strong>{t('ChronicConditions.specialist')}</strong> {condition.specialist_physician}
                       </p>
                     )}
                     {condition.next_appointment && (
                       <p style={{ margin: '5px 0' }}>
-                        <strong>Next Appointment:</strong> {new Date(condition.next_appointment).toLocaleDateString()}
+                        <strong>{t('ChronicConditions.next_appointment_2')}</strong> {new Date(condition.next_appointment).toLocaleDateString()}
                       </p>
                     )}
                     {condition.current_treatment_plan && (
                       <p style={{ margin: '10px 0', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                        <strong>Treatment Plan:</strong><br />
+                        <strong>{t('ChronicConditions.treatment_plan')}</strong><br />
                         {condition.current_treatment_plan}
                       </p>
                     )}
@@ -631,7 +632,7 @@ const ChronicConditions = () => {
                       cursor: 'pointer'
                     }}
                   >
-                    Edit
+                    {t('ChronicConditions.edit')}
                   </button>
                   <button
                     onClick={() => handleDelete(condition.id)}
@@ -644,7 +645,7 @@ const ChronicConditions = () => {
                       cursor: 'pointer'
                     }}
                   >
-                    Delete
+                    {t('ChronicConditions.delete')}
                   </button>
                 </div>
               </div>

@@ -8,6 +8,7 @@ import {
   Package, ChevronDown, Activity,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { t as translate } from '../i18n';
 
 const STATUS_COLORS = {
   draft: '#9e9e9e', active: '#4caf50', filled: '#2196f3',
@@ -37,12 +38,12 @@ function Badge({ status }) {
 }
 
 const TABS = [
-  { key: 'prescriptions', label: 'Prescriptions', icon: ClipboardList },
-  { key: 'queue', label: 'Pharmacy Queue', icon: Package },
-  { key: 'adherence', label: 'Adherence', icon: CheckCircle2 },
-  { key: 'schedules', label: 'Schedules', icon: Calendar },
-  { key: 'refills', label: 'Refills', icon: RefreshCw },
-  { key: 'impact', label: 'Impact Analysis', icon: BarChart3 },
+  { key: 'prescriptions', get label() { return translate('Pharmacy.prescriptions'); }, icon: ClipboardList },
+  { key: 'queue', get label() { return translate('Pharmacy.pharmacy_queue'); }, icon: Package },
+  { key: 'adherence', get label() { return translate('Pharmacy.adherence'); }, icon: CheckCircle2 },
+  { key: 'schedules', get label() { return translate('Pharmacy.schedules'); }, icon: Calendar },
+  { key: 'refills', get label() { return translate('Pharmacy.refills'); }, icon: RefreshCw },
+  { key: 'impact', get label() { return translate('Pharmacy.impact_analysis'); }, icon: BarChart3 },
 ];
 
 export default function Pharmacy() {
@@ -214,7 +215,7 @@ export default function Pharmacy() {
       <div className="page-header">
         <div className="page-header-left">
           <BackButton />
-          <h1 className="page-title"><Pill size={28} style={{ marginRight: 8 }} /> Pharmacy</h1>
+          <h1 className="page-title"><Pill size={28} style={{ marginRight: 8 }} /> {translate('Pharmacy.pharmacy')}</h1>
         </div>
       </div>
 
@@ -249,91 +250,91 @@ export default function Pharmacy() {
         <div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <button className="btn btn-primary" onClick={() => setShowRxForm(!showRxForm)}>
-              <Plus size={16} /> New Prescription
+              <Plus size={16} /> {translate('Pharmacy.new_prescription')}
             </button>
           </div>
 
           {showRxForm && (
             <div className="card" style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 12 }}>Create Prescription</h3>
+              <h3 style={{ marginBottom: 12 }}>{translate('Pharmacy.create_prescription')}</h3>
               <form onSubmit={submitPrescription}>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Patient ID</label>
+                    <label className="form-label">{translate('Pharmacy.patient_id')}</label>
                     <input className="form-input" type="number" value={rxForm.patient_id}
                       onChange={e => setRxForm({ ...rxForm, patient_id: e.target.value })} required />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Medication Name</label>
+                    <label className="form-label">{translate('Pharmacy.medication_name')}</label>
                     <input className="form-input" value={rxForm.medication_name}
                       onChange={e => setRxForm({ ...rxForm, medication_name: e.target.value })} required />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Dosage</label>
+                    <label className="form-label">{translate('Pharmacy.dosage')}</label>
                     <input className="form-input" value={rxForm.dosage}
                       onChange={e => setRxForm({ ...rxForm, dosage: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Unit</label>
+                    <label className="form-label">{translate('Pharmacy.unit')}</label>
                     <select className="form-input" value={rxForm.dosage_unit}
                       onChange={e => setRxForm({ ...rxForm, dosage_unit: e.target.value })}>
-                      <option value="mg">mg</option><option value="ml">ml</option>
-                      <option value="g">g</option><option value="mcg">mcg</option>
-                      <option value="units">units</option>
+                      <option value="mg">{translate('Pharmacy.mg')}</option><option value="ml">{translate('Pharmacy.ml')}</option>
+                      <option value="g">g</option><option value="mcg">{translate('Pharmacy.mcg')}</option>
+                      <option value="units">{translate('Pharmacy.units')}</option>
                     </select>
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Form</label>
+                    <label className="form-label">{translate('Pharmacy.form')}</label>
                     <select className="form-input" value={rxForm.form}
                       onChange={e => setRxForm({ ...rxForm, form: e.target.value })}>
-                      <option value="tablet">Tablet</option><option value="capsule">Capsule</option>
-                      <option value="liquid">Liquid</option><option value="injection">Injection</option>
-                      <option value="cream">Cream</option><option value="patch">Patch</option>
-                      <option value="inhaler">Inhaler</option><option value="drops">Drops</option>
+                      <option value="tablet">{translate('Pharmacy.tablet')}</option><option value="capsule">{translate('Pharmacy.capsule')}</option>
+                      <option value="liquid">{translate('Pharmacy.liquid')}</option><option value="injection">{translate('Pharmacy.injection')}</option>
+                      <option value="cream">{translate('Pharmacy.cream')}</option><option value="patch">{translate('Pharmacy.patch')}</option>
+                      <option value="inhaler">{translate('Pharmacy.inhaler')}</option><option value="drops">{translate('Pharmacy.drops')}</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Route</label>
+                    <label className="form-label">{translate('Pharmacy.route')}</label>
                     <select className="form-input" value={rxForm.route}
                       onChange={e => setRxForm({ ...rxForm, route: e.target.value })}>
-                      <option value="oral">Oral</option><option value="topical">Topical</option>
+                      <option value="oral">{translate('Pharmacy.oral')}</option><option value="topical">{translate('Pharmacy.topical')}</option>
                       <option value="IV">IV</option><option value="IM">IM</option>
-                      <option value="SC">SC</option><option value="inhalation">Inhalation</option>
+                      <option value="SC">SC</option><option value="inhalation">{translate('Pharmacy.inhalation')}</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Frequency</label>
+                    <label className="form-label">{translate('Pharmacy.frequency')}</label>
                     <input className="form-input" value={rxForm.frequency} placeholder="BID, TID, Q8H..."
                       onChange={e => setRxForm({ ...rxForm, frequency: e.target.value })} />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Duration (days)</label>
+                    <label className="form-label">{translate('Pharmacy.duration_days')}</label>
                     <input className="form-input" type="number" value={rxForm.duration_days}
                       onChange={e => setRxForm({ ...rxForm, duration_days: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Quantity</label>
+                    <label className="form-label">{translate('Pharmacy.quantity')}</label>
                     <input className="form-input" type="number" value={rxForm.quantity}
                       onChange={e => setRxForm({ ...rxForm, quantity: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Refills</label>
+                    <label className="form-label">{translate('Pharmacy.refills')}</label>
                     <input className="form-input" type="number" value={rxForm.refills_authorized}
                       onChange={e => setRxForm({ ...rxForm, refills_authorized: e.target.value })} />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group" style={{ flex: 2 }}>
-                    <label className="form-label">Diagnosis</label>
+                    <label className="form-label">{translate('Pharmacy.diagnosis')}</label>
                     <input className="form-input" value={rxForm.diagnosis}
                       onChange={e => setRxForm({ ...rxForm, diagnosis: e.target.value })} />
                   </div>
                   <div className="form-group" style={{ flex: 3 }}>
-                    <label className="form-label">Patient Instructions (Sig)</label>
+                    <label className="form-label">{translate('Pharmacy.patient_instructions_sig')}</label>
                     <input className="form-input" value={rxForm.instructions}
                       onChange={e => setRxForm({ ...rxForm, instructions: e.target.value })} />
                   </div>
@@ -341,9 +342,9 @@ export default function Pharmacy() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}>
                   <input type="checkbox" checked={rxForm.substitution_allowed}
                     onChange={e => setRxForm({ ...rxForm, substitution_allowed: e.target.checked })} />
-                  <label style={{ fontSize: 14 }}>Generic substitution allowed</label>
+                  <label style={{ fontSize: 14 }}>{translate('Pharmacy.generic_substitution_allowed')}</label>
                 </div>
-                <button className="btn btn-primary" type="submit">Create Prescription</button>
+                <button className="btn btn-primary" type="submit">{translate('Pharmacy.create_prescription')}</button>
               </form>
             </div>
           )}
@@ -352,8 +353,8 @@ export default function Pharmacy() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Medication</th><th>Dosage</th><th>Frequency</th>
-                  <th>Prescriber</th><th>Status</th><th>Refills</th><th>Date</th><th></th>
+                  <th>{translate('Pharmacy.medication')}</th><th>{translate('Pharmacy.dosage')}</th><th>{translate('Pharmacy.frequency')}</th>
+                  <th>{translate('Pharmacy.prescriber')}</th><th>{translate('Pharmacy.status')}</th><th>{translate('Pharmacy.refills')}</th><th>{translate('Pharmacy.date')}</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -369,14 +370,14 @@ export default function Pharmacy() {
                     <td>
                       <button className="btn btn-sm" style={{ fontSize: 12 }}
                         onClick={() => { setSelectedRx(rx); setTab('impact'); loadImpact(rx.id); }}>
-                        <BarChart3 size={14} /> Impact
+                        <BarChart3 size={14} /> {translate('Pharmacy.impact')}
                       </button>
                     </td>
                   </tr>
                 ))}
                 {prescriptions.length === 0 && (
                   <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                    No prescriptions found
+                    {translate('Pharmacy.no_prescriptions_found')}
                   </td></tr>
                 )}
               </tbody>
@@ -390,44 +391,44 @@ export default function Pharmacy() {
         <div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <button className="btn btn-primary" onClick={() => setShowDispenseForm(!showDispenseForm)}>
-              <Package size={16} /> Dispense Medication
+              <Package size={16} /> {translate('Pharmacy.dispense_medication')}
             </button>
           </div>
 
           {showDispenseForm && (
             <div className="card" style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 12 }}>Dispense Medication</h3>
+              <h3 style={{ marginBottom: 12 }}>{translate('Pharmacy.dispense_medication')}</h3>
               <form onSubmit={submitDispense}>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Prescription ID</label>
+                    <label className="form-label">{translate('Pharmacy.prescription_id')}</label>
                     <input className="form-input" type="number" value={dispenseForm.prescription_id}
                       onChange={e => setDispenseForm({ ...dispenseForm, prescription_id: e.target.value })} required />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Quantity</label>
+                    <label className="form-label">{translate('Pharmacy.quantity')}</label>
                     <input className="form-input" type="number" value={dispenseForm.quantity_dispensed}
                       onChange={e => setDispenseForm({ ...dispenseForm, quantity_dispensed: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Days Supply</label>
+                    <label className="form-label">{translate('Pharmacy.days_supply')}</label>
                     <input className="form-input" type="number" value={dispenseForm.days_supply}
                       onChange={e => setDispenseForm({ ...dispenseForm, days_supply: e.target.value })} />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">NDC Code</label>
+                    <label className="form-label">{translate('Pharmacy.ndc_code')}</label>
                     <input className="form-input" value={dispenseForm.ndc_code}
                       onChange={e => setDispenseForm({ ...dispenseForm, ndc_code: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Lot Number</label>
+                    <label className="form-label">{translate('Pharmacy.lot_number')}</label>
                     <input className="form-input" value={dispenseForm.lot_number}
                       onChange={e => setDispenseForm({ ...dispenseForm, lot_number: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Manufacturer</label>
+                    <label className="form-label">{translate('Pharmacy.manufacturer')}</label>
                     <input className="form-input" value={dispenseForm.manufacturer}
                       onChange={e => setDispenseForm({ ...dispenseForm, manufacturer: e.target.value })} />
                   </div>
@@ -447,22 +448,22 @@ export default function Pharmacy() {
                   ))}
                 </div>
                 <div className="form-group" style={{ marginTop: 8 }}>
-                  <label className="form-label">Clinical Notes</label>
+                  <label className="form-label">{translate('Pharmacy.clinical_notes')}</label>
                   <textarea className="form-input" rows={2} value={dispenseForm.clinical_notes}
                     onChange={e => setDispenseForm({ ...dispenseForm, clinical_notes: e.target.value })} />
                 </div>
-                <button className="btn btn-primary" type="submit">Dispense</button>
+                <button className="btn btn-primary" type="submit">{translate('Pharmacy.dispense')}</button>
               </form>
             </div>
           )}
 
           <div className="card">
-            <h3 style={{ marginBottom: 12 }}>Active Prescriptions Queue</h3>
+            <h3 style={{ marginBottom: 12 }}>{translate('Pharmacy.active_prescriptions_queue')}</h3>
             <table className="table">
               <thead>
                 <tr>
-                  <th>ID</th><th>Medication</th><th>Patient</th>
-                  <th>Dosage</th><th>Frequency</th><th>Status</th><th>Prescribed</th>
+                  <th>ID</th><th>{translate('Pharmacy.medication')}</th><th>{translate('Pharmacy.patient')}</th>
+                  <th>{translate('Pharmacy.dosage')}</th><th>{translate('Pharmacy.frequency')}</th><th>{translate('Pharmacy.status')}</th><th>{translate('Pharmacy.prescribed')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -479,7 +480,7 @@ export default function Pharmacy() {
                 ))}
                 {queue.length === 0 && (
                   <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                    No prescriptions in queue
+                    {translate('Pharmacy.no_prescriptions_in_queue')}
                   </td></tr>
                 )}
               </tbody>
@@ -495,12 +496,12 @@ export default function Pharmacy() {
           {report && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
               {[
-                { label: 'Adherence Rate', value: `${report.adherence_rate}%`, color: report.adherence_rate >= 80 ? '#4caf50' : report.adherence_rate >= 50 ? '#ff9800' : '#f44336' },
-                { label: 'Taken', value: report.total_taken, color: '#4caf50' },
-                { label: 'Missed', value: report.total_missed, color: '#f44336' },
-                { label: 'Late', value: report.total_late, color: '#ff9800' },
-                { label: 'Current Streak', value: `${report.streak_current} days`, color: '#2196f3' },
-                { label: 'Longest Streak', value: `${report.streak_longest} days`, color: '#2196f3' },
+                { label: translate('Pharmacy.adherence_rate'), value: `${report.adherence_rate}%`, color: report.adherence_rate >= 80 ? '#4caf50' : report.adherence_rate >= 50 ? '#ff9800' : '#f44336' },
+                { label: translate('Pharmacy.taken'), value: report.total_taken, color: '#4caf50' },
+                { label: translate('Pharmacy.missed'), value: report.total_missed, color: '#f44336' },
+                { label: translate('Pharmacy.late'), value: report.total_late, color: '#ff9800' },
+                { label: translate('Pharmacy.current_streak'), value: `${report.streak_current} days`, color: '#2196f3' },
+                { label: translate('Pharmacy.longest_streak'), value: `${report.streak_longest} days`, color: '#2196f3' },
               ].map(s => (
                 <div key={s.label} className="card" style={{ textAlign: 'center', padding: 16 }}>
                   <div style={{ fontSize: 28, fontWeight: 700, color: s.color }}>{s.value}</div>
@@ -512,81 +513,81 @@ export default function Pharmacy() {
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <button className="btn btn-primary" onClick={() => setShowAdherenceForm(!showAdherenceForm)}>
-              <Plus size={16} /> Log Dose
+              <Plus size={16} /> {translate('Pharmacy.log_dose')}
             </button>
           </div>
 
           {showAdherenceForm && (
             <div className="card" style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 12 }}>Log Medication Dose</h3>
+              <h3 style={{ marginBottom: 12 }}>{translate('Pharmacy.log_medication_dose')}</h3>
               <form onSubmit={submitAdherence}>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Prescription ID</label>
+                    <label className="form-label">{translate('Pharmacy.prescription_id')}</label>
                     <input className="form-input" type="number" value={adherenceForm.prescription_id}
                       onChange={e => setAdherenceForm({ ...adherenceForm, prescription_id: e.target.value })} required />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Status</label>
+                    <label className="form-label">{translate('Pharmacy.status')}</label>
                     <select className="form-input" value={adherenceForm.status}
                       onChange={e => setAdherenceForm({ ...adherenceForm, status: e.target.value })}>
-                      <option value="taken">Taken</option><option value="missed">Missed</option>
-                      <option value="skipped">Skipped</option><option value="late">Late</option>
+                      <option value="taken">{translate('Pharmacy.taken')}</option><option value="missed">{translate('Pharmacy.missed')}</option>
+                      <option value="skipped">{translate('Pharmacy.skipped')}</option><option value="late">{translate('Pharmacy.late')}</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Scheduled Time</label>
+                    <label className="form-label">{translate('Pharmacy.scheduled_time')}</label>
                     <input className="form-input" type="datetime-local" value={adherenceForm.scheduled_time}
                       onChange={e => setAdherenceForm({ ...adherenceForm, scheduled_time: e.target.value })} required />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Mood Before (1-10)</label>
+                    <label className="form-label">{translate('Pharmacy.mood_before_1_10')}</label>
                     <input className="form-input" type="number" min={1} max={10} value={adherenceForm.mood_before}
                       onChange={e => setAdherenceForm({ ...adherenceForm, mood_before: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Mood After (1-10)</label>
+                    <label className="form-label">{translate('Pharmacy.mood_after_1_10')}</label>
                     <input className="form-input" type="number" min={1} max={10} value={adherenceForm.mood_after}
                       onChange={e => setAdherenceForm({ ...adherenceForm, mood_after: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Pain Before (1-10)</label>
+                    <label className="form-label">{translate('Pharmacy.pain_before_1_10')}</label>
                     <input className="form-input" type="number" min={1} max={10} value={adherenceForm.pain_before}
                       onChange={e => setAdherenceForm({ ...adherenceForm, pain_before: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Pain After (1-10)</label>
+                    <label className="form-label">{translate('Pharmacy.pain_after_1_10')}</label>
                     <input className="form-input" type="number" min={1} max={10} value={adherenceForm.pain_after}
                       onChange={e => setAdherenceForm({ ...adherenceForm, pain_after: e.target.value })} />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group" style={{ flex: 2 }}>
-                    <label className="form-label">Side Effects</label>
+                    <label className="form-label">{translate('Pharmacy.side_effects')}</label>
                     <input className="form-input" value={adherenceForm.side_effects_reported}
                       onChange={e => setAdherenceForm({ ...adherenceForm, side_effects_reported: e.target.value })}
-                      placeholder="e.g., nausea, dizziness" />
+                      placeholder={translate('Pharmacy.e_g_nausea_dizziness')} />
                   </div>
                   <div className="form-group" style={{ flex: 2 }}>
-                    <label className="form-label">Notes</label>
+                    <label className="form-label">{translate('Pharmacy.notes')}</label>
                     <input className="form-input" value={adherenceForm.notes}
                       onChange={e => setAdherenceForm({ ...adherenceForm, notes: e.target.value })} />
                   </div>
                 </div>
-                <button className="btn btn-primary" type="submit">Log Dose</button>
+                <button className="btn btn-primary" type="submit">{translate('Pharmacy.log_dose')}</button>
               </form>
             </div>
           )}
 
           <div className="card">
-            <h3 style={{ marginBottom: 12 }}>Adherence History</h3>
+            <h3 style={{ marginBottom: 12 }}>{translate('Pharmacy.adherence_history')}</h3>
             <table className="table">
               <thead>
                 <tr>
-                  <th>Medication</th><th>Scheduled</th><th>Status</th>
-                  <th>Mood</th><th>Pain</th><th>Side Effects</th>
+                  <th>{translate('Pharmacy.medication')}</th><th>{translate('Pharmacy.scheduled')}</th><th>{translate('Pharmacy.status')}</th>
+                  <th>{translate('Pharmacy.mood')}</th><th>{translate('Pharmacy.pain')}</th><th>{translate('Pharmacy.side_effects')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -605,7 +606,7 @@ export default function Pharmacy() {
                 })}
                 {adherenceLogs.length === 0 && (
                   <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                    No adherence logs yet
+                    {translate('Pharmacy.no_adherence_logs_yet')}
                   </td></tr>
                 )}
               </tbody>
@@ -619,44 +620,44 @@ export default function Pharmacy() {
         <div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <button className="btn btn-primary" onClick={() => setShowScheduleForm(!showScheduleForm)}>
-              <Plus size={16} /> Add Schedule
+              <Plus size={16} /> {translate('Pharmacy.add_schedule')}
             </button>
           </div>
 
           {showScheduleForm && (
             <div className="card" style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 12 }}>Create Medication Schedule</h3>
+              <h3 style={{ marginBottom: 12 }}>{translate('Pharmacy.create_medication_schedule')}</h3>
               <form onSubmit={submitSchedule}>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Prescription ID</label>
+                    <label className="form-label">{translate('Pharmacy.prescription_id')}</label>
                     <input className="form-input" type="number" value={scheduleForm.prescription_id}
                       onChange={e => setScheduleForm({ ...scheduleForm, prescription_id: e.target.value })} required />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Time of Day</label>
+                    <label className="form-label">{translate('Pharmacy.time_of_day')}</label>
                     <input className="form-input" type="time" value={scheduleForm.time_of_day}
                       onChange={e => setScheduleForm({ ...scheduleForm, time_of_day: e.target.value })} required />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Dose Label</label>
-                    <input className="form-input" value={scheduleForm.dose_label} placeholder="Morning dose"
+                    <label className="form-label">{translate('Pharmacy.dose_label')}</label>
+                    <input className="form-input" value={scheduleForm.dose_label} placeholder={translate('Pharmacy.morning_dose')}
                       onChange={e => setScheduleForm({ ...scheduleForm, dose_label: e.target.value })} />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Days (leave blank for daily)</label>
-                    <input className="form-input" value={scheduleForm.days_of_week} placeholder="mon,tue,wed"
+                    <label className="form-label">{translate('Pharmacy.days_leave_blank_for_daily')}</label>
+                    <input className="form-input" value={scheduleForm.days_of_week} placeholder={translate('Pharmacy.mon_tue_wed')}
                       onChange={e => setScheduleForm({ ...scheduleForm, days_of_week: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Reminder (min before)</label>
+                    <label className="form-label">{translate('Pharmacy.reminder_min_before')}</label>
                     <input className="form-input" type="number" value={scheduleForm.reminder_minutes_before}
                       onChange={e => setScheduleForm({ ...scheduleForm, reminder_minutes_before: e.target.value })} />
                   </div>
                 </div>
-                <button className="btn btn-primary" type="submit">Create Schedule</button>
+                <button className="btn btn-primary" type="submit">{translate('Pharmacy.create_schedule')}</button>
               </form>
             </div>
           )}
@@ -665,8 +666,8 @@ export default function Pharmacy() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Medication</th><th>Time</th><th>Label</th>
-                  <th>Days</th><th>Reminder</th><th>Active</th>
+                  <th>{translate('Pharmacy.medication')}</th><th>{translate('Pharmacy.time')}</th><th>{translate('Pharmacy.label')}</th>
+                  <th>{translate('Pharmacy.days')}</th><th>{translate('Pharmacy.reminder')}</th><th>{translate('Pharmacy.active')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -676,13 +677,13 @@ export default function Pharmacy() {
                     <td>{s.time_of_day}</td>
                     <td>{s.dose_label || '-'}</td>
                     <td>{s.days_of_week || 'Daily'}</td>
-                    <td>{s.reminder_minutes_before} min</td>
+                    <td>{translate('Pharmacy.min', { reminder_minutes_before: s.reminder_minutes_before })}</td>
                     <td>{s.is_active ? '🟢' : '⚪'}</td>
                   </tr>
                 ))}
                 {schedules.length === 0 && (
                   <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                    No schedules set up
+                    {translate('Pharmacy.no_schedules_set_up')}
                   </td></tr>
                 )}
               </tbody>
@@ -696,32 +697,32 @@ export default function Pharmacy() {
         <div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <button className="btn btn-primary" onClick={() => setShowRefillForm(!showRefillForm)}>
-              <RefreshCw size={16} /> Request Refill
+              <RefreshCw size={16} /> {translate('Pharmacy.request_refill')}
             </button>
           </div>
 
           {showRefillForm && (
             <div className="card" style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 12 }}>Request Refill</h3>
+              <h3 style={{ marginBottom: 12 }}>{translate('Pharmacy.request_refill')}</h3>
               <form onSubmit={submitRefill}>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Prescription ID</label>
+                    <label className="form-label">{translate('Pharmacy.prescription_id')}</label>
                     <input className="form-input" type="number" value={refillForm.prescription_id}
                       onChange={e => setRefillForm({ ...refillForm, prescription_id: e.target.value })} required />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Quantity Requested</label>
+                    <label className="form-label">{translate('Pharmacy.quantity_requested')}</label>
                     <input className="form-input" type="number" value={refillForm.quantity_requested}
                       onChange={e => setRefillForm({ ...refillForm, quantity_requested: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Notes</label>
+                    <label className="form-label">{translate('Pharmacy.notes')}</label>
                     <input className="form-input" value={refillForm.notes}
                       onChange={e => setRefillForm({ ...refillForm, notes: e.target.value })} />
                   </div>
                 </div>
-                <button className="btn btn-primary" type="submit">Submit Request</button>
+                <button className="btn btn-primary" type="submit">{translate('Pharmacy.submit_request')}</button>
               </form>
             </div>
           )}
@@ -730,8 +731,8 @@ export default function Pharmacy() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Medication</th><th>Requested</th><th>Status</th>
-                  <th>Quantity</th><th>Notes</th>
+                  <th>{translate('Pharmacy.medication')}</th><th>{translate('Pharmacy.requested')}</th><th>{translate('Pharmacy.status')}</th>
+                  <th>{translate('Pharmacy.quantity')}</th><th>{translate('Pharmacy.notes')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -746,7 +747,7 @@ export default function Pharmacy() {
                 ))}
                 {refills.length === 0 && (
                   <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                    No refill requests
+                    {translate('Pharmacy.no_refill_requests')}
                   </td></tr>
                 )}
               </tbody>
@@ -762,24 +763,24 @@ export default function Pharmacy() {
             <div className="card" style={{ textAlign: 'center', padding: 40 }}>
               <Activity size={48} style={{ color: 'var(--color-text-secondary)', marginBottom: 12 }} />
               <p style={{ color: 'var(--color-text-secondary)' }}>
-                Select a prescription from the Prescriptions tab to analyze its health impact.
+                {translate('Pharmacy.select_a_prescription_from_the')}
               </p>
             </div>
           )}
-          {loading && <div className="card" style={{ textAlign: 'center', padding: 40 }}>Loading impact analysis...</div>}
+          {loading && <div className="card" style={{ textAlign: 'center', padding: 40 }}>{translate('Pharmacy.loading_impact_analysis')}</div>}
           {impact && !loading && (
             <div>
               <h2 style={{ marginBottom: 16 }}>
                 <Pill size={22} style={{ marginRight: 8 }} />
-                {impact.medication_name} — Impact Report
+                {translate('Pharmacy.impact_report', { medication_name: impact.medication_name })}
               </h2>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 20 }}>
                 {[
-                  { label: 'Adherence Rate', value: `${impact.adherence_rate}%`, color: impact.adherence_rate >= 80 ? '#4caf50' : '#f44336' },
-                  { label: 'Doses Taken', value: impact.doses_taken, color: '#4caf50' },
-                  { label: 'Doses Missed', value: impact.doses_missed, color: '#f44336' },
-                  { label: 'Analysis Period', value: `${impact.analysis_period_days} days`, color: '#2196f3' },
+                  { label: translate('Pharmacy.adherence_rate'), value: `${impact.adherence_rate}%`, color: impact.adherence_rate >= 80 ? '#4caf50' : '#f44336' },
+                  { label: translate('Pharmacy.doses_taken'), value: impact.doses_taken, color: '#4caf50' },
+                  { label: translate('Pharmacy.doses_missed'), value: impact.doses_missed, color: '#f44336' },
+                  { label: translate('Pharmacy.analysis_period'), value: `${impact.analysis_period_days} days`, color: '#2196f3' },
                 ].map(c => (
                   <div key={c.label} className="card" style={{ textAlign: 'center', padding: 16 }}>
                     <div style={{ fontSize: 32, fontWeight: 700, color: c.color }}>{c.value}</div>
@@ -790,11 +791,11 @@ export default function Pharmacy() {
 
               {(impact.avg_mood_before != null || impact.avg_mood_after != null) && (
                 <div className="card" style={{ marginBottom: 12 }}>
-                  <h3 style={{ marginBottom: 8 }}><TrendingUp size={18} style={{ marginRight: 6 }} /> Mood Impact</h3>
+                  <h3 style={{ marginBottom: 8 }}><TrendingUp size={18} style={{ marginRight: 6 }} /> {translate('Pharmacy.mood_impact')}</h3>
                   <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-                    <div>Before: <strong>{impact.avg_mood_before ?? 'N/A'}</strong>/10</div>
+                    <div>{translate('Pharmacy.before')} <strong>{impact.avg_mood_before ?? 'N/A'}</strong>/10</div>
                     <div style={{ fontSize: 20 }}>→</div>
-                    <div>After: <strong>{impact.avg_mood_after ?? 'N/A'}</strong>/10</div>
+                    <div>{translate('Pharmacy.after')} <strong>{impact.avg_mood_after ?? 'N/A'}</strong>/10</div>
                     {impact.mood_trend && <Badge status={impact.mood_trend === 'improving' ? 'taken' : impact.mood_trend === 'declining' ? 'missed' : 'skipped'} />}
                   </div>
                 </div>
@@ -802,7 +803,7 @@ export default function Pharmacy() {
 
               {impact.reported_side_effects?.length > 0 && (
                 <div className="card" style={{ marginBottom: 12 }}>
-                  <h3 style={{ marginBottom: 8 }}><AlertTriangle size={18} style={{ marginRight: 6 }} /> Side Effects</h3>
+                  <h3 style={{ marginBottom: 8 }}><AlertTriangle size={18} style={{ marginRight: 6 }} /> {translate('Pharmacy.side_effects')}</h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {impact.reported_side_effects.map(se => (
                       <span key={se} style={{
@@ -818,7 +819,7 @@ export default function Pharmacy() {
 
               {impact.ai_summary && (
                 <div className="card" style={{ background: '#e8f5e9', border: '1px solid #a5d6a7' }}>
-                  <h3 style={{ marginBottom: 8, color: '#2e7d32' }}>AI Summary</h3>
+                  <h3 style={{ marginBottom: 8, color: '#2e7d32' }}>{translate('Pharmacy.ai_summary')}</h3>
                   <p style={{ margin: 0, lineHeight: 1.6 }}>{impact.ai_summary}</p>
                 </div>
               )}
