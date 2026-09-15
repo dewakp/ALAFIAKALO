@@ -50,10 +50,11 @@
     {
       "phase": 5,
       "capability": "Vision",
-      "task": "Food photo → nutrition estimate",
-      "status": "planned",
-      "model": "MobileNetV3-Small fine-tuned on Food-101 + West African foods",
+      "task": "Food photo → dish, components (multi-label), preparation stage",
+      "status": "pipeline_built",
+      "model": "MobileNetV3-Small, ImageNet trunk, fine-tuned on a labelled photo folder (VISION_TRAINING.md); not yet trained on real photos",
       "training_script": "ML/scripts/train_food_vision.py",
+      "export_script": "ML/scripts/export_food_vision.py",
       "export_targets": ["Core ML (iOS)", "TFLite (Android)", "ONNX (backend)"],
       "completed": null
     },

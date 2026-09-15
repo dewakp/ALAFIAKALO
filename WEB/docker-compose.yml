@@ -298,5 +298,30 @@ services:
       - ../ML:/ml:ro
     command: ["pytest", "-q"]
 
+  # Phase 5 food classifier (VISION_TRAINING.md). Photos mount READ-ONLY from
+  # FOOD_PHOTOS — they are never copied into the repo, and nothing here writes
+  # to them. Trained models land in ML/models/food_vision/ (gitignored).
+  food-vision:
+    build: ../ML/food_vision
+    profiles: ["ml"]
+    working_dir: /ml
+    volumes:
+      - ../ML:/ml
+      - ${FOOD_PHOTOS:-../ML/data/food_vision}:/photos:ro
+    command: ["pytest", "-q", "tests/test_food_vision.py"]
+
+  # TFLite + Core ML conversion. linux/amd64 even on Apple Silicon — see
+  # ML/food_vision/Dockerfile.export for why.
+  food-vision-export:
+    build:
+      context: ../ML/food_vision
+      dockerfile: Dockerfile.export
+    platform: linux/amd64
+    profiles: ["ml"]
+    working_dir: /ml
+    volumes:
+      - ../ML:/ml
+    command: ["pytest", "-q", "tests/test_food_vision.py"]
+
 volumes:
   pgdata:

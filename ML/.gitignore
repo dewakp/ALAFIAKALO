@@ -5,6 +5,11 @@ data/features/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/features/.gitkeep
+# Food photos, their decode cache, and trained food models. Photos are taken in
+# people's homes and are never committed; models are build artifacts.
+data/food_vision/
+data/food_vision_cache/
+models/food_vision/
 
 # Models
 models/*.pkl

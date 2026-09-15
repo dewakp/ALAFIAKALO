@@ -1,0 +1,30 @@
+# Phase 5 food classifier — TFLite (Android) and Core ML (iOS) conversion.
+#
+# linux/amd64 on purpose, including on Apple Silicon:
+#   - coremltools publishes Linux wheels for x86_64 only;
+#   - onnx2tf 2.6.9 hard-pins onnxoptimizer==0.4.2, which has no linux/arm64
+#     wheel. On arm64 pip does not fail — it quietly resolves onnx2tf 1.28.8,
+#     two major versions older — so the converter is pinned, and runs here.
+# Conversion takes seconds, so running it emulated costs nothing that matters.
+#
+# Core ML can be CONVERTED on Linux but not EXECUTED — its parity check runs on
+# macOS (scripts/verify_food_vision_coreml.py).
+#
+#   cd WEB && docker compose --profile ml build food-vision-export
+FROM --platform=linux/amd64 python:3.12-slim
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore \
+    PYTHONPATH=/ml \
+    PYTHONUNBUFFERED=1
+
+ARG TORCH=2.14.0
+ARG TORCHVISION=0.29.0
+RUN pip install --only-binary=:all: --index-url https://download.pytorch.org/whl/cpu \
+      torch==${TORCH} torchvision==${TORCHVISION}
+
+COPY requirements-export.txt /tmp/requirements-export.txt
+RUN pip install --only-binary=:all: -r /tmp/requirements-export.txt
+
+WORKDIR /ml
