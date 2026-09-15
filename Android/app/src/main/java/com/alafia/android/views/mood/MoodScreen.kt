@@ -27,6 +27,8 @@ import com.alafia.android.schemas.MoodScoreRequest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @Composable
 fun MoodScreen() {
@@ -59,11 +61,11 @@ fun MoodScreen() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Mood", style = MaterialTheme.typography.headlineLarge)
+            Text(stringResource(R.string.mood), style = MaterialTheme.typography.headlineLarge)
             Button(onClick = { showForm = true }) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Check In")
+                Text(stringResource(R.string.check_in))
             }
         }
 
@@ -76,8 +78,8 @@ fun MoodScreen() {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("😐", fontSize = 48.sp)
                     Spacer(Modifier.height(8.dp))
-                    Text("No mood entries yet", style = MaterialTheme.typography.titleMedium)
-                    Text("Tap Check In to log how you feel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_mood_entries_yet), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.tap_check_in_to_log_how_you_feel), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -125,11 +127,11 @@ fun MoodEntryCard(entry: MoodEntry, onDelete: () -> Unit) {
                 Text(emoji, fontSize = 32.sp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Mood: ${entry.moodScore}/10", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.mood_10, entry.moodScore), fontWeight = FontWeight.Bold)
                     Text(entry.entryDate, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                 }
             }
 
@@ -151,7 +153,7 @@ fun MoodEntryCard(entry: MoodEntry, onDelete: () -> Unit) {
             entry.emotions?.let {
                 if (it.isNotBlank()) {
                     Spacer(Modifier.height(6.dp))
-                    Text("Emotions: $it", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.emotions, it), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -159,7 +161,7 @@ fun MoodEntryCard(entry: MoodEntry, onDelete: () -> Unit) {
             entry.triggers?.let {
                 if (it.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
-                    Text("Triggers: $it", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.triggers, it), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -167,7 +169,7 @@ fun MoodEntryCard(entry: MoodEntry, onDelete: () -> Unit) {
             entry.copingStrategies?.let {
                 if (it.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
-                    Text("Coping: $it", fontSize = 13.sp, color = Color(0xFF2E7D32))
+                    Text(stringResource(R.string.coping, it), fontSize = 13.sp, color = Color(0xFF2E7D32))
                 }
             }
 
@@ -229,11 +231,11 @@ fun AddMoodDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
         ) {
             // Header
             Text(emoji, fontSize = 48.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-            Text("How are you feeling?", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text(stringResource(R.string.how_are_you_feeling), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(20.dp))
 
             // Mood slider
-            Text("Mood: $moodScore/10", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.mood_10, moodScore), fontWeight = FontWeight.SemiBold)
             Slider(value = moodScore.toFloat(),
                 onValueChange = { moodRationale = null; moodScore = it.toInt() },
                 valueRange = 1f..10f, steps = 8)
@@ -244,56 +246,56 @@ fun AddMoodDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
             }
 
             // Energy slider
-            Text("Energy: $energyLevel/10", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.energy_10, energyLevel), fontWeight = FontWeight.SemiBold)
             Slider(value = energyLevel.toFloat(), onValueChange = { energyLevel = it.toInt() }, valueRange = 1f..10f, steps = 8)
 
             // Stress slider
-            Text("Stress: $stressLevel/10", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.stress_10, stressLevel), fontWeight = FontWeight.SemiBold)
             Slider(value = stressLevel.toFloat(), onValueChange = { stressLevel = it.toInt() }, valueRange = 1f..10f, steps = 8,
                 colors = SliderDefaults.colors(thumbColor = Color(0xFFF44336), activeTrackColor = Color(0xFFF44336)))
 
             // Anxiety slider
-            Text("Anxiety: $anxietyLevel/10", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.anxiety_10, anxietyLevel), fontWeight = FontWeight.SemiBold)
             Slider(value = anxietyLevel.toFloat(), onValueChange = { anxietyLevel = it.toInt() }, valueRange = 1f..10f, steps = 8,
                 colors = SliderDefaults.colors(thumbColor = Color(0xFFFF9800), activeTrackColor = Color(0xFFFF9800)))
 
             // Sleep
-            Text("Sleep Quality: $sleepQuality/10", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.sleep_quality_10, sleepQuality), fontWeight = FontWeight.SemiBold)
             Slider(value = sleepQuality.toFloat(), onValueChange = { sleepQuality = it.toInt() }, valueRange = 1f..10f, steps = 8,
                 colors = SliderDefaults.colors(thumbColor = Color(0xFF3F51B5), activeTrackColor = Color(0xFF3F51B5)))
 
             OutlinedTextField(
                 value = sleepHours, onValueChange = { sleepHours = it },
-                label = { Text("Sleep Hours") }, modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.sleep_hours)) }, modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
             Spacer(Modifier.height(12.dp))
 
             // Emotions & Coping
-            Text("Emotions & Coping", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.emotions_coping), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(4.dp))
             OutlinedTextField(
                 value = emotions, onValueChange = { emotions = it },
-                label = { Text("Emotions (e.g. happy, anxious)") }, modifier = Modifier.fillMaxWidth()
+                label = { Text(stringResource(R.string.emotions_e_g_happy_anxious)) }, modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = triggers, onValueChange = { triggers = it },
-                label = { Text("Triggers") }, modifier = Modifier.fillMaxWidth()
+                label = { Text(stringResource(R.string.triggers_2)) }, modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = copingStrategies, onValueChange = { copingStrategies = it },
-                label = { Text("Coping strategies used") }, modifier = Modifier.fillMaxWidth()
+                label = { Text(stringResource(R.string.coping_strategies_used)) }, modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
 
             // Gratitude & Journal
             OutlinedTextField(
                 value = gratitude, onValueChange = { gratitude = it },
-                label = { Text("Gratitude") }, modifier = Modifier.fillMaxWidth()
+                label = { Text(stringResource(R.string.gratitude)) }, modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = journalEntry, onValueChange = { journalEntry = it },
-                label = { Text("Journal entry") }, modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.journal_entry)) }, modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
             /* Read the entry and propose a score for it. It only ever proposes:
@@ -326,7 +328,7 @@ fun AddMoodDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
                     },
                     enabled = !scoring
                 ) {
-                    Text(if (scoring) "Reading your entry…" else "Score this from what I wrote")
+                    Text(if (scoring) stringResource(R.string.reading_your_entry) else stringResource(R.string.score_this_from_what_i_wrote))
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -362,7 +364,7 @@ fun AddMoodDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !saving
             ) {
-                Text(if (saving) "Saving..." else "Save Check-In")
+                Text(if (saving) stringResource(R.string.saving_2) else stringResource(R.string.save_check_in))
             }
             Spacer(Modifier.height(32.dp))
         }

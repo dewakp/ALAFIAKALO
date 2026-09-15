@@ -18,6 +18,8 @@ import com.alafia.android.api.KeychainHelper
 import com.alafia.android.api.loginWithCsrf
 import com.alafia.android.schemas.LoginRequest
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @Composable
 fun LoginScreen(
@@ -47,7 +49,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.email)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
@@ -109,7 +111,7 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Login")
+                Text(stringResource(R.string.login))
             }
         }
 
@@ -118,7 +120,7 @@ fun LoginScreen(
             modifier = Modifier.padding(top = 8.dp),
             enabled = !isLoading
         ) {
-            Text("Forgot password?")
+            Text(stringResource(R.string.forgot_password))
         }
 
         TextButton(
@@ -126,7 +128,7 @@ fun LoginScreen(
             modifier = Modifier.padding(top = 8.dp),
             enabled = !isLoading
         ) {
-            Text("Don't have an account? Register")
+            Text(stringResource(R.string.don_t_have_an_account_register))
         }
     }
 }

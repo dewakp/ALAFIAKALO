@@ -26,6 +26,8 @@ import com.alafia.android.models.*
 import com.alafia.android.schemas.*
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,10 +89,10 @@ fun PhysiciansScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Physician Directory") },
+                title = { Text(stringResource(R.string.physician_directory)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -109,9 +111,9 @@ fun PhysiciansScreen(navController: NavHostController) {
             // ── Tab Selector ──
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
-                    text = { Text("Directory") })
+                    text = { Text(stringResource(R.string.directory)) })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
-                    text = { Text("Saved (${savedPhysicians.size})") })
+                    text = { Text(stringResource(R.string.saved, savedPhysicians.size)) })
             }
 
             when (selectedTab) {
@@ -124,7 +126,7 @@ fun PhysiciansScreen(navController: NavHostController) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                        placeholder = { Text("Search physicians...") },
+                        placeholder = { Text(stringResource(R.string.search_physicians)) },
                         leadingIcon = { Icon(Icons.Default.Search, null) },
                         trailingIcon = {
                             Row {
@@ -159,10 +161,10 @@ fun PhysiciansScreen(navController: NavHostController) {
                                         readOnly = true,
                                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(specExpanded) },
-                                        label = { Text("Specialty") }
+                                        label = { Text(stringResource(R.string.specialty)) }
                                     )
                                     ExposedDropdownMenu(expanded = specExpanded, onDismissRequest = { specExpanded = false }) {
-                                        DropdownMenuItem(text = { Text("All Specialties") }, onClick = { filterSpecialty = ""; specExpanded = false })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.all_specialties)) }, onClick = { filterSpecialty = ""; specExpanded = false })
                                         allSpecs.forEach { spec ->
                                             DropdownMenuItem(text = { Text(spec) }, onClick = { filterSpecialty = spec; specExpanded = false })
                                         }
@@ -173,15 +175,15 @@ fun PhysiciansScreen(navController: NavHostController) {
                                     value = filterCity,
                                     onValueChange = { filterCity = it },
                                     modifier = Modifier.fillMaxWidth(),
-                                    label = { Text("City") },
+                                    label = { Text(stringResource(R.string.city)) },
                                     singleLine = true
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     OutlinedButton(onClick = { filterSpecialty = ""; filterCity = ""; searchQuery = ""; loadAll() }) {
-                                        Text("Clear")
+                                        Text(stringResource(R.string.clear))
                                     }
-                                    Button(onClick = { search() }) { Text("Apply") }
+                                    Button(onClick = { search() }) { Text(stringResource(R.string.apply)) }
                                 }
                             }
                         }
@@ -197,8 +199,8 @@ fun PhysiciansScreen(navController: NavHostController) {
                                 Icon(Icons.Default.LocalHospital, null, modifier = Modifier.size(64.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(12.dp))
-                                Text("No physicians found", style = MaterialTheme.typography.titleMedium)
-                                Text("Tap + to add one", style = MaterialTheme.typography.bodySmall,
+                                Text(stringResource(R.string.no_physicians_found), style = MaterialTheme.typography.titleMedium)
+                                Text(stringResource(R.string.tap_to_add_one), style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -251,8 +253,8 @@ fun PhysiciansScreen(navController: NavHostController) {
                                 Icon(Icons.Default.FavoriteBorder, null, modifier = Modifier.size(64.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(12.dp))
-                                Text("No saved physicians", style = MaterialTheme.typography.titleMedium)
-                                Text("Bookmark physicians from the directory", style = MaterialTheme.typography.bodySmall,
+                                Text(stringResource(R.string.no_saved_physicians), style = MaterialTheme.typography.titleMedium)
+                                Text(stringResource(R.string.bookmark_physicians_from_the_directory), style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -448,13 +450,13 @@ fun PhysicianCard(
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (physician.acceptingNewPatients) {
                     Surface(color = Color(0xFF22C55E).copy(alpha = 0.12f), shape = MaterialTheme.shapes.small) {
-                        Text("Accepting patients", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        Text(stringResource(R.string.accepting_patients), modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall, color = Color(0xFF22C55E))
                     }
                 }
                 if (physician.telehealthAvailable) {
                     Surface(color = Color(0xFF06B6D4).copy(alpha = 0.12f), shape = MaterialTheme.shapes.small) {
-                        Text("Telehealth", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        Text(stringResource(R.string.telehealth), modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall, color = Color(0xFF06B6D4))
                     }
                 }
@@ -475,7 +477,7 @@ fun SavedPhysicianCard(saved: SavedPhysician, onClick: () -> Unit, onUnsave: () 
                 verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(saved.physician?.fullName ?: "Unknown", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(saved.physician?.fullName ?: stringResource(R.string.unknown), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(saved.physician?.specialty ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -523,7 +525,7 @@ fun PhysicianDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
         title = {
             Column {
                 Text(physician.fullName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -552,17 +554,17 @@ fun PhysicianDetailDialog(
                             Icon(if (i < (physician.averageRating?.toInt() ?: 0)) Icons.Default.Star else Icons.Default.StarBorder,
                                 null, modifier = Modifier.size(18.dp), tint = Color(0xFFF59E0B))
                         }
-                        Text("${physician.averageRating?.let { String.format("%.1f", it) } ?: "-"} (${physician.reviewCount} reviews)",
+                        Text(stringResource(R.string.reviews, physician.averageRating?.let { String.format("%.1f", it) } ?: "-", physician.reviewCount),
                             style = MaterialTheme.typography.bodyMedium)
                     }
                     Spacer(Modifier.height(8.dp))
                 }
 
                 // Reviews
-                Text("Reviews", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.reviews_2), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 if (reviews.isEmpty()) {
-                    Text("No reviews yet", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.no_reviews_yet), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 } else {
                     reviews.forEach { r ->
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -571,7 +573,7 @@ fun PhysicianDetailDialog(
                                     Icon(if (i < r.rating) Icons.Default.Star else Icons.Default.StarBorder,
                                         null, modifier = Modifier.size(12.dp), tint = Color(0xFFF59E0B))
                                 }
-                                Text(r.reviewerName ?: "Anonymous", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(r.reviewerName ?: stringResource(R.string.anonymous), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             r.title?.let { Text(it, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodySmall) }
                             r.reviewText?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -585,12 +587,12 @@ fun PhysicianDetailDialog(
                     if (!isSaved) {
                         OutlinedButton(onClick = onSave) {
                             Icon(Icons.Default.FavoriteBorder, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp)); Text("Save")
+                            Spacer(Modifier.width(4.dp)); Text(stringResource(R.string.save))
                         }
                     }
                     OutlinedButton(onClick = onReview) {
                         Icon(Icons.Default.RateReview, null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp)); Text("Review")
+                        Spacer(Modifier.width(4.dp)); Text(stringResource(R.string.review))
                     }
                 }
             }
@@ -650,20 +652,20 @@ fun AddPhysicianDialog(
                     ))
                 },
                 enabled = fullName.isNotBlank() && specialty.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        title = { Text("Add Physician") },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        title = { Text(stringResource(R.string.add_physician)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full Name *") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text(stringResource(R.string.full_name_2)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
                 ExposedDropdownMenuBox(expanded = specExpanded, onExpandedChange = { specExpanded = !specExpanded }) {
                     OutlinedTextField(
                         value = specialty.ifBlank { "Select Specialty *" }, onValueChange = {}, readOnly = true,
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(specExpanded) },
-                        label = { Text("Specialty *") }
+                        label = { Text(stringResource(R.string.specialty_2)) }
                     )
                     ExposedDropdownMenu(expanded = specExpanded, onDismissRequest = { specExpanded = false }) {
                         specialtyCategories.forEach { (cat, specs) ->
@@ -676,29 +678,29 @@ fun AddPhysicianDialog(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = credentials, onValueChange = { credentials = it }, label = { Text("Credentials") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = credentials, onValueChange = { credentials = it }, label = { Text(stringResource(R.string.credentials)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = facilityName, onValueChange = { facilityName = it }, label = { Text("Facility") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = facilityName, onValueChange = { facilityName = it }, label = { Text(stringResource(R.string.facility)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text(stringResource(R.string.phone)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text(stringResource(R.string.email)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("City") }, modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(value = stateProvince, onValueChange = { stateProvince = it }, label = { Text("State") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text(stringResource(R.string.city)) }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(value = stateProvince, onValueChange = { stateProvince = it }, label = { Text(stringResource(R.string.state)) }, modifier = Modifier.weight(1f), singleLine = true)
                 }
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = country, onValueChange = { country = it }, label = { Text("Country") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = country, onValueChange = { country = it }, label = { Text(stringResource(R.string.country_2)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = languages, onValueChange = { languages = it }, label = { Text("Languages") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = languages, onValueChange = { languages = it }, label = { Text(stringResource(R.string.languages)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = acceptingNew, onCheckedChange = { acceptingNew = it })
-                    Text("Accepting patients", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.accepting_patients), style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.width(12.dp))
                     Checkbox(checked = telehealth, onCheckedChange = { telehealth = it })
-                    Text("Telehealth", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.telehealth), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -731,13 +733,13 @@ fun SavePhysicianDialog(
                     isPrimaryCare = isPrimary,
                     relationshipType = relationship.ifBlank { null }
                 ))
-            }) { Text("Save") }
+            }) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        title = { Text("Save ${physician.fullName}") },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        title = { Text(stringResource(R.string.save_2, physician.fullName)) },
         text = {
             Column {
-                OutlinedTextField(value = nickname, onValueChange = { nickname = it }, label = { Text("Nickname") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = nickname, onValueChange = { nickname = it }, label = { Text(stringResource(R.string.nickname)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
                 ExposedDropdownMenuBox(expanded = relExpanded, onExpandedChange = { relExpanded = !relExpanded }) {
                     OutlinedTextField(
@@ -751,11 +753,11 @@ fun SavePhysicianDialog(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 4)
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 4)
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = isPrimary, onCheckedChange = { isPrimary = it })
-                    Text("Primary Care Provider")
+                    Text(stringResource(R.string.primary_care_provider))
                 }
             }
         }
@@ -785,13 +787,13 @@ fun ReviewPhysicianDialog(
                     reviewText = reviewText.ifBlank { null },
                     isAnonymous = anonymous
                 ))
-            }) { Text("Submit") }
+            }) { Text(stringResource(R.string.submit)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        title = { Text("Review ${physician.fullName}") },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        title = { Text(stringResource(R.string.review_2, physician.fullName)) },
         text = {
             Column {
-                Text("Rating", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.rating), style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     (1..5).forEach { i ->
                         IconButton(onClick = { rating = i }, modifier = Modifier.size(36.dp)) {
@@ -803,13 +805,13 @@ fun ReviewPhysicianDialog(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text(stringResource(R.string.title_optional)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = reviewText, onValueChange = { reviewText = it }, label = { Text("Review") }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 6)
+                OutlinedTextField(value = reviewText, onValueChange = { reviewText = it }, label = { Text(stringResource(R.string.review)) }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 6)
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = anonymous, onCheckedChange = { anonymous = it })
-                    Text("Post anonymously")
+                    Text(stringResource(R.string.post_anonymously_2))
                 }
             }
         }

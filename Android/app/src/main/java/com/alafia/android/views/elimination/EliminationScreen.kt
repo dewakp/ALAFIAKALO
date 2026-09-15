@@ -33,6 +33,8 @@ import com.alafia.android.schemas.UrinationLogRequest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @Composable
 fun EliminationScreen() {
@@ -42,7 +44,7 @@ fun EliminationScreen() {
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
         Text(
-            text = "Elimination",
+            text = stringResource(R.string.elimination),
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
@@ -108,10 +110,10 @@ private fun AnalyzeEliminationPhoto(
             modifier = Modifier.fillMaxWidth()) {
             if (analyzing) {
                 CircularProgressIndicator(Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp)); Text("Analyzing photo…")
+                Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.analyzing_photo))
             } else {
                 Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp)); Text("Analyze photo")
+                Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.analyze_photo))
             }
         }
         flags.forEach { f ->
@@ -156,8 +158,8 @@ fun BowelMovementTab() {
             ) {
                 Text("💩", fontSize = 48.sp)
                 Spacer(Modifier.height(8.dp))
-                Text("No bowel records yet", style = MaterialTheme.typography.titleMedium)
-                Text("Tap + to log one", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.no_bowel_records_yet), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.tap_to_log_one), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(entries) { entry ->
@@ -181,7 +183,7 @@ fun BowelMovementTab() {
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add")
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add))
         }
     }
 
@@ -221,7 +223,7 @@ fun BowelMovementCard(entry: BowelMovement, onDelete: () -> Unit) {
                 entry.bristolScale?.let {
                     AssistChip(
                         onClick = {},
-                        label = { Text("Bristol $it", fontSize = 11.sp) },
+                        label = { Text(stringResource(R.string.bristol, it), fontSize = 11.sp) },
                         modifier = Modifier.height(24.dp)
                     )
                 }
@@ -229,13 +231,13 @@ fun BowelMovementCard(entry: BowelMovement, onDelete: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Blood present", color = Color.Red, fontSize = 12.sp)
+                        Text(stringResource(R.string.blood_present), color = Color.Red, fontSize = 12.sp)
                     }
                 }
                 entry.notes?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 2) }
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -252,7 +254,7 @@ fun AddBowelDialog(onDismiss: () -> Unit, onSave: (BowelMovementRequest) -> Unit
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Bowel Movement") },
+        title = { Text(stringResource(R.string.log_bowel_movement)) },
         text = {
             Column(
                 modifier = Modifier
@@ -276,30 +278,30 @@ fun AddBowelDialog(onDismiss: () -> Unit, onSave: (BowelMovementRequest) -> Unit
                     notes = if (bits.isNotEmpty()) "${bits.joinToString(", ")} — ${res.description}" else res.description
                 }
                 HorizontalDivider()
-                Text("Bristol Scale: ${bristolScale.toInt()}", fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.bristol_scale, bristolScale.toInt()), fontWeight = FontWeight.Medium)
                 Slider(value = bristolScale, onValueChange = { bristolScale = it }, valueRange = 1f..7f, steps = 5)
                 Text(bristolDescription(bristolScale.toInt()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 HorizontalDivider()
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = bloodPresent, onCheckedChange = { bloodPresent = it })
-                    Text("Blood present", color = if (bloodPresent) Color.Red else MaterialTheme.colorScheme.onSurface)
+                    Text(stringResource(R.string.blood_present), color = if (bloodPresent) Color.Red else MaterialTheme.colorScheme.onSurface)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = mucusPresent, onCheckedChange = { mucusPresent = it })
-                    Text("Mucus present")
+                    Text(stringResource(R.string.mucus_present))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = straining, onCheckedChange = { straining = it })
-                    Text("Straining")
+                    Text(stringResource(R.string.straining))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = urgency, onCheckedChange = { urgency = it })
-                    Text("Urgency")
+                    Text(stringResource(R.string.urgency))
                 }
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes") },
+                    label = { Text(stringResource(R.string.notes)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -317,9 +319,9 @@ fun AddBowelDialog(onDismiss: () -> Unit, onSave: (BowelMovementRequest) -> Unit
                     urgency = urgency,
                     notes = notes.ifBlank { null }
                 ))
-            }) { Text("Save") }
+            }) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -367,7 +369,7 @@ fun VomitingTab() {
             ) {
                 Text("🤮", fontSize = 48.sp)
                 Spacer(Modifier.height(8.dp))
-                Text("No vomiting records", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.no_vomiting_records), style = MaterialTheme.typography.titleMedium)
             }
             else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(entries) { entry ->
@@ -388,7 +390,7 @@ fun VomitingTab() {
         FloatingActionButton(
             onClick = { showForm = true },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) { Icon(Icons.Default.Add, contentDescription = "Add") }
+        ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add)) }
     }
 
     if (showForm) {
@@ -421,14 +423,14 @@ fun VomitingCard(entry: VomitingLog, onDelete: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Contains blood", color = Color.Red, fontSize = 12.sp)
+                        Text(stringResource(R.string.contains_blood), color = Color.Red, fontSize = 12.sp)
                     }
                 }
-                entry.trigger?.let { Text("Trigger: $it", style = MaterialTheme.typography.bodySmall) }
+                entry.trigger?.let { Text(stringResource(R.string.trigger, it), style = MaterialTheme.typography.bodySmall) }
                 entry.notes?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 2) }
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -449,7 +451,7 @@ fun AddVomitingDialog(onDismiss: () -> Unit, onSave: (VomitingLogRequest) -> Uni
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Vomiting Episode") },
+        title = { Text(stringResource(R.string.log_vomiting_episode)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)
@@ -461,20 +463,20 @@ fun AddVomitingDialog(onDismiss: () -> Unit, onSave: (VomitingLogRequest) -> Uni
                     notes = res.description
                 }
                 HorizontalDivider()
-                Text("Contents", fontWeight = FontWeight.SemiBold)
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = containsFood, onCheckedChange = { containsFood = it }); Text("Contains food") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = containsBile, onCheckedChange = { containsBile = it }); Text("Contains bile") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = containsBlood, onCheckedChange = { containsBlood = it }); Text("Contains blood", color = if (containsBlood) Color.Red else MaterialTheme.colorScheme.onSurface) }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = projectile, onCheckedChange = { projectile = it }); Text("Projectile") }
+                Text(stringResource(R.string.contents), fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = containsFood, onCheckedChange = { containsFood = it }); Text(stringResource(R.string.contains_food)) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = containsBile, onCheckedChange = { containsBile = it }); Text(stringResource(R.string.contains_bile)) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = containsBlood, onCheckedChange = { containsBlood = it }); Text(stringResource(R.string.contains_blood), color = if (containsBlood) Color.Red else MaterialTheme.colorScheme.onSurface) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = projectile, onCheckedChange = { projectile = it }); Text(stringResource(R.string.projectile)) }
                 HorizontalDivider()
-                Text("Symptoms", fontWeight = FontWeight.SemiBold)
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = nauseaBefore, onCheckedChange = { nauseaBefore = it }); Text("Nausea before") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = nauseaAfter, onCheckedChange = { nauseaAfter = it }); Text("Nausea after") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = reliefAfter, onCheckedChange = { reliefAfter = it }); Text("Relief after") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = fever, onCheckedChange = { fever = it }); Text("Fever") }
+                Text(stringResource(R.string.symptoms), fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = nauseaBefore, onCheckedChange = { nauseaBefore = it }); Text(stringResource(R.string.nausea_before)) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = nauseaAfter, onCheckedChange = { nauseaAfter = it }); Text(stringResource(R.string.nausea_after)) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = reliefAfter, onCheckedChange = { reliefAfter = it }); Text(stringResource(R.string.relief_after)) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = fever, onCheckedChange = { fever = it }); Text(stringResource(R.string.fever)) }
                 HorizontalDivider()
-                OutlinedTextField(value = trigger, onValueChange = { trigger = it }, label = { Text("Trigger") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = trigger, onValueChange = { trigger = it }, label = { Text(stringResource(R.string.trigger_2)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -493,9 +495,9 @@ fun AddVomitingDialog(onDismiss: () -> Unit, onSave: (VomitingLogRequest) -> Uni
                     trigger = trigger.ifBlank { null },
                     notes = notes.ifBlank { null }
                 ))
-            }) { Text("Save") }
+            }) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -532,7 +534,7 @@ fun UrinationTab() {
             ) {
                 Text("💧", fontSize = 48.sp)
                 Spacer(Modifier.height(8.dp))
-                Text("No urination records", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.no_urination_records), style = MaterialTheme.typography.titleMedium)
             }
             else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(entries) { entry ->
@@ -553,7 +555,7 @@ fun UrinationTab() {
         FloatingActionButton(
             onClick = { showForm = true },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) { Icon(Icons.Default.Add, contentDescription = "Add") }
+        ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add)) }
     }
 
     if (showForm) {
@@ -583,19 +585,19 @@ fun UrinationCard(entry: UrinationLog, onDelete: () -> Unit) {
                 Text(entry.logDate, fontWeight = FontWeight.Bold)
                 entry.logTime?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    entry.color?.let { Text("Color: $it", style = MaterialTheme.typography.bodySmall) }
-                    entry.volumeMl?.let { Text("$it mL", style = MaterialTheme.typography.bodySmall) }
+                    entry.color?.let { Text(stringResource(R.string.color, it), style = MaterialTheme.typography.bodySmall) }
+                    entry.volumeMl?.let { Text(stringResource(R.string.ml, it), style = MaterialTheme.typography.bodySmall) }
                 }
                 if (entry.bloodPresent == true) {
-                    Text("⚠ Blood present", color = Color.Red, fontSize = 12.sp)
+                    Text(stringResource(R.string.blood_present_2), color = Color.Red, fontSize = 12.sp)
                 }
                 if (entry.burningSensation == true) {
-                    Text("Burning sensation", color = Color(0xFFE65100), fontSize = 12.sp)
+                    Text(stringResource(R.string.burning_sensation), color = Color(0xFFE65100), fontSize = 12.sp)
                 }
                 entry.notes?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 2) }
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -614,7 +616,7 @@ fun AddUrinationDialog(onDismiss: () -> Unit, onSave: (UrinationLogRequest) -> U
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Urination") },
+        title = { Text(stringResource(R.string.log_urination)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)
@@ -632,15 +634,15 @@ fun AddUrinationDialog(onDismiss: () -> Unit, onSave: (UrinationLogRequest) -> U
                     notes = if (bits.isNotEmpty()) "${bits.joinToString(", ")} — ${res.description}" else res.description
                 }
                 HorizontalDivider()
-                OutlinedTextField(value = volumeStr, onValueChange = { volumeStr = it }, label = { Text("Volume (mL)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = color, onValueChange = { color = it }, label = { Text("Color") }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("pale, yellow, amber, dark…") })
-                OutlinedTextField(value = clarity, onValueChange = { clarity = it }, label = { Text("Clarity") }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("clear, cloudy, foamy…") })
+                OutlinedTextField(value = volumeStr, onValueChange = { volumeStr = it }, label = { Text(stringResource(R.string.volume_ml)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = color, onValueChange = { color = it }, label = { Text(stringResource(R.string.color_2)) }, modifier = Modifier.fillMaxWidth(), placeholder = { Text(stringResource(R.string.pale_yellow_amber_dark)) })
+                OutlinedTextField(value = clarity, onValueChange = { clarity = it }, label = { Text(stringResource(R.string.clarity)) }, modifier = Modifier.fillMaxWidth(), placeholder = { Text(stringResource(R.string.clear_cloudy_foamy)) })
                 HorizontalDivider()
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = bloodPresent, onCheckedChange = { bloodPresent = it }); Text("Blood present", color = if (bloodPresent) Color.Red else MaterialTheme.colorScheme.onSurface) }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = burningSensation, onCheckedChange = { burningSensation = it }); Text("Burning sensation") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = urgency, onCheckedChange = { urgency = it }); Text("Urgency") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = nighttime, onCheckedChange = { nighttime = it }); Text("Nighttime (nocturia)") }
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = bloodPresent, onCheckedChange = { bloodPresent = it }); Text(stringResource(R.string.blood_present), color = if (bloodPresent) Color.Red else MaterialTheme.colorScheme.onSurface) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = burningSensation, onCheckedChange = { burningSensation = it }); Text(stringResource(R.string.burning_sensation)) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = urgency, onCheckedChange = { urgency = it }); Text(stringResource(R.string.urgency)) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = nighttime, onCheckedChange = { nighttime = it }); Text(stringResource(R.string.nighttime_nocturia)) }
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -657,8 +659,8 @@ fun AddUrinationDialog(onDismiss: () -> Unit, onSave: (UrinationLogRequest) -> U
                     nighttime = nighttime,
                     notes = notes.ifBlank { null }
                 ))
-            }) { Text("Save") }
+            }) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }

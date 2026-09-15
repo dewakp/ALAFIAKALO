@@ -25,6 +25,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,10 +53,10 @@ fun FitnessScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Fitness") },
+                title = { Text(stringResource(R.string.fitness)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) },
@@ -73,8 +75,8 @@ fun FitnessScreen(navController: NavHostController) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.FitnessCenter, "No workouts", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
-                    Text("No workouts logged", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Tap + to log a workout", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_workouts_logged), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.tap_to_log_a_workout), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -147,16 +149,16 @@ private fun FitnessLogCard(log: FitnessLogResponse, onDelete: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 if (log.duration_minutes != null) {
-                    MetricChip("${log.duration_minutes} min")
+                    MetricChip(stringResource(R.string.min, log.duration_minutes))
                 }
                 if (log.distance_km != null) {
-                    MetricChip("${log.distance_km} km")
+                    MetricChip(stringResource(R.string.km, log.distance_km))
                 }
                 if (log.calories_burned != null) {
-                    MetricChip("${log.calories_burned.toInt()} cal")
+                    MetricChip(stringResource(R.string.cal_2, log.calories_burned.toInt()))
                 }
                 if (log.steps != null) {
-                    MetricChip("${log.steps} steps")
+                    MetricChip(stringResource(R.string.steps_2, log.steps))
                 }
             }
             if (log.notes != null && log.notes.isNotEmpty()) {
@@ -195,7 +197,7 @@ private fun AddFitnessDialog(onDismiss: () -> Unit, onSave: (FitnessLogRequest) 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Workout") },
+        title = { Text(stringResource(R.string.log_workout)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -207,7 +209,7 @@ private fun AddFitnessDialog(onDismiss: () -> Unit, onSave: (FitnessLogRequest) 
                         value = activityType.replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Activity") },
+                        label = { Text(stringResource(R.string.activity)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedActivity) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -221,11 +223,11 @@ private fun AddFitnessDialog(onDismiss: () -> Unit, onSave: (FitnessLogRequest) 
                     }
                 }
 
-                OutlinedTextField(value = duration, onValueChange = { duration = it }, label = { Text("Duration (min)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = distance, onValueChange = { distance = it }, label = { Text("Distance (km)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = calories, onValueChange = { calories = it }, label = { Text("Calories Burned") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = steps, onValueChange = { steps = it }, label = { Text("Steps") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = heartRate, onValueChange = { heartRate = it }, label = { Text("Avg Heart Rate") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = duration, onValueChange = { duration = it }, label = { Text(stringResource(R.string.duration_min_2)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = distance, onValueChange = { distance = it }, label = { Text(stringResource(R.string.distance_km)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = calories, onValueChange = { calories = it }, label = { Text(stringResource(R.string.calories_burned)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = steps, onValueChange = { steps = it }, label = { Text(stringResource(R.string.steps)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = heartRate, onValueChange = { heartRate = it }, label = { Text(stringResource(R.string.avg_heart_rate)) }, modifier = Modifier.fillMaxWidth())
 
                 // Intensity dropdown
                 ExposedDropdownMenuBox(expanded = expandedIntensity, onExpandedChange = { expandedIntensity = it }) {
@@ -233,7 +235,7 @@ private fun AddFitnessDialog(onDismiss: () -> Unit, onSave: (FitnessLogRequest) 
                         value = intensity.replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Intensity") },
+                        label = { Text(stringResource(R.string.intensity)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedIntensity) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -247,7 +249,7 @@ private fun AddFitnessDialog(onDismiss: () -> Unit, onSave: (FitnessLogRequest) 
                     }
                 }
 
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -267,10 +269,10 @@ private fun AddFitnessDialog(onDismiss: () -> Unit, onSave: (FitnessLogRequest) 
                     intensity = intensity,
                     notes = notes.ifBlank { null }
                 ))
-            }) { Text("Save") }
+            }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

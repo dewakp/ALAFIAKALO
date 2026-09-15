@@ -29,6 +29,8 @@ import com.alafia.android.models.GoogleVerifyRequest
 import com.alafia.android.models.SubscriptionPlans
 import com.alafia.android.models.SubscriptionStatus
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 private const val PLUS_PRODUCT_ID = "alafia_plus_monthly"
 
@@ -134,11 +136,11 @@ fun SubscriptionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ALAFIA Membership") },
+                title = { Text(stringResource(R.string.alafia_membership)) },
                 navigationIcon = {
                     if (!blocking) {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 }
@@ -156,14 +158,14 @@ fun SubscriptionScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF7C4DFF))
                 Spacer(Modifier.width(8.dp))
-                Text(plans?.productName ?: "ALAFIA Membership",
+                Text(plans?.productName ?: stringResource(R.string.alafia_membership),
                     fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
             Text(
                 if (blocking)
-                    "ALAFIA needs an active membership. Subscribe to continue — if you already pay on another device, restore it below."
+                    stringResource(R.string.alafia_needs_an_active_membership)
                 else
-                    "Unlock the full ALAFIA experience across every device.",
+                    stringResource(R.string.unlock_the_full_alafia_experience_across),
                 color = Color.Gray, modifier = Modifier.padding(top = 4.dp, bottom = 16.dp))
 
             when {
@@ -181,7 +183,7 @@ fun SubscriptionScreen(
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(androidPrice?.let { "$%.2f".format(it) } ?: "—",
                                 fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
-                            Text(" / month", color = Color.Gray,
+                            Text(stringResource(R.string.month), color = Color.Gray,
                                 modifier = Modifier.padding(bottom = 6.dp))
                         }
                         Spacer(Modifier.height(14.dp))
@@ -212,11 +214,11 @@ fun SubscriptionScreen(
                                     modifier = Modifier.size(20.dp), strokeWidth = 2.dp,
                                     color = MaterialTheme.colorScheme.onPrimary)
                             } else {
-                                Text(if (billingReady) "Subscribe" else "Loading…",
+                                Text(if (billingReady) stringResource(R.string.subscribe) else stringResource(R.string.loading_2),
                                     fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        Text("Billed monthly through Google Play. Cancel anytime in Play Store settings.",
+                        Text(stringResource(R.string.billed_monthly_through_google_play),
                             fontSize = 12.sp, color = Color.Gray,
                             modifier = Modifier.padding(top = 12.dp))
                     }
@@ -239,7 +241,7 @@ fun SubscriptionScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Restore purchase") }
+                ) { Text(stringResource(R.string.restore_purchase)) }
 
                 TextButton(
                     onClick = {
@@ -247,7 +249,7 @@ fun SubscriptionScreen(
                         onSignOut()
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Sign out", color = MaterialTheme.colorScheme.error) }
+                ) { Text(stringResource(R.string.sign_out), color = MaterialTheme.colorScheme.error) }
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -265,19 +267,19 @@ private fun SubscribedCard(status: SubscriptionStatus) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF2E7D32))
                 Spacer(Modifier.width(8.dp))
-                Text("You're subscribed", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.you_re_subscribed), fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(10.dp))
-            Text("Plan: ${status.productName}", fontSize = 14.sp)
+            Text(stringResource(R.string.plan, status.productName), fontSize = 14.sp)
             status.priceUsd?.let { Text("Price: $%.2f / month".format(it), fontSize = 14.sp) }
-            Text("Billing via: ${prettyProvider(status.provider)}", fontSize = 14.sp)
+            Text(stringResource(R.string.billing_via, prettyProvider(status.provider)), fontSize = 14.sp)
             status.currentPeriodEnd?.let {
                 val label = if (status.cancelAtPeriodEnd) "Access ends" else "Renews"
-                Text("$label on ${it.take(10)}", fontSize = 14.sp)
+                Text(stringResource(R.string.on, label, it.take(10)), fontSize = 14.sp)
             }
             if (status.provider == "google_play") {
                 Spacer(Modifier.height(10.dp))
-                Text("Manage or cancel in Google Play → Subscriptions.",
+                Text(stringResource(R.string.manage_or_cancel_in_google_play),
                     fontSize = 13.sp, color = Color.Gray)
             }
         }

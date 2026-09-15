@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.IntradialyticReading
 import java.util.UUID
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * The intradialytic readings grid on the patient's own flowsheet.
@@ -184,9 +186,9 @@ fun IntradialyticEditor(
 ) {
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Intradialytic Readings", fontWeight = FontWeight.Bold, fontSize = 14.sp,
+            Text(stringResource(R.string.intradialytic_readings_3), fontWeight = FontWeight.Bold, fontSize = 14.sp,
                  color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-            Text(if (rows.size == 1) "1 row" else "${rows.size} rows",
+            Text(if (rows.size == 1) stringResource(R.string.text_1_row) else stringResource(R.string.rows, rows.size),
                  fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(6.dp))
@@ -224,7 +226,7 @@ fun IntradialyticEditor(
             Icon(Icons.Default.Add, contentDescription = null,
                  tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(6.dp))
-            Text("Add reading", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
+            Text(stringResource(R.string.add_reading), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
         }
     }
 }
@@ -245,19 +247,19 @@ private fun ReadingRowEditor(
                 if (row.readingTime.isNotBlank() && row.normalisedTime == null) {
                     // Say it here rather than let the API reject the save.
                     Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Default.Warning, contentDescription = "Not a valid time",
+                    Icon(Icons.Default.Warning, contentDescription = stringResource(R.string.not_a_valid_time),
                          tint = Color(0xFFFF9800))
                 }
                 Spacer(Modifier.weight(1f))
-                Icon(Icons.Default.Delete, contentDescription = "Delete reading",
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_reading),
                      tint = MaterialTheme.colorScheme.error,
                      modifier = Modifier.clickable { onDelete() }.padding(4.dp))
             }
             Spacer(Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.weight(1f)) { N("Sys", row.systolicBp) { onChange(row.copy(systolicBp = it)) } }
-                Box(Modifier.weight(1f)) { N("Dia", row.diastolicBp) { onChange(row.copy(diastolicBp = it)) } }
-                Box(Modifier.weight(1f)) { N("Pulse", row.pulse) { onChange(row.copy(pulse = it)) } }
+                Box(Modifier.weight(1f)) { N(stringResource(R.string.sys), row.systolicBp) { onChange(row.copy(systolicBp = it)) } }
+                Box(Modifier.weight(1f)) { N(stringResource(R.string.dia), row.diastolicBp) { onChange(row.copy(diastolicBp = it)) } }
+                Box(Modifier.weight(1f)) { N(stringResource(R.string.pulse), row.pulse) { onChange(row.copy(pulse = it)) } }
                 Box(Modifier.weight(1f)) { N("MAP", row.meanArterialPressure) { onChange(row.copy(meanArterialPressure = it)) } }
             }
             Spacer(Modifier.height(4.dp))
@@ -265,13 +267,13 @@ private fun ReadingRowEditor(
                 Box(Modifier.weight(1f)) { N("BFR", row.bloodFlowRate) { onChange(row.copy(bloodFlowRate = it)) } }
                 Box(Modifier.weight(1f)) { N("DR", row.dialysateRate) { onChange(row.copy(dialysateRate = it)) } }
                 Box(Modifier.weight(1f)) { N("UFR", row.ufRate) { onChange(row.copy(ufRate = it)) } }
-                Box(Modifier.weight(1f)) { N("UF Vol", row.ufVolumeRemoved) { onChange(row.copy(ufVolumeRemoved = it)) } }
+                Box(Modifier.weight(1f)) { N(stringResource(R.string.uf_vol), row.ufVolumeRemoved) { onChange(row.copy(ufVolumeRemoved = it)) } }
             }
             Spacer(Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.weight(1f)) { N("Art P", row.arterialPressure) { onChange(row.copy(arterialPressure = it)) } }
-                Box(Modifier.weight(1f)) { N("Ven P", row.venousPressure) { onChange(row.copy(venousPressure = it)) } }
-                Box(Modifier.weight(2f)) { N("Remarks", row.remarks, KeyboardType.Text) { onChange(row.copy(remarks = it)) } }
+                Box(Modifier.weight(1f)) { N(stringResource(R.string.art_p), row.arterialPressure) { onChange(row.copy(arterialPressure = it)) } }
+                Box(Modifier.weight(1f)) { N(stringResource(R.string.ven_p), row.venousPressure) { onChange(row.copy(venousPressure = it)) } }
+                Box(Modifier.weight(2f)) { N(stringResource(R.string.remarks), row.remarks, KeyboardType.Text) { onChange(row.copy(remarks = it)) } }
             }
         }
     }

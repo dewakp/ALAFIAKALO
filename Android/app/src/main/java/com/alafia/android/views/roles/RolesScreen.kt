@@ -24,6 +24,8 @@ import com.alafia.android.models.*
 import com.alafia.android.schemas.*
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,10 +74,10 @@ fun RolesScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Roles") },
+                title = { Text(stringResource(R.string.roles)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -86,7 +88,7 @@ fun RolesScreen(navController: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("Role", style = MaterialTheme.typography.headlineLarge,
+            Text(stringResource(R.string.role), style = MaterialTheme.typography.headlineLarge,
                 modifier = Modifier.padding(bottom = 8.dp))
         }
 
@@ -105,7 +107,7 @@ fun RolesScreen(navController: NavHostController) {
                     Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(error ?: "", color = MaterialTheme.colorScheme.onErrorContainer)
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = { loadAll() }) { Text("Retry") }
+                        Button(onClick = { loadAll() }) { Text(stringResource(R.string.retry)) }
                     }
                 }
             }
@@ -121,9 +123,9 @@ fun RolesScreen(navController: NavHostController) {
         item {
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
-                    text = { Text("My Roles") })
+                    text = { Text(stringResource(R.string.my_roles)) })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
-                    text = { Text("Add Role") })
+                    text = { Text(stringResource(R.string.add_role)) })
             }
         }
 
@@ -140,11 +142,11 @@ fun RolesScreen(navController: NavHostController) {
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Patient", fontWeight = FontWeight.SemiBold)
-                            Text("Core role — always active", style = MaterialTheme.typography.bodySmall,
+                            Text(stringResource(R.string.patient_2), fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.core_role_always_active), style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        AssistChip(onClick = {}, label = { Text("Always", fontSize = 11.sp) })
+                        AssistChip(onClick = {}, label = { Text(stringResource(R.string.always), fontSize = 11.sp) })
                     }
                 }
             }
@@ -179,8 +181,8 @@ fun RolesScreen(navController: NavHostController) {
                                 modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.height(8.dp))
-                            Text("No professional roles", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Switch to 'Add Role' tab", style = MaterialTheme.typography.bodySmall,
+                            Text(stringResource(R.string.no_professional_roles), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.switch_to_add_role_tab), style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -193,7 +195,7 @@ fun RolesScreen(navController: NavHostController) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        label = { Text("Search roles") },
+                        label = { Text(stringResource(R.string.search_roles)) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
@@ -207,7 +209,7 @@ fun RolesScreen(navController: NavHostController) {
                     FilterChip(
                         selected = selectedCategory.isEmpty(),
                         onClick = { selectedCategory = "" },
-                        label = { Text("All", fontSize = 12.sp) }
+                        label = { Text(stringResource(R.string.all), fontSize = 12.sp) }
                     )
                 }
             }
@@ -268,7 +270,7 @@ fun RolesScreen(navController: NavHostController) {
                                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Text(role.name, fontSize = 13.sp, modifier = Modifier.weight(1f),
                                         maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Icon(Icons.Default.Add, contentDescription = "Add",
+                                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add),
                                         modifier = Modifier.size(18.dp),
                                         tint = MaterialTheme.colorScheme.primary)
                                 }
@@ -289,8 +291,8 @@ fun RolesScreen(navController: NavHostController) {
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 if (searchQuery.isEmpty() && selectedCategory.isEmpty())
-                                    "All available roles have been added."
-                                else "No matching roles found.",
+                                    stringResource(R.string.all_available_roles_have_been_added)
+                                else stringResource(R.string.no_matching_roles_found),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -333,7 +335,7 @@ private fun PersonaSummaryCard(persona: UserPersonaSummary) {
                             fontSize = 10.sp, fontWeight = FontWeight.Bold) })
                     if (persona.isHealthcareProfessional) {
                         AssistChip(onClick = {},
-                            label = { Text("Healthcare Pro", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.healthcare_pro), fontSize = 10.sp) },
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = MaterialTheme.colorScheme.tertiaryContainer))
                     }
@@ -343,7 +345,7 @@ private fun PersonaSummaryCard(persona: UserPersonaSummary) {
             Spacer(Modifier.height(12.dp))
 
             // Active roles
-            Text("Active Roles", style = MaterialTheme.typography.labelSmall,
+            Text(stringResource(R.string.active_roles), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -360,7 +362,7 @@ private fun PersonaSummaryCard(persona: UserPersonaSummary) {
             // Categories
             if (persona.roleCategories.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Text("Categories", style = MaterialTheme.typography.labelSmall,
+                Text(stringResource(R.string.categories), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -376,7 +378,7 @@ private fun PersonaSummaryCard(persona: UserPersonaSummary) {
             // Permissions count
             if (persona.permissions.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Text("${persona.permissions.size} permissions derived from roles",
+                Text(stringResource(R.string.permissions_derived_from_roles, persona.permissions.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -414,7 +416,7 @@ private fun RoleCard(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer))
                         }
                         AssistChip(onClick = {},
-                            label = { Text(if (rd.isActive) "Active" else "Inactive", fontSize = 9.sp) },
+                            label = { Text(if (rd.isActive) stringResource(R.string.active) else stringResource(R.string.inactive), fontSize = 9.sp) },
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = if (rd.isActive) Color(0xFFD1FAE5) else Color(0xFFE2E8F0)))
                         rd.professionalProfile?.verificationStatus?.let { vs ->
@@ -458,7 +460,7 @@ private fun RoleCard(
                 ) {
                     Icon(Icons.Default.MedicalServices, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Open Clinician View", fontSize = 12.sp)
+                    Text(stringResource(R.string.open_clinician_view), fontSize = 12.sp)
                 }
                 Spacer(Modifier.height(8.dp))
             }
@@ -467,13 +469,13 @@ private fun RoleCard(
                     OutlinedButton(onClick = onSetPrimary, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
                         Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Set Primary", fontSize = 12.sp)
+                        Text(stringResource(R.string.set_primary), fontSize = 12.sp)
                     }
                 }
                 OutlinedButton(onClick = onEditProfile, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
                     Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(if (rd.professionalProfile != null) "Edit Profile" else "Add Profile", fontSize = 12.sp)
+                    Text(if (rd.professionalProfile != null) stringResource(R.string.edit_profile) else stringResource(R.string.add_profile), fontSize = 12.sp)
                 }
                 Spacer(Modifier.weight(1f))
                 OutlinedButton(
@@ -483,7 +485,7 @@ private fun RoleCard(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Remove", fontSize = 12.sp)
+                    Text(stringResource(R.string.remove_2), fontSize = 12.sp)
                 }
             }
         }
@@ -555,7 +557,7 @@ private fun ProfessionalProfileSheet(
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
-                    Text("Professional Profile", style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.professional_profile), style = MaterialTheme.typography.titleLarge)
                     Button(
                         onClick = {
                             scope.launch {
@@ -604,7 +606,7 @@ private fun ProfessionalProfileSheet(
                             }
                         },
                         enabled = !saving
-                    ) { Text(if (saving) "Saving..." else "Save") }
+                    ) { Text(if (saving) stringResource(R.string.saving_2) else stringResource(R.string.save)) }
                 }
             }
 
@@ -617,126 +619,126 @@ private fun ProfessionalProfileSheet(
             }
 
             // Credentials
-            item { SectionHeader("Credentials & Licensing") }
+            item { SectionHeader(stringResource(R.string.credentials_licensing)) }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = licenseNumber, onValueChange = { licenseNumber = it },
-                        label = { Text("License Number") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        label = { Text(stringResource(R.string.license_number)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = licenseState, onValueChange = { licenseState = it },
-                            label = { Text("License State") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.license_state)) }, modifier = Modifier.weight(1f), singleLine = true)
                         OutlinedTextField(value = licenseCountry, onValueChange = { licenseCountry = it },
-                            label = { Text("License Country") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.license_country)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                     OutlinedTextField(value = licenseExpiry, onValueChange = { licenseExpiry = it },
-                        label = { Text("License Expiry (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        label = { Text(stringResource(R.string.license_expiry_yyyy_mm_dd)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = npiNumber, onValueChange = { npiNumber = it },
-                            label = { Text("NPI Number") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.npi_number)) }, modifier = Modifier.weight(1f), singleLine = true)
                         OutlinedTextField(value = deaNumber, onValueChange = { deaNumber = it },
-                            label = { Text("DEA Number") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.dea_number)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                     OutlinedTextField(value = boardCerts, onValueChange = { boardCerts = it },
-                        label = { Text("Board Certifications (comma-separated)") }, modifier = Modifier.fillMaxWidth())
+                        label = { Text(stringResource(R.string.board_certifications_comma_separated)) }, modifier = Modifier.fillMaxWidth())
                 }
             }
 
             // Education
-            item { SectionHeader("Education & Training") }
+            item { SectionHeader(stringResource(R.string.education_training)) }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = medicalSchool, onValueChange = { medicalSchool = it },
-                        label = { Text("Medical School / Institution") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        label = { Text(stringResource(R.string.medical_school_institution)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = degree, onValueChange = { degree = it },
-                            label = { Text("Degree") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.degree)) }, modifier = Modifier.weight(1f), singleLine = true)
                         OutlinedTextField(value = graduationYear, onValueChange = { graduationYear = it },
-                            label = { Text("Grad Year") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.grad_year)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                     OutlinedTextField(value = residencyProgram, onValueChange = { residencyProgram = it },
-                        label = { Text("Residency Program") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        label = { Text(stringResource(R.string.residency_program)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     OutlinedTextField(value = fellowshipProgram, onValueChange = { fellowshipProgram = it },
-                        label = { Text("Fellowship Program") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        label = { Text(stringResource(R.string.fellowship_program)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 }
             }
 
             // Practice
-            item { SectionHeader("Specialty & Practice") }
+            item { SectionHeader(stringResource(R.string.specialty_practice)) }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = specialty, onValueChange = { specialty = it },
-                            label = { Text("Specialty") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.specialty)) }, modifier = Modifier.weight(1f), singleLine = true)
                         OutlinedTextField(value = subSpecialty, onValueChange = { subSpecialty = it },
-                            label = { Text("Sub-specialty") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.sub_specialty)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = yearsExp, onValueChange = { yearsExp = it },
-                            label = { Text("Years Exp") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.years_exp)) }, modifier = Modifier.weight(1f), singleLine = true)
                         OutlinedTextField(value = practiceType, onValueChange = { practiceType = it },
-                            label = { Text("Practice Type") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.practice_type)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                     OutlinedTextField(value = practiceName, onValueChange = { practiceName = it },
-                        label = { Text("Practice Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        label = { Text(stringResource(R.string.practice_name)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     OutlinedTextField(value = practiceAddress, onValueChange = { practiceAddress = it },
-                        label = { Text("Practice Address") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        label = { Text(stringResource(R.string.practice_address)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = practicePhone, onValueChange = { practicePhone = it },
-                            label = { Text("Phone") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.phone)) }, modifier = Modifier.weight(1f), singleLine = true)
                         OutlinedTextField(value = practiceEmail, onValueChange = { practiceEmail = it },
-                            label = { Text("Email") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.email)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                     OutlinedTextField(value = practiceWebsite, onValueChange = { practiceWebsite = it },
-                        label = { Text("Website") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        label = { Text(stringResource(R.string.website)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = acceptingPatients, onCheckedChange = { acceptingPatients = it })
-                        Text("Accepting Patients")
+                        Text(stringResource(R.string.accepting_patients_2))
                     }
                 }
             }
 
             // Hospital
-            item { SectionHeader("Hospital & Affiliations") }
+            item { SectionHeader(stringResource(R.string.hospital_affiliations)) }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = hospitalAffiliations, onValueChange = { hospitalAffiliations = it },
-                        label = { Text("Hospital Affiliations (comma-separated)") }, modifier = Modifier.fillMaxWidth())
+                        label = { Text(stringResource(R.string.hospital_affiliations_comma_separated)) }, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = department, onValueChange = { department = it },
-                            label = { Text("Department") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.department)) }, modifier = Modifier.weight(1f), singleLine = true)
                         OutlinedTextField(value = titleField, onValueChange = { titleField = it },
-                            label = { Text("Title") }, modifier = Modifier.weight(1f), singleLine = true)
+                            label = { Text(stringResource(R.string.title)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                 }
             }
 
             // Languages & Telemedicine
-            item { SectionHeader("Languages & Telemedicine") }
+            item { SectionHeader(stringResource(R.string.languages_telemedicine)) }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = clinicalLanguages, onValueChange = { clinicalLanguages = it },
-                        label = { Text("Clinical Languages (comma-separated)") }, modifier = Modifier.fillMaxWidth())
+                        label = { Text(stringResource(R.string.clinical_languages_comma_separated)) }, modifier = Modifier.fillMaxWidth())
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = telemedicineAvailable, onCheckedChange = { telemedicineAvailable = it })
-                        Text("Telemedicine Available")
+                        Text(stringResource(R.string.telemedicine_available))
                     }
                     if (telemedicineAvailable) {
                         OutlinedTextField(value = telemedicinePlatforms, onValueChange = { telemedicinePlatforms = it },
-                            label = { Text("Platforms (comma-separated)") }, modifier = Modifier.fillMaxWidth())
+                            label = { Text(stringResource(R.string.platforms_comma_separated)) }, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
 
             // Bio
-            item { SectionHeader("Bio & Research") }
+            item { SectionHeader(stringResource(R.string.bio_research)) }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = professionalBio, onValueChange = { professionalBio = it },
-                        label = { Text("Professional Bio") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                        label = { Text(stringResource(R.string.professional_bio)) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
                     OutlinedTextField(value = publications, onValueChange = { publications = it },
-                        label = { Text("Publications (comma-separated)") }, modifier = Modifier.fillMaxWidth())
+                        label = { Text(stringResource(R.string.publications_comma_separated)) }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = researchInterests, onValueChange = { researchInterests = it },
-                        label = { Text("Research Interests (comma-separated)") }, modifier = Modifier.fillMaxWidth())
+                        label = { Text(stringResource(R.string.research_interests_comma_separated)) }, modifier = Modifier.fillMaxWidth())
                 }
             }
 

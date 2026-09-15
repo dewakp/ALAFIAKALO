@@ -33,6 +33,8 @@ import com.alafia.android.models.ChartDatasetInfo
 import com.alafia.android.models.ChartSummaryResponse
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 // ── Palette ─────────────────────────────────────────
 
@@ -100,10 +102,10 @@ fun ChartDashboardScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chart Dashboard") },
+                title = { Text(stringResource(R.string.chart_dashboard)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -192,9 +194,9 @@ fun ChartDashboardScreen(navController: NavHostController) {
                         Icon(Icons.Default.BarChart, null, modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                         Spacer(Modifier.height(12.dp))
-                        Text("Select Datasets to Chart", fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.select_datasets_to_chart), fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(4.dp))
-                        Text("Tap + to pick metrics", fontSize = 13.sp,
+                        Text(stringResource(R.string.tap_to_pick_metrics), fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center)
                     }
@@ -400,11 +402,11 @@ private fun SummaryCard(s: ChartSummaryResponse, color: Color) {
             }
             Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                StatItem("Avg", s.avg)
-                StatItem("Min", s.min)
-                StatItem("Max", s.max)
-                StatItem("Std", s.stddev)
-                StatItem("Pts", s.count.toDouble())
+                StatItem(stringResource(R.string.avg), s.avg)
+                StatItem(stringResource(R.string.min_2), s.min)
+                StatItem(stringResource(R.string.max), s.max)
+                StatItem(stringResource(R.string.std), s.stddev)
+                StatItem(stringResource(R.string.pts), s.count.toDouble())
             }
         }
     }
@@ -453,9 +455,9 @@ private fun DatasetPickerDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.done)) }
         },
-        title = { Text("Select Datasets") },
+        title = { Text(stringResource(R.string.select_datasets)) },
         text = {
             LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
                 datasets.keys.sorted().forEach { domain ->

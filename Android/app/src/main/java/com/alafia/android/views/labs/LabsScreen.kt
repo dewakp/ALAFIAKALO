@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,10 +54,10 @@ fun LabsScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Lab Results") },
+                title = { Text(stringResource(R.string.labs)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) },
@@ -74,8 +76,8 @@ fun LabsScreen(navController: NavHostController) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Science, "No results", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
-                    Text("No lab results", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Tap + to add a result", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_lab_results), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.tap_to_add_a_result), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -155,9 +157,9 @@ private fun LabResultCard(result: LabResult, onDelete: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 val valueStr = result.value?.toString() ?: result.value_string ?: "-"
                 val unitStr = result.unit ?: ""
-                Text("Value: $valueStr $unitStr", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.value, valueStr, unitStr), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 if (result.reference_range_low != null || result.reference_range_high != null) {
-                    Text("Ref: ${result.reference_range_low ?: "-"} – ${result.reference_range_high ?: "-"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.ref, result.reference_range_low ?: "-", result.reference_range_high ?: "-"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (!result.notes.isNullOrEmpty()) {
@@ -182,23 +184,23 @@ private fun AddLabResultDialog(onDismiss: () -> Unit, onSave: (LabResultRequest)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Lab Result") },
+        title = { Text(stringResource(R.string.add_lab_result)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(value = testName, onValueChange = { testName = it }, label = { Text("Test Name") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = value, onValueChange = { value = it }, label = { Text("Value") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = unit, onValueChange = { unit = it }, label = { Text("Unit") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = refRange, onValueChange = { refRange = it }, label = { Text("Reference Range") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = testName, onValueChange = { testName = it }, label = { Text(stringResource(R.string.test_name)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = value, onValueChange = { value = it }, label = { Text(stringResource(R.string.value_2)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = unit, onValueChange = { unit = it }, label = { Text(stringResource(R.string.unit)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = refRange, onValueChange = { refRange = it }, label = { Text(stringResource(R.string.reference_range)) }, modifier = Modifier.fillMaxWidth())
 
                 ExposedDropdownMenuBox(expanded = expandedStatus, onExpandedChange = { expandedStatus = it }) {
                     OutlinedTextField(
                         value = status.replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Status") },
+                        label = { Text(stringResource(R.string.status)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedStatus) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -212,7 +214,7 @@ private fun AddLabResultDialog(onDismiss: () -> Unit, onSave: (LabResultRequest)
                     }
                 }
 
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -232,10 +234,10 @@ private fun AddLabResultDialog(onDismiss: () -> Unit, onSave: (LabResultRequest)
                     }
                 },
                 enabled = testName.isNotBlank() && value.isNotBlank() && unit.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

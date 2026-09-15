@@ -24,6 +24,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 private val FITNESS_LEVELS = listOf("Beginner", "Intermediate", "Advanced")
 
@@ -58,10 +60,10 @@ fun ExercisePlannerScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Exercise Planner") },
+                title = { Text(stringResource(R.string.exercise_planner)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) },
@@ -92,7 +94,7 @@ fun ExercisePlannerScreen(navController: NavHostController) {
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Generate Exercise Plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.generate_exercise_plan), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(12.dp))
 
                                 // Fitness level dropdown
@@ -105,7 +107,7 @@ fun ExercisePlannerScreen(navController: NavHostController) {
                                         value = selectedLevel,
                                         onValueChange = {},
                                         readOnly = true,
-                                        label = { Text("Fitness Level") },
+                                        label = { Text(stringResource(R.string.fitness_level)) },
                                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = levelExpanded) },
                                         modifier = Modifier.fillMaxWidth().menuAnchor()
                                     )
@@ -130,7 +132,7 @@ fun ExercisePlannerScreen(navController: NavHostController) {
                                 OutlinedTextField(
                                     value = weeklyMinutes,
                                     onValueChange = { weeklyMinutes = it.filter { ch -> ch.isDigit() } },
-                                    label = { Text("Weekly Minutes Target") },
+                                    label = { Text(stringResource(R.string.weekly_minutes_target)) },
                                     placeholder = { Text("e.g. 150") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier.fillMaxWidth()
@@ -141,8 +143,8 @@ fun ExercisePlannerScreen(navController: NavHostController) {
                                 OutlinedTextField(
                                     value = limitations,
                                     onValueChange = { limitations = it },
-                                    label = { Text("Limitations") },
-                                    placeholder = { Text("e.g. knee injury, no jumping") },
+                                    label = { Text(stringResource(R.string.limitations)) },
+                                    placeholder = { Text(stringResource(R.string.e_g_knee_injury_no_jumping)) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
@@ -177,7 +179,7 @@ fun ExercisePlannerScreen(navController: NavHostController) {
                                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                         Spacer(Modifier.width(8.dp))
                                     }
-                                    Text("Generate Plan")
+                                    Text(stringResource(R.string.generate_plan))
                                 }
                             }
                         }
@@ -191,14 +193,14 @@ fun ExercisePlannerScreen(navController: NavHostController) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.FitnessCenter, "No plans", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(12.dp))
-                                Text("No exercise plans yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Tap + to generate a plan", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.no_exercise_plans_yet), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.tap_to_generate_a_plan), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 } else {
                     item {
-                        Text("Your Exercise Plans", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.your_exercise_plans), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     items(plans, key = { it.id }) { plan ->
                         ExercisePlanCard(plan = plan)
@@ -229,7 +231,7 @@ private fun ExercisePlanCard(plan: ExercisePlanResponse) {
                         Text(plan.fitnessLevel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }
                     if (plan.weeklyMinutesTarget != null) {
-                        Text("${plan.weeklyMinutesTarget} min/week", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.min_week, plan.weeklyMinutesTarget), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 IconButton(onClick = { expanded = !expanded }) {
@@ -296,15 +298,15 @@ private fun ExerciseItemRow(exercise: ExerciseItem) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.width(2.dp))
-                        Text("${exercise.durationMinutes} min", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.min, exercise.durationMinutes), style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 if (exercise.sets != null && exercise.reps != null) {
                     Text("${exercise.sets}×${exercise.reps}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                 } else if (exercise.sets != null) {
-                    Text("${exercise.sets} sets", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.sets, exercise.sets), style = MaterialTheme.typography.bodySmall)
                 } else if (exercise.reps != null) {
-                    Text("${exercise.reps} reps", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.reps, exercise.reps), style = MaterialTheme.typography.bodySmall)
                 }
             }
 

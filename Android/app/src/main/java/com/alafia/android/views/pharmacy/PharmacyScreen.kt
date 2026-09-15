@@ -16,6 +16,8 @@ import com.alafia.android.models.*
 import kotlinx.coroutines.launch
 import java.time.Instant
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,10 +28,10 @@ fun PharmacyScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pharmacy") },
+                title = { Text(stringResource(R.string.pharmacy)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -81,7 +83,7 @@ fun PrescriptionsTab() {
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (prescriptions.isEmpty()) {
-            Text("No prescriptions yet", modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_prescriptions_yet), modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Spacer(Modifier.height(8.dp)) }
@@ -100,7 +102,7 @@ fun PrescriptionsTab() {
         FloatingActionButton(
             onClick = { showDialog = true },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) { Icon(Icons.Default.Add, contentDescription = "Add") }
+        ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add)) }
     }
 
     if (showDialog) {
@@ -137,10 +139,10 @@ fun PrescriptionCard(rx: PharmacyPrescription, onDelete: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 rx.frequency?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Spacer(Modifier.weight(1f))
-                Text("Refills: ${rx.refillsRemaining}/${rx.refillsAuthorized}",
+                Text(stringResource(R.string.refills, rx.refillsRemaining, rx.refillsAuthorized),
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -161,26 +163,26 @@ fun AddPrescriptionDialog(onDismiss: () -> Unit, onSave: (PrescriptionCreateRequ
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Prescription") },
+        title = { Text(stringResource(R.string.new_prescription)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { OutlinedTextField(value = patientId, onValueChange = { patientId = it }, label = { Text("Patient ID") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = medName, onValueChange = { medName = it }, label = { Text("Medication name") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = patientId, onValueChange = { patientId = it }, label = { Text(stringResource(R.string.patient_id)) }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = medName, onValueChange = { medName = it }, label = { Text(stringResource(R.string.medication_name_2)) }, modifier = Modifier.fillMaxWidth()) }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = dosage, onValueChange = { dosage = it }, label = { Text("Dosage") }, modifier = Modifier.weight(1f))
-                        OutlinedTextField(value = unit, onValueChange = { unit = it }, label = { Text("Unit") }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = dosage, onValueChange = { dosage = it }, label = { Text(stringResource(R.string.dosage)) }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = unit, onValueChange = { unit = it }, label = { Text(stringResource(R.string.unit)) }, modifier = Modifier.weight(1f))
                     }
                 }
-                item { OutlinedTextField(value = frequency, onValueChange = { frequency = it }, label = { Text("Frequency") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = frequency, onValueChange = { frequency = it }, label = { Text(stringResource(R.string.frequency)) }, modifier = Modifier.fillMaxWidth()) }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = quantity, onValueChange = { quantity = it }, label = { Text("Qty") }, modifier = Modifier.weight(1f))
-                        OutlinedTextField(value = refills, onValueChange = { refills = it }, label = { Text("Refills") }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = quantity, onValueChange = { quantity = it }, label = { Text(stringResource(R.string.qty)) }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = refills, onValueChange = { refills = it }, label = { Text(stringResource(R.string.refills_2)) }, modifier = Modifier.weight(1f))
                     }
                 }
-                item { OutlinedTextField(value = diagnosis, onValueChange = { diagnosis = it }, label = { Text("Diagnosis") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = instructions, onValueChange = { instructions = it }, label = { Text("Instructions") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = diagnosis, onValueChange = { diagnosis = it }, label = { Text(stringResource(R.string.diagnosis)) }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = instructions, onValueChange = { instructions = it }, label = { Text(stringResource(R.string.instructions)) }, modifier = Modifier.fillMaxWidth()) }
             }
         },
         confirmButton = {
@@ -197,9 +199,9 @@ fun AddPrescriptionDialog(onDismiss: () -> Unit, onSave: (PrescriptionCreateRequ
                     ))
                 },
                 enabled = medName.isNotBlank() && patientId.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -225,7 +227,7 @@ fun DispensesTab() {
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (dispenses.isEmpty()) {
-            Text("No dispenses yet", modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_dispenses_yet), modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Spacer(Modifier.height(8.dp)) }
@@ -237,7 +239,7 @@ fun DispensesTab() {
         FloatingActionButton(
             onClick = { showDialog = true },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) { Icon(Icons.Default.Add, contentDescription = "Add") }
+        ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add)) }
     }
 
     if (showDialog) {
@@ -255,15 +257,15 @@ fun DispenseCard(d: PharmacyDispense) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(d.medicationName ?: "Rx #${d.prescriptionId}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(d.medicationName ?: stringResource(R.string.rx, d.prescriptionId), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 StatusChip(d.status)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                d.quantityDispensed?.let { Text("Qty: $it", style = MaterialTheme.typography.labelSmall) }
+                d.quantityDispensed?.let { Text(stringResource(R.string.qty_2, it), style = MaterialTheme.typography.labelSmall) }
                 if (d.interactionsChecked) Text("DUR ✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                if (d.allergyChecked) Text("Allergy ✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                if (d.allergyChecked) Text(stringResource(R.string.allergy), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
-            d.pharmacistName?.let { Text("By: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            d.pharmacistName?.let { Text(stringResource(R.string.by, it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
 }
@@ -284,24 +286,24 @@ fun AddDispenseDialog(onDismiss: () -> Unit, onSave: (DispenseCreateRequest) -> 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Dispense Prescription") },
+        title = { Text(stringResource(R.string.dispense_prescription)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { OutlinedTextField(value = rxId, onValueChange = { rxId = it }, label = { Text("Prescription ID") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = rxId, onValueChange = { rxId = it }, label = { Text(stringResource(R.string.prescription_id)) }, modifier = Modifier.fillMaxWidth()) }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = qty, onValueChange = { qty = it }, label = { Text("Quantity") }, modifier = Modifier.weight(1f))
-                        OutlinedTextField(value = days, onValueChange = { days = it }, label = { Text("Days supply") }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = qty, onValueChange = { qty = it }, label = { Text(stringResource(R.string.quantity)) }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = days, onValueChange = { days = it }, label = { Text(stringResource(R.string.days_supply)) }, modifier = Modifier.weight(1f))
                     }
                 }
-                item { OutlinedTextField(value = ndcCode, onValueChange = { ndcCode = it }, label = { Text("NDC code") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = lotNumber, onValueChange = { lotNumber = it }, label = { Text("Lot number") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = manufacturer, onValueChange = { manufacturer = it }, label = { Text("Manufacturer") }, modifier = Modifier.fillMaxWidth()) }
-                item { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = isGeneric, onCheckedChange = { isGeneric = it }); Text("Generic") } }
-                item { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = interactionsChecked, onCheckedChange = { interactionsChecked = it }); Text("Interactions checked") } }
-                item { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = allergyChecked, onCheckedChange = { allergyChecked = it }); Text("Allergy checked") } }
-                item { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = counselingProvided, onCheckedChange = { counselingProvided = it }); Text("Counseling provided") } }
-                item { OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Clinical notes") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = ndcCode, onValueChange = { ndcCode = it }, label = { Text(stringResource(R.string.ndc_code)) }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = lotNumber, onValueChange = { lotNumber = it }, label = { Text(stringResource(R.string.lot_number)) }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = manufacturer, onValueChange = { manufacturer = it }, label = { Text(stringResource(R.string.manufacturer_2)) }, modifier = Modifier.fillMaxWidth()) }
+                item { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = isGeneric, onCheckedChange = { isGeneric = it }); Text(stringResource(R.string.generic)) } }
+                item { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = interactionsChecked, onCheckedChange = { interactionsChecked = it }); Text(stringResource(R.string.interactions_checked)) } }
+                item { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = allergyChecked, onCheckedChange = { allergyChecked = it }); Text(stringResource(R.string.allergy_checked)) } }
+                item { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = counselingProvided, onCheckedChange = { counselingProvided = it }); Text(stringResource(R.string.counseling_provided)) } }
+                item { OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.clinical_notes_2)) }, modifier = Modifier.fillMaxWidth()) }
             }
         },
         confirmButton = {
@@ -318,9 +320,9 @@ fun AddDispenseDialog(onDismiss: () -> Unit, onSave: (DispenseCreateRequest) -> 
                     ))
                 },
                 enabled = rxId.isNotBlank()
-            ) { Text("Dispense") }
+            ) { Text(stringResource(R.string.dispense)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -356,24 +358,24 @@ fun AdherenceTab() {
                     item {
                         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Adherence Summary", style = MaterialTheme.typography.titleSmall)
+                                Text(stringResource(R.string.adherence_summary), style = MaterialTheme.typography.titleSmall)
                                 Spacer(Modifier.height(8.dp))
                                 Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                                    SummaryItem("Rate", "${(r.adherenceRate * 100).toInt()}%")
-                                    SummaryItem("Taken", "${r.totalTaken}")
-                                    SummaryItem("Missed", "${r.totalMissed}")
-                                    SummaryItem("Streak", "${r.streakCurrent}d")
+                                    SummaryItem(stringResource(R.string.rate), "${(r.adherenceRate * 100).toInt()}%")
+                                    SummaryItem(stringResource(R.string.taken), "${r.totalTaken}")
+                                    SummaryItem(stringResource(R.string.missed), "${r.totalMissed}")
+                                    SummaryItem(stringResource(R.string.streak), "${r.streakCurrent}d")
                                 }
                                 if (r.commonSideEffects.isNotEmpty()) {
                                     Spacer(Modifier.height(4.dp))
-                                    Text("Side effects: ${r.commonSideEffects.joinToString(", ")}", style = MaterialTheme.typography.labelSmall)
+                                    Text(stringResource(R.string.side_effects_3, r.commonSideEffects.joinToString(", ")), style = MaterialTheme.typography.labelSmall)
                                 }
                             }
                         }
                     }
                 }
                 if (logs.isEmpty()) {
-                    item { Text("No adherence logs", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { Text(stringResource(R.string.no_adherence_logs), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
                 items(logs) { log -> AdherenceLogCard(log) }
                 item { Spacer(Modifier.height(80.dp)) }
@@ -383,7 +385,7 @@ fun AdherenceTab() {
         FloatingActionButton(
             onClick = { showDialog = true },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) { Icon(Icons.Default.Add, contentDescription = "Log dose") }
+        ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.log_dose_2)) }
     }
 
     if (showDialog) {
@@ -401,11 +403,11 @@ fun AdherenceLogCard(log: PharmacyAdherenceLog) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(log.medicationName ?: "Rx #${log.prescriptionId}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(log.medicationName ?: stringResource(R.string.rx, log.prescriptionId), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 StatusChip(log.status)
             }
-            log.doseTaken?.let { Text("Dose: $it", style = MaterialTheme.typography.bodySmall) }
-            log.sideEffectsReported?.let { Text("Side effects: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+            log.doseTaken?.let { Text(stringResource(R.string.dose, it), style = MaterialTheme.typography.bodySmall) }
+            log.sideEffectsReported?.let { Text(stringResource(R.string.side_effects_3, it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
         }
     }
 }
@@ -422,20 +424,20 @@ fun LogDoseDialog(onDismiss: () -> Unit, onSave: (AdherenceLogCreateRequest) -> 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Dose") },
+        title = { Text(stringResource(R.string.log_dose)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { OutlinedTextField(value = rxId, onValueChange = { rxId = it }, label = { Text("Prescription ID") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Status (taken/missed/skipped/late)") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = dose, onValueChange = { dose = it }, label = { Text("Dose taken") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = rxId, onValueChange = { rxId = it }, label = { Text(stringResource(R.string.prescription_id)) }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text(stringResource(R.string.status_taken_missed_skipped_late)) }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = dose, onValueChange = { dose = it }, label = { Text(stringResource(R.string.dose_taken)) }, modifier = Modifier.fillMaxWidth()) }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = moodBefore, onValueChange = { moodBefore = it }, label = { Text("Mood before") }, modifier = Modifier.weight(1f))
-                        OutlinedTextField(value = moodAfter, onValueChange = { moodAfter = it }, label = { Text("Mood after") }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = moodBefore, onValueChange = { moodBefore = it }, label = { Text(stringResource(R.string.mood_before)) }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = moodAfter, onValueChange = { moodAfter = it }, label = { Text(stringResource(R.string.mood_after)) }, modifier = Modifier.weight(1f))
                     }
                 }
-                item { OutlinedTextField(value = sideEffects, onValueChange = { sideEffects = it }, label = { Text("Side effects") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = sideEffects, onValueChange = { sideEffects = it }, label = { Text(stringResource(R.string.side_effects_4)) }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth()) }
             }
         },
         confirmButton = {
@@ -450,9 +452,9 @@ fun LogDoseDialog(onDismiss: () -> Unit, onSave: (AdherenceLogCreateRequest) -> 
                     ))
                 },
                 enabled = rxId.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -478,7 +480,7 @@ fun SchedulesTab() {
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (schedules.isEmpty()) {
-            Text("No schedules yet", modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_schedules_yet), modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Spacer(Modifier.height(8.dp)) }
@@ -497,7 +499,7 @@ fun SchedulesTab() {
         FloatingActionButton(
             onClick = { showDialog = true },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) { Icon(Icons.Default.Add, contentDescription = "Add") }
+        ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add)) }
     }
 
     if (showDialog) {
@@ -515,7 +517,7 @@ fun ScheduleCard(s: PharmacySchedule, onDelete: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(s.medicationName ?: "Rx #${s.prescriptionId}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(s.medicationName ?: stringResource(R.string.rx, s.prescriptionId), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 StatusChip(if (s.isActive) "active" else "inactive")
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -526,7 +528,7 @@ fun ScheduleCard(s: PharmacySchedule, onDelete: () -> Unit) {
             Row {
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -543,14 +545,14 @@ fun AddScheduleDialog(onDismiss: () -> Unit, onSave: (ScheduleCreateRequest) -> 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Schedule") },
+        title = { Text(stringResource(R.string.new_schedule)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = rxId, onValueChange = { rxId = it }, label = { Text("Prescription ID") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = timeOfDay, onValueChange = { timeOfDay = it }, label = { Text("Time (HH:MM)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = daysOfWeek, onValueChange = { daysOfWeek = it }, label = { Text("Days (e.g. Mon,Wed,Fri)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = doseLabel, onValueChange = { doseLabel = it }, label = { Text("Dose label") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = reminder, onValueChange = { reminder = it }, label = { Text("Reminder (minutes before)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = rxId, onValueChange = { rxId = it }, label = { Text(stringResource(R.string.prescription_id)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = timeOfDay, onValueChange = { timeOfDay = it }, label = { Text(stringResource(R.string.time_hh_mm_2)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = daysOfWeek, onValueChange = { daysOfWeek = it }, label = { Text(stringResource(R.string.days_e_g_mon_wed_fri)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = doseLabel, onValueChange = { doseLabel = it }, label = { Text(stringResource(R.string.dose_label)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = reminder, onValueChange = { reminder = it }, label = { Text(stringResource(R.string.reminder_minutes_before)) }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
@@ -564,9 +566,9 @@ fun AddScheduleDialog(onDismiss: () -> Unit, onSave: (ScheduleCreateRequest) -> 
                     ))
                 },
                 enabled = rxId.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -592,7 +594,7 @@ fun RefillsTab() {
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (refills.isEmpty()) {
-            Text("No refill requests", modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_refill_requests), modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Spacer(Modifier.height(8.dp)) }
@@ -604,7 +606,7 @@ fun RefillsTab() {
         FloatingActionButton(
             onClick = { showDialog = true },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) { Icon(Icons.Default.Add, contentDescription = "Request refill") }
+        ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.request_refill)) }
     }
 
     if (showDialog) {
@@ -622,11 +624,11 @@ fun RefillCard(r: PharmacyRefillRequest) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(r.medicationName ?: "Rx #${r.prescriptionId}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(r.medicationName ?: stringResource(R.string.rx, r.prescriptionId), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 StatusChip(r.status)
             }
-            r.quantityRequested?.let { Text("Quantity: $it", style = MaterialTheme.typography.bodySmall) }
-            r.denialReason?.let { Text("Denied: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+            r.quantityRequested?.let { Text(stringResource(R.string.quantity_2, it), style = MaterialTheme.typography.bodySmall) }
+            r.denialReason?.let { Text(stringResource(R.string.denied, it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
         }
     }
 }
@@ -639,12 +641,12 @@ fun AddRefillDialog(onDismiss: () -> Unit, onSave: (RefillCreateRequest) -> Unit
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Request Refill") },
+        title = { Text(stringResource(R.string.request_refill_2)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = rxId, onValueChange = { rxId = it }, label = { Text("Prescription ID") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = qty, onValueChange = { qty = it }, label = { Text("Quantity") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = rxId, onValueChange = { rxId = it }, label = { Text(stringResource(R.string.prescription_id)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = qty, onValueChange = { qty = it }, label = { Text(stringResource(R.string.quantity)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
@@ -657,9 +659,9 @@ fun AddRefillDialog(onDismiss: () -> Unit, onSave: (RefillCreateRequest) -> Unit
                     ))
                 },
                 enabled = rxId.isNotBlank()
-            ) { Text("Submit") }
+            ) { Text(stringResource(R.string.submit)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -675,7 +677,7 @@ fun ImpactTab() {
         item { Spacer(Modifier.height(8.dp)) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(value = rxIdText, onValueChange = { rxIdText = it }, label = { Text("Prescription ID") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = rxIdText, onValueChange = { rxIdText = it }, label = { Text(stringResource(R.string.prescription_id)) }, modifier = Modifier.weight(1f))
                 Button(
                     onClick = {
                         val id = rxIdText.toIntOrNull() ?: return@Button
@@ -685,7 +687,7 @@ fun ImpactTab() {
                         }
                     },
                     enabled = rxIdText.isNotBlank()
-                ) { Text("Analyze") }
+                ) { Text(stringResource(R.string.analyze)) }
             }
         }
 
@@ -693,13 +695,13 @@ fun ImpactTab() {
             item {
                 Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("${r.medicationName} Impact", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.impact, r.medicationName), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                            SummaryItem("Adherence", "${(r.adherenceRate * 100).toInt()}%")
-                            SummaryItem("Taken", "${r.dosesTaken}")
-                            SummaryItem("Missed", "${r.dosesMissed}")
-                            SummaryItem("Period", "${r.analysisPeriodDays}d")
+                            SummaryItem(stringResource(R.string.adherence), "${(r.adherenceRate * 100).toInt()}%")
+                            SummaryItem(stringResource(R.string.taken), "${r.dosesTaken}")
+                            SummaryItem(stringResource(R.string.missed), "${r.dosesMissed}")
+                            SummaryItem(stringResource(R.string.period), "${r.analysisPeriodDays}d")
                         }
                     }
                 }
@@ -708,12 +710,12 @@ fun ImpactTab() {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Mood Impact", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.mood_impact), style = MaterialTheme.typography.titleSmall)
                         Spacer(Modifier.height(4.dp))
                         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                            r.avgMoodBefore?.let { SummaryItem("Before", String.format("%.1f", it)) }
-                            r.avgMoodAfter?.let { SummaryItem("After", String.format("%.1f", it)) }
-                            r.moodTrend?.let { SummaryItem("Trend", it) }
+                            r.avgMoodBefore?.let { SummaryItem(stringResource(R.string.before), String.format("%.1f", it)) }
+                            r.avgMoodAfter?.let { SummaryItem(stringResource(R.string.after), String.format("%.1f", it)) }
+                            r.moodTrend?.let { SummaryItem(stringResource(R.string.trend_2), it) }
                         }
                     }
                 }
@@ -723,7 +725,7 @@ fun ImpactTab() {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Side Effects", style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.side_effects_2), style = MaterialTheme.typography.titleSmall)
                             Text(r.reportedSideEffects.joinToString(", "), style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -733,10 +735,10 @@ fun ImpactTab() {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Scores", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.scores), style = MaterialTheme.typography.titleSmall)
                         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                            r.effectivenessScore?.let { SummaryItem("Effectiveness", "${(it * 100).toInt()}%") }
-                            r.tolerabilityScore?.let { SummaryItem("Tolerability", "${(it * 100).toInt()}%") }
+                            r.effectivenessScore?.let { SummaryItem(stringResource(R.string.effectiveness), "${(it * 100).toInt()}%") }
+                            r.tolerabilityScore?.let { SummaryItem(stringResource(R.string.tolerability), "${(it * 100).toInt()}%") }
                         }
                     }
                 }
@@ -746,7 +748,7 @@ fun ImpactTab() {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("AI Summary", style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.ai_summary), style = MaterialTheme.typography.titleSmall)
                             Spacer(Modifier.height(4.dp))
                             Text(summary, style = MaterialTheme.typography.bodySmall)
                         }

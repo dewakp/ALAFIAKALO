@@ -27,6 +27,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,10 +54,10 @@ fun LabChartsScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Lab Charts") },
+                title = { Text(stringResource(R.string.lab_charts)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) }
@@ -69,8 +71,8 @@ fun LabChartsScreen(navController: NavHostController) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.BarChart, "No data", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
-                    Text("No lab chart data", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Lab results will appear here once available", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_lab_chart_data), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.lab_results_will_appear_here_once), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -115,7 +117,7 @@ private fun LabChartGroupCard(group: LabChartGroup) {
             }
 
             Text(
-                "${group.series.size} test(s)",
+                stringResource(R.string.test_s, group.series.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -161,7 +163,7 @@ private fun LabChartSeriesRow(series: LabChartSeries, referenceLow: Double? = nu
 
         if (series.data.isEmpty()) {
             Text(
-                "No data points",
+                stringResource(R.string.no_data_points),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

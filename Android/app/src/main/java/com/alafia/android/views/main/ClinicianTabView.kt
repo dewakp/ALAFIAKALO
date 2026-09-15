@@ -24,6 +24,8 @@ import com.alafia.android.views.roles.RolesScreen
 import com.alafia.android.views.sharing.DataSharingScreen
 import com.alafia.android.views.subscription.SubscriptionScreen
 import com.alafia.android.views.telehealth.TelehealthScreen
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * The clinician persona's tab bar.
@@ -99,7 +101,7 @@ fun ClinicianTabView(
 @Composable
 private fun ClinicianAccountScreen(navController: NavHostController) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Account") }) }
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.account)) }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -118,13 +120,13 @@ private fun ClinicianAccountScreen(navController: NavHostController) {
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            "Clinician view",
+                            stringResource(R.string.clinician_view),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     Text(
-                        "Your own health record, meals and tracking live in the patient view.",
+                        stringResource(R.string.your_own_health_record_meals_and),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -134,7 +136,7 @@ private fun ClinicianAccountScreen(navController: NavHostController) {
                     ) {
                         Icon(Icons.Default.SwapHoriz, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Switch to Patient View")
+                        Text(stringResource(R.string.switch_to_patient_view))
                     }
                 }
             }

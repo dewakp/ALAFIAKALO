@@ -25,6 +25,8 @@ import com.alafia.android.api.KeychainHelper
 import com.alafia.android.api.loginWithCsrf
 import com.alafia.android.schemas.RegisterRequest
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @Composable
 fun RegisterScreen(
@@ -61,17 +63,17 @@ fun RegisterScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Create Account",
+            text = stringResource(R.string.create_account),
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.padding(vertical = 32.dp)
         )
         // "We emailed you a link." The app cannot read the mailbox, so it ASKS
         // the server whether the address is confirmed rather than guessing.
         if (awaitingVerification) {
-            Text("Confirm your email", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.confirm_your_email), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             Text(
-                "We sent a link to $email. Open it, then come back and tap Continue.",
+                stringResource(R.string.we_sent_a_link_to_open_it_then_come_back, email),
                 style = MaterialTheme.typography.bodyMedium,
             )
             notice?.let {
@@ -121,7 +123,7 @@ fun RegisterScreen(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else {
-                    Text("I've confirmed — continue")
+                    Text(stringResource(R.string.i_ve_confirmed_continue))
                 }
             }
             TextButton(onClick = {
@@ -133,8 +135,8 @@ fun RegisterScreen(
                         Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_LONG).show()
                     }
                 }
-            }) { Text("Send the email again") }
-            TextButton(onClick = { awaitingVerification = false }) { Text("Change my details") }
+            }) { Text(stringResource(R.string.send_the_email_again)) }
+            TextButton(onClick = { awaitingVerification = false }) { Text(stringResource(R.string.change_my_details)) }
             return@Column
         }
 
@@ -142,7 +144,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = firstName,
             onValueChange = { firstName = it },
-            label = { Text("First Name") },
+            label = { Text(stringResource(R.string.first_name)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
@@ -152,7 +154,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = lastName,
             onValueChange = { lastName = it },
-            label = { Text("Last Name") },
+            label = { Text(stringResource(R.string.last_name)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
@@ -162,7 +164,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = dateOfBirth,
             onValueChange = { dateOfBirth = it },
-            label = { Text("Date of Birth (YYYY-MM-DD)") },
+            label = { Text(stringResource(R.string.date_of_birth_yyyy_mm_dd)) },
             placeholder = { Text("1990-01-31") },
             supportingText = {
                 Text("An account holder must be an adult. A child is tracked as a " +
@@ -178,7 +180,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.email)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
@@ -188,7 +190,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
-            label = { Text("Phone Number (optional — enables phone login)") },
+            label = { Text(stringResource(R.string.phone_number_optional_enables_phone)) },
             placeholder = { Text("+1 555 123 4567") },
             singleLine = true,
             modifier = Modifier
@@ -210,7 +212,7 @@ fun RegisterScreen(
         PasswordField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = "Confirm Password",
+            label = stringResource(R.string.confirm_password),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 24.dp),
@@ -277,7 +279,7 @@ fun RegisterScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Register")
+                Text(stringResource(R.string.register))
             }
         }
 
@@ -286,7 +288,7 @@ fun RegisterScreen(
             modifier = Modifier.padding(top = 16.dp),
             enabled = !isLoading
         ) {
-            Text("Already have an account? Login")
+            Text(stringResource(R.string.already_have_an_account_login))
         }
     }
 }

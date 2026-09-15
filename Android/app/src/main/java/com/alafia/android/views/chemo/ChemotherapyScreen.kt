@@ -25,6 +25,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.TherapySession
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 private val COMMON_SIDE_EFFECTS = listOf(
     "Nausea", "Vomiting", "Fatigue", "Hair Loss", "Mouth Sores", "Neuropathy",
@@ -60,10 +62,10 @@ fun ChemotherapyScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Chemotherapy") },
+                title = { Text(stringResource(R.string.chemotherapy)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) },
@@ -82,8 +84,8 @@ fun ChemotherapyScreen(navController: NavHostController) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Medication, "No sessions", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
-                    Text("No Chemo sessions", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Tap + to log a session", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_chemo_sessions), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.tap_to_log_a_session), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -94,9 +96,9 @@ fun ChemotherapyScreen(navController: NavHostController) {
             ) {
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        ChemoSummaryCard("Total", "${sessions.size}", Color(0xFF7B1FA2), Modifier.weight(1f))
-                        ChemoSummaryCard("Done", "${sessions.count { it.status == "completed" }}", Color(0xFF4CAF50), Modifier.weight(1f))
-                        ChemoSummaryCard("Scheduled", "${sessions.count { it.status == "scheduled" }}", Color(0xFFFF9800), Modifier.weight(1f))
+                        ChemoSummaryCard(stringResource(R.string.total), "${sessions.size}", Color(0xFF7B1FA2), Modifier.weight(1f))
+                        ChemoSummaryCard(stringResource(R.string.done), "${sessions.count { it.status == "completed" }}", Color(0xFF4CAF50), Modifier.weight(1f))
+                        ChemoSummaryCard(stringResource(R.string.scheduled), "${sessions.count { it.status == "scheduled" }}", Color(0xFFFF9800), Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                 }
@@ -117,8 +119,8 @@ fun ChemotherapyScreen(navController: NavHostController) {
     deleteTarget?.let { session ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Delete Session") },
-            text = { Text("Delete this chemotherapy session?") },
+            title = { Text(stringResource(R.string.delete_session)) },
+            text = { Text(stringResource(R.string.delete_this_chemotherapy_session)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
@@ -130,9 +132,9 @@ fun ChemotherapyScreen(navController: NavHostController) {
                             Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                         }
                     }
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
@@ -150,10 +152,10 @@ private fun ChemoSessionCard(session: TherapySession, isExpanded: Boolean, onTog
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(session.therapyName ?: "Chemotherapy", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(session.therapyName ?: stringResource(R.string.chemotherapy), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (session.sessionNumber != null) {
-                            Text("Session #${session.sessionNumber}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.session, session.sessionNumber), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (session.totalSessionsPlanned != null) Text(" / ${session.totalSessionsPlanned}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(" · ", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -170,9 +172,9 @@ private fun ChemoSessionCard(session: TherapySession, isExpanded: Boolean, onTog
 
             // Drug info
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                session.drugsAdministered?.takeIf { it.isNotEmpty() }?.let { ChemoMetricPill("Drugs", it) }
-                session.dosage?.takeIf { it.isNotEmpty() }?.let { ChemoMetricPill("Dosage", it) }
-                session.routeOfAdministration?.takeIf { it.isNotEmpty() }?.let { ChemoMetricPill("Route", it) }
+                session.drugsAdministered?.takeIf { it.isNotEmpty() }?.let { ChemoMetricPill(stringResource(R.string.drugs), it) }
+                session.dosage?.takeIf { it.isNotEmpty() }?.let { ChemoMetricPill(stringResource(R.string.dosage), it) }
+                session.routeOfAdministration?.takeIf { it.isNotEmpty() }?.let { ChemoMetricPill(stringResource(R.string.route), it) }
             }
 
             AnimatedVisibility(isExpanded) {
@@ -181,7 +183,7 @@ private fun ChemoSessionCard(session: TherapySession, isExpanded: Boolean, onTog
                     Spacer(Modifier.height(8.dp))
 
                     if (session.durationMinutes != null) {
-                        Text("Duration: ${session.durationMinutes} min", fontSize = 13.sp)
+                        Text(stringResource(R.string.duration_min, session.durationMinutes), fontSize = 13.sp)
                     }
 
                     // Vitals
@@ -189,10 +191,10 @@ private fun ChemoSessionCard(session: TherapySession, isExpanded: Boolean, onTog
                         Spacer(Modifier.height(4.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (session.preSystolicBp != null && session.preDiastolicBp != null)
-                                ChemoMetricPill("Pre BP", "${session.preSystolicBp}/${session.preDiastolicBp}")
+                                ChemoMetricPill(stringResource(R.string.pre_bp_2), "${session.preSystolicBp}/${session.preDiastolicBp}")
                             if (session.postSystolicBp != null && session.postDiastolicBp != null)
-                                ChemoMetricPill("Post BP", "${session.postSystolicBp}/${session.postDiastolicBp}")
-                            session.oxygenSaturation?.let { ChemoMetricPill("SpO₂", "$it%") }
+                                ChemoMetricPill(stringResource(R.string.post_bp_2), "${session.postSystolicBp}/${session.postDiastolicBp}")
+                            session.oxygenSaturation?.let { ChemoMetricPill(stringResource(R.string.spo_2), "$it%") }
                         }
                     }
 
@@ -204,13 +206,13 @@ private fun ChemoSessionCard(session: TherapySession, isExpanded: Boolean, onTog
                             it.contains("Poor") -> Color(0xFFFF9800)
                             else -> Color(0xFF4CAF50)
                         }
-                        Text("Tolerance: $it", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color)
+                        Text(stringResource(R.string.tolerance, it), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color)
                     }
 
                     // Side effects
                     session.sideEffects?.takeIf { it.isNotEmpty() }?.let {
                         Spacer(Modifier.height(4.dp))
-                        Text("Side Effects: $it", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.side_effects, it), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     session.adverseReactions?.takeIf { it.isNotEmpty() }?.let {
                         Text("⚠️ $it", fontSize = 12.sp, color = Color(0xFFF44336))
@@ -269,15 +271,15 @@ private fun ChemoAddSessionSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
-            Text("New Chemo Session", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFF7B1FA2))
+            Text(stringResource(R.string.new_chemo_session), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFF7B1FA2))
             Spacer(Modifier.height(16.dp))
 
             // Protocol
-            OutlinedTextField(value = therapyName, onValueChange = { therapyName = it }, label = { Text("Protocol (FOLFOX, R-CHOP…)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = date, onValueChange = { date = it }, label = { Text("Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = therapyName, onValueChange = { therapyName = it }, label = { Text(stringResource(R.string.protocol_folfox_r_chop)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = date, onValueChange = { date = it }, label = { Text(stringResource(R.string.date_yyyy_mm_dd)) }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
 
-            Text("Status", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.status), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 statuses.take(3).forEach { s ->
                     FilterChip(selected = status == s, onClick = { status = s }, label = { Text(s.replace("_", " "), fontSize = 11.sp) })
@@ -286,20 +288,20 @@ private fun ChemoAddSessionSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
             Spacer(Modifier.height(8.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = sessionNum, onValueChange = { sessionNum = it }, label = { Text("Session #") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = totalPlanned, onValueChange = { totalPlanned = it }, label = { Text("Total Planned") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = duration, onValueChange = { duration = it }, label = { Text("Duration (min)") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = sessionNum, onValueChange = { sessionNum = it }, label = { Text(stringResource(R.string.session_2)) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = totalPlanned, onValueChange = { totalPlanned = it }, label = { Text(stringResource(R.string.total_planned)) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = duration, onValueChange = { duration = it }, label = { Text(stringResource(R.string.duration_min_2)) }, modifier = Modifier.weight(1f))
             }
             Spacer(Modifier.height(12.dp))
 
             // Drugs
-            Text("Drugs & Administration", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7B1FA2))
-            OutlinedTextField(value = drugs, onValueChange = { drugs = it }, label = { Text("Drugs Administered") }, modifier = Modifier.fillMaxWidth())
+            Text(stringResource(R.string.drugs_administration), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7B1FA2))
+            OutlinedTextField(value = drugs, onValueChange = { drugs = it }, label = { Text(stringResource(R.string.drugs_administered)) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = dosage, onValueChange = { dosage = it }, label = { Text("Dosage") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = dosage, onValueChange = { dosage = it }, label = { Text(stringResource(R.string.dosage)) }, modifier = Modifier.weight(1f))
             }
             Spacer(Modifier.height(4.dp))
-            Text("Route", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.route), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                 ROUTES.take(4).forEach { r ->
                     FilterChip(selected = route == r, onClick = { route = r }, label = { Text(r, fontSize = 10.sp) })
@@ -308,22 +310,22 @@ private fun ChemoAddSessionSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
             Spacer(Modifier.height(12.dp))
 
             // Vitals
-            Text("Vitals", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7B1FA2))
+            Text(stringResource(R.string.vitals), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7B1FA2))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = preSys, onValueChange = { preSys = it }, label = { Text("Pre Sys") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = preDia, onValueChange = { preDia = it }, label = { Text("Pre Dia") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = preHr, onValueChange = { preHr = it }, label = { Text("Pre HR") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = preSys, onValueChange = { preSys = it }, label = { Text(stringResource(R.string.pre_sys)) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = preDia, onValueChange = { preDia = it }, label = { Text(stringResource(R.string.pre_dia)) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = preHr, onValueChange = { preHr = it }, label = { Text(stringResource(R.string.pre_hr)) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = postSys, onValueChange = { postSys = it }, label = { Text("Post Sys") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = postDia, onValueChange = { postDia = it }, label = { Text("Post Dia") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = postHr, onValueChange = { postHr = it }, label = { Text("Post HR") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = postSys, onValueChange = { postSys = it }, label = { Text(stringResource(R.string.post_sys)) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = postDia, onValueChange = { postDia = it }, label = { Text(stringResource(R.string.post_dia)) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = postHr, onValueChange = { postHr = it }, label = { Text(stringResource(R.string.post_hr)) }, modifier = Modifier.weight(1f))
             }
-            OutlinedTextField(value = o2, onValueChange = { o2 = it }, label = { Text("SpO₂ (%)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = o2, onValueChange = { o2 = it }, label = { Text(stringResource(R.string.spo)) }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
 
             // Side Effects
-            Text("Side Effects", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7B1FA2))
+            Text(stringResource(R.string.side_effects_2), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7B1FA2))
             @OptIn(ExperimentalLayoutApi::class)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 COMMON_SIDE_EFFECTS.forEach { effect ->
@@ -336,21 +338,21 @@ private fun ChemoAddSessionSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
             }
             Spacer(Modifier.height(8.dp))
 
-            Text("Tolerance", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.tolerance_2), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TOLERANCE_OPTIONS.forEach { t ->
                     FilterChip(selected = tolerance == t, onClick = { tolerance = t }, label = { Text(t, fontSize = 10.sp) })
                 }
             }
-            OutlinedTextField(value = adverseReactions, onValueChange = { adverseReactions = it }, label = { Text("Adverse Reactions") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = adverseReactions, onValueChange = { adverseReactions = it }, label = { Text(stringResource(R.string.adverse_reactions)) }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
 
             // Facility
-            OutlinedTextField(value = facility, onValueChange = { facility = it }, label = { Text("Facility") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = physician, onValueChange = { physician = it }, label = { Text("Physician") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = facility, onValueChange = { facility = it }, label = { Text(stringResource(R.string.facility)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = physician, onValueChange = { physician = it }, label = { Text(stringResource(R.string.physician)) }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            OutlinedTextField(value = clinicalNotes, onValueChange = { clinicalNotes = it }, label = { Text("Clinical Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-            OutlinedTextField(value = patientNotes, onValueChange = { patientNotes = it }, label = { Text("Patient Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            OutlinedTextField(value = clinicalNotes, onValueChange = { clinicalNotes = it }, label = { Text(stringResource(R.string.clinical_notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            OutlinedTextField(value = patientNotes, onValueChange = { patientNotes = it }, label = { Text(stringResource(R.string.patient_notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             Spacer(Modifier.height(16.dp))
 
             Button(
@@ -397,7 +399,7 @@ private fun ChemoAddSessionSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
                 enabled = !saving,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B1FA2))
             ) {
-                Text(if (saving) "Saving…" else "Save Session")
+                Text(if (saving) stringResource(R.string.saving) else stringResource(R.string.save_session))
             }
             Spacer(Modifier.height(32.dp))
         }

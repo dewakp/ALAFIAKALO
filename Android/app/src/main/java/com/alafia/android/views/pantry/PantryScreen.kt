@@ -28,6 +28,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @Composable
 fun PantryScreen(navController: NavHostController) {
@@ -57,10 +59,10 @@ fun PantryScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pantry & Fridge") },
+                title = { Text(stringResource(R.string.pantry_fridge)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -82,24 +84,24 @@ fun PantryScreen(navController: NavHostController) {
                 FilterChip(
                     selected = filterLocation == null,
                     onClick = { filterLocation = null },
-                    label = { Text("All") }
+                    label = { Text(stringResource(R.string.all)) }
                 )
                 FilterChip(
                     selected = filterLocation == "refrigerator",
                     onClick = { filterLocation = if (filterLocation == "refrigerator") null else "refrigerator" },
-                    label = { Text("Fridge") },
+                    label = { Text(stringResource(R.string.fridge)) },
                     leadingIcon = { Icon(Icons.Default.Kitchen, null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = filterLocation == "freezer",
                     onClick = { filterLocation = if (filterLocation == "freezer") null else "freezer" },
-                    label = { Text("Freezer") },
+                    label = { Text(stringResource(R.string.freezer)) },
                     leadingIcon = { Icon(Icons.Default.AcUnit, null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = filterLocation == "pantry",
                     onClick = { filterLocation = if (filterLocation == "pantry") null else "pantry" },
-                    label = { Text("Pantry") },
+                    label = { Text(stringResource(R.string.pantry)) },
                     leadingIcon = { Icon(Icons.Default.Inventory2, null, Modifier.size(16.dp)) }
                 )
             }
@@ -113,8 +115,8 @@ fun PantryScreen(navController: NavHostController) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.Kitchen, "Empty", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(12.dp))
-                        Text("No items", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Tap + to add items from your fridge, freezer, or pantry", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.no_items), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.tap_to_add_items_from_your_fridge), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             } else {
@@ -163,9 +165,9 @@ fun PantryScreen(navController: NavHostController) {
                                 Icon(Icons.Default.ShoppingCart, "Auto-replenish", tint = MaterialTheme.colorScheme.onSecondaryContainer)
                                 Spacer(Modifier.width(12.dp))
                                 Column {
-                                    Text("Auto-Replenish (Coming Soon)", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                    Text(stringResource(R.string.auto_replenish_coming_soon), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
                                     Text(
-                                        "Connect to grocery services (Instacart, Kroger, Walmart) for automatic reordering when items run low.",
+                                        stringResource(R.string.connect_to_grocery_services_instacart),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                                     )
@@ -254,13 +256,13 @@ private fun PantryItemCard(item: PantryItem, onDelete: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Warning, "Expired", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(2.dp))
-                        Text("Expired", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.expired), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                     }
                 } else if (isExpiringSoon) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Warning, "Expiring", tint = Color(0xFFFF9800), modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(2.dp))
-                        Text("Expiring", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFF9800))
+                        Text(stringResource(R.string.expiring), style = MaterialTheme.typography.labelSmall, color = Color(0xFFFF9800))
                     }
                 }
                 if (item.expirationDate != null) {
@@ -292,13 +294,13 @@ private fun AddPantryItemDialog(onDismiss: () -> Unit, onSave: (PantryItemCreate
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Pantry Item") },
+        title = { Text(stringResource(R.string.add_pantry_item)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.item_name)) }, modifier = Modifier.fillMaxWidth())
 
                 // Category dropdown
                 ExposedDropdownMenuBox(expanded = expandedCategory, onExpandedChange = { expandedCategory = it }) {
@@ -306,7 +308,7 @@ private fun AddPantryItemDialog(onDismiss: () -> Unit, onSave: (PantryItemCreate
                         value = category.replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Category") },
+                        label = { Text(stringResource(R.string.category)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedCategory) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -324,7 +326,7 @@ private fun AddPantryItemDialog(onDismiss: () -> Unit, onSave: (PantryItemCreate
                     OutlinedTextField(
                         value = quantity,
                         onValueChange = { quantity = it },
-                        label = { Text("Qty") },
+                        label = { Text(stringResource(R.string.qty)) },
                         modifier = Modifier.weight(1f)
                     )
                     ExposedDropdownMenuBox(expanded = expandedUnit, onExpandedChange = { expandedUnit = it }, modifier = Modifier.weight(1.5f)) {
@@ -332,7 +334,7 @@ private fun AddPantryItemDialog(onDismiss: () -> Unit, onSave: (PantryItemCreate
                             value = unit,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Unit") },
+                            label = { Text(stringResource(R.string.unit)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedUnit) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
@@ -345,7 +347,7 @@ private fun AddPantryItemDialog(onDismiss: () -> Unit, onSave: (PantryItemCreate
                 }
 
                 // Location selector
-                Text("Location", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.location), style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     locations.forEach { (value, label) ->
                         FilterChip(
@@ -359,10 +361,10 @@ private fun AddPantryItemDialog(onDismiss: () -> Unit, onSave: (PantryItemCreate
                 OutlinedTextField(
                     value = expirationDate,
                     onValueChange = { expirationDate = it },
-                    label = { Text("Expiration (YYYY-MM-DD)") },
+                    label = { Text(stringResource(R.string.expiration_yyyy_mm_dd)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -381,10 +383,10 @@ private fun AddPantryItemDialog(onDismiss: () -> Unit, onSave: (PantryItemCreate
                     }
                 },
                 enabled = name.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

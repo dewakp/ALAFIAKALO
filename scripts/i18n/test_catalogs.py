@@ -155,6 +155,23 @@ def test_the_model_sees_short_ids_so_it_cannot_rewrite_our_keys():
     assert source == "fake:model"
 
 
+def test_a_reply_quoting_a_term_with_plain_quotes_is_still_read():
+    """Every string that quotes a term was refused in every language: the model
+    wrote “kidney” as "kidney" inside its JSON string, the reply stopped being
+    JSON, and each retry failed the same way. This is the reply it gave, verbatim."""
+    sys.path.insert(0, str(catalogs.REPO / "ML" / "src"))
+    import translate_catalogs as tc
+
+    raw = ('```json\n{\n  "1": "Versuchen Sie „kidney", „ESRD", „sickle cell" oder einen Code wie „GB61.5".",\n'
+           '  "2": "Zeile eins\\nZeile zwei"\n}\n```')
+    assert tc._parse_numbered(raw, {"1", "2"}) == {
+        "1": 'Versuchen Sie „kidney", „ESRD", „sickle cell" oder einen Code wie „GB61.5".',
+        "2": "Zeile eins\nZeile zwei",
+    }
+    # A reply that is already valid JSON is taken as it is.
+    assert tc._parse_numbered('{"1": "Senha"}', {"1"}) == {"1": "Senha"}
+
+
 def test_every_platform_offers_exactly_the_same_languages():
     """One language list, four copies. A language one client offers and another
     does not is a patient who picks Yoruba on the web and gets English on the phone."""
@@ -268,3 +285,131 @@ def test_ios_worded_literals_are_never_drawn_through_a_string():
                             line = text.count("\n", 0, call.start()) + 1
                             offenders.append(f"{path.relative_to(root)}:{line} {view}({prop}: {literal})")
     assert not offenders, "type these parameters LocalizedStringKey:\n" + "\n".join(offenders)
+
+
+def test_ios_messages_built_in_code_follow_the_chosen_language():
+    """A view model's `errorMessage = "…"` is a String, which SwiftUI draws
+    verbatim: 24 of them stayed English on screens the patient had set to French.
+    `AppLanguage.text("…")` looks the message up in the chosen language
+    (LocalizationTests proves that on the simulator)."""
+    root = catalogs.REPO / "IOS" / "ALAFIA"
+    assigned = re.compile(r'\b(?:errorMessage|error|message|statusMessage|successMessage|alertMessage|alertTitle|'
+                          r'infoMessage|toast)\s*=\s*("(?:[^"\\\n]|\\.)*")')
+    offenders = []
+    for path in sorted(root.rglob("*.swift")):
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            for match in assigned.finditer(line):
+                words = re.sub(r"\\\(.*?\)", "", match.group(1))
+                if catalogs._HAS_WORDS.search(words):
+                    offenders.append(f"{path.relative_to(root)}:{number}  {line.strip()[:100]}")
+    assert not offenders, "wrap these in AppLanguage.text(…):\n" + "\n".join(offenders)
+
+
+# ── Android: Compose text comes from resources ───────────────────────────────
+
+@pytest.mark.parametrize("kotlin,string,call", [
+    # A template becomes positional arguments; word order is the translator's.
+    ('Text("Delete PD session from ${s.date}?")', "Delete PD session from %1$s?", "stringResource(R.string.x, s.date)"),
+    # Quotes inside an interpolation do not end the literal.
+    ('Text("Ref: ${r.low ?: "-"} – ${r.high ?: "-"}")', "Ref: %1$s – %2$s", 'stringResource(R.string.x, r.low ?: "-", r.high ?: "-")'),
+    # Kotlin's $name takes an identifier only: ".take(3)" is literal text.
+    ('Text("Qty: $it.take(3)")', "Qty: %1$s.take(3)", "stringResource(R.string.x, it)"),
+    ('Text("e.g. \\"I take Calcitriol\\"")', 'e.g. "I take Calcitriol"', "stringResource(R.string.x)"),
+    # % is doubled only when the string is formatted.
+    ('Text("e.g., 1.5% Dextrose")', "e.g., 1.5% Dextrose", "stringResource(R.string.x)"),
+    ('Text("${pct}% done")', "%1$s%% done", "stringResource(R.string.x, pct)"),
+])
+def test_android_literals_become_resources(kotlin, string, call):
+    import android_extract as ax
+    from collections import Counter
+
+    taken, report = {}, Counter()
+    out = ax.rewrite(kotlin, taken, report)
+    (name, text), = taken.items()
+    assert text == string
+    assert out == f"Text({call.replace('R.string.x', f'R.string.{name}')})"
+
+
+@pytest.mark.parametrize("kotlin,reason", [
+    ('Text("Price: $%.2f / month".format(it))', "skipped: not the whole argument"),
+    ('Text("UF ${it.toInt()}")', "skipped: nothing to translate"),   # an acronym and a number
+    ('Text("• ${meal.name}")', "skipped: nothing to translate"),
+    ('Text("Visit https://alafia.app/help")', "skipped: nothing to translate"),
+    ('NavItem(route = "home", contentDescription = "Home")', "skipped: contentDescription outside Icon/Image"),
+])
+def test_android_literals_that_must_stay_as_they_are(kotlin, reason):
+    import android_extract as ax
+    from collections import Counter
+
+    report = Counter()
+    assert ax.rewrite(kotlin, {}, report) == kotlin
+    assert report[reason] == 1
+
+
+def test_android_text_handed_to_our_composables_becomes_a_resource():
+    """The login screen's "Password" stayed English in Arabic and French: it was
+    PasswordField's default argument, which pass 1 — Text("…") only — never saw."""
+    import android_extract as ax
+    from collections import Counter
+    from pathlib import Path
+
+    path = Path("Screen.kt")
+    src = '''@Composable
+fun SwitchSetting(title: String, description: String = "Off by default", checked: Boolean) {}
+
+@Composable
+fun Screen() {
+    SwitchSetting("Health Reminders", description = "Remind me to log", checked = true)
+    Text(text = "Welcome back")
+    val pulse = rememberInfiniteTransition(label = "chat status")
+    Pill(label = "Active")
+}
+'''
+    taken = {}
+    out = ax.convert(src, path, ax.signatures({path: src}), taken, Counter())
+    assert set(taken.values()) == {"Off by default", "Health Reminders", "Remind me to log", "Welcome back"}
+    assert "description: String = stringResource(R.string." in out            # a default argument
+    assert 'rememberInfiniteTransition(label = "chat status")' in out          # an animation's debug label
+    assert 'Pill(label = "Active")' in out                                     # not a composable we declare
+
+
+@pytest.mark.parametrize("kotlin,converted,kept", [
+    ('Text(if (busy) "Signing…" else "Sign off on this session")', {"Signing…", "Sign off on this session"}, []),
+    ('Text(card.emptyReason ?: "Nothing recorded.", style = s)', {"Nothing recorded."}, []),
+    # The literal the expression TESTS is data: translated, it would never match.
+    ('Text(if (status == "active") "Active" else "Stopped")', {"Active", "Stopped"}, ['status == "active"']),
+    ('Text(if ("pending" != state) "Done" else "Waiting")', {"Done", "Waiting"}, ['"pending" != state']),
+    ('Text("Price: $%.2f / month".format(it))', set(), ['"Price: $%.2f / month".format(it)']),
+    ('Text((if (danger) "⚠ " else "") + value)', set(), []),                  # nothing worded
+    # An argument to a nested call may be a lookup key.
+    ('Text(labelFor("potassium"))', set(), ['labelFor("potassium")']),
+])
+def test_android_literal_branches_of_a_text_argument(kotlin, converted, kept):
+    import android_extract as ax
+    from collections import Counter
+    from pathlib import Path
+
+    taken = {}
+    out = ax.convert(kotlin, Path("S.kt"), {}, taken, Counter())
+    assert set(taken.values()) == converted
+    for fragment in kept:
+        assert fragment in out
+
+
+def test_android_has_no_hard_coded_ui_text():
+    """1,169 `Text("…")` literals rendered English in every language, because a
+    Compose literal is never looked up — and so did "Password", a default
+    argument. Anything android_extract would still convert is a new one."""
+    import android_extract as ax
+    from collections import Counter
+
+    sources = {path: path.read_text(encoding="utf-8") for path in sorted(ax.SOURCES.rglob("*.kt"))}
+    sigs = ax.signatures(sources)
+    offenders = []
+    for path, src in sources.items():
+        report = Counter()
+        taken = dict(catalogs.read_android(catalogs.SOURCE_LANGUAGE))
+        if ax.convert(src, path, sigs, taken, report) != src:
+            offenders.append(f"{path.relative_to(ax.SOURCES)}: {dict(report)}")
+    assert not offenders, ("hard-coded Compose text — run scripts/i18n/android_extract.py --apply:\n"
+                           + "\n".join(offenders))

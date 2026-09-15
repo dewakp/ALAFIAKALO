@@ -16,6 +16,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.schemas.PasswordResetConfirm
 import com.alafia.android.schemas.PasswordResetRequest
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @Composable
 fun ForgotPasswordScreen(navController: NavHostController) {
@@ -36,7 +38,7 @@ fun ForgotPasswordScreen(navController: NavHostController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Reset Password",
+            text = stringResource(R.string.reset_password),
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 24.dp)
         )
@@ -46,7 +48,7 @@ fun ForgotPasswordScreen(navController: NavHostController) {
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                    label = { Text(stringResource(R.string.email)) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     singleLine = true,
                     enabled = !isLoading
@@ -76,18 +78,18 @@ fun ForgotPasswordScreen(navController: NavHostController) {
                     enabled = !isLoading && email.isNotEmpty()
                 ) {
                     if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Send Reset Link")
+                    else Text(stringResource(R.string.send_reset_link))
                 }
             }
 
             "sent" -> {
                 Text(
-                    text = "Open the link in that email to choose a new password.",
+                    text = stringResource(R.string.open_the_link_in_that_email_to_choose_a),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
-                    text = "Your current password keeps working until you do.",
+                    text = stringResource(R.string.your_current_password_keeps_working),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 24.dp)
@@ -101,7 +103,7 @@ fun ForgotPasswordScreen(navController: NavHostController) {
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) {
-                    Text("Back to Login")
+                    Text(stringResource(R.string.back_to_login))
                 }
             }
         }
@@ -111,7 +113,7 @@ fun ForgotPasswordScreen(navController: NavHostController) {
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                Text("Back to Login")
+                Text(stringResource(R.string.back_to_login))
             }
         }
     }

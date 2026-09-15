@@ -33,6 +33,8 @@ import com.alafia.android.schemas.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,15 +101,15 @@ fun CommunityHealthScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Community Health") },
+                title = { Text(stringResource(R.string.community_health)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { loadData() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                 }
             )
@@ -246,7 +248,7 @@ private fun DashboardTab(
 ) {
     if (stats == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No data available")
+            Text(stringResource(R.string.no_data_available))
         }
         return
     }
@@ -257,32 +259,32 @@ private fun DashboardTab(
     ) {
         // Stats Grid
         item {
-            Text("Overview", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.overview), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
         }
 
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CommunityStatCard("🚨", stats.totalActiveAlerts, "Active Alerts", Color(0xFF3B82F6), Modifier.weight(1f))
-                CommunityStatCard("🔴", stats.criticalAlerts, "Critical", Color(0xFFEF4444), Modifier.weight(1f))
+                CommunityStatCard("🚨", stats.totalActiveAlerts, stringResource(R.string.active_alerts), Color(0xFF3B82F6), Modifier.weight(1f))
+                CommunityStatCard("🔴", stats.criticalAlerts, stringResource(R.string.critical), Color(0xFFEF4444), Modifier.weight(1f))
             }
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CommunityStatCard("💊", stats.activeRecalls, "Recalls", Color(0xFFF97316), Modifier.weight(1f))
-                CommunityStatCard("🦠", stats.activeOutbreaks, "Outbreaks", Color(0xFF8B5CF6), Modifier.weight(1f))
+                CommunityStatCard("💊", stats.activeRecalls, stringResource(R.string.recalls), Color(0xFFF97316), Modifier.weight(1f))
+                CommunityStatCard("🦠", stats.activeOutbreaks, stringResource(R.string.outbreaks), Color(0xFF8B5CF6), Modifier.weight(1f))
             }
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CommunityStatCard("📢", stats.activeAdvisories, "Advisories", Color(0xFF6366F1), Modifier.weight(1f))
-                CommunityStatCard("☠️", stats.activePoisonAlerts, "Poison", Color(0xFF92400E), Modifier.weight(1f))
+                CommunityStatCard("📢", stats.activeAdvisories, stringResource(R.string.advisories), Color(0xFF6366F1), Modifier.weight(1f))
+                CommunityStatCard("☠️", stats.activePoisonAlerts, stringResource(R.string.poison), Color(0xFF92400E), Modifier.weight(1f))
             }
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CommunityStatCard("📋", stats.totalGuidelines, "Guidelines", Color(0xFF10B981), Modifier.weight(1f))
-                CommunityStatCard("📬", stats.unreadAlerts, "Unread", Color(0xFFEC4899), Modifier.weight(1f))
+                CommunityStatCard("📋", stats.totalGuidelines, stringResource(R.string.guidelines), Color(0xFF10B981), Modifier.weight(1f))
+                CommunityStatCard("📬", stats.unreadAlerts, stringResource(R.string.unread), Color(0xFFEC4899), Modifier.weight(1f))
             }
         }
 
@@ -290,7 +292,7 @@ private fun DashboardTab(
         if (stats.latestOutbreaks.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(8.dp))
-                Text("🦠 Latest Outbreaks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.latest_outbreaks), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             items(stats.latestOutbreaks) { alert ->
                 AlertCard(alert, onClick = { onAlertClick(alert) })
@@ -301,7 +303,7 @@ private fun DashboardTab(
         if (stats.latestRecalls.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(8.dp))
-                Text("💊 Latest Recalls", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.latest_recalls), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             items(stats.latestRecalls) { alert ->
                 AlertCard(alert, onClick = { onAlertClick(alert) })
@@ -312,7 +314,7 @@ private fun DashboardTab(
         if (stats.latestAdvisories.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(8.dp))
-                Text("📢 Latest Advisories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.latest_advisories), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             items(stats.latestAdvisories) { alert ->
                 AlertCard(alert, onClick = { onAlertClick(alert) })
@@ -368,7 +370,7 @@ private fun AlertCard(alert: CommunityHealthAlert, onClick: () -> Unit) {
                 if (alert.isGlobal) {
                     AssistChip(
                         onClick = {},
-                        label = { Text("🌍 Global", fontSize = 10.sp) },
+                        label = { Text(stringResource(R.string.global), fontSize = 10.sp) },
                         modifier = Modifier.height(24.dp)
                     )
                 }
@@ -461,7 +463,7 @@ private fun AlertsTab(
                 onSearchChange(it)
                 onFilter(selectedCategory, selectedSeverity, selectedSource, it)
             },
-            placeholder = { Text("Search alerts...") },
+            placeholder = { Text(stringResource(R.string.search_alerts)) },
             leadingIcon = { Icon(Icons.Default.Search, "Search") },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             singleLine = true
@@ -481,7 +483,7 @@ private fun AlertsTab(
                         onCategoryChange(null)
                         onFilter(null, selectedSeverity, selectedSource, searchQuery)
                     },
-                    label = { Text("All", fontSize = 12.sp) }
+                    label = { Text(stringResource(R.string.all), fontSize = 12.sp) }
                 )
                 categories.forEach { cat ->
                     FilterChip(
@@ -510,7 +512,7 @@ private fun AlertsTab(
                     onSeverityChange(null)
                     onFilter(selectedCategory, null, selectedSource, searchQuery)
                 },
-                label = { Text("All Severity", fontSize = 12.sp) }
+                label = { Text(stringResource(R.string.all_severity), fontSize = 12.sp) }
             )
             listOf("critical" to Color(0xFFF44336), "high" to Color(0xFFFF9800), "moderate" to Color(0xFFFFEB3B),
                 "low" to Color(0xFF4CAF50), "info" to Color(0xFF2196F3)).forEach { (sev, color) ->
@@ -540,7 +542,7 @@ private fun AlertsTab(
                         onSourceChange(null)
                         onFilter(selectedCategory, selectedSeverity, null, searchQuery)
                     },
-                    label = { Text("All Sources", fontSize = 12.sp) }
+                    label = { Text(stringResource(R.string.all_sources), fontSize = 12.sp) }
                 )
                 sources.forEach { src ->
                     FilterChip(
@@ -559,7 +561,7 @@ private fun AlertsTab(
         // Alert List
         if (alerts.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No alerts found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.no_alerts_found), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyColumn(
@@ -604,7 +606,7 @@ private fun GuidelinesTab(
                 onSearchChange(it)
                 onFilter(selectedCategory, it)
             },
-            placeholder = { Text("Search guidelines...") },
+            placeholder = { Text(stringResource(R.string.search_guidelines)) },
             leadingIcon = { Icon(Icons.Default.Search, "Search") },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             singleLine = true
@@ -623,7 +625,7 @@ private fun GuidelinesTab(
                     onCategoryChange(null)
                     onFilter(null, searchQuery)
                 },
-                label = { Text("All", fontSize = 12.sp) }
+                label = { Text(stringResource(R.string.all), fontSize = 12.sp) }
             )
             guidelineCategories.forEach { (id, label) ->
                 FilterChip(
@@ -641,7 +643,7 @@ private fun GuidelinesTab(
         // Guidelines List
         if (guidelines.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No guidelines found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.no_guidelines_found), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyColumn(
@@ -694,7 +696,7 @@ private fun GuidelineCard(guideline: HealthGuideline, onClick: () -> Unit) {
                 }
                 if (guideline.isCurrent) {
                     Text(
-                        "✓ Current",
+                        stringResource(R.string.current),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF10B981),
@@ -739,11 +741,11 @@ private fun ReportsTab(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Community Reports", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.community_reports), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Button(onClick = onAddReport) {
                 Icon(Icons.Default.Add, "Add", modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Report")
+                Text(stringResource(R.string.report))
             }
         }
 
@@ -755,8 +757,8 @@ private fun ReportsTab(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("📝", fontSize = 48.sp)
                     Spacer(Modifier.height(8.dp))
-                    Text("No reports yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Help your community by reporting health concerns",
+                    Text(stringResource(R.string.no_reports_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.help_your_community_by_reporting_health),
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -819,7 +821,7 @@ private fun ReportCard(report: CommunityHealthReport, onDelete: () -> Unit) {
                 }
                 if (report.isVerified) {
                     Text(
-                        "✓ Verified",
+                        stringResource(R.string.verified),
                         fontSize = 10.sp,
                         color = Color(0xFF10B981),
                         fontWeight = FontWeight.Medium
@@ -881,14 +883,14 @@ private fun AlertDetailSheet(
             // Dates
             Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
                 Column(Modifier.padding(12.dp)) {
-                    Text("📅 Details", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.details), fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(4.dp))
-                    Text("Issued: ${alert.issuedDate}", fontSize = 13.sp)
-                    alert.effectiveDate?.let { Text("Effective: $it", fontSize = 13.sp) }
-                    alert.expiryDate?.let { Text("Expires: $it", fontSize = 13.sp) }
-                    if (alert.isGlobal) Text("🌍 Global Alert", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.issued, alert.issuedDate), fontSize = 13.sp)
+                    alert.effectiveDate?.let { Text(stringResource(R.string.effective, it), fontSize = 13.sp) }
+                    alert.expiryDate?.let { Text(stringResource(R.string.expires, it), fontSize = 13.sp) }
+                    if (alert.isGlobal) Text(stringResource(R.string.global_alert), fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     alert.affectedCountries?.let { countries ->
-                        if (countries.isNotEmpty()) Text("Countries: ${countries.joinToString(", ")}", fontSize = 13.sp)
+                        if (countries.isNotEmpty()) Text(stringResource(R.string.countries, countries.joinToString(", ")), fontSize = 13.sp)
                     }
                 }
             }
@@ -898,12 +900,12 @@ private fun AlertDetailSheet(
                 Spacer(Modifier.height(8.dp))
                 Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF8B5CF6).copy(alpha = 0.06f))) {
                     Column(Modifier.padding(12.dp)) {
-                        Text("🦠 Outbreak Info", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.outbreak_info), fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(4.dp))
-                        alert.diseaseName?.let { Text("Disease: $it", fontSize = 13.sp) }
-                        alert.pathogen?.let { Text("Pathogen: $it", fontSize = 13.sp) }
-                        alert.confirmedCases?.let { Text("Confirmed Cases: $it", fontSize = 13.sp) }
-                        alert.deaths?.let { Text("Deaths: $it", fontSize = 13.sp, color = Color(0xFFEF4444)) }
+                        alert.diseaseName?.let { Text(stringResource(R.string.disease, it), fontSize = 13.sp) }
+                        alert.pathogen?.let { Text(stringResource(R.string.pathogen, it), fontSize = 13.sp) }
+                        alert.confirmedCases?.let { Text(stringResource(R.string.confirmed_cases, it), fontSize = 13.sp) }
+                        alert.deaths?.let { Text(stringResource(R.string.deaths, it), fontSize = 13.sp, color = Color(0xFFEF4444)) }
                     }
                 }
             }
@@ -913,15 +915,15 @@ private fun AlertDetailSheet(
                 Spacer(Modifier.height(8.dp))
                 Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF97316).copy(alpha = 0.06f))) {
                     Column(Modifier.padding(12.dp)) {
-                        Text("💊 Recall Info", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.recall_info), fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(4.dp))
-                        alert.productName?.let { Text("Product: $it", fontSize = 13.sp) }
-                        alert.productType?.let { Text("Type: $it", fontSize = 13.sp) }
-                        alert.manufacturer?.let { Text("Manufacturer: $it", fontSize = 13.sp) }
-                        alert.recallClass?.let { Text("Recall Class: $it", fontSize = 13.sp) }
-                        alert.reasonForRecall?.let { Text("Reason: $it", fontSize = 13.sp) }
+                        alert.productName?.let { Text(stringResource(R.string.product, it), fontSize = 13.sp) }
+                        alert.productType?.let { Text(stringResource(R.string.type, it), fontSize = 13.sp) }
+                        alert.manufacturer?.let { Text(stringResource(R.string.manufacturer, it), fontSize = 13.sp) }
+                        alert.recallClass?.let { Text(stringResource(R.string.recall_class, it), fontSize = 13.sp) }
+                        alert.reasonForRecall?.let { Text(stringResource(R.string.reason, it), fontSize = 13.sp) }
                         alert.lotNumbers?.let { lots ->
-                            if (lots.isNotEmpty()) Text("Lot Numbers: ${lots.joinToString(", ")}", fontSize = 13.sp)
+                            if (lots.isNotEmpty()) Text(stringResource(R.string.lot_numbers, lots.joinToString(", ")), fontSize = 13.sp)
                         }
                     }
                 }
@@ -933,7 +935,7 @@ private fun AlertDetailSheet(
                     Spacer(Modifier.height(8.dp))
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF10B981).copy(alpha = 0.06f))) {
                         Column(Modifier.padding(12.dp)) {
-                            Text("✅ Recommended Actions", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.recommended_actions), fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(4.dp))
                             actions.forEachIndexed { idx, action ->
                                 Text("${idx + 1}. $action", fontSize = 13.sp, modifier = Modifier.padding(bottom = 2.dp))
@@ -947,7 +949,7 @@ private fun AlertDetailSheet(
             alert.targetPopulation?.let { pop ->
                 if (pop.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text("👥 Target Population", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(stringResource(R.string.target_population), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     Spacer(Modifier.height(4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -973,7 +975,7 @@ private fun AlertDetailSheet(
                 ) {
                     Icon(Icons.Default.OpenInNew, "Open", modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("View Original Source")
+                    Text(stringResource(R.string.view_original_source))
                 }
             }
 
@@ -998,13 +1000,13 @@ private fun AlertDetailSheet(
                 ) {
                     Icon(Icons.Default.Bookmark, "Bookmark", modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Bookmark")
+                    Text(stringResource(R.string.bookmark))
                 }
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Close")
+                    Text(stringResource(R.string.close))
                 }
             }
 
@@ -1065,7 +1067,7 @@ private fun GuidelineDetailSheet(
                     Spacer(Modifier.height(12.dp))
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF10B981).copy(alpha = 0.06f))) {
                         Column(Modifier.padding(12.dp)) {
-                            Text("📋 Recommendations", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.recommendations), fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(4.dp))
                             recs.forEachIndexed { idx, rec ->
                                 Text("${idx + 1}. $rec", fontSize = 13.sp, modifier = Modifier.padding(bottom = 2.dp))
@@ -1079,7 +1081,7 @@ private fun GuidelineDetailSheet(
             guideline.targetPopulation?.let { pop ->
                 if (pop.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text("👥 Target Population", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(stringResource(R.string.target_population), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     Spacer(Modifier.height(4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -1096,7 +1098,7 @@ private fun GuidelineDetailSheet(
             guideline.applicableConditions?.let { conditions ->
                 if (conditions.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text("🏥 Applicable Conditions", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(stringResource(R.string.applicable_conditions), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     Spacer(Modifier.height(4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -1112,9 +1114,9 @@ private fun GuidelineDetailSheet(
             // Info
             Card(Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
                 Column(Modifier.padding(12.dp)) {
-                    guideline.effectiveDate?.let { Text("Effective: $it", fontSize = 13.sp) }
-                    guideline.supersededDate?.let { Text("Superseded: $it", fontSize = 13.sp) }
-                    Text(if (guideline.isCurrent) "✓ Current guideline" else "⚠️ Superseded", fontSize = 13.sp,
+                    guideline.effectiveDate?.let { Text(stringResource(R.string.effective, it), fontSize = 13.sp) }
+                    guideline.supersededDate?.let { Text(stringResource(R.string.superseded, it), fontSize = 13.sp) }
+                    Text(if (guideline.isCurrent) stringResource(R.string.current_guideline) else stringResource(R.string.superseded_2), fontSize = 13.sp,
                         fontWeight = FontWeight.Medium, color = if (guideline.isCurrent) Color(0xFF10B981) else Color(0xFFF97316))
                 }
             }
@@ -1132,7 +1134,7 @@ private fun GuidelineDetailSheet(
                 ) {
                     Icon(Icons.Default.OpenInNew, "Open", modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("View Full Guideline")
+                    Text(stringResource(R.string.view_full_guideline))
                 }
             }
 
@@ -1150,7 +1152,7 @@ private fun GuidelineDetailSheet(
 
             Spacer(Modifier.height(12.dp))
             Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Close")
+                Text(stringResource(R.string.close))
             }
 
             Spacer(Modifier.height(32.dp))
@@ -1210,13 +1212,13 @@ private fun ReportFormDialog(
                 },
                 enabled = title.isNotBlank() && description.isNotBlank()
             ) {
-                Text("Submit Report")
+                Text(stringResource(R.string.submit_report))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
-        title = { Text("Submit Health Report") },
+        title = { Text(stringResource(R.string.submit_health_report)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -1231,7 +1233,7 @@ private fun ReportFormDialog(
                         value = reportTypes.find { it.first == reportType }?.second ?: reportType,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Report Type") },
+                        label = { Text(stringResource(R.string.report_type)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = reportTypeExpanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -1255,7 +1257,7 @@ private fun ReportFormDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title *") },
+                    label = { Text(stringResource(R.string.title_2)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -1264,7 +1266,7 @@ private fun ReportFormDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description *") },
+                    label = { Text(stringResource(R.string.description_2)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 5
@@ -1279,7 +1281,7 @@ private fun ReportFormDialog(
                         value = severity.replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Severity") },
+                        label = { Text(stringResource(R.string.severity)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = severityExpanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -1303,7 +1305,7 @@ private fun ReportFormDialog(
                 OutlinedTextField(
                     value = locationName,
                     onValueChange = { locationName = it },
-                    label = { Text("Location") },
+                    label = { Text(stringResource(R.string.location)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     leadingIcon = { Icon(Icons.Default.LocationOn, "Location") }
@@ -1313,10 +1315,10 @@ private fun ReportFormDialog(
                 OutlinedTextField(
                     value = symptomsText,
                     onValueChange = { symptomsText = it },
-                    label = { Text("Symptoms (comma-separated)") },
+                    label = { Text(stringResource(R.string.symptoms_comma_separated)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    placeholder = { Text("fever, cough, headache...") }
+                    placeholder = { Text(stringResource(R.string.fever_cough_headache)) }
                 )
             }
         }
@@ -1381,8 +1383,8 @@ private fun SubscriptionSettingsTab() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text("Alert Categories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("Select which alert types to receive", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.alert_categories), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.select_which_alert_types_to_receive), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 allCategories.forEach { cat ->
@@ -1399,7 +1401,7 @@ private fun SubscriptionSettingsTab() {
         }
 
         item {
-            Text("Sources", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.sources), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 allSources.forEach { src ->
@@ -1416,7 +1418,7 @@ private fun SubscriptionSettingsTab() {
         }
 
         item {
-            Text("Severity Levels", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.severity_levels), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 allSeverities.forEach { sev ->
@@ -1433,13 +1435,13 @@ private fun SubscriptionSettingsTab() {
         }
 
         item {
-            Text("Countries", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.countries_2), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = countryInput,
                     onValueChange = { countryInput = it.uppercase() },
-                    label = { Text("Country code") },
+                    label = { Text(stringResource(R.string.country_code)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -1449,7 +1451,7 @@ private fun SubscriptionSettingsTab() {
                         selectedCountries = selectedCountries + code
                         countryInput = ""
                     }
-                }, enabled = countryInput.trim().isNotEmpty()) { Text("Add") }
+                }, enabled = countryInput.trim().isNotEmpty()) { Text(stringResource(R.string.add)) }
             }
             if (selectedCountries.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
@@ -1467,20 +1469,20 @@ private fun SubscriptionSettingsTab() {
         }
 
         item {
-            Text("Notification Channels", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.notification_channels), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Push Notifications", Modifier.weight(1f))
+                        Text(stringResource(R.string.push_notifications), Modifier.weight(1f))
                         Switch(checked = pushEnabled, onCheckedChange = { pushEnabled = it })
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Email Notifications", Modifier.weight(1f))
+                        Text(stringResource(R.string.email_notifications), Modifier.weight(1f))
                         Switch(checked = emailEnabled, onCheckedChange = { emailEnabled = it })
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("SMS Notifications", Modifier.weight(1f))
+                        Text(stringResource(R.string.sms_notifications), Modifier.weight(1f))
                         Switch(checked = smsEnabled, onCheckedChange = { smsEnabled = it })
                     }
                 }
@@ -1514,7 +1516,7 @@ private fun SubscriptionSettingsTab() {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !saving
             ) {
-                Text(if (saving) "Saving..." else "Save Preferences")
+                Text(if (saving) stringResource(R.string.saving_2) else stringResource(R.string.save_preferences))
             }
         }
     }

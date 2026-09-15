@@ -36,6 +36,8 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.reflect.KClass
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 // ── Data Types Configuration ─────────────────────────────────────────
 
@@ -122,10 +124,10 @@ fun HealthSyncScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Health Sync") },
+                title = { Text(stringResource(R.string.health_sync)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) }
@@ -147,11 +149,11 @@ fun HealthSyncScreen(navController: NavHostController) {
                                 modifier = Modifier.size(32.dp))
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Health Connect", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(stringResource(R.string.health_connect), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                                 Text(
-                                    if (!isAvailable) "Not available on this device"
-                                    else if (isAuthorized) "Connected"
-                                    else "Not connected",
+                                    if (!isAvailable) stringResource(R.string.not_available_on_this_device)
+                                    else if (isAuthorized) stringResource(R.string.connected)
+                                    else stringResource(R.string.not_connected),
                                     fontSize = 13.sp,
                                     color = if (isAuthorized) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -159,7 +161,7 @@ fun HealthSyncScreen(navController: NavHostController) {
                             if (isAvailable && !isAuthorized) {
                                 Button(onClick = {
                                     permissionLauncher.launch(ALL_DATA_TYPES.map { it.permission }.toSet())
-                                }) { Text("Connect") }
+                                }) { Text(stringResource(R.string.connect)) }
                             }
                         }
 
@@ -171,11 +173,11 @@ fun HealthSyncScreen(navController: NavHostController) {
                                 Icon(Icons.Default.Sync, null, modifier = Modifier.size(16.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.width(4.dp))
-                                Text("${status.totalSyncedRecords} records synced",
+                                Text(stringResource(R.string.records_synced, status.totalSyncedRecords),
                                     fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 status.lastSyncAt?.let {
                                     Spacer(Modifier.weight(1f))
-                                    Text("Last: ${it.take(10)}", fontSize = 12.sp,
+                                    Text(stringResource(R.string.last, it.take(10)), fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
@@ -203,12 +205,12 @@ fun HealthSyncScreen(navController: NavHostController) {
                                     }
                                     status.lastSyncRecords?.let { created ->
                                         Spacer(Modifier.width(8.dp))
-                                        Text("${created} new", fontSize = 11.sp,
+                                        Text(stringResource(R.string.new_label, created), fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(top = 4.dp))
                                     }
                                     status.lastSyncDuplicates?.let { dups ->
-                                        Text(", ${dups} skipped", fontSize = 11.sp,
+                                        Text(stringResource(R.string.skipped, dups), fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(top = 4.dp))
                                     }
@@ -221,7 +223,7 @@ fun HealthSyncScreen(navController: NavHostController) {
 
             // ── Data Types ───────────────────────────
             item {
-                Text("Data Types", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(stringResource(R.string.data_types), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
 
             items(ALL_DATA_TYPES) { dt ->
@@ -246,7 +248,7 @@ fun HealthSyncScreen(navController: NavHostController) {
             syncStatus?.recordsByType?.let { byType ->
                 if (byType.isNotEmpty()) {
                     item {
-                        Text("Synced Records", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(stringResource(R.string.synced_records), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     items(byType.entries.sortedByDescending { it.value }) { (type, count) ->
                         Row(Modifier.fillMaxWidth()) {
@@ -339,11 +341,11 @@ fun HealthSyncScreen(navController: NavHostController) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(8.dp))
-                        Text("Syncing...")
+                        Text(stringResource(R.string.syncing))
                     } else {
                         Icon(Icons.Default.Sync, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Sync Now")
+                        Text(stringResource(R.string.sync_now))
                     }
                 }
             }
@@ -354,12 +356,12 @@ fun HealthSyncScreen(navController: NavHostController) {
                     Card(Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Sync Result", fontWeight = FontWeight.Bold)
-                            Row { Text("Total records:", Modifier.weight(1f)); Text("${result.total}") }
-                            Row { Text("Created:", Modifier.weight(1f)); Text("${result.created}", color = Color(0xFF4CAF50)) }
-                            Row { Text("Duplicates skipped:", Modifier.weight(1f)); Text("${result.duplicates}", color = Color(0xFFFF9800)) }
+                            Text(stringResource(R.string.sync_result), fontWeight = FontWeight.Bold)
+                            Row { Text(stringResource(R.string.total_records), Modifier.weight(1f)); Text("${result.total}") }
+                            Row { Text(stringResource(R.string.created), Modifier.weight(1f)); Text("${result.created}", color = Color(0xFF4CAF50)) }
+                            Row { Text(stringResource(R.string.duplicates_skipped), Modifier.weight(1f)); Text("${result.duplicates}", color = Color(0xFFFF9800)) }
                             if (result.errors > 0) {
-                                Row { Text("Errors:", Modifier.weight(1f)); Text("${result.errors}", color = Color(0xFFF44336)) }
+                                Row { Text(stringResource(R.string.errors), Modifier.weight(1f)); Text("${result.errors}", color = Color(0xFFF44336)) }
                             }
                         }
                     }
@@ -388,25 +390,25 @@ fun HealthSyncScreen(navController: NavHostController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("One-way sync", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text(stringResource(R.string.one_way_sync), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
-                        Text("Data flows from Health Connect → ALAFIA only.", fontSize = 12.sp,
+                        Text(stringResource(R.string.data_flows_from_health_connect_alafia), fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Shield, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Deduplication", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text(stringResource(R.string.deduplication), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
-                        Text("Each record has a unique ID. Re-syncing won't create duplicates.", fontSize = 12.sp,
+                        Text(stringResource(R.string.each_record_has_a_unique_id_re_syncing), fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocalHospital, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("EHR & Apps", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text(stringResource(R.string.ehr_apps), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
-                        Text("Any app or EHR connected to Health Connect is automatically included.", fontSize = 12.sp,
+                        Text(stringResource(R.string.any_app_or_ehr_connected_to_health), fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

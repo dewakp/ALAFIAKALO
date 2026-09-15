@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -64,6 +65,35 @@ def _parse_json(text: str) -> dict:
     return parsed if isinstance(parsed, dict) else {}
 
 
+_NUMBERED_LINE = re.compile(r'^\s*"(\d+)"\s*:\s*"(.*)"\s*,?\s*$')
+
+
+def _parse_numbered(raw: str, expected: set[str]) -> dict[str, str]:
+    """The reply as {id: translation}.
+
+    JSON first. A reply can be JSON in every respect but one: the model quotes a
+    term with a plain quote mark — “kidney” came back as "kidney", and German
+    „Freigeben" closes with one — so the whole reply fails to parse and the
+    string is lost on every retry, in every language. The model writes one entry
+    per line, so a line holding `"<id>": "<text>"` is read as that entry, the
+    text running from the first quote to the LAST one on the line.
+    """
+    parsed = _parse_json(raw)
+    if expected <= set(parsed):
+        return parsed
+    recovered: dict[str, str] = {}
+    for line in raw.splitlines():
+        match = _NUMBERED_LINE.match(line)
+        if not match or match.group(1) not in expected:
+            continue
+        body = match.group(2).replace('\\"', '"').replace('"', '\\"')
+        try:
+            recovered[match.group(1)] = json.loads(f'"{body}"')
+        except json.JSONDecodeError:
+            recovered[match.group(1)] = match.group(2)
+    return {**recovered, **{n: text for n, text in parsed.items() if n in expected}}
+
+
 async def _translate_batch(llm, language: str, batch: dict[str, str]) -> tuple[dict, str, str]:
     """Returns (translations keyed by OUR keys, raw reply text, which provider answered).
 
@@ -88,7 +118,7 @@ async def _translate_batch(llm, language: str, batch: dict[str, str]) -> tuple[d
     if not result.success:
         raise RuntimeError(result.error or "the provider chain returned no answer")
     raw = (result.data or {}).get("text", "")
-    parsed = _parse_json(raw)
+    parsed = _parse_numbered(raw, set(ids))
     translations = {ids[n]: value for n, value in parsed.items() if n in ids}
     return translations, raw, result.source or "unknown provider"
 

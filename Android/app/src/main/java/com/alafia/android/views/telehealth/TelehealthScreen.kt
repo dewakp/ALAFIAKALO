@@ -28,6 +28,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /* ── Color constants ── */
 private val StatusScheduled = Color(0xFF2196F3)
@@ -128,10 +130,10 @@ fun TelehealthScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Telehealth", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.telehealth), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -165,9 +167,9 @@ fun TelehealthScreen(navController: NavHostController) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.Videocam, null, Modifier.size(48.dp), tint = Color.Gray)
                         Spacer(Modifier.height(8.dp))
-                        Text("No sessions found", color = Color.Gray)
+                        Text(stringResource(R.string.no_sessions_found), color = Color.Gray)
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = { showCreate = true }) { Text("Schedule Visit") }
+                        Button(onClick = { showCreate = true }) { Text(stringResource(R.string.schedule_visit)) }
                     }
                 }
                 else -> LazyColumn(
@@ -297,11 +299,11 @@ private fun CreateSessionSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
-            Text("Schedule Visit", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.schedule_visit), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
 
             // Type
-            Text("Visit Type", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.visit_type), fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("video" to "Video", "voice" to "Voice", "chat" to "Chat").forEach { (k, label) ->
@@ -317,7 +319,7 @@ private fun CreateSessionSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
             // Date/Time
             OutlinedTextField(
                 value = dateStr, onValueChange = { dateStr = it },
-                label = { Text("Start (YYYY-MM-DDTHH:mm:ss)") },
+                label = { Text(stringResource(R.string.start_yyyy_mm_ddthh_mm_ss)) },
                 placeholder = { Text("2025-01-15T14:00:00") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -326,21 +328,21 @@ private fun CreateSessionSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
 
             OutlinedTextField(
                 value = title, onValueChange = { title = it },
-                label = { Text("Title (optional)") },
+                label = { Text(stringResource(R.string.title_optional)) },
                 modifier = Modifier.fillMaxWidth(), singleLine = true
             )
             Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = reasonForVisit, onValueChange = { reasonForVisit = it },
-                label = { Text("Reason for Visit") },
+                label = { Text(stringResource(R.string.reason_for_visit)) },
                 modifier = Modifier.fillMaxWidth(), singleLine = true
             )
             Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = chiefComplaint, onValueChange = { chiefComplaint = it },
-                label = { Text("Chief Complaint") },
+                label = { Text(stringResource(R.string.chief_complaint)) },
                 modifier = Modifier.fillMaxWidth(), maxLines = 3
             )
             Spacer(Modifier.height(12.dp))
@@ -352,14 +354,14 @@ private fun CreateSessionSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
                     value = if (specialty.isEmpty()) "— None —" else specialty,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Specialty") },
+                    label = { Text(stringResource(R.string.specialty)) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(specExpanded) }
                 )
                 ExposedDropdownMenu(expanded = specExpanded, onDismissRequest = { specExpanded = false }) {
                     SPECIALTIES.forEach { s ->
                         DropdownMenuItem(
-                            text = { Text(if (s.isEmpty()) "— None —" else s) },
+                            text = { Text(if (s.isEmpty()) stringResource(R.string.none_3) else s) },
                             onClick = { specialty = s; specExpanded = false }
                         )
                     }
@@ -374,7 +376,7 @@ private fun CreateSessionSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
                     value = statusLabel(priority),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Priority") },
+                    label = { Text(stringResource(R.string.priority)) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(priExpanded) }
                 )
@@ -390,7 +392,7 @@ private fun CreateSessionSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
             Spacer(Modifier.height(16.dp))
 
             // Feature toggles
-            Text("Features", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.features), fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             listOf(
                 "Live Transcription" to transcription,
@@ -446,7 +448,7 @@ private fun CreateSessionSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
             ) {
                 if (submitting) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White,
                     strokeWidth = 2.dp)
-                else Text("Schedule Visit")
+                else Text(stringResource(R.string.schedule_visit))
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -492,7 +494,7 @@ private fun SessionDetailSheet(
                     Button(onClick = onJoinCall, contentPadding = PaddingValues(horizontal = 16.dp)) {
                         Icon(Icons.Default.Videocam, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Join")
+                        Text(stringResource(R.string.join))
                     }
                 }
             }
@@ -508,30 +510,30 @@ private fun SessionDetailSheet(
 
             // Tabs
             TabRow(selectedTabIndex = tab) {
-                Tab(selected = tab == 0, onClick = { tab = 0 }) { Text("Info", Modifier.padding(12.dp)) }
-                Tab(selected = tab == 1, onClick = { tab = 1 }) { Text("Notes", Modifier.padding(12.dp)) }
-                Tab(selected = tab == 2, onClick = { tab = 2 }) { Text("Transcripts", Modifier.padding(12.dp)) }
+                Tab(selected = tab == 0, onClick = { tab = 0 }) { Text(stringResource(R.string.info), Modifier.padding(12.dp)) }
+                Tab(selected = tab == 1, onClick = { tab = 1 }) { Text(stringResource(R.string.notes), Modifier.padding(12.dp)) }
+                Tab(selected = tab == 2, onClick = { tab = 2 }) { Text(stringResource(R.string.transcripts), Modifier.padding(12.dp)) }
             }
             Spacer(Modifier.height(12.dp))
 
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).weight(1f, fill = false)) {
                 when (tab) {
                     0 -> {
-                        InfoRow("Scheduled Start", formatDateTime(session.scheduledStart))
-                        session.scheduledEnd?.let { InfoRow("Scheduled End", formatDateTime(it)) }
-                        session.actualStart?.let { InfoRow("Actual Start", formatDateTime(it)) }
-                        session.actualEnd?.let { InfoRow("Actual End", formatDateTime(it)) }
-                        session.durationMinutes?.let { InfoRow("Duration", "$it min") }
-                        session.specialty?.let { InfoRow("Specialty", it) }
-                        session.reasonForVisit?.let { InfoRow("Reason", it) }
-                        session.chiefComplaint?.let { InfoRow("Chief Complaint", it) }
+                        InfoRow(stringResource(R.string.scheduled_start), formatDateTime(session.scheduledStart))
+                        session.scheduledEnd?.let { InfoRow(stringResource(R.string.scheduled_end), formatDateTime(it)) }
+                        session.actualStart?.let { InfoRow(stringResource(R.string.actual_start), formatDateTime(it)) }
+                        session.actualEnd?.let { InfoRow(stringResource(R.string.actual_end), formatDateTime(it)) }
+                        session.durationMinutes?.let { InfoRow(stringResource(R.string.duration), "$it min") }
+                        session.specialty?.let { InfoRow(stringResource(R.string.specialty), it) }
+                        session.reasonForVisit?.let { InfoRow(stringResource(R.string.reason_2), it) }
+                        session.chiefComplaint?.let { InfoRow(stringResource(R.string.chief_complaint), it) }
                         if (session.followUpNeeded) {
                             Spacer(Modifier.height(12.dp))
                             Card(colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                                 Column(Modifier.padding(12.dp)) {
-                                    Text("Follow-up Needed", fontWeight = FontWeight.SemiBold)
-                                    session.followUpDate?.let { Text("Date: $it", fontSize = 13.sp) }
+                                    Text(stringResource(R.string.follow_up_needed), fontWeight = FontWeight.SemiBold)
+                                    session.followUpDate?.let { Text(stringResource(R.string.date, it), fontSize = 13.sp) }
                                     session.followUpNotes?.let { Text(it, fontSize = 13.sp) }
                                 }
                             }
@@ -539,7 +541,7 @@ private fun SessionDetailSheet(
                         Spacer(Modifier.height(12.dp))
                         // Participants
                         session.participants?.let { parts ->
-                            Text("Participants", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.participants), fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(8.dp))
                             parts.forEach { p ->
                                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -549,7 +551,7 @@ private fun SessionDetailSheet(
                                         tint = if (p.role == "provider") StatusScheduled else StatusActive,
                                         modifier = Modifier.size(20.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("User #${p.userId}", fontSize = 13.sp)
+                                    Text(stringResource(R.string.user, p.userId), fontSize = 13.sp)
                                     Spacer(Modifier.width(4.dp))
                                     Text("${statusLabel(p.role)} · ${statusLabel(p.status)}",
                                         fontSize = 11.sp, color = Color.Gray)
@@ -580,7 +582,7 @@ private fun SessionDetailSheet(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
-                            ) { Text("Cancel Session") }
+                            ) { Text(stringResource(R.string.cancel_session)) }
                         }
                     }
                     1 -> {
@@ -588,7 +590,7 @@ private fun SessionDetailSheet(
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             OutlinedTextField(
                                 value = noteText, onValueChange = { noteText = it },
-                                label = { Text("Add a note…") },
+                                label = { Text(stringResource(R.string.add_a_note)) },
                                 modifier = Modifier.weight(1f), maxLines = 3
                             )
                             Spacer(Modifier.width(8.dp))
@@ -609,7 +611,7 @@ private fun SessionDetailSheet(
                         Spacer(Modifier.height(12.dp))
 
                         if (notes.isEmpty()) {
-                            Text("No notes yet.", color = Color.Gray, modifier = Modifier.padding(vertical = 16.dp))
+                            Text(stringResource(R.string.no_notes_yet), color = Color.Gray, modifier = Modifier.padding(vertical = 16.dp))
                         }
                         notes.forEach { note ->
                             Card(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
@@ -646,7 +648,7 @@ private fun SessionDetailSheet(
                     }
                     2 -> {
                         if (transcripts.isEmpty()) {
-                            Text("No transcripts recorded.", color = Color.Gray,
+                            Text(stringResource(R.string.no_transcripts_recorded), color = Color.Gray,
                                 modifier = Modifier.padding(vertical = 16.dp))
                         }
                         transcripts.forEach { t ->
@@ -655,7 +657,7 @@ private fun SessionDetailSheet(
                                 Spacer(Modifier.width(8.dp))
                                 Column {
                                     Row {
-                                        Text("Speaker #${t.speakerId ?: 0}", fontSize = 11.sp, color = Color.Gray)
+                                        Text(stringResource(R.string.speaker, t.speakerId ?: 0), fontSize = 11.sp, color = Color.Gray)
                                         Spacer(Modifier.weight(1f))
                                         t.confidence?.let {
                                             Text("${(it * 100).toInt()}%", fontSize = 11.sp, color = Color.Gray) }
@@ -754,15 +756,15 @@ private fun VideoCallScreen(session: TelehealthSession, onEnd: () -> Unit) {
                     callState == "waiting" -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = Color.White)
                         Spacer(Modifier.height(16.dp))
-                        Text("Waiting Room", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.waiting_room), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(8.dp))
-                        Text("Please wait while the provider admits you",
+                        Text(stringResource(R.string.please_wait_while_the_provider_admits),
                             color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
                     }
                     callState == "connecting" -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = Color.White)
                         Spacer(Modifier.height(16.dp))
-                        Text("Connecting…", color = Color.White, fontSize = 18.sp)
+                        Text(stringResource(R.string.connecting), color = Color.White, fontSize = 18.sp)
                     }
                     isVideo -> {
                         // Placeholder for remote video
@@ -773,7 +775,7 @@ private fun VideoCallScreen(session: TelehealthSession, onEnd: () -> Unit) {
                         Icon(Icons.Default.Phone, null, modifier = Modifier.size(60.dp),
                             tint = Color.White.copy(alpha = 0.3f))
                         Spacer(Modifier.height(12.dp))
-                        Text("Voice Call", color = Color.White.copy(alpha = 0.7f), fontSize = 18.sp)
+                        Text(stringResource(R.string.voice_call), color = Color.White.copy(alpha = 0.7f), fontSize = 18.sp)
                         Text(elapsedStr, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                     }
                 }

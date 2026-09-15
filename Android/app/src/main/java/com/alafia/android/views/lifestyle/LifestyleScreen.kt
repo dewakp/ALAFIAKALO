@@ -25,6 +25,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,10 +53,10 @@ fun LifestyleScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Lifestyle") },
+                title = { Text(stringResource(R.string.lifestyle)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) },
@@ -73,8 +75,8 @@ fun LifestyleScreen(navController: NavHostController) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.SelfImprovement, "No entries", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
-                    Text("No lifestyle entries", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Tap + to log your habits", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_lifestyle_entries), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.tap_to_log_your_habits), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -181,7 +183,7 @@ private fun AddLifestyleDialog(onDismiss: () -> Unit, onSave: (LifestyleEntryReq
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Lifestyle") },
+        title = { Text(stringResource(R.string.log_lifestyle)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -192,7 +194,7 @@ private fun AddLifestyleDialog(onDismiss: () -> Unit, onSave: (LifestyleEntryReq
                         value = category.replace("_", " ").replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Category") },
+                        label = { Text(stringResource(R.string.category)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedCategory) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -207,7 +209,7 @@ private fun AddLifestyleDialog(onDismiss: () -> Unit, onSave: (LifestyleEntryReq
                 }
 
                 OutlinedTextField(value = value, onValueChange = { value = it }, label = { Text(valuePlaceholder) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -221,10 +223,10 @@ private fun AddLifestyleDialog(onDismiss: () -> Unit, onSave: (LifestyleEntryReq
                     ))
                 },
                 enabled = value.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

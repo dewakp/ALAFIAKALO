@@ -495,7 +495,7 @@ class ChronicConditionsViewModel: ObservableObject {
                 conditions = try await APIClient.shared.get("/chronic/conditions")
                 isLoading = false
             } catch {
-                errorMessage = "Failed to load conditions: \(error.localizedDescription)"
+                errorMessage = AppLanguage.text("Failed to load conditions: \(error.localizedDescription)")
                 showError = true
                 isLoading = false
             }
@@ -508,7 +508,7 @@ class ChronicConditionsViewModel: ObservableObject {
                 let _: ChronicCondition = try await APIClient.shared.post("/chronic/conditions", body: condition)
                 loadConditions()
             } catch {
-                errorMessage = "Failed to create condition: \(error.localizedDescription)"
+                errorMessage = AppLanguage.text("Failed to create condition: \(error.localizedDescription)")
                 showError = true
             }
         }
@@ -520,7 +520,7 @@ class ChronicConditionsViewModel: ObservableObject {
                 let _: ChronicCondition = try await APIClient.shared.put("/chronic/conditions/\(id)", body: condition)
                 loadConditions()
             } catch {
-                errorMessage = "Failed to update condition: \(error.localizedDescription)"
+                errorMessage = AppLanguage.text("Failed to update condition: \(error.localizedDescription)")
                 showError = true
             }
         }
@@ -532,7 +532,7 @@ class ChronicConditionsViewModel: ObservableObject {
                 try await APIClient.shared.delete("/chronic/conditions/\(id)")
                 loadConditions()
             } catch {
-                errorMessage = "Failed to delete condition: \(error.localizedDescription)"
+                errorMessage = AppLanguage.text("Failed to delete condition: \(error.localizedDescription)")
                 showError = true
             }
         }

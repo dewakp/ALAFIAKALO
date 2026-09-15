@@ -34,6 +34,8 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * Prompt Hub (Basis: "Mobile starts with a Prompt Page"). Text, voice, and camera
@@ -153,13 +155,13 @@ fun PromptScreen(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            "How are you doing today?",
+            stringResource(R.string.how_are_you_doing_today),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "Type, speak, or snap a photo — ALAFIA will take you to the right place.",
+            stringResource(R.string.type_speak_or_snap_a_photo_alafia_will),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -168,16 +170,16 @@ fun PromptScreen(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { startVoice() }, enabled = !vm.busy) {
-                Icon(Icons.Default.Mic, contentDescription = "Speak")
+                Icon(Icons.Default.Mic, contentDescription = stringResource(R.string.speak))
             }
             IconButton(onClick = { imagePicker.capture() }, enabled = !vm.busy) {
-                Icon(Icons.Default.PhotoCamera, contentDescription = "Photo")
+                Icon(Icons.Default.PhotoCamera, contentDescription = stringResource(R.string.photo))
             }
             OutlinedTextField(
                 value = vm.input,
                 onValueChange = { vm.input = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("e.g. I ate jollof rice and took my 10mg lisinopril") },
+                placeholder = { Text(stringResource(R.string.e_g_i_ate_jollof_rice_and_took_my_10mg)) },
                 enabled = !vm.busy,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -187,7 +189,7 @@ fun PromptScreen(
                         CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                     } else {
                         IconButton(onClick = { vm.route { navController.navigate(it) } }) {
-                            Icon(Icons.Default.Send, contentDescription = "Send")
+                            Icon(Icons.Default.Send, contentDescription = stringResource(R.string.send))
                         }
                     }
                 },

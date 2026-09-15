@@ -28,6 +28,8 @@ import com.alafia.android.models.TherapySummary
 import com.alafia.android.models.TherapySessionReport
 import com.alafia.android.util.ErrorUtil
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * The physician's dialysis view: session reports, the intradialytic curve, and
@@ -58,7 +60,7 @@ fun TherapyReportSection(
     }
 
     if (sessions.isEmpty()) {
-        Text("No therapy sessions in this period.",
+        Text(stringResource(R.string.no_therapy_sessions_in_this_period),
              style = MaterialTheme.typography.bodySmall,
              color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
@@ -67,17 +69,17 @@ fun TherapyReportSection(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatTile("Sessions", (summary?.totalSessions ?: sessions.size).toString(), Color(0xFF2A78D6))
-            StatTile("Avg Pre Wt", fmt(summary?.avgPreWeightKg ?: avg(sessions, "pre_weight_kg"), 1, "kg"), Color(0xFF1BAF7A))
-            StatTile("Avg Post Wt", fmt(summary?.avgPostWeightKg ?: avg(sessions, "post_weight_kg"), 1, "kg"), Color(0xFF1BAF7A))
-            StatTile("Avg UF", fmt(summary?.avgFluidRemovedMl ?: avg(sessions, "fluid_removed_ml"), 0, "mL"), Color(0xFFEB6834))
-            StatTile("Avg Duration", fmt(summary?.avgDurationMin ?: avg(sessions, "duration_minutes"), 0, "min"), Color(0xFF7C3AED))
+            StatTile(stringResource(R.string.sessions_3), (summary?.totalSessions ?: sessions.size).toString(), Color(0xFF2A78D6))
+            StatTile(stringResource(R.string.avg_pre_wt), fmt(summary?.avgPreWeightKg ?: avg(sessions, "pre_weight_kg"), 1, "kg"), Color(0xFF1BAF7A))
+            StatTile(stringResource(R.string.avg_post_wt), fmt(summary?.avgPostWeightKg ?: avg(sessions, "post_weight_kg"), 1, "kg"), Color(0xFF1BAF7A))
+            StatTile(stringResource(R.string.avg_uf), fmt(summary?.avgFluidRemovedMl ?: avg(sessions, "fluid_removed_ml"), 0, "mL"), Color(0xFFEB6834))
+            StatTile(stringResource(R.string.avg_duration), fmt(summary?.avgDurationMin ?: avg(sessions, "duration_minutes"), 0, "min"), Color(0xFF7C3AED))
         }
         val allTime = summary?.totalSessionsAllTime ?: 0
         Text(
             if (allTime > (summary?.totalSessions ?: sessions.size))
-                "${sessions.size} sessions in this period — $allTime on record since ${summary?.earliestSession}"
-            else "${sessions.size} sessions in this period",
+                stringResource(R.string.sessions_in_this_period_on_record_since, sessions.size, allTime, summary?.earliestSession ?: "—")
+            else stringResource(R.string.sessions_in_this_period, sessions.size),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         sessions.forEach { row -> SessionCard(row) { onOpenSession(num(row["session_id"])!!.toInt()) } }
@@ -130,30 +132,30 @@ private fun SessionCard(row: Map<String, Any?>, onClick: () -> Unit) {
                 Text(str(row["date"]) ?: "—", style = MaterialTheme.typography.titleSmall,
                      fontWeight = FontWeight.Bold)
                 str(row["status"])?.let { Chip(it, MaterialTheme.colorScheme.primary) }
-                if (reviewed) Chip("reviewed", Color(0xFF1BAF7A))
+                if (reviewed) Chip(stringResource(R.string.reviewed), Color(0xFF1BAF7A))
                 Spacer(Modifier.weight(1f))
                 val pre = num(row["pre_weight_kg"]); val post = num(row["post_weight_kg"])
                 if (pre != null && post != null) {
-                    Text("${String.format("%.1f", pre)} → ${String.format("%.1f", post)} kg",
+                    Text(stringResource(R.string.kg, String.format("%.1f", pre), String.format("%.1f", post)),
                          style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 num(row["fluid_removed_ml"])?.let {
-                    Text("${String.format("%.0f", it)} mL",
+                    Text(stringResource(R.string.ml, String.format("%.0f", it)),
                          style = MaterialTheme.typography.labelSmall, color = Color(0xFFEB6834))
                 }
                 num(row["duration_minutes"])?.let {
-                    Text("${String.format("%.0f", it)} min",
+                    Text(stringResource(R.string.min, String.format("%.0f", it)),
                          style = MaterialTheme.typography.labelSmall, color = Color(0xFF7C3AED))
                 }
                 num(row["readings"])?.takeIf { it > 0 }?.let {
-                    Text("${it.toInt()} readings", style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(R.string.readings, it.toInt()), style = MaterialTheme.typography.labelSmall,
                          color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (str(row["pre_bp"]) != null || str(row["post_bp"]) != null) {
-                Text("BP: Pre ${str(row["pre_bp"]) ?: "—"} → Post ${str(row["post_bp"]) ?: "—"}",
+                Text(stringResource(R.string.bp_pre_post, str(row["pre_bp"]) ?: "—", str(row["post_bp"]) ?: "—"),
                      style = MaterialTheme.typography.labelSmall,
                      color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -201,7 +203,7 @@ fun TherapySessionScreen(patientId: Int, sessionId: Int, onBack: () -> Unit) {
     }
 
     Scaffold(topBar = {
-        TopAppBar(title = { Text(report?.session?.date ?: "Session") })
+        TopAppBar(title = { Text(report?.session?.date ?: stringResource(R.string.session_3)) })
     }) { padding ->
         val r = report
         when {
@@ -302,15 +304,15 @@ private fun FactsCard(r: TherapySessionReport) {
                 }
             }
             s.complications?.takeIf { it.isNotBlank() }?.let {
-                Text("Complications: $it", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.complications, it), style = MaterialTheme.typography.labelMedium,
                      color = MaterialTheme.colorScheme.error)
             }
             s.adverseReactions?.takeIf { it.isNotBlank() }?.let {
-                Text("Adverse reactions: $it", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.adverse_reactions_2, it), style = MaterialTheme.typography.labelMedium,
                      color = MaterialTheme.colorScheme.error)
             }
             s.patientNotes?.takeIf { it.isNotBlank() }?.let {
-                Text("Patient notes: $it", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.patient_notes_2, it), style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -326,8 +328,8 @@ private fun ReadingCharts(readings: List<IntradialyticReading>) {
     if (usable.size < 2) {
         Card(Modifier.fillMaxWidth()) {
             Text(
-                if (usable.isEmpty()) "No intradialytic readings were recorded for this session."
-                else "Only one intradialytic reading — not enough to plot a curve.",
+                if (usable.isEmpty()) stringResource(R.string.no_intradialytic_readings_were_recorded)
+                else stringResource(R.string.only_one_intradialytic_reading_not),
                 Modifier.padding(12.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -336,20 +338,28 @@ private fun ReadingCharts(readings: List<IntradialyticReading>) {
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ReadingChart("Blood pressure (mmHg)", listOf(
+        ReadingChart(stringResource(R.string.blood_pressure_mmhg), listOf(
             "Systolic" to usable.map { it.systolicBp?.toDouble() },
             "Diastolic" to usable.map { it.diastolicBp?.toDouble() },
         ))
-        ReadingChart("Pulse (bpm)", listOf("Pulse" to usable.map { it.pulse?.toDouble() }))
-        ReadingChart("UF removed (mL)",
-                     listOf("UF removed" to usable.map { it.ufVolumeRemoved?.toDouble() }))
+        ReadingChart(stringResource(R.string.pulse_bpm), listOf("Pulse" to usable.map { it.pulse?.toDouble() }))
+        ReadingChart(stringResource(R.string.uf_removed_ml),
+                     listOf("UF removed" to usable.map { it.ufVolumeRemoved?.toDouble() }),
+                     zeroBased = true)
     }
 }
 
 private val READING_PALETTE = listOf(Color(0xFF2A78D6), Color(0xFFEB6834), Color(0xFF1BAF7A))
 
 @Composable
-private fun ReadingChart(title: String, series: List<Pair<String, List<Double?>>>) {
+private fun ReadingChart(
+    title: String,
+    series: List<Pair<String, List<Double?>>>,
+    // Zero belongs on a cumulative volume, not on a blood pressure. The caller
+    // says which: this used to be `title.contains("mL")`, and a translated title
+    // would have silently changed the axis.
+    zeroBased: Boolean = false,
+) {
     val present = series.filter { s -> s.second.any { it != null } }
     if (present.isEmpty()) return
     val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
@@ -360,8 +370,6 @@ private fun ReadingChart(title: String, series: List<Pair<String, List<Double?>>
             Canvas(Modifier.fillMaxWidth().height(170.dp)) {
                 val all = present.flatMap { it.second.filterNotNull() }
                 if (all.isEmpty()) return@Canvas
-                // Zero belongs on a cumulative volume, not on a blood pressure.
-                val zeroBased = title.contains("mL")
                 val dataMin = all.min(); val dataMax = all.max()
                 val span = dataMax - dataMin
                 val pad = if (span > 0) span * 0.15 else maxOf(kotlin.math.abs(dataMax) * 0.05, 1.0)
@@ -410,20 +418,20 @@ private fun SignOffCard(
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Sign-off", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.sign_off), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             // State what the PATIENT did, not just what the physician is about to
             // do: attesting to an unsigned record is a different act.
-            Text("Patient signature: ${so.signedAt ?: "not signed"}",
+            Text(stringResource(R.string.patient_signature, so.signedAt ?: stringResource(R.string.not_signed)),
                  style = MaterialTheme.typography.labelSmall,
                  color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Nurse countersignature: ${so.countersignedAt ?: "none"}",
+            Text(stringResource(R.string.nurse_countersignature, so.countersignedAt ?: stringResource(R.string.none_2)),
                  style = MaterialTheme.typography.labelSmall,
                  color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Physician review: ${so.reviewedAt ?: "not reviewed"}",
+            Text(stringResource(R.string.physician_review, so.reviewedAt ?: stringResource(R.string.not_reviewed)),
                  style = MaterialTheme.typography.labelSmall,
                  color = MaterialTheme.colorScheme.onSurfaceVariant)
             so.payloadHash?.let {
-                Text("Integrity hash: ${it.take(32)}…",
+                Text(stringResource(R.string.integrity_hash, it.take(32)),
                      style = MaterialTheme.typography.labelSmall,
                      color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -433,10 +441,10 @@ private fun SignOffCard(
             }
             Spacer(Modifier.height(4.dp))
             if (so.isReviewed) {
-                Chip("Reviewed and anchored", Color(0xFF1BAF7A))
+                Chip(stringResource(R.string.reviewed_and_anchored), Color(0xFF1BAF7A))
             } else {
                 Button(onClick = onSignOff, enabled = !busy) {
-                    Text(if (busy) "Signing…" else "Sign off on this session")
+                    Text(if (busy) stringResource(R.string.signing) else stringResource(R.string.sign_off_on_this_session))
                 }
             }
         }
@@ -454,7 +462,7 @@ private fun ReadingsTable(readings: List<IntradialyticReading>) {
     if (usable.isEmpty()) return
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
-            Text("Intradialytic Readings (${usable.size})",
+            Text(stringResource(R.string.intradialytic_readings, usable.size),
                  style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             // Wide content scrolls inside its own container, never the page.
@@ -499,10 +507,10 @@ private fun NotesCard(
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Clinical notes", style = MaterialTheme.typography.titleSmall,
+            Text(stringResource(R.string.clinical_notes_2), style = MaterialTheme.typography.titleSmall,
                  fontWeight = FontWeight.Bold)
             if (notes.isEmpty()) {
-                Text("No notes on this session yet.",
+                Text(stringResource(R.string.no_notes_on_this_session_yet),
                      style = MaterialTheme.typography.bodySmall,
                      color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -516,11 +524,11 @@ private fun NotesCard(
             }
             OutlinedTextField(
                 value = text, onValueChange = onText,
-                label = { Text("Add a clinical note…") },
+                label = { Text(stringResource(R.string.add_a_clinical_note)) },
                 modifier = Modifier.fillMaxWidth(), minLines = 2,
             )
             Button(onClick = onAdd, enabled = !busy && text.isNotBlank()) {
-                Text(if (busy) "Saving…" else "Add note")
+                Text(if (busy) stringResource(R.string.saving) else stringResource(R.string.add_note))
             }
         }
     }
@@ -531,14 +539,14 @@ private fun NotesCard(
 private fun IntegrityCard(i: SessionIntegrity?, error: String?, onVerify: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Record integrity", style = MaterialTheme.typography.titleSmall,
+            Text(stringResource(R.string.record_integrity), style = MaterialTheme.typography.titleSmall,
                  fontWeight = FontWeight.Bold)
             error?.let {
                 Text(it, style = MaterialTheme.typography.labelMedium,
                      color = MaterialTheme.colorScheme.error)
             }
             if (i == null) {
-                Button(onClick = onVerify) { Text("Verify this record") }
+                Button(onClick = onVerify) { Text(stringResource(R.string.verify_this_record)) }
             } else {
                 Text(
                     when (i.payloadMatches) {
@@ -557,7 +565,7 @@ private fun IntegrityCard(i: SessionIntegrity?, error: String?, onVerify: () -> 
                              else MaterialTheme.colorScheme.onSurfaceVariant)
                 i.trail.forEach { t ->
                     Text("#${t.index} ${t.event ?: t.action} · " +
-                         (if (t.anchored) "block ${t.blockNumber}" else "not anchored"),
+                         (if (t.anchored) stringResource(R.string.block, t.blockNumber ?: "—") else stringResource(R.string.not_anchored)),
                          style = MaterialTheme.typography.labelSmall,
                          color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

@@ -45,6 +45,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 data class UIChatMessage(
     val role: String,
@@ -247,7 +249,7 @@ fun AIChatScreen(navController: NavHostController) {
             TopAppBar(
                 title = {
                     Column {
-                        Text("AI Health Assistant")
+                        Text(stringResource(R.string.ai_health_assistant))
                         if (selectedPersona != null) {
                             Text(
                                 "${selectedPersona!!.title} (${selectedPersona!!.origin})",
@@ -259,7 +261,7 @@ fun AIChatScreen(navController: NavHostController) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -321,7 +323,7 @@ fun AIChatScreen(navController: NavHostController) {
                         value = inputText,
                         onValueChange = { inputText = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Ask about your health...") },
+                        placeholder = { Text(stringResource(R.string.ask_about_your_health)) },
                         shape = RoundedCornerShape(24.dp),
                         enabled = !isTyping && selectedPersona != null
                     )
@@ -330,7 +332,7 @@ fun AIChatScreen(navController: NavHostController) {
                         onClick = { startVoice() },
                         enabled = !isTyping && selectedPersona != null
                     ) {
-                        Icon(Icons.Default.Mic, contentDescription = "Speak your question")
+                        Icon(Icons.Default.Mic, contentDescription = stringResource(R.string.speak_your_question))
                     }
                     Spacer(Modifier.width(4.dp))
                     FilledIconButton(
@@ -390,13 +392,13 @@ private fun PersonaPickerDialog(
                 // Header
                 Column(modifier = Modifier.padding(24.dp, 20.dp, 24.dp, 8.dp)) {
                     Text(
-                        "Choose Your Guide",
+                        stringResource(R.string.choose_your_guide),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Optional — close to keep your device-language guide, or pick another.",
+                        stringResource(R.string.optional_close_to_keep_your_device),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -479,7 +481,7 @@ private fun PersonaPickerDialog(
                                     if (isSelected) {
                                         Icon(
                                             Icons.Default.Check,
-                                            contentDescription = "Selected",
+                                            contentDescription = stringResource(R.string.selected),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -494,7 +496,7 @@ private fun PersonaPickerDialog(
                     modifier = Modifier
                         .align(Alignment.End)
                         .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) { Text("Close") }
+                ) { Text(stringResource(R.string.close)) }
             }
         }
     }

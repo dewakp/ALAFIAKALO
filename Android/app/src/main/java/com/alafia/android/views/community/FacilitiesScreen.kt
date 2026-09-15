@@ -21,6 +21,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.Facility
 import com.alafia.android.util.ErrorUtil
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /** Facility Directory — parity with the web Facilities page (list-first; map deferred). */
 @Composable
@@ -56,10 +58,10 @@ fun FacilitiesScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Facility Directory") },
+                title = { Text(stringResource(R.string.facility_directory)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -73,7 +75,7 @@ fun FacilitiesScreen(navController: NavHostController) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Search facilities") },
+                    label = { Text(stringResource(R.string.search_facilities)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -93,7 +95,7 @@ fun FacilitiesScreen(navController: NavHostController) {
                             selected = selectedType == t,
                             onClick = { selectedType = t },
                             label = {
-                                Text(if (t.isBlank()) "All"
+                                Text(if (t.isBlank()) stringResource(R.string.all)
                                      else t.replace('_', ' ').replaceFirstChar { it.uppercase() })
                             }
                         )
@@ -106,7 +108,7 @@ fun FacilitiesScreen(navController: NavHostController) {
                     CircularProgressIndicator()
                 }
                 facilities.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No facilities found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_facilities_found), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 else -> LazyColumn(
                     contentPadding = PaddingValues(16.dp),

@@ -5,13 +5,67 @@
       "comment" : "Bundle display name",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA"
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "zh" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA"
@@ -23,13 +77,67 @@
       "comment" : "Bundle name",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA"
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA"
+          }
+        },
+        "zh" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA"
@@ -41,16 +149,70 @@
       "comment" : "Privacy - Camera Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تستخدم ALAFIA كاميرا هاتفك لتصوير وجبة أو ملصق دواء أو شريط اختبار لقراءتها لك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA nutzt deine Kamera, um Fotos von Mahlzeiten, Medikamentenetiketten oder Teststreifen zu machen und diese für dich auszulesen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA uses your camera to photograph a meal, a medication label or a test strip so it can read them for you."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA usa tu cámara para fotografiar una comida, una etiqueta de medicamento o una tira reactiva para poder leerlas por ti."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA utilise votre caméra pour photographier un repas, une étiquette de médicament ou une bandelette de test afin de les lire pour vous."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA tana amfani da kyamarka don daukar hotuna na abinci, alamar magungunan ko faɗin gwaji domin ta karantawa muku."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA na-eji camera gị ka ọ fọtọ nri, ọgwụ maọbụ test strip ka ọ gụọ ha maka gị."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA usa a câmera para fotografar uma refeição, um rótulo de medicamento ou uma fita de teste para lê-los para você."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA inatumia kamera yako kupiga picha ya chakula, lebo ya dawa au ukanda wa mtihani ili iweze kusoma kwa ajili yako."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA lo nlo ọkọ rẹ lati ṣe fọto ti ounjẹ, oogun tabi ẹsẹ idanwo ki o le ka wọn fun ọ."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA 使用您的摄像头拍摄餐食、药物标签或试纸，以便为您读取信息。"
           }
         }
       }
@@ -59,16 +221,70 @@
       "comment" : "Privacy - Face ID Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تستخدم ALAFIA Face ID لقفل وفتح معلوماتك الصحية حتى يتمكن فقط أنت من فتح التطبيق."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA nutzt Face ID, um deine Gesundheitsinformationen zu sperren und freizugeben, sodass nur du die App öffnen kannst."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA uses Face ID to lock and unlock your health information so only you can open the app."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA usa Face ID para bloquear y desbloquear tu información de salud para que solo tú puedas abrir la app."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA utilise Face ID pour verrouiller et déverrouiller vos informations de santé afin que seul vous puissiez ouvrir l'application."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA tana amfani da Face ID domin kulle da buɗe bayanan lafiyarku saboda kawai ku za ku buɗe app."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA na-eji Face ID ka ọ kpọ ma meghee ozi ahụike gị ka naanị gị nwere ike meghe app."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA usa Face ID para bloquear e desbloquear suas informações de saúde para que apenas você possa abrir o app."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA inatumia Face ID kulinda na kufungua taarifa zako za afya ili wewe tu uweze kufungua programu."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA lo Face ID lati ti ẹkọ ati ṣi alaye ìlera rẹ ki o je pe iwọ nikan le ṣi app naa."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA 使用面容 ID 锁定和解锁您的健康信息，只有您可以打开该应用。"
           }
         }
       }
@@ -77,16 +293,70 @@
       "comment" : "Privacy - Health Share Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تقرأ ALAFIA بيانات صحتك لتقديم رؤى صحية مخصصة وتتبع تقدم اللياقة البدنية ومزامنة معلومات الصحة عبر أجهزتك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA liest deine Gesundheitsdaten, um personalisierte Gesundheitseinblicke zu geben, Fitnessergebnisse zu verfolgen und Wellnessinformationen über deine Geräte zu synchronisieren."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA reads your health data to provide personalized health insights, track fitness progress, and sync wellness information across your devices."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA lee tus datos de salud para proporcionar información personalizada, rastrear tu progreso de fitness y sincronizar información de bienestar en tus dispositivos."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA lit vos données de santé pour fournir des informations de santé personnalisées, suivre votre progression en matière de forme physique et synchroniser les informations de bien-être sur vos appareils."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA tana karantawa bayanan lafiyarku domin ba da shawarwari na lafiya na musamman, lura da ci gaba na fitness, da haɗa bayanan wellness a cikin abubuwan ku."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA na-agụ data ahụike gị ka ọ nye ezi ndụmọdụ ahụike, ledụ ọganihu fitness, na-ejikọ ihe wellness n'ụlọ ọrụ gị."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA lê seus dados de saúde para fornecer insights personalizados, acompanhar progresso de fitness e sincronizar informações de bem-estar entre seus dispositivos."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA inasoma data yako ya afya ili kutoa maarifa ya afya yanayofaa kwako, kufuatilia maendeleo ya fitness, na kusawazisha taarifa za wellness katika vifaa vyako."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA ka data ìlera rẹ lati pese imọ-ìlera ti ara ẹni, lati tẹ ilọsiwaju adaṣe, ati lati ba alaye alafia ṣe ni gbogbo ẹrọ rẹ."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA 读取您的健康数据，提供个性化健康见解、跟踪健身进度，并在您的设备间同步健康信息。"
           }
         }
       }
@@ -95,16 +365,70 @@
       "comment" : "Privacy - Health Update Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تكتب ALAFIA البيانات إلى Apple Health."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA schreibt keine Daten in Apple Health."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA does not write data to Apple Health."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA no escribe datos en Apple Health."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA n'écrit pas de données dans Apple Health."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA ba ta rubuta bayanan zuwa Apple Health."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA adịghị edezu data na Apple Health."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA não escreve dados no Apple Health."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA haisomi data kwenye Apple Health."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA ko kọ data si Apple Health."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA 不向 Apple Health 写入数据。"
           }
         }
       }
@@ -113,16 +437,70 @@
       "comment" : "Privacy - Microphone Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تستخدم ALAFIA الميكروفون حتى تتمكن من التحدث عن سجلات صحتك والأسئلة من صفحة الطلب."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA nutzt das Mikrofon, damit du deine Gesundheitsprotokolle und Fragen von der Eingabeseite sprechen kannst."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA usa el micrófono para que puedas hablar tus registros de salud y preguntas desde la página de indicaciones."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA utilise le microphone pour que vous puissiez dicter vos journaux de santé et vos questions à partir de la page d'invite."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA tana amfani da microphone domin ku iya faɗi bayanan lafiyarku da tambayoyi daga shafin buɗe."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA na-eji microphone ka ị nwee ike ikwu ahụike gị na ajụjụ site na ibe."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA usa o microfone para você falar seus registros de saúde e perguntas a partir da página de prompt."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA inatumia microphone ili uweze kusema kumbukumbu zako za afya na maswali kutoka ukurasa wa prompt."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA lo microphone ki o le sọ ìlera rẹ ati ibeere lati oju ibeere."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA 使用麦克风，以便您可以从提示页面说出健康日志和问题。"
           }
         }
       }
@@ -131,16 +509,70 @@
       "comment" : "Privacy - Photo Library Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تتيح لك ALAFIA إرفاق صورة لوجبة لتقدير قيمتها الغذائية."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA ermöglicht dir, ein Foto einer Mahlzeit anzuhängen, um den Nährwert zu schätzen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA lets you attach a photo of a meal so it can estimate nutrition."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA te permite adjuntar una foto de una comida para estimar la nutrición."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA vous permet de joindre une photo d'un repas pour estimer la nutrition."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA tana ba da damar haɗa hotun abinci domin ta iya kiyasta gida."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA na-enye gị ohere ka ị tinye foto nri ka ọ tụọ ụtụ isi."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA permite anexar uma foto de uma refeição para estimar a nutrição."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA inakuruhusu kuambatanisha picha ya chakula ili iweze kukadiria virutubishi."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA gba ọ laaye lati fi fọto ti ounjẹ kan ṣe ki o le ṣe iṣiro nutrient."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA 让您附加餐食照片，以便估算营养信息。"
           }
         }
       }
@@ -149,16 +581,70 @@
       "comment" : "Privacy - Speech Recognition Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تنسخ ALAFIA كلامك على الجهاز لفهم سجلات صحتك والأسئلة المنطوقة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA transkribiert deine Sprache auf dem Gerät, um gesprochene Gesundheitsprotokolle und Fragen zu verstehen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "ALAFIA transcribes your speech on device to understand spoken health logs and questions."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA transcribe tu voz en el dispositivo para entender registros de salud y preguntas habladas."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ALAFIA transcrit votre parole sur l'appareil pour comprendre les journaux de santé et les questions parlés."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA tana fassara magana ku a cikin na'ura domin fahimtar bayanan lafiya da tambayoyi da aka faɗi."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA na-atụgharị okwu gị n'ụlọ ka ọ ghọta ahụike gị na ajụjụ."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA transcreve sua fala no dispositivo para entender registros de saúde e perguntas faladas."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA inabadilisha hotuba yako kwenye kifaa ili kuelewa kumbukumbu za afya na maswali yaliyosemwa."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA ṣe itumọ ohun ti o sọ lori ẹrọ lati loye ìlera ti a sọ ati ibeere."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALAFIA 在设备上转录您的语音，以理解口头健康日志和问题。"
           }
         }
       }

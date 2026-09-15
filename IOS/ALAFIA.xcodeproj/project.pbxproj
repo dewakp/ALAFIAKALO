@@ -96,6 +96,7 @@
 		CE0000000000000000000206 /* IntradialyticEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000106 /* IntradialyticEditor.swift */; };
 		CE0000000000000000000207 /* FormEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000107 /* FormEncodingTests.swift */; };
 		CE0000000000000000000208 /* DoseGuardRefusalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000108 /* DoseGuardRefusalTests.swift */; };
+		CE0000000000000000000209 /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000109 /* LocalizationTests.swift */; };
 		DD0000000000000000000702 /* PantryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000701 /* PantryItem.swift */; };
 		DD0000000000000000000704 /* PantryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000703 /* PantryView.swift */; };
 		DD0000000000000000000802 /* FacilitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000801 /* FacilitiesView.swift */; };
@@ -226,6 +227,7 @@
 		CE0000000000000000000106 /* IntradialyticEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradialyticEditor.swift; sourceTree = "<group>"; };
 		CE0000000000000000000107 /* FormEncodingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FormEncodingTests.swift; path = Tests/ALAFIATests/FormEncodingTests.swift; sourceTree = "<group>"; };
 		CE0000000000000000000108 /* DoseGuardRefusalTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DoseGuardRefusalTests.swift; path = Tests/ALAFIATests/DoseGuardRefusalTests.swift; sourceTree = "<group>"; };
+		CE0000000000000000000109 /* LocalizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LocalizationTests.swift; path = Tests/ALAFIATests/LocalizationTests.swift; sourceTree = "<group>"; };
 		DD0000000000000000000701 /* PantryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantryItem.swift; sourceTree = "<group>"; };
 		DD0000000000000000000703 /* PantryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantryView.swift; sourceTree = "<group>"; };
 		DD0000000000000000000801 /* FacilitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FacilitiesView.swift; sourceTree = "<group>"; };
@@ -289,6 +291,7 @@
 				540417D020944D206CCD54B5 /* UserModelTests.swift */,
 				CE0000000000000000000107 /* FormEncodingTests.swift */,
 				CE0000000000000000000108 /* DoseGuardRefusalTests.swift */,
+				CE0000000000000000000109 /* LocalizationTests.swift */,
 			);
 			name = ALAFIATests;
 			sourceTree = SOURCE_ROOT;
@@ -928,6 +931,7 @@
 				1B84B817D8E548B6F2F47A39 /* OfflineCacheTests.swift in Sources */,
 				CE0000000000000000000207 /* FormEncodingTests.swift in Sources */,
 				CE0000000000000000000208 /* DoseGuardRefusalTests.swift in Sources */,
+				CE0000000000000000000209 /* LocalizationTests.swift in Sources */,
 				3DAAAEF13A8E66CE33AEFD04 /* UserModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

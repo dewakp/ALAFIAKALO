@@ -26,6 +26,8 @@ import com.alafia.android.models.DataShareInvitation
 import com.alafia.android.models.DataShareInvitationCreate
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * Fallback only — the live list comes from `GET /data-sharing/types`.
@@ -66,10 +68,10 @@ fun DataSharingScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Data Sharing") },
+                title = { Text(stringResource(R.string.data_sharing)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) }
@@ -134,12 +136,12 @@ private fun ActiveGrantsTab() {
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "No active data grants",
+                        stringResource(R.string.no_active_data_grants),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Tap + to share data with someone",
+                        stringResource(R.string.tap_to_share_data_with_someone),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -194,9 +196,9 @@ private fun ActiveGrantsTab() {
     showDeleteDialog?.let { grant ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = { Text("Delete Grant") },
+            title = { Text(stringResource(R.string.delete_grant)) },
             text = {
-                Text("Remove data sharing with ${grant.granteeDisplayName ?: grant.granteeEmail ?: "this user"}?")
+                Text(stringResource(R.string.remove_data_sharing_with, grant.granteeDisplayName ?: grant.granteeEmail ?: stringResource(R.string.this_user)))
             },
             confirmButton = {
                 TextButton(
@@ -214,12 +216,12 @@ private fun ActiveGrantsTab() {
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -240,7 +242,7 @@ private fun DataGrantCard(grant: DataGrant, onDelete: () -> Unit) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = grant.granteeDisplayName ?: grant.granteeEmail ?: "Unknown",
+                        text = grant.granteeDisplayName ?: grant.granteeEmail ?: stringResource(R.string.unknown),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -286,7 +288,7 @@ private fun DataGrantCard(grant: DataGrant, onDelete: () -> Unit) {
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
-                        text = if (grant.canRead) "✓ Read" else "✗ Read",
+                        text = if (grant.canRead) stringResource(R.string.read_3) else stringResource(R.string.read_2),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (grant.canRead) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -298,7 +300,7 @@ private fun DataGrantCard(grant: DataGrant, onDelete: () -> Unit) {
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
-                        text = if (grant.canWrite) "✓ Write" else "✗ Write",
+                        text = if (grant.canWrite) stringResource(R.string.write_2) else stringResource(R.string.write),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (grant.canWrite) Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -319,7 +321,7 @@ private fun DataGrantCard(grant: DataGrant, onDelete: () -> Unit) {
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
-                        text = if (grant.isActive) "Active" else "Inactive",
+                        text = if (grant.isActive) stringResource(R.string.active) else stringResource(R.string.inactive),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (grant.isActive) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -327,7 +329,7 @@ private fun DataGrantCard(grant: DataGrant, onDelete: () -> Unit) {
                 }
                 grant.expiresAt?.let { expiry ->
                     Text(
-                        text = "Expires: $expiry",
+                        text = stringResource(R.string.expires, expiry),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -348,7 +350,7 @@ private fun AddGrantDialog(onDismiss: () -> Unit, onSave: (DataGrantCreate) -> U
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Data Grant") },
+        title = { Text(stringResource(R.string.add_data_grant)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -357,7 +359,7 @@ private fun AddGrantDialog(onDismiss: () -> Unit, onSave: (DataGrantCreate) -> U
                 OutlinedTextField(
                     value = granteeEmail,
                     onValueChange = { granteeEmail = it },
-                    label = { Text("Grantee Email") },
+                    label = { Text(stringResource(R.string.grantee_email)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -370,7 +372,7 @@ private fun AddGrantDialog(onDismiss: () -> Unit, onSave: (DataGrantCreate) -> U
                         value = selectedDataType.replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Data Type") },
+                        label = { Text(stringResource(R.string.data_type)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor()
                     )
@@ -392,12 +394,12 @@ private fun AddGrantDialog(onDismiss: () -> Unit, onSave: (DataGrantCreate) -> U
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = canRead, onCheckedChange = { canRead = it })
-                    Text("Can Read", modifier = Modifier.padding(start = 4.dp))
+                    Text(stringResource(R.string.can_read), modifier = Modifier.padding(start = 4.dp))
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = canWrite, onCheckedChange = { canWrite = it })
-                    Text("Can Write", modifier = Modifier.padding(start = 4.dp))
+                    Text(stringResource(R.string.can_write), modifier = Modifier.padding(start = 4.dp))
                 }
             }
         },
@@ -417,11 +419,11 @@ private fun AddGrantDialog(onDismiss: () -> Unit, onSave: (DataGrantCreate) -> U
                 },
                 enabled = granteeEmail.isNotBlank()
             ) {
-                Text("Create")
+                Text(stringResource(R.string.create))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
@@ -466,12 +468,12 @@ private fun InvitationsTab() {
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "No invitations",
+                        stringResource(R.string.no_invitations),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Tap + to send a data sharing invitation",
+                        stringResource(R.string.tap_to_send_a_data_sharing_invitation),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -570,13 +572,13 @@ private fun InvitationCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = invitation.recipientEmail ?: "Unknown",
+                        text = invitation.recipientEmail ?: stringResource(R.string.unknown),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     invitation.createdAt?.let { date ->
                         Text(
-                            text = "Sent: ${com.alafia.android.util.AppDate.date(date)}",
+                            text = stringResource(R.string.sent, com.alafia.android.util.AppDate.date(date)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -652,13 +654,13 @@ private fun InvitationCard(
                     ) {
                         Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Decline")
+                        Text(stringResource(R.string.decline))
                     }
                     Spacer(Modifier.width(8.dp))
                     Button(onClick = onAccept) {
                         Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Accept")
+                        Text(stringResource(R.string.accept))
                     }
                 }
             }
@@ -678,7 +680,7 @@ private fun SendInvitationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Send Invitation") },
+        title = { Text(stringResource(R.string.send_invitation)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -687,13 +689,13 @@ private fun SendInvitationDialog(
                 OutlinedTextField(
                     value = recipientEmail,
                     onValueChange = { recipientEmail = it },
-                    label = { Text("Recipient Email") },
+                    label = { Text(stringResource(R.string.recipient_email)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Text(
-                    "Data Types to Share",
+                    stringResource(R.string.data_types_to_share),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -717,7 +719,7 @@ private fun SendInvitationDialog(
                 OutlinedTextField(
                     value = message,
                     onValueChange = { message = it },
-                    label = { Text("Message (optional)") },
+                    label = { Text(stringResource(R.string.message_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                     maxLines = 4
@@ -738,11 +740,11 @@ private fun SendInvitationDialog(
                 },
                 enabled = recipientEmail.isNotBlank() && chosenTypes.isNotEmpty()
             ) {
-                Text("Send")
+                Text(stringResource(R.string.send))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

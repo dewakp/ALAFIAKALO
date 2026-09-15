@@ -21,6 +21,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.AdvancedDirective
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,10 +123,10 @@ fun AdvancedDirectivesScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Advanced Directives") },
+                title = { Text(stringResource(R.string.advanced_directives)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -207,7 +209,7 @@ fun AdvancedDirectivesScreen(navController: NavHostController) {
                     ) {
                         Icon(Icons.Default.Save, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Save Directive")
+                        Text(stringResource(R.string.save_directive))
                     }
                 } else {
                     directive?.let { ReadOnlyDirectiveContent(it) }
@@ -222,8 +224,8 @@ fun AdvancedDirectivesScreen(navController: NavHostController) {
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Directive") },
-            text = { Text("Are you sure you want to delete your advanced directive? This cannot be undone.") },
+            title = { Text(stringResource(R.string.delete_directive)) },
+            text = { Text(stringResource(R.string.are_you_sure_you_want_to_delete_your)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
@@ -243,10 +245,10 @@ fun AdvancedDirectivesScreen(navController: NavHostController) {
                             Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                         }
                     }
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -259,20 +261,20 @@ private fun ReadOnlyDirectiveContent(d: AdvancedDirective) {
     // Healthcare Agent section
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Healthcare Agent", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.healthcare_agent), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-            Text("Primary Agent", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            d.primaryAgentName?.let { LabeledValue("Name", it) }
-            d.primaryAgentRelationship?.let { LabeledValue("Relationship", it) }
-            d.primaryAgentPhone?.let { LabeledValue("Phone", it) }
-            d.primaryAgentEmail?.let { LabeledValue("Email", it) }
+            Text(stringResource(R.string.primary_agent), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            d.primaryAgentName?.let { LabeledValue(stringResource(R.string.name), it) }
+            d.primaryAgentRelationship?.let { LabeledValue(stringResource(R.string.relationship), it) }
+            d.primaryAgentPhone?.let { LabeledValue(stringResource(R.string.phone), it) }
+            d.primaryAgentEmail?.let { LabeledValue(stringResource(R.string.email), it) }
 
             if (d.alternateAgentName != null || d.alternateAgentRelationship != null || d.alternateAgentPhone != null) {
                 HorizontalDivider()
-                Text("Alternate Agent", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                d.alternateAgentName?.let { LabeledValue("Name", it) }
-                d.alternateAgentRelationship?.let { LabeledValue("Relationship", it) }
-                d.alternateAgentPhone?.let { LabeledValue("Phone", it) }
+                Text(stringResource(R.string.alternate_agent), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                d.alternateAgentName?.let { LabeledValue(stringResource(R.string.name), it) }
+                d.alternateAgentRelationship?.let { LabeledValue(stringResource(R.string.relationship), it) }
+                d.alternateAgentPhone?.let { LabeledValue(stringResource(R.string.phone), it) }
             }
         }
     }
@@ -280,31 +282,31 @@ private fun ReadOnlyDirectiveContent(d: AdvancedDirective) {
     // Treatment Preferences section
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Treatment Preferences", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.treatment_preferences), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-            d.organDonation?.let { LabeledValue("Organ Donation", it) }
-            d.lifeSupport?.let { LabeledValue("Life Support", it) }
+            d.organDonation?.let { LabeledValue(stringResource(R.string.organ_donation), it) }
+            d.lifeSupport?.let { LabeledValue(stringResource(R.string.life_support), it) }
             d.cpr?.let { LabeledValue("CPR", it) }
-            d.ventilator?.let { LabeledValue("Ventilator", it) }
-            d.feedingTube?.let { LabeledValue("Feeding Tube", it) }
-            d.dialysisDirective?.let { LabeledValue("Dialysis", it) }
-            d.bloodTransfusion?.let { LabeledValue("Blood Transfusion", it) }
+            d.ventilator?.let { LabeledValue(stringResource(R.string.ventilator), it) }
+            d.feedingTube?.let { LabeledValue(stringResource(R.string.feeding_tube), it) }
+            d.dialysisDirective?.let { LabeledValue(stringResource(R.string.dialysis), it) }
+            d.bloodTransfusion?.let { LabeledValue(stringResource(R.string.blood_transfusion), it) }
         }
     }
 
     // Document Info section
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Document Info", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.document_info), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = d.documentSigned == true, onCheckedChange = null, enabled = false)
                 Spacer(Modifier.width(8.dp))
-                Text("Document Signed")
+                Text(stringResource(R.string.document_signed))
             }
 
-            d.documentDate?.let { LabeledValue("Document Date", it) }
-            d.additionalInstructions?.let { LabeledValue("Additional Instructions", it) }
+            d.documentDate?.let { LabeledValue(stringResource(R.string.document_date), it) }
+            d.additionalInstructions?.let { LabeledValue(stringResource(R.string.additional_instructions), it) }
         }
     }
 }
@@ -336,50 +338,50 @@ private fun EditableDirectiveContent(
     // Healthcare Agent section
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Healthcare Agent", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.healthcare_agent), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-            Text("Primary Agent", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            OutlinedTextField(value = primaryAgentName, onValueChange = onPrimaryAgentNameChange, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(value = primaryAgentRelationship, onValueChange = onPrimaryAgentRelationshipChange, label = { Text("Relationship") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(value = primaryAgentPhone, onValueChange = onPrimaryAgentPhoneChange, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(value = primaryAgentEmail, onValueChange = onPrimaryAgentEmailChange, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            Text(stringResource(R.string.primary_agent), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            OutlinedTextField(value = primaryAgentName, onValueChange = onPrimaryAgentNameChange, label = { Text(stringResource(R.string.name)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(value = primaryAgentRelationship, onValueChange = onPrimaryAgentRelationshipChange, label = { Text(stringResource(R.string.relationship)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(value = primaryAgentPhone, onValueChange = onPrimaryAgentPhoneChange, label = { Text(stringResource(R.string.phone)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(value = primaryAgentEmail, onValueChange = onPrimaryAgentEmailChange, label = { Text(stringResource(R.string.email)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
             HorizontalDivider()
-            Text("Alternate Agent", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            OutlinedTextField(value = alternateAgentName, onValueChange = onAlternateAgentNameChange, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(value = alternateAgentRelationship, onValueChange = onAlternateAgentRelationshipChange, label = { Text("Relationship") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(value = alternateAgentPhone, onValueChange = onAlternateAgentPhoneChange, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            Text(stringResource(R.string.alternate_agent), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            OutlinedTextField(value = alternateAgentName, onValueChange = onAlternateAgentNameChange, label = { Text(stringResource(R.string.name)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(value = alternateAgentRelationship, onValueChange = onAlternateAgentRelationshipChange, label = { Text(stringResource(R.string.relationship)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(value = alternateAgentPhone, onValueChange = onAlternateAgentPhoneChange, label = { Text(stringResource(R.string.phone)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
         }
     }
 
     // Treatment Preferences section
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Treatment Preferences", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.treatment_preferences), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-            TreatmentDropdown("Organ Donation", organDonation, treatmentOptions, onOrganDonationChange)
-            TreatmentDropdown("Life Support", lifeSupport, treatmentOptions, onLifeSupportChange)
+            TreatmentDropdown(stringResource(R.string.organ_donation), organDonation, treatmentOptions, onOrganDonationChange)
+            TreatmentDropdown(stringResource(R.string.life_support), lifeSupport, treatmentOptions, onLifeSupportChange)
             TreatmentDropdown("CPR", cpr, treatmentOptions, onCprChange)
-            TreatmentDropdown("Ventilator", ventilator, treatmentOptions, onVentilatorChange)
-            TreatmentDropdown("Feeding Tube", feedingTube, treatmentOptions, onFeedingTubeChange)
-            TreatmentDropdown("Dialysis", dialysisDirective, treatmentOptions, onDialysisDirectiveChange)
-            TreatmentDropdown("Blood Transfusion", bloodTransfusion, treatmentOptions, onBloodTransfusionChange)
+            TreatmentDropdown(stringResource(R.string.ventilator), ventilator, treatmentOptions, onVentilatorChange)
+            TreatmentDropdown(stringResource(R.string.feeding_tube), feedingTube, treatmentOptions, onFeedingTubeChange)
+            TreatmentDropdown(stringResource(R.string.dialysis), dialysisDirective, treatmentOptions, onDialysisDirectiveChange)
+            TreatmentDropdown(stringResource(R.string.blood_transfusion), bloodTransfusion, treatmentOptions, onBloodTransfusionChange)
         }
     }
 
     // Document Info section
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Document Info", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.document_info), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = documentSigned, onCheckedChange = onDocumentSignedChange)
                 Spacer(Modifier.width(8.dp))
-                Text("Document Signed")
+                Text(stringResource(R.string.document_signed))
             }
 
-            OutlinedTextField(value = documentDate, onValueChange = onDocumentDateChange, label = { Text("Document Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("2026-02-16") })
-            OutlinedTextField(value = additionalInstructions, onValueChange = onAdditionalInstructionsChange, label = { Text("Additional Instructions") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+            OutlinedTextField(value = documentDate, onValueChange = onDocumentDateChange, label = { Text(stringResource(R.string.document_date_yyyy_mm_dd)) }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("2026-02-16") })
+            OutlinedTextField(value = additionalInstructions, onValueChange = onAdditionalInstructionsChange, label = { Text(stringResource(R.string.additional_instructions)) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
         }
     }
 }

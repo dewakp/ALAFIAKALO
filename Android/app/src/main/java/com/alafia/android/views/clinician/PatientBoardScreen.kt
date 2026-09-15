@@ -25,6 +25,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import com.alafia.android.util.ErrorUtil
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * One patient, as a board of data-category cards.
@@ -72,7 +74,7 @@ fun PatientBoardScreen(patientId: Int, patientName: String, onBack: () -> Unit) 
                 title = { Text(patientName) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "All patients")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.all_patients))
                     }
                 }
             )
@@ -99,8 +101,8 @@ fun PatientBoardScreen(patientId: Int, patientName: String, onBack: () -> Unit) 
                         Spacer(Modifier.width(6.dp))
                         Text(
                             if (board!!.permissions.contains("all"))
-                                "This patient shares all of their data with you."
-                            else "Shared with you: ${board!!.permissions.joinToString(", ")}",
+                                stringResource(R.string.this_patient_shares_all_of_their_data)
+                            else stringResource(R.string.shared_with_you, board!!.permissions.joinToString(", ")),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -158,7 +160,7 @@ private fun BoardCategoryCard(card: BoardCard, onOpen: () -> Unit) {
             }
 
             if (card.items.isEmpty()) {
-                Text(card.emptyReason ?: "Nothing recorded.",
+                Text(card.emptyReason ?: stringResource(R.string.nothing_recorded),
                      style = MaterialTheme.typography.labelSmall,
                      color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -182,7 +184,7 @@ private fun BoardCategoryCard(card: BoardCard, onOpen: () -> Unit) {
             }
 
             card.lastUpdated?.let {
-                Text("Updated ${it.take(10)}", style = MaterialTheme.typography.labelSmall,
+                Text(stringResource(R.string.updated, it.take(10)), style = MaterialTheme.typography.labelSmall,
                      color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -248,7 +250,7 @@ fun PatientCategoryScreen(
                 title = { Text(categoryLabel) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -287,7 +289,7 @@ fun PatientCategoryScreen(
                     if (many) {
                         item {
                             Column {
-                                Text("${d.series.size} measures have enough history to trend — pick the ones to plot:",
+                                Text(stringResource(R.string.measures_have_enough_history_to_trend, d.series.size),
                                      style = MaterialTheme.typography.labelSmall,
                                      color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(4.dp))
@@ -313,7 +315,7 @@ fun PatientCategoryScreen(
                     items(groups) { g -> TrendCard(g) }
                     if (groups.isEmpty()) {
                         item {
-                            Text("No trend to plot for this period — the records are below.",
+                            Text(stringResource(R.string.no_trend_to_plot_for_this_period_the),
                                  style = MaterialTheme.typography.bodySmall,
                                  color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -333,7 +335,7 @@ fun PatientCategoryScreen(
                         items(d.rows) { row -> RecordRow(d.columns, row) }
                         if (d.rows.isEmpty()) {
                             item {
-                                Text("No ${d.label.lowercase()} records in this period.",
+                                Text(stringResource(R.string.no_records_in_this_period, d.label.lowercase()),
                                      style = MaterialTheme.typography.bodySmall,
                                      color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }

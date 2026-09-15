@@ -86,7 +86,7 @@ class PrivacySettingsViewModel: ObservableObject {
             do {
                 settings = try await APIClient.shared.get("/privacy/settings")
             } catch {
-                message = "Failed to load privacy settings: \(error.localizedDescription)"
+                message = AppLanguage.text("Failed to load privacy settings: \(error.localizedDescription)")
             }
         }
     }
@@ -96,12 +96,12 @@ class PrivacySettingsViewModel: ObservableObject {
             do {
                 let updateData = [key: value]
                 settings = try await APIClient.shared.put("/privacy/settings", body: updateData)
-                message = "Settings updated successfully"
+                message = AppLanguage.text("Settings updated successfully")
                 
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
                 message = ""
             } catch {
-                message = "Failed to update settings: \(error.localizedDescription)"
+                message = AppLanguage.text("Failed to update settings: \(error.localizedDescription)")
             }
         }
     }
@@ -110,18 +110,18 @@ class PrivacySettingsViewModel: ObservableObject {
         Task {
             do {
                 exportStatus = try await APIClient.shared.post("/privacy/export?export_format=\(format)", body: EmptyBody())
-                message = "Data export requested. Check back in a few minutes."
+                message = AppLanguage.text("Data export requested. Check back in a few minutes.")
                 
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
                 message = ""
             } catch {
-                message = "Failed to request export: \(error.localizedDescription)"
+                message = AppLanguage.text("Failed to request export: \(error.localizedDescription)")
             }
         }
     }
     
     func downloadExport(url downloadPath: String) {
-        message = "Export download initiated for \(downloadPath)"
+        message = AppLanguage.text("Export download initiated for \(downloadPath)")
     }
     
     func requestAccountDeletion() {
@@ -129,9 +129,9 @@ class PrivacySettingsViewModel: ObservableObject {
             do {
                 let body = ["reason": "User requested deletion"]
                 let _: [String: String] = try await APIClient.shared.post("/privacy/delete-account", body: body)
-                message = "Account deletion requested. You will be contacted for confirmation."
+                message = AppLanguage.text("Account deletion requested. You will be contacted for confirmation.")
             } catch {
-                message = "Failed to request deletion: \(error.localizedDescription)"
+                message = AppLanguage.text("Failed to request deletion: \(error.localizedDescription)")
             }
         }
     }

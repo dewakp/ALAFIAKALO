@@ -658,6 +658,11 @@
         <target state="translated">Compte</target>
         <note />
       </trans-unit>
+      <trans-unit id="Account deletion requested. You will be contacted for confirmation." xml:space="preserve">
+        <source>Account deletion requested. You will be contacted for confirmation.</source>
+        <target state="translated">Suppression de compte demandée. Vous serez contacté pour confirmation.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Active" xml:space="preserve">
         <source>Active</source>
         <target state="translated">Actif</target>
@@ -1762,9 +1767,19 @@
         <target state="translated">Impossible d'enregistrer cette modification. Veuillez réessayer.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Could not verify the purchase with the App Store." xml:space="preserve">
+        <source>Could not verify the purchase with the App Store.</source>
+        <target state="translated">Impossible de vérifier l'achat auprès de l'App Store.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Couldn’t check your membership" xml:space="preserve">
         <source>Couldn’t check your membership</source>
         <target state="translated">Impossible de vérifier votre adhésion</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Couldn’t load the membership options." xml:space="preserve">
+        <source>Couldn’t load the membership options.</source>
+        <target state="translated">Impossible de charger les options d'adhésion.</target>
         <note />
       </trans-unit>
       <trans-unit id="Counseling provided" xml:space="preserve">
@@ -1970,6 +1985,11 @@
       <trans-unit id="Data coverage" xml:space="preserve">
         <source>Data coverage</source>
         <target state="translated">Couverture des données</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Data export requested. Check back in a few minutes." xml:space="preserve">
+        <source>Data export requested. Check back in a few minutes.</source>
+        <target state="translated">Export de données demandé. Vérifiez dans quelques minutes.</target>
         <note />
       </trans-unit>
       <trans-unit id="Data flows from Apple Health → ALAFIA only. We never write to Apple Health." xml:space="preserve">
@@ -2607,6 +2627,11 @@
         <target state="translated">Exporter en JSON</target>
         <note />
       </trans-unit>
+      <trans-unit id="Export download initiated for %@" xml:space="preserve">
+        <source>Export download initiated for %@</source>
+        <target state="translated">Téléchargement de l'export lancé pour %@</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Extracted text" xml:space="preserve">
         <source>Extracted text</source>
         <target state="translated">Texte extrait</target>
@@ -2656,9 +2681,49 @@
         <target state="translated">Nom de l'établissement</target>
         <note />
       </trans-unit>
+      <trans-unit id="Failed to create condition: %@" xml:space="preserve">
+        <source>Failed to create condition: %@</source>
+        <target state="translated">Impossible de créer la condition : %@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed to delete condition: %@" xml:space="preserve">
+        <source>Failed to delete condition: %@</source>
+        <target state="translated">Impossible de supprimer la condition : %@</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Failed to load" xml:space="preserve">
         <source>Failed to load</source>
         <target state="translated">Échec du chargement</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed to load conditions: %@" xml:space="preserve">
+        <source>Failed to load conditions: %@</source>
+        <target state="translated">Impossible de charger les conditions : %@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed to load privacy settings: %@" xml:space="preserve">
+        <source>Failed to load privacy settings: %@</source>
+        <target state="translated">Impossible de charger les paramètres de confidentialité : %@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed to request deletion: %@" xml:space="preserve">
+        <source>Failed to request deletion: %@</source>
+        <target state="translated">Impossible de demander la suppression : %@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed to request export: %@" xml:space="preserve">
+        <source>Failed to request export: %@</source>
+        <target state="translated">Impossible de demander l'export : %@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed to update condition: %@" xml:space="preserve">
+        <source>Failed to update condition: %@</source>
+        <target state="translated">Impossible de mettre à jour la condition : %@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed to update settings: %@" xml:space="preserve">
+        <source>Failed to update settings: %@</source>
+        <target state="translated">Impossible de mettre à jour les paramètres : %@</target>
         <note />
       </trans-unit>
       <trans-unit id="Family History" xml:space="preserve">
@@ -2709,6 +2774,11 @@
       <trans-unit id="First Name" xml:space="preserve">
         <source>First Name</source>
         <target state="translated">Prénom</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="First name must be at least 3 characters." xml:space="preserve">
+        <source>First name must be at least 3 characters.</source>
+        <target state="translated">Le prénom doit contenir au moins 3 caractères.</target>
         <note />
       </trans-unit>
       <trans-unit id="Fitness" xml:space="preserve">
@@ -3345,6 +3415,11 @@
         <target state="translated">Dernier résultat de synchronisation</target>
         <note />
       </trans-unit>
+      <trans-unit id="Last name must be at least 3 characters." xml:space="preserve">
+        <source>Last name must be at least 3 characters.</source>
+        <target state="translated">Le nom doit contenir au moins 3 caractères.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Last sync: %@" xml:space="preserve">
         <source>Last sync: %@</source>
         <target state="translated">Dernière synchro : %@</target>
@@ -3753,6 +3828,11 @@
       <trans-unit id="Member ID" xml:space="preserve">
         <source>Member ID</source>
         <target state="translated">Numéro d'adhérent</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Membership isn’t available. Is it configured in App Store Connect?" xml:space="preserve">
+        <source>Membership isn’t available. Is it configured in App Store Connect?</source>
+        <target state="translated">L'adhésion n'est pas disponible. Est-elle configurée dans App Store Connect ?</target>
         <note />
       </trans-unit>
       <trans-unit id="Mental Health" xml:space="preserve">
@@ -4485,6 +4565,11 @@
         <target state="translated">Ouvrir la vue clinicien</target>
         <note />
       </trans-unit>
+      <trans-unit id="Open a specific dialysis session to add a note to it." xml:space="preserve">
+        <source>Open a specific dialysis session to add a note to it.</source>
+        <target state="translated">Ouvrez une séance de dialyse spécifique pour y ajouter une note.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Open source" xml:space="preserve">
         <source>Open source</source>
         <target state="translated">Open source</target>
@@ -5108,6 +5193,11 @@
         <target state="translated">Photo de profil</target>
         <note />
       </trans-unit>
+      <trans-unit id="Profile saved successfully!" xml:space="preserve">
+        <source>Profile saved successfully!</source>
+        <target state="translated">Profil enregistré avec succès !</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Projectile" xml:space="preserve">
         <source>Projectile</source>
         <target state="translated">Projectile</target>
@@ -5151,6 +5241,16 @@
       <trans-unit id="Publishing..." xml:space="preserve">
         <source>Publishing...</source>
         <target state="translated">Publication en cours…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Purchase failed: %@" xml:space="preserve">
+        <source>Purchase failed: %@</source>
+        <target state="translated">Achat échoué : %@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Purchase recorded but verification failed — it may update shortly." xml:space="preserve">
+        <source>Purchase recorded but verification failed — it may update shortly.</source>
+        <target state="translated">Achat enregistré mais vérification échouée — il peut se mettre à jour bientôt.</target>
         <note />
       </trans-unit>
       <trans-unit id="Purification Pak Change" xml:space="preserve">
@@ -5578,6 +5678,11 @@
         <target state="translated">Enregistrer la session</target>
         <note />
       </trans-unit>
+      <trans-unit id="Saved" xml:space="preserve">
+        <source>Saved</source>
+        <target state="translated">Enregistré</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Saved (%lld)" xml:space="preserve">
         <source>Saved (%lld)</source>
         <target state="translated">Enregistré (%lld)</target>
@@ -5901,6 +6006,11 @@
       <trans-unit id="Settings" xml:space="preserve">
         <source>Settings</source>
         <target state="translated">Paramètres</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Settings updated successfully" xml:space="preserve">
+        <source>Settings updated successfully</source>
+        <target state="translated">Paramètres mis à jour avec succès</target>
         <note />
       </trans-unit>
       <trans-unit id="Severity" xml:space="preserve">
@@ -7270,6 +7380,16 @@ Are you absolutely sure?</source>
       <trans-unit id="Your own health record, meals and tracking live in the patient view." xml:space="preserve">
         <source>Your own health record, meals and tracking live in the patient view.</source>
         <target state="translated">Votre dossier de santé, vos repas et votre suivi se trouvent dans la vue patient.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Your purchase is pending approval." xml:space="preserve">
+        <source>Your purchase is pending approval.</source>
+        <target state="translated">Votre achat est en attente d'approbation.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Your session expired. Please sign in again." xml:space="preserve">
+        <source>Your session expired. Please sign in again.</source>
+        <target state="translated">Votre session a expiré. Veuillez vous reconnecter.</target>
         <note />
       </trans-unit>
       <trans-unit id="Your wellness score will appear here once calculated." xml:space="preserve">

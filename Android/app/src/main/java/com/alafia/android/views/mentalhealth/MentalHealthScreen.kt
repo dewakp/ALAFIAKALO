@@ -33,6 +33,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,10 +71,10 @@ fun MentalHealthScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mental Health") },
+                title = { Text(stringResource(R.string.mental_health)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -107,7 +109,7 @@ fun MentalHealthScreen(navController: NavHostController) {
 fun DashboardTab(stats: MentalHealthStats?) {
     if (stats == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No data yet. Start by logging your mood!", textAlign = TextAlign.Center)
+            Text(stringResource(R.string.no_data_yet_start_by_logging_your_mood), textAlign = TextAlign.Center)
         }
         return
     }
@@ -129,7 +131,7 @@ fun DashboardTab(stats: MentalHealthStats?) {
             fontWeight = FontWeight.Black,
             color = color
         )
-        Text("Wellness Score (0–100)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.wellness_score_0_100), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         Spacer(Modifier.height(20.dp))
 
@@ -138,19 +140,19 @@ fun DashboardTab(stats: MentalHealthStats?) {
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                StatTile("Mood (7d)", stats.avgMood7d?.let { "%.1f/10".format(it) } ?: "—", Modifier.weight(1f))
-                StatTile("Trend", "$trendEmoji ${stats.moodTrend ?: "—"}", Modifier.weight(1f))
-                StatTile("Streak", "${stats.streakDays}d 🔥", Modifier.weight(1f))
+                StatTile(stringResource(R.string.mood_7d), stats.avgMood7d?.let { "%.1f/10".format(it) } ?: "—", Modifier.weight(1f))
+                StatTile(stringResource(R.string.trend_2), "$trendEmoji ${stats.moodTrend ?: "—"}", Modifier.weight(1f))
+                StatTile(stringResource(R.string.streak), "${stats.streakDays}d 🔥", Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                StatTile("Stress", stats.avgStress7d?.let { "%.1f/10".format(it) } ?: "—", Modifier.weight(1f))
-                StatTile("Anxiety", stats.avgAnxiety7d?.let { "%.1f/10".format(it) } ?: "—", Modifier.weight(1f))
-                StatTile("Sleep", stats.avgSleepHours7d?.let { "%.1fh".format(it) } ?: "—", Modifier.weight(1f))
+                StatTile(stringResource(R.string.stress), stats.avgStress7d?.let { "%.1f/10".format(it) } ?: "—", Modifier.weight(1f))
+                StatTile(stringResource(R.string.anxiety), stats.avgAnxiety7d?.let { "%.1f/10".format(it) } ?: "—", Modifier.weight(1f))
+                StatTile(stringResource(R.string.sleep), stats.avgSleepHours7d?.let { "%.1fh".format(it) } ?: "—", Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                StatTile("Entries (30d)", "${stats.totalEntries30d}", Modifier.weight(1f))
-                StatTile("Breathing", "${stats.totalBreathingMinutes30d}m", Modifier.weight(1f))
-                StatTile("Sleep Q.", stats.avgSleepQuality7d?.let { "%.1f".format(it) } ?: "—", Modifier.weight(1f))
+                StatTile(stringResource(R.string.entries_30d), "${stats.totalEntries30d}", Modifier.weight(1f))
+                StatTile(stringResource(R.string.breathing), "${stats.totalBreathingMinutes30d}m", Modifier.weight(1f))
+                StatTile(stringResource(R.string.sleep_q), stats.avgSleepQuality7d?.let { "%.1f".format(it) } ?: "—", Modifier.weight(1f))
             }
         }
 
@@ -160,7 +162,7 @@ fun DashboardTab(stats: MentalHealthStats?) {
         if (stats.latestPhq9Score != null || stats.latestGad7Score != null || stats.latestWho5Score != null) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("📋 Clinical Assessments", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.clinical_assessments), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(8.dp))
                     stats.latestPhq9Score?.let {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -237,7 +239,7 @@ fun BreathingTab(exercises: List<BreathingExerciseInfo>, onComplete: () -> Unit)
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("Mood before: $moodBefore/10", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.mood_before_10, moodBefore), style = MaterialTheme.typography.bodyMedium)
             Slider(
                 value = moodBefore.toFloat(),
                 onValueChange = { moodBefore = it.toInt() },
@@ -254,7 +256,7 @@ fun BreathingTab(exercises: List<BreathingExerciseInfo>, onComplete: () -> Unit)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "${ex.inhaleSeconds}s in → ${ex.holdSeconds}s hold → ${ex.exhaleSeconds}s out" +
-                                if (ex.holdAfterExhaleSeconds > 0) " → ${ex.holdAfterExhaleSeconds}s hold" else "",
+                                if (ex.holdAfterExhaleSeconds > 0) stringResource(R.string.s_hold, ex.holdAfterExhaleSeconds) else "",
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(8.dp))
@@ -271,7 +273,7 @@ fun BreathingTab(exercises: List<BreathingExerciseInfo>, onComplete: () -> Unit)
                     }
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = { activeExercise = ex }, Modifier.fillMaxWidth()) {
-                        Text("Start Exercise")
+                        Text(stringResource(R.string.start_exercise))
                     }
                 }
             }
@@ -344,9 +346,9 @@ fun BreathingTimer(
         verticalArrangement = Arrangement.Center
     ) {
         if (done) {
-            Text("✅ Session Complete!", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.session_complete), style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(24.dp))
-            Text("How do you feel now?")
+            Text(stringResource(R.string.how_do_you_feel_now))
             Text("$moodAfter/10", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Slider(
                 value = moodAfter.toFloat(),
@@ -373,15 +375,15 @@ fun BreathingTimer(
                         Toast.makeText(context, "Save failed: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
-            }) { Text("Save Session") }
+            }) { Text(stringResource(R.string.save_session)) }
         } else {
             Text(exercise.name, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(32.dp))
             Text(phaseLabel, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
             Text("$timer", fontSize = 80.sp, fontWeight = FontWeight.Black, color = phaseColor)
-            Text("Cycle $cycle of ${exercise.recommendedCycles}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.cycle_of, cycle, exercise.recommendedCycles), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(32.dp))
-            OutlinedButton(onClick = onCancel) { Text("Stop") }
+            OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.stop)) }
         }
     }
 }
@@ -399,11 +401,11 @@ fun GratitudeTab(entries: List<GratitudeEntryResponse>, onSave: () -> Unit) {
         Button(
             onClick = { showDialog = true },
             modifier = Modifier.padding(16.dp).fillMaxWidth()
-        ) { Text("+ New Gratitude Entry") }
+        ) { Text(stringResource(R.string.new_gratitude_entry)) }
 
         if (entries.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No gratitude entries yet.\nWhat are you grateful for today?", textAlign = TextAlign.Center)
+                Text(stringResource(R.string.no_gratitude_entries_yet_what_are_you), textAlign = TextAlign.Center)
             }
         } else {
             LazyColumn(
@@ -428,7 +430,7 @@ fun GratitudeTab(entries: List<GratitudeEntryResponse>, onSave: () -> Unit) {
                                         }
                                     }
                                 }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                                 }
                             }
                             Spacer(Modifier.height(4.dp))
@@ -491,16 +493,16 @@ fun AddGratitudeDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
                     }
                 },
                 enabled = item1.isNotBlank() && !saving
-            ) { Text(if (saving) "Saving..." else "Save") }
+            ) { Text(if (saving) stringResource(R.string.saving_2) else stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        title = { Text("🙏 Gratitude Entry") },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        title = { Text(stringResource(R.string.gratitude_entry)) },
         text = {
             Column {
-                OutlinedTextField(value = item1, onValueChange = { item1 = it }, label = { Text("1. I'm grateful for...") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = item2, onValueChange = { item2 = it }, label = { Text("2. I'm grateful for...") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = item3, onValueChange = { item3 = it }, label = { Text("3. I'm grateful for...") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = reflection, onValueChange = { reflection = it }, label = { Text("Reflection...") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = item1, onValueChange = { item1 = it }, label = { Text(stringResource(R.string.text_1_i_m_grateful_for)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = item2, onValueChange = { item2 = it }, label = { Text(stringResource(R.string.text_2_i_m_grateful_for)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = item3, onValueChange = { item3 = it }, label = { Text(stringResource(R.string.text_3_i_m_grateful_for)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = reflection, onValueChange = { reflection = it }, label = { Text(stringResource(R.string.reflection)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         }
     )
@@ -518,11 +520,11 @@ fun AssessmentsTab(assessments: List<MentalHealthAssessment>, onSave: () -> Unit
         Button(
             onClick = { showDialog = true },
             modifier = Modifier.padding(16.dp).fillMaxWidth()
-        ) { Text("+ Take Assessment") }
+        ) { Text(stringResource(R.string.take_assessment)) }
 
         if (assessments.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No assessments yet.\nTake a PHQ-9, GAD-7, or WHO-5.", textAlign = TextAlign.Center)
+                Text(stringResource(R.string.no_assessments_yet_take_a_phq_9_gad_7_or), textAlign = TextAlign.Center)
             }
         } else {
             LazyColumn(
@@ -553,7 +555,7 @@ fun AssessmentsTab(assessments: List<MentalHealthAssessment>, onSave: () -> Unit
                                     }
                                 }
                             }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -657,10 +659,10 @@ fun AddAssessmentDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
                     }
                 },
                 enabled = answers.size >= questions.size && !saving
-            ) { Text(if (saving) "Submitting..." else "Submit") }
+            ) { Text(if (saving) stringResource(R.string.submitting) else stringResource(R.string.submit)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        title = { Text("📋 Clinical Assessment") },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        title = { Text(stringResource(R.string.clinical_assessment)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 // Type selector
@@ -674,7 +676,7 @@ fun AddAssessmentDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(12.dp))
-                Text("Over the last 2 weeks…", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text(stringResource(R.string.over_the_last_2_weeks), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 Spacer(Modifier.height(8.dp))
 
                 questions.forEachIndexed { i, q ->

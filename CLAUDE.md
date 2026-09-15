@@ -1885,6 +1885,29 @@ prints it through the route that checks the sharing grant.
 > cannot reach the thing it tests is not evidence", one layer in: a suite that
 > reaches a URL nobody serves is worse, because it is green.
 
+### A guard on input must never make the record unreadable
+
+On 2026-09-15 the iOS HD screen answered **server error**: `GET
+/chronic/therapy-sessions?limit=500` was a 500 `ResponseValidationError` —
+*"pre/post weights differ by 8.1 kg, more than a tenth of body mass"*, at row 308.
+
+The weight checks (a range that is a person, pre/post within a tenth) were added
+to `TherapySessionBase` to stop implausible weights ENTERING. The response model
+inherits that base, so they also ran on every stored row being READ — and the
+record already held such rows (the test file that pins the checks says so). One
+of them anywhere in the window turned a patient's whole history into a 500. In
+the dev copy of production, 6 of 2,016 sessions failed it, all on one record; a
+client asking for fewer rows never reached them, which is how it hid.
+
+- The checks live on `TherapySessionCreate` now. What they refuse is unchanged.
+- **A response model states shape, never plausibility.** Showing a questionable
+  stored value is the reader's call; refusing to show it is §3aa's error that
+  looks like a dead screen.
+- Captured from the Cloud Run log, not reasoned about — the traceback's
+  `'loc': ('response', 308)` named both the cause and the row.
+  `tests/test_therapy_sessions_readable.py` makes the iOS request against a
+  stored implausible row.
+
 ## 3av. The web flowsheet was silently eating intradialytic readings
 
 Reported twice — "the first reading disappeared after saving/update". It was
@@ -2052,11 +2075,60 @@ extraction from 1,316 strings to 1,534 without touching a call site.
   version of Android's `Locale.setDefault` trap above. Verified on the simulator
   with `-alafia_app_language fr` and the system language left in English.
 - **What the environment does not reach:** Info.plist permission prompts follow
-  the DEVICE language, and any `String` a view model builds is drawn verbatim
-  until it becomes a key.
+  the DEVICE language, and a `String` a view model builds is drawn verbatim. So
+  a message built in code goes through `AppLanguage.text("…")` — a
+  `LocalizedStringResource` resolved in the chosen locale. `String(localized:)`
+  alone reads the device language: French screens, English errors.
+  `LocalizationTests` proves it on the simulator, and `test_catalogs.py` fails on
+  a worded literal assigned to a message variable.
 - `-importLocalizations` warns "No translation found" for keys with nothing to
   translate (`""`, `"500"`). That is not a lost translation — the reader skips
   anything without a word in it.
+
+### Android and web: text no language could reach
+
+A Compose `Text("…")` is never looked up, and only 2 of 63 web pages used
+`t()`. Both were converted by tools that stay in the repo, and each platform has
+a test that runs its tool and fails on anything still convertible, so a new
+screen cannot ship English-only.
+
+- **Android** — `scripts/i18n/android_extract.py`, 1,264 strings in three
+  passes, each found by looking at a "translated" screen that was still partly
+  English: `Text("…")` literals (1,169); text handed to OUR composables as an
+  argument or a default — the login screen's "Password" was
+  `PasswordField(label: String = "Password")` (309); and a literal that is one
+  branch of such an argument, `Text(if (busy) "Signing…" else "Sign off")` (146).
+  A literal the expression TESTS (`status == "active"`) or passes to a nested
+  call stays exactly as it is. A Kotlin template becomes positional arguments
+  (`%1$s`), so word order is the translator's; `%` is doubled only in a string
+  that is formatted. A template printed a null as "null" — `stringResource` does
+  not accept one, so the build forces a real fallback at that call.
+- **Web** — `WEB/frontend/scripts/i18n-extract.cjs` (about 2,800 keys). Text
+  and the values inside it become ONE key: `Page {safePage} of {totalPages}` is
+  `"Page {{safePage}} of {{totalPages}}"`, because the fragments "Page" and "of"
+  cannot be reordered by a language that needs to. A plural chosen by a
+  conditional becomes two whole sentences. A label held in module-scope data
+  becomes a getter — a value computed at import never changes language.
+  Screens call `i18n.js`'s plain `t`, and `main.jsx` keys the app on the
+  language so a change remounts it.
+- **A label that is looked up is not text.** Wellness matches
+  `WHATIF_INPUTS[].label` against the backend's biomarker names; translated, it
+  would silently match nothing. The extractor detects comparisons and lookups
+  and leaves those labels English — the guard-field rule above, in the UI. On
+  Android the same shape hid in a chart: `ReadingChart` chose its y-axis with
+  `title.contains("mL")`, so a translated title would have moved the zero line.
+  The caller states `zeroBased` now; display text never decides behaviour.
+- **On web, save the preference BEFORE switching.** Switching remounts the app,
+  `AuthContext` reloads the profile, and a profile read before the save lands
+  still holds the old language — which it adopts, switching straight back.
+
+> **Quotes broke translation a second time, in the VALUES.** A string quoting a
+> term — `try “kidney”` — came back as `"Intenta con "kidney"…"`, a plain quote
+> inside the JSON string, so the reply did not parse and that string was
+> refused in every language on every retry: 1–5 per language, on all three
+> platforms. `_parse_numbered` reads a reply that is JSON but for that, one
+> entry per line, from the first quote to the last. Found from the raw reply
+> the log already printed; the retry recovered every one.
 
 ## 3b. Admin console
 
@@ -2359,6 +2431,13 @@ Other notes:
   `down_revision: Union[str, None] = '…'`, which a naive `^down_revision\s*=`
   regex misses, making real parents look like heads. Never grep for this; run
   `alembic heads`.
+- ⚠️ **`ML/tests/test_hebcs.py` fails 2 of 48 (as of 2026-09-15)** —
+  feature-bridge coverage **71.4% < 75%**, and **105/141** features with medians
+  (< 130). The code and its `models/*.joblib` are unchanged since June, and the
+  test could not even be collected in the backend image (no `joblib`), so no
+  suite ever ran it. It runs in `python:3.12-slim` with the pins from
+  `ML/requirements.txt` (joblib, numpy, pandas, lightgbm, scikit-learn, scipy,
+  xgboost, PyYAML) plus `libgomp1`. Retrain or re-baseline; do not lower the bar.
 - `WORKLOG.md` has one stale line (~1797) describing three Cloud Run services in
   `europe-west1`; `deploy/gcp/config.env` (authoritative) says **`us-east4`** /
   `alafia-db-va`. The europe-west1 *images* still exist in Artifact Registry and
@@ -2393,6 +2472,15 @@ Runbook: **`DEPLOY.md`**. Two things that will bite:
 `deploy.sh` mounts a secret only if it exists AND grants the runtime service
 account access from a second list — both must name it, or the deploy fails at
 mount time.
+
+> **`deploy.sh` builds from the WORKING TREE, not from the commit it reports.**
+> `GIT_SHA` is read when the script starts; `WEB/backend`, `WEB/identity_service`
+> and `WEB/frontend` are uploaded from disk when their step runs. On 2026-09-15 a
+> web codemod ran while `98541a5` was deploying, and the frontend step — about 25
+> minutes in — shipped some 90 uncommitted files under that label, while
+> `/api/health` reported `98541a5`. Deploy from a clean tree or a `git worktree`
+> (copy the untracked `deploy/gcp/config.env` into it), and change nothing under
+> `WEB/` or `ML/src` while a deploy runs.
 
 ## 6. Reporting
 

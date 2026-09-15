@@ -28,6 +28,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,10 +39,10 @@ fun PdfToolsScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("PDF Tools") },
+                title = { Text(stringResource(R.string.pdf_tools)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) }
@@ -127,11 +129,11 @@ private fun ParseLabReportTab() {
         ) {
             Icon(Icons.Default.PictureAsPdf, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Select Document")
+            Text(stringResource(R.string.select_document))
         }
 
         if (selectedUri != null) {
-            Text("Document selected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.document_selected), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
 
         if (isLoading) {
@@ -147,18 +149,18 @@ private fun ParseLabReportTab() {
             // here would read as "the document contained no results".
             res.error?.let { NoticeCard(it, Color(0xFFB45309)) }
             if (res.alreadyImported) {
-                NoticeCard("You have uploaded this file before — showing what was read then.",
+                NoticeCard(stringResource(R.string.you_have_uploaded_this_file_before),
                     MaterialTheme.colorScheme.primary)
             }
 
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(docTypeLabel(res.docType), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    res.patientName?.let { LabeledValue("Patient Name", it) }
-                    res.reportDate?.let { LabeledValue("Report Date", it) }
-                    res.labName?.let { LabeledValue("Lab Name", it) }
-                    res.orderingPhysician?.let { LabeledValue("Ordering Physician", it) }
-                    res.confidence?.let { LabeledValue("Confidence", "${(it * 100).toInt()}%") }
+                    res.patientName?.let { LabeledValue(stringResource(R.string.patient_name), it) }
+                    res.reportDate?.let { LabeledValue(stringResource(R.string.report_date), it) }
+                    res.labName?.let { LabeledValue(stringResource(R.string.lab_name), it) }
+                    res.orderingPhysician?.let { LabeledValue(stringResource(R.string.ordering_physician), it) }
+                    res.confidence?.let { LabeledValue(stringResource(R.string.confidence), "${(it * 100).toInt()}%") }
                     res.parsingNotes?.forEach {
                         Text("• $it", style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -176,11 +178,11 @@ private fun ParseLabReportTab() {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                "${items.size} reading${if (items.size == 1) "" else "s"} found",
+                                stringResource(R.string.reading_found, items.size, if (items.size == 1) "" else "s"),
                                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
                             )
                             if (selectable) {
-                                Text("${selectedIds.size} selected", fontSize = 11.sp,
+                                Text(stringResource(R.string.selected_2, selectedIds.size), fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -188,10 +190,10 @@ private fun ParseLabReportTab() {
 
                         Row(modifier = Modifier.fillMaxWidth()) {
                             if (selectable) Spacer(Modifier.width(40.dp))
-                            Text("Test", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f), fontSize = 11.sp)
-                            Text("Value", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 11.sp)
-                            Text("Unit", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.7f), fontSize = 11.sp)
-                            Text("Ref Range", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), fontSize = 11.sp)
+                            Text(stringResource(R.string.test), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f), fontSize = 11.sp)
+                            Text(stringResource(R.string.value_2), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 11.sp)
+                            Text(stringResource(R.string.unit), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.7f), fontSize = 11.sp)
+                            Text(stringResource(R.string.ref_range), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), fontSize = 11.sp)
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -220,13 +222,13 @@ private fun ParseLabReportTab() {
                                         fontWeight = if (isAbnormal) FontWeight.Bold else FontWeight.Normal
                                     )
                                     if (item.sourceLabel != null && item.sourceLabel != item.testName) {
-                                        Text("document: \"${item.sourceLabel}\"", fontSize = 9.sp,
+                                        Text(stringResource(R.string.document, item.sourceLabel), fontSize = 9.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     when {
-                                        item.isDuplicate -> Text("Already recorded", fontSize = 9.sp,
+                                        item.isDuplicate -> Text(stringResource(R.string.already_recorded), fontSize = 9.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        item.isConflict -> Text("Differs from existing", fontSize = 9.sp,
+                                        item.isConflict -> Text(stringResource(R.string.differs_from_existing), fontSize = 9.sp,
                                             color = Color(0xFFB45309))
                                     }
                                     item.note?.let {
@@ -265,7 +267,7 @@ private fun ParseLabReportTab() {
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null)
                             Spacer(Modifier.width(6.dp))
-                            Text(if (isImporting) "Importing…" else "Import ${selectedIds.size} selected")
+                            Text(if (isImporting) stringResource(R.string.importing) else stringResource(R.string.import_selected, selectedIds.size))
                         }
                         OutlinedButton(
                             onClick = {
@@ -276,11 +278,11 @@ private fun ParseLabReportTab() {
                                 }
                             },
                             enabled = !isImporting
-                        ) { Text("Discard") }
+                        ) { Text(stringResource(R.string.discard)) }
                     }
                 } else if (!res.canImport) {
                     Text(
-                        "This document type can be read but not imported yet — the values above are shown for reference only.",
+                        stringResource(R.string.this_document_type_can_be_read_but_not),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -347,7 +349,7 @@ private fun GenerateFlowsheetTab() {
                 value = sessionType.replaceFirstChar { it.uppercase() },
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Session Type") },
+                label = { Text(stringResource(R.string.session_type)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor()
             )
@@ -370,7 +372,7 @@ private fun GenerateFlowsheetTab() {
         OutlinedTextField(
             value = days,
             onValueChange = { days = it },
-            label = { Text("Days") },
+            label = { Text(stringResource(R.string.days)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -396,7 +398,7 @@ private fun GenerateFlowsheetTab() {
         ) {
             Icon(Icons.Default.TableChart, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Generate Flowsheet")
+            Text(stringResource(R.string.generate_flowsheet))
         }
 
         if (isLoading) {
@@ -414,10 +416,10 @@ private fun GenerateFlowsheetTab() {
 
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         res.generatedAt?.let {
-                            Text("Generated: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.generated, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         res.sessionCount?.let {
-                            Text("Sessions: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.sessions_2, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
@@ -457,7 +459,7 @@ private fun GenerateFlowsheetTab() {
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
-                        Text(if (isDownloading) "Preparing…" else "Download PDF")
+                        Text(if (isDownloading) stringResource(R.string.preparing) else stringResource(R.string.download_pdf))
                     }
 
                     res.content?.let {

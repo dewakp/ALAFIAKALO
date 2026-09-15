@@ -86,7 +86,7 @@ final class ClinicianDashboardViewModel {
         // A note hangs off a specific therapy session. Refusing to send is
         // honest; posting into a session that cannot exist is not.
         guard sessionId > 0 else {
-            errorMessage = "Open a specific dialysis session to add a note to it."
+            errorMessage = AppLanguage.text("Open a specific dialysis session to add a note to it.")
             return
         }
         savingNote = true

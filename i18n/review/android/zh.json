@@ -1,0 +1,7586 @@
+{
+  "a_direct_message_goes_to_one_person": {
+    "source": "A direct message goes to one person. Remove them to pick someone else.",
+    "translation": "直接消息只发送给一个人。删除此人以选择其他人。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "abnormal": {
+    "source": "⚠ %1$s abnormal",
+    "translation": "⚠ %1$s 异常",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "accept": {
+    "source": "Accept",
+    "translation": "接受",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "accept_enable_ai_features": {
+    "source": "Accept & Enable AI Features",
+    "translation": "接受并启用 AI 功能",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "accepting_patients": {
+    "source": "Accepting patients",
+    "translation": "接收新患者",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "accepting_patients_2": {
+    "source": "Accepting Patients",
+    "translation": "接收新患者",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "access": {
+    "source": "Access",
+    "translation": "血管通路",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "access_redness_drainage": {
+    "source": "Access Redness/Drainage",
+    "translation": "通路发红/渗液",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "access_thrill_bruit": {
+    "source": "Access Thrill / Bruit",
+    "translation": "通路震颤 / 血管杂音",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "access_type": {
+    "source": "Access Type",
+    "translation": "通路类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "account": {
+    "source": "Account",
+    "translation": "账户",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "action": {
+    "source": "Action: %1$s",
+    "translation": "操作：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "active": {
+    "source": "Active",
+    "translation": "已激活",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "active_alerts": {
+    "source": "Active Alerts",
+    "translation": "活跃警报",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "active_plans": {
+    "source": "Active Plans (%1$s)",
+    "translation": "活跃计划 (%1$s)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "active_roles": {
+    "source": "Active Roles",
+    "translation": "活跃角色",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "activity": {
+    "source": "Activity",
+    "translation": "活动",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "activity_level": {
+    "source": "Activity Level",
+    "translation": "活动水平",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "actual_end": {
+    "source": "Actual End",
+    "translation": "实际结束",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "actual_start": {
+    "source": "Actual Start",
+    "translation": "实际开始",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add": {
+    "source": "Add",
+    "translation": "添加",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_a_clinical_note": {
+    "source": "Add a clinical note…",
+    "translation": "添加临床记录…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_a_note": {
+    "source": "Add a note…",
+    "translation": "添加备注…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_condition": {
+    "source": "Add Condition",
+    "translation": "添加病情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_data_grant": {
+    "source": "Add Data Grant",
+    "translation": "添加数据授权",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_drug": {
+    "source": "Add drug",
+    "translation": "添加药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_event": {
+    "source": "Add Event",
+    "translation": "添加事件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_exchange": {
+    "source": "Add Exchange",
+    "translation": "添加交换",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_food": {
+    "source": "+ Add food",
+    "translation": "+ 添加食物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_insurance_plan": {
+    "source": "Add Insurance Plan",
+    "translation": "添加保险计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_lab_result": {
+    "source": "Add Lab Result",
+    "translation": "添加实验室结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_meal": {
+    "source": "Add meal",
+    "translation": "添加餐食",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_medication": {
+    "source": "Add Medication",
+    "translation": "添加药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_note": {
+    "source": "Add note",
+    "translation": "添加备注",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_pantry_item": {
+    "source": "Add Pantry Item",
+    "translation": "添加食品柜项目",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_pd_session": {
+    "source": "Add PD Session",
+    "translation": "添加PD疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_physician": {
+    "source": "Add Physician",
+    "translation": "添加医生",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_profile": {
+    "source": "Add Profile",
+    "translation": "添加档案",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_reading": {
+    "source": "Add reading",
+    "translation": "添加读数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_role": {
+    "source": "Add Role",
+    "translation": "添加角色",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_scanned_medication": {
+    "source": "Add Scanned Medication",
+    "translation": "添加扫描药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_these_to_my_medications": {
+    "source": "Add these to my medications",
+    "translation": "将这些添加到我的药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "add_your_age_height_weight_in_profile": {
+    "source": "Add your age, height & weight in Profile for goals tailored to you.",
+    "translation": "在个人资料中添加年龄、身高和体重，获得为您定制的目标。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "additional_instructions": {
+    "source": "Additional Instructions",
+    "translation": "其他说明",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "adherence": {
+    "source": "Adherence",
+    "translation": "用药依从性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "adherence_summary": {
+    "source": "Adherence Summary",
+    "translation": "用药依从性总结",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "advanced_directives": {
+    "source": "Advanced Directives",
+    "translation": "预先指示",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "adverse_reactions": {
+    "source": "Adverse Reactions",
+    "translation": "不良反应",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "adverse_reactions_2": {
+    "source": "Adverse reactions: %1$s",
+    "translation": "不良反应：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "advisories": {
+    "source": "Advisories",
+    "translation": "警告",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "after": {
+    "source": "After",
+    "translation": "之后",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ai_chat": {
+    "source": "AI Chat",
+    "translation": "AI 聊天",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ai_coaching": {
+    "source": "AI Coaching",
+    "translation": "AI 教练",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ai_explainability_level": {
+    "source": "AI Explainability Level",
+    "translation": "AI 可解释性级别",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ai_health_assistant": {
+    "source": "AI Health Assistant",
+    "translation": "AI 健康助手",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ai_memory": {
+    "source": "AI Memory",
+    "translation": "AI 记忆",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ai_preferences": {
+    "source": "AI Preferences",
+    "translation": "AI 偏好设置",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ai_summary": {
+    "source": "AI Summary",
+    "translation": "AI 总结",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ai_training_consent": {
+    "source": "AI Training Consent",
+    "translation": "AI 训练同意",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "aim_for_stay_under_based_on_your_biology": {
+    "source": "↑ aim for · ↓ stay under. Based on your biology & conditions — not medical advice.",
+    "translation": "↑ 目标达到 · ↓ 保持在以下。基于您的生理状况和病情 — 非医学建议。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "air_filter_cleaned": {
+    "source": "Air Filter Cleaned",
+    "translation": "空气过滤器已清洁",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "alafia_membership": {
+    "source": "ALAFIA Membership",
+    "translation": "ALAFIA 会员",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "alafia_needs_an_active_membership": {
+    "source": "ALAFIA needs an active membership. Subscribe to continue — if you already pay on another device, restore it below.",
+    "translation": "ALAFIA 需要有效的会员资格。订阅以继续 — 如果您已在其他设备上付款，请在下方恢复。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "alarm_test_complete": {
+    "source": "Alarm Test Complete",
+    "translation": "警报测试完成",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "alcohol": {
+    "source": "Alcohol",
+    "translation": "酒精",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "alert_categories": {
+    "source": "Alert Categories",
+    "translation": "警报类别",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all": {
+    "source": "All",
+    "translation": "全部",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_2": {
+    "source": "All (%1$s)",
+    "translation": "全部 (%1$s)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_available_roles_have_been_added": {
+    "source": "All available roles have been added.",
+    "translation": "所有可用角色已添加。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_day": {
+    "source": "🕐 All day",
+    "translation": "🕐 全天",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_day_2": {
+    "source": "All Day",
+    "translation": "全天",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_nutrients": {
+    "source": "All nutrients",
+    "translation": "所有营养素",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_patients": {
+    "source": "All patients",
+    "translation": "所有患者",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_severity": {
+    "source": "All Severity",
+    "translation": "所有严重程度",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_sources": {
+    "source": "All Sources",
+    "translation": "所有来源",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "all_specialties": {
+    "source": "All Specialties",
+    "translation": "所有专科",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "allergies": {
+    "source": "Allergies",
+    "translation": "过敏症",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "allergy": {
+    "source": "Allergy ✓",
+    "translation": "过敏 ✓",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "allergy_checked": {
+    "source": "Allergy checked",
+    "translation": "已检查过敏",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "allow_ai_to_remember_your_preferences": {
+    "source": "Allow AI to remember your preferences and history",
+    "translation": "允许 AI 记住您的偏好和历史记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "allow_your_anonymized_data_to_be_used": {
+    "source": "Allow your anonymized data to be used for medical research",
+    "translation": "允许您的匿名数据用于医学研究",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "already_have_an_account_login": {
+    "source": "Already have an account? Login",
+    "translation": "已有账户？登录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "already_recorded": {
+    "source": "Already recorded",
+    "translation": "已记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "alternate_agent": {
+    "source": "Alternate Agent",
+    "translation": "备用代理人",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "always": {
+    "source": "Always",
+    "translation": "始终",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "amount": {
+    "source": "Amount",
+    "translation": "用量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "analyse_image_s_with_alafia": {
+    "source": "Analyse Image(s) with Alafia",
+    "translation": "用 ALAFIA 分析图像",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "analysing": {
+    "source": "Analysing…",
+    "translation": "分析中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "analyze": {
+    "source": "Analyze",
+    "translation": "分析",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "analyze_photo": {
+    "source": "Analyze photo",
+    "translation": "分析照片",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "analyzing_photo": {
+    "source": "Analyzing photo…",
+    "translation": "正在分析照片…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "anonymized_analytics": {
+    "source": "Anonymized Analytics",
+    "translation": "匿名分析",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "anonymous": {
+    "source": "Anonymous",
+    "translation": "匿名",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "anxiety": {
+    "source": "Anxiety",
+    "translation": "焦虑",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "anxiety_10": {
+    "source": "Anxiety: %1$s/10",
+    "translation": "焦虑：%1$s/10",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "any_app_or_ehr_connected_to_health": {
+    "source": "Any app or EHR connected to Health Connect is automatically included.",
+    "translation": "连接到 Health Connect 的任何应用或电子病历都会自动包含。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "app_description": {
+    "source": "Your personal health and wellness companion",
+    "translation": "您的个人健康和健康伴侣",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "app_name": {
+    "source": "ALAFIA",
+    "translation": "ALAFIA",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "applicable_conditions": {
+    "source": "🏥 Applicable Conditions",
+    "translation": "🏥 适用病症",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "apply": {
+    "source": "Apply",
+    "translation": "应用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "are_you_sure_you_want_to_delete_your": {
+    "source": "Are you sure you want to delete your advanced directive? This cannot be undone.",
+    "translation": "您确定要删除您的预先指示吗？此操作无法撤销。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "art_p": {
+    "source": "Art P",
+    "translation": "动脉压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ask": {
+    "source": "Ask",
+    "translation": "询问",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ask_about_your_health": {
+    "source": "Ask about your health...",
+    "translation": "询问您的健康问题...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ask_alafia": {
+    "source": "Ask ALAFIA",
+    "translation": "询问 ALAFIA",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "assessment": {
+    "source": "Assessment",
+    "translation": "评估",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "atypical_please_verify": {
+    "source": "Atypical — please verify",
+    "translation": "异常 — 请验证",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "auto_replenish_coming_soon": {
+    "source": "Auto-Replenish (Coming Soon)",
+    "translation": "自动补充（即将推出）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg": {
+    "source": "Avg",
+    "translation": "平均值",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg_dur": {
+    "source": "Avg Dur",
+    "translation": "平均时长",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg_duration": {
+    "source": "Avg Duration",
+    "translation": "平均时长",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg_heart_rate": {
+    "source": "Avg Heart Rate",
+    "translation": "平均心率",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg_post": {
+    "source": "Avg Post",
+    "translation": "平均站立后",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg_post_wt": {
+    "source": "Avg Post Wt",
+    "translation": "平均透析后体重",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg_pre": {
+    "source": "Avg Pre",
+    "translation": "平均站立前",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg_pre_wt": {
+    "source": "Avg Pre Wt",
+    "translation": "平均透析前体重",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "avg_uf": {
+    "source": "Avg UF",
+    "translation": "平均超滤量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "back": {
+    "source": "Back",
+    "translation": "返回",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "back_to_login": {
+    "source": "Back to Login",
+    "translation": "返回登录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "based_on_of_the_usual_picture": {
+    "source": "Based on %1$s%% of the usual picture.",
+    "translation": "基于通常情况的 %1$s%%。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "baseline": {
+    "source": "Baseline Ω",
+    "translation": "基线 Ω",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "before": {
+    "source": "Before",
+    "translation": "之前",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "before_you_use_alafia_s_ai": {
+    "source": "Before you use ALAFIA's AI",
+    "translation": "使用 ALAFIA 的 AI 之前",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bfr_ml_min": {
+    "source": "BFR (mL/min)",
+    "translation": "BFR (mL/min)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "billed_monthly_through_google_play": {
+    "source": "Billed monthly through Google Play. Cancel anytime in Play Store settings.",
+    "translation": "通过 Google Play 按月计费。可随时在 Play Store 设置中取消。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "billing_via": {
+    "source": "Billing via: %1$s",
+    "translation": "计费方式：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bio_research": {
+    "source": "Bio & Research",
+    "translation": "生物与研究",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "biometric_authentication": {
+    "source": "Biometric Authentication",
+    "translation": "生物识别认证",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bleed_stop_time": {
+    "source": "Bleed Stop Time",
+    "translation": "止血时间",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "block": {
+    "source": "block %1$s",
+    "translation": "块 %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "blood_present": {
+    "source": "Blood present",
+    "translation": "有血液",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "blood_present_2": {
+    "source": "⚠ Blood present",
+    "translation": "⚠ 有血液",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "blood_pressure_mmhg": {
+    "source": "Blood pressure (mmHg)",
+    "translation": "血压（mmHg）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "blood_transfusion": {
+    "source": "Blood Transfusion",
+    "translation": "输血",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "blood_type": {
+    "source": "Blood Type",
+    "translation": "血型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "blood_type_locked": {
+    "source": "Blood Type (locked)",
+    "translation": "血型（已锁定）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "blood_vol": {
+    "source": "Blood Vol",
+    "translation": "血容量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "blood_vol_l": {
+    "source": "Blood Vol (L)",
+    "translation": "血容量 (L)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "board_certifications_comma_separated": {
+    "source": "Board Certifications (comma-separated)",
+    "translation": "专科认证（逗号分隔）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bookmark": {
+    "source": "Bookmark",
+    "translation": "收藏",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bookmark_physicians_from_the_directory": {
+    "source": "Bookmark physicians from the directory",
+    "translation": "从目录中收藏医生",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bp_pre_post": {
+    "source": "BP: Pre %1$s → Post %2$s",
+    "translation": "血压：治疗前 %1$s → 治疗后 %2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "breakfast": {
+    "source": "Breakfast",
+    "translation": "早餐",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "breathing": {
+    "source": "Breathing",
+    "translation": "呼吸",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bristol": {
+    "source": "Bristol %1$s",
+    "translation": "Bristol %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bristol_scale": {
+    "source": "Bristol Scale: %1$s",
+    "translation": "Bristol 量表：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "bruising": {
+    "source": "Bruising",
+    "translation": "淤青",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "burning_sensation": {
+    "source": "Burning sensation",
+    "translation": "灼痛感",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "buttonhole_technique": {
+    "source": "Buttonhole Technique",
+    "translation": "按钮孔穿刺法",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "by": {
+    "source": "By: %1$s",
+    "translation": "由: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "cal": {
+    "source": "Cal",
+    "translation": "卡路里",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "cal_2": {
+    "source": "%1$s cal",
+    "translation": "%1$s 卡",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "cal_day": {
+    "source": "%1$s cal/day",
+    "translation": "%1$s 卡/天",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "calendar": {
+    "source": "Calendar",
+    "translation": "日历",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "calories": {
+    "source": "Calories",
+    "translation": "卡路里",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "calories_burned": {
+    "source": "Calories Burned",
+    "translation": "燃烧卡路里",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "can_read": {
+    "source": "Can Read",
+    "translation": "可读取",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "can_write": {
+    "source": "Can Write",
+    "translation": "可编辑",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "cancel": {
+    "source": "Cancel",
+    "translation": "取消",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "cancel_session": {
+    "source": "Cancel Session",
+    "translation": "取消会话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "carb": {
+    "source": "Carb",
+    "translation": "碳水化合物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "carbs": {
+    "source": "Carbs",
+    "translation": "碳水化合物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "cartridge_lot": {
+    "source": "Cartridge Lot",
+    "translation": "墨盒批号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "categories": {
+    "source": "Categories",
+    "translation": "分类",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "category": {
+    "source": "Category",
+    "translation": "分类",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "change": {
+    "source": "Change",
+    "translation": "更改",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "change_in_mobility": {
+    "source": "Change in Mobility",
+    "translation": "活动能力变化",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "change_my_details": {
+    "source": "Change my details",
+    "translation": "修改我的信息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "change_photo": {
+    "source": "Change Photo",
+    "translation": "更改照片",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "chart_dashboard": {
+    "source": "Chart Dashboard",
+    "translation": "图表仪表板",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "check_in": {
+    "source": "Check In",
+    "translation": "签到",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "chemotherapy": {
+    "source": "Chemotherapy",
+    "translation": "化疗",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "chief_complaint": {
+    "source": "Chief Complaint",
+    "translation": "主诉",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "chloramine_ppm": {
+    "source": "Chloramine (ppm)",
+    "translation": "氯胺 (ppm)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "choose_export_format": {
+    "source": "Choose export format:",
+    "translation": "选择导出格式：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "choose_files": {
+    "source": "Choose Files",
+    "translation": "选择文件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "choose_from_gallery": {
+    "source": "Choose from Gallery",
+    "translation": "从相册选择",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "choose_your_guide": {
+    "source": "Choose Your Guide",
+    "translation": "选择您的指南",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "chronic_conditions": {
+    "source": "Chronic Conditions",
+    "translation": "慢性病",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "city": {
+    "source": "City",
+    "translation": "城市",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clarity": {
+    "source": "Clarity",
+    "translation": "清晰度",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clarity_2": {
+    "source": "  Clarity: %1$s",
+    "translation": "清晰度: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clear": {
+    "source": "Clear",
+    "translation": "清除",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clear_cloudy_foamy": {
+    "source": "clear, cloudy, foamy…",
+    "translation": "清澈、浑浊、泡沫状…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clear_icd_11_code": {
+    "source": "Clear ICD-11 code",
+    "translation": "清除 ICD-11 代码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clear_images": {
+    "source": "Clear images",
+    "translation": "清除图像",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clinical_assessment": {
+    "source": "📋 Clinical Assessment",
+    "translation": "📋 临床评估",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clinical_assessments": {
+    "source": "📋 Clinical Assessments",
+    "translation": "📋 临床评估",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clinical_channels": {
+    "source": "Clinical Channels",
+    "translation": "临床频道",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clinical_languages_comma_separated": {
+    "source": "Clinical Languages (comma-separated)",
+    "translation": "临床语言（逗号分隔）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clinical_notes": {
+    "source": "Clinical Notes",
+    "translation": "临床记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clinical_notes_2": {
+    "source": "Clinical notes",
+    "translation": "临床记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clinical_notes_3": {
+    "source": "Clinical Notes (%1$s)",
+    "translation": "临床记录 (%1$s)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "clinician_view": {
+    "source": "Clinician view",
+    "translation": "临床医生视图",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "close": {
+    "source": "Close",
+    "translation": "关闭",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "collective_insights": {
+    "source": "Collective Insights",
+    "translation": "集体洞察",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "color": {
+    "source": "Color: %1$s",
+    "translation": "颜色：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "color_2": {
+    "source": "Color",
+    "translation": "颜色",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "communications": {
+    "source": "Communications",
+    "translation": "通讯",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "community_feed": {
+    "source": "Community Feed",
+    "translation": "社区动态",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "community_health": {
+    "source": "Community Health",
+    "translation": "社区健康",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "community_reports": {
+    "source": "Community Reports",
+    "translation": "社区报告",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "complete": {
+    "source": "Complete",
+    "translation": "完成",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "complexity": {
+    "source": "Complexity",
+    "translation": "复杂性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "compliance_info": {
+    "source": "Compliance Info",
+    "translation": "合规信息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "complications": {
+    "source": "Complications: %1$s",
+    "translation": "并发症：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "condition_abbreviation_or_code": {
+    "source": "Condition, abbreviation or code",
+    "translation": "病情、缩写或代码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "condition_name": {
+    "source": "Condition Name *",
+    "translation": "病情名称 *",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "confidence": {
+    "source": "Confidence",
+    "translation": "信心度",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "confirm": {
+    "source": "Confirm",
+    "translation": "确认",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "confirm_correct": {
+    "source": "Confirm / correct",
+    "translation": "确认/更正",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "confirm_password": {
+    "source": "Confirm Password",
+    "translation": "确认密码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "confirm_your_email": {
+    "source": "Confirm your email",
+    "translation": "确认您的邮箱",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "confirmed_cases": {
+    "source": "Confirmed Cases: %1$s",
+    "translation": "确诊病例：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "connect": {
+    "source": "Connect",
+    "translation": "连接",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "connect_to_grocery_services_instacart": {
+    "source": "Connect to grocery services (Instacart, Kroger, Walmart) for automatic reordering when items run low.",
+    "translation": "连接到杂货店服务（Instacart、Kroger、Walmart），当物品不足时自动重新订购。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "connected": {
+    "source": "Connected",
+    "translation": "已连接",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "connecting": {
+    "source": "Connecting…",
+    "translation": "连接中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "contains_bile": {
+    "source": "Contains bile",
+    "translation": "含胆汁",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "contains_blood": {
+    "source": "Contains blood",
+    "translation": "含有血液",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "contains_food": {
+    "source": "Contains food",
+    "translation": "含食物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "contents": {
+    "source": "Contents",
+    "translation": "内容",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "coping": {
+    "source": "Coping: %1$s",
+    "translation": "应对方式：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "coping_strategies_used": {
+    "source": "Coping strategies used",
+    "translation": "使用的应对策略",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "core_role_always_active": {
+    "source": "Core role — always active",
+    "translation": "核心角色 — 始终活跃",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "correlations": {
+    "source": "Correlations",
+    "translation": "相关性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "could_not_load_this_photo": {
+    "source": "Could not load this photo.",
+    "translation": "无法加载此照片。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "couldn_t_check_your_membership": {
+    "source": "Couldn't check your membership",
+    "translation": "无法检查您的会员资格",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "counseling_provided": {
+    "source": "Counseling provided",
+    "translation": "已提供用药指导",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "countersign": {
+    "source": "Countersign",
+    "translation": "副签",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "countries": {
+    "source": "Countries: %1$s",
+    "translation": "国家/地区：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "countries_2": {
+    "source": "Countries",
+    "translation": "国家/地区",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "countries_alafia_symptom_signals": {
+    "source": "%1$s countries · %2$s ALAFIA symptom signals",
+    "translation": "%1$s 个国家 · %2$s 个 ALAFIA 症状信号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "country": {
+    "source": "Country *",
+    "translation": "国家 *",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "country_2": {
+    "source": "Country",
+    "translation": "国家",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "country_code": {
+    "source": "Country code",
+    "translation": "国家代码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "create": {
+    "source": "Create",
+    "translation": "创建",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "create_account": {
+    "source": "Create Account",
+    "translation": "创建账户",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "create_conversation": {
+    "source": "Create Conversation",
+    "translation": "创建对话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "create_post": {
+    "source": "Create Post",
+    "translation": "创建帖子",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "created": {
+    "source": "Created:",
+    "translation": "创建：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "creating": {
+    "source": "Creating...",
+    "translation": "创建中...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "credentials": {
+    "source": "Credentials",
+    "translation": "资格证书",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "credentials_licensing": {
+    "source": "Credentials & Licensing",
+    "translation": "证书与执照",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "critical": {
+    "source": "Critical",
+    "translation": "严重",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "current": {
+    "source": "✓ Current",
+    "translation": "✓ 当前",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "current_guideline": {
+    "source": "✓ Current guideline",
+    "translation": "✓ 现行指南",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "current_treatment_plan": {
+    "source": "Current Treatment Plan:",
+    "translation": "当前治疗方案：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "current_weight_kg": {
+    "source": "Current Weight (kg)",
+    "translation": "当前体重（千克）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "cycle_of": {
+    "source": "Cycle %1$s of %2$s",
+    "translation": "第 %1$s 个周期，共 %2$s 个",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "cycler": {
+    "source": "Cycler #",
+    "translation": "循环机号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "daily_calorie_target": {
+    "source": "Daily Calorie Target",
+    "translation": "每日卡路里目标",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "daily_mean": {
+    "source": "Daily mean",
+    "translation": "每日平均值",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "daily_summary": {
+    "source": "Daily Summary",
+    "translation": "每日总结",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "daily_targets": {
+    "source": "Daily Targets",
+    "translation": "每日目标",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dashboard": {
+    "source": "Dashboard",
+    "translation": "仪表板",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_coverage": {
+    "source": "Data coverage",
+    "translation": "数据覆盖率",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_flows_from_health_connect_alafia": {
+    "source": "Data flows from Health Connect → ALAFIA only.",
+    "translation": "数据仅从 Health Connect 流向 ALAFIA。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_rights": {
+    "source": "Data Rights",
+    "translation": "数据权利",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_sharing": {
+    "source": "Data Sharing",
+    "translation": "数据共享",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_sharing_consent": {
+    "source": "Data Sharing Consent",
+    "translation": "数据共享同意",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_sharing_privacy": {
+    "source": "Data Sharing & Privacy",
+    "translation": "数据共享与隐私",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_sources": {
+    "source": "Data Sources",
+    "translation": "数据来源",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_type": {
+    "source": "Data Type",
+    "translation": "数据类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_types": {
+    "source": "Data Types",
+    "translation": "数据类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "data_types_to_share": {
+    "source": "Data Types to Share",
+    "translation": "要共享的数据类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "date": {
+    "source": "Date: %1$s",
+    "translation": "日期: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "date_of_birth": {
+    "source": "Date of Birth",
+    "translation": "出生日期",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "date_of_birth_locked": {
+    "source": "Date of Birth (locked)",
+    "translation": "出生日期（已锁定）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "date_of_birth_yyyy_mm_dd": {
+    "source": "Date of Birth (YYYY-MM-DD)",
+    "translation": "出生日期 (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "date_yyyy_mm_dd": {
+    "source": "Date (YYYY-MM-DD)",
+    "translation": "日期 (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "day_of_week": {
+    "source": "Day of Week",
+    "translation": "星期几",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "days": {
+    "source": "Days",
+    "translation": "天数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "days_e_g_mon_wed_fri": {
+    "source": "Days (e.g. Mon,Wed,Fri)",
+    "translation": "日期(如 周一,周三,周五)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "days_supply": {
+    "source": "Days supply",
+    "translation": "供应天数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dea_number": {
+    "source": "DEA Number",
+    "translation": "DEA 号码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "deaths": {
+    "source": "Deaths: %1$s",
+    "translation": "死亡人数：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "decline": {
+    "source": "Decline",
+    "translation": "拒绝",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "deduplication": {
+    "source": "Deduplication",
+    "translation": "去重",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "degree": {
+    "source": "Degree",
+    "translation": "学位",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete": {
+    "source": "Delete",
+    "translation": "删除",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_account": {
+    "source": "Delete Account",
+    "translation": "删除账户",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_account_2": {
+    "source": "Delete Account?",
+    "translation": "删除账户？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_directive": {
+    "source": "Delete Directive",
+    "translation": "删除指示",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_grant": {
+    "source": "Delete Grant",
+    "translation": "删除授权",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_pd_session_from": {
+    "source": "Delete PD session from %1$s?",
+    "translation": "删除 %1$s 的腹膜透析疗程？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_reading": {
+    "source": "Delete reading",
+    "translation": "删除读数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_session": {
+    "source": "Delete Session",
+    "translation": "删除疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_this_chemotherapy_session": {
+    "source": "Delete this chemotherapy session?",
+    "translation": "删除此化疗疗程？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "delete_this_hemodialysis_session": {
+    "source": "Delete this hemodialysis session?",
+    "translation": "删除此血液透析疗程？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "denied": {
+    "source": "Denied: %1$s",
+    "translation": "已拒绝：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "department": {
+    "source": "Department",
+    "translation": "科室",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "description": {
+    "source": "Description",
+    "translation": "描述",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "description_2": {
+    "source": "Description *",
+    "translation": "描述 *",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "description_optional": {
+    "source": "Description (optional)",
+    "translation": "描述（可选）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "details": {
+    "source": "📅 Details",
+    "translation": "📅 详情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dfr_ml_min": {
+    "source": "DFR (mL/min)",
+    "translation": "DFR (mL/min)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dia": {
+    "source": "Dia",
+    "translation": "舒张压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "diagnosed": {
+    "source": "Diagnosed: %1$s",
+    "translation": "诊断日期：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "diagnosis": {
+    "source": "Diagnosis",
+    "translation": "诊断",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "diagnosis_date_yyyy_mm_dd": {
+    "source": "Diagnosis Date (YYYY-MM-DD)",
+    "translation": "诊断日期 (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dialysate_prescription": {
+    "source": "Dialysate Prescription",
+    "translation": "透析液处方",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dialysis": {
+    "source": "Dialysis",
+    "translation": "透析",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dialysis_today_session": {
+    "source": "Dialysis today — %1$s session%2$s",
+    "translation": "今天透析 — %1$s 次%2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dialyzer": {
+    "source": "Dialyzer",
+    "translation": "透析器",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "diastolic": {
+    "source": "Diastolic",
+    "translation": "舒张压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dietary_pattern": {
+    "source": "Dietary Pattern",
+    "translation": "饮食模式",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dietary_preferences": {
+    "source": "Dietary Preferences",
+    "translation": "饮食偏好",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dietary_restrictions": {
+    "source": "Dietary Restrictions",
+    "translation": "饮食限制",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "differs_from_existing": {
+    "source": "Differs from existing",
+    "translation": "与现有数据不符",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "digestion_problems": {
+    "source": "Digestion Problems",
+    "translation": "消化问题",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dinner": {
+    "source": "Dinner",
+    "translation": "晚餐",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "direct_messages": {
+    "source": "Direct Messages",
+    "translation": "直接消息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "directory": {
+    "source": "Directory",
+    "translation": "目录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "discard": {
+    "source": "Discard",
+    "translation": "丢弃",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "disease": {
+    "source": "Disease: %1$s",
+    "translation": "疾病：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "disease_surveillance": {
+    "source": "Disease Surveillance",
+    "translation": "疾病监测",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dispense": {
+    "source": "Dispense",
+    "translation": "配药",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dispense_prescription": {
+    "source": "Dispense Prescription",
+    "translation": "配药",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "distance_km": {
+    "source": "Distance (km)",
+    "translation": "距离（km）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "document": {
+    "source": "document: \"%1$s\"",
+    "translation": "文档: \"%1$s\"",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "document_date": {
+    "source": "Document Date",
+    "translation": "文件日期",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "document_date_yyyy_mm_dd": {
+    "source": "Document Date (YYYY-MM-DD)",
+    "translation": "文件日期（YYYY-MM-DD）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "document_info": {
+    "source": "Document Info",
+    "translation": "文件信息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "document_selected": {
+    "source": "Document selected",
+    "translation": "文档已选择",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "document_signed": {
+    "source": "Document Signed",
+    "translation": "文件已签署",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "don_t_have_an_account_register": {
+    "source": "Don't have an account? Register",
+    "translation": "没有账户？注册",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "done": {
+    "source": "Done",
+    "translation": "完成",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dosage": {
+    "source": "Dosage",
+    "translation": "剂量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dosage_e_g_500mg": {
+    "source": "Dosage (e.g. 500mg)",
+    "translation": "剂量（例如 500mg）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dosage_strength": {
+    "source": "Dosage / Strength",
+    "translation": "剂量/强度",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dose": {
+    "source": "Dose: %1$s",
+    "translation": "剂量: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dose_2": {
+    "source": "Dose",
+    "translation": "剂量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dose_label": {
+    "source": "Dose label",
+    "translation": "剂量标签",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dose_taken": {
+    "source": "Dose taken",
+    "translation": "已服用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "download_pdf": {
+    "source": "Download PDF",
+    "translation": "下载 PDF",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "drug": {
+    "source": "Drug",
+    "translation": "药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "drugs": {
+    "source": "Drugs",
+    "translation": "药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "drugs_administered": {
+    "source": "Drugs Administered",
+    "translation": "已给药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "drugs_administration": {
+    "source": "Drugs & Administration",
+    "translation": "药物与给药",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "drugs_given_this_session": {
+    "source": "Drugs Given This Session",
+    "translation": "本次给药",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "dry": {
+    "source": "Dry",
+    "translation": "干体重",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "duplicates_skipped": {
+    "source": "Duplicates skipped:",
+    "translation": "重复项已跳过：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "duration": {
+    "source": "Duration",
+    "translation": "持续时间",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "duration_min": {
+    "source": "Duration: %1$s min",
+    "translation": "时长：%1$s 分钟",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "duration_min_2": {
+    "source": "Duration (min)",
+    "translation": "时长（分钟）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_1_5_dextrose": {
+    "source": "e.g., 1.5% Dextrose",
+    "translation": "例如，1.5% Dextrose",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_500mg": {
+    "source": "e.g., 500mg",
+    "translation": "例如，500mg",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_america_new_york": {
+    "source": "e.g. America/New_York",
+    "translation": "例如 America/New_York",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_banana_chicken_breast": {
+    "source": "e.g. banana, chicken breast…",
+    "translation": "例如：香蕉、鸡胸肉…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_beans_in_palm_oil_grilled_chicken": {
+    "source": "e.g. beans in palm oil; grilled chicken",
+    "translation": "例如：棕榈油豆类；烤鸡",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_high_protein_low_sodium": {
+    "source": "e.g. high protein, low sodium",
+    "translation": "例如 高蛋白、低钠",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_i_ate_jollof_rice_and_took_my_10mg": {
+    "source": "e.g. I ate jollof rice and took my 10mg lisinopril",
+    "translation": "例如：我吃了jollof rice，服用了10mg lisinopril",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_i_take_calcitriol": {
+    "source": "e.g. \"I take Calcitriol\"",
+    "translation": "例如\"I take Calcitriol\"",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_kidney_esrd_gb61_5": {
+    "source": "e.g. kidney, ESRD, GB61.5",
+    "translation": "例如 kidney、ESRD、GB61.5",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_knee_injury_no_jumping": {
+    "source": "e.g. knee injury, no jumping",
+    "translation": "例如 膝盖受伤、不能跳跃",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_nuts_dairy": {
+    "source": "e.g. nuts, dairy",
+    "translation": "例如 坚果、乳制品",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "e_g_twice_daily": {
+    "source": "e.g., twice daily",
+    "translation": "例如，每天两次",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "each_record_has_a_unique_id_re_syncing": {
+    "source": "Each record has a unique ID. Re-syncing won't create duplicates.",
+    "translation": "每条记录都有唯一 ID。重新同步不会创建重复项。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "edit": {
+    "source": "Edit",
+    "translation": "编辑",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "edit_condition": {
+    "source": "Edit Condition",
+    "translation": "编辑病情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "edit_event": {
+    "source": "Edit Event",
+    "translation": "编辑事件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "edit_hd_session": {
+    "source": "Edit HD Session",
+    "translation": "编辑血液透析会话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "edit_meal": {
+    "source": "Edit meal",
+    "translation": "编辑餐食",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "edit_profile": {
+    "source": "Edit Profile",
+    "translation": "编辑个人资料",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "edit_this_meal": {
+    "source": "Edit this meal",
+    "translation": "编辑此餐食",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "edited": {
+    "source": "(edited)",
+    "translation": "（已编辑）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "education_training": {
+    "source": "Education & Training",
+    "translation": "教育与培训",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "effective": {
+    "source": "Effective: %1$s",
+    "translation": "生效：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "effectiveness": {
+    "source": "Effectiveness",
+    "translation": "有效性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "effluent_clarity": {
+    "source": "Effluent Clarity",
+    "translation": "腹膜透析液清晰度",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ehr_apps": {
+    "source": "EHR & Apps",
+    "translation": "电子病历和应用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "elimination": {
+    "source": "Elimination",
+    "translation": "清除",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "email": {
+    "source": "Email",
+    "translation": "电子邮件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "email_notifications": {
+    "source": "Email Notifications",
+    "translation": "电子邮件通知",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "emotions": {
+    "source": "Emotions: %1$s",
+    "translation": "情绪：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "emotions_coping": {
+    "source": "Emotions & Coping",
+    "translation": "情绪与应对",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "emotions_e_g_happy_anxious": {
+    "source": "Emotions (e.g. happy, anxious)",
+    "translation": "情绪（例如开心、焦虑）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "enable_checkboxes_to_override_biomarkers": {
+    "source": "Enable checkboxes to override biomarkers, then run simulation.",
+    "translation": "启用复选框以覆盖生物标志物，然后运行模拟。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "enable_personalized_ai_health_coaching": {
+    "source": "Enable personalized AI health coaching",
+    "translation": "启用个性化 AI 健康指导",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "end_hh_mm": {
+    "source": "End (HH:MM)",
+    "translation": "结束 (HH:MM)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "end_time": {
+    "source": "End Time",
+    "translation": "结束时间",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "end_time_hh_mm": {
+    "source": "End Time (HH:MM)",
+    "translation": "结束时间 (HH:MM)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "energy_10": {
+    "source": "Energy: %1$s/10",
+    "translation": "精力：%1$s/10",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "enter_it_as_hr_min_7_27_or_as_minutes": {
+    "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
+    "translation": "输入格式为 HR:MIN (7:27) 或分钟数 (447)。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "entries_30d": {
+    "source": "Entries (30d)",
+    "translation": "记录 (30天)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "equipment": {
+    "source": "Equipment",
+    "translation": "设备",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "error": {
+    "source": "Error",
+    "translation": "错误",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "errors": {
+    "source": "Errors:",
+    "translation": "错误：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "estimate_only_check_the_food_name_and": {
+    "source": "Estimate only — check the food name and serving size before saving.",
+    "translation": "仅为估算 — 保存前请检查食物名称和份量。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "estimated": {
+    "source": " · estimated",
+    "translation": "· 估计",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "estimating": {
+    "source": "estimating…",
+    "translation": "估算中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "event": {
+    "source": "%1$s event%2$s",
+    "translation": "%1$s 个事件%2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "exchange": {
+    "source": "Exchange #%1$s",
+    "translation": "交换 #%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "exchanges": {
+    "source": "Exchanges",
+    "translation": "交换",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "exercise_planner": {
+    "source": "Exercise Planner",
+    "translation": "运动计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "exercise_week": {
+    "source": "Exercise / Week",
+    "translation": "每周运动",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "exit_site": {
+    "source": "Exit Site: %1$s",
+    "translation": "出口部位：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "exit_site_status": {
+    "source": "Exit Site Status",
+    "translation": "出口部位状况",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "expiration_yyyy_mm_dd": {
+    "source": "Expiration (YYYY-MM-DD)",
+    "translation": "过期日期（YYYY-MM-DD）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "expired": {
+    "source": "Expired",
+    "translation": "已过期",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "expires": {
+    "source": "Expires: %1$s",
+    "translation": "过期：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "expiring": {
+    "source": "Expiring",
+    "translation": "即将过期",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "export_data": {
+    "source": "Export Data",
+    "translation": "导出数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "export_my_data": {
+    "source": "Export My Data",
+    "translation": "导出我的数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "facility": {
+    "source": "Facility",
+    "translation": "医疗机构",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "facility_directory": {
+    "source": "Facility Directory",
+    "translation": "医疗机构目录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "facility_staff": {
+    "source": "Facility & Staff",
+    "translation": "医疗机构和工作人员",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "failed_to_load": {
+    "source": "Failed to load",
+    "translation": "加载失败",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "family_history": {
+    "source": "Family History",
+    "translation": "家族史",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fat": {
+    "source": "Fat",
+    "translation": "脂肪",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fda_recalls": {
+    "source": "FDA Recalls",
+    "translation": "FDA 召回",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "features": {
+    "source": "Features",
+    "translation": "功能",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "feeding_tube": {
+    "source": "Feeding Tube",
+    "translation": "鼻饲管",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fellowship_program": {
+    "source": "Fellowship Program",
+    "translation": "专科培训项目",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fever": {
+    "source": "Fever",
+    "translation": "发热",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fever_cough_headache": {
+    "source": "fever, cough, headache...",
+    "translation": "发热、咳嗽、头痛...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fiber": {
+    "source": "Fiber",
+    "translation": "纤维",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fill_the_name": {
+    "source": "Fill the name",
+    "translation": "填写名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "first_name": {
+    "source": "First Name",
+    "translation": "名字",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fitness": {
+    "source": "Fitness",
+    "translation": "健身",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fitness_goals": {
+    "source": "Fitness Goals",
+    "translation": "健身目标",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fitness_level": {
+    "source": "Fitness Level",
+    "translation": "健身水平",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "flowsheet": {
+    "source": "Flowsheet",
+    "translation": "流程表",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "follow_up_needed": {
+    "source": "Follow-up Needed",
+    "translation": "需要随访",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "food": {
+    "source": "Food",
+    "translation": "食物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "food_intolerances": {
+    "source": "Food Intolerances",
+    "translation": "食物不耐受",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "food_log": {
+    "source": "Food Log",
+    "translation": "食物日志",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "food_name": {
+    "source": "Food name",
+    "translation": "食物名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "forgot_password": {
+    "source": "Forgot password?",
+    "translation": "忘记密码？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "freezer": {
+    "source": "Freezer",
+    "translation": "冷冻室",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "frequency": {
+    "source": "Frequency",
+    "translation": "频率",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "frequency_e_g_twice_daily": {
+    "source": "Frequency (e.g. twice daily)",
+    "translation": "频率（例如 每天两次）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "frequency_optional": {
+    "source": "Frequency - Optional",
+    "translation": "频率 - 可选",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "fridge": {
+    "source": "Fridge",
+    "translation": "冰箱",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "from_dialysis": {
+    "source": "%1$s%2$s %3$s from dialysis",
+    "translation": "%1$s%2$s %3$s（自透析以来）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "full_name": {
+    "source": "Full Name",
+    "translation": "全名",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "full_name_2": {
+    "source": "Full Name *",
+    "translation": "全名 *",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "gauge": {
+    "source": "Gauge",
+    "translation": "针号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "gdpr_applies": {
+    "source": "GDPR Applies:",
+    "translation": "GDPR 适用：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "gender_identity": {
+    "source": "Gender Identity",
+    "translation": "性别认同",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "generate_exercise_plan": {
+    "source": "Generate Exercise Plan",
+    "translation": "生成运动计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "generate_flowsheet": {
+    "source": "Generate Flowsheet",
+    "translation": "生成流程表",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "generate_meal_plan": {
+    "source": "Generate Meal Plan",
+    "translation": "生成膳食计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "generate_plan": {
+    "source": "Generate Plan",
+    "translation": "生成计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "generated": {
+    "source": "Generated: %1$s",
+    "translation": "生成于: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "generic": {
+    "source": "Generic",
+    "translation": "通用名",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "gi_issues": {
+    "source": "GI Issues",
+    "translation": "胃肠问题",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "global": {
+    "source": "🌍 Global",
+    "translation": "🌍 全球",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "global_alert": {
+    "source": "🌍 Global Alert",
+    "translation": "🌍 全球警报",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "grad_year": {
+    "source": "Grad Year",
+    "translation": "毕业年份",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "grantee_email": {
+    "source": "Grantee Email",
+    "translation": "授权人邮箱",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "gratitude": {
+    "source": "Gratitude",
+    "translation": "感恩",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "gratitude_entry": {
+    "source": "🙏 Gratitude Entry",
+    "translation": "🙏 感恩记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "group_and_care_team_channels": {
+    "source": "Group and care team channels",
+    "translation": "小组和护理团队频道",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "group_chats": {
+    "source": "Group Chats",
+    "translation": "群组聊天",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "group_number": {
+    "source": "Group Number",
+    "translation": "团体号码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "guidelines": {
+    "source": "Guidelines",
+    "translation": "指南",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hashtags_comma_separated": {
+    "source": "Hashtags (comma-separated)",
+    "translation": "标签（用逗号分隔）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "health_category": {
+    "source": "Health Category",
+    "translation": "健康类别",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "health_connect": {
+    "source": "Health Connect",
+    "translation": "Health Connect",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "health_profile": {
+    "source": "Health Profile",
+    "translation": "健康档案",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "health_reminders": {
+    "source": "Health Reminders",
+    "translation": "健康提醒",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "health_summary": {
+    "source": "Health Summary",
+    "translation": "健康摘要",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "health_sync": {
+    "source": "Health Sync",
+    "translation": "健康同步",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "healthcare_agent": {
+    "source": "Healthcare Agent",
+    "translation": "医疗代理人",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "healthcare_pro": {
+    "source": "Healthcare Pro",
+    "translation": "医疗专业人士",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "heart_rate": {
+    "source": "Heart Rate",
+    "translation": "心率",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "height": {
+    "source": "Height (%1$s)",
+    "translation": "身高（%1$s）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "height_2": {
+    "source": "Height",
+    "translation": "身高",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "height_cm": {
+    "source": "Height (cm)",
+    "translation": "身高（厘米）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "help_improve_the_app_by_sharing": {
+    "source": "Help improve the app by sharing anonymized usage data",
+    "translation": "通过分享匿名使用数据帮助改进应用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "help_your_community_by_reporting_health": {
+    "source": "Help your community by reporting health concerns",
+    "translation": "通过报告健康问题帮助您的社区",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hemodialysis": {
+    "source": "Hemodialysis",
+    "translation": "血液透析",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hide_all_nutrients": {
+    "source": "Hide all nutrients",
+    "translation": "隐藏所有营养素",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hide_distribution": {
+    "source": "Hide distribution",
+    "translation": "隐藏分布",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hide_shopping_list": {
+    "source": "Hide Shopping List",
+    "translation": "隐藏购物清单",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hipaa_applies": {
+    "source": "HIPAA Applies:",
+    "translation": "HIPAA 适用：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hospital_affiliations": {
+    "source": "Hospital & Affiliations",
+    "translation": "医院与关联机构",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hospital_affiliations_comma_separated": {
+    "source": "Hospital Affiliations (comma-separated)",
+    "translation": "医院关联（逗号分隔）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "hospital_er_since_last": {
+    "source": "Hospital/ER Since Last",
+    "translation": "上次以来住院/急诊",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "how_are_you_doing_today": {
+    "source": "How are you doing today?",
+    "translation": "你今天感觉怎么样？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "how_are_you_feeling": {
+    "source": "How are you feeling?",
+    "translation": "你感觉怎么样？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "how_do_you_feel_now": {
+    "source": "How do you feel now?",
+    "translation": "你现在感觉如何？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "how_you_are_identified": {
+    "source": "How you are identified",
+    "translation": "您的身份识别",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "i_ve_confirmed_continue": {
+    "source": "I've confirmed — continue",
+    "translation": "已确认 — 继续",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "icd_10_code": {
+    "source": "ICD-10 Code",
+    "translation": "ICD-10 代码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "icd_11_code": {
+    "source": "ICD-11 Code",
+    "translation": "ICD-11 代码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "identify_food_from_image_optional_max_3": {
+    "source": "Identify Food from Image (Optional – Max 3)",
+    "translation": "从图像识别食物（可选 – 最多 3 张）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "identity": {
+    "source": "Identity",
+    "translation": "身份",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "image_ai": {
+    "source": "Image AI",
+    "translation": "图像 AI",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "image_s_selected": {
+    "source": "%1$s image(s) selected",
+    "translation": "已选择 %1$s 张图像",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "image_selected": {
+    "source": "Image selected",
+    "translation": "已选择图像",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "impact": {
+    "source": "%1$s Impact",
+    "translation": "%1$s 影响",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "import_selected": {
+    "source": "Import %1$s selected",
+    "translation": "导入 %1$s 项已选中",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "imported": {
+    "source": "⤵ Imported · %1$s",
+    "translation": "⤵ 已导入 · %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "importing": {
+    "source": "Importing…",
+    "translation": "导入中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "in_ml": {
+    "source": "In: %1$sml",
+    "translation": "进入: %1$sml",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "inactive": {
+    "source": "Inactive",
+    "translation": "未激活",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "inactive_plans": {
+    "source": "Inactive Plans (%1$s)",
+    "translation": "非活跃计划 (%1$s)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "infiltration": {
+    "source": "Infiltration",
+    "translation": "渗漏",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "inflow_ml": {
+    "source": "Inflow (ml)",
+    "translation": "进液 (ml)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "info": {
+    "source": "Info",
+    "translation": "信息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "instructions": {
+    "source": "Instructions",
+    "translation": "用法说明",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "insurance": {
+    "source": "Insurance",
+    "translation": "保险",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "insurance_id": {
+    "source": "Insurance ID",
+    "translation": "保险 ID",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "insurance_plans": {
+    "source": "Insurance Plans",
+    "translation": "保险计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "insurance_provider": {
+    "source": "Insurance Provider *",
+    "translation": "保险提供商 *",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "intake_log": {
+    "source": "Intake Log",
+    "translation": "用药记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "integrity_hash": {
+    "source": "Integrity hash: %1$s…",
+    "translation": "完整性哈希：%1$s…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "intensity": {
+    "source": "Intensity",
+    "translation": "强度",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "interactions_checked": {
+    "source": "Interactions checked",
+    "translation": "已检查相互作用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "intradialytic_readings": {
+    "source": "Intradialytic Readings (%1$s)",
+    "translation": "透析中读数（%1$s）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "intradialytic_readings_2": {
+    "source": "%1$s intradialytic readings",
+    "translation": "%1$s 透析中读数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "intradialytic_readings_3": {
+    "source": "Intradialytic Readings",
+    "translation": "透析中读数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "issued": {
+    "source": "Issued: %1$s",
+    "translation": "发布：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "item_name": {
+    "source": "Item Name",
+    "translation": "项目名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "join": {
+    "source": "Join",
+    "translation": "加入",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "journal_entry": {
+    "source": "Journal entry",
+    "translation": "日记条目",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "k_meq": {
+    "source": "K⁺ (mEq)",
+    "translation": "K⁺ (mEq)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "kcal": {
+    "source": "%1$s kcal",
+    "translation": "%1$s 千卡",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "kg": {
+    "source": "%1$s → %2$s kg",
+    "translation": "%1$s → %2$s kg",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "km": {
+    "source": "%1$s km",
+    "translation": "%1$s 公里",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lab_charts": {
+    "source": "Lab Charts",
+    "translation": "实验室图表",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lab_name": {
+    "source": "Lab Name",
+    "translation": "实验室名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lab_results_will_appear_here_once": {
+    "source": "Lab results will appear here once available",
+    "translation": "实验室结果可用后将显示在此处",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lab_tubes_drawn": {
+    "source": "Lab Tubes Drawn",
+    "translation": "抽取实验室试管",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "labs": {
+    "source": "Lab Results",
+    "translation": "实验室结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "labs_2": {
+    "source": "%1$s labs",
+    "translation": "%1$s 检查结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "labs_3": {
+    "source": "Labs",
+    "translation": "实验室检查",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lactate_meq": {
+    "source": "Lactate (mEq)",
+    "translation": "乳酸盐 (mEq)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "language": {
+    "source": "Language",
+    "translation": "语言",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "languages": {
+    "source": "Languages",
+    "translation": "语言",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "languages_telemedicine": {
+    "source": "Languages & Telemedicine",
+    "translation": "语言与远程医疗",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "last": {
+    "source": "Last: %1$s",
+    "translation": "最后：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "last_name": {
+    "source": "Last Name",
+    "translation": "姓氏",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "latest_advisories": {
+    "source": "📢 Latest Advisories",
+    "translation": "📢 最新公告",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "latest_labs": {
+    "source": "Latest labs: %1$s",
+    "translation": "最新检验：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "latest_outbreaks": {
+    "source": "🦠 Latest Outbreaks",
+    "translation": "🦠 最新疫情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "latest_recalls": {
+    "source": "💊 Latest Recalls",
+    "translation": "💊 最新召回",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "license_country": {
+    "source": "License Country",
+    "translation": "执业国家",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "license_expiry_yyyy_mm_dd": {
+    "source": "License Expiry (YYYY-MM-DD)",
+    "translation": "执业证书有效期 (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "license_number": {
+    "source": "License Number",
+    "translation": "许可证号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "license_state": {
+    "source": "License State",
+    "translation": "执业州",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "life_support": {
+    "source": "Life Support",
+    "translation": "生命支持",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lifestyle": {
+    "source": "Lifestyle",
+    "translation": "生活方式",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "limitations": {
+    "source": "Limitations",
+    "translation": "限制条件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "loading": {
+    "source": "Loading...",
+    "translation": "加载中...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "loading_2": {
+    "source": "Loading…",
+    "translation": "加载中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "loading_nutrients": {
+    "source": "Loading nutrients…",
+    "translation": "加载营养信息…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "loading_photo": {
+    "source": "Loading photo…",
+    "translation": "加载照片…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "local_signals": {
+    "source": "%1$s local signals",
+    "translation": "%1$s 个本地信号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "location": {
+    "source": "Location",
+    "translation": "位置",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "location_preferences": {
+    "source": "Location & Preferences",
+    "translation": "位置与偏好设置",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lock": {
+    "source": "Lock",
+    "translation": "锁定",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "locked": {
+    "source": "Locked",
+    "translation": "已锁定",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log": {
+    "source": "Log",
+    "translation": "记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_bowel_movement": {
+    "source": "Log Bowel Movement",
+    "translation": "记录排便",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_dose": {
+    "source": "Log Dose",
+    "translation": "记录剂量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_dose_2": {
+    "source": "Log dose",
+    "translation": "记录剂量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_intake": {
+    "source": "Log Intake",
+    "translation": "记录用药",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_lifestyle": {
+    "source": "Log Lifestyle",
+    "translation": "记录生活方式",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_new_meal": {
+    "source": "Log New Meal",
+    "translation": "记录新餐食",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_urination": {
+    "source": "Log Urination",
+    "translation": "记录排尿",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_vomiting_episode": {
+    "source": "Log Vomiting Episode",
+    "translation": "记录呕吐事件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_workout": {
+    "source": "Log Workout",
+    "translation": "记录运动",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "log_workouts": {
+    "source": "Log workouts",
+    "translation": "记录锻炼",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "login": {
+    "source": "Login",
+    "translation": "登录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "logout": {
+    "source": "Logout",
+    "translation": "登出",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lot_number": {
+    "source": "Lot number",
+    "translation": "批号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lot_numbers": {
+    "source": "Lot Numbers: %1$s",
+    "translation": "批号：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "lunch": {
+    "source": "Lunch",
+    "translation": "午餐",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "machine_maintenance": {
+    "source": "Machine Maintenance",
+    "translation": "机器维护",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "machine_total_time": {
+    "source": "Machine Total Time",
+    "translation": "机器总时间",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "manage_or_cancel_in_google_play": {
+    "source": "Manage or cancel in Google Play → Subscriptions.",
+    "translation": "在 Google Play → 订阅中管理或取消。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "manage_rx": {
+    "source": "Manage Rx",
+    "translation": "管理处方",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "manufacturer": {
+    "source": "Manufacturer: %1$s",
+    "translation": "制造商：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "manufacturer_2": {
+    "source": "Manufacturer",
+    "translation": "生产厂商",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mark_as_urgent": {
+    "source": "Mark as Urgent",
+    "translation": "标记为紧急",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "marketing_emails": {
+    "source": "Marketing Emails",
+    "translation": "营销邮件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "max": {
+    "source": "Max",
+    "translation": "最大值",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "meal_planner": {
+    "source": "Meal Planner",
+    "translation": "膳食计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "meal_s_logged": {
+    "source": "%1$s meal(s) logged",
+    "translation": "已记录%1$s餐",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "meal_timing_optional": {
+    "source": "Meal Timing (Optional)",
+    "translation": "餐食时间（可选）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "meal_type": {
+    "source": "Meal type",
+    "translation": "餐食类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "measures_have_enough_history_to_trend": {
+    "source": "%1$s measures have enough history to trend — pick the ones to plot:",
+    "translation": "%1$s 项测量数据有足够历史记录可用于趋势分析 — 选择要绘制的项目：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "medical_school_institution": {
+    "source": "Medical School / Institution",
+    "translation": "医学院/机构",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "medication": {
+    "source": "Medication",
+    "translation": "药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "medication_details": {
+    "source": "Medication Details",
+    "translation": "药物详情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "medication_name": {
+    "source": "Medication Name",
+    "translation": "药物名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "medication_name_2": {
+    "source": "Medication name",
+    "translation": "药物名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "medications": {
+    "source": "Medications",
+    "translation": "药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "meds": {
+    "source": "%1$s meds",
+    "translation": "%1$s 药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "member_id": {
+    "source": "Member ID",
+    "translation": "成员 ID",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "members": {
+    "source": "%1$s members · %2$s",
+    "translation": "%1$s 名成员 · %2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mental_health": {
+    "source": "Mental Health",
+    "translation": "心理健康",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mental_health_2": {
+    "source": "Mental health",
+    "translation": "心理健康",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "message_deleted": {
+    "source": "Message deleted",
+    "translation": "消息已删除",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "message_optional": {
+    "source": "Message (optional)",
+    "translation": "信息（可选）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "middle_name": {
+    "source": "Middle Name",
+    "translation": "中间名",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "min": {
+    "source": "%1$s min",
+    "translation": "%1$s 分钟",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "min_2": {
+    "source": "Min",
+    "translation": "最小值",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "min_3": {
+    "source": "= %1$s min (%2$s)",
+    "translation": "= %1$s 分钟（%2$s）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "min_4": {
+    "source": "= %1$s min",
+    "translation": "= %1$s 分钟",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "min_week": {
+    "source": "%1$s min/week",
+    "translation": "%1$s 分钟/周",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "missed": {
+    "source": "Missed",
+    "translation": "未服用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ml": {
+    "source": "%1$s mL",
+    "translation": "%1$s mL",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "modality": {
+    "source": "Modality",
+    "translation": "治疗方式",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "month": {
+    "source": " / month",
+    "translation": "/月",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mood": {
+    "source": "Mood",
+    "translation": "心情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mood_10": {
+    "source": "Mood: %1$s/10",
+    "translation": "心情：%1$s/10",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mood_7d": {
+    "source": "Mood (7d)",
+    "translation": "心情 (7天)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mood_after": {
+    "source": "Mood after",
+    "translation": "服用后心情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mood_before": {
+    "source": "Mood before",
+    "translation": "服用前心情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mood_before_10": {
+    "source": "Mood before: %1$s/10",
+    "translation": "之前的心情：%1$s/10",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mood_impact": {
+    "source": "Mood Impact",
+    "translation": "心情影响",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "more": {
+    "source": "More",
+    "translation": "更多",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "mucus_present": {
+    "source": "Mucus present",
+    "translation": "有粘液",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "my_patients": {
+    "source": "My Patients",
+    "translation": "我的患者",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "my_roles": {
+    "source": "My Roles",
+    "translation": "我的角色",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "name": {
+    "source": "Name",
+    "translation": "姓名",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nausea_after": {
+    "source": "Nausea after",
+    "translation": "之后恶心",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nausea_before": {
+    "source": "Nausea before",
+    "translation": "之前恶心",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ndc_code": {
+    "source": "NDC code",
+    "translation": "NDC代码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ndc_code_2": {
+    "source": "NDC Code",
+    "translation": "NDC代码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "needle_gauge": {
+    "source": "Needle Gauge",
+    "translation": "针头规格",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "needle_length_mm": {
+    "source": "Needle Length (mm)",
+    "translation": "针长 (mm)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "new_chemo_session": {
+    "source": "New Chemo Session",
+    "translation": "新建化疗疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "new_conversation": {
+    "source": "New Conversation",
+    "translation": "新对话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "new_event": {
+    "source": "New Event",
+    "translation": "新建事件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "new_gratitude_entry": {
+    "source": "+ New Gratitude Entry",
+    "translation": "+ 新增感恩记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "new_hd_session": {
+    "source": "New HD Session",
+    "translation": "新建血液透析会话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "new_label": {
+    "source": "%1$s new",
+    "translation": "%1$s 条新增",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "new_prescription": {
+    "source": "New Prescription",
+    "translation": "新处方",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "new_schedule": {
+    "source": "New Schedule",
+    "translation": "新计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "next": {
+    "source": "Next",
+    "translation": "下一个",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "next_2": {
+    "source": "Next ›",
+    "translation": "下一页 ›",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "next_day": {
+    "source": "Next day",
+    "translation": "后一天",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nickname": {
+    "source": "Nickname",
+    "translation": "昵称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nighttime_nocturia": {
+    "source": "Nighttime (nocturia)",
+    "translation": "夜间（夜尿）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no": {
+    "source": "No",
+    "translation": "否",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_active_data_grants": {
+    "source": "No active data grants",
+    "translation": "无活跃数据授权",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_adherence_logs": {
+    "source": "No adherence logs",
+    "translation": "暂无用药记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_alerts_found": {
+    "source": "No alerts found",
+    "translation": "未找到警报",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_assessments_yet_take_a_phq_9_gad_7_or": {
+    "source": "No assessments yet.\nTake a PHQ-9, GAD-7, or WHO-5.",
+    "translation": "还没有评估。\n进行 PHQ-9、GAD-7 或 WHO-5 评估。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_bowel_records_yet": {
+    "source": "No bowel records yet",
+    "translation": "还没有排便记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_chemo_sessions": {
+    "source": "No Chemo sessions",
+    "translation": "无化疗疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_chronic_conditions": {
+    "source": "No Chronic Conditions",
+    "translation": "无慢性病",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_conversations_yet": {
+    "source": "No conversations yet",
+    "translation": "还没有对话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_data": {
+    "source": "No data",
+    "translation": "无数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_data_available": {
+    "source": "No data available",
+    "translation": "无可用数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_data_points": {
+    "source": "No data points",
+    "translation": "无数据点",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_data_yet_start_by_logging_your_mood": {
+    "source": "No data yet. Start by logging your mood!",
+    "translation": "暂无数据。请先记录您的心情！",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_dispenses_yet": {
+    "source": "No dispenses yet",
+    "translation": "暂无配药记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_drugs_recorded_for_this_session": {
+    "source": "No drugs recorded for this session.",
+    "translation": "本次未记录任何药物。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_events_on_this_day": {
+    "source": "No events on this day",
+    "translation": "此日期无事件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_exercise_plans_yet": {
+    "source": "No exercise plans yet",
+    "translation": "还没有运动计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_facilities_found": {
+    "source": "No facilities found",
+    "translation": "未找到医疗机构",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_gratitude_entries_yet_what_are_you": {
+    "source": "No gratitude entries yet.\nWhat are you grateful for today?",
+    "translation": "还没有感恩记录。\n你今天感谢什么？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_guidelines_found": {
+    "source": "No guidelines found",
+    "translation": "未找到指南",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_improvement_data_available": {
+    "source": "No improvement data available",
+    "translation": "无改善数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_insurance_plans": {
+    "source": "No Insurance Plans",
+    "translation": "无保险计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_intake_logged_for_this_date": {
+    "source": "No intake logged for this date.",
+    "translation": "此日期未记录摄入量。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_intradialytic_readings_were_recorded": {
+    "source": "No intradialytic readings were recorded for this session.",
+    "translation": "此次会话未记录透析中读数。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_invitations": {
+    "source": "No invitations",
+    "translation": "无邀请",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_items": {
+    "source": "No items",
+    "translation": "无项目",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_lab_chart_data": {
+    "source": "No lab chart data",
+    "translation": "无实验室图表数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_lab_results": {
+    "source": "No lab results",
+    "translation": "无实验室结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_lifestyle_entries": {
+    "source": "No lifestyle entries",
+    "translation": "没有生活方式记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_matching_roles_found": {
+    "source": "No matching roles found.",
+    "translation": "未找到匹配的角色。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_meal_plans_yet": {
+    "source": "No meal plans yet",
+    "translation": "还没有膳食计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_meals_logged_for_this_date": {
+    "source": "No meals logged for this date",
+    "translation": "此日期没有记录的餐食",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_meals_logged_yet": {
+    "source": "No meals logged yet",
+    "translation": "还没有记录餐食",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_medications": {
+    "source": "No medications",
+    "translation": "没有药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_messages_yet": {
+    "source": "No messages yet",
+    "translation": "暂无消息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_mood_entries_yet": {
+    "source": "No mood entries yet",
+    "translation": "还没有心情记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_notes_on_this_session_yet": {
+    "source": "No notes on this session yet.",
+    "translation": "此次治疗暂无记录。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_notes_yet": {
+    "source": "No notes yet.",
+    "translation": "暂无备注。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_nutrient_values_recorded_for_this": {
+    "source": "No nutrient values recorded for this meal yet.",
+    "translation": "此餐食还没有记录营养值。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_patients_yet": {
+    "source": "No patients yet",
+    "translation": "还没有患者",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_pd_sessions": {
+    "source": "No PD sessions",
+    "translation": "无腹膜透析疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_physicians_found": {
+    "source": "No physicians found",
+    "translation": "未找到医生",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_posts_yet": {
+    "source": "No posts yet",
+    "translation": "暂无帖子",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_prescriptions_yet": {
+    "source": "No prescriptions yet",
+    "translation": "暂无处方",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_professional_roles": {
+    "source": "No professional roles",
+    "translation": "无专业角色",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_recalls_found": {
+    "source": "No recalls found",
+    "translation": "未找到召回",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_recommendations_available": {
+    "source": "No recommendations available",
+    "translation": "无可用建议",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_records_in_this_period": {
+    "source": "No %1$s records in this period.",
+    "translation": "此时期无 %1$s 记录。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_refill_requests": {
+    "source": "No refill requests",
+    "translation": "暂无续配申请",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_repeat": {
+    "source": "No repeat",
+    "translation": "不重复",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_replies_yet_be_the_first": {
+    "source": "No replies yet. Be the first!",
+    "translation": "暂无回复。成为第一个回复的人！",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_reports_yet": {
+    "source": "No reports yet",
+    "translation": "暂无报告",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_results_yet": {
+    "source": "no results yet",
+    "translation": "暂无结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_reviews_yet": {
+    "source": "No reviews yet",
+    "translation": "暂无评价",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_saved_physicians": {
+    "source": "No saved physicians",
+    "translation": "未保存医生",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_schedules_yet": {
+    "source": "No schedules yet",
+    "translation": "暂无用药计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_sessions_found": {
+    "source": "No sessions found",
+    "translation": "未找到就诊记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_sessions_in_this_period": {
+    "source": "No sessions in this period",
+    "translation": "此期间无疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_surveillance_signal_for_this_disease": {
+    "source": "No surveillance signal for this disease yet",
+    "translation": "暂无该疾病的监测信号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_therapy_sessions_in_this_period": {
+    "source": "No therapy sessions in this period.",
+    "translation": "此时期无治疗会话。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_transcripts_recorded": {
+    "source": "No transcripts recorded.",
+    "translation": "未录制记录。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_trend_data_available": {
+    "source": "No trend data available",
+    "translation": "无可用的趋势数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_trend_to_plot_for_this_period_the": {
+    "source": "No trend to plot for this period — the records are below.",
+    "translation": "此时期无趋势可绘制 — 记录如下。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_urination_records": {
+    "source": "No urination records",
+    "translation": "无排尿记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_vomiting_records": {
+    "source": "No vomiting records",
+    "translation": "还没有呕吐记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_weight_data_log_weight_in_vitals": {
+    "source": "No weight data — log weight in Vitals, Meals, Elimination or Therapy.",
+    "translation": "无体重数据 — 请在生命体征、饮食、排泄或治疗中记录体重。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_wellness_score_available": {
+    "source": "No wellness score available",
+    "translation": "无可用的健康评分",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_workouts_logged": {
+    "source": "No workouts logged",
+    "translation": "未记录运动",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "none": {
+    "source": "None",
+    "translation": "无",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "none_2": {
+    "source": "none",
+    "translation": "无",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "none_3": {
+    "source": "— None —",
+    "translation": "— 无 —",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_a_valid_time": {
+    "source": "Not a valid time",
+    "translation": "时间无效",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_anchored": {
+    "source": "not anchored",
+    "translation": "未锚定",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_available_on_this_device": {
+    "source": "Not available on this device",
+    "translation": "此设备不可用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_connected": {
+    "source": "Not connected",
+    "translation": "未连接",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_enough_data_yet": {
+    "source": "Not enough data yet",
+    "translation": "数据不足",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_measured": {
+    "source": "not measured",
+    "translation": "未测量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_reviewed": {
+    "source": "not reviewed",
+    "translation": "未审核",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_right_teach_alafia_what_this": {
+    "source": "Not right? Teach ALAFIA what this actually is",
+    "translation": "不对？教 ALAFIA 这实际上是什么",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "not_signed": {
+    "source": "not signed",
+    "translation": "未签署",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "notes": {
+    "source": "Notes",
+    "translation": "备注",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "notes_2": {
+    "source": "Notes: %1$s",
+    "translation": "备注：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "notes_optional": {
+    "source": "Notes (optional)",
+    "translation": "备注（可选）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nothing_logged_yet_type_the_medication": {
+    "source": "Nothing logged yet — type the medication name.",
+    "translation": "尚未记录 — 输入药物名称。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nothing_recorded": {
+    "source": "Nothing recorded.",
+    "translation": "未记录任何内容。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "notification_channels": {
+    "source": "Notification Channels",
+    "translation": "通知渠道",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "npi_number": {
+    "source": "NPI Number",
+    "translation": "NPI 号码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nurse_countersignature": {
+    "source": "Nurse countersignature: %1$s",
+    "translation": "护士副署：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nutrient_breakdown_daily_value": {
+    "source": "Nutrient Breakdown — % Daily Value",
+    "translation": "营养成分分解 — 每日价值百分比",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nutrient_profile": {
+    "source": "Nutrient Profile",
+    "translation": "营养成分",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nutrients_auto_populated_from_usda": {
+    "source": "Nutrients auto-populated from USDA",
+    "translation": "营养信息自动从 USDA 填充",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "nutrition": {
+    "source": "Nutrition",
+    "translation": "营养",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "occupation": {
+    "source": "Occupation",
+    "translation": "职业",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "on": {
+    "source": "%1$s on %2$s",
+    "translation": "%2$s 的 %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "one_way_sync": {
+    "source": "One-way sync",
+    "translation": "单向同步",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "only_one_intradialytic_reading_not": {
+    "source": "Only one intradialytic reading — not enough to plot a curve.",
+    "translation": "仅有一次透析中读数——数据不足以绘制曲线。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "open_clinician_view": {
+    "source": "Open Clinician View",
+    "translation": "打开临床医生视图",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "open_the_link_in_that_email_to_choose_a": {
+    "source": "Open the link in that email to choose a new password.",
+    "translation": "打开该电子邮件中的链接以选择新密码。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "optional_close_to_keep_your_device": {
+    "source": "Optional — close to keep your device-language guide, or pick another.",
+    "translation": "可选 — 关闭以保持您的设备语言指南，或选择另一个。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ordering_physician": {
+    "source": "Ordering Physician",
+    "translation": "医嘱医生",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "organ_donation": {
+    "source": "Organ Donation",
+    "translation": "器官捐献",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "other": {
+    "source": "Other…",
+    "translation": "其他…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "out_ml": {
+    "source": "Out: %1$sml",
+    "translation": "排出: %1$sml",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "outbreak_info": {
+    "source": "🦠 Outbreak Info",
+    "translation": "🦠 疫情信息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "outbreaks": {
+    "source": "Outbreaks",
+    "translation": "疫情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "outflow_ml": {
+    "source": "Outflow (ml)",
+    "translation": "排液 (ml)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "over_the_last_2_weeks": {
+    "source": "Over the last 2 weeks…",
+    "translation": "在过去两周内…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "overall_wellness_score": {
+    "source": "Overall Wellness Score",
+    "translation": "整体健康评分",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "overview": {
+    "source": "Overview",
+    "translation": "概览",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "page_of_nutrients": {
+    "source": "Page %1$s of %2$s · %3$s nutrients",
+    "translation": "第 %1$s 页，共 %2$s 页 · %3$s 营养素",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pale_yellow_amber_dark": {
+    "source": "pale, yellow, amber, dark…",
+    "translation": "淡色、黄色、琥珀色、深色…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pantry": {
+    "source": "Pantry",
+    "translation": "食品柜",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pantry_fridge": {
+    "source": "Pantry & Fridge",
+    "translation": "食品储存",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "participants": {
+    "source": "Participants",
+    "translation": "参与者",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "password": {
+    "source": "Password",
+    "translation": "密码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pathogen": {
+    "source": "Pathogen: %1$s",
+    "translation": "病原体：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pathway_breakdown": {
+    "source": "Pathway Breakdown",
+    "translation": "路径分解",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "patient": {
+    "source": "%1$s patient%2$s",
+    "translation": "%1$s 患者%2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "patient_2": {
+    "source": "Patient",
+    "translation": "患者",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "patient_id": {
+    "source": "Patient ID",
+    "translation": "患者ID",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "patient_name": {
+    "source": "Patient Name",
+    "translation": "患者姓名",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "patient_notes": {
+    "source": "Patient Notes",
+    "translation": "患者记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "patient_notes_2": {
+    "source": "Patient notes: %1$s",
+    "translation": "患者备注：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "patient_signature": {
+    "source": "Patient signature: %1$s",
+    "translation": "患者签名：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "patients_appear_here_as_soon_as_they": {
+    "source": "Patients appear here as soon as they share their records with you, from Share, using your account email.",
+    "translation": "患者使用您的账户邮箱从\"分享\"功能分享记录后，将立即显示在此处。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pdf_tools": {
+    "source": "PDF Tools",
+    "translation": "PDF工具",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "per_serving": {
+    "source": "Per serving · %1$s",
+    "translation": "每份 · %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "period": {
+    "source": "Period",
+    "translation": "时期",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "peritoneal_dialysis": {
+    "source": "Peritoneal Dialysis",
+    "translation": "腹膜透析",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "permissions_derived_from_roles": {
+    "source": "%1$s permissions derived from roles",
+    "translation": "从角色派生的 %1$s 权限",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "personality": {
+    "source": "Personality",
+    "translation": "性格",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pharmacy": {
+    "source": "Pharmacy",
+    "translation": "药房",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "phone": {
+    "source": "Phone",
+    "translation": "电话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "phone_number_optional_enables_phone": {
+    "source": "Phone Number (optional — enables phone login)",
+    "translation": "电话号码（可选 — 用于电话登录）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "photo": {
+    "source": "Photo",
+    "translation": "照片",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "photo_of": {
+    "source": "Photo of %1$s",
+    "translation": "%1$s 的照片",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "photo_of_this_meal": {
+    "source": "Photo of this meal",
+    "translation": "此餐食的照片",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "physical": {
+    "source": "Physical",
+    "translation": "身体",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "physician": {
+    "source": "Physician",
+    "translation": "医生",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "physician_2": {
+    "source": "Physician: %1$s",
+    "translation": "医生：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "physician_directory": {
+    "source": "Physician Directory",
+    "translation": "医生目录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "physician_nurse_social_worker_messaging": {
+    "source": "Physician, nurse, social worker messaging",
+    "translation": "医生、护士、社工消息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "physician_review": {
+    "source": "Physician review: %1$s",
+    "translation": "医生审核：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "plan": {
+    "source": "Plan: %1$s",
+    "translation": "套餐：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "plan_name": {
+    "source": "Plan Name",
+    "translation": "计划名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "plan_type": {
+    "source": "Plan Type",
+    "translation": "计划类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "platforms_comma_separated": {
+    "source": "Platforms (comma-separated)",
+    "translation": "平台（逗号分隔）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "please_wait_while_the_provider_admits": {
+    "source": "Please wait while the provider admits you",
+    "translation": "请等待医疗提供者接纳您",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "points": {
+    "source": "Points: %1$s",
+    "translation": "积分：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "poison": {
+    "source": "Poison",
+    "translation": "中毒",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "policy_id_number": {
+    "source": "Policy / ID Number",
+    "translation": "保单/ID 号码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post": {
+    "source": "Post",
+    "translation": "治疗后",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_anonymously": {
+    "source": "Post Anonymously",
+    "translation": "匿名发布",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_anonymously_2": {
+    "source": "Post anonymously",
+    "translation": "匿名发布",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_bp": {
+    "source": "Post BP: %1$s/%2$s",
+    "translation": "透析后血压：%1$s/%2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_bp_2": {
+    "source": "Post BP",
+    "translation": "透析后血压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_bp_dia": {
+    "source": "Post BP Dia",
+    "translation": "治疗后血压舒张压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_bp_sys": {
+    "source": "Post BP Sys",
+    "translation": "治疗后血压收缩压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_dia": {
+    "source": "Post Dia",
+    "translation": "给药后舒张压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_hr": {
+    "source": "Post HR",
+    "translation": "给药后心率",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_kg": {
+    "source": "Post: %1$skg",
+    "translation": "透析后：%1$skg",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_meal_kg": {
+    "source": "Post-Meal kg",
+    "translation": "餐后体重 kg",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_stand": {
+    "source": "Post Stand",
+    "translation": "站立后",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_sys": {
+    "source": "Post Sys",
+    "translation": "给药后收缩压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_treatment_totals": {
+    "source": "Post-Treatment Totals",
+    "translation": "治疗后总计",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_treatment_vitals": {
+    "source": "Post-Treatment Vitals",
+    "translation": "治疗后生命体征",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_weight_kg": {
+    "source": "Post Weight (kg)",
+    "translation": "治疗后体重 (kg)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "post_wt": {
+    "source": "Post Wt",
+    "translation": "站立后体重",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "practice_address": {
+    "source": "Practice Address",
+    "translation": "执业地址",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "practice_name": {
+    "source": "Practice Name",
+    "translation": "执业机构名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "practice_type": {
+    "source": "Practice Type",
+    "translation": "执业类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre": {
+    "source": "Pre",
+    "translation": "治疗前",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_bp": {
+    "source": "Pre BP: %1$s/%2$s",
+    "translation": "透析前血压：%1$s/%2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_bp_2": {
+    "source": "Pre BP",
+    "translation": "透析前血压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_bp_dia": {
+    "source": "Pre BP Dia",
+    "translation": "治疗前血压舒张压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_bp_sys": {
+    "source": "Pre BP Sys",
+    "translation": "治疗前血压收缩压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_dia": {
+    "source": "Pre Dia",
+    "translation": "给药前舒张压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_filled_from_your_treatment_on_change": {
+    "source": "Pre-filled from your treatment on %1$s. Change anything that differs today.",
+    "translation": "从 %1$s 的治疗预填。如今天有不同，请修改。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_hr": {
+    "source": "Pre HR",
+    "translation": "给药前心率",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_kg": {
+    "source": "Pre: %1$skg",
+    "translation": "透析前：%1$skg",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_meal_kg": {
+    "source": "Pre-Meal kg",
+    "translation": "餐前体重 kg",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_medication_vitals_optional": {
+    "source": "Pre-Medication Vitals (optional)",
+    "translation": "用药前生命体征（可选）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_stand": {
+    "source": "Pre Stand",
+    "translation": "站立前",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_sys": {
+    "source": "Pre Sys",
+    "translation": "给药前收缩压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_treatment_assessment": {
+    "source": "Pre-Treatment Assessment",
+    "translation": "治疗前评估",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_treatment_vitals": {
+    "source": "Pre-Treatment Vitals",
+    "translation": "治疗前生命体征",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_weight_kg": {
+    "source": "Pre Weight (kg)",
+    "translation": "治疗前体重 (kg)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pre_wt": {
+    "source": "Pre Wt",
+    "translation": "站立前体重",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "precautions": {
+    "source": "Precautions",
+    "translation": "注意事项",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "preferences": {
+    "source": "Preferences",
+    "translation": "偏好",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "preferred_activities": {
+    "source": "Preferred Activities",
+    "translation": "偏好活动",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "prefix_dr_mrs_chief": {
+    "source": "Prefix (Dr., Mrs., Chief)",
+    "translation": "前缀（Dr.、Mrs.、Chief）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "preparing": {
+    "source": "Preparing…",
+    "translation": "准备中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "prescription_id": {
+    "source": "Prescription ID",
+    "translation": "处方ID",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "prescriptions": {
+    "source": "Prescriptions",
+    "translation": "处方",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "prescriptions_all_stopped": {
+    "source": "Prescriptions (all stopped)",
+    "translation": "处方（全部已停用）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "prev": {
+    "source": "‹ Prev",
+    "translation": "‹ 上一页",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "prev_post": {
+    "source": "Prev Post",
+    "translation": "前次治疗后",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "previous": {
+    "source": "Previous",
+    "translation": "上一个",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "previous_day": {
+    "source": "Previous day",
+    "translation": "前一天",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "primary_agent": {
+    "source": "Primary Agent",
+    "translation": "主要代理人",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "primary_care_provider": {
+    "source": "Primary Care Provider",
+    "translation": "主治医生",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "primary_physician": {
+    "source": "Primary Physician",
+    "translation": "主治医生",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "print_save_as_pdf": {
+    "source": "Print / Save as PDF",
+    "translation": "打印 / 保存为 PDF",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "priority": {
+    "source": "Priority",
+    "translation": "优先级",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "privacy_consent": {
+    "source": "Privacy & Consent",
+    "translation": "隐私与同意",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "privacy_settings": {
+    "source": "Privacy Settings",
+    "translation": "隐私设置",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "private_1_on_1_conversations": {
+    "source": "Private 1-on-1 conversations",
+    "translation": "私密一对一对话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "product": {
+    "source": "Product: %1$s",
+    "translation": "产品：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "product_updates": {
+    "source": "Product Updates",
+    "translation": "产品更新",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "professional_bio": {
+    "source": "Professional Bio",
+    "translation": "专业简介",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "professional_profile": {
+    "source": "Professional Profile",
+    "translation": "专业档案",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "profile": {
+    "source": "Profile",
+    "translation": "个人资料",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "projectile": {
+    "source": "Projectile",
+    "translation": "喷射性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "prot": {
+    "source": "Prot",
+    "translation": "蛋白质",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "protein": {
+    "source": "Protein",
+    "translation": "蛋白质",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "protocol_folfox_r_chop": {
+    "source": "Protocol (FOLFOX, R-CHOP…)",
+    "translation": "方案（FOLFOX、R-CHOP…）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "provider": {
+    "source": "Provider",
+    "translation": "医疗提供者",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pts": {
+    "source": "Pts",
+    "translation": "患者数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "public_timeline_share_support": {
+    "source": "Public timeline — share & support",
+    "translation": "公开时间线 — 分享和互助",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "publications_comma_separated": {
+    "source": "Publications (comma-separated)",
+    "translation": "发表文章（逗号分隔）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "publish": {
+    "source": "Publish",
+    "translation": "发布",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "publishing": {
+    "source": "Publishing...",
+    "translation": "发布中...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pulse": {
+    "source": "Pulse",
+    "translation": "脉搏",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "pulse_bpm": {
+    "source": "Pulse (bpm)",
+    "translation": "脉搏（次/分）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "purification_pak_change": {
+    "source": "Purification Pak Change",
+    "translation": "净化包更换",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "push_notifications": {
+    "source": "Push Notifications",
+    "translation": "推送通知",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "qty": {
+    "source": "Qty",
+    "translation": "数量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "qty_2": {
+    "source": "Qty: %1$s",
+    "translation": "数量: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "quantity": {
+    "source": "Quantity",
+    "translation": "数量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "quantity_2": {
+    "source": "Quantity: %1$s",
+    "translation": "数量：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "rate": {
+    "source": "Rate",
+    "translation": "评分",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "rating": {
+    "source": "Rating",
+    "translation": "评分",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "read": {
+    "source": "Read",
+    "translation": "阅读",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "read_2": {
+    "source": "✗ Read",
+    "translation": "✗ 读取",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "read_3": {
+    "source": "✓ Read",
+    "translation": "✓ 读取",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reading_found": {
+    "source": "%1$s reading%2$s found",
+    "translation": "找到 %1$s 读数%2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reading_your_entry": {
+    "source": "Reading your entry…",
+    "translation": "正在读取您的记录…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "readings": {
+    "source": "%1$s readings",
+    "translation": "%1$s 次读数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reason": {
+    "source": "Reason: %1$s",
+    "translation": "原因：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reason_2": {
+    "source": "Reason",
+    "translation": "原因",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reason_condition": {
+    "source": "Reason / Condition",
+    "translation": "原因 / 病情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reason_for_visit": {
+    "source": "Reason for Visit",
+    "translation": "就诊原因",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recall_class": {
+    "source": "Recall Class: %1$s",
+    "translation": "召回等级：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recall_info": {
+    "source": "💊 Recall Info",
+    "translation": "💊 召回信息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recalls": {
+    "source": "Recalls",
+    "translation": "召回",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "receive_notifications_about_medications": {
+    "source": "Receive notifications about medications and health tracking",
+    "translation": "接收关于药物和健康追踪的通知",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "receive_promotional_emails_and_special": {
+    "source": "Receive promotional emails and special offers",
+    "translation": "接收促销邮件和特别优惠",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "receive_updates_about_new_features_and": {
+    "source": "Receive updates about new features and improvements",
+    "translation": "接收新功能和改进的更新",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recipe_url_optional": {
+    "source": "Recipe URL (Optional)",
+    "translation": "食谱链接（可选）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recipient": {
+    "source": "Recipient",
+    "translation": "收件人",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recipient_email": {
+    "source": "Recipient Email",
+    "translation": "收件人邮箱",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recipients": {
+    "source": "Recipients",
+    "translation": "收件人",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recognised_from_a_meal_you_labelled": {
+    "source": "✓ Recognised from a meal you labelled before — no model needed.",
+    "translation": "✓ 从你之前标记的餐食识别 — 无需模型。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recommendations": {
+    "source": "📋 Recommendations",
+    "translation": "📋 建议",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recommended_actions": {
+    "source": "✅ Recommended Actions",
+    "translation": "✅ 建议措施",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "record_integrity": {
+    "source": "Record integrity",
+    "translation": "记录完整性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "records_synced": {
+    "source": "%1$s records synced",
+    "translation": "%1$s 条记录已同步",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "recurrence": {
+    "source": "Recurrence",
+    "translation": "重复",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ref": {
+    "source": "Ref: %1$s – %2$s",
+    "translation": "参考值：%1$s – %2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ref_range": {
+    "source": "Ref Range",
+    "translation": "参考范围",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reference_range": {
+    "source": "Reference Range",
+    "translation": "参考范围",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "refills": {
+    "source": "Refills: %1$s/%2$s",
+    "translation": "续配: %1$s/%2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "refills_2": {
+    "source": "Refills",
+    "translation": "续配次数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reflection": {
+    "source": "Reflection...",
+    "translation": "反思...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "refresh": {
+    "source": "Refresh",
+    "translation": "刷新",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "region": {
+    "source": "Region *",
+    "translation": "地区 *",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "register": {
+    "source": "Register",
+    "translation": "注册",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "relationship": {
+    "source": "Relationship",
+    "translation": "关系",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "relief_after": {
+    "source": "Relief after",
+    "translation": "之后缓解",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "remarks": {
+    "source": "Remarks",
+    "translation": "备注",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reminder_minutes_before": {
+    "source": "Reminder (minutes before)",
+    "translation": "提醒（提前分钟数）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "remove": {
+    "source": "Remove %1$s",
+    "translation": "移除 %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "remove_2": {
+    "source": "Remove",
+    "translation": "移除",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "remove_data_sharing_with": {
+    "source": "Remove data sharing with %1$s?",
+    "translation": "移除与 %1$s 的数据共享？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "remove_drug": {
+    "source": "Remove drug %1$s",
+    "translation": "移除药物 %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "remove_photo": {
+    "source": "Remove Photo",
+    "translation": "移除照片",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "removed_ml": {
+    "source": "Removed (mL)",
+    "translation": "已移除 (mL)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "replies": {
+    "source": "Replies (%1$s)",
+    "translation": "回复（%1$s）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "report": {
+    "source": "Report",
+    "translation": "报告",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "report_date": {
+    "source": "Report Date",
+    "translation": "报告日期",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "report_type": {
+    "source": "Report Type",
+    "translation": "报告类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reps": {
+    "source": "%1$s reps",
+    "translation": "%1$s 次",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "request_refill": {
+    "source": "Request refill",
+    "translation": "申请补充",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "request_refill_2": {
+    "source": "Request Refill",
+    "translation": "申请补充",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "require_fingerprint_or_face_recognition": {
+    "source": "Require fingerprint or face recognition to access the app",
+    "translation": "需要指纹或面部识别才能访问应用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "research_interests_comma_separated": {
+    "source": "Research Interests (comma-separated)",
+    "translation": "研究兴趣（逗号分隔）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "research_participation": {
+    "source": "Research Participation",
+    "translation": "研究参与",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reset_password": {
+    "source": "Reset Password",
+    "translation": "重置密码",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "residency_program": {
+    "source": "Residency Program",
+    "translation": "住院医师培训项目",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "restore_purchase": {
+    "source": "Restore purchase",
+    "translation": "恢复购买",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "result_found": {
+    "source": "%1$s result%2$s found",
+    "translation": "找到 %1$s 个结果%2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "retry": {
+    "source": "Retry",
+    "translation": "重试",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "review": {
+    "source": "Review",
+    "translation": "审核",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "review_2": {
+    "source": "Review %1$s",
+    "translation": "评价 %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reviewed": {
+    "source": "reviewed",
+    "translation": "已审核",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reviewed_and_anchored": {
+    "source": "Reviewed and anchored",
+    "translation": "已审核并确认",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reviews": {
+    "source": "%1$s (%2$s reviews)",
+    "translation": "%1$s (%2$s 条评价)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "reviews_2": {
+    "source": "Reviews",
+    "translation": "评价",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "rn_reviewer": {
+    "source": "RN Reviewer",
+    "translation": "注册护士审核员",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "role": {
+    "source": "Role",
+    "translation": "角色",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "roles": {
+    "source": "Roles",
+    "translation": "角色",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "route": {
+    "source": "Route",
+    "translation": "给药途径",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "rows": {
+    "source": "%1$s rows",
+    "translation": "%1$s 行",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "run_what_if": {
+    "source": "Run What-If%1$s",
+    "translation": "运行假设分析%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "rx": {
+    "source": "Rx #%1$s",
+    "translation": "Rx #%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "s_hold": {
+    "source": " → %1$ss hold",
+    "translation": "→ %1$s秒暂停",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sak_lot": {
+    "source": "SAK Lot",
+    "translation": "SAK 批号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sak_use": {
+    "source": "SAK Use #",
+    "translation": "SAK 使用次数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "saline_added_ml": {
+    "source": "Saline Added (mL)",
+    "translation": "添加生理盐水 (mL)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "save": {
+    "source": "Save",
+    "translation": "保存",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "save_2": {
+    "source": "Save %1$s",
+    "translation": "保存 %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "save_check_in": {
+    "source": "Save Check-In",
+    "translation": "保存签到",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "save_directive": {
+    "source": "Save Directive",
+    "translation": "保存指示",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "save_plan": {
+    "source": "Save Plan",
+    "translation": "保存计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "save_preferences": {
+    "source": "Save Preferences",
+    "translation": "保存偏好设置",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "save_profile": {
+    "source": "Save Profile",
+    "translation": "保存个人资料",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "save_session": {
+    "source": "Save Session",
+    "translation": "保存会话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "saved": {
+    "source": "Saved (%1$s)",
+    "translation": "已保存 (%1$s)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "saving": {
+    "source": "Saving…",
+    "translation": "保存中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "saving_2": {
+    "source": "Saving...",
+    "translation": "保存中...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "say_it_in_words": {
+    "source": "Say it in words",
+    "translation": "用语音说出来",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "scan_label": {
+    "source": "Scan Label",
+    "translation": "扫描标签",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "scenario": {
+    "source": "Scenario Ω",
+    "translation": "情景 Ω",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "schedule_visit": {
+    "source": "Schedule Visit",
+    "translation": "安排就诊",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "scheduled": {
+    "source": "Scheduled",
+    "translation": "计划中",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "scheduled_end": {
+    "source": "Scheduled End",
+    "translation": "计划结束",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "scheduled_start": {
+    "source": "Scheduled Start",
+    "translation": "计划开始",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "score_0_100": {
+    "source": "Score 0–100",
+    "translation": "评分 0–100",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "score_this_from_what_i_wrote": {
+    "source": "Score this from what I wrote",
+    "translation": "根据我的记录评分",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "scores": {
+    "source": "Scores",
+    "translation": "评分",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search": {
+    "source": "Search",
+    "translation": "搜索",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_alerts": {
+    "source": "Search alerts...",
+    "translation": "搜索警报…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_by_name_abbreviation_or_code": {
+    "source": "Search by name, abbreviation or code",
+    "translation": "按名称、缩写或代码搜索",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_by_name_email_or_phone": {
+    "source": "Search by name, email or phone",
+    "translation": "按姓名、邮箱或电话搜索",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_facilities": {
+    "source": "Search facilities",
+    "translation": "搜索医疗机构",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_guidelines": {
+    "source": "Search guidelines...",
+    "translation": "搜索指南…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_icd_11": {
+    "source": "Search ICD-11",
+    "translation": "搜索 ICD-11",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_physicians": {
+    "source": "Search physicians...",
+    "translation": "搜索医生...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_recalls": {
+    "source": "Search recalls",
+    "translation": "搜索召回",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_roles": {
+    "source": "Search roles",
+    "translation": "搜索角色",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_the_usda_database_to_add_foods": {
+    "source": "Search the USDA database to add foods",
+    "translation": "搜索USDA数据库以添加食物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "search_usda_database": {
+    "source": "Search USDA Database",
+    "translation": "搜索 USDA 数据库",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "searching": {
+    "source": "Searching…",
+    "translation": "搜索中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "security": {
+    "source": "Security",
+    "translation": "安全",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "see_the_photo_of_this_meal": {
+    "source": "See the photo of this meal",
+    "translation": "查看此餐食的照片",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "select_datasets": {
+    "source": "Select Datasets",
+    "translation": "选择数据集",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "select_datasets_to_chart": {
+    "source": "Select Datasets to Chart",
+    "translation": "选择要绘制的数据集",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "select_document": {
+    "source": "Select Document",
+    "translation": "选择文档",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "select_food_image": {
+    "source": "Select Food Image",
+    "translation": "选择食物图像",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "select_medication_image": {
+    "source": "Select Medication Image",
+    "translation": "选择药物图片",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "select_which_alert_types_to_receive": {
+    "source": "Select which alert types to receive",
+    "translation": "选择要接收的警报类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "selected": {
+    "source": "Selected",
+    "translation": "已选择",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "selected_2": {
+    "source": "%1$s selected",
+    "translation": "%1$s 已选择",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "send": {
+    "source": "Send",
+    "translation": "发送",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "send_invitation": {
+    "source": "Send Invitation",
+    "translation": "发送邀请",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "send_reset_link": {
+    "source": "Send Reset Link",
+    "translation": "发送重置链接",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "send_the_email_again": {
+    "source": "Send the email again",
+    "translation": "重新发送邮件",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sent": {
+    "source": "Sent: %1$s",
+    "translation": "已发送：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "separate_foods_with_semicolons_alafia": {
+    "source": "Separate foods with semicolons — ALAFIA will recognize this meal in future photos.",
+    "translation": "用分号分隔食物 — ALAFIA 将在今后的照片中识别此餐食。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "serving_size": {
+    "source": "Serving size",
+    "translation": "份量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "session": {
+    "source": "Session #%1$s",
+    "translation": "疗程 #%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "session_2": {
+    "source": "Session #",
+    "translation": "疗程 #",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "session_3": {
+    "source": "Session",
+    "translation": "会话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "session_complete": {
+    "source": "✅ Session Complete!",
+    "translation": "✅ 会话完成！",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "session_date_yyyy_mm_dd": {
+    "source": "Session Date (YYYY-MM-DD)",
+    "translation": "疗程日期 (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "session_info": {
+    "source": "Session Info",
+    "translation": "治疗信息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "session_timeout": {
+    "source": "Session Timeout",
+    "translation": "会话超时",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "session_type": {
+    "source": "Session Type",
+    "translation": "疗程类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sessions": {
+    "source": "%1$s Sessions",
+    "translation": "%1$s 疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sessions_2": {
+    "source": "Sessions: %1$s",
+    "translation": "疗程: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sessions_3": {
+    "source": "Sessions",
+    "translation": "透析次数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sessions_in_this_period": {
+    "source": "%1$s sessions in this period",
+    "translation": "此期间内 %1$s 次会话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sessions_in_this_period_on_record_since": {
+    "source": "%1$s sessions in this period — %2$s on record since %3$s",
+    "translation": "此期间内 %1$s 次会话——自 %3$s 以来记录 %2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "set_as_primary_plan": {
+    "source": "Set as Primary Plan",
+    "translation": "设为主要计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "set_primary": {
+    "source": "Set Primary",
+    "translation": "设为主要",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sets": {
+    "source": "%1$s sets",
+    "translation": "%1$s 组",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "severity": {
+    "source": "Severity",
+    "translation": "严重程度",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "severity_levels": {
+    "source": "Severity Levels",
+    "translation": "严重程度",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sex_at_birth": {
+    "source": "Sex at Birth",
+    "translation": "出生时性别",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sex_at_birth_locked": {
+    "source": "Sex at Birth (locked)",
+    "translation": "出生时性别（已锁定）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "share": {
+    "source": "Share",
+    "translation": "分享",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "share_records": {
+    "source": "Share Records",
+    "translation": "分享记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "shared_with_you": {
+    "source": "Shared with you: %1$s",
+    "translation": "与您共享：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "shortness_of_breath": {
+    "source": "Shortness of Breath",
+    "translation": "呼吸困难",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "show_distribution": {
+    "source": "Show distribution",
+    "translation": "显示分布",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "show_shopping_list": {
+    "source": "Show Shopping List",
+    "translation": "显示购物清单",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "side_effects": {
+    "source": "Side Effects: %1$s",
+    "translation": "副作用：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "side_effects_2": {
+    "source": "Side Effects",
+    "translation": "副作用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "side_effects_3": {
+    "source": "Side effects: %1$s",
+    "translation": "副作用: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "side_effects_4": {
+    "source": "Side effects",
+    "translation": "副作用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sign": {
+    "source": "Sign",
+    "translation": "签名",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sign_off": {
+    "source": "Sign-off",
+    "translation": "签名确认",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sign_off_on_this_session": {
+    "source": "Sign off on this session",
+    "translation": "签署此次会话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sign_out": {
+    "source": "Sign out",
+    "translation": "登出",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "signing": {
+    "source": "Signing…",
+    "translation": "签署中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "simulating": {
+    "source": "Simulating…",
+    "translation": "模拟中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "since": {
+    "source": "Since: %1$s",
+    "translation": "自: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sit_dia": {
+    "source": "Sit Dia",
+    "translation": "坐位舒张压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sit_sys": {
+    "source": "Sit Sys",
+    "translation": "坐位收缩压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "skipped": {
+    "source": ", %1$s skipped",
+    "translation": "，%1$s 条已跳过",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sleep": {
+    "source": "Sleep",
+    "translation": "睡眠",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sleep_hours": {
+    "source": "Sleep Hours",
+    "translation": "睡眠时长",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sleep_q": {
+    "source": "Sleep Q.",
+    "translation": "睡眠质量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sleep_quality_10": {
+    "source": "Sleep Quality: %1$s/10",
+    "translation": "睡眠质量：%1$s/10",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "smoking": {
+    "source": "Smoking",
+    "translation": "吸烟",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sms_notifications": {
+    "source": "SMS Notifications",
+    "translation": "短信通知",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "snacks": {
+    "source": "Snacks",
+    "translation": "零食",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "solution_type": {
+    "source": "Solution Type",
+    "translation": "溶液类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sources": {
+    "source": "Sources",
+    "translation": "来源",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "speak": {
+    "source": "Speak",
+    "translation": "说话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "speak_your_question": {
+    "source": "Speak your question",
+    "translation": "说出您的问题",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "speaker": {
+    "source": "Speaker #%1$s",
+    "translation": "发言人 #%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "specialty": {
+    "source": "Specialty",
+    "translation": "专科",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "specialty_2": {
+    "source": "Specialty *",
+    "translation": "专科 *",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "specialty_practice": {
+    "source": "Specialty & Practice",
+    "translation": "专科与执业",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "spo": {
+    "source": "SpO₂ (%)",
+    "translation": "血氧饱和度（%）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "spo_2": {
+    "source": "SpO₂",
+    "translation": "SpO₂",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "stand_dia": {
+    "source": "Stand Dia",
+    "translation": "站立舒张压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "stand_hr": {
+    "source": "Stand HR",
+    "translation": "站立心率",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "stand_sys": {
+    "source": "Stand Sys",
+    "translation": "站立收缩压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "start_a_conversation": {
+    "source": "Start a Conversation",
+    "translation": "开始对话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "start_exercise": {
+    "source": "Start Exercise",
+    "translation": "开始运动",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "start_hh_mm": {
+    "source": "Start (HH:MM)",
+    "translation": "开始 (HH:MM)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "start_time": {
+    "source": "Start Time",
+    "translation": "开始时间",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "start_time_hh_mm": {
+    "source": "Start Time (HH:MM)",
+    "translation": "开始时间 (HH:MM)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "start_yyyy_mm_ddthh_mm_ss": {
+    "source": "Start (YYYY-MM-DDTHH:mm:ss)",
+    "translation": "开始时间（YYYY-MM-DDTHH:mm:ss）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "state": {
+    "source": "State",
+    "translation": "州",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "statistics": {
+    "source": "Statistics",
+    "translation": "统计数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "status": {
+    "source": "Status",
+    "translation": "状态",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "status_taken_missed_skipped_late": {
+    "source": "Status (taken/missed/skipped/late)",
+    "translation": "状态(已服用/未服用/跳过/迟服)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "std": {
+    "source": "Std",
+    "translation": "标准差",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "steady": {
+    "source": "Steady",
+    "translation": "稳定",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "steps": {
+    "source": "Steps",
+    "translation": "步数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "steps_2": {
+    "source": "%1$s steps",
+    "translation": "%1$s 步",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "stop": {
+    "source": "Stop",
+    "translation": "停止",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "stopped": {
+    "source": "Stopped",
+    "translation": "已停用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "store_results": {
+    "source": "Store results",
+    "translation": "保存结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "straining": {
+    "source": "Straining",
+    "translation": "用力",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "streak": {
+    "source": "Streak",
+    "translation": "连续天数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "stress": {
+    "source": "Stress",
+    "translation": "压力",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "stress_10": {
+    "source": "Stress: %1$s/10",
+    "translation": "压力：%1$s/10",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sub_scores": {
+    "source": "Sub-Scores",
+    "translation": "子评分",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sub_specialty": {
+    "source": "Sub-specialty",
+    "translation": "亚专科",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "submit": {
+    "source": "Submit",
+    "translation": "提交",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "submit_health_report": {
+    "source": "Submit Health Report",
+    "translation": "提交健康报告",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "submit_report": {
+    "source": "Submit Report",
+    "translation": "提交报告",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "submitting": {
+    "source": "Submitting...",
+    "translation": "提交中...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "subscribe": {
+    "source": "Subscribe",
+    "translation": "订阅",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "success": {
+    "source": "Success",
+    "translation": "成功",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "suffix_jr_iii_rn": {
+    "source": "Suffix (Jr., III, RN)",
+    "translation": "后缀（Jr.、III、RN）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "suggestions_final_nutrients_are_computed": {
+    "source": "Suggestions — final nutrients are computed server-side when you save.",
+    "translation": "建议 — 保存时在服务器端计算最终营养成分。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "summary": {
+    "source": "Summary",
+    "translation": "总结",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "superseded": {
+    "source": "Superseded: %1$s",
+    "translation": "已取代：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "superseded_2": {
+    "source": "⚠️ Superseded",
+    "translation": "⚠️ 已被取代",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "swelling": {
+    "source": "Swelling",
+    "translation": "肿胀",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "swelling_edema": {
+    "source": "Swelling / Edema",
+    "translation": "肿胀/水肿",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "switch_to_add_role_tab": {
+    "source": "Switch to 'Add Role' tab",
+    "translation": "切换到'添加角色'标签页",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "switch_to_patient_view": {
+    "source": "Switch to Patient View",
+    "translation": "切换到患者视图",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "symptoms": {
+    "source": "Symptoms",
+    "translation": "症状",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "symptoms_comma_separated": {
+    "source": "Symptoms (comma-separated)",
+    "translation": "症状（逗号分隔）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sync_now": {
+    "source": "Sync Now",
+    "translation": "立即同步",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sync_result": {
+    "source": "Sync Result",
+    "translation": "同步结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "synced_records": {
+    "source": "Synced Records",
+    "translation": "已同步记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "syncing": {
+    "source": "Syncing...",
+    "translation": "同步中...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "sys": {
+    "source": "Sys",
+    "translation": "收缩压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "systolic": {
+    "source": "Systolic",
+    "translation": "收缩压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "take_assessment": {
+    "source": "+ Take Assessment",
+    "translation": "+ 进行评估",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "take_photo": {
+    "source": "Take Photo",
+    "translation": "拍照",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "taken": {
+    "source": "Taken",
+    "translation": "已服用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_check_in_to_log_how_you_feel": {
+    "source": "Tap Check In to log how you feel",
+    "translation": "点击签到记录你的感受",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_the_profile_icon_to_add_your_health": {
+    "source": "Tap the profile icon to add your health info",
+    "translation": "点击个人资料图标添加您的健康信息",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_add_a_condition": {
+    "source": "Tap + to add a condition",
+    "translation": "点击 + 添加病情",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_add_a_medication": {
+    "source": "Tap + to add a medication",
+    "translation": "点击 + 添加药物",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_add_a_result": {
+    "source": "Tap + to add a result",
+    "translation": "点击 + 添加结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_add_a_session": {
+    "source": "Tap + to add a session",
+    "translation": "点击 + 添加疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_add_items_from_your_fridge": {
+    "source": "Tap + to add items from your fridge, freezer, or pantry",
+    "translation": "点击 + 从冰箱、冷冻室或食品柜添加项目",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_add_one": {
+    "source": "Tap + to add one",
+    "translation": "点击 + 添加",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_add_plans_from_any_supported": {
+    "source": "Tap + to add plans from any supported country",
+    "translation": "点击 + 添加任何支持国家的计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_generate_a_plan": {
+    "source": "Tap + to generate a plan",
+    "translation": "点击 + 生成计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_log_a_session": {
+    "source": "Tap + to log a session",
+    "translation": "点击 + 记录一次疗程",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_log_a_workout": {
+    "source": "Tap + to log a workout",
+    "translation": "点击 + 记录运动",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_log_one": {
+    "source": "Tap + to log one",
+    "translation": "点击 + 记录一条",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_log_your_habits": {
+    "source": "Tap + to log your habits",
+    "translation": "点击 + 记录您的习惯",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_pick_metrics": {
+    "source": "Tap + to pick metrics",
+    "translation": "点击 + 选择指标",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_send_a_data_sharing_invitation": {
+    "source": "Tap + to send a data sharing invitation",
+    "translation": "点击 + 发送数据共享邀请",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tap_to_share_data_with_someone": {
+    "source": "Tap + to share data with someone",
+    "translation": "点击 + 与他人共享数据",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "target": {
+    "source": "Target",
+    "translation": "目标值",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "target_population": {
+    "source": "👥 Target Population",
+    "translation": "👥 目标人群",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "target_weight_kg": {
+    "source": "Target Weight (kg)",
+    "translation": "目标体重（千克）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "teach": {
+    "source": "Teach",
+    "translation": "教学",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "telehealth": {
+    "source": "Telehealth",
+    "translation": "远程医疗",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "telemedicine_available": {
+    "source": "Telemedicine Available",
+    "translation": "远程医疗可用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "temp": {
+    "source": "Temp",
+    "translation": "体温",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "temp_f": {
+    "source": "Temp (°F)",
+    "translation": "体温 (°F)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "temperature_c": {
+    "source": "Temperature: %1$s°C",
+    "translation": "温度：%1$s°C",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "temperature_c_2": {
+    "source": "Temperature (°C)",
+    "translation": "体温 (°C)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "test": {
+    "source": "Test",
+    "translation": "检查",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "test_name": {
+    "source": "Test Name",
+    "translation": "检测名称",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "test_s": {
+    "source": "%1$s test(s)",
+    "translation": "%1$s 项检测",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "text_1_i_m_grateful_for": {
+    "source": "1. I'm grateful for...",
+    "translation": "1. 我感谢...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "text_1_row": {
+    "source": "1 row",
+    "translation": "1 行",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "text_2_i_m_grateful_for": {
+    "source": "2. I'm grateful for...",
+    "translation": "2. 我感谢...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "text_3_i_m_grateful_for": {
+    "source": "3. I'm grateful for...",
+    "translation": "3. 我感谢...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "text_7_27_or_447": {
+    "source": "7:27 or 447",
+    "translation": "7:27 或 447",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "text_7_day_average": {
+    "source": "7-day average",
+    "translation": "7天平均值",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "this_action_cannot_be_undone_all_your": {
+    "source": "This action cannot be undone. All your health data will be permanently deleted. Are you sure you want to continue?",
+    "translation": "此操作无法撤销。您的所有健康数据将被永久删除。您确定要继续吗？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "this_document_type_can_be_read_but_not": {
+    "source": "This document type can be read but not imported yet — the values above are shown for reference only.",
+    "translation": "此文档类型可读但尚不支持导入 — 上述数值仅供参考。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "this_is_correct_log_it_anyway": {
+    "source": "This is correct — log it anyway",
+    "translation": "这是正确的 — 仍然记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "this_patient_shares_all_of_their_data": {
+    "source": "This patient shares all of their data with you.",
+    "translation": "该患者与您共享所有数据。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "this_user": {
+    "source": "this user",
+    "translation": "此用户",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "time_hh_mm": {
+    "source": "Time (HH:mm)",
+    "translation": "时间 (HH:mm)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "time_hh_mm_2": {
+    "source": "Time (HH:MM)",
+    "translation": "时间(HH:MM)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "timezone": {
+    "source": "Timezone",
+    "translation": "时区",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "title": {
+    "source": "Title",
+    "translation": "标题",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "title_2": {
+    "source": "Title *",
+    "translation": "标题 *",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "title_optional": {
+    "source": "Title (optional)",
+    "translation": "标题（可选）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "to_remove_kg": {
+    "source": "To Remove (kg)",
+    "translation": "待移除 (kg)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tolerability": {
+    "source": "Tolerability",
+    "translation": "耐受性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tolerance": {
+    "source": "Tolerance: %1$s",
+    "translation": "耐受性：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tolerance_2": {
+    "source": "Tolerance",
+    "translation": "耐受性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "topic": {
+    "source": "Topic",
+    "translation": "主题",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tot_dial": {
+    "source": "Tot Dial",
+    "translation": "总透析",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "tot_uf": {
+    "source": "Tot UF",
+    "translation": "总超滤",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "total": {
+    "source": "Total",
+    "translation": "总计",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "total_dial_l": {
+    "source": "Total Dial (L)",
+    "translation": "总透析液 (L)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "total_planned": {
+    "source": "Total Planned",
+    "translation": "计划总数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "total_records": {
+    "source": "Total records:",
+    "translation": "总记录数：",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "total_uf_l_machine": {
+    "source": "Total UF (L) — machine",
+    "translation": "总超滤量 (L) — 机器",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "total_uf_ml": {
+    "source": "Total UF: %1$sml",
+    "translation": "总超滤量：%1$smL",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "track_meals_macros": {
+    "source": "Track meals & macros",
+    "translation": "追踪饮食和营养",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "track_your_health_and_wellness_journey": {
+    "source": "Track your health and wellness journey",
+    "translation": "追踪您的健康和健康之旅",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "transcripts": {
+    "source": "Transcripts",
+    "translation": "记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "treatment_plan": {
+    "source": "Treatment Plan",
+    "translation": "治疗方案",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "treatment_preferences": {
+    "source": "Treatment Preferences",
+    "translation": "治疗偏好",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "trend": {
+    "source": "Trend: %1$s",
+    "translation": "趋势：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "trend_2": {
+    "source": "Trend",
+    "translation": "趋势",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "trigger": {
+    "source": "Trigger: %1$s",
+    "translation": "触发因素：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "trigger_2": {
+    "source": "Trigger",
+    "translation": "诱因",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "triggers": {
+    "source": "Triggers: %1$s",
+    "translation": "触发因素：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "triggers_2": {
+    "source": "Triggers",
+    "translation": "触发因素",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "try_a_different_search_term": {
+    "source": "Try a different search term",
+    "translation": "尝试其他搜索词",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "try_again": {
+    "source": "Try again",
+    "translation": "重试",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "try_kidney_esrd_sickle_cell_or_a_code": {
+    "source": "Try “kidney”, “ESRD”, “sickle cell” or a code like “GB61.5”.",
+    "translation": "尝试搜索\"kidney\"、\"ESRD\"、\"sickle cell\"或代码如\"GB61.5\"。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "type": {
+    "source": "Type: %1$s",
+    "translation": "类型：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "type_2": {
+    "source": "Type",
+    "translation": "类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "type_a_message": {
+    "source": "Type a message...",
+    "translation": "输入消息...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "type_speak_or_snap_a_photo_alafia_will": {
+    "source": "Type, speak, or snap a photo — ALAFIA will take you to the right place.",
+    "translation": "输入、说话或拍照 — ALAFIA 会为你指引方向。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "typical_dosage": {
+    "source": "Typical Dosage",
+    "translation": "典型剂量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "typical_range": {
+    "source": "Typical Range",
+    "translation": "正常范围",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "uf_removed_ml": {
+    "source": "UF removed (mL)",
+    "translation": "超滤量（mL）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "uf_vol": {
+    "source": "UF Vol",
+    "translation": "超滤量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "unavailable": {
+    "source": "unavailable",
+    "translation": "不可用",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "unit": {
+    "source": "Unit",
+    "translation": "单位",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "units": {
+    "source": "Units",
+    "translation": "单位",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "unknown": {
+    "source": "Unknown",
+    "translation": "未知",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "unknown_firm": {
+    "source": "Unknown Firm",
+    "translation": "未知厂商",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "unknown_product": {
+    "source": "Unknown Product",
+    "translation": "未知产品",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "unlock_the_full_alafia_experience_across": {
+    "source": "Unlock the full ALAFIA experience across every device.",
+    "translation": "解锁 ALAFIA 在所有设备上的完整体验。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "unread": {
+    "source": "Unread",
+    "translation": "未读",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "until": {
+    "source": "Until: %1$s",
+    "translation": "至: %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "update": {
+    "source": "Update",
+    "translation": "更新",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "update_session": {
+    "source": "Update Session",
+    "translation": "更新会话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "updated": {
+    "source": "Updated %1$s",
+    "translation": "更新于 %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "upload_image_s_for_alafia_analysis": {
+    "source": "Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
+    "translation": "上传图像供 ALAFIA 分析。同一餐食的多张照片将作为一个盘子一起读取。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "uploading": {
+    "source": "Uploading…",
+    "translation": "上传中…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "urgency": {
+    "source": "Urgency",
+    "translation": "紧迫感",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "use": {
+    "source": "Use “%1$s”",
+    "translation": "使用 \"%1$s\"",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "use_this": {
+    "source": "Use this",
+    "translation": "使用此项",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "user": {
+    "source": "User #%1$s",
+    "translation": "用户 #%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "user_2": {
+    "source": "User",
+    "translation": "用户",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "username": {
+    "source": "Username",
+    "translation": "用户名",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "value": {
+    "source": "Value: %1$s %2$s",
+    "translation": "数值：%1$s %2$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "value_2": {
+    "source": "Value",
+    "translation": "数值",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "vascular_access": {
+    "source": "Vascular Access",
+    "translation": "血管通路",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ven_p": {
+    "source": "Ven P",
+    "translation": "静脉压",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "ventilator": {
+    "source": "Ventilator",
+    "translation": "呼吸机",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "verified": {
+    "source": "✓ Verified",
+    "translation": "✓ 已验证",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "verify_dosage": {
+    "source": "Verify Dosage",
+    "translation": "验证剂量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "verify_this_record": {
+    "source": "Verify this record",
+    "translation": "验证此记录",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "view_full_guideline": {
+    "source": "View Full Guideline",
+    "translation": "查看完整指南",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "view_original_source": {
+    "source": "View Original Source",
+    "translation": "查看原始来源",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "visibility": {
+    "source": "Visibility",
+    "translation": "可见性",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "visit_type": {
+    "source": "Visit Type",
+    "translation": "就诊类型",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "vitals": {
+    "source": "Vitals",
+    "translation": "生命体征",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "vitals_habits": {
+    "source": "Vitals & habits",
+    "translation": "生命体征和习惯",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "voice_call": {
+    "source": "Voice Call",
+    "translation": "语音通话",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "vol": {
+    "source": "Vol",
+    "translation": "容量",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "volume_l": {
+    "source": "Volume (L)",
+    "translation": "容量 (L)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "volume_ml": {
+    "source": "Volume (mL)",
+    "translation": "量（mL）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "w_rdgs": {
+    "source": "w/ Rdgs",
+    "translation": "含读数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "waiting_room": {
+    "source": "Waiting Room",
+    "translation": "等候室",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "warmer_serial": {
+    "source": "Warmer Serial",
+    "translation": "加热器序列号",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "waste_line_bleach": {
+    "source": "Waste Line Bleach",
+    "translation": "废液管漂白剂",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "we_sent_a_link_to_open_it_then_come_back": {
+    "source": "We sent a link to %1$s. Open it, then come back and tap Continue.",
+    "translation": "我们已向 %1$s 发送链接。打开链接后，返回此处并点击继续。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "website": {
+    "source": "Website",
+    "translation": "网站",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "weekly_minutes_target": {
+    "source": "Weekly Minutes Target",
+    "translation": "每周目标分钟数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "weight": {
+    "source": "Weight (%1$s)",
+    "translation": "体重（%1$s）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "weight_2": {
+    "source": "Weight",
+    "translation": "体重",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "weight_tracking_optional": {
+    "source": "Weight Tracking (Optional)",
+    "translation": "体重追踪（可选）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "weight_trend": {
+    "source": "Weight Trend",
+    "translation": "体重趋势",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "weights_kg": {
+    "source": "Weights (kg)",
+    "translation": "体重 (kg)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "welcome": {
+    "source": "Welcome, %1$s!",
+    "translation": "欢迎，%1$s！",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "wellness": {
+    "source": "Wellness",
+    "translation": "健康状况",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "wellness_score": {
+    "source": "Wellness Score: %1$s",
+    "translation": "健康评分：%1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "wellness_score_0_100": {
+    "source": "Wellness Score (0–100)",
+    "translation": "健康评分（0–100）",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "what_did_you_eat": {
+    "source": "What did you eat?",
+    "translation": "你吃了什么？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "what_if_simulator": {
+    "source": "What-If Simulator",
+    "translation": "假设模拟器",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "what_is_never_sent": {
+    "source": "What is never sent",
+    "translation": "永不发送的内容",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "what_is_sent": {
+    "source": "What is sent",
+    "translation": "发送的内容",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "what_s_on_your_mind": {
+    "source": "What's on your mind?",
+    "translation": "你在想什么？",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "write": {
+    "source": "✗ Write",
+    "translation": "✗ 写入",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "write_2": {
+    "source": "✓ Write",
+    "translation": "✓ 写入",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "write_a_reply": {
+    "source": "Write a reply...",
+    "translation": "写回复...",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "years_exp": {
+    "source": "Years Exp",
+    "translation": "从业年数",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "yes": {
+    "source": "✓ Yes",
+    "translation": "✓ 是",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "you_have_uploaded_this_file_before": {
+    "source": "You have uploaded this file before — showing what was read then.",
+    "translation": "您之前上传过此文件 — 显示当时的读数。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "you_re_subscribed": {
+    "source": "You're subscribed",
+    "translation": "您已订阅",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "your_choices": {
+    "source": "Your choices",
+    "translation": "您的选择",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "your_current_password_keeps_working": {
+    "source": "Your current password keeps working until you do.",
+    "translation": "您的当前密码将继续有效，直到您进行更改。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "your_data_is_protected_according_to": {
+    "source": "Your data is protected according to applicable regulations",
+    "translation": "您的数据根据适用法规受到保护",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "your_exercise_plans": {
+    "source": "Your Exercise Plans",
+    "translation": "您的运动计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "your_meal_plans": {
+    "source": "Your Meal Plans",
+    "translation": "您的膳食计划",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "your_own_health_record_meals_and": {
+    "source": "Your own health record, meals and tracking live in the patient view.",
+    "translation": "您的健康记录、饮食和追踪数据在患者视图中。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  }
+}

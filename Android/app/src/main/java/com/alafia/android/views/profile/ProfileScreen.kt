@@ -25,6 +25,8 @@ import com.alafia.android.schemas.UserSchema
 import com.alafia.android.schemas.UserUpdateRequest
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,10 +191,10 @@ fun ProfileScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = { Text(stringResource(R.string.profile)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -210,13 +212,13 @@ fun ProfileScreen(navController: NavHostController) {
         OutlinedTextField(
             value = profile?.email ?: "",
             onValueChange = {},
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.email)) },
             readOnly = true,
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
         )
 
         // ── Identity ──
-        SectionHeader("Identity")
+        SectionHeader(stringResource(R.string.identity))
         // Tap the face for the camera; the gallery is the long-press on the
         // button beside it. The subject — the patient's own face — is present
         // at the moment they tap, so the camera is the right default.
@@ -226,10 +228,10 @@ fun ProfileScreen(navController: NavHostController) {
             Spacer(Modifier.width(12.dp))
             Column {
                 TextButton(onClick = { if (!avatarBusy) avatarCamera.capture() }, enabled = !avatarBusy) {
-                    Text(if (avatarBusy) "Uploading…" else if (avatarUrl != null) "Change Photo" else "Take Photo")
+                    Text(if (avatarBusy) stringResource(R.string.uploading) else if (avatarUrl != null) stringResource(R.string.change_photo) else stringResource(R.string.take_photo))
                 }
                 TextButton(onClick = { if (!avatarBusy) avatarPicker.launch("image/*") }, enabled = !avatarBusy) {
-                    Text("Choose from Gallery")
+                    Text(stringResource(R.string.choose_from_gallery))
                 }
                 if (avatarUrl != null) {
                     TextButton(onClick = {
@@ -244,108 +246,108 @@ fun ProfileScreen(navController: NavHostController) {
                             }
                             avatarBusy = false
                         }
-                    }, enabled = !avatarBusy) { Text("Remove Photo") }
+                    }, enabled = !avatarBusy) { Text(stringResource(R.string.remove_photo)) }
                 }
             }
         }
 
         OutlinedTextField(value = firstName, onValueChange = { firstName = it },
-            label = { Text("First Name") },
+            label = { Text(stringResource(R.string.first_name)) },
             isError = firstName.isNotEmpty() && firstName.trim().length < 3,
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
         OutlinedTextField(value = lastName, onValueChange = { lastName = it },
-            label = { Text("Last Name") },
+            label = { Text(stringResource(R.string.last_name)) },
             isError = lastName.isNotEmpty() && lastName.trim().length < 3,
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
         OutlinedTextField(value = middleName, onValueChange = { middleName = it },
-            label = { Text("Middle Name") },
+            label = { Text(stringResource(R.string.middle_name)) },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
         OutlinedTextField(value = namePrefix, onValueChange = { namePrefix = it },
-            label = { Text("Prefix (Dr., Mrs., Chief)") },
+            label = { Text(stringResource(R.string.prefix_dr_mrs_chief)) },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
         OutlinedTextField(value = nameSuffix, onValueChange = { nameSuffix = it },
-            label = { Text("Suffix (Jr., III, RN)") },
+            label = { Text(stringResource(R.string.suffix_jr_iii_rn)) },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
         OutlinedTextField(
             value = dateOfBirth, onValueChange = { if (!dobLocked) dateOfBirth = it },
-            label = { Text(if (dobLocked) "Date of Birth (locked)" else "Date of Birth") },
+            label = { Text(if (dobLocked) stringResource(R.string.date_of_birth_locked) else stringResource(R.string.date_of_birth)) },
             readOnly = dobLocked, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             placeholder = { Text("YYYY-MM-DD") }
         )
-        DropdownField("Gender Identity", gender, listOf("", "Male", "Female", "Non-binary", "Prefer not to say")) { gender = it }
+        DropdownField(stringResource(R.string.gender_identity), gender, listOf("", "Male", "Female", "Non-binary", "Prefer not to say")) { gender = it }
         DropdownField(
-            if (gabLocked) "Sex at Birth (locked)" else "Sex at Birth",
+            if (gabLocked) stringResource(R.string.sex_at_birth_locked) else stringResource(R.string.sex_at_birth),
             genderAtBirth, listOf("", "Male", "Female", "Intersex"), enabled = !gabLocked
         ) { genderAtBirth = it }
         DropdownField(
-            if (btLocked) "Blood Type (locked)" else "Blood Type",
+            if (btLocked) stringResource(R.string.blood_type_locked) else stringResource(R.string.blood_type),
             bloodType, listOf("", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"), enabled = !btLocked
         ) { bloodType = it }
 
         // ── Insurance ──
-        SectionHeader("Insurance")
-        OutlinedTextField(value = insuranceId, onValueChange = { insuranceId = it }, label = { Text("Insurance ID") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = insuranceProvider, onValueChange = { insuranceProvider = it }, label = { Text("Provider") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = insuranceCountry, onValueChange = { insuranceCountry = it }, label = { Text("Country") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        SectionHeader(stringResource(R.string.insurance))
+        OutlinedTextField(value = insuranceId, onValueChange = { insuranceId = it }, label = { Text(stringResource(R.string.insurance_id)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = insuranceProvider, onValueChange = { insuranceProvider = it }, label = { Text(stringResource(R.string.provider)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = insuranceCountry, onValueChange = { insuranceCountry = it }, label = { Text(stringResource(R.string.country_2)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
 
         // ── Physical ──
-        SectionHeader("Physical")
-        OutlinedTextField(value = heightCm, onValueChange = { heightCm = it }, label = { Text("Height (cm)") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = currentWeightKg, onValueChange = { currentWeightKg = it }, label = { Text("Current Weight (kg)") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = targetWeightKg, onValueChange = { targetWeightKg = it }, label = { Text("Target Weight (kg)") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        SectionHeader(stringResource(R.string.physical))
+        OutlinedTextField(value = heightCm, onValueChange = { heightCm = it }, label = { Text(stringResource(R.string.height_cm)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = currentWeightKg, onValueChange = { currentWeightKg = it }, label = { Text(stringResource(R.string.current_weight_kg)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = targetWeightKg, onValueChange = { targetWeightKg = it }, label = { Text(stringResource(R.string.target_weight_kg)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
 
         // ── Location ──
-        SectionHeader("Location & Preferences")
-        OutlinedTextField(value = country, onValueChange = { country = it }, label = { Text("Country") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = tz, onValueChange = { tz = it }, label = { Text("Timezone") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), placeholder = { Text("e.g. America/New_York") })
+        SectionHeader(stringResource(R.string.location_preferences))
+        OutlinedTextField(value = country, onValueChange = { country = it }, label = { Text(stringResource(R.string.country_2)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = tz, onValueChange = { tz = it }, label = { Text(stringResource(R.string.timezone)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), placeholder = { Text(stringResource(R.string.e_g_america_new_york)) })
         // Each language in its own name ("Yorùbá", not "yo"); the profile stores the code.
         DropdownField(
-            "Language",
+            stringResource(R.string.language),
             if (preferredLanguage.isBlank()) "" else AppLanguage.displayName(preferredLanguage),
             listOf("") + AppLanguage.CODES.map { AppLanguage.displayName(it) },
         ) { name -> preferredLanguage = AppLanguage.normalise(name) }
-        DropdownField("Units", preferredUnits, listOf("", "metric", "imperial")) { preferredUnits = it }
+        DropdownField(stringResource(R.string.units), preferredUnits, listOf("", "metric", "imperial")) { preferredUnits = it }
 
         // ── Health ──
-        SectionHeader("Health Profile")
-        OutlinedTextField(value = allergies, onValueChange = { allergies = it }, label = { Text("Allergies") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = foodIntolerances, onValueChange = { foodIntolerances = it }, label = { Text("Food Intolerances") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = dietaryRestrictions, onValueChange = { dietaryRestrictions = it }, label = { Text("Dietary Restrictions") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = dietaryPreferences, onValueChange = { dietaryPreferences = it }, label = { Text("Dietary Preferences") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = familyHistory, onValueChange = { familyHistory = it }, label = { Text("Family History") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        SectionHeader(stringResource(R.string.health_profile))
+        OutlinedTextField(value = allergies, onValueChange = { allergies = it }, label = { Text(stringResource(R.string.allergies)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = foodIntolerances, onValueChange = { foodIntolerances = it }, label = { Text(stringResource(R.string.food_intolerances)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = dietaryRestrictions, onValueChange = { dietaryRestrictions = it }, label = { Text(stringResource(R.string.dietary_restrictions)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = dietaryPreferences, onValueChange = { dietaryPreferences = it }, label = { Text(stringResource(R.string.dietary_preferences)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = familyHistory, onValueChange = { familyHistory = it }, label = { Text(stringResource(R.string.family_history)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
 
         // ── Fitness ──
-        SectionHeader("Fitness")
-        DropdownField("Activity Level", activityLevel, listOf("", "sedentary", "lightly_active", "moderately_active", "very_active", "extremely_active")) { activityLevel = it }
-        OutlinedTextField(value = exercisePerWeek, onValueChange = { exercisePerWeek = it }, label = { Text("Exercise / Week") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = fitnessGoals, onValueChange = { fitnessGoals = it }, label = { Text("Fitness Goals") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        OutlinedTextField(value = preferredActivities, onValueChange = { preferredActivities = it }, label = { Text("Preferred Activities") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        SectionHeader(stringResource(R.string.fitness))
+        DropdownField(stringResource(R.string.activity_level), activityLevel, listOf("", "sedentary", "lightly_active", "moderately_active", "very_active", "extremely_active")) { activityLevel = it }
+        OutlinedTextField(value = exercisePerWeek, onValueChange = { exercisePerWeek = it }, label = { Text(stringResource(R.string.exercise_week)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = fitnessGoals, onValueChange = { fitnessGoals = it }, label = { Text(stringResource(R.string.fitness_goals)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        OutlinedTextField(value = preferredActivities, onValueChange = { preferredActivities = it }, label = { Text(stringResource(R.string.preferred_activities)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
 
         // ── Lifestyle ──
-        SectionHeader("Lifestyle")
-        OutlinedTextField(value = occupation, onValueChange = { occupation = it }, label = { Text("Occupation") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-        DropdownField("Smoking", smokingStatus, listOf("", "never", "former", "current")) { smokingStatus = it }
-        DropdownField("Alcohol", alcoholConsumption, listOf("", "none", "occasional", "moderate", "heavy")) { alcoholConsumption = it }
-        DropdownField("Sleep", sleepSchedule, listOf("", "early_bird", "night_owl", "shift_worker")) { sleepSchedule = it }
-        DropdownField("Stress", stressLevel, listOf("", "low", "moderate", "high")) { stressLevel = it }
+        SectionHeader(stringResource(R.string.lifestyle))
+        OutlinedTextField(value = occupation, onValueChange = { occupation = it }, label = { Text(stringResource(R.string.occupation)) }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        DropdownField(stringResource(R.string.smoking), smokingStatus, listOf("", "never", "former", "current")) { smokingStatus = it }
+        DropdownField(stringResource(R.string.alcohol), alcoholConsumption, listOf("", "none", "occasional", "moderate", "heavy")) { alcoholConsumption = it }
+        DropdownField(stringResource(R.string.sleep), sleepSchedule, listOf("", "early_bird", "night_owl", "shift_worker")) { sleepSchedule = it }
+        DropdownField(stringResource(R.string.stress), stressLevel, listOf("", "low", "moderate", "high")) { stressLevel = it }
 
         // ── AI Preferences ──
-        SectionHeader("AI Preferences")
+        SectionHeader(stringResource(R.string.ai_preferences))
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("AI Coaching", modifier = Modifier.padding(top = 12.dp))
+            Text(stringResource(R.string.ai_coaching), modifier = Modifier.padding(top = 12.dp))
             Switch(checked = aiCoachingEnabled, onCheckedChange = { aiCoachingEnabled = it })
         }
-        DropdownField("Personality", aiPersonality, listOf("", "supportive", "motivational", "clinical", "casual")) { aiPersonality = it }
-        DropdownField("Complexity", aiComplexity, listOf("", "simple", "moderate", "technical")) { aiComplexity = it }
+        DropdownField(stringResource(R.string.personality), aiPersonality, listOf("", "supportive", "motivational", "clinical", "casual")) { aiPersonality = it }
+        DropdownField(stringResource(R.string.complexity), aiComplexity, listOf("", "simple", "moderate", "technical")) { aiComplexity = it }
 
         // ── Privacy ──
-        SectionHeader("Privacy & Consent")
+        SectionHeader(stringResource(R.string.privacy_consent))
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Data Sharing Consent", modifier = Modifier.padding(top = 12.dp))
+            Text(stringResource(R.string.data_sharing_consent), modifier = Modifier.padding(top = 12.dp))
             Switch(checked = dataSharingConsent, onCheckedChange = { dataSharingConsent = it })
         }
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("AI Training Consent", modifier = Modifier.padding(top = 12.dp))
+            Text(stringResource(R.string.ai_training_consent), modifier = Modifier.padding(top = 12.dp))
             Switch(checked = aiTrainingConsent, onCheckedChange = { aiTrainingConsent = it })
         }
 
@@ -416,7 +418,7 @@ fun ProfileScreen(navController: NavHostController) {
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             enabled = !saving
         ) {
-            Text(if (saving) "Saving..." else "Save Profile")
+            Text(if (saving) stringResource(R.string.saving_2) else stringResource(R.string.save_profile))
         }
 
         Spacer(modifier = Modifier.height(32.dp))

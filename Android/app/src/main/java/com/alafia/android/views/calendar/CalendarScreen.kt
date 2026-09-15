@@ -37,6 +37,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 // Category colors & labels
 data class CategoryMeta(val label: String, val color: Color)
@@ -102,15 +104,15 @@ fun CalendarScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Calendar") },
+                title = { Text(stringResource(R.string.calendar)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { editEvent = null; showForm = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Event")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_event))
                     }
                 }
             )
@@ -124,7 +126,7 @@ fun CalendarScreen(navController: NavHostController) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { viewMonth = viewMonth.minusMonths(1) }) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "Previous")
+                Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(R.string.previous))
             }
             Text(
                 "${viewMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${viewMonth.year}",
@@ -132,7 +134,7 @@ fun CalendarScreen(navController: NavHostController) {
                 fontWeight = FontWeight.SemiBold
             )
             IconButton(onClick = { viewMonth = viewMonth.plusMonths(1) }) {
-                Icon(Icons.Default.ChevronRight, contentDescription = "Next")
+                Icon(Icons.Default.ChevronRight, contentDescription = stringResource(R.string.next))
             }
         }
 
@@ -153,7 +155,7 @@ fun CalendarScreen(navController: NavHostController) {
             FilterChip(
                 selected = filterCategory.isEmpty(),
                 onClick = { filterCategory = "" },
-                label = { Text("All") }
+                label = { Text(stringResource(R.string.all)) }
             )
             categoryKeys.forEach { key ->
                 val meta = categoryMap[key]!!
@@ -180,7 +182,7 @@ fun CalendarScreen(navController: NavHostController) {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                "${eventsOnDate.size} event${if (eventsOnDate.size != 1) "s" else ""}",
+                stringResource(R.string.event, eventsOnDate.size, if (eventsOnDate.size != 1) "s" else ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -195,10 +197,10 @@ fun CalendarScreen(navController: NavHostController) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("📅", fontSize = 48.sp)
                     Spacer(Modifier.height(8.dp))
-                    Text("No events on this day", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.no_events_on_this_day), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(8.dp))
                     Button(onClick = { editEvent = null; showForm = true }) {
-                        Text("Add Event")
+                        Text(stringResource(R.string.add_event))
                     }
                 }
             }
@@ -397,7 +399,7 @@ fun EventCard(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (event.allDay) {
-                        Text("🕐 All day", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.all_day), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         event.startTime?.let { st ->
                             val display = st.take(5) + (event.endTime?.let { " – ${it.take(5)}" } ?: "")
@@ -417,14 +419,14 @@ fun EventCard(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (event.status == "scheduled") {
                     IconButton(onClick = onComplete, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Complete", tint = Color(0xFF4CAF50))
+                        Icon(Icons.Default.CheckCircle, contentDescription = stringResource(R.string.complete), tint = Color(0xFF4CAF50))
                     }
                 }
                 IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit), tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -468,7 +470,7 @@ fun EventFormDialog(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                if (isEdit) "Edit Event" else "New Event",
+                if (isEdit) stringResource(R.string.edit_event) else stringResource(R.string.new_event),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -476,7 +478,7 @@ fun EventFormDialog(
 
             OutlinedTextField(
                 value = title, onValueChange = { title = it },
-                label = { Text("Title") },
+                label = { Text(stringResource(R.string.title)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -491,7 +493,7 @@ fun EventFormDialog(
                     value = categoryMap[category]?.label ?: category,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Category") },
+                    label = { Text(stringResource(R.string.category)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
@@ -508,7 +510,7 @@ fun EventFormDialog(
 
             OutlinedTextField(
                 value = desc, onValueChange = { desc = it },
-                label = { Text("Description") },
+                label = { Text(stringResource(R.string.description)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2, maxLines = 4
             )
@@ -516,7 +518,7 @@ fun EventFormDialog(
 
             OutlinedTextField(
                 value = eventDate, onValueChange = { eventDate = it },
-                label = { Text("Date (YYYY-MM-DD)") },
+                label = { Text(stringResource(R.string.date_yyyy_mm_dd)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -524,20 +526,20 @@ fun EventFormDialog(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = allDay, onCheckedChange = { allDay = it })
-                Text("All Day")
+                Text(stringResource(R.string.all_day_2))
             }
 
             if (!allDay) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = startTime, onValueChange = { startTime = it },
-                        label = { Text("Start (HH:MM)") },
+                        label = { Text(stringResource(R.string.start_hh_mm)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = endTime, onValueChange = { endTime = it },
-                        label = { Text("End (HH:MM)") },
+                        label = { Text(stringResource(R.string.end_hh_mm)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
@@ -554,14 +556,14 @@ fun EventFormDialog(
                     value = if (recurrence == "none") "No repeat" else recurrence.replaceFirstChar { it.uppercase() },
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Recurrence") },
+                    label = { Text(stringResource(R.string.recurrence)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = recurrenceExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
                 ExposedDropdownMenu(expanded = recurrenceExpanded, onDismissRequest = { recurrenceExpanded = false }) {
                     recurrenceOptions.forEach { opt ->
                         DropdownMenuItem(
-                            text = { Text(if (opt == "none") "No repeat" else opt.replaceFirstChar { it.uppercase() }) },
+                            text = { Text(if (opt == "none") stringResource(R.string.no_repeat) else opt.replaceFirstChar { it.uppercase() }) },
                             onClick = { recurrence = opt; recurrenceExpanded = false }
                         )
                     }
@@ -571,7 +573,7 @@ fun EventFormDialog(
 
             OutlinedTextField(
                 value = location, onValueChange = { location = it },
-                label = { Text("Location") },
+                label = { Text(stringResource(R.string.location)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -586,14 +588,14 @@ fun EventFormDialog(
                     value = if (priority.isEmpty()) "None" else priority.replaceFirstChar { it.uppercase() },
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Priority") },
+                    label = { Text(stringResource(R.string.priority)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = priorityExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
                 ExposedDropdownMenu(expanded = priorityExpanded, onDismissRequest = { priorityExpanded = false }) {
                     priorityOptions.forEach { opt ->
                         DropdownMenuItem(
-                            text = { Text(if (opt.isEmpty()) "None" else opt.replaceFirstChar { it.uppercase() }) },
+                            text = { Text(if (opt.isEmpty()) stringResource(R.string.none) else opt.replaceFirstChar { it.uppercase() }) },
                             onClick = { priority = opt; priorityExpanded = false }
                         )
                     }
@@ -603,7 +605,7 @@ fun EventFormDialog(
 
             OutlinedTextField(
                 value = reminderMin, onValueChange = { reminderMin = it },
-                label = { Text("Reminder (minutes before)") },
+                label = { Text(stringResource(R.string.reminder_minutes_before)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -611,7 +613,7 @@ fun EventFormDialog(
 
             OutlinedTextField(
                 value = notes, onValueChange = { notes = it },
-                label = { Text("Notes") },
+                label = { Text(stringResource(R.string.notes)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2, maxLines = 4
             )
@@ -622,7 +624,7 @@ fun EventFormDialog(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
                 Button(
                     onClick = {
@@ -679,7 +681,7 @@ fun EventFormDialog(
                     modifier = Modifier.weight(1f),
                     enabled = !saving && title.isNotEmpty()
                 ) {
-                    Text(if (isEdit) "Save" else "Create")
+                    Text(if (isEdit) stringResource(R.string.save) else stringResource(R.string.create))
                 }
             }
             Spacer(Modifier.height(32.dp))

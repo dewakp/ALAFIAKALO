@@ -563,6 +563,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Account deletion requested. You will be contacted for confirmation.": {
+    "source": "Account deletion requested. You will be contacted for confirmation.",
+    "translation": "Suppression de compte demandée. Vous serez contacté pour confirmation.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Active": {
     "source": "Active",
     "translation": "Actif",
@@ -1883,9 +1889,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Could not verify the purchase with the App Store.": {
+    "source": "Could not verify the purchase with the App Store.",
+    "translation": "Impossible de vérifier l'achat auprès de l'App Store.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Couldn’t check your membership": {
     "source": "Couldn’t check your membership",
     "translation": "Impossible de vérifier votre adhésion",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Couldn’t load the membership options.": {
+    "source": "Couldn’t load the membership options.",
+    "translation": "Impossible de charger les options d'adhésion.",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -2132,6 +2150,12 @@
   "Localizable.xcstrings::Data coverage": {
     "source": "Data coverage",
     "translation": "Couverture des données",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Data export requested. Check back in a few minutes.": {
+    "source": "Data export requested. Check back in a few minutes.",
+    "translation": "Export de données demandé. Vérifiez dans quelques minutes.",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -2897,6 +2921,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Export download initiated for %@": {
+    "source": "Export download initiated for %@",
+    "translation": "Téléchargement de l'export lancé pour %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Extracted text": {
     "source": "Extracted text",
     "translation": "Texte extrait",
@@ -2951,9 +2981,57 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Failed to create condition: %@": {
+    "source": "Failed to create condition: %@",
+    "translation": "Impossible de créer la condition : %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Failed to delete condition: %@": {
+    "source": "Failed to delete condition: %@",
+    "translation": "Impossible de supprimer la condition : %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Failed to load": {
     "source": "Failed to load",
     "translation": "Échec du chargement",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Failed to load conditions: %@": {
+    "source": "Failed to load conditions: %@",
+    "translation": "Impossible de charger les conditions : %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Failed to load privacy settings: %@": {
+    "source": "Failed to load privacy settings: %@",
+    "translation": "Impossible de charger les paramètres de confidentialité : %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Failed to request deletion: %@": {
+    "source": "Failed to request deletion: %@",
+    "translation": "Impossible de demander la suppression : %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Failed to request export: %@": {
+    "source": "Failed to request export: %@",
+    "translation": "Impossible de demander l'export : %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Failed to update condition: %@": {
+    "source": "Failed to update condition: %@",
+    "translation": "Impossible de mettre à jour la condition : %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Failed to update settings: %@": {
+    "source": "Failed to update settings: %@",
+    "translation": "Impossible de mettre à jour les paramètres : %@",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -3014,6 +3092,12 @@
   "Localizable.xcstrings::First Name": {
     "source": "First Name",
     "translation": "Prénom",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::First name must be at least 3 characters.": {
+    "source": "First name must be at least 3 characters.",
+    "translation": "Le prénom doit contenir au moins 3 caractères.",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -3773,6 +3857,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Last name must be at least 3 characters.": {
+    "source": "Last name must be at least 3 characters.",
+    "translation": "Le nom doit contenir au moins 3 caractères.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Last sync: %@": {
     "source": "Last sync: %@",
     "translation": "Dernière synchro : %@",
@@ -4262,6 +4352,12 @@
   "Localizable.xcstrings::Member ID": {
     "source": "Member ID",
     "translation": "Numéro d'adhérent",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Membership isn’t available. Is it configured in App Store Connect?": {
+    "source": "Membership isn’t available. Is it configured in App Store Connect?",
+    "translation": "L'adhésion n'est pas disponible. Est-elle configurée dans App Store Connect ?",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -5141,6 +5237,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Open a specific dialysis session to add a note to it.": {
+    "source": "Open a specific dialysis session to add a note to it.",
+    "translation": "Ouvrez une séance de dialyse spécifique pour y ajouter une note.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Open source": {
     "source": "Open source",
     "translation": "Open source",
@@ -5879,6 +5981,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Profile saved successfully!": {
+    "source": "Profile saved successfully!",
+    "translation": "Profil enregistré avec succès !",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Projectile": {
     "source": "Projectile",
     "translation": "Projectile",
@@ -5930,6 +6038,18 @@
   "Localizable.xcstrings::Publishing...": {
     "source": "Publishing...",
     "translation": "Publication en cours…",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Purchase failed: %@": {
+    "source": "Purchase failed: %@",
+    "translation": "Achat échoué : %@",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Purchase recorded but verification failed — it may update shortly.": {
+    "source": "Purchase recorded but verification failed — it may update shortly.",
+    "translation": "Achat enregistré mais vérification échouée — il peut se mettre à jour bientôt.",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -6443,6 +6563,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Saved": {
+    "source": "Saved",
+    "translation": "Enregistré",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Saved (%lld)": {
     "source": "Saved (%lld)",
     "translation": "Enregistré (%lld)",
@@ -6830,6 +6956,12 @@
   "Localizable.xcstrings::Settings": {
     "source": "Settings",
     "translation": "Paramètres",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Settings updated successfully": {
+    "source": "Settings updated successfully",
+    "translation": "Paramètres mis à jour avec succès",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -8468,6 +8600,18 @@
   "Localizable.xcstrings::Your own health record, meals and tracking live in the patient view.": {
     "source": "Your own health record, meals and tracking live in the patient view.",
     "translation": "Votre dossier de santé, vos repas et votre suivi se trouvent dans la vue patient.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your purchase is pending approval.": {
+    "source": "Your purchase is pending approval.",
+    "translation": "Votre achat est en attente d'approbation.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your session expired. Please sign in again.": {
+    "source": "Your session expired. Please sign in again.",
+    "translation": "Votre session a expiré. Veuillez vous reconnecter.",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

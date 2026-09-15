@@ -31,7 +31,7 @@ class AuthManager: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.isAuthenticated else { return }
-                self.error = "Your session expired. Please sign in again."
+                self.error = AppLanguage.text("Your session expired. Please sign in again.")
                 self.logout()
             }
         }

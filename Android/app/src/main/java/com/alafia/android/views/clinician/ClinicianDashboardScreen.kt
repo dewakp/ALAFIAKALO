@@ -26,6 +26,8 @@ import com.alafia.android.models.ClinicianDashboardResponse
 import com.alafia.android.models.PatientSummary
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * The clinician's home screen: every patient who shares with them, as a grid of
@@ -81,11 +83,11 @@ fun ClinicianDashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Patients") },
+                title = { Text(stringResource(R.string.my_patients)) },
                 navigationIcon = {
                     if (showBack) {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 }
@@ -115,7 +117,7 @@ fun ClinicianDashboardScreen(
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = { loadDashboard() }) { Text("Retry") }
+                    Button(onClick = { loadDashboard() }) { Text(stringResource(R.string.retry)) }
                 }
             }
 
@@ -134,12 +136,12 @@ fun ClinicianDashboardScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "No patients yet",
+                        stringResource(R.string.no_patients_yet),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Patients appear here as soon as they share their records with you, from Share, using your account email.",
+                        stringResource(R.string.patients_appear_here_as_soon_as_they),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -155,7 +157,7 @@ fun ClinicianDashboardScreen(
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
-                        "${dashboard!!.patients.size} patient${if (dashboard!!.patients.size != 1) "s" else ""}",
+                        stringResource(R.string.patient, dashboard!!.patients.size, if (dashboard!!.patients.size != 1) "s" else ""),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -221,18 +223,18 @@ private fun PatientCard(patient: PatientSummary, onOpen: () -> Unit) {
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "${patient.latestLabs.size} labs",
+                    stringResource(R.string.labs_2, patient.latestLabs.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "${patient.medications.size} meds",
+                    stringResource(R.string.meds, patient.medications.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (abnormal > 0) {
                     Text(
-                        "⚠ $abnormal abnormal",
+                        stringResource(R.string.abnormal, abnormal),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold

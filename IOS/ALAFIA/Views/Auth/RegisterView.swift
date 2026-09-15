@@ -163,11 +163,11 @@ struct RegisterView: View {
                         let first = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
                         let last = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
                         if first.count < 3 {
-                            authManager.error = "First name must be at least 3 characters."
+                            authManager.error = AppLanguage.text("First name must be at least 3 characters.")
                             return
                         }
                         if last.count < 3 {
-                            authManager.error = "Last name must be at least 3 characters."
+                            authManager.error = AppLanguage.text("Last name must be at least 3 characters.")
                             return
                         }
                         isLoading = true

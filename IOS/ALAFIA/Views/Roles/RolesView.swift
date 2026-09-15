@@ -684,7 +684,7 @@ struct ProfessionalProfileEditor: View {
             let _: ProfessionalProfile = try await APIClient.shared.put(
                 "/users/roles/\(roleAssignment.id)/profile", body: body
             )
-            message = "Profile saved successfully!"
+            message = AppLanguage.text("Profile saved successfully!")
             onSave()
             try? await Task.sleep(for: .seconds(1))
             dismiss()

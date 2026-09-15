@@ -33,6 +33,8 @@ import com.alafia.android.models.TherapySession
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @Composable
 fun HemodialysisScreen(navController: NavHostController) {
@@ -70,10 +72,10 @@ fun HemodialysisScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Hemodialysis") },
+                title = { Text(stringResource(R.string.hemodialysis)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) },
@@ -97,18 +99,18 @@ fun HemodialysisScreen(navController: NavHostController) {
                 summary?.let { s ->
                     if (s.totalSessions > 0) {
                         item {
-                            Text("Summary", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(stringResource(R.string.summary), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Spacer(Modifier.height(6.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                                StatCard("Sessions", "${s.totalSessions}", Color(0xFF1565C0), Modifier.weight(1f))
-                                StatCard("Avg Pre", s.avgPreWeightKg?.let { "%.1f kg".format(it) } ?: "—", Color(0xFF4CAF50), Modifier.weight(1f))
-                                StatCard("Avg Post", s.avgPostWeightKg?.let { "%.1f kg".format(it) } ?: "—", Color(0xFF4CAF50), Modifier.weight(1f))
+                                StatCard(stringResource(R.string.sessions_3), "${s.totalSessions}", Color(0xFF1565C0), Modifier.weight(1f))
+                                StatCard(stringResource(R.string.avg_pre), s.avgPreWeightKg?.let { "%.1f kg".format(it) } ?: "—", Color(0xFF4CAF50), Modifier.weight(1f))
+                                StatCard(stringResource(R.string.avg_post), s.avgPostWeightKg?.let { "%.1f kg".format(it) } ?: "—", Color(0xFF4CAF50), Modifier.weight(1f))
                             }
                             Spacer(Modifier.height(6.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                                StatCard("Avg UF", s.avgFluidRemovedMl?.let { "${it.toInt()} mL" } ?: "—", Color(0xFFFF9800), Modifier.weight(1f))
-                                StatCard("Avg Dur", s.avgDurationMin?.let { "${it.toInt()} min" } ?: "—", Color(0xFF9C27B0), Modifier.weight(1f))
-                                StatCard("w/ Rdgs", s.sessionsWithReadings?.let { "$it" } ?: "—", Color(0xFF1565C0), Modifier.weight(1f))
+                                StatCard(stringResource(R.string.avg_uf), s.avgFluidRemovedMl?.let { "${it.toInt()} mL" } ?: "—", Color(0xFFFF9800), Modifier.weight(1f))
+                                StatCard(stringResource(R.string.avg_dur), s.avgDurationMin?.let { "${it.toInt()} min" } ?: "—", Color(0xFF9C27B0), Modifier.weight(1f))
+                                StatCard(stringResource(R.string.w_rdgs), s.sessionsWithReadings?.let { "$it" } ?: "—", Color(0xFF1565C0), Modifier.weight(1f))
                             }
                             Spacer(Modifier.height(12.dp))
                         }
@@ -136,13 +138,13 @@ fun HemodialysisScreen(navController: NavHostController) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.MonitorHeart, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(8.dp))
-                                Text("No sessions in this period", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.no_sessions_in_this_period), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 } else {
                     item {
-                        Text("${sessions.size} Sessions", fontWeight = FontWeight.Bold, fontSize = 14.sp,
+                        Text(stringResource(R.string.sessions, sessions.size), fontWeight = FontWeight.Bold, fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
@@ -165,8 +167,8 @@ fun HemodialysisScreen(navController: NavHostController) {
     deleteTarget?.let { session ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Delete Session") },
-            text = { Text("Delete this hemodialysis session?") },
+            title = { Text(stringResource(R.string.delete_session)) },
+            text = { Text(stringResource(R.string.delete_this_hemodialysis_session)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
@@ -177,9 +179,9 @@ fun HemodialysisScreen(navController: NavHostController) {
                             Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                         }
                     }
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
@@ -215,7 +217,7 @@ private fun HDSessionCard(
                             Text(it, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    session.durationMinutes?.let { Text("$it min", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    session.durationMinutes?.let { Text(stringResource(R.string.min, it), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     StatusChip(session.status)
@@ -228,24 +230,24 @@ private fun HDSessionCard(
             Spacer(Modifier.height(8.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                session.dialysisAccessType?.let { Pill("Access", it) }
-                Pill("Pre Wt", session.preDialysisWeightKg?.let { "%.1f kg".format(it) } ?: "—")
-                Pill("Post Wt", session.postDialysisWeightKg?.let { "%.1f kg".format(it) } ?: "—")
+                session.dialysisAccessType?.let { Pill(stringResource(R.string.access), it) }
+                Pill(stringResource(R.string.pre_wt), session.preDialysisWeightKg?.let { "%.1f kg".format(it) } ?: "—")
+                Pill(stringResource(R.string.post_wt), session.postDialysisWeightKg?.let { "%.1f kg".format(it) } ?: "—")
                 session.fluidRemovedMl?.let { Pill("UF", "${it.toInt()} mL") }
             }
 
             if (session.preSystolicBp != null || session.postSystolicBp != null) {
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    fmtBP(session.preSystolicBp, session.preDiastolicBp)?.let { Pill("Pre BP", it) }
-                    fmtBP(session.postSystolicBp, session.postDiastolicBp)?.let { Pill("Post BP", it) }
+                    fmtBP(session.preSystolicBp, session.preDiastolicBp)?.let { Pill(stringResource(R.string.pre_bp_2), it) }
+                    fmtBP(session.postSystolicBp, session.postDiastolicBp)?.let { Pill(stringResource(R.string.post_bp_2), it) }
                     session.preHeartRate?.let { Pill("HR", "$it") }
                 }
             }
 
             if (readings.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                Text("${readings.size} intradialytic readings", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+                Text(stringResource(R.string.intradialytic_readings_2, readings.size), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
             }
 
             AnimatedVisibility(isExpanded) {
@@ -253,8 +255,8 @@ private fun HDSessionCard(
                     // Standing BP
                     if (session.preStandingSystolicBp != null || session.postStandingSystolicBp != null) {
                         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            fmtBP(session.preStandingSystolicBp, session.preStandingDiastolicBp)?.let { Pill("Pre Stand", it) }
-                            fmtBP(session.postStandingSystolicBp, session.postStandingDiastolicBp)?.let { Pill("Post Stand", it) }
+                            fmtBP(session.preStandingSystolicBp, session.preStandingDiastolicBp)?.let { Pill(stringResource(R.string.pre_stand), it) }
+                            fmtBP(session.postStandingSystolicBp, session.postStandingDiastolicBp)?.let { Pill(stringResource(R.string.post_stand), it) }
                         }
                         Spacer(Modifier.height(6.dp))
                     }
@@ -269,7 +271,7 @@ private fun HDSessionCard(
                         printScope.launch {
                             printError = TherapyReportPrinter.print(printContext, session.id)
                         }
-                    }) { Text("Print / Save as PDF") }
+                    }) { Text(stringResource(R.string.print_save_as_pdf)) }
                     printError?.let {
                         Text(it, color = MaterialTheme.colorScheme.error,
                              style = MaterialTheme.typography.bodySmall)
@@ -279,24 +281,24 @@ private fun HDSessionCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         session.bloodFlowRate?.let { Pill("BFR", "${it.toInt()}") }
                         session.dialysateFlowRate?.let { Pill("DFR", "${it.toInt()}") }
-                        session.dialysateVolumeLiters?.let { Pill("Vol", "$it L") }
-                        session.needleGauge?.let { Pill("Gauge", it) }
+                        session.dialysateVolumeLiters?.let { Pill(stringResource(R.string.vol), "$it L") }
+                        session.needleGauge?.let { Pill(stringResource(R.string.gauge), it) }
                     }
 
                     // Totals
                     if (session.totalDialysateLiters != null || session.totalUfLiters != null) {
                         Spacer(Modifier.height(6.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            session.totalDialysateLiters?.let { Pill("Tot Dial", "$it L") }
-                            session.totalUfLiters?.let { Pill("Tot UF", "$it L") }
-                            session.totalBloodVolumeProcessed?.let { Pill("Blood Vol", "$it L") }
+                            session.totalDialysateLiters?.let { Pill(stringResource(R.string.tot_dial), "$it L") }
+                            session.totalUfLiters?.let { Pill(stringResource(R.string.tot_uf), "$it L") }
+                            session.totalBloodVolumeProcessed?.let { Pill(stringResource(R.string.blood_vol), "$it L") }
                         }
                     }
 
                     // Intradialytic readings table
                     if (readings.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
-                        Text("Intradialytic Readings", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1565C0))
+                        Text(stringResource(R.string.intradialytic_readings_3), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1565C0))
                         Spacer(Modifier.height(4.dp))
                         Surface(color = Color(0xFF1565C0).copy(alpha = 0.05f), shape = MaterialTheme.shapes.small) {
                             Column(Modifier.padding(8.dp)) {
@@ -332,13 +334,13 @@ private fun HDSessionCard(
                         OutlinedButton(onClick = onEdit, modifier = Modifier.height(32.dp)) {
                             Icon(Icons.Default.Edit, null, Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Edit", fontSize = 12.sp)
+                            Text(stringResource(R.string.edit), fontSize = 12.sp)
                         }
                         OutlinedButton(onClick = onDelete, modifier = Modifier.height(32.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                             Icon(Icons.Default.Delete, null, Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Delete", fontSize = 12.sp)
+                            Text(stringResource(R.string.delete), fontSize = 12.sp)
                         }
                     }
 
@@ -347,7 +349,7 @@ private fun HDSessionCard(
                     Spacer(Modifier.height(10.dp))
                     HorizontalDivider()
                     Spacer(Modifier.height(6.dp))
-                    Text("Flowsheet", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.flowsheet), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                         if (fsStatus == null || fsStatus == FlowsheetStatus.DRAFT) {
@@ -356,7 +358,7 @@ private fun HDSessionCard(
                                     try { ApiClient.getApiService().submitFlowsheet(session.id); onReload() }
                                     catch (e: Exception) { Toast.makeText(context, "Submit failed: ${e.message}", Toast.LENGTH_SHORT).show() }
                                 }
-                            }, modifier = Modifier.height(30.dp)) { Text("Submit", fontSize = 11.sp) }
+                            }, modifier = Modifier.height(30.dp)) { Text(stringResource(R.string.submit), fontSize = 11.sp) }
                         }
                         if (fsStatus == FlowsheetStatus.SUBMITTED) {
                             FilledTonalButton(onClick = {
@@ -364,7 +366,7 @@ private fun HDSessionCard(
                                     try { ApiClient.getApiService().signFlowsheet(session.id, FlowsheetSignRequest("")); onReload() }
                                     catch (e: Exception) { Toast.makeText(context, "Sign failed: ${e.message}", Toast.LENGTH_SHORT).show() }
                                 }
-                            }, modifier = Modifier.height(30.dp)) { Text("Sign", fontSize = 11.sp) }
+                            }, modifier = Modifier.height(30.dp)) { Text(stringResource(R.string.sign), fontSize = 11.sp) }
                         }
                         if (fsStatus == FlowsheetStatus.SIGNED) {
                             FilledTonalButton(onClick = {
@@ -372,7 +374,7 @@ private fun HDSessionCard(
                                     try { ApiClient.getApiService().countersignFlowsheet(session.id, FlowsheetSignRequest("")); onReload() }
                                     catch (e: Exception) { Toast.makeText(context, "Countersign failed: ${e.message}", Toast.LENGTH_SHORT).show() }
                                 }
-                            }, modifier = Modifier.height(30.dp)) { Text("Countersign", fontSize = 11.sp) }
+                            }, modifier = Modifier.height(30.dp)) { Text(stringResource(R.string.countersign), fontSize = 11.sp) }
                         }
                         if (fsStatus == FlowsheetStatus.COUNTERSIGNED) {
                             FilledTonalButton(onClick = {
@@ -380,7 +382,7 @@ private fun HDSessionCard(
                                     try { ApiClient.getApiService().reviewFlowsheet(session.id); onReload() }
                                     catch (e: Exception) { Toast.makeText(context, "Review failed: ${e.message}", Toast.LENGTH_SHORT).show() }
                                 }
-                            }, modifier = Modifier.height(30.dp)) { Text("Review", fontSize = 11.sp) }
+                            }, modifier = Modifier.height(30.dp)) { Text(stringResource(R.string.review), fontSize = 11.sp) }
                         }
                         if (fsStatus == FlowsheetStatus.REVIEWED) {
                             FilledTonalButton(onClick = {
@@ -388,17 +390,17 @@ private fun HDSessionCard(
                                     try { ApiClient.getApiService().lockFlowsheet(session.id); onReload() }
                                     catch (e: Exception) { Toast.makeText(context, "Lock failed: ${e.message}", Toast.LENGTH_SHORT).show() }
                                 }
-                            }, modifier = Modifier.height(30.dp)) { Text("Lock", fontSize = 11.sp) }
+                            }, modifier = Modifier.height(30.dp)) { Text(stringResource(R.string.lock), fontSize = 11.sp) }
                         }
                         if (fsStatus == FlowsheetStatus.LOCKED) {
-                            Text("Locked", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
+                            Text(stringResource(R.string.locked), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
                         }
                     }
 
                     // ── Clinical Notes ───────────────────────────────────────
                     session.clinicalNotesList?.takeIf { it.isNotEmpty() }?.let { notes ->
                         Spacer(Modifier.height(8.dp))
-                        Text("Clinical Notes (${notes.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1565C0))
+                        Text(stringResource(R.string.clinical_notes_3, notes.size), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1565C0))
                         Spacer(Modifier.height(4.dp))
                         notes.forEach { note ->
                             Surface(color = Color(0xFF1565C0).copy(alpha = 0.05f), shape = MaterialTheme.shapes.small,
@@ -590,21 +592,21 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
             Text(
-                if (editing != null) "Edit HD Session" else "New HD Session",
+                if (editing != null) stringResource(R.string.edit_hd_session) else stringResource(R.string.new_hd_session),
                 style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(16.dp))
 
             // Session Info
-            SectionHeader("Session Info")
-            OutlinedTextField(date, { date = it }, label = { Text("Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+            SectionHeader(stringResource(R.string.session_info))
+            OutlinedTextField(date, { date = it }, label = { Text(stringResource(R.string.date_yyyy_mm_dd)) }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(6.dp))
-            Text("Status", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.status), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                 statuses.forEach { s -> FilterChip(status == s, { status = s }, label = { Text(s.replace("_", " "), fontSize = 11.sp) }) }
             }
             Spacer(Modifier.height(6.dp))
-            Text("Day of Week", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.day_of_week), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                 days.take(4).forEach { d -> FilterChip(dayOfWeek == d, { dayOfWeek = d }, label = { Text(d.take(3), fontSize = 11.sp) }) }
             }
@@ -616,20 +618,20 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                     F(startTime, {
                         startTime = it
                         minutesBetween(it, endTime)?.let { m -> duration = m.toString() }
-                    }, "Start Time (HH:MM)")
+                    }, stringResource(R.string.start_time_hh_mm))
                 }
                 Box(Modifier.weight(1f)) {
                     F(endTime, {
                         endTime = it
                         minutesBetween(startTime, it)?.let { m -> duration = m.toString() }
-                    }, "End Time (HH:MM)")
+                    }, stringResource(R.string.end_time_hh_mm))
                 }
             }
-            F(duration, { duration = it }, "Duration (min)")
+            F(duration, { duration = it }, stringResource(R.string.duration_min_2))
 
             defaults?.carriedFromDate?.let { from ->
                 Text(
-                    "Pre-filled from your treatment on $from. Change anything that differs today.",
+                    stringResource(R.string.pre_filled_from_your_treatment_on_change, from),
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -639,8 +641,8 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             }
 
             // Vascular Access
-            SectionHeader("Vascular Access")
-            Text("Access Type", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SectionHeader(stringResource(R.string.vascular_access))
+            Text(stringResource(R.string.access_type), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 accessTypes.forEach { a -> FilterChip(accessType == a, { accessType = a }, label = { Text(a, fontSize = 11.sp) }) }
             }
@@ -652,7 +654,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text("Needle Gauge", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.needle_gauge), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 gauges.forEach { g ->
                     FilterChip(
@@ -662,118 +664,118 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                     )
                 }
             }
-            F(needleLength, { needleLength = it }, "Needle Length (mm)", enabled = !isCatheter)
-            ToggleRow("Buttonhole Technique", buttonhole, enabled = !isCatheter) { buttonhole = it }
+            F(needleLength, { needleLength = it }, stringResource(R.string.needle_length_mm), enabled = !isCatheter)
+            ToggleRow(stringResource(R.string.buttonhole_technique), buttonhole, enabled = !isCatheter) { buttonhole = it }
 
             // Weights
-            SectionHeader("Weights (kg)")
+            SectionHeader(stringResource(R.string.weights_kg))
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(dryWeight, { dryWeight = it }, "Dry", Modifier.weight(1f))
-                F(prevPostWeight, { prevPostWeight = it }, "Prev Post", Modifier.weight(1f))
+                F(dryWeight, { dryWeight = it }, stringResource(R.string.dry), Modifier.weight(1f))
+                F(prevPostWeight, { prevPostWeight = it }, stringResource(R.string.prev_post), Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(preWeight, { preWeight = it }, "Pre", Modifier.weight(1f))
-                F(postWeight, { postWeight = it }, "Post", Modifier.weight(1f))
+                F(preWeight, { preWeight = it }, stringResource(R.string.pre), Modifier.weight(1f))
+                F(postWeight, { postWeight = it }, stringResource(R.string.post), Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(fluidToRemove, { fluidToRemove = it }, "To Remove (kg)", Modifier.weight(1f))
-                F(fluidRemoved, { fluidRemoved = it }, "Removed (mL)", Modifier.weight(1f))
+                F(fluidToRemove, { fluidToRemove = it }, stringResource(R.string.to_remove_kg), Modifier.weight(1f))
+                F(fluidRemoved, { fluidRemoved = it }, stringResource(R.string.removed_ml), Modifier.weight(1f))
             }
 
             // Dialysate Prescription
-            SectionHeader("Dialysate Prescription")
+            SectionHeader(stringResource(R.string.dialysate_prescription))
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(bfr, { bfr = it }, "BFR (mL/min)", Modifier.weight(1f))
-                F(dfr, { dfr = it }, "DFR (mL/min)", Modifier.weight(1f))
+                F(bfr, { bfr = it }, stringResource(R.string.bfr_ml_min), Modifier.weight(1f))
+                F(dfr, { dfr = it }, stringResource(R.string.dfr_ml_min), Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(dialVol, { dialVol = it }, "Volume (L)", Modifier.weight(1f))
+                F(dialVol, { dialVol = it }, stringResource(R.string.volume_l), Modifier.weight(1f))
                 F(sakNum, { sakNum = it }, "SAK #", Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(dialLact, { dialLact = it }, "Lactate (mEq)", Modifier.weight(1f))
-                F(dialK, { dialK = it }, "K⁺ (mEq)", Modifier.weight(1f))
+                F(dialLact, { dialLact = it }, stringResource(R.string.lactate_meq), Modifier.weight(1f))
+                F(dialK, { dialK = it }, stringResource(R.string.k_meq), Modifier.weight(1f))
             }
-            F(o2, { o2 = it }, "SpO₂ (%)")
+            F(o2, { o2 = it }, stringResource(R.string.spo))
 
             // Pre-Treatment Vitals
-            SectionHeader("Pre-Treatment Vitals")
+            SectionHeader(stringResource(R.string.pre_treatment_vitals))
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(preSys, { preSys = it }, "Sit Sys", Modifier.weight(1f))
-                F(preDia, { preDia = it }, "Sit Dia", Modifier.weight(1f))
+                F(preSys, { preSys = it }, stringResource(R.string.sit_sys), Modifier.weight(1f))
+                F(preDia, { preDia = it }, stringResource(R.string.sit_dia), Modifier.weight(1f))
                 F(preHr, { preHr = it }, "HR", Modifier.weight(1f))
-                F(preTemp, { preTemp = it }, "Temp", Modifier.weight(1f))
+                F(preTemp, { preTemp = it }, stringResource(R.string.temp), Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(preStSys, { preStSys = it }, "Stand Sys", Modifier.weight(1f))
-                F(preStDia, { preStDia = it }, "Stand Dia", Modifier.weight(1f))
-                F(preStHr, { preStHr = it }, "Stand HR", Modifier.weight(1f))
+                F(preStSys, { preStSys = it }, stringResource(R.string.stand_sys), Modifier.weight(1f))
+                F(preStDia, { preStDia = it }, stringResource(R.string.stand_dia), Modifier.weight(1f))
+                F(preStHr, { preStHr = it }, stringResource(R.string.stand_hr), Modifier.weight(1f))
             }
 
             // Pre-Treatment Assessment
-            SectionHeader("Pre-Treatment Assessment")
-            ToggleRow("Shortness of Breath", preSob) { preSob = it }
-            ToggleRow("Swelling / Edema", preSwell) { preSwell = it }
-            ToggleRow("Change in Mobility", preMobility) { preMobility = it }
-            ToggleRow("Digestion Problems", preDigest) { preDigest = it }
-            ToggleRow("Hospital/ER Since Last", preHosp) { preHosp = it }
+            SectionHeader(stringResource(R.string.pre_treatment_assessment))
+            ToggleRow(stringResource(R.string.shortness_of_breath), preSob) { preSob = it }
+            ToggleRow(stringResource(R.string.swelling_edema), preSwell) { preSwell = it }
+            ToggleRow(stringResource(R.string.change_in_mobility), preMobility) { preMobility = it }
+            ToggleRow(stringResource(R.string.digestion_problems), preDigest) { preDigest = it }
+            ToggleRow(stringResource(R.string.hospital_er_since_last), preHosp) { preHosp = it }
             ThrillRow(thrill) { thrill = it }
-            ToggleRow("Access Redness/Drainage", redness) { redness = it }
+            ToggleRow(stringResource(R.string.access_redness_drainage), redness) { redness = it }
 
             // Post-Treatment Vitals
-            SectionHeader("Post-Treatment Vitals")
+            SectionHeader(stringResource(R.string.post_treatment_vitals))
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(postSys, { postSys = it }, "Sit Sys", Modifier.weight(1f))
-                F(postDia, { postDia = it }, "Sit Dia", Modifier.weight(1f))
+                F(postSys, { postSys = it }, stringResource(R.string.sit_sys), Modifier.weight(1f))
+                F(postDia, { postDia = it }, stringResource(R.string.sit_dia), Modifier.weight(1f))
                 F(postHr, { postHr = it }, "HR", Modifier.weight(1f))
-                F(postTemp, { postTemp = it }, "Temp", Modifier.weight(1f))
+                F(postTemp, { postTemp = it }, stringResource(R.string.temp), Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(postStSys, { postStSys = it }, "Stand Sys", Modifier.weight(1f))
-                F(postStDia, { postStDia = it }, "Stand Dia", Modifier.weight(1f))
-                F(postStHr, { postStHr = it }, "Stand HR", Modifier.weight(1f))
+                F(postStSys, { postStSys = it }, stringResource(R.string.stand_sys), Modifier.weight(1f))
+                F(postStDia, { postStDia = it }, stringResource(R.string.stand_dia), Modifier.weight(1f))
+                F(postStHr, { postStHr = it }, stringResource(R.string.stand_hr), Modifier.weight(1f))
             }
 
             // Post-Treatment Totals
-            SectionHeader("Post-Treatment Totals")
+            SectionHeader(stringResource(R.string.post_treatment_totals))
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(totDial, { totDial = it }, "Total Dial (L)", Modifier.weight(1f))
-                F(totUf, { totUf = it }, "Total UF (L) — machine", Modifier.weight(1f))
+                F(totDial, { totDial = it }, stringResource(R.string.total_dial_l), Modifier.weight(1f))
+                F(totUf, { totUf = it }, stringResource(R.string.total_uf_l_machine), Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(totBlood, { totBlood = it }, "Blood Vol (L)", Modifier.weight(1f))
-                F(dialAppear, { dialAppear = it }, "Dialyzer", Modifier.weight(1f))
+                F(totBlood, { totBlood = it }, stringResource(R.string.blood_vol_l), Modifier.weight(1f))
+                F(dialAppear, { dialAppear = it }, stringResource(R.string.dialyzer), Modifier.weight(1f))
             }
-            F(bleedStop, { bleedStop = it }, "Bleed Stop Time")
-            ToggleRow("Bruising", postBruise) { postBruise = it }
-            ToggleRow("Infiltration", postInfilt) { postInfilt = it }
+            F(bleedStop, { bleedStop = it }, stringResource(R.string.bleed_stop_time))
+            ToggleRow(stringResource(R.string.bruising), postBruise) { postBruise = it }
+            ToggleRow(stringResource(R.string.infiltration), postInfilt) { postInfilt = it }
             ToggleRow("SOB", postSob) { postSob = it }
-            ToggleRow("Swelling", postSwell) { postSwell = it }
-            ToggleRow("GI Issues", postDigest) { postDigest = it }
+            ToggleRow(stringResource(R.string.swelling), postSwell) { postSwell = it }
+            ToggleRow(stringResource(R.string.gi_issues), postDigest) { postDigest = it }
             ThrillRow(postThrill) { postThrill = it }
 
             // Equipment
-            SectionHeader("Equipment")
+            SectionHeader(stringResource(R.string.equipment))
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(cartLot, { cartLot = it }, "Cartridge Lot", Modifier.weight(1f))
-                F(sakLot, { sakLot = it }, "SAK Lot", Modifier.weight(1f))
+                F(cartLot, { cartLot = it }, stringResource(R.string.cartridge_lot), Modifier.weight(1f))
+                F(sakLot, { sakLot = it }, stringResource(R.string.sak_lot), Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(cycler, { cycler = it }, "Cycler #", Modifier.weight(1f))
-                F(warmer, { warmer = it }, "Warmer Serial", Modifier.weight(1f))
+                F(cycler, { cycler = it }, stringResource(R.string.cycler), Modifier.weight(1f))
+                F(warmer, { warmer = it }, stringResource(R.string.warmer_serial), Modifier.weight(1f))
             }
 
             // Machine Maintenance
-            SectionHeader("Machine Maintenance")
-            ToggleRow("Purification Pak Change", purPak) { purPak = it }
-            ToggleRow("Air Filter Cleaned", airFilter) { airFilter = it }
-            ToggleRow("Waste Line Bleach", wasteBleach) { wasteBleach = it }
-            ToggleRow("Alarm Test Complete", alarmTest) { alarmTest = it }
+            SectionHeader(stringResource(R.string.machine_maintenance))
+            ToggleRow(stringResource(R.string.purification_pak_change), purPak) { purPak = it }
+            ToggleRow(stringResource(R.string.air_filter_cleaned), airFilter) { airFilter = it }
+            ToggleRow(stringResource(R.string.waste_line_bleach), wasteBleach) { wasteBleach = it }
+            ToggleRow(stringResource(R.string.alarm_test_complete), alarmTest) { alarmTest = it }
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(sakUse, { sakUse = it }, "SAK Use #", Modifier.weight(1f))
-                F(chloramine, { chloramine = it }, "Chloramine (ppm)", Modifier.weight(1f))
+                F(sakUse, { sakUse = it }, stringResource(R.string.sak_use), Modifier.weight(1f))
+                F(chloramine, { chloramine = it }, stringResource(R.string.chloramine_ppm), Modifier.weight(1f))
             }
-            F(labTubes, { labTubes = it }, "Lab Tubes Drawn")
+            F(labTubes, { labTubes = it }, stringResource(R.string.lab_tubes_drawn))
 
             // Saline is volume put BACK, so the machine's gross UF overstates
             // what came off until it is deducted. The scale-derived
@@ -784,30 +786,30 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
             // and pauses; the summary's duration is end - start and is a
             // different, larger number. Kt/V follows time actually dialysing.
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                F(salineAdded, { salineAdded = it }, "Saline Added (mL)", Modifier.weight(1f))
+                F(salineAdded, { salineAdded = it }, stringResource(R.string.saline_added_ml), Modifier.weight(1f))
                 MachineTimeField(machineTime) { machineTime = it }
             }
 
             // Facility & Staff
-            SectionHeader("Facility & Staff")
-            F(facility, { facility = it }, "Facility")
-            F(physician, { physician = it }, "Physician")
-            F(rnReviewer, { rnReviewer = it }, "RN Reviewer")
+            SectionHeader(stringResource(R.string.facility_staff))
+            F(facility, { facility = it }, stringResource(R.string.facility))
+            F(physician, { physician = it }, stringResource(R.string.physician))
+            F(rnReviewer, { rnReviewer = it }, stringResource(R.string.rn_reviewer))
 
             // Notes
-            SectionHeader("Notes")
+            SectionHeader(stringResource(R.string.notes))
             // This screen had no drugs field at all; a decade of Epogene, Venofer
             // and Doxercalciferol arrived only by import (§3aa).
             DrugsAdministeredEditor(value = drugsAdministered, onChange = { drugsAdministered = it })
             Spacer(Modifier.height(8.dp))
-            OutlinedTextField(sideEffects, { sideEffects = it }, label = { Text("Side Effects") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            OutlinedTextField(sideEffects, { sideEffects = it }, label = { Text(stringResource(R.string.side_effects_2)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             Spacer(Modifier.height(4.dp))
-            OutlinedTextField(clinicalNotes, { clinicalNotes = it }, label = { Text("Clinical Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            OutlinedTextField(clinicalNotes, { clinicalNotes = it }, label = { Text(stringResource(R.string.clinical_notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             Spacer(Modifier.height(4.dp))
-            OutlinedTextField(patientNotes, { patientNotes = it }, label = { Text("Patient Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            OutlinedTextField(patientNotes, { patientNotes = it }, label = { Text(stringResource(R.string.patient_notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
 
             // Intradialytic readings
-            SectionHeader("Intradialytic Readings")
+            SectionHeader(stringResource(R.string.intradialytic_readings_3))
             val loadFailed = readingsError
             if (loadFailed != null) {
                 Text(
@@ -913,7 +915,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                     }
                 },
                 modifier = Modifier.fillMaxWidth(), enabled = !saving
-            ) { Text(if (saving) "Saving…" else if (editing != null) "Update Session" else "Save Session") }
+            ) { Text(if (saving) stringResource(R.string.saving) else if (editing != null) stringResource(R.string.update_session) else stringResource(R.string.save_session)) }
 
             Spacer(Modifier.height(32.dp))
         }
@@ -987,21 +989,21 @@ private fun MachineTimeField(value: String, onChange: (String) -> Unit) {
         OutlinedTextField(
             value = value,
             onValueChange = onChange,
-            label = { Text("Machine Total Time") },
-            placeholder = { Text("7:27 or 447") },
+            label = { Text(stringResource(R.string.machine_total_time)) },
+            placeholder = { Text(stringResource(R.string.text_7_27_or_447)) },
             isError = unreadable,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
         when {
             unreadable -> Text(
-                "Enter it as HR:MIN (7:27) or as minutes (447).",
+                stringResource(R.string.enter_it_as_hr_min_7_27_or_as_minutes),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
             minutes != null -> Text(
-                if (value.contains(":")) "= $minutes min"
-                else "= $minutes min (${formatMachineTime(minutes)})",
+                if (value.contains(":")) stringResource(R.string.min_4, minutes)
+                else stringResource(R.string.min_3, minutes, formatMachineTime(minutes)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1024,7 +1026,7 @@ private fun MachineTimeField(value: String, onChange: (String) -> Unit) {
 @Composable
 private fun ThrillRow(value: Boolean?, onChange: (Boolean?) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text("Access Thrill / Bruit", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.access_thrill_bruit), style = MaterialTheme.typography.labelMedium)
         Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
             listOf<Triple<String, Boolean?, Boolean>>(
                 Triple("Not assessed", null, false),

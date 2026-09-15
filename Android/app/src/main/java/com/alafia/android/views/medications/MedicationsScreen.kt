@@ -42,6 +42,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,16 +164,16 @@ fun MedicationsScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Medications") },
+                title = { Text(stringResource(R.string.medications)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { if (!scanning) scanPicker.capture() }, enabled = !scanning) {
                         if (scanning) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                        else Icon(Icons.Default.CameraAlt, contentDescription = "Scan Label")
+                        else Icon(Icons.Default.CameraAlt, contentDescription = stringResource(R.string.scan_label))
                     }
                 }
             ) },
@@ -183,8 +185,8 @@ fun MedicationsScreen(navController: NavHostController) {
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             TabRow(selectedTabIndex = tab) {
-                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Medications") })
-                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Intake Log") })
+                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.medications)) })
+                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.intake_log)) })
             }
             if (tab == 0) {
                 // Drugs logged often enough to be a real regimen but absent from
@@ -201,8 +203,8 @@ fun MedicationsScreen(navController: NavHostController) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.LocalPharmacy, "No medications", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.height(12.dp))
-                            Text("No medications", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Tap + to add a medication", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.no_medications), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.tap_to_add_a_medication), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 } else {
@@ -242,8 +244,8 @@ fun MedicationsScreen(navController: NavHostController) {
                                 // Prescribed and taken are different facts;
                                 // label which one this list is.
                                 Text(
-                                    if (medications.any { it.is_active }) "Prescriptions"
-                                    else "Prescriptions (all stopped)",
+                                    if (medications.any { it.is_active }) stringResource(R.string.prescriptions)
+                                    else stringResource(R.string.prescriptions_all_stopped),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -401,7 +403,7 @@ private fun MedicationCard(medication: Medication, onLogDose: () -> Unit, onDele
                     medication.source?.let { src ->
                         Spacer(Modifier.height(2.dp))
                         Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.small) {
-                            Text("⤵ Imported · $src",
+                            Text(stringResource(R.string.imported, src),
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
                                 style = MaterialTheme.typography.labelSmall)
                         }
@@ -413,7 +415,7 @@ private fun MedicationCard(medication: Medication, onLogDose: () -> Unit, onDele
                     if (!medication.is_active) {
                         // Prescribed once is not taken now. An account whose only
                         // rows were two 2017 EHR imports showed them as current.
-                        Text("Stopped", style = MaterialTheme.typography.labelSmall,
+                        Text(stringResource(R.string.stopped), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -437,10 +439,10 @@ private fun MedicationCard(medication: Medication, onLogDose: () -> Unit, onDele
             Spacer(Modifier.height(4.dp))
             // "Since: null" is what printing an absent date unguarded looks like.
             medication.start_date?.takeIf { it.isNotBlank() }?.let {
-                Text("Since: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.since, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (medication.end_date != null) {
-                Text("Until: ${medication.end_date}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.until, medication.end_date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (medication.notes != null && medication.notes.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
@@ -450,7 +452,7 @@ private fun MedicationCard(medication: Medication, onLogDose: () -> Unit, onDele
             FilledTonalButton(onClick = onLogDose) {
                 Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Log Dose")
+                Text(stringResource(R.string.log_dose))
             }
         }
     }
@@ -473,17 +475,17 @@ private fun AddMedicationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (scanned) "Add Scanned Medication" else "Add Medication") },
+        title = { Text(if (scanned) stringResource(R.string.add_scanned_medication) else stringResource(R.string.add_medication)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Medication Name") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = dosage, onValueChange = { dosage = it }, label = { Text("Dosage (e.g. 500mg)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = frequency, onValueChange = { frequency = it }, label = { Text("Frequency (e.g. twice daily)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = reason, onValueChange = { reason = it }, label = { Text("Reason / Condition") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.medication_name)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = dosage, onValueChange = { dosage = it }, label = { Text(stringResource(R.string.dosage_e_g_500mg)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = frequency, onValueChange = { frequency = it }, label = { Text(stringResource(R.string.frequency_e_g_twice_daily)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = reason, onValueChange = { reason = it }, label = { Text(stringResource(R.string.reason_condition)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -500,10 +502,10 @@ private fun AddMedicationDialog(
                     ))
                 },
                 enabled = name.isNotBlank() && dosage.isNotBlank() && frequency.isNotBlank() && reason.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
@@ -587,7 +589,7 @@ private fun LogDoseDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Intake") },
+        title = { Text(stringResource(R.string.log_intake)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -624,28 +626,28 @@ private fun LogDoseDialog(
                         },
                     )
                 }
-                Text("Date: ${defaultDate.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))}",
+                Text(stringResource(R.string.date, defaultDate.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedTextField(value = time, onValueChange = { time = it }, label = { Text("Time (HH:mm)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = time, onValueChange = { time = it }, label = { Text(stringResource(R.string.time_hh_mm)) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("Amount") },
+                    OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text(stringResource(R.string.amount)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = unit, onValueChange = { unit = it }, label = { Text("Unit") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = unit, onValueChange = { unit = it }, label = { Text(stringResource(R.string.unit)) }, modifier = Modifier.weight(1f))
                 }
-                Text("Pre-Medication Vitals (optional)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.pre_medication_vitals_optional), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = systolic, onValueChange = { systolic = it }, label = { Text("Systolic") },
+                    OutlinedTextField(value = systolic, onValueChange = { systolic = it }, label = { Text(stringResource(R.string.systolic)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = diastolic, onValueChange = { diastolic = it }, label = { Text("Diastolic") },
+                    OutlinedTextField(value = diastolic, onValueChange = { diastolic = it }, label = { Text(stringResource(R.string.diastolic)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = heartRate, onValueChange = { heartRate = it }, label = { Text("Heart Rate") },
+                    OutlinedTextField(value = heartRate, onValueChange = { heartRate = it }, label = { Text(stringResource(R.string.heart_rate)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = tempF, onValueChange = { tempF = it }, label = { Text("Temp (°F)") },
+                    OutlinedTextField(value = tempF, onValueChange = { tempF = it }, label = { Text(stringResource(R.string.temp_f)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
                 }
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes (optional)") },
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes_optional)) },
                     modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
@@ -656,10 +658,10 @@ private fun LogDoseDialog(
                     onSave(buildDoseRequest(false))
                 },
                 enabled = amount.toDoubleOrNull() != null && unit.isNotBlank() && resolvedName.isNotBlank()
-            ) { Text("Log") }
+            ) { Text(stringResource(R.string.log)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
@@ -688,7 +690,7 @@ private fun IntakeLogContent(
         when {
             loading -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             logs.isEmpty() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                Text("No intake logged for this date.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.no_intake_logged_for_this_date), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             else -> LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(logs, key = { it.id }) { log -> DoseLogCard(log = log, onDelete = { onDelete(log.id) }) }
@@ -756,14 +758,14 @@ private fun IntakeIntentCard(
                     onValueChange = onTextChange,
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    label = { Text("Say it in words") },
-                    placeholder = { Text("e.g. \"I take Calcitriol\"") },
+                    label = { Text(stringResource(R.string.say_it_in_words)) },
+                    placeholder = { Text(stringResource(R.string.e_g_i_take_calcitriol)) },
                 )
                 Spacer(Modifier.width(8.dp))
                 if (busy) {
                     CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    TextButton(onClick = onRead, enabled = text.isNotBlank()) { Text("Read") }
+                    TextButton(onClick = onRead, enabled = text.isNotBlank()) { Text(stringResource(R.string.read)) }
                 }
             }
 
@@ -796,7 +798,7 @@ private fun IntakeIntentCard(
                 }
                 Button(onClick = { onAccept(proposal) },
                        modifier = Modifier.padding(top = 8.dp)) {
-                    Text(if (proposal.hasDose) "Use this" else "Fill the name")
+                    Text(if (proposal.hasDose) stringResource(R.string.use_this) else stringResource(R.string.fill_the_name))
                 }
             }
         }

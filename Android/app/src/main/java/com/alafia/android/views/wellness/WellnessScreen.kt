@@ -27,6 +27,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +38,10 @@ fun WellnessScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Wellness") },
+                title = { Text(stringResource(R.string.wellness)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) }
@@ -93,7 +95,7 @@ private fun ScoreTab() {
         }
     } else if (score == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No wellness score available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_wellness_score_available), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
         val s = score!!
@@ -110,7 +112,7 @@ private fun ScoreTab() {
                         modifier = Modifier.fillMaxWidth().padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Overall Wellness Score", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.overall_wellness_score), style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(8.dp))
                         // null means nothing could be measured. Formatting it as
                         // a number would print a confident 0 for a patient we
@@ -118,7 +120,7 @@ private fun ScoreTab() {
                         val overall = s.overallScore
                         if (overall == null) {
                             Text(
-                                "Not enough data yet",
+                                stringResource(R.string.not_enough_data_yet),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -140,7 +142,7 @@ private fun ScoreTab() {
                             if (c < 1.0) {
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    "Based on ${(c * 100).toInt()}% of the usual picture.",
+                                    stringResource(R.string.based_on_of_the_usual_picture, (c * 100).toInt()),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -155,7 +157,7 @@ private fun ScoreTab() {
             }
 
             item {
-                Text("Sub-Scores", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.sub_scores), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
 
             val subScores = listOf(
@@ -188,7 +190,7 @@ private fun SubScoreRow(label: String, value: Double?) {
                 // An empty bar reads as a zero score. Where the domain was
                 // never measured, say so instead of drawing one.
                 if (value == null) {
-                    Text("not measured", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.not_measured), style = MaterialTheme.typography.bodySmall,
                          color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     LinearProgressIndicator(
@@ -236,7 +238,7 @@ private fun TrendsTab() {
         }
     } else if (trendsResponse == null || trendsResponse!!.streams.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No trend data available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_trend_data_available), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
         val resp = trendsResponse!!
@@ -248,7 +250,7 @@ private fun TrendsTab() {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Summary", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.summary), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(4.dp))
                             Text(resp.overallSummary, style = MaterialTheme.typography.bodySmall)
                         }
@@ -264,7 +266,7 @@ private fun TrendsTab() {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Correlations", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.correlations), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(4.dp))
                             resp.correlations.forEach { c ->
                                 Text("• $c", style = MaterialTheme.typography.bodySmall)
@@ -302,7 +304,7 @@ private fun TrendStreamCard(stream: TrendStream) {
                     Icon(trendIcon, contentDescription = stream.trend, tint = trendColor, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        stream.trend?.replaceFirstChar { it.uppercase() } ?: "Steady",
+                        stream.trend?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.steady),
                         style = MaterialTheme.typography.labelSmall,
                         color = trendColor
                     )
@@ -356,7 +358,7 @@ private fun RecommendationsTab() {
         }
     } else if (recsResponse == null || recsResponse!!.recommendations.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No recommendations available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_recommendations_available), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
         val grouped = recsResponse!!.recommendations.groupBy { it.category }
@@ -365,7 +367,7 @@ private fun RecommendationsTab() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Text("Date: ${recsResponse!!.date}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.date, recsResponse!!.date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             grouped.forEach { (category, items) ->
@@ -420,7 +422,7 @@ private fun RecommendationCard(rec: RecommendationItem) {
             Text(rec.description, style = MaterialTheme.typography.bodySmall)
             if (rec.action != null) {
                 Spacer(Modifier.height(6.dp))
-                Text("Action: ${rec.action}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.action, rec.action), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -453,7 +455,7 @@ private fun ImprovementsTab() {
         }
     } else if (improvements == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No improvement data available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_improvement_data_available), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
         val imp = improvements!!
@@ -465,13 +467,13 @@ private fun ImprovementsTab() {
                 item {
                     Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Summary", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.summary), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(4.dp))
                             Text(imp.summary, style = MaterialTheme.typography.bodyMedium)
                             if (imp.wellnessScore != null) {
                                 Spacer(Modifier.height(8.dp))
                                 Text(
-                                    "Wellness Score: ${String.format("%.0f", imp.wellnessScore)}",
+                                    stringResource(R.string.wellness_score, String.format("%.0f", imp.wellnessScore)),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold
@@ -580,9 +582,9 @@ private fun HEBCSTab() {
     if (errorMsg != null || data == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(errorMsg ?: "No data", color = MaterialTheme.colorScheme.error)
+                Text(errorMsg ?: stringResource(R.string.no_data), color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(8.dp))
-                Button(onClick = { load() }) { Text("Retry") }
+                Button(onClick = { load() }) { Text(stringResource(R.string.retry)) }
             }
         }
         return
@@ -649,7 +651,7 @@ private fun HEBCSTab() {
                                         else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                if (pct != null) "Score 0–100" else "no results yet",
+                                if (pct != null) stringResource(R.string.score_0_100) else stringResource(R.string.no_results_yet),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -662,12 +664,12 @@ private fun HEBCSTab() {
                                 fontWeight = FontWeight.Bold,
                                 color = covColor
                             )
-                            Text("Data coverage", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.data_coverage), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     if (d.labDateUsed != null) {
                         Spacer(Modifier.height(4.dp))
-                        Text("Latest labs: ${d.labDateUsed}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.latest_labs, d.labDateUsed), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -693,7 +695,7 @@ private fun HEBCSTab() {
         item {
             Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Pathway Breakdown", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.pathway_breakdown), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(12.dp))
                     d.pathways.entries.sortedBy { it.key }.forEach { (name, pw) ->
                         val color = PATHWAY_COLORS[name] ?: Color.Gray
@@ -740,7 +742,7 @@ private fun HEBCSTab() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Tune, contentDescription = null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("What-If Simulator", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.what_if_simulator), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         }
                         IconButton(onClick = { showWhatIf = !showWhatIf }, modifier = Modifier.size(32.dp)) {
                             Icon(
@@ -754,7 +756,7 @@ private fun HEBCSTab() {
                     if (showWhatIf) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Enable checkboxes to override biomarkers, then run simulation.",
+                            stringResource(R.string.enable_checkboxes_to_override_biomarkers),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -830,7 +832,7 @@ private fun HEBCSTab() {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                                 Spacer(Modifier.width(8.dp))
                             }
-                            Text(if (isRunning) "Simulating…" else "Run What-If${if (activeCount > 0) " ($activeCount)" else ""}")
+                            Text(if (isRunning) stringResource(R.string.simulating) else stringResource(R.string.run_what_if, if (activeCount > 0) " ($activeCount)" else ""))
                         }
 
                         // What-If result
@@ -850,15 +852,15 @@ private fun HEBCSTab() {
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(String.format("%.3f", res.baselineOmega), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                    Text("Baseline Ω", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.baseline), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(String.format("%.3f", res.scenarioOmega), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = dColor)
-                                    Text("Scenario Ω", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.scenario), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(String.format("%+.1fpp", res.deltaPct), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = dColor)
-                                    Text("Change", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.change), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
 

@@ -41,6 +41,8 @@ import com.alafia.android.views.auth.RegisterScreen
 import com.alafia.android.views.auth.ForgotPasswordScreen
 import com.alafia.android.views.main.MainTabView
 import com.alafia.android.views.subscription.SubscriptionScreen
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 class MainActivity : ComponentActivity() {
     // The patient's language applies to every resource this activity loads.
@@ -254,12 +256,12 @@ private fun MembershipCheckFailed(message: String, onRetry: () -> Unit, onSignOu
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Couldn't check your membership",
+        Text(stringResource(R.string.couldn_t_check_your_membership),
             style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(8.dp))
         Text(message, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.size(20.dp))
-        Button(onClick = onRetry) { Text("Try again") }
-        TextButton(onClick = onSignOut) { Text("Sign out") }
+        Button(onClick = onRetry) { Text(stringResource(R.string.try_again)) }
+        TextButton(onClick = onSignOut) { Text(stringResource(R.string.sign_out)) }
     }
 }

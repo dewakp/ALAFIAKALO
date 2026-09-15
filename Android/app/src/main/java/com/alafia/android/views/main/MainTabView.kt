@@ -68,6 +68,8 @@ import com.alafia.android.views.elimination.EliminationScreen
 import com.alafia.android.views.pantry.PantryScreen
 import com.alafia.android.views.about.AiConsentGate
 import com.alafia.android.views.prompt.PromptScreen
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @Composable
 fun MainTabView(
@@ -87,8 +89,8 @@ fun MainTabView(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Ask ALAFIA") },
-                    label = { Text("Ask") },
+                    icon = { Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.ask_alafia)) },
+                    label = { Text(stringResource(R.string.ask)) },
                     selected = selectedTab == 0,
                     onClick = {
                         selectedTab = 0
@@ -99,8 +101,8 @@ fun MainTabView(
                 )
 
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.FitnessCenter, contentDescription = "Fitness") },
-                    label = { Text("Fitness") },
+                    icon = { Icon(Icons.Default.FitnessCenter, contentDescription = stringResource(R.string.fitness)) },
+                    label = { Text(stringResource(R.string.fitness)) },
                     selected = selectedTab == 1,
                     onClick = {
                         selectedTab = 1
@@ -114,8 +116,8 @@ fun MainTabView(
                 // rather than sitting in the More grid where nobody found it.
                 // Mood moved into More → Mental Health.
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Share, contentDescription = "Share Records") },
-                    label = { Text("Share") },
+                    icon = { Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_records)) },
+                    label = { Text(stringResource(R.string.share)) },
                     selected = selectedTab == 2,
                     onClick = {
                         selectedTab = 2
@@ -126,8 +128,8 @@ fun MainTabView(
                 )
 
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Restaurant, contentDescription = "Nutrition") },
-                    label = { Text("Nutrition") },
+                    icon = { Icon(Icons.Default.Restaurant, contentDescription = stringResource(R.string.nutrition)) },
+                    label = { Text(stringResource(R.string.nutrition)) },
                     selected = selectedTab == 3,
                     onClick = {
                         selectedTab = 3
@@ -138,8 +140,8 @@ fun MainTabView(
                 )
 
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.LocalPharmacy, contentDescription = "More") },
-                    label = { Text("More") },
+                    icon = { Icon(Icons.Default.LocalPharmacy, contentDescription = stringResource(R.string.more)) },
+                    label = { Text(stringResource(R.string.more)) },
                     selected = selectedTab == 4,
                     onClick = {
                         selectedTab = 4
@@ -446,7 +448,7 @@ fun MoreScreen(
     ) {
         item(span = { GridItemSpan(4) }) {
             Text(
-                text = "More",
+                text = stringResource(R.string.more),
                 style = MaterialTheme.typography.headlineLarge,
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
             )
@@ -522,7 +524,7 @@ fun MoreScreen(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Logout")
+                Text(stringResource(R.string.logout))
             }
         }
     }

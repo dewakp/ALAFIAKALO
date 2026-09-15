@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * Whether this user has agreed to AI features being answered by third-party
@@ -48,27 +50,27 @@ fun AiConsentScreen(onAccept: () -> Unit) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Before you use ALAFIA's AI", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.before_you_use_alafia_s_ai), style = MaterialTheme.typography.titleLarge)
         Text(
             "ALAFIA's AI features are answered by established model providers we " +
                 "work with. Here is exactly what that means for your information.",
             style = MaterialTheme.typography.bodyMedium
         )
 
-        Group("What is sent", listOf(
+        Group(stringResource(R.string.what_is_sent), listOf(
             "The health details needed to answer — for example a lab value, a " +
                 "medication name and its dose."
         ))
-        Group("What is never sent", listOf(
+        Group(stringResource(R.string.what_is_never_sent), listOf(
             "Your name, email address or phone number.",
             "Your date of birth or any record number.",
             "The names of clinicians you mention."
         ))
-        Group("How you are identified", listOf(
+        Group(stringResource(R.string.how_you_are_identified), listOf(
             "By a token ALAFIA issues, such as \"alafia-ba9e8bb2f9077c6e\". It means " +
                 "nothing outside ALAFIA and cannot be linked back to you by the provider."
         ))
-        Group("Your choices", listOf(
+        Group(stringResource(R.string.your_choices), listOf(
             "You can withdraw at any time in Profile → AI & Your Data, which turns " +
                 "these features off.",
             "Your data is never used to train a provider's models."
@@ -81,7 +83,7 @@ fun AiConsentScreen(onAccept: () -> Unit) {
         )
 
         Button(onClick = onAccept, modifier = Modifier.fillMaxWidth()) {
-            Text("Accept & Enable AI Features")
+            Text(stringResource(R.string.accept_enable_ai_features))
         }
     }
 }

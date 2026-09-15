@@ -18,6 +18,8 @@ import androidx.navigation.NavHostController
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.ChronicCondition
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,10 +55,10 @@ fun ChronicConditionsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chronic Conditions") },
+                title = { Text(stringResource(R.string.chronic_conditions)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -68,7 +70,7 @@ fun ChronicConditionsScreen(
                     showDialog = true
                 }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Condition")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_condition))
             }
         }
     ) { paddingValues ->
@@ -98,7 +100,7 @@ fun ChronicConditionsScreen(
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = { reloadToken++ }) { Text("Retry") }
+                    Button(onClick = { reloadToken++ }) { Text(stringResource(R.string.retry)) }
                 }
             }
         } else if (conditions.isEmpty()) {
@@ -110,13 +112,13 @@ fun ChronicConditionsScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        "No Chronic Conditions",
+                        stringResource(R.string.no_chronic_conditions),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Tap + to add a condition",
+                        stringResource(R.string.tap_to_add_a_condition),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -236,7 +238,7 @@ fun ConditionCard(
                     condition.diagnosisDate?.let { date ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Diagnosed: $date",
+                            text = stringResource(R.string.diagnosed, date),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -245,7 +247,7 @@ fun ConditionCard(
                     condition.primaryPhysician?.let { physician ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Physician: $physician",
+                            text = stringResource(R.string.physician_2, physician),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -257,7 +259,7 @@ fun ConditionCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     TextButton(onClick = onEdit) {
-                        Text("Edit")
+                        Text(stringResource(R.string.edit))
                     }
                     TextButton(
                         onClick = onDelete,
@@ -265,7 +267,7 @@ fun ConditionCard(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Delete")
+                        Text(stringResource(R.string.delete))
                     }
                 }
             }
@@ -280,7 +282,7 @@ fun ConditionCard(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "Current Treatment Plan:",
+                            text = stringResource(R.string.current_treatment_plan),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -349,7 +351,7 @@ fun ConditionFormDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (condition == null) "Add Condition" else "Edit Condition") },
+        title = { Text(if (condition == null) stringResource(R.string.add_condition) else stringResource(R.string.edit_condition)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -358,7 +360,7 @@ fun ConditionFormDialog(
                     OutlinedTextField(
                         value = conditionName,
                         onValueChange = { conditionName = it },
-                        label = { Text("Condition Name *") },
+                        label = { Text(stringResource(R.string.condition_name)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -373,7 +375,7 @@ fun ConditionFormDialog(
                             value = category.replace("_", " ").capitalize(),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Category") },
+                            label = { Text(stringResource(R.string.category)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                             modifier = Modifier
                                 .menuAnchor()
@@ -406,7 +408,7 @@ fun ConditionFormDialog(
                             value = severity.capitalize(),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Severity") },
+                            label = { Text(stringResource(R.string.severity)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = severityExpanded) },
                             modifier = Modifier
                                 .menuAnchor()
@@ -441,7 +443,7 @@ fun ConditionFormDialog(
                     OutlinedTextField(
                         value = icd10Code,
                         onValueChange = { icd10Code = it },
-                        label = { Text("ICD-10 Code") },
+                        label = { Text(stringResource(R.string.icd_10_code)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -450,7 +452,7 @@ fun ConditionFormDialog(
                     OutlinedTextField(
                         value = diagnosisDate,
                         onValueChange = { diagnosisDate = it },
-                        label = { Text("Diagnosis Date (YYYY-MM-DD)") },
+                        label = { Text(stringResource(R.string.diagnosis_date_yyyy_mm_dd)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -459,7 +461,7 @@ fun ConditionFormDialog(
                     OutlinedTextField(
                         value = primaryPhysician,
                         onValueChange = { primaryPhysician = it },
-                        label = { Text("Primary Physician") },
+                        label = { Text(stringResource(R.string.primary_physician)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -468,7 +470,7 @@ fun ConditionFormDialog(
                     OutlinedTextField(
                         value = treatmentPlan,
                         onValueChange = { treatmentPlan = it },
-                        label = { Text("Treatment Plan") },
+                        label = { Text(stringResource(R.string.treatment_plan)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -478,7 +480,7 @@ fun ConditionFormDialog(
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        label = { Text("Notes") },
+                        label = { Text(stringResource(R.string.notes)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -508,12 +510,12 @@ fun ConditionFormDialog(
                 },
                 enabled = conditionName.isNotBlank()
             ) {
-                Text(if (condition == null) "Create" else "Update")
+                Text(if (condition == null) stringResource(R.string.create) else stringResource(R.string.update))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

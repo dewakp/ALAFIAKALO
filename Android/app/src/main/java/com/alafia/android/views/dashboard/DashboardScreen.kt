@@ -23,6 +23,8 @@ import com.alafia.android.views.main.ClinicianModeState
 import com.alafia.android.schemas.UserSchema
 import com.alafia.android.schemas.UserUpdateRequest
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +52,7 @@ fun DashboardScreen(navController: NavController? = null) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dashboard") },
+                title = { Text(stringResource(R.string.dashboard)) },
                 actions = {
                     // Clinician mode belongs where a clinician starts their day.
                     // It used to exist only as one tile among thirty in the More
@@ -91,13 +93,13 @@ fun DashboardScreen(navController: NavController? = null) {
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
-                            "Welcome, ${user?.full_name ?: "User"}!",
+                            stringResource(R.string.welcome, user?.full_name ?: stringResource(R.string.user_2)),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Track your health and wellness journey",
+                            stringResource(R.string.track_your_health_and_wellness_journey),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                         )
@@ -110,14 +112,14 @@ fun DashboardScreen(navController: NavController? = null) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     QuickStatCard(
-                        "Nutrition", Icons.Default.Restaurant, Color(0xFF4CAF50),
-                        subtitle = "Track meals & macros",
+                        stringResource(R.string.nutrition), Icons.Default.Restaurant, Color(0xFF4CAF50),
+                        subtitle = stringResource(R.string.track_meals_macros),
                         modifier = Modifier.weight(1f),
                         onClick = { navController?.navigate("nutrition") }
                     )
                     QuickStatCard(
-                        "Fitness", Icons.Default.FitnessCenter, Color(0xFF2196F3),
-                        subtitle = "Log workouts",
+                        stringResource(R.string.fitness), Icons.Default.FitnessCenter, Color(0xFF2196F3),
+                        subtitle = stringResource(R.string.log_workouts),
                         modifier = Modifier.weight(1f),
                         onClick = { navController?.navigate("fitness") }
                     )
@@ -127,14 +129,14 @@ fun DashboardScreen(navController: NavController? = null) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     QuickStatCard(
-                        "Labs", Icons.Default.Science, Color(0xFF9C27B0),
-                        subtitle = "Store results",
+                        stringResource(R.string.labs_3), Icons.Default.Science, Color(0xFF9C27B0),
+                        subtitle = stringResource(R.string.store_results),
                         modifier = Modifier.weight(1f),
                         onClick = { navController?.navigate("labs") }
                     )
                     QuickStatCard(
-                        "Medications", Icons.Default.Medication, Color(0xFFFF9800),
-                        subtitle = "Manage Rx",
+                        stringResource(R.string.medications), Icons.Default.Medication, Color(0xFFFF9800),
+                        subtitle = stringResource(R.string.manage_rx),
                         modifier = Modifier.weight(1f),
                         onClick = { navController?.navigate("medications") }
                     )
@@ -144,14 +146,14 @@ fun DashboardScreen(navController: NavController? = null) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     QuickStatCard(
-                        "Mood", Icons.Default.Face, Color(0xFFE91E63),
-                        subtitle = "Mental health",
+                        stringResource(R.string.mood), Icons.Default.Face, Color(0xFFE91E63),
+                        subtitle = stringResource(R.string.mental_health_2),
                         modifier = Modifier.weight(1f),
                         onClick = { navController?.navigate("mood") }
                     )
                     QuickStatCard(
-                        "Lifestyle", Icons.Default.Favorite, Color(0xFFF44336),
-                        subtitle = "Vitals & habits",
+                        stringResource(R.string.lifestyle), Icons.Default.Favorite, Color(0xFFF44336),
+                        subtitle = stringResource(R.string.vitals_habits),
                         modifier = Modifier.weight(1f),
                         onClick = { navController?.navigate("lifestyle") }
                     )
@@ -160,25 +162,25 @@ fun DashboardScreen(navController: NavController? = null) {
                 // Health summary card
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Health Summary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.health_summary), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(8.dp))
                         if (user?.blood_type != null) {
-                            InfoRow("Blood Type", user!!.blood_type!!)
+                            InfoRow(stringResource(R.string.blood_type), user!!.blood_type!!)
                         }
                         if (user?.height_cm != null) {
-                            InfoRow("Height", "${user!!.height_cm} cm")
+                            InfoRow(stringResource(R.string.height_2), "${user!!.height_cm} cm")
                         }
                         if (user?.current_weight_kg != null) {
-                            InfoRow("Weight", "${user!!.current_weight_kg} kg")
+                            InfoRow(stringResource(R.string.weight_2), "${user!!.current_weight_kg} kg")
                         }
                         if (user?.activity_level != null) {
-                            InfoRow("Activity Level", user!!.activity_level!!.replaceFirstChar { it.uppercase() })
+                            InfoRow(stringResource(R.string.activity_level), user!!.activity_level!!.replaceFirstChar { it.uppercase() })
                         }
                         if (user?.allergies != null) {
-                            InfoRow("Allergies", user!!.allergies!!)
+                            InfoRow(stringResource(R.string.allergies), user!!.allergies!!)
                         }
                         if (user?.blood_type == null && user?.height_cm == null && user?.current_weight_kg == null) {
-                            Text("Tap the profile icon to add your health info", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.tap_the_profile_icon_to_add_your_health), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -272,18 +274,18 @@ private fun ProfileEditDialog(user: UserSchema?, onDismiss: () -> Unit, onSave: 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Profile") },
+        title = { Text(stringResource(R.string.edit_profile)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = bloodType, onValueChange = { bloodType = it }, label = { Text("Blood Type") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = heightCm, onValueChange = { heightCm = it }, label = { Text("Height ($heightUnit)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = weightKg, onValueChange = { weightKg = it }, label = { Text("Weight ($weightUnit)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = allergies, onValueChange = { allergies = it }, label = { Text("Allergies") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = activityLevel, onValueChange = { activityLevel = it }, label = { Text("Activity Level") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text(stringResource(R.string.full_name)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = bloodType, onValueChange = { bloodType = it }, label = { Text(stringResource(R.string.blood_type)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = heightCm, onValueChange = { heightCm = it }, label = { Text(stringResource(R.string.height, heightUnit)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = weightKg, onValueChange = { weightKg = it }, label = { Text(stringResource(R.string.weight, weightUnit)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = allergies, onValueChange = { allergies = it }, label = { Text(stringResource(R.string.allergies)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = activityLevel, onValueChange = { activityLevel = it }, label = { Text(stringResource(R.string.activity_level)) }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
@@ -299,10 +301,10 @@ private fun ProfileEditDialog(user: UserSchema?, onDismiss: () -> Unit, onSave: 
                     allergies = allergies.ifBlank { null },
                     activity_level = activityLevel.ifBlank { null }
                 ))
-            }) { Text("Save") }
+            }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

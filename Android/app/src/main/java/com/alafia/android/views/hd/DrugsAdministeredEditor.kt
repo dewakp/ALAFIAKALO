@@ -9,6 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * Structured capture for drugs given DURING a dialysis session.
@@ -104,11 +106,11 @@ fun DrugsAdministeredEditor(
     }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Drugs Given This Session", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.drugs_given_this_session), style = MaterialTheme.typography.labelLarge)
 
         if (rows.isEmpty()) {
             Text(
-                "No drugs recorded for this session.",
+                stringResource(R.string.no_drugs_recorded_for_this_session),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -123,7 +125,7 @@ fun DrugsAdministeredEditor(
                 OutlinedTextField(
                     value = row.name,
                     onValueChange = { push(rows.toMutableList().also { l -> l[i] = row.copy(name = it) }) },
-                    label = { Text("Drug") },
+                    label = { Text(stringResource(R.string.drug)) },
                     singleLine = true,
                     modifier = Modifier.weight(2f),
                 )
@@ -132,13 +134,13 @@ fun DrugsAdministeredEditor(
                     onValueChange = { push(rows.toMutableList().also { l -> l[i] = row.copy(dose = it) }) },
                     label = {
                         Text(FlowsheetDrugText.common
-                            .firstOrNull { it.first.equals(row.name, true) }?.second ?: "Dose")
+                            .firstOrNull { it.first.equals(row.name, true) }?.second ?: stringResource(R.string.dose_2))
                     },
                     singleLine = true,
                     modifier = Modifier.weight(1.4f),
                 )
                 IconButton(onClick = { push(rows.filterIndexed { j, _ -> j != i }) }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Remove drug ${i + 1}")
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.remove_drug, i + 1))
                 }
             }
         }
@@ -147,7 +149,7 @@ fun DrugsAdministeredEditor(
             TextButton(onClick = { menuOpen = true }) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
-                Text("Add drug")
+                Text(stringResource(R.string.add_drug))
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 FlowsheetDrugText.common.forEach { (name, _) ->
@@ -158,7 +160,7 @@ fun DrugsAdministeredEditor(
                 }
                 HorizontalDivider()
                 DropdownMenuItem(
-                    text = { Text("Other…") },
+                    text = { Text(stringResource(R.string.other)) },
                     onClick = { menuOpen = false; push(rows + DrugRow()) },
                 )
             }

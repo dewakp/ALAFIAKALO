@@ -22,6 +22,8 @@ import com.alafia.android.models.SurveillanceDisease
 import com.alafia.android.models.SurveillanceGlobal
 import com.alafia.android.util.ErrorUtil
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /** Disease Surveillance — parity with the web page (ranked-list-first; choropleth deferred).
  *  Outward = WHO GHO / CDC NNDSS indicator; inward = de-identified ALAFIA symptom activity. */
@@ -60,10 +62,10 @@ fun SurveillanceScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Disease Surveillance") },
+                title = { Text(stringResource(R.string.disease_surveillance)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -93,7 +95,7 @@ fun SurveillanceScreen(navController: NavHostController) {
 
             data?.let { g ->
                 Text(
-                    "${g.countries.size} countries · ${g.inwardTotal} ALAFIA symptom signals",
+                    stringResource(R.string.countries_alafia_symptom_signals, g.countries.size, g.inwardTotal),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -106,7 +108,7 @@ fun SurveillanceScreen(navController: NavHostController) {
                 }
                 data == null || data!!.countries.isEmpty() ->
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No surveillance signal for this disease yet",
+                        Text(stringResource(R.string.no_surveillance_signal_for_this_disease),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 else -> {
@@ -152,7 +154,7 @@ private fun CountrySignalRow(c: SurveillanceCountry) {
                     }
                 }
                 if (c.inward > 0) {
-                    Text("${c.inward} local signals",
+                    Text(stringResource(R.string.local_signals, c.inward),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error)
                 }

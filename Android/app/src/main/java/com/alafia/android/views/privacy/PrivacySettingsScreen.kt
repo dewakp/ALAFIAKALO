@@ -16,6 +16,8 @@ import androidx.navigation.NavHostController
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.PrivacySettings
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,10 +59,10 @@ fun PrivacySettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Privacy Settings") },
+                title = { Text(stringResource(R.string.privacy_settings)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -86,20 +88,20 @@ fun PrivacySettingsScreen(
                 ) {
                     // Data Sharing & Privacy Section
                     Text(
-                        text = "Data Sharing & Privacy",
+                        text = stringResource(R.string.data_sharing_privacy),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     
                     SwitchSetting(
-                        title = "Anonymized Analytics",
-                        description = "Help improve the app by sharing anonymized usage data",
+                        title = stringResource(R.string.anonymized_analytics),
+                        description = stringResource(R.string.help_improve_the_app_by_sharing),
                         checked = currentSettings.allowAnonymizedAnalytics,
                         onCheckedChange = { updateSetting("allow_anonymized_analytics", it) }
                     )
                     
                     SwitchSetting(
-                        title = "Collective Insights",
+                        title = stringResource(R.string.collective_insights),
                         description = "Let your meal photos and corrections train ALAFIA's " +
                             "food recognition for everyone. Your photos stay with your meals " +
                             "either way — this only controls whether they improve the shared model.",
@@ -108,8 +110,8 @@ fun PrivacySettingsScreen(
                     )
                     
                     SwitchSetting(
-                        title = "Research Participation",
-                        description = "Allow your anonymized data to be used for medical research",
+                        title = stringResource(R.string.research_participation),
+                        description = stringResource(R.string.allow_your_anonymized_data_to_be_used),
                         checked = currentSettings.allowResearchParticipation,
                         onCheckedChange = { updateSetting("allow_research_participation", it) }
                     )
@@ -118,28 +120,28 @@ fun PrivacySettingsScreen(
 
                     // Communications Section
                     Text(
-                        text = "Communications",
+                        text = stringResource(R.string.communications),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     
                     SwitchSetting(
-                        title = "Marketing Emails",
-                        description = "Receive promotional emails and special offers",
+                        title = stringResource(R.string.marketing_emails),
+                        description = stringResource(R.string.receive_promotional_emails_and_special),
                         checked = currentSettings.allowMarketingEmails,
                         onCheckedChange = { updateSetting("allow_marketing_emails", it) }
                     )
                     
                     SwitchSetting(
-                        title = "Product Updates",
-                        description = "Receive updates about new features and improvements",
+                        title = stringResource(R.string.product_updates),
+                        description = stringResource(R.string.receive_updates_about_new_features_and),
                         checked = currentSettings.allowProductUpdates,
                         onCheckedChange = { updateSetting("allow_product_updates", it) }
                     )
                     
                     SwitchSetting(
-                        title = "Health Reminders",
-                        description = "Receive notifications about medications and health tracking",
+                        title = stringResource(R.string.health_reminders),
+                        description = stringResource(R.string.receive_notifications_about_medications),
                         checked = currentSettings.allowHealthReminders,
                         onCheckedChange = { updateSetting("allow_health_reminders", it) }
                     )
@@ -148,21 +150,21 @@ fun PrivacySettingsScreen(
 
                     // AI Preferences Section
                     Text(
-                        text = "AI Preferences",
+                        text = stringResource(R.string.ai_preferences),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     
                     SwitchSetting(
-                        title = "AI Coaching",
-                        description = "Enable personalized AI health coaching",
+                        title = stringResource(R.string.ai_coaching),
+                        description = stringResource(R.string.enable_personalized_ai_health_coaching),
                         checked = currentSettings.aiCoachingEnabled,
                         onCheckedChange = { updateSetting("ai_coaching_enabled", it) }
                     )
                     
                     SwitchSetting(
-                        title = "AI Memory",
-                        description = "Allow AI to remember your preferences and history",
+                        title = stringResource(R.string.ai_memory),
+                        description = stringResource(R.string.allow_ai_to_remember_your_preferences),
                         checked = currentSettings.aiMemoryEnabled,
                         onCheckedChange = { updateSetting("ai_memory_enabled", it) }
                     )
@@ -172,7 +174,7 @@ fun PrivacySettingsScreen(
                     val explainabilityOptions = listOf("minimal", "standard", "detailed")
                     
                     Text(
-                        text = "AI Explainability Level",
+                        text = stringResource(R.string.ai_explainability_level),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                     )
@@ -209,14 +211,14 @@ fun PrivacySettingsScreen(
 
                     // Security Section
                     Text(
-                        text = "Security",
+                        text = stringResource(R.string.security),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     
                     SwitchSetting(
-                        title = "Biometric Authentication",
-                        description = "Require fingerprint or face recognition to access the app",
+                        title = stringResource(R.string.biometric_authentication),
+                        description = stringResource(R.string.require_fingerprint_or_face_recognition),
                         checked = currentSettings.requireBiometricAuth,
                         onCheckedChange = { updateSetting("require_biometric_auth", it) }
                     )
@@ -233,7 +235,7 @@ fun PrivacySettingsScreen(
                     )
                     
                     Text(
-                        text = "Session Timeout",
+                        text = stringResource(R.string.session_timeout),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                     )
@@ -270,7 +272,7 @@ fun PrivacySettingsScreen(
 
                     // Compliance Info Section
                     Text(
-                        text = "Compliance Info",
+                        text = stringResource(R.string.compliance_info),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
@@ -288,9 +290,9 @@ fun PrivacySettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("GDPR Applies:")
+                                Text(stringResource(R.string.gdpr_applies))
                                 Text(
-                                    if (currentSettings.gdprApplies) "✓ Yes" else "No",
+                                    if (currentSettings.gdprApplies) stringResource(R.string.yes) else stringResource(R.string.no),
                                     color = if (currentSettings.gdprApplies) 
                                         MaterialTheme.colorScheme.primary 
                                     else 
@@ -302,9 +304,9 @@ fun PrivacySettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("HIPAA Applies:")
+                                Text(stringResource(R.string.hipaa_applies))
                                 Text(
-                                    if (currentSettings.hipaaApplies) "✓ Yes" else "No",
+                                    if (currentSettings.hipaaApplies) stringResource(R.string.yes) else stringResource(R.string.no),
                                     color = if (currentSettings.hipaaApplies) 
                                         MaterialTheme.colorScheme.primary 
                                     else 
@@ -313,7 +315,7 @@ fun PrivacySettingsScreen(
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Your data is protected according to applicable regulations",
+                                stringResource(R.string.your_data_is_protected_according_to),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -324,7 +326,7 @@ fun PrivacySettingsScreen(
 
                     // Data Rights Section
                     Text(
-                        text = "Data Rights",
+                        text = stringResource(R.string.data_rights),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -336,7 +338,7 @@ fun PrivacySettingsScreen(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                     ) {
-                        Text("Export My Data")
+                        Text(stringResource(R.string.export_my_data))
                     }
                     
                     Button(
@@ -348,7 +350,7 @@ fun PrivacySettingsScreen(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Delete Account")
+                        Text(stringResource(R.string.delete_account))
                     }
                 }
             }
@@ -359,8 +361,8 @@ fun PrivacySettingsScreen(
     if (showExportDialog) {
         AlertDialog(
             onDismissRequest = { showExportDialog = false },
-            title = { Text("Export Data") },
-            text = { Text("Choose export format:") },
+            title = { Text(stringResource(R.string.export_data)) },
+            text = { Text(stringResource(R.string.choose_export_format)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -398,7 +400,7 @@ fun PrivacySettingsScreen(
                         Text("CSV")
                     }
                     TextButton(onClick = { showExportDialog = false }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             }
@@ -409,8 +411,8 @@ fun PrivacySettingsScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Account?") },
-            text = { Text("This action cannot be undone. All your health data will be permanently deleted. Are you sure you want to continue?") },
+            title = { Text(stringResource(R.string.delete_account_2)) },
+            text = { Text(stringResource(R.string.this_action_cannot_be_undone_all_your)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -432,12 +434,12 @@ fun PrivacySettingsScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

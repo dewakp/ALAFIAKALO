@@ -22,6 +22,8 @@ import com.alafia.android.models.InsuranceProvider
 import com.alafia.android.schemas.InsuranceCreateRequest
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 data class RegionInfo(val code: String, val name: String, val emoji: String)
 
@@ -100,10 +102,10 @@ fun InsuranceScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Insurance Plans") },
+                title = { Text(stringResource(R.string.insurance_plans)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -130,7 +132,7 @@ fun InsuranceScreen(navController: NavHostController) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Add Insurance Plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.add_insurance_plan), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
                             // Region dropdown
                             ExposedDropdownMenuBox(expanded = regionExpanded, onExpandedChange = { regionExpanded = it }) {
@@ -138,7 +140,7 @@ fun InsuranceScreen(navController: NavHostController) {
                                     value = REGIONS.find { it.code == selectedRegion }?.let { "${it.emoji} ${it.name}" } ?: "",
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("Region *") },
+                                    label = { Text(stringResource(R.string.region)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = regionExpanded) },
                                     modifier = Modifier.menuAnchor().fillMaxWidth()
                                 )
@@ -165,7 +167,7 @@ fun InsuranceScreen(navController: NavHostController) {
                                     value = selectedCountryName,
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("Country *") },
+                                    label = { Text(stringResource(R.string.country)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = countryExpanded) },
                                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                                     enabled = selectedRegion.isNotEmpty()
@@ -194,7 +196,7 @@ fun InsuranceScreen(navController: NavHostController) {
                                     value = selectedProviderName,
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("Insurance Provider *") },
+                                    label = { Text(stringResource(R.string.insurance_provider)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = providerExpanded) },
                                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                                     enabled = selectedCountryCode.isNotEmpty()
@@ -213,10 +215,10 @@ fun InsuranceScreen(navController: NavHostController) {
                             }
 
                             // Policy details
-                            OutlinedTextField(value = policyNumber, onValueChange = { policyNumber = it }, label = { Text("Policy / ID Number") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = groupNumber, onValueChange = { groupNumber = it }, label = { Text("Group Number") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = memberId, onValueChange = { memberId = it }, label = { Text("Member ID") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = planName, onValueChange = { planName = it }, label = { Text("Plan Name") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = policyNumber, onValueChange = { policyNumber = it }, label = { Text(stringResource(R.string.policy_id_number)) }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = groupNumber, onValueChange = { groupNumber = it }, label = { Text(stringResource(R.string.group_number)) }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = memberId, onValueChange = { memberId = it }, label = { Text(stringResource(R.string.member_id)) }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = planName, onValueChange = { planName = it }, label = { Text(stringResource(R.string.plan_name)) }, modifier = Modifier.fillMaxWidth())
 
                             // Plan type dropdown
                             ExposedDropdownMenuBox(expanded = planTypeExpanded, onExpandedChange = { planTypeExpanded = it }) {
@@ -224,7 +226,7 @@ fun InsuranceScreen(navController: NavHostController) {
                                     value = planType,
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("Plan Type") },
+                                    label = { Text(stringResource(R.string.plan_type)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = planTypeExpanded) },
                                     modifier = Modifier.menuAnchor().fillMaxWidth()
                                 )
@@ -237,10 +239,10 @@ fun InsuranceScreen(navController: NavHostController) {
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(checked = isPrimary, onCheckedChange = { isPrimary = it })
-                                Text("Set as Primary Plan")
+                                Text(stringResource(R.string.set_as_primary_plan))
                             }
 
-                            OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
 
                             Button(
                                 onClick = {
@@ -271,7 +273,7 @@ fun InsuranceScreen(navController: NavHostController) {
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = selectedRegion.isNotEmpty() && selectedCountryCode.isNotEmpty() && selectedProviderCode.isNotEmpty()
                             ) {
-                                Text("Save Plan")
+                                Text(stringResource(R.string.save_plan))
                             }
                         }
                     }
@@ -291,8 +293,8 @@ fun InsuranceScreen(navController: NavHostController) {
                         Column(modifier = Modifier.padding(32.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.Shield, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("No Insurance Plans", style = MaterialTheme.typography.titleMedium)
-                            Text("Tap + to add plans from any supported country", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.no_insurance_plans), style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.tap_to_add_plans_from_any_supported), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -302,7 +304,7 @@ fun InsuranceScreen(navController: NavHostController) {
 
                 if (active.isNotEmpty()) {
                     item {
-                        Text("Active Plans (${active.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.active_plans, active.size), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     }
                     items(active, key = { it.id }) { plan ->
                         InsurancePlanCard(
@@ -325,7 +327,7 @@ fun InsuranceScreen(navController: NavHostController) {
 
                 if (inactive.isNotEmpty()) {
                     item {
-                        Text("Inactive Plans (${inactive.size})", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.inactive_plans, inactive.size), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     items(inactive, key = { it.id }) { plan ->
                         InsurancePlanCard(
@@ -389,11 +391,11 @@ fun InsurancePlanCard(plan: InsurancePlan, onSetPrimary: () -> Unit, onDelete: (
                 Row {
                     if (!plan.isPrimary && plan.isActive) {
                         IconButton(onClick = onSetPrimary) {
-                            Icon(Icons.Default.Star, contentDescription = "Set Primary", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.Star, contentDescription = stringResource(R.string.set_primary), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             }

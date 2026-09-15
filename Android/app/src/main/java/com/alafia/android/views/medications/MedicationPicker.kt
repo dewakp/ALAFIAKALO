@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alafia.android.schemas.DoseGuardRefusal
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * One option offered in the intake form, with the evidence for offering it.
@@ -70,7 +72,7 @@ fun MedicationPickerField(
     OutlinedTextField(
         value = name,
         onValueChange = { dismissed = false; onNameChange(it) },
-        label = { Text("Medication name") },
+        label = { Text(stringResource(R.string.medication_name_2)) },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -105,7 +107,7 @@ fun MedicationPickerField(
         // Not an error, and not a silent blank: this account genuinely has
         // nothing logged yet. Say which it is (canon 3aa).
         Text(
-            "Nothing logged yet — type the medication name.",
+            stringResource(R.string.nothing_logged_yet_type_the_medication),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -146,14 +148,14 @@ fun DoseGuardFindings(
                 )
                 finding.suggestion?.takeIf { it.isNotBlank() }?.let { suggestion ->
                     TextButton(onClick = { onUseSuggestion(suggestion) }) {
-                        Text("Use “$suggestion”")
+                        Text(stringResource(R.string.use, suggestion))
                     }
                 }
             }
             if (refusal.overrideWith != null) {
                 // A guard with no route forward blocks a true clinical record.
                 TextButton(onClick = onAcknowledge) {
-                    Text("This is correct — log it anyway")
+                    Text(stringResource(R.string.this_is_correct_log_it_anyway))
                 }
             }
         }
@@ -194,7 +196,7 @@ fun PromoteLoggedCard(
             }
             TextButton(onClick = onPromote, enabled = !busy) {
                 if (busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                else Text("Add these to my medications")
+                else Text(stringResource(R.string.add_these_to_my_medications))
             }
         }
     }

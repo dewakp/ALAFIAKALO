@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.alafia.android.api.ApiClient
 import com.alafia.android.models.ICD11Code
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * ICD-11 code picker.
@@ -41,14 +43,14 @@ fun Icd11PickerField(
         onValueChange = {},
         readOnly = true,
         enabled = false,
-        label = { Text("ICD-11 Code") },
-        placeholder = { Text("Search by name, abbreviation or code") },
+        label = { Text(stringResource(R.string.icd_11_code)) },
+        placeholder = { Text(stringResource(R.string.search_by_name_abbreviation_or_code)) },
         trailingIcon = {
             if (code.isBlank()) {
-                Icon(Icons.Default.Search, contentDescription = "Search ICD-11")
+                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_icd_11))
             } else {
                 IconButton(onClick = { onChange("", "") }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear ICD-11 code")
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.clear_icd_11_code))
                 }
             }
         },
@@ -118,14 +120,14 @@ private fun Icd11SearchDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("ICD-11 Code") },
+        title = { Text(stringResource(R.string.icd_11_code)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    label = { Text("Condition, abbreviation or code") },
-                    placeholder = { Text("e.g. kidney, ESRD, GB61.5") },
+                    label = { Text(stringResource(R.string.condition_abbreviation_or_code)) },
+                    placeholder = { Text(stringResource(R.string.e_g_kidney_esrd_gb61_5)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -138,7 +140,7 @@ private fun Icd11SearchDialog(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
-                            TextButton(onClick = { retryToken++ }) { Text("Retry") }
+                            TextButton(onClick = { retryToken++ }) { Text(stringResource(R.string.retry)) }
                         }
                     }
 
@@ -148,13 +150,13 @@ private fun Icd11SearchDialog(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             CircularProgressIndicator(modifier = Modifier.size(18.dp))
-                            Text("Searching…", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.searching), style = MaterialTheme.typography.bodySmall)
                         }
                     }
 
                     query.isBlank() -> {
                         Text(
-                            "Try “kidney”, “ESRD”, “sickle cell” or a code like “GB61.5”.",
+                            stringResource(R.string.try_kidney_esrd_sickle_cell_or_a_code),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -208,7 +210,7 @@ private fun Icd11SearchDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

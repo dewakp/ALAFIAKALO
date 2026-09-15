@@ -33,6 +33,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,7 +118,7 @@ fun MessagingScreen(navController: NavHostController) {
                 navigationIcon = {
                     if (currentView == "hub") {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     } else if (currentView != "hub") {
                         IconButton(onClick = {
@@ -317,8 +319,8 @@ private fun HubView(onNavigate: (String, String?) -> Unit) {
         item {
             HubCard(
                 icon = Icons.Default.Email,
-                title = "Direct Messages",
-                description = "Private 1-on-1 conversations",
+                title = stringResource(R.string.direct_messages),
+                description = stringResource(R.string.private_1_on_1_conversations),
                 color = MaterialTheme.colorScheme.primary,
                 onClick = { onNavigate("conversations", "direct") }
             )
@@ -326,8 +328,8 @@ private fun HubView(onNavigate: (String, String?) -> Unit) {
         item {
             HubCard(
                 icon = Icons.Default.LocalHospital,
-                title = "Clinical Channels",
-                description = "Physician, nurse, social worker messaging",
+                title = stringResource(R.string.clinical_channels),
+                description = stringResource(R.string.physician_nurse_social_worker_messaging),
                 color = Color(0xFF4CAF50),
                 onClick = { onNavigate("conversations", "clinical") }
             )
@@ -335,8 +337,8 @@ private fun HubView(onNavigate: (String, String?) -> Unit) {
         item {
             HubCard(
                 icon = Icons.Default.Group,
-                title = "Group Chats",
-                description = "Group and care team channels",
+                title = stringResource(R.string.group_chats),
+                description = stringResource(R.string.group_and_care_team_channels),
                 color = Color(0xFF9C27B0),
                 onClick = { onNavigate("conversations", "group") }
             )
@@ -344,8 +346,8 @@ private fun HubView(onNavigate: (String, String?) -> Unit) {
         item {
             HubCard(
                 icon = Icons.Default.Public,
-                title = "Community Feed",
-                description = "Public timeline — share & support",
+                title = stringResource(R.string.community_feed),
+                description = stringResource(R.string.public_timeline_share_support),
                 color = Color(0xFFFF9800),
                 onClick = { onNavigate("feed", null) }
             )
@@ -428,9 +430,9 @@ private fun ConversationsView(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Email, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(8.dp))
-                    Text("No conversations yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_conversations_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = onCreateNew) { Text("Start a Conversation") }
+                    Button(onClick = onCreateNew) { Text(stringResource(R.string.start_a_conversation)) }
                 }
             }
         } else {
@@ -498,7 +500,7 @@ private fun ConversationRow(conv: Conversation, onClick: () -> Unit) {
                     }
                 }
                 Text(
-                    conv.lastMessagePreview ?: "No messages yet",
+                    conv.lastMessagePreview ?: stringResource(R.string.no_messages_yet),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -556,7 +558,7 @@ private fun ChatView(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(conversation.displayTitle, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "${conversation.members?.size ?: 0} members · ${conversation.conversationType.replace("_", " ").replaceFirstChar { it.uppercase() }}",
+                        stringResource(R.string.members, conversation.members?.size ?: 0, conversation.conversationType.replace("_", " ").replaceFirstChar { it.uppercase() }),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -598,7 +600,7 @@ private fun ChatView(
                 value = messageText,
                 onValueChange = { messageText = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message...") },
+                placeholder = { Text(stringResource(R.string.type_a_message)) },
                 singleLine = true,
                 shape = RoundedCornerShape(24.dp)
             )
@@ -626,7 +628,7 @@ private fun ChatView(
 private fun MessageBubble(msg: ConversationMessage, isOwn: Boolean) {
     if (msg.isDeleted) {
         Text(
-            "Message deleted",
+            stringResource(R.string.message_deleted),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
@@ -663,7 +665,7 @@ private fun MessageBubble(msg: ConversationMessage, isOwn: Boolean) {
                 modifier = Modifier.widthIn(max = 280.dp)
             ) {
                 if (!isOwn) {
-                    Text(msg.senderName ?: "User #${msg.senderId}",
+                    Text(msg.senderName ?: stringResource(R.string.user, msg.senderId),
                          style = MaterialTheme.typography.labelSmall,
                          color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -681,7 +683,7 @@ private fun MessageBubble(msg: ConversationMessage, isOwn: Boolean) {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(formatTime(msg.createdAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (msg.isEdited) Text("(edited)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (msg.isEdited) Text(stringResource(R.string.edited), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (msg.isClinical) Text("🏥", fontSize = 10.sp)
                     if (msg.isPriority) Text("⚡", fontSize = 10.sp)
                 }
@@ -730,9 +732,9 @@ private fun FeedView(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Public, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(8.dp))
-                    Text("No posts yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_posts_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = onCreateNew) { Text("Create Post") }
+                    Button(onClick = onCreateNew) { Text(stringResource(R.string.create_post)) }
                 }
             }
         } else {
@@ -778,7 +780,7 @@ private fun PostCard(post: CommunityPost, onClick: () -> Unit, onLike: () -> Uni
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        if (post.isAnonymous) "Anonymous" else "User #${post.authorId}",
+                        if (post.isAnonymous) stringResource(R.string.anonymous) else stringResource(R.string.user, post.authorId),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -888,7 +890,7 @@ private fun PostDetailView(
                     Spacer(Modifier.width(8.dp))
                     Column {
                         Text(
-                            if (post.isAnonymous) "Anonymous" else "User #${post.authorId}",
+                            if (post.isAnonymous) stringResource(R.string.anonymous) else stringResource(R.string.user, post.authorId),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -897,7 +899,7 @@ private fun PostDetailView(
                             post.topic?.let {
                                 Text("#$it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             }
-                            if (post.isEdited) Text("(edited)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (post.isEdited) Text(stringResource(R.string.edited), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -965,12 +967,12 @@ private fun PostDetailView(
 
             // Replies header
             item {
-                Text("Replies (${replies.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.replies, replies.size), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             }
 
             if (replies.isEmpty()) {
                 item {
-                    Text("No replies yet. Be the first!", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_replies_yet_be_the_first), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -991,12 +993,12 @@ private fun PostDetailView(
                                 Text("#${reply.authorId}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9C27B0))
                             }
                             Spacer(Modifier.width(6.dp))
-                            Text("User #${reply.authorId}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.user, reply.authorId), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.width(6.dp))
                             Text(formatShortDate(reply.createdAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (reply.isEdited) {
                                 Spacer(Modifier.width(4.dp))
-                                Text("(edited)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.edited), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Spacer(Modifier.height(4.dp))
@@ -1018,7 +1020,7 @@ private fun PostDetailView(
                 value = replyText,
                 onValueChange = { replyText = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Write a reply...") },
+                placeholder = { Text(stringResource(R.string.write_a_reply)) },
                 singleLine = true,
                 shape = RoundedCornerShape(24.dp)
             )
@@ -1091,7 +1093,7 @@ private fun RecipientPicker(
     }
 
     Text(
-        if (max == 1) "Recipient" else "Recipients",
+        if (max == 1) stringResource(R.string.recipient) else stringResource(R.string.recipients),
         style = MaterialTheme.typography.labelLarge
     )
     Spacer(Modifier.height(6.dp))
@@ -1112,7 +1114,7 @@ private fun RecipientPicker(
                 }
             }
             IconButton(onClick = { onChange(selected.filterNot { it.id == person.id }) }) {
-                Icon(Icons.Default.Close, contentDescription = "Remove ${person.fullName}")
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove, person.fullName))
             }
         }
     }
@@ -1121,7 +1123,7 @@ private fun RecipientPicker(
         OutlinedTextField(
             value = term,
             onValueChange = { term = it },
-            label = { Text("Search by name, email or phone") },
+            label = { Text(stringResource(R.string.search_by_name_email_or_phone)) },
             singleLine = true,
             trailingIcon = {
                 if (searching) {
@@ -1169,7 +1171,7 @@ private fun RecipientPicker(
         }
     } else {
         Text(
-            "A direct message goes to one person. Remove them to pick someone else.",
+            stringResource(R.string.a_direct_message_goes_to_one_person),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1212,7 +1214,7 @@ private fun CreateConversationSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
         ) {
-            Text("New Conversation", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.new_conversation), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
 
             if (editingType) {
@@ -1221,7 +1223,7 @@ private fun CreateConversationSheet(
                         value = convTypes.find { it.first == convType }?.second ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Type") },
+                        label = { Text(stringResource(R.string.type_2)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1240,7 +1242,7 @@ private fun CreateConversationSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.width(12.dp))
-                    TextButton(onClick = { editingType = true }) { Text("Change") }
+                    TextButton(onClick = { editingType = true }) { Text(stringResource(R.string.change)) }
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -1257,7 +1259,7 @@ private fun CreateConversationSheet(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.name)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(12.dp))
@@ -1266,7 +1268,7 @@ private fun CreateConversationSheet(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description (optional)") },
+                label = { Text(stringResource(R.string.description_optional)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -1275,7 +1277,7 @@ private fun CreateConversationSheet(
                 OutlinedTextField(
                     value = specialty,
                     onValueChange = { specialty = it },
-                    label = { Text("Specialty") },
+                    label = { Text(stringResource(R.string.specialty)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(12.dp))
@@ -1284,7 +1286,7 @@ private fun CreateConversationSheet(
                         value = priority.replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Priority") },
+                        label = { Text(stringResource(R.string.priority)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = priorityExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1298,7 +1300,7 @@ private fun CreateConversationSheet(
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Mark as Urgent")
+                    Text(stringResource(R.string.mark_as_urgent))
                     Spacer(Modifier.weight(1f))
                     Switch(checked = isUrgent, onCheckedChange = { isUrgent = it })
                 }
@@ -1326,7 +1328,7 @@ private fun CreateConversationSheet(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !submitting && recipients.isNotEmpty()
             ) {
-                Text(if (submitting) "Creating..." else "Create Conversation")
+                Text(if (submitting) stringResource(R.string.creating) else stringResource(R.string.create_conversation))
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -1364,13 +1366,13 @@ private fun CreatePostSheet(
                 .padding(horizontal = 24.dp, vertical = 16.dp)
                 .fillMaxWidth()
         ) {
-            Text("Create Post", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.create_post), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = content,
                 onValueChange = { if (it.length <= 5000) content = it },
-                label = { Text("What's on your mind?") },
+                label = { Text(stringResource(R.string.what_s_on_your_mind)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 100.dp),
@@ -1385,7 +1387,7 @@ private fun CreatePostSheet(
                     value = visibilities.find { it.first == visibility }?.second ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Visibility") },
+                    label = { Text(stringResource(R.string.visibility)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = visExpanded) },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1405,7 +1407,7 @@ private fun CreatePostSheet(
                     value = topics.find { it.first == topic }?.second ?: "— None —",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Topic") },
+                    label = { Text(stringResource(R.string.topic)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = topicExpanded) },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1425,7 +1427,7 @@ private fun CreatePostSheet(
                     value = categories.find { it.first == healthCategory }?.second ?: "— None —",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Health Category") },
+                    label = { Text(stringResource(R.string.health_category)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = catExpanded) },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1442,12 +1444,12 @@ private fun CreatePostSheet(
             OutlinedTextField(
                 value = hashtags,
                 onValueChange = { hashtags = it },
-                label = { Text("Hashtags (comma-separated)") },
+                label = { Text(stringResource(R.string.hashtags_comma_separated)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Post Anonymously")
+                Text(stringResource(R.string.post_anonymously))
                 Spacer(Modifier.weight(1f))
                 Switch(checked = isAnonymous, onCheckedChange = { isAnonymous = it })
             }
@@ -1468,7 +1470,7 @@ private fun CreatePostSheet(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !submitting && content.isNotBlank()
             ) {
-                Text(if (submitting) "Publishing..." else "Publish")
+                Text(if (submitting) stringResource(R.string.publishing) else stringResource(R.string.publish))
             }
             Spacer(Modifier.height(24.dp))
         }

@@ -24,6 +24,8 @@ import com.alafia.android.models.FDARecallItem
 import com.alafia.android.models.FDARecallResponse
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,10 +65,10 @@ fun FDARecallsScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("FDA Recalls") },
+                title = { Text(stringResource(R.string.fda_recalls)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) }
@@ -86,7 +88,7 @@ fun FDARecallsScreen(navController: NavHostController) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Search recalls") },
+                    label = { Text(stringResource(R.string.search_recalls)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     trailingIcon = {
@@ -109,7 +111,7 @@ fun FDARecallsScreen(navController: NavHostController) {
                 ) {
                     Icon(Icons.Default.Search, "Search")
                     Spacer(Modifier.width(4.dp))
-                    Text("Search")
+                    Text(stringResource(R.string.search))
                 }
             }
 
@@ -132,7 +134,7 @@ fun FDARecallsScreen(navController: NavHostController) {
             // Total count
             recallResponse?.let { resp ->
                 Text(
-                    text = "${resp.total} result${if (resp.total != 1) "s" else ""} found",
+                    text = stringResource(R.string.result_found, resp.total, if (resp.total != 1) "s" else ""),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -155,12 +157,12 @@ fun FDARecallsScreen(navController: NavHostController) {
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            "No recalls found",
+                            stringResource(R.string.no_recalls_found),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "Try a different search term",
+                            stringResource(R.string.try_a_different_search_term),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -210,7 +212,7 @@ private fun FDARecallCard(item: FDARecallItem) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Product description
             Text(
-                text = item.productDescription ?: "Unknown Product",
+                text = item.productDescription ?: stringResource(R.string.unknown_product),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 maxLines = if (expanded) Int.MAX_VALUE else 2,
@@ -282,7 +284,7 @@ private fun FDARecallCard(item: FDARecallItem) {
                 Spacer(Modifier.width(4.dp))
                 Text(
                     text = buildString {
-                        append(item.recallingFirm ?: "Unknown Firm")
+                        append(item.recallingFirm ?: stringResource(R.string.unknown_firm))
                         val location = listOfNotNull(item.city, item.state, item.country)
                             .joinToString(", ")
                         if (location.isNotEmpty()) append(" — $location")
@@ -348,7 +350,7 @@ private fun FDARecallCard(item: FDARecallItem) {
                 }
             }
             if (item.countries.size > 1) {
-                Text("Countries: ${item.countries.joinToString(", ")}",
+                Text(stringResource(R.string.countries, item.countries.joinToString(", ")),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -367,7 +369,7 @@ private fun FDARecallCard(item: FDARecallItem) {
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        if (expanded) "Hide distribution" else "Show distribution",
+                        if (expanded) stringResource(R.string.hide_distribution) else stringResource(R.string.show_distribution),
                         style = MaterialTheme.typography.labelSmall
                     )
                 }

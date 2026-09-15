@@ -55,10 +55,10 @@ final class StoreManager: ObservableObject {
             annual = products.first { $0.id == annualProductId }
             selected = monthly ?? annual ?? products.first
             if selected == nil {
-                errorMessage = "Membership isn’t available. Is it configured in App Store Connect?"
+                errorMessage = AppLanguage.text("Membership isn’t available. Is it configured in App Store Connect?")
             }
         } catch {
-            errorMessage = "Couldn’t load the membership options."
+            errorMessage = AppLanguage.text("Couldn’t load the membership options.")
         }
         isLoading = false
     }
@@ -79,19 +79,19 @@ final class StoreManager: ObservableObject {
             case .userCancelled:
                 break
             case .pending:
-                errorMessage = "Your purchase is pending approval."
+                errorMessage = AppLanguage.text("Your purchase is pending approval.")
             @unknown default:
                 break
             }
         } catch {
-            errorMessage = "Purchase failed: \(error.localizedDescription)"
+            errorMessage = AppLanguage.text("Purchase failed: \(error.localizedDescription)")
         }
     }
 
     /// Verify a StoreKit transaction with the backend, then finish it.
     private func handle(_ verification: VerificationResult<StoreKit.Transaction>) async {
         guard case .verified(let transaction) = verification else {
-            errorMessage = "Could not verify the purchase with the App Store."
+            errorMessage = AppLanguage.text("Could not verify the purchase with the App Store.")
             return
         }
         let body = AppleVerifyRequest(
@@ -102,7 +102,7 @@ final class StoreManager: ObservableObject {
         do {
             status = try await APIClient.shared.post("/subscription/verify/apple", body: body)
         } catch {
-            errorMessage = "Purchase recorded but verification failed — it may update shortly."
+            errorMessage = AppLanguage.text("Purchase recorded but verification failed — it may update shortly.")
         }
         await transaction.finish()
     }

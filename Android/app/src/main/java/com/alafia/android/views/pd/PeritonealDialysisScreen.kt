@@ -27,6 +27,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,10 +56,10 @@ fun PeritonealDialysisScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Peritoneal Dialysis") },
+                title = { Text(stringResource(R.string.peritoneal_dialysis)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) },
@@ -76,8 +78,8 @@ fun PeritonealDialysisScreen(navController: NavHostController) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.WaterDrop, "No sessions", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
-                    Text("No PD sessions", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Tap + to add a session", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_pd_sessions), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.tap_to_add_a_session), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -100,8 +102,8 @@ fun PeritonealDialysisScreen(navController: NavHostController) {
     deleteTarget?.let { session ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Delete Session") },
-            text = { Text("Delete PD session from ${session.sessionDate}?") },
+            title = { Text(stringResource(R.string.delete_session)) },
+            text = { Text(stringResource(R.string.delete_pd_session_from, session.sessionDate)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
@@ -114,10 +116,10 @@ fun PeritonealDialysisScreen(navController: NavHostController) {
                             Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                         }
                     }
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("Cancel") }
+                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -173,8 +175,8 @@ private fun PDSessionCard(session: PDSession, onDelete: () -> Unit) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(session.sessionDate, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        session.preWeightKg?.let { Text("Pre: ${it}kg", style = MaterialTheme.typography.bodySmall) }
-                        session.postWeightKg?.let { Text("Post: ${it}kg", style = MaterialTheme.typography.bodySmall) }
+                        session.preWeightKg?.let { Text(stringResource(R.string.pre_kg, it), style = MaterialTheme.typography.bodySmall) }
+                        session.postWeightKg?.let { Text(stringResource(R.string.post_kg, it), style = MaterialTheme.typography.bodySmall) }
                     }
                 }
 
@@ -193,16 +195,16 @@ private fun PDSessionCard(session: PDSession, onDelete: () -> Unit) {
             ) {
                 session.preBpSystolic?.let { sys ->
                     session.preBpDiastolic?.let { dia ->
-                        Text("Pre BP: $sys/$dia", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.pre_bp, sys, dia), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 session.postBpSystolic?.let { sys ->
                     session.postBpDiastolic?.let { dia ->
-                        Text("Post BP: $sys/$dia", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.post_bp, sys, dia), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 session.totalUfMl?.let {
-                    Text("Total UF: ${it}ml", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.total_uf_ml, it), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -210,18 +212,18 @@ private fun PDSessionCard(session: PDSession, onDelete: () -> Unit) {
             AnimatedVisibility(visible = expanded) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
                     session.exitSiteStatus?.let {
-                        Text("Exit Site: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.exit_site, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     session.temperatureC?.let {
-                        Text("Temperature: ${it}°C", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.temperature_c, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     session.notes?.let {
-                        Text("Notes: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.notes_2, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     session.exchanges?.takeIf { it.isNotEmpty() }?.let { exchanges ->
                         Spacer(Modifier.height(8.dp))
-                        Text("Exchanges", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.exchanges), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                         exchanges.forEach { exchange ->
@@ -231,12 +233,12 @@ private fun PDSessionCard(session: PDSession, onDelete: () -> Unit) {
                             ) {
                                 Text("#${exchange.exchangeNumber}", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(0.4f))
                                 Text(exchange.solutionType ?: "-", fontSize = 12.sp, modifier = Modifier.weight(1f))
-                                Text("In: ${exchange.inflowVolumeMl ?: "-"}ml", fontSize = 11.sp, modifier = Modifier.weight(0.9f))
-                                Text("Out: ${exchange.outflowVolumeMl ?: "-"}ml", fontSize = 11.sp, modifier = Modifier.weight(0.9f))
+                                Text(stringResource(R.string.in_ml, exchange.inflowVolumeMl ?: "-"), fontSize = 11.sp, modifier = Modifier.weight(0.9f))
+                                Text(stringResource(R.string.out_ml, exchange.outflowVolumeMl ?: "-"), fontSize = 11.sp, modifier = Modifier.weight(0.9f))
                                 Text("UF: ${exchange.ufMl ?: "-"}", fontSize = 11.sp, modifier = Modifier.weight(0.7f))
                             }
                             exchange.effluentClarity?.let {
-                                Text("  Clarity: $it", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.clarity_2, it), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -246,7 +248,7 @@ private fun PDSessionCard(session: PDSession, onDelete: () -> Unit) {
                         TextButton(onClick = onDelete) {
                             Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -298,12 +300,12 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Add PD Session", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.add_pd_session), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
             OutlinedTextField(
                 value = sessionDate,
                 onValueChange = { sessionDate = it },
-                label = { Text("Session Date (YYYY-MM-DD)") },
+                label = { Text(stringResource(R.string.session_date_yyyy_mm_dd)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = { Text("2026-02-16") }
@@ -318,7 +320,7 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
                     value = modality.uppercase(),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Modality") },
+                    label = { Text(stringResource(R.string.modality)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modalityExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
@@ -342,14 +344,14 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
                 OutlinedTextField(
                     value = preWeight,
                     onValueChange = { preWeight = it },
-                    label = { Text("Pre Weight (kg)") },
+                    label = { Text(stringResource(R.string.pre_weight_kg)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = postWeight,
                     onValueChange = { postWeight = it },
-                    label = { Text("Post Weight (kg)") },
+                    label = { Text(stringResource(R.string.post_weight_kg)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -359,14 +361,14 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
                 OutlinedTextField(
                     value = preBpSys,
                     onValueChange = { preBpSys = it },
-                    label = { Text("Pre BP Sys") },
+                    label = { Text(stringResource(R.string.pre_bp_sys)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = preBpDia,
                     onValueChange = { preBpDia = it },
-                    label = { Text("Pre BP Dia") },
+                    label = { Text(stringResource(R.string.pre_bp_dia)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -376,14 +378,14 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
                 OutlinedTextField(
                     value = postBpSys,
                     onValueChange = { postBpSys = it },
-                    label = { Text("Post BP Sys") },
+                    label = { Text(stringResource(R.string.post_bp_sys)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = postBpDia,
                     onValueChange = { postBpDia = it },
-                    label = { Text("Post BP Dia") },
+                    label = { Text(stringResource(R.string.post_bp_dia)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -392,7 +394,7 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
             OutlinedTextField(
                 value = temperature,
                 onValueChange = { temperature = it },
-                label = { Text("Temperature (°C)") },
+                label = { Text(stringResource(R.string.temperature_c_2)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -406,7 +408,7 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
                     value = exitSiteStatus.replaceFirstChar { it.uppercase() },
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Exit Site Status") },
+                    label = { Text(stringResource(R.string.exit_site_status)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = exitSiteExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
@@ -429,13 +431,13 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Notes") },
+                label = { Text(stringResource(R.string.notes)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
 
             // Exchanges section
-            Text("Exchanges", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.exchanges), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
 
             exchanges.forEachIndexed { index, exchange ->
                 ExchangeFormRow(
@@ -453,7 +455,7 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
-                Text("Add Exchange")
+                Text(stringResource(R.string.add_exchange))
             }
 
             Spacer(Modifier.height(8.dp))
@@ -478,7 +480,7 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save Session")
+                Text(stringResource(R.string.save_session))
             }
 
             Spacer(Modifier.height(32.dp))
@@ -520,7 +522,7 @@ private fun ExchangeFormRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Exchange #${exchange.exchangeNumber}", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.exchange, exchange.exchangeNumber), fontWeight = FontWeight.Bold)
                 IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
                     Icon(Icons.Default.Close, "Remove", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                 }
@@ -529,24 +531,24 @@ private fun ExchangeFormRow(
             OutlinedTextField(
                 value = exchange.solutionType,
                 onValueChange = { onUpdate(exchange.copy(solutionType = it)) },
-                label = { Text("Solution Type") },
+                label = { Text(stringResource(R.string.solution_type)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("e.g., 1.5% Dextrose") }
+                placeholder = { Text(stringResource(R.string.e_g_1_5_dextrose)) }
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = exchange.inflowVolume,
                     onValueChange = { onUpdate(exchange.copy(inflowVolume = it)) },
-                    label = { Text("Inflow (ml)") },
+                    label = { Text(stringResource(R.string.inflow_ml)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = exchange.outflowVolume,
                     onValueChange = { onUpdate(exchange.copy(outflowVolume = it)) },
-                    label = { Text("Outflow (ml)") },
+                    label = { Text(stringResource(R.string.outflow_ml)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -560,7 +562,7 @@ private fun ExchangeFormRow(
                     value = exchange.effluentClarity.replaceFirstChar { it.uppercase() },
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Effluent Clarity") },
+                    label = { Text(stringResource(R.string.effluent_clarity)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = clarityExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )

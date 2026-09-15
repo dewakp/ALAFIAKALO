@@ -551,7 +551,7 @@ struct ProfileSheet: View {
                 let user: User = try await APIClient.shared.patch("/users/me", body: payload)
                 AppLanguage.choose(user.preferredLanguage)
                 authManager.currentUser = user
-                message = "Saved"
+                message = AppLanguage.text("Saved")
                 // Re-lock immutable fields
                 dobLocked = !(user.dateOfBirth ?? "").isEmpty
                 genderAtBirthLocked = !(user.genderAtBirth ?? "").isEmpty

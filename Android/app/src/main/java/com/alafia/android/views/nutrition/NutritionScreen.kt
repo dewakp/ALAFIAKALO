@@ -50,6 +50,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,9 +91,9 @@ fun NutritionScreen() {
     Column(modifier = Modifier.fillMaxSize()) {
         // Tab selector
         TabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Food Log") },
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.food_log)) },
                 icon = { Icon(Icons.Filled.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp)) })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Daily Summary") },
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.daily_summary)) },
                 icon = { Icon(Icons.Filled.BarChart, contentDescription = null, modifier = Modifier.size(18.dp)) })
         }
 
@@ -106,9 +108,9 @@ fun NutritionScreen() {
                             Icon(Icons.Filled.RestaurantMenu, contentDescription = null, modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
                             Spacer(Modifier.height(12.dp))
-                            Text("No meals logged yet", style = MaterialTheme.typography.bodyLarge,
+                            Text(stringResource(R.string.no_meals_logged_yet), style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                            Text("Search the USDA database to add foods", style = MaterialTheme.typography.bodySmall,
+                            Text(stringResource(R.string.search_the_usda_database_to_add_foods), style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f))
                         }
                     }
@@ -140,7 +142,7 @@ fun NutritionScreen() {
                 // FAB
                 Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.BottomEnd) {
                     FloatingActionButton(onClick = { showAddSheet = true }) {
-                        Icon(Icons.Filled.Add, contentDescription = "Add meal")
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_meal))
                     }
                 }
             }
@@ -157,11 +159,11 @@ fun NutritionScreen() {
                             IconButton(onClick = {
                                 val prev = LocalDate.parse(summaryDate).minusDays(1)
                                 summaryDate = prev.toString()
-                            }) { Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous day") }
+                            }) { Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.previous_day)) }
                             IconButton(onClick = {
                                 val next = LocalDate.parse(summaryDate).plusDays(1)
                                 if (!next.isAfter(LocalDate.now())) summaryDate = next.toString()
-                            }) { Icon(Icons.Filled.ChevronRight, contentDescription = "Next day") }
+                            }) { Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.next_day)) }
                         }
                     }
 
@@ -181,14 +183,14 @@ fun NutritionScreen() {
                         val s = summary!!
                         // Macro cards row
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            MacroCard("Calories", s.totalCalories, "kcal", 2000f, Color(0xFFF59E0B), Modifier.weight(1f))
-                            MacroCard("Protein", s.totalProteinG, "g", 50f, Color(0xFF3B82F6), Modifier.weight(1f))
-                            MacroCard("Carbs", s.totalCarbsG, "g", 275f, Color(0xFF8B5CF6), Modifier.weight(1f))
-                            MacroCard("Fat", s.totalFatG, "g", 78f, Color(0xFFEF4444), Modifier.weight(1f))
+                            MacroCard(stringResource(R.string.calories), s.totalCalories, "kcal", 2000f, Color(0xFFF59E0B), Modifier.weight(1f))
+                            MacroCard(stringResource(R.string.protein), s.totalProteinG, "g", 50f, Color(0xFF3B82F6), Modifier.weight(1f))
+                            MacroCard(stringResource(R.string.carbs), s.totalCarbsG, "g", 275f, Color(0xFF8B5CF6), Modifier.weight(1f))
+                            MacroCard(stringResource(R.string.fat), s.totalFatG, "g", 78f, Color(0xFFEF4444), Modifier.weight(1f))
                         }
 
                         Spacer(Modifier.height(8.dp))
-                        Text("${s.mealCount} meal(s) logged", style = MaterialTheme.typography.bodySmall,
+                        Text(stringResource(R.string.meal_s_logged, s.mealCount), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                             modifier = Modifier.align(Alignment.CenterHorizontally))
                         Spacer(Modifier.height(16.dp))
@@ -197,7 +199,7 @@ fun NutritionScreen() {
                         NutrientBreakdownCard(s.nutrients)
                     } else {
                         Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            Text("No meals logged for this date", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            Text(stringResource(R.string.no_meals_logged_for_this_date), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         }
                     }
                 }
@@ -237,13 +239,13 @@ private fun EditMealDialog(log: NutritionLog, onDismiss: () -> Unit, onSaved: ()
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Edit meal") },
+        title = { Text(stringResource(R.string.edit_meal)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it; error = null },
-                    label = { Text("What did you eat?") },
+                    label = { Text(stringResource(R.string.what_did_you_eat)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                 )
@@ -285,9 +287,9 @@ private fun EditMealDialog(log: NutritionLog, onDismiss: () -> Unit, onSaved: ()
                         saving = false
                     }
                 },
-            ) { Text(if (saving) "Saving…" else "Save") }
+            ) { Text(if (saving) stringResource(R.string.saving) else stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text(stringResource(R.string.cancel)) } },
     )
 }
 
@@ -332,20 +334,20 @@ private fun MealPhotoDialog(mediaPath: String, title: String, onDismiss: () -> U
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.done)) } },
         title = { Text(title, style = MaterialTheme.typography.titleSmall) },
         text = {
             when {
                 loading -> Row(verticalAlignment = Alignment.CenterVertically,
                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text("Loading photo…")
+                    Text(stringResource(R.string.loading_photo))
                 }
                 bitmap != null -> Image(
                     bitmap = bitmap!!.asImageBitmap(),
-                    contentDescription = "Photo of $title",
+                    contentDescription = stringResource(R.string.photo_of, title),
                     modifier = Modifier.fillMaxWidth())
-                else -> Text(loadError ?: "Could not load this photo.",
+                else -> Text(loadError ?: stringResource(R.string.could_not_load_this_photo),
                              color = MaterialTheme.colorScheme.error)
             }
         }
@@ -413,17 +415,17 @@ private fun NutrientPanel(log: NutritionLog) {
 
     Column(Modifier.padding(top = 6.dp)) {
         when {
-            loading -> Text("Loading nutrients…", style = MaterialTheme.typography.bodySmall,
+            loading -> Text(stringResource(R.string.loading_nutrients), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
             loadError != null -> Text(loadError!!, style = MaterialTheme.typography.bodySmall,
                                       color = MaterialTheme.colorScheme.error)
-            present.isEmpty() -> Text("No nutrient values recorded for this meal yet.",
+            present.isEmpty() -> Text(stringResource(R.string.no_nutrient_values_recorded_for_this),
                                       style = MaterialTheme.typography.bodySmall,
                                       color = MaterialTheme.colorScheme.onSurfaceVariant)
             else -> {
                 Row(Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    NutrientChip("All (${present.size})", category == null) { category = null; page = 0 }
+                    NutrientChip(stringResource(R.string.all_2, present.size), category == null) { category = null; page = 0 }
                     present.map { it.first.category }.distinct().sorted().forEach { c ->
                         NutrientChip(c, category == c) { category = c; page = 0 }
                     }
@@ -454,12 +456,12 @@ private fun NutrientPanel(log: NutritionLog) {
                     Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         TextButton(onClick = { page = safePage - 1 }, enabled = safePage > 0,
-                                   contentPadding = PaddingValues(4.dp)) { Text("‹ Prev", fontSize = 11.sp) }
-                        Text("Page ${safePage + 1} of $totalPages · ${filtered.size} nutrients",
+                                   contentPadding = PaddingValues(4.dp)) { Text(stringResource(R.string.prev), fontSize = 11.sp) }
+                        Text(stringResource(R.string.page_of_nutrients, safePage + 1, totalPages, filtered.size),
                              style = MaterialTheme.typography.labelSmall,
                              color = MaterialTheme.colorScheme.onSurfaceVariant)
                         TextButton(onClick = { page = safePage + 1 }, enabled = safePage < totalPages - 1,
-                                   contentPadding = PaddingValues(4.dp)) { Text("Next ›", fontSize = 11.sp) }
+                                   contentPadding = PaddingValues(4.dp)) { Text(stringResource(R.string.next_2), fontSize = 11.sp) }
                     }
                 }
             }
@@ -535,7 +537,7 @@ private fun NutritionLogCard(
                         if (thumb != null) {
                             Image(
                                 bitmap = thumb.asImageBitmap(),
-                                contentDescription = "Photo of this meal",
+                                contentDescription = stringResource(R.string.photo_of_this_meal),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .size(28.dp)
@@ -550,7 +552,7 @@ private fun NutritionLogCard(
                         // existed — dropping it would hide their photos.
                         if (!log.foodImageUris.isNullOrBlank() && thumb == null) {
                             Spacer(Modifier.width(6.dp))
-                            Icon(Icons.Default.Photo, contentDescription = "See the photo of this meal",
+                            Icon(Icons.Default.Photo, contentDescription = stringResource(R.string.see_the_photo_of_this_meal),
                                 modifier = Modifier.size(14.dp).clickable { showPhoto = true },
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         }
@@ -573,7 +575,7 @@ private fun NutritionLogCard(
                     }
                 }
                 if (log.calories != null) {
-                    Text("${log.calories.toInt()} kcal", style = MaterialTheme.typography.titleSmall,
+                    Text(stringResource(R.string.kcal, log.calories.toInt()), style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
                 } else if (log.nutrientStatus == "pending") {
                     // Nutrients are computed after the meal is saved; say so
@@ -581,23 +583,23 @@ private fun NutritionLogCard(
                     Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         CircularProgressIndicator(Modifier.size(10.dp), strokeWidth = 2.dp)
-                        Text("estimating…", style = MaterialTheme.typography.bodySmall,
+                        Text(stringResource(R.string.estimating), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
                 } else if (log.nutrientStatus == "failed") {
-                    Text("unavailable", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.unavailable), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error)
                 }
                 // Correcting a meal was impossible on this client: the API
                 // method existed but no screen ever called it, so a patient who
                 // ate a quarter of what they logged had no way to say so.
                 IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Filled.Edit, contentDescription = "Edit this meal",
+                    Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.edit_this_meal),
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp),
+                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete), modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.error)
                 }
             }
@@ -606,14 +608,14 @@ private fun NutritionLogCard(
                 log.proteinG?.let { NutrientPill("P", it, Color(0xFF3B82F6)) }
                 log.carbsG?.let { NutrientPill("C", it, Color(0xFFF59E0B)) }
                 log.fatG?.let { NutrientPill("F", it, Color(0xFFEF4444)) }
-                log.fiberG?.let { NutrientPill("Fiber", it, Color(0xFF78350F)) }
+                log.fiberG?.let { NutrientPill(stringResource(R.string.fiber), it, Color(0xFF78350F)) }
             }
 
             // Collapsed by default: a day holds several meals and each carries
             // ~109 nutrient values.
             TextButton(onClick = { showNutrients = !showNutrients },
                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)) {
-                Text(if (showNutrients) "Hide all nutrients" else "All nutrients", fontSize = 11.sp)
+                Text(if (showNutrients) stringResource(R.string.hide_all_nutrients) else stringResource(R.string.all_nutrients), fontSize = 11.sp)
             }
             if (showNutrients) NutrientPanel(log)
         }
@@ -658,7 +660,7 @@ private fun NutrientBreakdownCard(nutrients: List<USDAFoodNutrient>) {
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Text("Nutrient Breakdown — % Daily Value",
+            Text(stringResource(R.string.nutrient_breakdown_daily_value),
                 style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
 
@@ -791,9 +793,9 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
         Card(Modifier.fillMaxWidth().heightIn(max = 680.dp), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Log New Meal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                    Text(stringResource(R.string.log_new_meal), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f))
-                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Close") }
+                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close)) }
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -805,10 +807,10 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                             Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(6.dp))
-                            Text("Identify Food from Image (Optional – Max 3)",
+                            Text(stringResource(R.string.identify_food_from_image_optional_max_3),
                                 style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         }
-                        Text("Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
+                        Text(stringResource(R.string.upload_image_s_for_alafia_analysis),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         Spacer(Modifier.height(8.dp))
@@ -817,13 +819,13 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                 modifier = Modifier.weight(1f), enabled = selectedImages.size < 3) {
                                 Icon(Icons.Filled.PhotoCamera, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Take Photo", fontSize = 12.sp)
+                                Text(stringResource(R.string.take_photo), fontSize = 12.sp)
                             }
                             OutlinedButton(onClick = { imagePicker.launch("image/*") },
                                 modifier = Modifier.weight(1f), enabled = selectedImages.size < 3) {
                                 Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Choose Files", fontSize = 12.sp)
+                                Text(stringResource(R.string.choose_files), fontSize = 12.sp)
                             }
                             if (selectedImages.isNotEmpty()) {
                                 OutlinedButton(onClick = {
@@ -831,14 +833,14 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                     visionItems = emptyList()
                                     imageAnalysisResult = ""
                                 }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Clear images",
+                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.clear_images),
                                         modifier = Modifier.size(14.dp))
                                 }
                             }
                         }
                         if (selectedImages.isNotEmpty()) {
                             Spacer(Modifier.height(4.dp))
-                            Text("${selectedImages.size} image(s) selected",
+                            Text(stringResource(R.string.image_s_selected, selectedImages.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                         }
@@ -900,17 +902,17 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                             if (isAnalysingImages) {
                                 CircularProgressIndicator(Modifier.size(14.dp), color = MaterialTheme.colorScheme.onPrimary)
                                 Spacer(Modifier.width(6.dp))
-                                Text("Analysing…")
+                                Text(stringResource(R.string.analysing))
                             } else {
                                 Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Analyse Image(s) with Alafia")
+                                Text(stringResource(R.string.analyse_image_s_with_alafia))
                             }
                         }
                         if (visionEdits.isNotEmpty()) {
                             Spacer(Modifier.height(6.dp))
                             if (visionWasRecall) {
-                                Text("✓ Recognised from a meal you labelled before — no model needed.",
+                                Text(stringResource(R.string.recognised_from_a_meal_you_labelled),
                                     style = MaterialTheme.typography.bodySmall, color = Color(0xFF16A34A))
                             }
                             // Editable rows: correcting these is what teaches ALAFIA.
@@ -923,7 +925,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                             visionEdits = visionEdits.toMutableList()
                                                 .also { it[i] = row.copy(first = v) }
                                         },
-                                        label = { Text("Food", fontSize = 10.sp) },
+                                        label = { Text(stringResource(R.string.food), fontSize = 10.sp) },
                                         singleLine = true,
                                         textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
                                         modifier = Modifier.weight(1f))
@@ -940,7 +942,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                         modifier = Modifier.width(78.dp))
                                     IconButton(onClick = {
                                         visionEdits = visionEdits.toMutableList().also { it.removeAt(i) }
-                                    }) { Icon(Icons.Filled.Close, contentDescription = "Remove", Modifier.size(14.dp)) }
+                                    }) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.remove_2), Modifier.size(14.dp)) }
                                 }
                                 if (row.third.isNotEmpty()) {
                                     Text(row.third, style = MaterialTheme.typography.bodySmall,
@@ -951,7 +953,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = {
                                     visionEdits = visionEdits + Triple("", "", "")
-                                }) { Text("+ Add food", fontSize = 12.sp) }
+                                }) { Text(stringResource(R.string.add_food), fontSize = 12.sp) }
                                 OutlinedButton(
                                     enabled = visionSampleId != null && !teaching,
                                     onClick = {
@@ -981,14 +983,14 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                     }) {
                                     if (teaching) {
                                         CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 2.dp)
-                                    } else Text("Confirm / correct", fontSize = 12.sp)
+                                    } else Text(stringResource(R.string.confirm_correct), fontSize = 12.sp)
                                 }
                             }
                             if (teachState.isNotEmpty()) {
                                 Text(teachState, style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                             }
-                            Text("Estimate only — check the food name and serving size before saving.",
+                            Text(stringResource(R.string.estimate_only_check_the_food_name_and),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         }
@@ -1006,7 +1008,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                 OutlinedButton(onClick = { showSearch = !showSearch }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Search USDA Database")
+                    Text(stringResource(R.string.search_usda_database))
                     if (fdcId != null) {
                         Spacer(Modifier.width(6.dp))
                         Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp),
@@ -1027,7 +1029,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                 searching = false
                             }
                         }
-                    }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("e.g. banana, chicken breast…") },
+                    }, modifier = Modifier.fillMaxWidth(), placeholder = { Text(stringResource(R.string.e_g_banana_chicken_breast)) },
                         singleLine = true,
                         trailingIcon = { if (searching) CircularProgressIndicator(Modifier.size(16.dp)) })
 
@@ -1055,20 +1057,20 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                         .padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF22C55E))
                         Spacer(Modifier.width(6.dp))
-                        Text("Nutrients auto-populated from USDA", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                        Text(stringResource(R.string.nutrients_auto_populated_from_usda), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
                 }
 
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(value = foodName, onValueChange = { foodName = it; fdcId = null },
-                    label = { Text("Food name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    label = { Text(stringResource(R.string.food_name)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 Spacer(Modifier.height(8.dp))
                 // Meal type
                 var mealExpanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(expanded = mealExpanded, onExpandedChange = { mealExpanded = it }) {
                     OutlinedTextField(value = mealType.replaceFirstChar { it.uppercase() }, onValueChange = {},
-                        readOnly = true, label = { Text("Meal type") }, modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        readOnly = true, label = { Text(stringResource(R.string.meal_type)) }, modifier = Modifier.fillMaxWidth().menuAnchor(),
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = mealExpanded) })
                     ExposedDropdownMenu(expanded = mealExpanded, onDismissRequest = { mealExpanded = false }) {
                         mealTypes.forEach { mt ->
@@ -1080,43 +1082,43 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
 
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = servingSize, onValueChange = { servingSize = it },
-                    label = { Text("Serving size") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text(stringResource(R.string.serving_size)) }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                     placeholder = { Text("e.g. 100 g") })
 
                 // ── Meal Timing ──
                 Spacer(Modifier.height(12.dp))
-                Text("Meal Timing (Optional)", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.meal_timing_optional), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 Spacer(Modifier.height(4.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = startTime, onValueChange = { startTime = it },
-                        label = { Text("Start Time") }, modifier = Modifier.weight(1f), singleLine = true,
+                        label = { Text(stringResource(R.string.start_time)) }, modifier = Modifier.weight(1f), singleLine = true,
                         placeholder = { Text("08:00") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                     OutlinedTextField(value = endTime, onValueChange = { endTime = it },
-                        label = { Text("End Time") }, modifier = Modifier.weight(1f), singleLine = true,
+                        label = { Text(stringResource(R.string.end_time)) }, modifier = Modifier.weight(1f), singleLine = true,
                         placeholder = { Text("08:30") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 }
 
                 // ── Weight Tracking ──
                 Spacer(Modifier.height(8.dp))
-                Text("Weight Tracking (Optional)", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.weight_tracking_optional), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 Spacer(Modifier.height(4.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = preMealWeight, onValueChange = { preMealWeight = it },
-                        label = { Text("Pre-Meal kg") }, modifier = Modifier.weight(1f), singleLine = true,
+                        label = { Text(stringResource(R.string.pre_meal_kg)) }, modifier = Modifier.weight(1f), singleLine = true,
                         placeholder = { Text("70.0") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
                     OutlinedTextField(value = postMealWeight, onValueChange = { postMealWeight = it },
-                        label = { Text("Post-Meal kg") }, modifier = Modifier.weight(1f), singleLine = true,
+                        label = { Text(stringResource(R.string.post_meal_kg)) }, modifier = Modifier.weight(1f), singleLine = true,
                         placeholder = { Text("70.5") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
                 }
 
                 Spacer(Modifier.height(8.dp))
-                Text("Recipe URL (Optional)", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.recipe_url_optional), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 Spacer(Modifier.height(4.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1153,7 +1155,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                     ) {
                         if (analyzingRecipe)
                             CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary)
-                        else Text("Analyze")
+                        else Text(stringResource(R.string.analyze))
                     }
                 }
                 if (recipeInfo.isNotEmpty()) {
@@ -1168,7 +1170,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
 
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = notes, onValueChange = { notes = it },
-                    label = { Text("Notes (optional)") }, modifier = Modifier.fillMaxWidth(), maxLines = 3)
+                    label = { Text(stringResource(R.string.notes_optional)) }, modifier = Modifier.fillMaxWidth(), maxLines = 3)
 
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = {
@@ -1203,7 +1205,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                     }
                 }, modifier = Modifier.fillMaxWidth(), enabled = foodName.isNotBlank() && !saving) {
                     if (saving) CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Save")
+                    else Text(stringResource(R.string.save))
                 }
             }
         }
@@ -1226,9 +1228,9 @@ private fun FoodDetailDialog(fdcId: Int, onDismiss: () -> Unit) {
         Card(Modifier.fillMaxWidth().heightIn(max = 550.dp), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Nutrient Profile", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                    Text(stringResource(R.string.nutrient_profile), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f))
-                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Close") }
+                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close)) }
                 }
 
                 if (loading) {
@@ -1250,7 +1252,7 @@ private fun FoodDetailDialog(fdcId: Int, onDismiss: () -> Unit) {
                     }
                 } else {
                     Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                        Text("Failed to load", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.failed_to_load), color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -1285,17 +1287,17 @@ private fun RecipePreviewCard(data: RecipeAnalyzeResponse) {
                 Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(6.dp))
-                Text("Per serving · $sourceLabel", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.per_serving, sourceLabel), style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                PreviewMacro("Calories", macro("calories", ""))
-                PreviewMacro("Protein", macro("protein_g", " g"))
-                PreviewMacro("Carbs", macro("carbs_g", " g"))
-                PreviewMacro("Fat", macro("fat_g", " g"))
+                PreviewMacro(stringResource(R.string.calories), macro("calories", ""))
+                PreviewMacro(stringResource(R.string.protein), macro("protein_g", " g"))
+                PreviewMacro(stringResource(R.string.carbs), macro("carbs_g", " g"))
+                PreviewMacro(stringResource(R.string.fat), macro("fat_g", " g"))
             }
-            Text("Suggestions — final nutrients are computed server-side when you save.",
+            Text(stringResource(R.string.suggestions_final_nutrients_are_computed),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                 modifier = Modifier.padding(top = 8.dp))
@@ -1326,7 +1328,7 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Text("Daily Targets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.daily_targets), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
             if (data.conditions.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
@@ -1341,7 +1343,7 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
             }
             if (!data.profileComplete) {
                 Spacer(Modifier.height(6.dp))
-                Text("Add your age, height & weight in Profile for goals tailored to you.",
+                Text(stringResource(R.string.add_your_age_height_weight_in_profile),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
@@ -1358,7 +1360,7 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
                 ) {
                     Column(Modifier.padding(10.dp)) {
                         Text(
-                            "Dialysis today — ${d.sessionCount} session${if (d.sessionCount == 1) "" else "s"}",
+                            stringResource(R.string.dialysis_today_session, d.sessionCount, if (d.sessionCount == 1) "" else "s"),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary
@@ -1407,7 +1409,7 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
             }
 
             Spacer(Modifier.height(8.dp))
-            Text("↑ aim for · ↓ stay under. Based on your biology & conditions — not medical advice.",
+            Text(stringResource(R.string.aim_for_stay_under_based_on_your_biology),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
         }
@@ -1436,14 +1438,14 @@ private fun DialysisBalanceLine(balance: DialysisBalance, unit: String) {
     }
     Row {
         Text(
-            "${if (balance.isGain) "+" else ""}${fmtAmount(balance.delta)} $unit from dialysis",
+            stringResource(R.string.from_dialysis, if (balance.isGain) "+" else "", fmtAmount(balance.delta), unit),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = if (balance.isGain) Color(0xFFB45309) else MaterialTheme.colorScheme.primary
         )
         Text(
             " · net ${fmtAmount(balance.net)} $unit retained" +
-                if (!balance.calibrated) " · estimated" else "",
+                if (!balance.calibrated) stringResource(R.string.estimated) else "",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
         )

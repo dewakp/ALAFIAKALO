@@ -18,6 +18,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /**
  * Password field with a show/hide toggle.
@@ -34,7 +36,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 fun PasswordField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String = "Password",
+    label: String = stringResource(R.string.password),
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     imeAction: ImeAction = ImeAction.Done,

@@ -29,6 +29,8 @@ import com.alafia.android.util.ErrorUtil
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 /** Composite weight trend — unifies weight recorded anywhere in the app (vitals, meals,
  *  elimination, dialysis therapy, labs, lifestyle, fitness) via /chart-dashboard/weight-series,
@@ -58,10 +60,10 @@ fun WeightTrendScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Weight Trend") },
+                title = { Text(stringResource(R.string.weight_trend)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -88,7 +90,7 @@ fun WeightTrendScreen(navController: NavHostController) {
                     contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 data == null || data!!.points.isEmpty() ->
                     Box(Modifier.fillMaxWidth().height(240.dp), contentAlignment = Alignment.Center) {
-                        Text("No weight data — log weight in Vitals, Meals, Elimination or Therapy.",
+                        Text(stringResource(R.string.no_weight_data_log_weight_in_vitals),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 else -> {
@@ -144,9 +146,9 @@ private fun WeightChart(data: WeightSeriesResponse) {
 @Composable
 private fun LegendRow() {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        LegendItem(Color(0xFF2E7D32), "Daily mean")
-        LegendItem(Color(0xFF1565C0), "7-day average")
-        LegendItem(Color(0xFFD32F2F), "Target")
+        LegendItem(Color(0xFF2E7D32), stringResource(R.string.daily_mean))
+        LegendItem(Color(0xFF1565C0), stringResource(R.string.text_7_day_average))
+        LegendItem(Color(0xFFD32F2F), stringResource(R.string.target))
     }
 }
 
@@ -163,13 +165,13 @@ private fun LegendItem(color: Color, label: String) {
 private fun SummaryCard(s: WeightSeriesSummary) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Text("Statistics", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.statistics), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             StatRow("Average", s.avg, "Std Dev", s.stddev)
             StatRow("Min", s.min, "Max", s.max)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Points: ${s.count}", style = MaterialTheme.typography.bodySmall)
-                Text("Trend: ${s.trend.replaceFirstChar { it.uppercase() }}",
+                Text(stringResource(R.string.points, s.count), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.trend, s.trend.replaceFirstChar { it.uppercase() }),
                     style = MaterialTheme.typography.bodySmall)
             }
             s.dryWeightKg?.let { StatRow("Dry Weight", it, "Target", s.profileTargetWeightKg) }
@@ -192,7 +194,7 @@ private fun SourcesCard(s: WeightSeriesSummary) {
     if (s.sources.isEmpty()) return
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Text("Data Sources", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.data_sources), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             s.sources.entries.sortedByDescending { it.value }.forEach { (source, count) ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

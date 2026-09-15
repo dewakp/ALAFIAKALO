@@ -107,6 +107,21 @@ enum AppLanguage {
         Locale.Language(identifier: resolve(chosen)).characterDirection == .rightToLeft
     }
 
+    /// Text built in code — a view model's error or confirmation — in the
+    /// patient's chosen language.
+    ///
+    /// SwiftUI's `\.locale` only reaches text a view looks up itself; a `String`
+    /// assembled in a view model is drawn verbatim. And `String(localized:)` on
+    /// its own reads the DEVICE language, which would put French screens beside
+    /// English error messages for a patient who chose French on an English phone.
+    /// A literal passed here is a `String.LocalizationValue`, so Xcode extracts it
+    /// into the catalog like any `Text("…")`.
+    static func text(_ key: String.LocalizationValue) -> String {
+        var resource = LocalizedStringResource(key)
+        resource.locale = Locale(identifier: current)
+        return String(localized: resource)
+    }
+
     /// Remember the patient's choice. An empty or unknown value is ignored,
     /// never guessed at: a blank profile field does not erase a choice.
     static func choose(_ value: String?) {

@@ -24,6 +24,8 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.models.*
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 private val DIETARY_PATTERNS = listOf("Mediterranean", "DASH", "Plant-Based", "Keto", "Balanced")
 
@@ -59,10 +61,10 @@ fun MealPlannerScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Meal Planner") },
+                title = { Text(stringResource(R.string.meal_planner)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) },
@@ -93,7 +95,7 @@ fun MealPlannerScreen(navController: NavHostController) {
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Generate Meal Plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.generate_meal_plan), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(12.dp))
 
                                 // Dietary pattern dropdown
@@ -106,7 +108,7 @@ fun MealPlannerScreen(navController: NavHostController) {
                                         value = selectedPattern,
                                         onValueChange = {},
                                         readOnly = true,
-                                        label = { Text("Dietary Pattern") },
+                                        label = { Text(stringResource(R.string.dietary_pattern)) },
                                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = patternExpanded) },
                                         modifier = Modifier.fillMaxWidth().menuAnchor()
                                     )
@@ -131,7 +133,7 @@ fun MealPlannerScreen(navController: NavHostController) {
                                 OutlinedTextField(
                                     value = calorieTarget,
                                     onValueChange = { calorieTarget = it.filter { ch -> ch.isDigit() } },
-                                    label = { Text("Daily Calorie Target") },
+                                    label = { Text(stringResource(R.string.daily_calorie_target)) },
                                     placeholder = { Text("e.g. 2000") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier.fillMaxWidth()
@@ -142,8 +144,8 @@ fun MealPlannerScreen(navController: NavHostController) {
                                 OutlinedTextField(
                                     value = allergies,
                                     onValueChange = { allergies = it },
-                                    label = { Text("Allergies") },
-                                    placeholder = { Text("e.g. nuts, dairy") },
+                                    label = { Text(stringResource(R.string.allergies)) },
+                                    placeholder = { Text(stringResource(R.string.e_g_nuts_dairy)) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
@@ -152,8 +154,8 @@ fun MealPlannerScreen(navController: NavHostController) {
                                 OutlinedTextField(
                                     value = preferences,
                                     onValueChange = { preferences = it },
-                                    label = { Text("Preferences") },
-                                    placeholder = { Text("e.g. high protein, low sodium") },
+                                    label = { Text(stringResource(R.string.preferences)) },
+                                    placeholder = { Text(stringResource(R.string.e_g_high_protein_low_sodium)) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
@@ -190,7 +192,7 @@ fun MealPlannerScreen(navController: NavHostController) {
                                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                         Spacer(Modifier.width(8.dp))
                                     }
-                                    Text("Generate Plan")
+                                    Text(stringResource(R.string.generate_plan))
                                 }
                             }
                         }
@@ -204,14 +206,14 @@ fun MealPlannerScreen(navController: NavHostController) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.RestaurantMenu, "No plans", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(12.dp))
-                                Text("No meal plans yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Tap + to generate a plan", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.no_meal_plans_yet), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.tap_to_generate_a_plan), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 } else {
                     item {
-                        Text("Your Meal Plans", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.your_meal_plans), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     items(plans, key = { it.id }) { plan ->
                         MealPlanCard(plan = plan)
@@ -243,7 +245,7 @@ private fun MealPlanCard(plan: MealPlanResponse) {
                         Text(plan.dietaryPattern, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }
                     if (plan.totalDailyCalories != null) {
-                        Text("${plan.totalDailyCalories} cal/day", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.cal_day, plan.totalDailyCalories), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 IconButton(onClick = { expanded = !expanded }) {
@@ -273,7 +275,7 @@ private fun MealPlanCard(plan: MealPlanResponse) {
                         TextButton(onClick = { showShoppingList = !showShoppingList }) {
                             Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(if (showShoppingList) "Hide Shopping List" else "Show Shopping List")
+                            Text(if (showShoppingList) stringResource(R.string.hide_shopping_list) else stringResource(R.string.show_shopping_list))
                         }
                         AnimatedVisibility(visible = showShoppingList) {
                             ShoppingListSection(items = plan.shoppingList)
@@ -309,7 +311,7 @@ private fun DayMealsSection(dayLabel: String, meals: DayMeals) {
                         ) {
                             Text("• ${meal.name}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                             if (meal.calories != null) {
-                                Text("${meal.calories} cal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.cal_2, meal.calories), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -317,10 +319,10 @@ private fun DayMealsSection(dayLabel: String, meals: DayMeals) {
                 }
             }
 
-            MealSection("Breakfast", meals.breakfast)
-            MealSection("Lunch", meals.lunch)
-            MealSection("Dinner", meals.dinner)
-            MealSection("Snacks", meals.snacks)
+            MealSection(stringResource(R.string.breakfast), meals.breakfast)
+            MealSection(stringResource(R.string.lunch), meals.lunch)
+            MealSection(stringResource(R.string.dinner), meals.dinner)
+            MealSection(stringResource(R.string.snacks), meals.snacks)
         }
     }
 }

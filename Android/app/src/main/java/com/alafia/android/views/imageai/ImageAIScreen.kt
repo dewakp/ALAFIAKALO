@@ -31,6 +31,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.stringResource
+import com.alafia.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,10 +42,10 @@ fun ImageAIScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = { TopAppBar(
-                title = { Text("Image AI") },
+                title = { Text(stringResource(R.string.image_ai)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             ) }
@@ -138,11 +140,11 @@ private fun NutritionFromImageTab() {
         ) {
             Icon(Icons.Default.Image, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Select Food Image")
+            Text(stringResource(R.string.select_food_image))
         }
 
         if (selectedUri != null) {
-            Text("Image selected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.image_selected), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
 
         if (isLoading) {
@@ -163,11 +165,11 @@ private fun NutritionFromImageTab() {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Food", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f), fontSize = 12.sp)
-                        Text("Cal", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
-                        Text("Prot", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
-                        Text("Carb", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
-                        Text("Fat", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
+                        Text(stringResource(R.string.food), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f), fontSize = 12.sp)
+                        Text(stringResource(R.string.cal), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
+                        Text(stringResource(R.string.prot), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
+                        Text(stringResource(R.string.carb), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
+                        Text(stringResource(R.string.fat), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -192,7 +194,7 @@ private fun NutritionFromImageTab() {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Total", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f), fontSize = 12.sp)
+                        Text(stringResource(R.string.total), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f), fontSize = 12.sp)
                         Text("${res.totalCalories ?: "-"}", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
                         Text("${res.totalProteinG ?: "-"}", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
                         Text("${res.totalCarbsG ?: "-"}", fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), fontSize = 12.sp)
@@ -204,13 +206,13 @@ private fun NutritionFromImageTab() {
             // Teach ALAFIA: correct the food list → learned for future photos
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Not right? Teach ALAFIA what this actually is",
+                    Text(stringResource(R.string.not_right_teach_alafia_what_this),
                         style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = correction,
                         onValueChange = { correction = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("e.g. beans in palm oil; grilled chicken", fontSize = 12.sp) },
+                        placeholder = { Text(stringResource(R.string.e_g_beans_in_palm_oil_grilled_chicken), fontSize = 12.sp) },
                         textStyle = MaterialTheme.typography.bodySmall,
                     )
                     Button(
@@ -218,9 +220,9 @@ private fun NutritionFromImageTab() {
                         enabled = !isTeaching && correction.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(if (isTeaching) "Saving…" else "Teach")
+                        Text(if (isTeaching) stringResource(R.string.saving) else stringResource(R.string.teach))
                     }
-                    Text("Separate foods with semicolons — ALAFIA will recognize this meal in future photos.",
+                    Text(stringResource(R.string.separate_foods_with_semicolons_alafia),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -273,11 +275,11 @@ private fun MedicationFromImageTab() {
         ) {
             Icon(Icons.Default.CameraAlt, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Select Medication Image")
+            Text(stringResource(R.string.select_medication_image))
         }
 
         if (selectedUri != null) {
-            Text("Image selected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.image_selected), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
 
         if (isLoading) {
@@ -289,13 +291,13 @@ private fun MedicationFromImageTab() {
         result?.let { res ->
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Medication Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.medication_details), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-                    res.medicationName?.let { LabeledValue("Name", it) }
-                    res.dosage?.let { LabeledValue("Dosage / Strength", it) }
-                    res.instructions?.let { LabeledValue("Instructions", it) }
-                    res.ndcCode?.let { LabeledValue("NDC Code", it) }
-                    res.manufacturer?.let { LabeledValue("Manufacturer", it) }
+                    res.medicationName?.let { LabeledValue(stringResource(R.string.name), it) }
+                    res.dosage?.let { LabeledValue(stringResource(R.string.dosage_strength), it) }
+                    res.instructions?.let { LabeledValue(stringResource(R.string.instructions), it) }
+                    res.ndcCode?.let { LabeledValue(stringResource(R.string.ndc_code_2), it) }
+                    res.manufacturer?.let { LabeledValue(stringResource(R.string.manufacturer_2), it) }
                     res.fields.forEach { f ->
                         if (!f.label.isNullOrBlank() && !f.value.isNullOrBlank()) LabeledValue(f.label, f.value)
                     }
@@ -340,7 +342,7 @@ private fun DosageVerificationTab() {
         OutlinedTextField(
             value = medicationName,
             onValueChange = { medicationName = it },
-            label = { Text("Medication Name") },
+            label = { Text(stringResource(R.string.medication_name)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -348,19 +350,19 @@ private fun DosageVerificationTab() {
         OutlinedTextField(
             value = dosage,
             onValueChange = { dosage = it },
-            label = { Text("Dosage") },
+            label = { Text(stringResource(R.string.dosage)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("e.g., 500mg") }
+            placeholder = { Text(stringResource(R.string.e_g_500mg)) }
         )
 
         OutlinedTextField(
             value = frequency,
             onValueChange = { frequency = it },
-            label = { Text("Frequency - Optional") },
+            label = { Text(stringResource(R.string.frequency_optional)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("e.g., twice daily") }
+            placeholder = { Text(stringResource(R.string.e_g_twice_daily)) }
         )
 
         Button(
@@ -389,7 +391,7 @@ private fun DosageVerificationTab() {
         ) {
             Icon(Icons.Default.Verified, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Verify Dosage")
+            Text(stringResource(R.string.verify_dosage))
         }
 
         if (isLoading) {
@@ -415,20 +417,20 @@ private fun DosageVerificationTab() {
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            if (res.isTypical == true) "Typical Dosage" else "Atypical — please verify",
+                            if (res.isTypical == true) stringResource(R.string.typical_dosage) else stringResource(R.string.atypical_please_verify),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    res.medicationName?.let { LabeledValue("Medication", it) }
-                    res.dosage?.let { LabeledValue("Dosage", it) }
-                    res.typicalRange?.let { LabeledValue("Typical Range", it) }
-                    res.feedback?.let { LabeledValue("Assessment", it) }
+                    res.medicationName?.let { LabeledValue(stringResource(R.string.medication), it) }
+                    res.dosage?.let { LabeledValue(stringResource(R.string.dosage), it) }
+                    res.typicalRange?.let { LabeledValue(stringResource(R.string.typical_range), it) }
+                    res.feedback?.let { LabeledValue(stringResource(R.string.assessment), it) }
 
                     res.precautions.takeIf { it.isNotEmpty() }?.let { precautions ->
                         HorizontalDivider()
-                        Text("Precautions", fontWeight = FontWeight.Bold, color = Color(0xFFF44336))
+                        Text(stringResource(R.string.precautions), fontWeight = FontWeight.Bold, color = Color(0xFFF44336))
                         precautions.forEach { p ->
                             Row(verticalAlignment = Alignment.Top) {
                                 Text("⚠ ")
