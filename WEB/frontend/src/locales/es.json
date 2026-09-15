@@ -1342,7 +1342,8 @@
     "range": "Rango",
     "status_2": "Estado",
     "delete": "Eliminar",
-    "no_lab_results_yet": "Sin resultados de laboratorio aún"
+    "no_lab_results_yet": "Sin resultados de laboratorio aún",
+    "upload_lab_report_pdf": "Cargar informe de laboratorio (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Inteligencia de Salud Agencial · Est. 2026 ✦",

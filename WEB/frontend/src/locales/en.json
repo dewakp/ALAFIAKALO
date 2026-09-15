@@ -1342,7 +1342,8 @@
     "range": "Range",
     "status_2": "Status",
     "delete": "Delete",
-    "no_lab_results_yet": "No lab results yet"
+    "no_lab_results_yet": "No lab results yet",
+    "upload_lab_report_pdf": "Upload lab report (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",

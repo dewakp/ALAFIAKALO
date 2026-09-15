@@ -35,6 +35,7 @@ fun LabsScreen(navController: NavHostController) {
     var results by remember { mutableStateOf<List<LabResult>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var showForm by remember { mutableStateOf(false) }
+    var showAddMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -62,8 +63,24 @@ fun LabsScreen(navController: NavHostController) {
                 }
             ) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showForm = true }) {
-                Icon(Icons.Default.Add, "Add Result")
+            Box {
+                FloatingActionButton(onClick = { showAddMenu = true }) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_result))
+                }
+                DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.enter_a_result)) },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        onClick = { showAddMenu = false; showForm = true },
+                    )
+                    // Document import, on its Import tab: the report is parsed and
+                    // staged for review; nothing is saved until the patient confirms.
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.upload_lab_report_pdf)) },
+                        leadingIcon = { Icon(Icons.Default.UploadFile, contentDescription = null) },
+                        onClick = { showAddMenu = false; navController.navigate("pdf-tools") },
+                    )
+                }
             }
         }
     ) { padding ->
@@ -74,7 +91,7 @@ fun LabsScreen(navController: NavHostController) {
         } else if (results.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Science, "No results", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.Science, contentDescription = stringResource(R.string.no_results), modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.no_lab_results), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(stringResource(R.string.tap_to_add_a_result), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

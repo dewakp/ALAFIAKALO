@@ -725,6 +725,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Add lab result": {
+    "source": "Add lab result",
+    "translation": "Laborergebnis hinzufügen",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Add note": {
     "source": "Add note",
     "translation": "Notiz hinzufügen",
@@ -2777,6 +2783,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Enter a result": {
+    "source": "Enter a result",
+    "translation": "Ergebnis eingeben",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Enter it as HR:MIN (7:27) or as minutes (447).": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "Geben Sie es als ST:MIN (7:27) oder in Minuten (447) ein.",
@@ -3626,6 +3638,12 @@
   "Localizable.xcstrings::Impact": {
     "source": "Impact",
     "translation": "Auswirkung",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Import": {
+    "source": "Import",
+    "translation": "Importieren",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -8174,6 +8192,12 @@
   "Localizable.xcstrings::Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.": {
     "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
     "translation": "Laden Sie einen Laborbericht, eine Medikamentenliste oder ein Formular hoch. Nichts wird zu Ihren Unterlagen hinzugefügt, bis Sie es überprüfen und zum Importieren auswählen.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Upload lab report (PDF)": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Laborbericht hochladen (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

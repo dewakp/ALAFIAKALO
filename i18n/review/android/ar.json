@@ -233,6 +233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "add_result": {
+    "source": "Add Result",
+    "translation": "إضافة نتيجة",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "add_role": {
     "source": "Add Role",
     "translation": "إضافة دور",
@@ -2303,6 +2309,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "enter_a_result": {
+    "source": "Enter a result",
+    "translation": "أدخل نتيجة",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "enter_it_as_hr_min_7_27_or_as_minutes": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "أدخله كساعة:دقيقة (7:27) أو بالدقائق (447).",
@@ -2960,6 +2972,12 @@
   "impact": {
     "source": "%1$s Impact",
     "translation": "تأثير %1$s",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "import_document": {
+    "source": "Import Document",
+    "translation": "استيراد مستند",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -4148,6 +4166,12 @@
   "no_reports_yet": {
     "source": "No reports yet",
     "translation": "لا توجد تقارير حتى الآن",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_results": {
+    "source": "No results",
+    "translation": "لا توجد نتائج",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -7223,9 +7247,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "upload_a_lab_report_medication_list_or": {
+    "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
+    "translation": "حمّل تقرير المختبر أو قائمة الأدوية أو الجدول. لن يتم إضافة أي شيء إلى سجلاتك حتى تراجعه وتختار الاستيراد.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "upload_image_s_for_alafia_analysis": {
     "source": "Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
     "translation": "حمّل صورة أو أكثر لتحليل ALAFIA. يتم قراءة عدة صور للوجبة نفسها معاً كطبق واحد.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "upload_lab_report_pdf": {
+    "source": "Upload lab report (PDF)",
+    "translation": "تحميل تقرير المختبر (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

@@ -1342,7 +1342,8 @@
     "range": "Oke",
     "status_2": "Ọnọdụ",
     "delete": "Hichapụ",
-    "no_lab_results_yet": "Enwebeghị nsonaazụ ule ka"
+    "no_lab_results_yet": "Enwebeghị nsonaazụ ule ka",
+    "upload_lab_report_pdf": "Tinye akụkọ ọrụ ụlọ (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",

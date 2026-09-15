@@ -233,6 +233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "add_result": {
+    "source": "Add Result",
+    "translation": "Ƙara Sakamakon",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "add_role": {
     "source": "Add Role",
     "translation": "Ƙara Aiki",
@@ -2303,6 +2309,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "enter_a_result": {
+    "source": "Enter a result",
+    "translation": "Shigar da sakamakon",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "enter_it_as_hr_min_7_27_or_as_minutes": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "Shigar da shi azaman HR:MIN (7:27) ko azaman mintuna (447).",
@@ -2960,6 +2972,12 @@
   "impact": {
     "source": "%1$s Impact",
     "translation": "%1$s Tasiri",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "import_document": {
+    "source": "Import Document",
+    "translation": "Shigo da Takarda",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -4148,6 +4166,12 @@
   "no_reports_yet": {
     "source": "No reports yet",
     "translation": "Babu rahotanni ba",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_results": {
+    "source": "No results",
+    "translation": "Babu sakamakon",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -7223,9 +7247,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "upload_a_lab_report_medication_list_or": {
+    "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
+    "translation": "Loda rahoton jiya, jerin magungunan ko takarda. Ba a ƙara komai zuwa rikodin ku sai kun duba kuma kun zaɓi Shigo.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "upload_image_s_for_alafia_analysis": {
     "source": "Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
     "translation": "Loda hoto(s) don ƙididdige Alafia. Hotuna da yawa na wannan abinci ana karantawa tare a matsayin falon gida.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "upload_lab_report_pdf": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Loda rahoton jiya (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

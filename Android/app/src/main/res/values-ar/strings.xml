@@ -1266,4 +1266,10 @@
     <string name="score_0_100">النقاط 0–100</string>
     <string name="no_data">لا توجد بيانات</string>
     <string name="steady">مستقر</string>
+    <string name="add_result">إضافة نتيجة</string>
+    <string name="enter_a_result">أدخل نتيجة</string>
+    <string name="upload_lab_report_pdf">تحميل تقرير المختبر (PDF)</string>
+    <string name="import_document">استيراد مستند</string>
+    <string name="no_results">لا توجد نتائج</string>
+    <string name="upload_a_lab_report_medication_list_or">حمّل تقرير المختبر أو قائمة الأدوية أو الجدول. لن يتم إضافة أي شيء إلى سجلاتك حتى تراجعه وتختار الاستيراد.</string>
 </resources>

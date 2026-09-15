@@ -1342,7 +1342,8 @@
     "range": "النطاق",
     "status_2": "الحالة",
     "delete": "حذف",
-    "no_lab_results_yet": "لا توجد نتائج فحوصات حتى الآن"
+    "no_lab_results_yet": "لا توجد نتائج فحوصات حتى الآن",
+    "upload_lab_report_pdf": "تحميل تقرير المختبر (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",

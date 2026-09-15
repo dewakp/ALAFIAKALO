@@ -32,6 +32,7 @@ vi.mock('lucide-react', () => ({
   Info: () => <span>info</span>,
   Calendar: () => <span>cal</span>,
   Zap: () => <span>zap</span>,
+  FileUp: () => <span>upload</span>,
 }));
 
 vi.mock('../components/BackButton', () => ({ default: () => <button>Back</button> }));
@@ -101,6 +102,16 @@ describe('Labs page', () => {
   it('renders without crashing', async () => {
     render(<MemoryRouter><Labs /></MemoryRouter>);
     expect(document.body).toBeTruthy();
+  });
+
+  it('offers uploading a lab report, which goes to document import', async () => {
+    // A report is parsed and staged for review there; entering a result by hand
+    // stays available beside it.
+    render(<MemoryRouter><Labs /></MemoryRouter>);
+    const upload = screen.getByTestId('labs-upload-report');
+    expect(upload).toHaveTextContent(/upload lab report/i);
+    expect(upload.getAttribute('href')).toBe('/pdf-tools');
+    expect(screen.getByRole('button', { name: /add result/i })).toBeInTheDocument();
   });
 
   it('calls /labs/ on mount', async () => {

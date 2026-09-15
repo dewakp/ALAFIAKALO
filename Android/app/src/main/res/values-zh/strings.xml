@@ -1266,4 +1266,10 @@
     <string name="score_0_100">评分 0–100</string>
     <string name="no_data">无数据</string>
     <string name="steady">稳定</string>
+    <string name="add_result">添加结果</string>
+    <string name="enter_a_result">输入结果</string>
+    <string name="upload_lab_report_pdf">上传实验室报告 (PDF)</string>
+    <string name="import_document">导入文档</string>
+    <string name="no_results">无结果</string>
+    <string name="upload_a_lab_report_medication_list_or">上传实验室报告、用药清单或流程表。在您审核并选择导入之前，任何内容都不会添加到您的记录中。</string>
 </resources>

@@ -1266,4 +1266,10 @@
     <string name="score_0_100">Punktzahl 0–100</string>
     <string name="no_data">Keine Daten</string>
     <string name="steady">Stabil</string>
+    <string name="add_result">Ergebnis hinzufügen</string>
+    <string name="enter_a_result">Ergebnis eingeben</string>
+    <string name="upload_lab_report_pdf">Laborbericht hochladen (PDF)</string>
+    <string name="import_document">Dokument importieren</string>
+    <string name="no_results">Keine Ergebnisse</string>
+    <string name="upload_a_lab_report_medication_list_or">Laden Sie einen Laborbericht, eine Medikamentenliste oder ein Übersichtsblatt hoch. Nichts wird zu Ihren Unterlagen hinzugefügt, bis Sie es überprüfen und den Import wählen.</string>
 </resources>

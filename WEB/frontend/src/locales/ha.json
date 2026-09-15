@@ -1342,7 +1342,8 @@
     "range": "Jeri",
     "status_2": "Yanayin",
     "delete": "Gida",
-    "no_lab_results_yet": "Babu sakamakon gwaji har yanzu"
+    "no_lab_results_yet": "Babu sakamakon gwaji har yanzu",
+    "upload_lab_report_pdf": "Loda rahoton gwaje (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",

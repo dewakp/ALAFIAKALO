@@ -1266,4 +1266,10 @@
     <string name="score_0_100">Ìsọ̀kan 0–100</string>
     <string name="no_data">Kò sí àlàyé</string>
     <string name="steady">Ìdúró</string>
+    <string name="add_result">Ṣafikun Èsì</string>
+    <string name="enter_a_result">Tẹ̀ èsì kan</string>
+    <string name="upload_lab_report_pdf">Gbe ìwé ìsẹ̀wọ̀ (PDF)</string>
+    <string name="import_document">Gbé Ìwé Wọlé</string>
+    <string name="no_results">Àìní èsì</string>
+    <string name="upload_a_lab_report_medication_list_or">Gbe ìwé ìsẹ̀wọ̀, àtòjọ oogun tàbí flowsheet. Ohunkóhun kò ní a ṣafikun sí àwọn ìtàn rẹ títí o ba wo ó àti yàn Gbé Wọlé.</string>
 </resources>

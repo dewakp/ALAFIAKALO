@@ -837,6 +837,11 @@
         <target state="new">Add food</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Add lab result" xml:space="preserve">
+        <source>Add lab result</source>
+        <target state="new">Add lab result</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Add note" xml:space="preserve">
         <source>Add note</source>
         <target state="new">Add note</target>
@@ -2552,6 +2557,11 @@
         <target state="new">Energy: %lld/10</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Enter a result" xml:space="preserve">
+        <source>Enter a result</source>
+        <target state="new">Enter a result</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Enter it as HR:MIN (7:27) or as minutes (447)." xml:space="preserve">
         <source>Enter it as HR:MIN (7:27) or as minutes (447).</source>
         <target state="new">Enter it as HR:MIN (7:27) or as minutes (447).</target>
@@ -3265,6 +3275,11 @@
       <trans-unit id="Impact" xml:space="preserve">
         <source>Impact</source>
         <target state="new">Impact</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Import" xml:space="preserve">
+        <source>Import</source>
+        <target state="new">Import</target>
         <note/>
       </trans-unit>
       <trans-unit id="Import %lld selected" xml:space="preserve">
@@ -7074,6 +7089,11 @@ Are you absolutely sure?</target>
       <trans-unit id="Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import." xml:space="preserve">
         <source>Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.</source>
         <target state="new">Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Upload lab report (PDF)" xml:space="preserve">
+        <source>Upload lab report (PDF)</source>
+        <target state="new">Upload lab report (PDF)</target>
         <note/>
       </trans-unit>
       <trans-unit id="Urgency" xml:space="preserve">

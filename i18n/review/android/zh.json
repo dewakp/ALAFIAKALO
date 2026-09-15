@@ -233,6 +233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "add_result": {
+    "source": "Add Result",
+    "translation": "添加结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "add_role": {
     "source": "Add Role",
     "translation": "添加角色",
@@ -2303,6 +2309,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "enter_a_result": {
+    "source": "Enter a result",
+    "translation": "输入结果",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "enter_it_as_hr_min_7_27_or_as_minutes": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "输入格式为 HR:MIN (7:27) 或分钟数 (447)。",
@@ -2960,6 +2972,12 @@
   "impact": {
     "source": "%1$s Impact",
     "translation": "%1$s 影响",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "import_document": {
+    "source": "Import Document",
+    "translation": "导入文档",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -4148,6 +4166,12 @@
   "no_reports_yet": {
     "source": "No reports yet",
     "translation": "暂无报告",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_results": {
+    "source": "No results",
+    "translation": "无结果",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -7223,9 +7247,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "upload_a_lab_report_medication_list_or": {
+    "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
+    "translation": "上传实验室报告、用药清单或流程表。在您审核并选择导入之前，任何内容都不会添加到您的记录中。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "upload_image_s_for_alafia_analysis": {
     "source": "Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
     "translation": "上传图像供 ALAFIA 分析。同一餐食的多张照片将作为一个盘子一起读取。",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "upload_lab_report_pdf": {
+    "source": "Upload lab report (PDF)",
+    "translation": "上传实验室报告 (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

@@ -793,6 +793,11 @@
         <target state="translated">Tinye nri</target>
         <note />
       </trans-unit>
+      <trans-unit id="Add lab result" xml:space="preserve">
+        <source>Add lab result</source>
+        <target state="translated">Tinye nsosoihe ụlọ ọrụ</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Add note" xml:space="preserve">
         <source>Add note</source>
         <target state="translated">Tinye notu</target>
@@ -2507,6 +2512,11 @@
         <target state="translated">Ume: %lld/10</target>
         <note />
       </trans-unit>
+      <trans-unit id="Enter a result" xml:space="preserve">
+        <source>Enter a result</source>
+        <target state="translated">Tinye nsosoihe</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Enter it as HR:MIN (7:27) or as minutes (447)." xml:space="preserve">
         <source>Enter it as HR:MIN (7:27) or as minutes (447).</source>
         <target state="translated">Tinye ya dị ka HR:MIN (7:27) ma ọ bụ dị ka nkeji (447).</target>
@@ -3219,6 +3229,11 @@
       <trans-unit id="Impact" xml:space="preserve">
         <source>Impact</source>
         <target state="translated">Mmetụta</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Import" xml:space="preserve">
+        <source>Import</source>
+        <target state="translated">Bubata</target>
         <note />
       </trans-unit>
       <trans-unit id="Import %lld selected" xml:space="preserve">
@@ -7025,6 +7040,11 @@ I na-ekpebi nke ọma?</target>
       <trans-unit id="Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import." xml:space="preserve">
         <source>Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.</source>
         <target state="translated">Tinye ụkọ ọrụ ọgwụ, ndepụta ọgwụ ma ọ bụ flowsheet. Ọ dịghị ihe a na-agbakwụnye na ndekọ gị ruo mgbe ị lelee ya ma họọ Import.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Upload lab report (PDF)" xml:space="preserve">
+        <source>Upload lab report (PDF)</source>
+        <target state="translated">Budata akwụkwọ ụlọ ọrụ (PDF)</target>
         <note />
       </trans-unit>
       <trans-unit id="Urgency" xml:space="preserve">

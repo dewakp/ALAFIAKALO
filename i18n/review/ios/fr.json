@@ -725,6 +725,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Add lab result": {
+    "source": "Add lab result",
+    "translation": "Ajouter un résultat de laboratoire",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Add note": {
     "source": "Add note",
     "translation": "Ajouter une note",
@@ -2777,6 +2783,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Enter a result": {
+    "source": "Enter a result",
+    "translation": "Entrer un résultat",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Enter it as HR:MIN (7:27) or as minutes (447).": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "Entrez-le en HH:MM (7:27) ou en minutes (447).",
@@ -3626,6 +3638,12 @@
   "Localizable.xcstrings::Impact": {
     "source": "Impact",
     "translation": "Impact",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Import": {
+    "source": "Import",
+    "translation": "Importer",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -8174,6 +8192,12 @@
   "Localizable.xcstrings::Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.": {
     "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
     "translation": "Téléchargez un rapport de laboratoire, une liste de médicaments ou un tableau de suivi. Rien n'est ajouté à vos dossiers tant que vous ne l'avez pas examiné et choisi d'importer.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Upload lab report (PDF)": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Télécharger un rapport de laboratoire (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

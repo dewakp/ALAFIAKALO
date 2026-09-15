@@ -233,6 +233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "add_result": {
+    "source": "Add Result",
+    "translation": "Tinye Nsonaazụ",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "add_role": {
     "source": "Add Role",
     "translation": "Tinye Ọrụ",
@@ -2303,6 +2309,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "enter_a_result": {
+    "source": "Enter a result",
+    "translation": "Banye nsonaazụ",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "enter_it_as_hr_min_7_27_or_as_minutes": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "Tinye ya dị ka HR:MIN (7:27) ma ọ bụ dị ka nkeji (447).",
@@ -2960,6 +2972,12 @@
   "impact": {
     "source": "%1$s Impact",
     "translation": "%1$s Mmetụta",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "import_document": {
+    "source": "Import Document",
+    "translation": "Bubata Ihe Odide",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -4148,6 +4166,12 @@
   "no_reports_yet": {
     "source": "No reports yet",
     "translation": "Enweghị ike ka ọ dị",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_results": {
+    "source": "No results",
+    "translation": "Enweghị nsonaazụ",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -7223,9 +7247,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "upload_a_lab_report_medication_list_or": {
+    "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
+    "translation": "Bulie ọkwa ụlọ ọgwụ, ndepụta ọgwụ ma ọ bụ flowsheet. A naghị agbakwụnye ihe ọ bụla na ndekọ gị ruo mgbe ị nyochaa ya ma họpụta Import.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "upload_image_s_for_alafia_analysis": {
     "source": "Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
     "translation": "Budata foto maka nyocha Alafia. Ọtụtụ ihe foto nke nri otu a a gụkọtara ọnụ dị ka otu efere.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "upload_lab_report_pdf": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Bulie ọkwa ụlọ ọgwụ (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

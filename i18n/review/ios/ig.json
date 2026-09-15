@@ -725,6 +725,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Add lab result": {
+    "source": "Add lab result",
+    "translation": "Tinye nsosoihe ụlọ ọrụ",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Add note": {
     "source": "Add note",
     "translation": "Tinye notu",
@@ -2777,6 +2783,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Enter a result": {
+    "source": "Enter a result",
+    "translation": "Tinye nsosoihe",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Enter it as HR:MIN (7:27) or as minutes (447).": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "Tinye ya dị ka HR:MIN (7:27) ma ọ bụ dị ka nkeji (447).",
@@ -3626,6 +3638,12 @@
   "Localizable.xcstrings::Impact": {
     "source": "Impact",
     "translation": "Mmetụta",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Import": {
+    "source": "Import",
+    "translation": "Bubata",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -8174,6 +8192,12 @@
   "Localizable.xcstrings::Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.": {
     "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
     "translation": "Tinye ụkọ ọrụ ọgwụ, ndepụta ọgwụ ma ọ bụ flowsheet. Ọ dịghị ihe a na-agbakwụnye na ndekọ gị ruo mgbe ị lelee ya ma họọ Import.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Upload lab report (PDF)": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Budata akwụkwọ ụlọ ọrụ (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

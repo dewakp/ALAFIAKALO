@@ -233,6 +233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "add_result": {
+    "source": "Add Result",
+    "translation": "Ongeza Matokeo",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "add_role": {
     "source": "Add Role",
     "translation": "Ongeza jukumu",
@@ -2303,6 +2309,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "enter_a_result": {
+    "source": "Enter a result",
+    "translation": "Ingiza matokeo",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "enter_it_as_hr_min_7_27_or_as_minutes": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "Ingiza kama HR:MIN (7:27) au kama dakika (447).",
@@ -2960,6 +2972,12 @@
   "impact": {
     "source": "%1$s Impact",
     "translation": "%1$s Athari",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "import_document": {
+    "source": "Import Document",
+    "translation": "Ingiza Hati",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -4148,6 +4166,12 @@
   "no_reports_yet": {
     "source": "No reports yet",
     "translation": "Hakuna ripoti bado",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "no_results": {
+    "source": "No results",
+    "translation": "Hakuna matokeo",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -7223,9 +7247,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "upload_a_lab_report_medication_list_or": {
+    "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
+    "translation": "Pakia ripoti ya maabara, orodha ya dawa au karatasi ya mtiririko. Hakuna kitu kitakacho ongezwa kwa rekodi zako hadi utakapokagua na kuchagua Ingiza.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "upload_image_s_for_alafia_analysis": {
     "source": "Upload image(s) for Alafia analysis. Several shots of the same meal are read together as one plate.",
     "translation": "Pakia picha kwa uchambuzi wa ALAFIA. Picha kadhaa za chakula kimoja zinasomwa pamoja kama sahani moja.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "upload_lab_report_pdf": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Pakia ripoti ya maabara (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

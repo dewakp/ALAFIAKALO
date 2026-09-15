@@ -35,7 +35,6 @@ import com.alafia.android.R
 @Composable
 fun PdfToolsScreen(navController: NavHostController) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Import Document", "Generate Flowsheet")
 
     Scaffold(
         topBar = { TopAppBar(
@@ -48,14 +47,13 @@ fun PdfToolsScreen(navController: NavHostController) {
             ) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Written out rather than mapped from a list of Strings: a String list
+            // is never looked up, so these tabs stayed English in every language.
             TabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(title, maxLines = 1, fontSize = 12.sp) }
-                    )
-                }
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
+                    text = { Text(stringResource(R.string.import_document), maxLines = 1, fontSize = 12.sp) })
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
+                    text = { Text(stringResource(R.string.generate_flowsheet), maxLines = 1, fontSize = 12.sp) })
             }
 
             when (selectedTab) {
@@ -116,8 +114,7 @@ private fun ParseLabReportTab() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            "Upload a lab report, medication list or flowsheet. Nothing is added to your " +
-                "records until you review it and choose Import.",
+            stringResource(R.string.upload_a_lab_report_medication_list_or),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

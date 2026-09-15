@@ -42,7 +42,10 @@ final class LabsViewModel {
 struct LabsView: View {
     @State private var vm = LabsViewModel()
     @State private var showAdd = false
-    
+    /// Document import, on its Import tab. A report is parsed and staged for
+    /// review there; nothing reaches the results until the patient confirms.
+    @State private var showUpload = false
+
     var body: some View {
             Group {
                 if vm.isLoading {
@@ -67,13 +70,24 @@ struct LabsView: View {
             .navigationTitle("Labs / EHR")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: {
+                    Menu {
+                        Button { showAdd = true } label: {
+                            Label("Enter a result", systemImage: "square.and.pencil")
+                        }
+                        Button { showUpload = true } label: {
+                            Label("Upload lab report (PDF)", systemImage: "doc.badge.arrow.up")
+                        }
+                    } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Add lab result")
                 }
             }
             .sheet(isPresented: $showAdd) {
                 AddLabSheet(vm: vm)
+            }
+            .navigationDestination(isPresented: $showUpload) {
+                PdfToolsView()
             }
             .task { await vm.fetchResults() }
     }

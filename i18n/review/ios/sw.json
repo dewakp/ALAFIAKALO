@@ -725,6 +725,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Add lab result": {
+    "source": "Add lab result",
+    "translation": "Ongeza matokeo ya maabara",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Add note": {
     "source": "Add note",
     "translation": "Ongeza noti",
@@ -2777,6 +2783,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Enter a result": {
+    "source": "Enter a result",
+    "translation": "Ingiza matokeo",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Localizable.xcstrings::Enter it as HR:MIN (7:27) or as minutes (447).": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "Ingiza kama HR:MIN (7:27) au kama dakika (447).",
@@ -3626,6 +3638,12 @@
   "Localizable.xcstrings::Impact": {
     "source": "Impact",
     "translation": "Athari",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Import": {
+    "source": "Import",
+    "translation": "Ingiza",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
@@ -8174,6 +8192,12 @@
   "Localizable.xcstrings::Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.": {
     "source": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
     "translation": "Pakia ripoti ya maabara, orodha ya dawa au karatasi. Hakuna kitu kinachojumlishwa kwenye rekodi zako hadi utakapokagua na kuchagua Ingiza.",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Upload lab report (PDF)": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Pakia ripoti ya maabara (PDF)",
     "status": "machine",
     "translated_on": "2026-09-15"
   },

@@ -1266,4 +1266,10 @@
     <string name="score_0_100">Alama 0–100</string>
     <string name="no_data">Hakuna data</string>
     <string name="steady">Imara</string>
+    <string name="add_result">Ongeza Matokeo</string>
+    <string name="enter_a_result">Ingiza matokeo</string>
+    <string name="upload_lab_report_pdf">Pakia ripoti ya maabara (PDF)</string>
+    <string name="import_document">Ingiza Hati</string>
+    <string name="no_results">Hakuna matokeo</string>
+    <string name="upload_a_lab_report_medication_list_or">Pakia ripoti ya maabara, orodha ya dawa au karatasi ya mtiririko. Hakuna kitu kitakacho ongezwa kwa rekodi zako hadi utakapokagua na kuchagua Ingiza.</string>
 </resources>

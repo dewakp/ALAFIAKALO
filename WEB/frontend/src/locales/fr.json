@@ -1342,7 +1342,8 @@
     "range": "Plage",
     "status_2": "Statut",
     "delete": "Supprimer",
-    "no_lab_results_yet": "Aucun résultat de laboratoire pour le moment"
+    "no_lab_results_yet": "Aucun résultat de laboratoire pour le moment",
+    "upload_lab_report_pdf": "Télécharger rapport de laboratoire (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",

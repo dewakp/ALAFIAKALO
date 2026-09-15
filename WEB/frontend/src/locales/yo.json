@@ -1342,7 +1342,8 @@
     "range": "Ìlà",
     "status_2": "Ipo",
     "delete": "Paá",
-    "no_lab_results_yet": "Àìsí àbájáde ìdánwò fún ìsinilẹ̀"
+    "no_lab_results_yet": "Àìsí àbájáde ìdánwò fún ìsinilẹ̀",
+    "upload_lab_report_pdf": "Gbé ìjìmọ̀ ọ̀fọ̀ (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",

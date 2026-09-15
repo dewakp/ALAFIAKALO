@@ -6605,6 +6605,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Labs.upload_lab_report_pdf": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Carregar relatório de laboratório (PDF)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Labs.value": {
     "source": "Value",
     "translation": "Valor",

@@ -6605,6 +6605,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Labs.upload_lab_report_pdf": {
+    "source": "Upload lab report (PDF)",
+    "translation": "Tinye akụkọ ọrụ ụlọ (PDF)",
+    "status": "machine",
+    "translated_on": "2026-09-15"
+  },
   "Labs.value": {
     "source": "Value",
     "translation": "Ọnụ Ọgụgụ",

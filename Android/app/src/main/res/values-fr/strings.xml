@@ -1266,4 +1266,10 @@
     <string name="score_0_100">Score 0–100</string>
     <string name="no_data">Aucune donnée</string>
     <string name="steady">Stable</string>
+    <string name="add_result">Ajouter un résultat</string>
+    <string name="enter_a_result">Entrer un résultat</string>
+    <string name="upload_lab_report_pdf">Télécharger un rapport de laboratoire (PDF)</string>
+    <string name="import_document">Importer un document</string>
+    <string name="no_results">Aucun résultat</string>
+    <string name="upload_a_lab_report_medication_list_or">Téléchargez un rapport de laboratoire, une liste de médicaments ou un feuillet. Rien n\'est ajouté à vos dossiers tant que vous ne l\'avez pas examiné et choisi d\'importer.</string>
 </resources>

@@ -5,7 +5,18 @@ import UniformTypeIdentifiers
 
 @Observable
 final class PdfToolsViewModel {
-    enum Tab: String, CaseIterable { case parse = "Import"; case flowsheet = "Flowsheet" }
+    enum Tab: String, CaseIterable {
+        case parse = "Import"; case flowsheet = "Flowsheet"
+
+        /// What the segment shows. `rawValue` is a String, which SwiftUI draws
+        /// verbatim — the tabs stayed English in every language.
+        var title: LocalizedStringKey {
+            switch self {
+            case .parse: return "Import"
+            case .flowsheet: return "Flowsheet"
+            }
+        }
+    }
 
     var selectedTab: Tab = .parse
 
@@ -230,7 +241,7 @@ struct PdfToolsView: View {
             VStack(spacing: 0) {
                 Picker("Tab", selection: $vm.selectedTab) {
                     ForEach(PdfToolsViewModel.Tab.allCases, id: \.self) { tab in
-                        Text(tab.rawValue).tag(tab)
+                        Text(tab.title).tag(tab)
                     }
                 }
                 .pickerStyle(.segmented)

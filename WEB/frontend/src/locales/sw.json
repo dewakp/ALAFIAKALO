@@ -1342,7 +1342,8 @@
     "range": "Eneo",
     "status_2": "Hali",
     "delete": "Futa",
-    "no_lab_results_yet": "Hakuna matokeo ya maabara bado"
+    "no_lab_results_yet": "Hakuna matokeo ya maabara bado",
+    "upload_lab_report_pdf": "Pakia ripoti ya maabara (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",

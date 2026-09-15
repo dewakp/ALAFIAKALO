@@ -793,6 +793,11 @@
         <target state="translated">添加食物</target>
         <note />
       </trans-unit>
+      <trans-unit id="Add lab result" xml:space="preserve">
+        <source>Add lab result</source>
+        <target state="translated">添加检验结果</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Add note" xml:space="preserve">
         <source>Add note</source>
         <target state="translated">添加备注</target>
@@ -2507,6 +2512,11 @@
         <target state="translated">能量: %lld/10</target>
         <note />
       </trans-unit>
+      <trans-unit id="Enter a result" xml:space="preserve">
+        <source>Enter a result</source>
+        <target state="translated">输入结果</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Enter it as HR:MIN (7:27) or as minutes (447)." xml:space="preserve">
         <source>Enter it as HR:MIN (7:27) or as minutes (447).</source>
         <target state="translated">输入格式为 HR:MIN (7:27) 或分钟数 (447)。</target>
@@ -3219,6 +3229,11 @@
       <trans-unit id="Impact" xml:space="preserve">
         <source>Impact</source>
         <target state="translated">影响</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Import" xml:space="preserve">
+        <source>Import</source>
+        <target state="translated">导入</target>
         <note />
       </trans-unit>
       <trans-unit id="Import %lld selected" xml:space="preserve">
@@ -7025,6 +7040,11 @@ Are you absolutely sure?</source>
       <trans-unit id="Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import." xml:space="preserve">
         <source>Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.</source>
         <target state="translated">上传实验室报告、药物清单或流程表。在您审核并选择导入之前，任何内容都不会添加到您的记录中。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Upload lab report (PDF)" xml:space="preserve">
+        <source>Upload lab report (PDF)</source>
+        <target state="translated">上传检验报告 (PDF)</target>
         <note />
       </trans-unit>
       <trans-unit id="Urgency" xml:space="preserve">

@@ -1266,4 +1266,10 @@
     <string name="score_0_100">Maki 0–100</string>
     <string name="no_data">Babu bayani</string>
     <string name="steady">Tsaye</string>
+    <string name="add_result">Ƙara Sakamakon</string>
+    <string name="enter_a_result">Shigar da sakamakon</string>
+    <string name="upload_lab_report_pdf">Loda rahoton jiya (PDF)</string>
+    <string name="import_document">Shigo da Takarda</string>
+    <string name="no_results">Babu sakamakon</string>
+    <string name="upload_a_lab_report_medication_list_or">Loda rahoton jiya, jerin magungunan ko takarda. Ba a ƙara komai zuwa rikodin ku sai kun duba kuma kun zaɓi Shigo.</string>
 </resources>

@@ -1266,4 +1266,10 @@
     <string name="score_0_100">Ọnụ 0–100</string>
     <string name="no_data">Enweghị data</string>
     <string name="steady">Kwụ ọtọ</string>
+    <string name="add_result">Tinye Nsonaazụ</string>
+    <string name="enter_a_result">Banye nsonaazụ</string>
+    <string name="upload_lab_report_pdf">Bulie ọkwa ụlọ ọgwụ (PDF)</string>
+    <string name="import_document">Bubata Ihe Odide</string>
+    <string name="no_results">Enweghị nsonaazụ</string>
+    <string name="upload_a_lab_report_medication_list_or">Bulie ọkwa ụlọ ọgwụ, ndepụta ọgwụ ma ọ bụ flowsheet. A naghị agbakwụnye ihe ọ bụla na ndekọ gị ruo mgbe ị nyochaa ya ma họpụta Import.</string>
 </resources>

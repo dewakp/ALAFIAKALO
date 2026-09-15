@@ -793,6 +793,11 @@
         <target state="translated">Ƙara abinci</target>
         <note />
       </trans-unit>
+      <trans-unit id="Add lab result" xml:space="preserve">
+        <source>Add lab result</source>
+        <target state="translated">Ƙara sakamakon gwaje</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Add note" xml:space="preserve">
         <source>Add note</source>
         <target state="translated">Ƙara bayanin</target>
@@ -2507,6 +2512,11 @@
         <target state="translated">Karfi: %lld/10</target>
         <note />
       </trans-unit>
+      <trans-unit id="Enter a result" xml:space="preserve">
+        <source>Enter a result</source>
+        <target state="translated">Shigar da sakamakon</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Enter it as HR:MIN (7:27) or as minutes (447)." xml:space="preserve">
         <source>Enter it as HR:MIN (7:27) or as minutes (447).</source>
         <target state="translated">Shigar da shi a matsayin HR:MIN (7:27) ko a matsayin mintuna (447).</target>
@@ -3219,6 +3229,11 @@
       <trans-unit id="Impact" xml:space="preserve">
         <source>Impact</source>
         <target state="translated">Tasiri</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Import" xml:space="preserve">
+        <source>Import</source>
+        <target state="translated">Shigo</target>
         <note />
       </trans-unit>
       <trans-unit id="Import %lld selected" xml:space="preserve">
@@ -7025,6 +7040,11 @@ Kuna tabbatacce sosai?</target>
       <trans-unit id="Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import." xml:space="preserve">
         <source>Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.</source>
         <target state="translated">Loda rahoton gwaje, jerin magungunan ko takaitaccen bayani. Ba a ƙara wani abu ga bayananku har sai kun duba kuma kun zaɓi Shiga.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Upload lab report (PDF)" xml:space="preserve">
+        <source>Upload lab report (PDF)</source>
+        <target state="translated">Loda rahoton gwaje (PDF)</target>
         <note />
       </trans-unit>
       <trans-unit id="Urgency" xml:space="preserve">

@@ -793,6 +793,11 @@
         <target state="translated">Adicionar alimento</target>
         <note />
       </trans-unit>
+      <trans-unit id="Add lab result" xml:space="preserve">
+        <source>Add lab result</source>
+        <target state="translated">Adicionar resultado de exame</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Add note" xml:space="preserve">
         <source>Add note</source>
         <target state="translated">Adicionar nota</target>
@@ -2507,6 +2512,11 @@
         <target state="translated">Energia: %lld/10</target>
         <note />
       </trans-unit>
+      <trans-unit id="Enter a result" xml:space="preserve">
+        <source>Enter a result</source>
+        <target state="translated">Inserir um resultado</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Enter it as HR:MIN (7:27) or as minutes (447)." xml:space="preserve">
         <source>Enter it as HR:MIN (7:27) or as minutes (447).</source>
         <target state="translated">Digite como HH:MIN (7:27) ou em minutos (447).</target>
@@ -3219,6 +3229,11 @@
       <trans-unit id="Impact" xml:space="preserve">
         <source>Impact</source>
         <target state="translated">Impacto</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Import" xml:space="preserve">
+        <source>Import</source>
+        <target state="translated">Importar</target>
         <note />
       </trans-unit>
       <trans-unit id="Import %lld selected" xml:space="preserve">
@@ -7025,6 +7040,11 @@ Tem certeza absoluta?</target>
       <trans-unit id="Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import." xml:space="preserve">
         <source>Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.</source>
         <target state="translated">Envie um resultado de exame, lista de medicamentos ou planilha. Nada é adicionado aos seus registros até você revisar e escolher Importar.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Upload lab report (PDF)" xml:space="preserve">
+        <source>Upload lab report (PDF)</source>
+        <target state="translated">Enviar relatório de exame (PDF)</target>
         <note />
       </trans-unit>
       <trans-unit id="Urgency" xml:space="preserve">

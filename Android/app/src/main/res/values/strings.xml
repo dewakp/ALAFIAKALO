@@ -1276,4 +1276,14 @@
     <string name="score_0_100">Score 0–100</string>
     <string name="no_data">No data</string>
     <string name="steady">Steady</string>
+
+    <!-- Screens. Extracted from Compose by scripts/i18n/android_extract.py. -->
+    <string name="add_result">Add Result</string>
+    <string name="enter_a_result">Enter a result</string>
+    <string name="upload_lab_report_pdf">Upload lab report (PDF)</string>
+    <string name="import_document">Import Document</string>
+
+    <!-- Screens. Extracted from Compose by scripts/i18n/android_extract.py. -->
+    <string name="no_results">No results</string>
+    <string name="upload_a_lab_report_medication_list_or">Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.</string>
 </resources>

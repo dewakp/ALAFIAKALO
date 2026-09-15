@@ -1,7 +1,8 @@
 import { localToday } from '../utils/datetime';
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Plus } from 'lucide-react';
+import { Plus, FileUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import { t } from '../i18n';
 
@@ -90,9 +91,16 @@ export default function Labs() {
           <BackButton />
           <h1 className="page-title">{t('Labs.labs_ehr')}</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          <Plus size={18} /> {t('Labs.add_result')}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {/* A report is parsed and staged for review there — nothing reaches the
+              results table until the patient confirms (DOCUMENT_IMPORT.md). */}
+          <Link className="btn btn-secondary" to="/pdf-tools" data-testid="labs-upload-report">
+            <FileUp size={18} /> {t('Labs.upload_lab_report_pdf')}
+          </Link>
+          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            <Plus size={18} /> {t('Labs.add_result')}
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>

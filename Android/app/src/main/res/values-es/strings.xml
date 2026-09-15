@@ -1266,4 +1266,10 @@
     <string name="score_0_100">Puntuación 0–100</string>
     <string name="no_data">Sin datos</string>
     <string name="steady">Estable</string>
+    <string name="add_result">Agregar Resultado</string>
+    <string name="enter_a_result">Ingresa un resultado</string>
+    <string name="upload_lab_report_pdf">Cargar informe de laboratorio (PDF)</string>
+    <string name="import_document">Importar Documento</string>
+    <string name="no_results">Sin resultados</string>
+    <string name="upload_a_lab_report_medication_list_or">Carga un informe de laboratorio, lista de medicamentos o hoja de seguimiento. Nada se añade a tus registros hasta que lo revises y elijas Importar.</string>
 </resources>

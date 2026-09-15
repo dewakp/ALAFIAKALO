@@ -1342,7 +1342,8 @@
     "range": "范围",
     "status_2": "状态",
     "delete": "删除",
-    "no_lab_results_yet": "尚无检验结果"
+    "no_lab_results_yet": "尚无检验结果",
+    "upload_lab_report_pdf": "上传实验室报告 (PDF)"
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
