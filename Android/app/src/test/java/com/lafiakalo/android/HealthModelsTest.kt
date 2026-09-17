@@ -174,6 +174,35 @@ class LabResultModelTest {
         val r = gson.fromJson(makeLabJson(""""is_abnormal": true"""), LabResult::class.java)
         assertEquals(true, r.is_abnormal)
     }
+
+    private fun labNamed(testName: String, displayName: String?): LabResult {
+        val extra = if (displayName == null) "" else ",\"display_name\": \"$displayName\""
+        return gson.fromJson(
+            """{"id": 11, "user_id": 42, "test_date": "2026-04-28", "test_name": "$testName", "status": "final", "created_at": "2026-04-28T10:00:00Z"$extra}""",
+            LabResult::class.java
+        )
+    }
+
+    // A report printed "ALP"; the backend resolves it to Alkaline Phosphatase.
+    @Test
+    fun `LabResult shows the resolved analyte name and keeps the report wording`() {
+        val r = labNamed("ALP", "Alkaline Phosphatase")
+        assertEquals("Alkaline Phosphatase", r.shownName)
+        assertEquals("ALP", r.reportedAs)
+    }
+
+    @Test
+    fun `LabResult from a server without display_name shows the stored name`() {
+        val r = labNamed("Albumin", null)
+        assertNull(r.display_name)
+        assertEquals("Albumin", r.shownName)
+        assertNull(r.reportedAs)
+    }
+
+    @Test
+    fun `LabResult does not repeat a name that differs only by case`() {
+        assertNull(labNamed("ALBUMIN", "Albumin").reportedAs)
+    }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -154,7 +154,12 @@ private fun LabResultCard(result: LabResult, onDelete: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(result.test_name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(result.shownName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    // The report's own wording under the analyte's name ("ALP" under
+                    // Alkaline Phosphatase), so the row can still be found on the document.
+                    result.reportedAs?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     Text(result.test_date, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Surface(color = statusColor.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {

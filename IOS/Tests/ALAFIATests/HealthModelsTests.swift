@@ -177,6 +177,25 @@ final class LabResultModelTests: XCTestCase {
         XCTAssertNil(r.performingLab)
         XCTAssertNil(r.referenceRange)
     }
+
+    func testTheResolvedNameIsShownAndTheReportWordingKept() throws {
+        // A report printed "ALP"; the backend resolves it to Alkaline Phosphatase.
+        let r = try makeResult(extras: ["test_name": "ALP", "display_name": "Alkaline Phosphatase"])
+        XCTAssertEqual(r.shownName, "Alkaline Phosphatase")
+        XCTAssertEqual(r.reportedAs, "ALP")
+    }
+
+    func testAServerWithoutDisplayNameStillShowsTheStoredName() throws {
+        let r = try makeResult()
+        XCTAssertNil(r.displayName)
+        XCTAssertEqual(r.shownName, "Albumin")
+        XCTAssertNil(r.reportedAs)
+    }
+
+    func testANameThatDiffersOnlyByCaseIsNotRepeated() throws {
+        let r = try makeResult(extras: ["test_name": "ALBUMIN", "display_name": "Albumin"])
+        XCTAssertNil(r.reportedAs)
+    }
 }
 
 // MARK: - Medication Model Tests

@@ -46,8 +46,10 @@ NAME_MAP = {
     "A/G RATIO": "A/G Ratio",
     "ALB": "Albumin",
     "ALBUMIN": "Albumin",
-    "ALP": "Alk Phos",
-    "ALK PHOS": "Alk Phos",
+    # Kept in step with app/services/docparse/dictionaries.py.
+    "ALP": "Alkaline Phosphatase",
+    "ALK PHOS": "Alkaline Phosphatase",
+    "ALKALINE PHOSPHATASE": "Alkaline Phosphatase",
     "ALT/SGPT": "ALT/SGPT",
     "AST/SGOT": "AST/SGOT",
     "BASO": "Basophils %",
@@ -158,7 +160,7 @@ def get_category(test_name):
     if any(t in name_upper for t in ["CHOLESTEROL", "HDL", "LDL", "TRIGLYCERIDE", "VLDL",
                                       "CHOL/HDL"]):
         return "Lipid Panel"
-    if any(t in name_upper for t in ["ALT", "AST", "ALP", "ALK PHOS", "BILIRUBIN", "TOTAL PROTEIN",
+    if any(t in name_upper for t in ["ALT", "AST", "ALP", "ALK PHOS", "ALKALINE PHOSPHATASE", "BILIRUBIN", "TOTAL PROTEIN",
                                       "ALBUMIN", "A/G", "LDH"]):
         return "Liver & Protein"
     if any(t in name_upper for t in ["SODIUM", "POTASSIUM", "CHLORIDE", "CO2", "GLUCOSE"]):

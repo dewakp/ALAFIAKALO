@@ -45,6 +45,7 @@ from app.models.labs import LabResult
 from app.models.medications import Medication
 from app.services import clinical_sources as sources
 from app.services.docparse import classify as doc_types
+from app.services.docparse.dictionaries import analyte_key
 from app.services.docparse.pipeline import ParseResult
 from app.services.docparse.records_clinical import (
     records_from_condition_table,
@@ -161,7 +162,9 @@ async def _stage_labs(db: AsyncSession, user_id: int, parsed: ParseResult) -> li
         }
 
         dedupe, existing_id = DEDUPE_NEW, None
-        key = (str(test_date), record.test_name.lower())
+        # Compared by analyte: a report printing ALP must find the "Alk Phos" row
+        # already on file, or confirming it writes a second copy beside it.
+        key = (str(test_date), analyte_key(record.test_name))
         prior = existing.get(key)
         if prior is not None:
             prior_id, prior_value = prior
@@ -186,7 +189,7 @@ async def _stage_labs(db: AsyncSession, user_id: int, parsed: ParseResult) -> li
 
 
 async def _existing_labs(db: AsyncSession, user_id: int) -> dict[tuple, tuple[int, float | None]]:
-    """(date, lowercased test name) -> (row id, value) for this user's labs.
+    """(date, analyte) -> (row id, value) for this user's labs.
 
     `lab_results` is not one of the split-table models, so reading it directly
     is correct here.
@@ -196,7 +199,7 @@ async def _existing_labs(db: AsyncSession, user_id: int) -> dict[tuple, tuple[in
         .where(LabResult.user_id == user_id)
     )
     return {
-        (str(row.test_date), (row.test_name or "").lower()): (row.id, row.value)
+        (str(row.test_date), analyte_key(row.test_name)): (row.id, row.value)
         for row in result
     }
 

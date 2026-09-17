@@ -2135,6 +2135,42 @@ screen cannot ship English-only.
 > entry per line, from the first quote to the last. Found from the raw reply
 > the log already printed; the retry recovered every one.
 
+## 3ax. A lab analyte is one thing, whatever the report printed
+
+"ALP" is Alkaline Phosphatase. One patient's history was stored as `ALP` until
+July 2025 and `Alk Phos` after, because the report format changed, and every
+reader compared the stored wording. The Liver Enzymes chart named only "ALP", so
+the six most recent results never appeared on it. It was not one analyte either:
+on the dev copy of production **219 stored names are 155 analytes, and 50 are
+split** across two or three spellings — `K+`/`Potassium`, `CRE`/`Creatinine`,
+`HGB`/`Hemoglobin` — so that record's charts drew about half of each series.
+
+- **Stored names stay as the document printed them.** Renaming clinical rows is
+  not additive, and the wording is how a row is found on the paper again.
+  Readers compare `docparse.dictionaries.analyte_key()`, which resolves through
+  the parser's own vocabulary and folds case.
+- **The server names the analyte; clients show both.** `LabResultResponse.display_name`
+  is computed server-side. Web, iOS and Android show it, with the report's own
+  wording beneath it when that differs.
+- **Import dedupe compares analytes too.** Changing a canonical name while
+  dedupe compared raw names would be §3ab's contradictory duplicate again: a
+  re-imported report printing ALP must find the `Alk Phos` row already on file.
+- **A merged series takes the vocabulary's name** (`preferred_name`), not the
+  newest spelling. The newest alone labelled magnesium "MAGNESIUM".
+- **A group list must name what the parser writes.** `LAB_CHART_GROUPS` listed
+  "AST", "Platelets" and "Transferrin Saturation" while the parser files
+  `AST/SGOT`, `Platelet Count` and `Iron Saturation`, so those rows never
+  reached a chart.
+- Merged spellings disagreed on units only in formatting (`%` vs `%Final`, an
+  absent unit, mEq/L vs mmol/L). Check again before merging a new spelling: two
+  different measurements under one key would plot as one line.
+- ⚠️ **Still split, because the vocabulary has no entry:** `Cl`/`Chloride`,
+  `GLOB`/`Globulin`, `TRIG`/`Triglycerides`, `ISAT`/`Iron Saturation`,
+  `HDL-CHOLESTEROL`, `LDL-CHOLESTEROL`, `EOS%`/`Eosinophils %`, `URR`/`URR%`,
+  and the EHR's `Total Cholesterol` against the parser's `Cholesterol`. Each
+  entry is a clinical identity claim, so add them deliberately — `GRAN%` is
+  granulocytes, not neutrophils.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

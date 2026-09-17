@@ -213,14 +213,18 @@ class LabChartGroup(BaseModel):
     series: list[LabChartSeries] = []
 
 
+# Entries are matched by analyte (`docparse.dictionaries.analyte_key`), so "ALP"
+# also finds "Alk Phos" and "LDL" finds "LDL Cholesterol". The names the document
+# parser files an analyte under are listed too ("AST/SGOT", "Platelet Count",
+# "Iron Saturation"): without them the parser writes rows no chart can show.
 LAB_CHART_GROUPS = {
     "Lipid Panel": ["Total Cholesterol", "LDL", "HDL", "Triglycerides", "LDL Cholesterol", "HDL Cholesterol"],
     "Kidney Function": ["BUN", "Creatinine", "eGFR", "GFR", "Potassium", "Phosphorus", "Calcium"],
     "Metabolic / Electrolytes": ["Glucose", "Sodium", "Potassium", "Chloride", "CO2", "Calcium", "Phosphate", "Magnesium"],
-    "CBC": ["WBC", "RBC", "Hemoglobin", "Hematocrit", "Platelets", "MCV", "MCH", "MCHC", "RDW"],
-    "Iron / Anemia": ["Iron", "Serum Iron", "Ferritin", "TIBC", "Transferrin Saturation", "Transferrin Sat"],
+    "CBC": ["WBC", "RBC", "Hemoglobin", "Hematocrit", "Platelets", "Platelet Count", "MCV", "MCH", "MCHC", "RDW"],
+    "Iron / Anemia": ["Iron", "Serum Iron", "Ferritin", "TIBC", "Transferrin Saturation", "Transferrin Sat", "Iron Saturation"],
     "TSH": ["TSH"],
-    "Liver Enzymes": ["AST", "ALT", "ALP", "Alkaline Phosphatase", "Bilirubin", "Total Bilirubin", "Albumin", "Total Protein"],
+    "Liver Enzymes": ["AST", "AST/SGOT", "ALT", "ALT/SGPT", "Alkaline Phosphatase", "Bilirubin", "Total Bilirubin", "Albumin", "Total Protein"],
 }
 
 

@@ -99,8 +99,17 @@ struct LabRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(result.testName)
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.shownName)
+                        .font(.headline)
+                    // The report's own wording under the analyte's name ("ALP" under
+                    // Alkaline Phosphatase), so the row can still be found on the document.
+                    if let reported = result.reportedAs {
+                        Text(reported)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Spacer()
                 StatusBadge(status: result.status)
             }

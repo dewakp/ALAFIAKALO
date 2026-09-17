@@ -243,7 +243,7 @@ function LatestLabsCard() {
           </div>
           {latest.items.slice(0, 3).map(l => (
             <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.88rem', padding: '.2rem 0' }}>
-              <span>{l.test_name}:</span>
+              <span>{l.display_name || l.test_name}:</span>
               <span style={{ fontWeight: 600 }}>{fmtVal(l)}</span>
             </div>
           ))}

@@ -133,6 +133,18 @@ describe('Labs page', () => {
     });
   });
 
+  it('names the analyte and keeps the report wording beneath it', async () => {
+    // Stored as the report printed it; the API resolves what it is.
+    const alp = { ...sampleLab, id: 11, test_name: 'ALP', display_name: 'Alkaline Phosphatase', value: 618, unit: 'U/L' };
+    mockApi.get.mockImplementation((url) => {
+      if (url.includes('/labs/')) return Promise.resolve({ data: [alp] });
+      return Promise.resolve({ data: [] });
+    });
+    render(<MemoryRouter><Labs /></MemoryRouter>);
+    expect(await screen.findByText('Alkaline Phosphatase')).toBeInTheDocument();
+    expect(screen.getByText('ALP')).toBeInTheDocument();
+  });
+
   it('shows form when add button is clicked', async () => {
     mockApi.get.mockResolvedValue({ data: [] });
     render(<MemoryRouter><Labs /></MemoryRouter>);

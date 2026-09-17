@@ -264,7 +264,14 @@ export default function Labs() {
             {results.map((r) => (
               <tr key={r.id} style={r.is_abnormal ? { background: '#fef2f2' } : {}}>
                 <td>{r.test_date}</td>
-                <td>{r.test_name}</td>
+                <td>
+                  {r.display_name || r.test_name}
+                  {r.display_name && r.display_name.toLowerCase() !== r.test_name.toLowerCase() && (
+                    // The report's own wording ("ALP" under Alkaline Phosphatase),
+                    // so the row can still be found on the document.
+                    <div style={{ fontSize: '.8rem', color: 'var(--color-text-secondary)' }}>{r.test_name}</div>
+                  )}
+                </td>
                 <td>{r.value ?? r.value_string ?? '-'}</td>
                 <td>{r.unit ?? '-'}</td>
                 <td>{r.reference_range_low != null ? `${r.reference_range_low} - ${r.reference_range_high}` : '-'}</td>

@@ -39,6 +39,7 @@ from app.models.user import User
 from app.models.vitals import VitalsLog
 from app.models.wellness import WellnessScore
 from app.services import clinical_sources as sources
+from app.services.docparse import dictionaries as lab_vocab
 
 DEFAULT_WINDOW_DAYS = 90
 
@@ -372,7 +373,7 @@ async def _labs_summary(db: AsyncSession, uid: int) -> Summary:
     total = (await db.execute(
         select(func.count(LabResult.id)).where(LabResult.user_id == uid))).scalar() or 0
     items = [{
-        "label": r.test_name,
+        "label": lab_vocab.display_name(r.test_name),
         "value": r.value_string or (_round(r.value, 2) if r.value is not None else None),
         "unit": r.unit,
         "danger": bool(r.is_abnormal),
@@ -422,16 +423,28 @@ async def _labs_detail(db: AsyncSession, uid: int, days: int) -> Detail:
     )).scalars().all()
     rows = list(reversed(rows))  # chronological, for the series
 
+    # Every spelling of each analyte, so a series, a card and a table row all
+    # carry the same name for it.
+    spellings: dict[str, list[str]] = {}
+    for r in rows:
+        spellings.setdefault(lab_vocab.analyte_key(r.test_name), []).append(r.test_name)
+
+    def _name(r: LabResult) -> str:
+        return lab_vocab.preferred_name(spellings[lab_vocab.analyte_key(r.test_name)])
+
     # One series per test with at least two numeric points — a single reading is
     # not a trend, and a panel carries dozens of one-off tests.
+    # Keyed by analyte, not by the stored wording: "ALP" and "Alk Phos" are one
+    # test, and keyed raw they drew as two short trends holding half the history.
     by_test: OrderedDict[str, list] = OrderedDict()
     for r in rows:
         if r.value is not None:
-            by_test.setdefault(r.test_name, []).append(r)
+            by_test.setdefault(lab_vocab.analyte_key(r.test_name), []).append(r)
     series = [{
-        "label": name, "unit": rs[0].unit,
+        "label": _name(rs[-1]),
+        "unit": next((x.unit for x in reversed(rs) if x.unit), None),
         "points": [{"date": str(r.test_date), "value": _round(r.value, 2)} for r in rs[-24:]],
-    } for name, rs in by_test.items() if len(rs) >= 2]
+    } for rs in by_test.values() if len(rs) >= 2]
     # Most-moved tests first: a clinician wants the panel that is changing.
     series.sort(key=lambda s: len(s["points"]), reverse=True)
 
@@ -440,7 +453,7 @@ async def _labs_detail(db: AsyncSession, uid: int, days: int) -> Detail:
     # then the newest draw. Everything else is in the table below.
     latest_by_test: OrderedDict[str, LabResult] = OrderedDict()
     for r in reversed(rows):                 # newest first
-        latest_by_test.setdefault(r.test_name, r)
+        latest_by_test.setdefault(lab_vocab.analyte_key(r.test_name), r)
 
     def _display(r: LabResult) -> str:
         value = r.value_string or _round(r.value, 2)
@@ -458,7 +471,7 @@ async def _labs_detail(db: AsyncSession, uid: int, days: int) -> Detail:
         abnormal.sort(key=lambda r: r.test_date, reverse=True)
         cards.append({
             "label": f"Out of range ({len(abnormal)})",
-            "items": [{"label": r.test_name, "value": _display(r), "danger": True,
+            "items": [{"label": _name(r), "value": _display(r), "danger": True,
                        "note": " · ".join(x for x in (_range(r), str(r.test_date)) if x)}
                       for r in abnormal],
             "note": "Most recent result per test. Where the lab did not flag it, "
@@ -470,9 +483,9 @@ async def _labs_detail(db: AsyncSession, uid: int, days: int) -> Detail:
     if same_draw:
         cards.append({
             "label": f"Most recent draw — {newest_date}",
-            "items": [{"label": r.test_name, "value": _display(r),
+            "items": [{"label": _name(r), "value": _display(r),
                        "danger": bool(lab_is_abnormal(r)), "note": _range(r)}
-                      for r in sorted(same_draw, key=lambda r: r.test_name)],
+                      for r in sorted(same_draw, key=_name)],
             "note": (f"{len(latest_by_test)} tests on file; the rest are in the "
                      "table below."),
         })
@@ -483,7 +496,7 @@ async def _labs_detail(db: AsyncSession, uid: int, days: int) -> Detail:
         columns=[{"key": "date", "label": "Date"}, {"key": "name", "label": "Test"},
                  {"key": "value", "label": "Value"}, {"key": "range", "label": "Reference"}],
         rows=[{
-            "date": str(r.test_date), "name": r.test_name,
+            "date": str(r.test_date), "name": _name(r),
             "value": f"{r.value_string or _round(r.value, 2) or '—'} {r.unit or ''}".strip(),
             "range": (f"{r.reference_range_low}–{r.reference_range_high}"
                       if r.reference_range_low is not None else None),

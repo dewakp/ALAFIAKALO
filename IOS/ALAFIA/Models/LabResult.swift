@@ -18,9 +18,13 @@ struct LabResult: Codable, Identifiable {
     let performingLab: String?
     let notes: String?
     let createdAt: Date
-    
+    /// The analyte's name as the backend resolves it: "ALP" and "Alk Phos" are
+    /// both Alkaline Phosphatase. Absent from servers older than the field.
+    let displayName: String?
+
     enum CodingKeys: String, CodingKey {
         case id, value, unit, status, category, notes
+        case displayName = "display_name"
         case userId = "user_id"
         case testDate = "test_date"
         case testName = "test_name"
@@ -44,6 +48,17 @@ struct LabResult: Codable, Identifiable {
     var referenceRange: String? {
         guard let low = referenceRangeLow, let high = referenceRangeHigh else { return nil }
         return "\(low) - \(high) \(unit ?? "")"
+    }
+
+    /// What the row is called on screen.
+    var shownName: String {
+        guard let name = displayName, !name.isEmpty else { return testName }
+        return name
+    }
+
+    /// The report's own wording, when it differs from `shownName` by more than case.
+    var reportedAs: String? {
+        testName.caseInsensitiveCompare(shownName) == .orderedSame ? nil : testName
     }
 }
 

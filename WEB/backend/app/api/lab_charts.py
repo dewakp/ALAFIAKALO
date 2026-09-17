@@ -10,6 +10,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.models.labs import LabResult
 from app.schemas.wellness import LabChartGroup, LabChartSeries, LabChartPoint, LAB_CHART_GROUPS
+from app.services.docparse.dictionaries import analyte_key, preferred_name
 
 router = APIRouter()
 
@@ -31,31 +32,35 @@ async def get_lab_chart_groups(
     result = await db.execute(query)
     labs = result.scalars().all()
 
-    # Build lookup by test_name
-    by_name: dict[str, list[LabResult]] = {}
+    # Grouped by analyte, not by the stored wording. One patient's alkaline
+    # phosphatase is "ALP" until July 2025 and "Alk Phos" after; matched raw, the
+    # chart drew only the spelling this group list happened to name.
+    by_analyte: dict[str, list[LabResult]] = {}
     for lab in labs:
-        name = lab.test_name.strip()
-        by_name.setdefault(name, []).append(lab)
+        by_analyte.setdefault(analyte_key(lab.test_name), []).append(lab)
 
     groups = []
     for group_name, test_names in LAB_CHART_GROUPS.items():
         series_list = []
+        charted: set[str] = set()
         for tn in test_names:
-            matched = by_name.get(tn, [])
-            if not matched:
-                # Try case-insensitive match
-                for key, vals in by_name.items():
-                    if key.lower() == tn.lower():
-                        matched = vals
-                        break
-            if matched:
-                series_list.append(LabChartSeries(
-                    test_name=tn,
-                    unit=matched[0].unit,
-                    reference_low=matched[0].reference_range_low,
-                    reference_high=matched[0].reference_range_high,
-                    data=[LabChartPoint(date=str(m.test_date), value=m.value) for m in matched if m.value is not None],
-                ))
+            key = analyte_key(tn)
+            matched = by_analyte.get(key)
+            if not matched or key in charted:
+                continue
+            charted.add(key)
+            # Spellings come from different report formats, so describe the
+            # series by the most recent report that states a unit and a range.
+            ranged = next((m for m in reversed(matched)
+                           if m.reference_range_low is not None or m.reference_range_high is not None),
+                          matched[-1])
+            series_list.append(LabChartSeries(
+                test_name=preferred_name([m.test_name for m in matched], fallback=tn),
+                unit=next((m.unit for m in reversed(matched) if m.unit), None),
+                reference_low=ranged.reference_range_low,
+                reference_high=ranged.reference_range_high,
+                data=[LabChartPoint(date=str(m.test_date), value=m.value) for m in matched if m.value is not None],
+            ))
         if series_list:
             groups.append(LabChartGroup(group_name=group_name, series=series_list))
     return groups

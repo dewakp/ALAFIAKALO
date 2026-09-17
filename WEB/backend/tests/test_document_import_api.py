@@ -52,7 +52,7 @@ class TestParseAndStage:
         assert body["error"] is None
 
         names = {i["test_name"] for i in body["items"]}
-        assert {"Albumin", "Alk Phos", "A/G Ratio"} <= names
+        assert {"Albumin", "Alkaline Phosphatase", "A/G Ratio"} <= names
 
     async def test_fields_use_the_names_the_clients_decode(self, client: AsyncClient):
         """Web, iOS and Android all decode these exact keys.
@@ -83,7 +83,7 @@ class TestParseAndStage:
         token = await _token(client, "doc4@example.com")
         r = await client.post("/api/v1/pdf/parse-document",
                               files=_upload(wrapped_range_pdf()), headers=_auth(token))
-        alk = next(i for i in r.json()["items"] if i["test_name"] == "Alk Phos")
+        alk = next(i for i in r.json()["items"] if i["test_name"] == "Alkaline Phosphatase")
         assert alk["is_abnormal"] is True
 
     async def test_parsing_writes_no_clinical_rows(self, client: AsyncClient):

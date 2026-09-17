@@ -359,7 +359,7 @@ class TestRecords:
         assert (albumin.reference_low, albumin.reference_high) == (3.4, 4.8)
         assert albumin.is_abnormal is False
 
-        alk = records["Alk Phos"]
+        alk = records["Alkaline Phosphatase"]
         assert alk.value == 637.0
         assert alk.is_abnormal is True
         assert alk.category == "Liver & Protein"

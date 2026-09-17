@@ -12,6 +12,7 @@ be asked to propose a canonical form. Nothing is silently discarded.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 
 #: Report abbreviation (upper-cased, whitespace-collapsed) → canonical name.
 ANALYTE_NAMES: dict[str, str] = {
@@ -19,8 +20,12 @@ ANALYTE_NAMES: dict[str, str] = {
     "A/G RATIO": "A/G Ratio",
     "ALB": "Albumin",
     "ALBUMIN": "Albumin",
-    "ALP": "Alk Phos",
-    "ALK PHOS": "Alk Phos",
+    # Alkaline phosphatase, printed three ways. One patient's history was stored
+    # as "ALP" until July 2025 and "Alk Phos" after, when the report format
+    # changed — one analyte that every reader treated as two tests.
+    "ALP": "Alkaline Phosphatase",
+    "ALK PHOS": "Alkaline Phosphatase",
+    "ALKALINE PHOSPHATASE": "Alkaline Phosphatase",
     "ALT/SGPT": "ALT/SGPT",
     "AST/SGOT": "AST/SGOT",
     "BASO": "Basophils %",
@@ -154,7 +159,8 @@ CATEGORY_RULES: list[tuple[str, tuple[str, ...]]] = [
     # with the other order alkaline phosphatase — a liver enzyme — was filed
     # under bone chemistry.
     ("Liver & Protein", (
-        "ALT", "AST", "ALP", "ALK PHOS", "BILIRUBIN", "TOTAL PROTEIN", "ALBUMIN",
+        "ALT", "AST", "ALP", "ALK PHOS", "ALKALINE PHOSPHATASE", "BILIRUBIN",
+        "TOTAL PROTEIN", "ALBUMIN",
         "A/G", "LDH", "GLOBULIN",
     )),
     ("Mineral & Bone", (
@@ -193,6 +199,44 @@ def canonical_name(raw_name: str) -> tuple[str, bool]:
         return ANALYTE_NAMES[stripped], True
 
     return raw_name.strip(), False
+
+
+def display_name(raw_name: str) -> str:
+    """What to call a stored result: its analyte's canonical name where known.
+
+    An unrecognised name keeps its own wording, exactly as `canonical_name` does.
+    """
+    return canonical_name(raw_name or "")[0]
+
+
+def analyte_key(raw_name: str) -> str:
+    """One identity per analyte, whatever the report printed.
+
+    A stored `test_name` is the document's wording and stays that way. Anything
+    that groups, charts or de-duplicates results compares this instead: on the
+    dev copy of production 219 stored names are 155 analytes, and 50 of those are
+    split across two or three spellings ("ALP" / "Alk Phos", "K+" / "Potassium").
+    Compared raw, each spelling read as a separate test holding part of the
+    history.
+    """
+    return display_name(raw_name).casefold()
+
+
+def preferred_name(raw_names: Iterable[str], fallback: str | None = None) -> str:
+    """The name for results already known to be one analyte, oldest first.
+
+    The vocabulary's name when any spelling is recognised; otherwise `fallback`,
+    or the newest wording. The newest wording alone labelled a merged magnesium
+    series "MAGNESIUM" — the one spelling of three the vocabulary has no entry for.
+    """
+    names = [n for n in raw_names if n]
+    for raw in reversed(names):
+        canonical, recognised = canonical_name(raw)
+        if recognised:
+            return canonical
+    if fallback:
+        return fallback
+    return names[-1].strip() if names else ""
 
 
 def category_for(test_name: str) -> str:

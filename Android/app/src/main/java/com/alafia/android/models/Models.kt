@@ -236,8 +236,17 @@ data class LabResult(
     val ordering_provider: String? = null,
     val performing_lab: String? = null,
     val notes: String? = null,
-    val created_at: String = ""
-)
+    val created_at: String = "",
+    // The analyte's name as the backend resolves it: "ALP" and "Alk Phos" are both
+    // Alkaline Phosphatase. Absent from servers older than the field.
+    val display_name: String? = null
+) {
+    /** What the row is called on screen. */
+    val shownName: String get() = display_name?.takeIf { it.isNotBlank() } ?: test_name
+
+    /** The report's own wording, when it differs from [shownName] by more than case. */
+    val reportedAs: String? get() = test_name.takeIf { !it.equals(shownName, ignoreCase = true) }
+}
 
 // Medication
 // Nullable where the backend is nullable. These were declared non-null while
