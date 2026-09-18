@@ -17,9 +17,17 @@ production until email actually works:
 | `POST /auth/register` | **410 Gone** |
 | `POST /auth/signup/start` | 503 if no email provider is configured. With Resend + the now-verified `alafia.app`, mail does send — so this row is no longer the blocker it was. |
 
-`deploy.sh` therefore sets
-`TWO_STEP_SIGNUP_REQUIRED=false`, so `/auth/register` keeps working exactly as it
-does today. Turn it on only after the checklist in *Enabling two-step signup*.
+⚠️ **It is already ON, and this file claimed otherwise until 2026-09-17.**
+`deploy.sh` sets `TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:-true}`,
+and the deployed service reports `true` — so `/auth/register` returns **410**
+today, not "works exactly as it does". Anyone provisioning an account must drive
+`/auth/signup/start` and wait for the person to confirm their own email; there is
+no operator shortcut. Verify from the service before trusting any line here:
+
+```bash
+gcloud run services describe alafia-backend --region us-east4 \
+  --project alafia-prod-6igma --format=json | grep -A1 TWO_STEP
+```
 
 **The sending domain IS verified.** `alafia.app` is verified in Resend, its
 DKIM and SPF records are published in Cloud DNS zone `alafia-app`, and delivery

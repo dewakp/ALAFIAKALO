@@ -857,8 +857,31 @@ is scale-to-zero on top of that (§5, a standing cost decision). Measured, not
 assumed.
 
 So the privacy guarantee is **de-identification**, and it lives in
-`ML/src/alafia_model/privacy.py` at ONE egress point (`try_hosted()`), never in
-the call sites:
+`ML/src/alafia_model/privacy.py` at one egress point for TEXT (`try_hosted()` /
+`_stream_hosted()`), never in the call sites:
+
+> ⚠️ **"One egress point" is true of text and false of everything else**
+> (audited 2026-09-18, nothing fixed yet — see §5). `scrub_payload` redacts a
+> message only when its `content` is a **string**, and ends `return arg` for
+> anything that is neither a string nor a list. Three paths therefore leave
+> unredacted, while production has Anthropic, DeepSeek, OpenAI and Moonshot keys
+> mounted and tries hosted providers FIRST:
+>
+> - **Images.** `VisionCapability.infer` takes a dict, so it is returned
+>   untouched — the prompt beside the photo is never scrubbed, and the bytes
+>   never could be. A medication-label photo carries the patient's printed name,
+>   address and prescription number; a lab-report photo carries the header.
+> - **Audio.** `whisper_adapter._post` uploads the recording to
+>   `api.openai.com` with no guard at all (a local server is used only when
+>   `WHISPER_BASE_URL` is set, which production does not set). A patient saying
+>   their own name is on that file.
+> - **`{"role": "assistant", "tool_calls": …}`** has no `content` key, so the
+>   whole message passes through. Bounded — the arguments come from a model that
+>   only saw scrubbed text — but it is not covered.
+>
+> **Redaction is a text instrument.** Whether a photo or a recording may reach a
+> third party at all is a product decision, not something `scrub_pii` can make
+> safe.
 
 - The signed-in user becomes `subject_token(user_id)` — HMAC of the app id and
   our internal id, e.g. `alafia-ba9e8bb2f9077c6e`. Stable, so a conversation
@@ -2009,7 +2032,33 @@ it is deliberate rather than drift.
 Build 6 of 1.5 was submitted, so `1.5(2)` was not uploadable — App Store Connect
 refuses a build number that is not higher than one already accepted for the same
 marketing version. Check `CURRENT_PROJECT_VERSION` against what has actually
-been submitted before bumping; the next build of 1.5 is **7**.
+been submitted before bumping. (1.5(10) was built on 2026-09-17; do not take a
+"next build is N" line in a doc as current — ask the artefacts.)
+
+### Every artefact is named by what is INSIDE it
+
+`xcodebuild -exportArchive` always writes `ALAFIA.ipa`, so each release was
+renamed by hand — and each one differently. By 2026-09-17 there were IPAs in
+FOUR directories (`build/ipa/`, `build/ipa/superseded/`, `build/export/`,
+`build/ipa_new/`) under five name shapes, and one file was simply wrong:
+`ALAFIA-1.3-build5.ipa` held **build 6**, while the real 1.3(5) sat unversioned
+in `export/`. **A filename that lies is worse than no filename**, because it is
+the thing someone uploads.
+
+    IOS/build/ipa/ALAFIA-<marketing>-<build>.ipa
+    IOS/build/ipa/ALAFIA-latest.ipa              symlink → the newest export
+    IOS/build/archives/ALAFIA-<marketing>-<build>.xcarchive
+    IOS/build/{ipa,archives}/older/              a REPEAT export of a build that
+                                                 already has one, date-suffixed
+
+- **`IOS/scripts/export_ipa.sh` does it**, reading the version out of the built
+  archive rather than the project file, and printing the version, profile and
+  `get-task-allow` from inside the finished IPA. A hand rename is how this drifts.
+- **Never name an artefact from its folder or its date.** Read
+  `CFBundleShortVersionString` / `CFBundleVersion` out of it
+  (`unzip -p … Payload/*/Info.plist`, or the archive's `ApplicationProperties`).
+- Re-exporting a build never overwrites the first artefact — two binaries
+  claiming one build number is the confusion this exists to prevent.
 
 ## 3aw. The patient is answered in their language — and a guard's fields never are
 
@@ -2528,16 +2577,60 @@ Other notes:
   have completed, and `OLLAMA_TIMEOUT` used to be 300 — equal to Cloud Run, so
   the backend's own limit could never fire first.
 
+### Found 2026-09-18, investigated and NOT yet fixed
+
+Each of these was confirmed against production or the dev copy, not inferred.
+
+- **A nutrient the patient did not eat still counts — except when a medication
+  supplies it.** `_aggregate_daily_nutrients` reads only `medication_dose_logs`,
+  so drugs the UNIT administers contribute nothing: on the reference record
+  Venofer appears in **1,248** sessions (268 in 2021, 283 in 2022, 234 in 2023),
+  Epogene in ~1,900, Doxercalciferol in ~800, and none of that iron or vitamin D
+  has ever reached nutrient tracking. §3aa's third medication source, in the
+  nutrient path. `flowsheet_drugs.canonical_drug_name` already resolves the
+  names correctly (`Venofer → Iron sucrose, IV iron`) but returns `dose=None`,
+  so dose parsing is the missing half — and a bare `Venofer` with no dose must
+  read as "given, amount not recorded", never as a default 100 mg.
+- **`med_nutrient_profiles` is a 38-row hand-typed seed** and
+  `lookup_med_nutrients` cannot discover anything: exact name → brand substring
+  → active ingredient → `source="unknown"` with empty nutrients. Its docstring
+  advertises an `ai_discovered` source nothing produces. No IV iron exists in
+  the seed at all. That is §3ad's "never type a code from memory" and §3c's "do
+  not add aliases", in a table nobody notices is short.
+- **`nutrients_resolved=bool(nutrients)` collapses two different facts.**
+  Cetirizine (genuinely no nutrients) and "Marine Bone Discovery" (a calcium
+  supplement we failed to resolve) both land on `false`. §3aa again.
+- **A modifier destroys the food.** `parse_meal_text("no salt suya")` returns
+  ONE component — `food_name="no salt", qty_g=2.85` — so the suya is gone and
+  the meal is a pinch of salt. Same for `unsalted suya`, `suya without salt`,
+  `low sodium suya`. The bug is in `_clean_food_name`, not the splitter: a
+  modifier must attach to its food and move the nutrient it names, never replace
+  the dish.
+- **The dialysis offsets disappear with no explanation when a session is not
+  COMPLETED.** `apply_to_totals` counts only completed sessions, so
+  `had_dialysis` is false, and web (`NutrientTracking.jsx:185`), iOS
+  (`NutritionView.swift:469`) and Android (`NutritionScreen.kt:1353`) all gate
+  the whole card on it — discarding the note the backend already wrote
+  ("not recorded as completed and were not counted"). Verified on production:
+  09-13 computes fully (K −3,064 mg, P −631 mg, Ca +409 mg), 09-15 is withheld
+  in silence because that session reads `IN_PROGRESS`.
+
 ## 5a. Deploying
 
 Runbook: **`DEPLOY.md`**. Two things that will bite:
 
-- **Two-step signup is gated OFF in production** (`TWO_STEP_SIGNUP_REQUIRED=false`
-  in `deploy.sh`). Turning it on closes registration until email works — see the
-  checklist in DEPLOY.md. Do not flip it because the code "looks ready".
+- ⚠️ **Two-step signup is ON in production — this section said the opposite
+  until 2026-09-17.** `deploy.sh` sets `TWO_STEP_SIGNUP_REQUIRED=${…:-true}`,
+  and the live service reports `true`. So `POST /auth/register` answers **410**,
+  and an account can only be created through `/auth/signup/start` → the
+  patient's own email confirmation → `/signup/complete` (paid) or
+  `/signup/complete-mobile` (store-billed, payment waived, verification never).
+  Provisioning someone therefore needs THEM to click a link; no operator path
+  creates an account outright. **Ask the service, not this file:**
+  `gcloud run services describe alafia-backend --region us-east4 --format=json`
+  and read the env. A doc that states a gate's value is a doc that goes stale.
 - **The sending domain is verified** (`alafia.app`, DKIM+SPF in Cloud DNS), so
-  production mail reaches arbitrary recipients. Two-step signup is still gated
-  off for the separate reasons in DEPLOY.md.
+  production mail reaches arbitrary recipients.
 
 `deploy.sh` mounts a secret only if it exists AND grants the runtime service
 account access from a second list — both must name it, or the deploy fails at
