@@ -231,3 +231,90 @@ async def test_identity_reaches_egress_without_the_caller_passing_it(monkeypatch
         assert "5.2" in sent, "clinical detail must survive"
     finally:
         privacy.clear_identity()
+
+
+# ── The shapes that used to escape (2026-09-18) ───────────────────────────────
+#
+# `scrub_payload` handled exactly one: a message list whose `content` is a
+# string. Everything else hit `return arg` and went out verbatim. These pin each
+# shape that actually reaches egress, and the one thing that must NOT be
+# touched.
+
+def test_a_vision_payload_is_scrubbed_rather_than_forwarded_whole():
+    """A dict is what VisionCapability passes; it used to be returned untouched."""
+    out = privacy.scrub_payload({
+        "task": "image_question",
+        "text": "Is this my Venofer? I'm Jane Doe, jane@example.com",
+        "image_bytes": b"\xff\xd8\xff",
+        "content_type": "image/jpeg",
+    })
+    assert "jane@example.com" not in out["text"], out["text"]
+    assert "Jane Doe" not in out["text"], out["text"]
+    assert out["image_bytes"] == b"\xff\xd8\xff", "the photo itself must be untouched"
+
+
+def test_content_blocks_are_scrubbed_and_the_image_survives():
+    """Anthropic-shaped content: prose redacted, base64 left exactly as it was.
+
+    `_PATTERNS` matches 13-19 digit runs as a card number, and a base64 JPEG is
+    megabytes of digits — scrubbing it would corrupt the image while appearing
+    to work.
+    """
+    b64 = "/9j/4AAQSkZJRg1234567890123456"
+    out = privacy.scrub_payload([{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "call me on 555-010-9999"},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+        ],
+    }])
+    assert "555-010-9999" not in str(out), out
+    assert b64 in str(out), "base64 image data must survive redaction intact"
+
+
+def test_an_assistant_tool_turn_has_no_content_key_and_used_to_escape_whole():
+    """`{"role": "assistant", "tool_calls": [...]}` carries no `content` at all.
+
+    The first version of this test put the identifier in the adjacent
+    `{"role": "tool", "content": "..."}` message and passed against the OLD
+    implementation too — that message HAS a string `content`, so the one-shape
+    branch already handled it. A guard that cannot fail is worse than none: it
+    is §3al's own history, where `test_pii_egress` sat green while a real
+    request body carried `I'm Jane Doe`. The gap was the ASSISTANT turn, so the
+    prose has to sit where the old code actually dropped it.
+    """
+    out = privacy.scrub_payload([{
+        "role": "assistant",
+        "content": None,                       # exactly what the adapters emit
+        "tool_calls": [{"id": "c1", "name": "log_medication",
+                        "arguments": {"start_date": "2026-09-18"}}],
+        "reasoning": "the patient jane@example.com asked about Venofer",
+    }])
+    assert "jane@example.com" not in str(out), out
+    # …while the structured argument is left exactly as it was.
+    assert out[0]["tool_calls"][0]["arguments"]["start_date"] == "2026-09-18", out
+
+
+def test_tool_arguments_are_left_structurally_intact():
+    """Redacting arguments BREAKS the call and buys nothing.
+
+    `[dob]` matches a plain `2026-09-18`, so scrubbing turned `start_date` into a
+    placeholder and the tool read a different window — canon 3am, where that
+    class of misread reported 7,699 mg of potassium as one day's intake. The
+    arguments are composed by a model that only ever saw scrubbed text.
+    """
+    out = privacy.scrub_payload([{
+        "role": "assistant",
+        "tool_calls": [{"id": "c1", "name": "get_meals",
+                        "arguments": {"start_date": "2026-09-18", "nutrients": ["folate"]}}],
+    }])
+    args = out[0]["tool_calls"][0]["arguments"]
+    assert args["start_date"] == "2026-09-18", args
+    assert args["nutrients"] == ["folate"], args
+
+
+def test_an_unrecognised_shape_is_reported_not_silently_forwarded(caplog):
+    """The old `return arg` is how the vision payload escaped review for months."""
+    with caplog.at_level("WARNING"):
+        assert privacy.scrub_payload(42) == 42
+    assert any("unrecognised egress payload" in r.message for r in caplog.records), caplog.text

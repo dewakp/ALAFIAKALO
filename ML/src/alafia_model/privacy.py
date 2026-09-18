@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 import re
 from collections.abc import Iterable
@@ -239,22 +240,88 @@ def scrub_pii(text: str, known_values: Iterable[str] = ()) -> str:
     return text
 
 
+logger = logging.getLogger(__name__)
+
+#: Keys that carry encoded media, identifiers or machine values — NEVER prose.
+#: Everything NOT named here is scrubbed.
+#:
+#: This is deliberately a DENY-list. The first version enumerated the prose keys
+#: instead and leaked immediately: an assistant turn carrying `reasoning` went
+#: out whole, because that key was not on the list somebody thought to write.
+#: Enumerating what to protect is the same mistake that let the vision payload
+#: escape for months — the safe default is "redact it unless we know it is not
+#: prose".
+#:
+#: Scrubbing these WOULD be destructive: `_PATTERNS` holds a 13-19 digit card
+#: matcher and an uppercase-plus-digits id matcher, and a base64 JPEG is a
+#: megabyte of exactly that — redaction would corrupt the image while appearing
+#: to work. `model` is here for the same reason: `gpt-4o-2024-08-06` matches the
+#: date-of-birth pattern.
+_OPAQUE_KEYS = frozenset({
+    "data", "b64_json", "url", "image_url", "source", "media_type",
+    "content_type", "image_bytes", "audio_bytes", "id", "tool_call_id", "type",
+    "model", "role", "index", "finish_reason",
+})
+
+#: Structured call arguments, left exactly as composed.
+#:
+#: A tool call's arguments come from a model that has already been handed
+#: scrubbed text, so nothing identifying survives there that redaction has not
+#: seen once already — while scrubbing them breaks the call outright: `[dob]`
+#: matches a plain `2026-09-18`, so `start_date` became a placeholder and the
+#: tool read a different window (canon 3am, where that class of misread reported
+#: 7,699 mg of potassium as one day's intake).
+_STRUCTURED_KEYS = frozenset({"arguments", "input"})
+
+
+def _scrub_prose(value, known: tuple):
+    """Scrub every string inside `value` except media, identifiers and arguments.
+
+    Walks lists and dicts so a message's content blocks are reached. A bare
+    string is prose by construction — the text of a content block, an item in a
+    list — so it is always scrubbed.
+    """
+    if isinstance(value, str):
+        return scrub_pii(value, known)
+    if isinstance(value, (bytes, bytearray)):
+        return value
+    if isinstance(value, list):
+        return [_scrub_prose(v, known) for v in value]
+    if isinstance(value, dict):
+        return {
+            k: (v if k in _OPAQUE_KEYS or k in _STRUCTURED_KEYS
+                else _scrub_prose(v, known))
+            for k, v in value.items()
+        }
+    return value
+
+
 def scrub_payload(arg, known_values: Iterable[str] = ()):
-    """Scrub whatever `_dispatch` is about to send: a prompt or a message list.
+    """Scrub whatever `_dispatch` is about to send, in EVERY shape it can take.
 
     The signed-in user's identifiers are picked up from the request context, so a
     call site cannot omit them by forgetting a parameter.
+
+    Until 2026-09-18 this handled exactly one shape — a list of messages whose
+    `content` is a string — and returned everything else untouched. Three real
+    payloads went out unredacted as a result:
+
+        [{"role": "assistant", "tool_calls": [...]}]   no `content` key at all
+        [{"role": "user", "content": [blocks]}]        vision / Anthropic blocks
+        {"task": ..., "text": ..., "image_bytes": ...} a capability payload
+
+    A photo's BYTES still cannot be redacted — a pharmacy label carries the
+    patient's printed name and no text rule reaches it. Images travel the same
+    path as text by decision (canon 3al); what changes here is that the words
+    travelling beside them no longer escape.
     """
-    # `scrub_pii` merges the request context itself, so nothing is added here.
+    known = tuple(known_values)
     if isinstance(arg, str):
-        return scrub_pii(arg, known_values)
-    if isinstance(arg, list):
-        scrubbed = []
-        for message in arg:
-            if isinstance(message, dict) and isinstance(message.get("content"), str):
-                scrubbed.append({**message,
-                                 "content": scrub_pii(message["content"], known_values)})
-            else:
-                scrubbed.append(message)
-        return scrubbed
+        return scrub_pii(arg, known)
+    if isinstance(arg, (list, dict)):
+        return _scrub_prose(arg, known)
+    # A shape nobody anticipated must be visible, not silently forwarded: the
+    # previous `return arg` is precisely how the vision payload escaped review.
+    logger.warning("privacy: unrecognised egress payload type %s — forwarded unscrubbed",
+                   type(arg).__name__)
     return arg

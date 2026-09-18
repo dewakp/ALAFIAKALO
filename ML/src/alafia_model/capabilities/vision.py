@@ -381,13 +381,23 @@ class VisionCapability(BaseCapability):
         """Each hosted provider whose models read images, in selection order.
 
         Returns the first answer, or None when none answered (their failures are
-        appended to `errors`). Nothing identifying travels with the photo: the
-        request is the fixed prompt and the images — no name, no account id.
+        appended to `errors`).
+
+        The words travelling with the photo are redacted here. The claim that
+        "the request is the fixed prompt and the images" was only half true:
+        `instruction` is assembled from the patient's own question on the
+        symptom and medication-label paths, and until 2026-09-18 it reached the
+        provider verbatim because `scrub_payload` returned dict payloads
+        untouched. The image BYTES remain unredactable — a label photo carries a
+        printed name — and images travel the same path as text by decision.
         """
         import time
 
-        from alafia_model import telemetry
+        from alafia_model import privacy, telemetry
         from alafia_model.registry.providers import adapter_for, mark_cooldown, ordered_for_selection
+
+        system_prompt = privacy.scrub_pii(system_prompt)
+        instruction = privacy.scrub_pii(instruction)
 
         for spec in ordered_for_selection(require_vision=True):
             started = time.monotonic()

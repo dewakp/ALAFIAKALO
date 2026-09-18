@@ -81,7 +81,17 @@ class WhisperAdapter:
                 logger.warning("Local Whisper failed (%s); trying OpenAI fallback", exc)
 
         # 2) OpenAI hosted Whisper fallback
+        #
+        # A recording cannot be redacted: the patient may say their own name in
+        # it, and there is no text rule between here and the wire. Production
+        # sets no WHISPER_BASE_URL, so this is the ONLY path there — which was
+        # true silently until 2026-09-18. Say where the audio went, every time,
+        # so an egress review reads it from the log rather than the source.
         if self._api_key:
+            logger.info(
+                "whisper: %d bytes leaving to OpenAI (no local server configured; "
+                "audio cannot be redacted)", len(audio_bytes),
+            )
             try:
                 return await self._post(
                     _OPENAI_TRANSCRIBE_URL, audio_bytes, language, filename,
