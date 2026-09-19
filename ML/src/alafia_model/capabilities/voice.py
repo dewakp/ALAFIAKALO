@@ -96,14 +96,38 @@ class VoiceCapability(BaseCapability):
         language = payload.get("language") or None
 
         # 1) Transcribe
+        import time
+
+        from alafia_model import telemetry
+
+        started = time.monotonic()
         try:
             tr = await self._get_whisper().transcribe(audio, language=language)
         except Exception as exc:  # noqa: BLE001
+            telemetry.record(provider="whisper", task=task, tier="local", modality="voice",
+                             latency_ms=int((time.monotonic() - started) * 1000),
+                             success=False, error=str(exc)[:300])
             logger.error("Voice transcription failed: %s", exc, exc_info=True)
             return CapabilityResult(success=False, error=str(exc))
 
         transcript = tr.get("text", "")
         detected = tr.get("language")
+
+        # The TRANSCRIPT is the sample; the audio never is. Speech is the one
+        # input that cannot be redacted — a patient says their own name aloud
+        # and no text rule sits between the microphone and the wire — so the
+        # recording stays out of the corpus while what was said, in the language
+        # it was said in, is precisely what a Nigerian-English/Yoruba/Hausa
+        # fine-tune needs.
+        #
+        # Whisper bypasses the LLM capability entirely, so until now nothing
+        # here was recorded at all: not the transcript, not the detected
+        # language, not even that a transcription had happened.
+        telemetry.record(provider="whisper", model=tr.get("model"), task=task,
+                         tier=("local" if tr.get("source") == "local" else "paid"),
+                         modality="voice", response=transcript,
+                         structured={"language": detected, "source": tr.get("source")},
+                         latency_ms=int((time.monotonic() - started) * 1000), success=True)
         data: dict[str, Any] = {"transcript": transcript, "language": detected}
         source = f"whisper:{tr.get('source')}"
 

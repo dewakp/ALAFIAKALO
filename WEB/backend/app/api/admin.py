@@ -320,6 +320,18 @@ async def admin_app_health(
         return f"{s['samples']} samples, {s['corrected']} corrected, {s['images_retained']} images"
     await probe("vision_corpus", _corpus)
 
+    # ALAFIA training corpus — every modality, and which rung answered. This is
+    # the number that says whether we are actually ingesting anything, which
+    # for a long time we were not: `telemetry.register_sink` had no callers, so
+    # every (input -> output) pair the provider chain produced was discarded
+    # and only food photos accumulated anywhere.
+    async def _alafia_corpus():
+        from app.services.inference_corpus import corpus_stats as alafia_stats
+        s = await alafia_stats(db)
+        rungs = ", ".join(f"{k} {v}" for k, v in sorted(s["by_rung"].items())) or "no rungs yet"
+        return f"{s['samples']} samples ({s['untrained']} untrained) — {rungs}"
+    await probe("alafia_corpus", _alafia_corpus)
+
     # AI reachability. Reports which backends are configured without leaking keys.
     async def _ai():
         configured = []

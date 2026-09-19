@@ -556,6 +556,25 @@ async def vision_corpus_stats(
     return await food_vision_store.corpus_stats(db)
 
 
+@router.get("/corpus-stats")
+async def alafia_corpus_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """How much ALAFIA has to learn from, and which rung produced it.
+
+    ALAFIA is the model we train ourselves; Ollama is a runtime serving other
+    people's weights and is the last rung of the lookup path, not the model.
+    `by_rung` is the number that matters — it says where ALAFIA has to get good
+    and what it would be replacing.
+
+    Photos are counted separately by `/vision/corpus-stats`: they are a
+    different corpus under a different consent (§3a).
+    """
+    from app.services import inference_corpus
+    return await inference_corpus.corpus_stats(db)
+
+
 # ── Persona definitions ───────────────────────────────────────────────
 # All personas are the SAME base "general health assistant" — the user
 # simply picks which culturally-named guide they prefer.

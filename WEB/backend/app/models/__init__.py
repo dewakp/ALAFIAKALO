@@ -136,6 +136,7 @@ from app.models.condition_nutrition import ConditionNutritionFact
 from app.models.contact import ContactSubmission
 from app.models.image_label import LabeledFoodImage
 from app.models.food_training_sample import FoodTrainingSample
+from app.models.inference_sample import InferenceSample
 from app.models.pending_registration import PendingRegistration
 from app.models.flagged_estimate import FlaggedEstimate
 from app.models.document_import import DocumentImport, DocumentImportItem
@@ -169,6 +170,7 @@ __all__ = [
     "GlobalKnowledge",
     "AIInteraction",
     "LearningEvent",
+    "InferenceSample",
     "ConsentRecord",
     "DataAccessLog",
     "DataExportRequest",

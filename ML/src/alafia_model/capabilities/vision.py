@@ -396,6 +396,19 @@ class VisionCapability(BaseCapability):
         from alafia_model import privacy, telemetry
         from alafia_model.registry.providers import adapter_for, mark_cooldown, ordered_for_selection
 
+        # The patient's own words, kept BEFORE redaction — the next two lines
+        # rebind these names to the scrubbed copies, so recording afterwards
+        # would put the vendor's sanitised text into our own training corpus,
+        # which is exactly the defect removed from the LLM path. ALAFIA runs on
+        # our infrastructure against text that still has names in it.
+        #
+        # The PHOTO is deliberately not recorded here. The image corpus is
+        # `food_training_samples`, gated on allow_collective_insights (§3a);
+        # a base64 image on this path would bloat every row and route around
+        # that consent decision. What is learned here is how a plate gets
+        # described, not what it looked like.
+        raw_prompt = f"{system_prompt}\n\n{instruction}".strip()
+
         system_prompt = privacy.scrub_pii(system_prompt)
         instruction = privacy.scrub_pii(instruction)
 
@@ -415,12 +428,18 @@ class VisionCapability(BaseCapability):
                 detail = f"{type(exc).__name__}: {exc}".rstrip(": ")
                 errors.append(f"{spec.name} vision: {detail}")
                 telemetry.record(provider=spec.name, task="vision", tier=spec.tier, success=False,
+                                 modality="vision", messages=raw_prompt, input_was_redacted=False,
                                  latency_ms=int((time.monotonic() - started) * 1000), error=detail[:300])
                 logger.warning("Hosted vision via %s failed (%s); trying next", spec.name, detail)
                 continue
             model = response.get("model") or spec.resolved_model()
-            # Metadata only. The photos are the patient's and never go to a sink.
+            # The words and the ANSWER — never the photo (see raw_prompt above).
+            # This used to be metadata only, so a reading of a medication label
+            # or a plate produced nothing ALAFIA could ever learn from, on the
+            # one surface whose whole purpose is reading images.
             telemetry.record(provider=spec.name, model=model, task="vision", tier=spec.tier, success=True,
+                             modality="vision", messages=raw_prompt,
+                             response=response.get("content", ""), input_was_redacted=False,
                              latency_ms=int((time.monotonic() - started) * 1000),
                              tokens=response.get("tokens_used", 0))
             return CapabilityResult(
@@ -434,6 +453,9 @@ class VisionCapability(BaseCapability):
         self, encoded: list[tuple[str, str]], system_prompt: str, instruction: str, json_mode: bool = True,
     ) -> CapabilityResult:
         """Run image understanding through Ollama (llava)."""
+        import time
+
+        from alafia_model import telemetry
         from alafia_model.adapters.ollama_adapter import OllamaAdapter
 
         model = os.environ.get("OLLAMA_VISION_MODEL", _DEFAULT_OLLAMA_VISION_MODEL)
@@ -444,6 +466,10 @@ class VisionCapability(BaseCapability):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": instruction},
         ]
+        # Nothing is redacted on this rung — it is our own infrastructure, so
+        # what the model sees is already the patient's own words.
+        raw_prompt = f"{system_prompt}\n\n{instruction}".strip()
+        started = time.monotonic()
         try:
             response = await adapter.chat(
                 messages,
@@ -454,8 +480,19 @@ class VisionCapability(BaseCapability):
             )
         except Exception as exc:
             detail = f"{type(exc).__name__}: {exc}".rstrip(": ")
+            # This rung recorded NOTHING — not even metadata — so a local vision
+            # failure was invisible to telemetry and to the corpus alike.
+            telemetry.record(provider="ollama", model=model, task="vision", tier="local",
+                             modality="vision", messages=raw_prompt, input_was_redacted=False,
+                             latency_ms=int((time.monotonic() - started) * 1000),
+                             success=False, error=detail[:300])
             logger.warning("Ollama vision failed (%s)", detail)
             return CapabilityResult(success=False, error=f"Ollama vision: {detail}")
+        telemetry.record(provider="ollama", model=response.get("model", model), task="vision",
+                         tier="local", modality="vision", messages=raw_prompt,
+                         response=response.get("content", ""), input_was_redacted=False,
+                         latency_ms=int((time.monotonic() - started) * 1000),
+                         tokens=response.get("tokens_used", 0), success=True)
         return CapabilityResult(
             success=True,
             data={"text": response.get("content", "")},

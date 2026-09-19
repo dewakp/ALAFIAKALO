@@ -2220,6 +2220,98 @@ split** across two or three spellings — `K+`/`Potassium`, `CRE`/`Creatinine`,
   entry is a clinical identity claim, so add them deliberately — `GRAN%` is
   granulocytes, not neutrophils.
 
+## 3ay. ALAFIA is the model we train. Ollama is a runtime. They are not the same
+
+**ALAFIA is the model ALAFIA trains itself**, independent of any third party —
+vision (meal content and quantity from a photo), text, medications, and what
+follows. Transitioning to it is the long-term goal; until then we ingest data
+and train it.
+
+**Ollama is not ALAFIA.** It is a runtime serving other people's weights
+(`gpt-oss:20b`, `llava`) and it is the TERMINAL rung of the lookup path. Naming
+that rung "ALAFIA" was proposed once and is wrong in a way that matters: the
+corpus records WHICH RUNG ANSWERED, and that is the whole training signal —
+where ALAFIA has to get good, and what it would be replacing. A provider label
+that lies destroys it. `provider="ollama"` stays accurate; `resolved_by` gains
+an `alafia` value when ALAFIA itself answers, which today nothing sets.
+
+The lookup path is unchanged: **local DB search → external provider → local
+runtime.** What changed is that whatever answers becomes a training sample.
+
+### The corpus hook was written, documented, and never plugged in
+
+`telemetry.py` was built around `register_sink` — *"that corpus is what a future
+fine-tuned ALAFIA model distills from"* — and **nothing ever called it.** Every
+LLM call reached `if not _sinks: return` and dropped the pair on the floor. The
+pair was already being handed over (`llm.py` passed `messages=` and `response=`);
+there was simply nothing on the other end. Only food photos accumulated
+anywhere, and only from the one `/ai/vision` food path.
+
+Four faults, each found by reading the call sites rather than the docstrings:
+
+- **`chat_msgs = arg if kind == "chat" else None`** — every single-prompt
+  completion recorded its ANSWER with its QUESTION missing. An answer whose
+  question was discarded is not a training sample.
+- **The rungs disagreed about redaction.** The hosted path recorded `outbound`
+  (scrubbed); the local path recorded the raw `arg`. So an identical question
+  trained two different ways depending on which provider won the race, and
+  ALAFIA would learn to expect `[name]` tokens in roughly the proportion that
+  hosted providers happened to win.
+- **Vision recorded metadata only**, and `_ollama_vision` recorded *nothing at
+  all* — not even that a call happened — on the surface whose entire purpose is
+  reading images.
+- **Whisper bypasses the LLM capability**, so no transcript was ever recorded.
+
+> **The corpus stores the patient's own words, and that is deliberate.**
+> Redaction (§3al) exists to stop a THIRD PARTY learning who the patient is.
+> `inference_samples` is ours, sits beside the record the text came from, and
+> never leaves. `ai_interactions.user_request` has stored chat verbatim since it
+> shipped. Storing the scrubbed copy instead would train ALAFIA on text no user
+> ever typed. `input_was_redacted` records per row which copy we actually got,
+> so a sample can never silently misrepresent itself.
+>
+> ⚠️ **It is a TRAINING corpus, never a retrieval source.** Nothing that builds
+> a prompt may read it — the egress path redacts what it is handed, and rows
+> here are deliberately unredacted.
+
+- **`users.ai_training_consent` was a dead control.** Web, iOS and Android have
+  all offered that toggle for as long as it has existed and **nothing on the
+  server ever read it** (§3ar, on a consent flag, which is the worst place for
+  it). `_register_training_consent` is its first reader. The check cannot live
+  in the ML package: `privacy.register_identity` keeps only the HMAC subject
+  token, deliberately, because that is the most a provider may ever see.
+- **Both auth branches, not one.** `_register_identity_for_redaction` had a
+  single call site on the legacy-token path, while the shared-identity branch
+  returns EARLY — so those requests reached the AI layer with no name to strip
+  and no consent answer, and §3al's claim that identity is registered in the one
+  dependency every authenticated request passes through was false for them.
+  §3b's `/auth/login` warning, in a second place. Register at the CALL SITE:
+  the helper has two returns of its own.
+- **The sink never writes inline.** `telemetry.record()` is called
+  synchronously, on the event loop, while a patient waits. It enqueues; a drain
+  writes with its own session (§3c). The queue is BOUNDED and drops loudly —
+  an unbounded one turns a database outage into memory exhaustion, and losing
+  samples beats failing an answer (§3ah).
+- **A FAILURE is a sample.** A question nothing could answer is the clearest
+  statement of what ALAFIA has to learn; a corpus of successes alone describes
+  a system that always works.
+- **Do NOT record `nlm.parse_meal`.** It delegates to the hand-typed
+  `parse_meal_text`, so capturing its output would train ALAFIA to reproduce
+  the hardcoded stripping lists and alias tables — the opposite of the point.
+  A deterministic table's output is not evidence about food.
+
+> **Prove a capture test fails against the OLD code.** `test_inference_corpus_capture.py`
+> was run against pre-fix `llm.py`: 4 failed, 1 passed. The one that PASSED
+> (`test_the_local_rung_records_the_pair`) is coverage, not a regression guard —
+> the Ollama chat path already passed `chat_msgs`. Saying "five guards" there
+> would have been the §3al mistake again, where a PII guard passed against the
+> broken implementation because the payload sat in a field the old code handled.
+
+Readiness shows in admin health as `alafia_corpus`, and at
+`GET /ai/corpus-stats`. Photos remain a SEPARATE corpus
+(`food_training_samples`, gated on `allow_collective_insights`, §3a): a base64
+image on the inference path would bloat every row and route around that consent.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

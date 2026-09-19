@@ -320,6 +320,17 @@ async def startup_event():
     except Exception as exc:
         logger.warning("DB seed skipped (DB may not be ready yet): %s", exc)
 
+    # Start collecting the ALAFIA training corpus. `telemetry.register_sink`
+    # was written for this and had never been called, so every (input ->
+    # output) pair the provider chain produced was discarded. ALAFIA is the
+    # model we train ourselves; until it can answer these questions, whatever
+    # rung does answer them is what it learns from.
+    try:
+        from app.services import inference_corpus
+        inference_corpus.start()
+    except Exception as exc:
+        logger.warning("ALAFIA training corpus not started: %s", exc)
+
     # Start Redis-backed WebSocket managers
     try:
         from app.api.ws_messaging import manager as msg_manager

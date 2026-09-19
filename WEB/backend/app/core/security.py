@@ -137,7 +137,17 @@ async def get_current_user(
     # 1) Shared identity token (preferred).
     claims = await verify_identity_token(token)
     if claims is not None:
-        return await _resolve_or_provision_identity_user(db, claims)
+        # Register on THIS branch too. It returns early, and only the legacy
+        # branch below ever registered — so every shared-identity request
+        # reached the AI layer with no name to strip and no consent answer.
+        # Exactly the split §3b warns about on /auth/login, and it made §3al's
+        # claim that identity is registered in the one dependency every
+        # authenticated request passes through false for these users.
+        # Registering at the CALL SITE covers both of that helper's returns.
+        user = await _resolve_or_provision_identity_user(db, claims)
+        _register_identity_for_redaction(user)
+        _register_training_consent(user)
+        return user
 
     # 2) Legacy ALAFIA-issued token.
     try:
@@ -153,6 +163,7 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     _register_identity_for_redaction(user)
+    _register_training_consent(user)
     return user
 
 
@@ -184,3 +195,34 @@ def _register_identity_for_redaction(user) -> None:
         )
     except Exception:  # pragma: no cover - never let this break a login
         logger.debug("could not register identity for redaction", exc_info=True)
+
+
+def _register_training_consent(user) -> None:
+    """Say whether this user's data may train ALAFIA, our own model.
+
+    `users.ai_training_consent` has been offered as a toggle by web, iOS and
+    Android since it was added, and NOTHING on the server has ever read it —
+    a control that sets a flag nobody observes (§3ar), on a consent flag, which
+    is the worst possible place for it. This is its first reader.
+
+    The check cannot live in the ML package: `privacy.register_identity` keeps
+    only the HMAC subject token, deliberately, because that is the most a
+    provider may ever see. So the id and the answer are carried here, in the
+    backend, from the one dependency every authenticated request passes through.
+
+    Best-effort, like redaction registration above: a failure must never break
+    authentication. It degrades to collecting NOTHING, which is the safe
+    direction for a consent decision.
+    """
+    try:
+        from alafia_model import privacy
+
+        from app.services import inference_corpus
+
+        inference_corpus.register_subject(
+            getattr(user, "id", None),
+            privacy.current_subject() or None,
+            bool(getattr(user, "ai_training_consent", False)),
+        )
+    except Exception:  # pragma: no cover - never let this break a login
+        logger.debug("could not register training consent", exc_info=True)

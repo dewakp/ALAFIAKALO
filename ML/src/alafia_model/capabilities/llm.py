@@ -236,7 +236,14 @@ class LLMCapability(BaseCapability):
         from alafia_model.registry.providers import ordered_for_selection, mark_cooldown
         from alafia_model import privacy, telemetry
 
-        chat_msgs = arg if kind == "chat" else None
+        # The input as the patient actually wrote it, for EVERY kind. This was
+        # `arg if kind == "chat" else None`, so a single-prompt completion
+        # recorded no input at all and half the corpus arrived without its
+        # question. Deliberately PRE-redaction: ALAFIA is our own model and this
+        # never leaves our database, so it has to learn from real language —
+        # storing the scrubbed copy would teach it to expect `[name]` tokens
+        # that exist only on the hosted path and never at inference time.
+        raw_input = arg
         state = {"cloud_error": None, "ollama_error": None}
 
         async def try_ollama() -> CapabilityResult | None:
@@ -247,8 +254,10 @@ class LLMCapability(BaseCapability):
                                         json_mode, tools)
                 telemetry.record(
                     provider="ollama", model=resp.get("model"), task=kind, tier="local",
+                    modality="llm",
                     latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
-                    success=True, messages=chat_msgs, response=resp.get("content"),
+                    success=True, messages=raw_input, response=resp.get("content"),
+                    input_was_redacted=False,
                 )
                 return CapabilityResult(
                     success=True,
@@ -269,8 +278,12 @@ class LLMCapability(BaseCapability):
                 # rendered as "all providers failed (last: )" and sent an operator
                 # hunting a healthy service.
                 state["ollama_error"] = f"{type(exc).__name__}: {exc}".rstrip(": ")
+                # A question the chain could not answer is itself a sample — the
+                # clearest statement there is of what ALAFIA has to learn. A
+                # corpus of successes only describes a system that always works.
                 telemetry.record(provider="ollama", task=kind, tier="local", success=False,
-                                 error=str(exc)[:300])
+                                 modality="llm", messages=raw_input,
+                                 input_was_redacted=False, error=str(exc)[:300])
                 logger.warning("ollama %s failed (%s)", kind, exc)
                 return None
 
@@ -299,10 +312,17 @@ class LLMCapability(BaseCapability):
                                             temperature, max_tokens, json_mode, tools)
                     telemetry.record(
                         provider=spec.name, model=resp.get("model"), task=kind, tier=spec.tier,
+                        modality="llm",
                         latency_ms=int((time.monotonic() - t0) * 1000), tokens=resp.get("tokens_used", 0),
                         success=True,
-                        messages=outbound if kind == "chat" else chat_msgs,
+                        # RAW, not `outbound`. What left for the vendor was
+                        # scrubbed and still is — that is untouched above. What
+                        # we keep for ourselves must be the patient's own words,
+                        # or the identical question trains two different ways
+                        # depending on which rung happened to win the race.
+                        messages=raw_input,
                         response=resp.get("content"),
+                        input_was_redacted=False,
                     )
                     return CapabilityResult(
                         # tokens_used/model travel in `data`, not just telemetry: the
@@ -329,7 +349,8 @@ class LLMCapability(BaseCapability):
                     if status in (401, 402, 403, 429) or "quota" in blob or "rate" in blob or "insufficient" in blob:
                         mark_cooldown(spec.name)  # back this provider off; free tier likely spent
                     telemetry.record(
-                        provider=spec.name, task=kind, tier=spec.tier,
+                        provider=spec.name, task=kind, tier=spec.tier, modality="llm",
+                        messages=raw_input, input_was_redacted=False,
                         latency_ms=int((time.monotonic() - t0) * 1000), success=False, error=str(exc)[:300],
                     )
                     logger.warning("provider %s %s failed (%s); trying next", spec.name, kind, exc)
