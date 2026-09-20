@@ -525,6 +525,93 @@ async def administrations_on_day(db: AsyncSession, user_id: int, day: date
     return sorted(merged.values(), key=lambda a: (a.time or "99:99", a.name))
 
 
+@dataclass
+class AdministrationEvent:
+    """ONE administration, un-merged. Three tablets are three of these."""
+
+    date: str
+    name: str                   # canonical
+    written_as: str             # the name as that source wrote it
+    dose: str | None            # verbatim — "800.0 mg", or a flowsheet's "20,000 SQ"
+    time: str | None            # dose logs carry one; a flowsheet does not yet
+    drug_class: str | None
+    source: str                 # "logged" | "administered" — one, never both
+    dose_log_id: int | None
+
+
+async def administration_events_on_day(db: AsyncSession, user_id: int, day: date
+                                       ) -> list[AdministrationEvent]:
+    """Every administration on ONE day, one row per occurrence.
+
+    The sibling of `administrations_on_day`, and the difference is deliberate:
+    that one MERGES a drug recorded twice on one day into a single row, because
+    a screen listing "what was given today" must not show one dose as two. This
+    one does not merge, because arithmetic needs the count — three 500 mg
+    calcium carbonate tablets are 1,500 mg, and collapsing them to one row
+    understates the day by two thirds.
+
+    Keep both. Deleting either one to remove an apparent duplicate re-breaks the
+    other's caller.
+
+    > ⚠️ No `nutrients_resolved` filter, unlike `_aggregate_daily_nutrients`.
+    > That flag is set as `bool(nutrients)` (api/medications.py), so a drug
+    > contributing nothing ADDITIVELY is marked false forever — and a phosphate
+    > binder does not contribute phosphorus, it SUBTRACTS what was eaten.
+    > Filtering on it hides exactly the drugs a nutrient-effect caller needs:
+    > on the dev copy of production, Sevelamer is logged 168 times and every one
+    > of those rows is invisible to nutrient tracking today.
+    """
+    out: list[AdministrationEvent] = []
+    day_str = str(day)[:10]
+
+    logs = (await db.execute(
+        select(MedicationDoseLog).where(
+            MedicationDoseLog.user_id == user_id,
+            MedicationDoseLog.log_date == day,
+        )
+    )).scalars().all()
+    for log in logs:
+        canon, drug_class, _ = canonical_drug_name(log.medication_name or "")
+        if not canon:
+            continue
+        dose = None
+        if log.dose_amount is not None:
+            dose = f"{log.dose_amount}{' ' + log.dose_unit if log.dose_unit else ''}"
+        out.append(AdministrationEvent(
+            date=day_str, name=canon, written_as=log.medication_name or canon,
+            dose=dose,
+            time=str(log.log_time)[:5] if log.log_time else None,
+            drug_class=drug_class, source="logged", dose_log_id=log.id,
+        ))
+
+    # The THIRD source (§3aa). Drugs the unit gave during treatment never appear
+    # in a dose log the patient fills in, and omitting them is how a review of
+    # one record concluded "no ESA prescribed or taken" on a patient who had
+    # been on one for years.
+    sessions = (await db.execute(
+        select(TherapySession).where(
+            TherapySession.user_id == user_id,
+            TherapySession.drugs_administered.isnot(None),
+            func.date(TherapySession.scheduled_date) == day,
+        )
+    )).scalars().all()
+    for session in sessions:
+        for drug in parse_drugs_administered(session.drugs_administered):
+            canon, drug_class, _ = canonical_drug_name(drug.name or "")
+            if not canon:
+                continue
+            out.append(AdministrationEvent(
+                date=day_str, name=canon, written_as=drug.name or canon,
+                # Verbatim, never parsed into a number here: a bare `Venofer`
+                # with no dose means "given, amount not recorded" and must
+                # never read as a default (§5).
+                dose=drug.dose, time=None, drug_class=drug_class,
+                source="administered", dose_log_id=None,
+            ))
+
+    return sorted(out, key=lambda a: (a.time or "99:99", a.name))
+
+
 async def administration_days(db: AsyncSession, user_id: int, since: date | None = None
                               ) -> list[str]:
     """Every date with at least one administration, from any source.

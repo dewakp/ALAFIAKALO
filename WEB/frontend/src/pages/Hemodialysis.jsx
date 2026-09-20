@@ -318,11 +318,44 @@ function FluidReconciliation({ totalUfLiters, saline, fluidRemovedMl }) {
  * gap means the session was interrupted, which is a clinical finding in
  * itself — so it is surfaced rather than quietly reconciled.
  */
+/**
+ * Minutes on the wall clock between a session's start and end.
+ *
+ * Wall clock to wall clock, TEXTUALLY. Never `new Date(end) - new Date(start)`.
+ *
+ * The API stamps a trailing `Z` on every naive datetime in every response
+ * (`normalize_datetimes_middleware`, main.py) — a byte-level regex that cannot
+ * tell `created_at`, genuinely UTC, from a treatment time the patient typed as
+ * a wall clock. So a server-loaded start claims UTC while a time just entered
+ * in this form carries no zone at all, and Date arithmetic then subtracts a
+ * UTC-read value from a local-read one.
+ *
+ * Observed in production entry: start `…T16:25:00Z` read as 12:25 local
+ * against a typed 21:00 gave 515 min for a 275-min treatment, and the derived
+ * figure inherited it — "269 min not dialysing" instead of 29, which reads as
+ * a serious clinical event rather than ordinary alarm time.
+ *
+ * It hid two ways. `timeOnly` is a regex over the string, so BOTH fields show
+ * the right wall clock whatever the representation; and when both values come
+ * from the server they carry the same spurious Z and the error cancels. It
+ * appears only mid-entry, with one value loaded and one being typed.
+ *
+ * Exported because it was NOT, which is why 231 passing tests never reached
+ * it: the suite tested `timeOnly` and `minutesBetween` — always correct — while
+ * the component that bypassed them was unreachable. Same pair computes the
+ * Duration field, which is why that number was right while this one was not.
+ * Two computations of one interval must not disagree (§3ai).
+ */
+export function clockMinutes(start, end) {
+  if (!start || !end) return null;
+  const mins = minutesBetween(timeOnly(start), timeOnly(end));
+  return mins != null && mins > 0 ? mins : null;
+}
+
+
 function ClockVsMachine({ start, end, machine }) {
-  if (!start || !end) return <div />;
-  const ms = new Date(end) - new Date(start);
-  if (!Number.isFinite(ms) || ms <= 0) return <div />;
-  const clock = Math.round(ms / 60000);
+  const clock = clockMinutes(start, end);
+  if (clock == null) return <div />;
   // Same parser the field uses — `Number("7:27")` is NaN, so the comparison
   // would have gone blank the moment someone typed the machine's own format.
   const m = parseMachineTime(machine);

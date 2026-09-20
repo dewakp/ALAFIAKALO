@@ -22,6 +22,15 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Iterable
 
+from app.core.nutrition_data import NUTRIENT_CATALOG
+
+#: RDA / FDA Daily Value by nutrient key, read from the same 116-entry catalog
+#: the estimator, the diary and the AI tools use. Sourced rather than re-typed:
+#: a figure typed here is one that silently disagrees with the catalog the
+#: moment either side changes, and this module is already fourteen hand-typed
+#: numbers deep.
+_CATALOG_RDA: dict[str, Any] = {n["key"]: n.get("rda") for n in NUTRIENT_CATALOG}
+
 # Activity multipliers applied to BMR (Mifflin-St Jeor) → TDEE.
 _ACTIVITY_FACTORS = {
     "sedentary": 1.2,
@@ -287,6 +296,25 @@ def compute_goals(
     vit_d = 800 if (age and age > 70) else 600
     add("vitamin_d_iu", "Vitamin D", "IU", vit_d, "target", 150,
         "RDA 600 IU (≤70 yr) / 800 IU (>70 yr).")
+
+    # ── Magnesium (target) ──────────────────────────────────────────────────
+    # This goal was MISSING, and its absence silently discarded real work. The
+    # dialysis model computes magnesium transfer on every treatment day — it
+    # has a coefficient, a serum field, a bath default and a full gradient
+    # calculation — and `apply_to_totals` then dropped the result on the floor,
+    # because `GOAL_KEY` maps it to "magnesium_mg" and `by_key.get()` returned
+    # None. Worse, `day.modelled` is populated BEFORE that join, so the API
+    # reported a magnesium mass in `modelled_mg` and no balance anywhere: a
+    # number in one field of the response and nothing in the other.
+    #
+    # The module even apologises for the opposite case — "No recent blood test
+    # for magnesium, so the effect of treatment could not be worked out" — and
+    # says nothing when it computes the answer and throws it away (§3aa).
+    add("magnesium_mg", "Magnesium", "mg", _CATALOG_RDA.get("magnesium_mg") or 420,
+        "target", 145,
+        "FDA Daily Value 420 mg/day. Dialysis moves magnesium across the "
+        "membrane — out of the blood, or in from the bath, depending on the "
+        "dialysate — so the treatment-day balance is what matters here.")
 
     goals.sort(key=lambda g: g["priority"])
     return {

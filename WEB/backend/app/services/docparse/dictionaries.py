@@ -44,6 +44,7 @@ ANALYTE_NAMES: dict[str, str] = {
     "CA/PHOS PRODUCT": "Ca*PO4 Product",
     "CA-POST": "Calcium Post",
     "CALCIUM": "Calcium",
+    "CALCIUM POST": "Calcium Post",
     "CHLORIDE": "Chloride",
     "CHOL": "Cholesterol",
     "CHOL/HDL": "Cholesterol/HDL Ratio",
@@ -87,6 +88,15 @@ ANALYTE_NAMES: dict[str, str] = {
     "MCHC": "MCHC",
     "MCV": "MCV",
     "MG": "Magnesium",
+    "MAGNESIUM": "Magnesium",
+    # The DOMINANT spelling in the decade of Excel-derived labs is a
+    # misspelling: 64 of 71 magnesium values are written "Magnessium", against
+    # 6 "MAGNESIUM" and 1 "Magnesium". `lookup_key` folds case, so those two
+    # already merge — this one does not, and without it the patient's magnesium
+    # history splits into a 64-point series and a 7-point series that no chart
+    # ever joins (§3ax, the ALP/Alk Phos failure in a second analyte).
+    "MAGNESSIUM": "Magnesium",
+    "MAGNESIUM POST": "Magnesium Post",
     "MONO": "Monocytes %",
     "MONOCYTES": "Monocytes %",
     "MONOS-ABS": "Monocytes Abs",
@@ -97,6 +107,14 @@ ANALYTE_NAMES: dict[str, str] = {
     "NPCR": "NPCR",
     "PHOS": "Phosphorus",
     "PHOSPHORUS": "Phosphorus",
+    # Same shape as magnesium: the extra "o" is the majority spelling in the
+    # historical record — 169 "Phosphorous" against 7 of the correct form — so
+    # the canonical name has to accept it or the longest phosphorus series in
+    # the record is the one that never reaches a chart.
+    "PHOSPHOROUS": "Phosphorus",
+    "PHOSPHOROUS POST": "Phosphorus Post",
+    "PHOSPHORUS POST": "Phosphorus Post",
+    "PHOSPHORUS - POST": "Phosphorus Post",
     "PLATELET": "Platelet Count",
     "PLATELET COUNT": "Platelet Count",
     "PLT": "Platelet Count",
@@ -121,6 +139,15 @@ ANALYTE_NAMES: dict[str, str] = {
     "VLDL": "VLDL",
     "VITAMIN D (25-OH)": "Vitamin D 25-OH",
     "VITAMIN D": "Vitamin D 25-OH",
+    # Written without the space on 54 of 73 values, and as a bare "VIT D" on 18.
+    # Three spellings, one analyte — and vitamin D is dosed directly by
+    # Calcitriol and Doxercalciferol on the flowsheets, so a split series hides
+    # the response to a drug the patient has taken for years.
+    "VITAMIN D(25-OH)": "Vitamin D 25-OH",
+    "VIT D": "Vitamin D 25-OH",
+    "VIT D (25-OH)": "Vitamin D 25-OH",
+    "VIT D(25-OH)": "Vitamin D 25-OH",
+    "25-OH VITAMIN D": "Vitamin D 25-OH",
     "WBC": "WBC",
     "ABSL. RETIC CT.": "Absolute Reticulocyte Count",
     "ABSOLUTE RETIC": "Absolute Reticulocyte Count",
