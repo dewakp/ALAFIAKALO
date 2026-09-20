@@ -45,6 +45,10 @@ from app.services.nutrient_enrichment import enrich_log
 from app.services.nutrient_goals_service import compute_goals
 from app.services import dialysis_context
 from app.services.dialysis_day_adjustment import apply_to_totals
+from app.services.nutrient_effects_day import apply_effects_to_totals
+from app.services.nutrient_effects_service import stored_effects
+from app.services.nutrient_exposures import agent_pairs, exposures_for_day
+from app.schemas.nutrition import AgentEffectsDaySummary, AppliedEffectOut
 from app.services.learned_nutrient_service import (
     record_correction, per_100g_from_total, get_learned,
 )
@@ -524,6 +528,47 @@ async def get_goal_progress(
         # dialysis annotation is a degraded view; a 500 is a blank one.
         logger.exception("Dialysis balance could not be applied")
 
+    # Everything that is NOT gradient transfer: a drug the unit administered, a
+    # supplement, a treatment's effect on glucose. `dialysis_balance` can only
+    # model the four solutes with a serum draw and a bath concentration, so
+    # every other agent the patient met reached this page as nothing at all.
+    #
+    # STORED effects only, never a resolution. `resolve_agent_effects` is an LLM
+    # call and this is a request path — putting one here would be §3ae's timeout
+    # failure by construction. Unknown agents are resolved by
+    # scripts/resolve_nutrient_effects.py and appear on the next load.
+    effects_summary = None
+    try:
+        exposures = await exposures_for_day(db, current_user.id, target_date)
+        if exposures:
+            effects = await stored_effects(db, agent_pairs(exposures))
+            if effects:
+                goal_dicts, effects_day = apply_effects_to_totals(
+                    goal_dicts, exposures, effects,
+                    # No serum draw exists in this system for the nutrients this
+                    # layer covers, so claiming a fresh measurement would be
+                    # inventing one. The consequence is deliberate: an effect
+                    # that would REASSURE is reported with the reason it was not
+                    # counted, rather than silently credited.
+                    measurement_fresh=False,
+                )
+                effects_summary = AgentEffectsDaySummary(
+                    agents=effects_day.agents,
+                    applied=[
+                        AppliedEffectOut(
+                            nutrient_key=a.nutrient_key, agent_label=a.agent_label,
+                            direction=a.direction, delta=round(a.delta, 2),
+                            modelled=round(a.modelled, 2), applied=a.applied,
+                            mechanism=a.mechanism, reason=a.reason,
+                            withheld=a.withheld,
+                        )
+                        for a in effects_day.applied
+                    ],
+                    notes=effects_day.notes,
+                )
+    except Exception:  # noqa: BLE001
+        logger.exception("Agent nutrient effects could not be applied")
+
     progress: list[NutrientGoalProgress] = []
     for g in goal_dicts:
         current = g["current"]
@@ -549,6 +594,7 @@ async def get_goal_progress(
         conditions=active_flags,
         goals=progress,
         dialysis=day_summary,
+        effects=effects_summary,
     )
 
 

@@ -13,6 +13,7 @@ Every parsing case below is taken from that corpus, not invented.
 import pytest
 
 from app.services.flowsheet_drugs import (
+    parse_dose_text,
     parse_drugs_administered,
     summarize_flowsheet_drugs,
 )
@@ -36,6 +37,41 @@ def test_semicolon_inside_parentheses_is_not_a_separator():
     )
     assert [d.name for d in drugs] == ["Sodium citrate", "Epoetin alfa", "Iron sucrose"]
     assert drugs[0].dose == "12 ml  Venous; 3ml Arterial"
+
+
+# ── Reading the amount, and refusing to ───────────────────────────────
+
+
+@pytest.mark.parametrize("written,expected", [
+    ("100 mg", (100.0, "mg")),       # Venofer, on 1,248 sessions of this record
+    ("2 mcg", (2.0, "mcg")),         # Doxercalciferol
+    ("4mcg", (4.0, "mcg")),          # no space, same drug, same corpus
+    ("800.0 mg", (800.0, "mg")),     # a dose log rather than a flowsheet
+    ("2.5 ml x 2", (5.0, "ml")),     # two catheter lumens, so 5 mL in total
+])
+def test_a_written_dose_is_read_as_an_amount(written, expected):
+    assert parse_dose_text(written) == expected
+
+
+@pytest.mark.parametrize("written", [
+    "3,000 SQ",       # SQ is the ROUTE — 3,000 units of epoetin, not 3,000 mg
+    "20,000 SQ",
+    "12 ml  Venous",  # a lumen volume, not a systemic dose
+    "NONE",
+    "Oct",            # a month, from a column that sometimes holds a date
+    "",
+    None,
+    "0 mg",           # a zero dose is not a dose that was given
+])
+def test_an_amount_that_cannot_be_read_is_refused(written):
+    """None, never a guess — and never a number stripped of its unit.
+
+    "3,000 SQ" is the case that matters. Read as a bare number it would
+    multiply a per-milligram nutrient figure by three thousand. An amount the
+    record does not state in a unit we can do arithmetic with has to reach the
+    caller as "not recorded" so it can say so (§3aj).
+    """
+    assert parse_dose_text(written) is None
 
 
 # ── Grouping ──────────────────────────────────────────────────────────

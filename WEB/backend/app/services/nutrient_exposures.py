@@ -55,7 +55,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chronic_conditions import TherapySession
 from app.services.clinical_sources import administration_events_on_day
-from app.services.dialysis_context import COMPLETED_STATUSES
+from app.services.dialysis_context import COMPLETED_STATUSES, reference_blood_volume_for
+from app.services.flowsheet_drugs import parse_dose_text
 from app.services.nutrient_effects_day import AgentExposure
 from app.services.nutrient_effects_service import normalize_agent
 
@@ -93,6 +94,10 @@ async def exposures_for_day(
         )
     )).scalars().all()
 
+    # Once for the PATIENT, not once per session: it describes their history,
+    # not today's treatment, so asking per row is the same answer N times.
+    reference_bvp = await reference_blood_volume_for(db, user_id)
+
     for row in sessions:
         status = str(getattr(row.status, "value", row.status) or "")
         if status.lower() not in _COMPLETED_LOWER:
@@ -128,6 +133,13 @@ async def exposures_for_day(
             if row.total_blood_volume_processed is not None:
                 context["blood_volume_processed_l"] = float(
                     row.total_blood_volume_processed)
+                # A stored effect is shared by every patient, so the reference
+                # ON the row can only be a population default. This patient's
+                # own typical session is the better one and overrides it, by
+                # the `<measurement>__reference` convention `scaled_magnitude`
+                # reads. Absent history, the row's own reference stands.
+                if reference_bvp:
+                    context["blood_volume_processed_l__reference"] = reference_bvp
 
             out.append(AgentExposure(
                 kind="treatment",
@@ -147,6 +159,12 @@ async def exposures_for_day(
     # one merges a drug recorded twice in a day into one row for display, and
     # merging would understate three 500 mg tablets as 500 mg.
     for event in await administration_events_on_day(db, user_id, day):
+        # `event.dose` is verbatim text — "100 mg" from a flowsheet, "800.0 mg"
+        # from a dose log, "3,000 SQ" where SQ is the ROUTE. It is parsed here
+        # and REFUSED where it cannot be read, rather than written into context
+        # as a number: an earlier version used `float(dose_amount or 0.0)`,
+        # which turned an unrecorded dose into a measured zero.
+        parsed = parse_dose_text(event.dose)
         out.append(AgentExposure(
             kind="medication",
             # Keyed and labelled on the CANONICAL name, so Venofer, venofer and
@@ -154,13 +172,10 @@ async def exposures_for_day(
             key=normalize_agent(event.name, "medication"),
             label=event.name,
             occurrences=1,
-            # `event.dose` is verbatim text — "800.0 mg", or a flowsheet's
-            # "20,000 SQ". It is NOT put in context as a number: the previous
-            # version wrote `float(dose_amount or 0.0)`, which turned an
-            # unrecorded dose into a measured zero. A per_dose_unit effect
-            # needs that string parsed and refused when it cannot be, which is
-            # deliberately not done here yet.
             context={},
+            dose_amount=parsed[0] if parsed else None,
+            dose_unit=parsed[1] if parsed else None,
+            dose_text=event.dose,
         ))
 
     return out

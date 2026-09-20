@@ -108,6 +108,32 @@ class TestAgainstPublishedBands:
         assert estimate.mass_mg > 0
         assert "no blood volume recorded" in (estimate.note or "")
 
+    def test_the_reference_is_the_PATIENTS_OWN_typical_session(self):
+        """One constant cannot serve many patients.
+
+        The module's cold start is the median of a SINGLE record — the only
+        longitudinal dialysis history this database holds. A patient whose
+        ordinary session processes 40 L would have every treatment scored
+        against a stranger's 75 L and reported as roughly half-sized. Given
+        their own reference, their ordinary session scores as ordinary.
+        """
+        theirs = estimate_session_removal(
+            a_session(blood_volume_recorded_l=40.0, reference_blood_volume_l=40.0),
+            a_serum())[PROTEIN].mass_mg / 1000
+        against_a_stranger = estimate_session_removal(
+            a_session(blood_volume_recorded_l=40.0), a_serum())[PROTEIN].mass_mg / 1000
+
+        assert 8.5 <= theirs <= 9.5, "their typical session is a typical loss"
+        assert against_a_stranger < 6.0, "the shared constant understates it"
+
+    def test_no_history_falls_back_to_the_cold_start(self):
+        """A patient on their first session has nothing to be typical against,
+        and the literature figure does describe a typical adult treatment."""
+        first = estimate_session_removal(
+            a_session(blood_volume_recorded_l=75.0, reference_blood_volume_l=None),
+            a_serum())[PROTEIN].mass_mg / 1000
+        assert 8.5 <= first <= 9.5
+
     def test_calcium_against_a_rich_bath_is_a_GAIN(self):
         """The classic effect: a 3.0 mEq/L bath loads calcium rather than removing it.
 

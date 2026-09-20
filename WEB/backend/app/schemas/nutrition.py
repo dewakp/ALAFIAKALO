@@ -348,6 +348,40 @@ class DialysisDaySummary(BaseModel):
     notes: list[str] = []
 
 
+class AppliedEffectOut(BaseModel):
+    """One agent's effect on one nutrient, and whether it was counted.
+
+    `applied=False` with a `withheld` reason is a real, useful state — a drug
+    the unit gave whose amount the record does not state, or a credit that would
+    reassure without a measurement behind it. It must reach the client: dropping
+    it is how a decade of IV iron stayed invisible.
+    """
+
+    nutrient_key: str
+    agent_label: str
+    direction: str
+    delta: float
+    modelled: float
+    applied: bool
+    mechanism: str | None = None
+    reason: str | None = None
+    withheld: str | None = None
+
+
+class AgentEffectsDaySummary(BaseModel):
+    """Everything that moved today's nutrients OTHER than gradient transfer.
+
+    `dialysis` above covers the four solutes with a serum draw and a bath
+    concentration, which is all `dialysis_balance` can model. This carries the
+    rest — a drug the unit administered, a supplement, a treatment's effect on
+    glucose — which is the far larger set and had no representation on the wire.
+    """
+
+    agents: list[str] = []
+    applied: list[AppliedEffectOut] = []
+    notes: list[str] = []
+
+
 class NutrientGoalProgress(BaseModel):
     key: str
     name: str
@@ -380,6 +414,7 @@ class GoalProgressResponse(BaseModel):
     conditions: list[str]   # condition flags considered, e.g. ["ckd", "dialysis"]
     goals: list[NutrientGoalProgress]
     dialysis: DialysisDaySummary | None = None
+    effects: AgentEffectsDaySummary | None = None
 
 
 # ── Nutrient estimation schemas ──

@@ -52,6 +52,49 @@ _SERUM_TESTS = {
 }
 
 
+#: A median needs a few points before it describes anything. Below this a
+#: patient's "typical" session is really just their last one or two, and a
+#: single short or aborted run would set a reference that then misreports every
+#: session measured against it. Above it the median is robust to the occasional
+#: outlier by construction — which is exactly why this is a median and not a
+#: mean, on a column whose real range runs 10 L to 139 L.
+_MIN_SESSIONS_FOR_REFERENCE = 5
+
+
+async def reference_blood_volume_for(db: AsyncSession, user_id: int) -> float | None:
+    """This patient's own typical blood volume processed, in litres, or None.
+
+    None means "their record cannot say yet", and the caller must then fall back
+    to the module's literature cold start rather than inventing a reference.
+
+    This exists because a single module constant cannot serve many patients.
+    The one in `dialysis_balance` is the median of ONE record — the only
+    longitudinal dialysis history this database holds — so every additional
+    patient would have their ordinary treatment scored against a stranger's
+    typical session and reported as unusually large or small. The error grows
+    with the number of patients rather than shrinking.
+    """
+    row = (await db.execute(
+        select(
+            func.count(TherapySession.total_blood_volume_processed),
+            func.percentile_cont(0.5).within_group(
+                TherapySession.total_blood_volume_processed.asc()
+            ),
+        ).where(
+            TherapySession.user_id == user_id,
+            TherapySession.total_blood_volume_processed.is_not(None),
+            TherapySession.total_blood_volume_processed > 0,
+        )
+    )).one_or_none()
+    if row is None:
+        return None
+
+    recorded, median = row
+    if not recorded or recorded < _MIN_SESSIONS_FOR_REFERENCE or not median:
+        return None
+    return float(median)
+
+
 async def sessions_for_day(db: AsyncSession, user_id: int, day: date) -> list[SessionParams]:
     """Completed treatments on `day`, with delivered blood flow where recorded.
 
@@ -89,10 +132,15 @@ async def sessions_for_day(db: AsyncSession, user_id: int, day: date) -> list[Se
         .group_by(IntradialyticReading.session_id)
     )).all())
 
+    # Read once for the patient, not once per session: it describes their
+    # history, not today's treatment.
+    reference_bvp = await reference_blood_volume_for(db, user_id)
+
     sessions: list[SessionParams] = []
     for row in rows:
         status = str(getattr(row.status, "value", row.status) or "")
         sessions.append(SessionParams(
+            reference_blood_volume_l=reference_bvp,
             dialysate_volume_l=row.dialysate_volume_liters,
             duration_minutes=row.duration_minutes,
             blood_flow_ml_min=measured.get(row.id) or row.blood_flow_rate,

@@ -197,6 +197,26 @@ def test_scaled_magnitude_reproduces_the_protein_prior(volume_l, expected_g):
     assert got == pytest.approx(expected_g)
 
 
+def test_a_patients_own_reference_overrides_the_stored_one():
+    """One row serves every patient, so its reference is a population default.
+
+    The store cannot hold a reference per patient — that is the point of a
+    shared fact — so the caller supplies the patient's own typical exposure in
+    the context and it wins. Without this, the first patient's median silently
+    becomes the yardstick for everyone who comes after, and the error grows
+    with the number of patients rather than averaging out.
+    """
+    effect = _protein_effect()      # reference 75 L, the cold start
+    shared = effect.scaled_magnitude({"blood_volume_processed_l": 40.0})
+    theirs = effect.scaled_magnitude({
+        "blood_volume_processed_l": 40.0,
+        "blood_volume_processed_l__reference": 40.0,
+    })
+
+    assert shared == pytest.approx(4.8), "scored against a stranger's typical session"
+    assert theirs == pytest.approx(9.0), "their ordinary session is an ordinary loss"
+
+
 def test_an_unscaled_effect_returns_its_magnitude_unchanged():
     effect = nes.Effect(
         agent_kind="medication", agent_key="a drug", agent_label="A Drug",

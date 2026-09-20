@@ -34,8 +34,8 @@ import logging
 from dataclasses import dataclass, field
 
 from app.services.nutrient_effects_service import (
-    ADDS, BINDS_DIETARY, BLOCKS_ABSORPTION, INCREASES_REQUIREMENT, REMOVES,
-    Effect, gate_needed,
+    ADDS, BINDS_DIETARY, BLOCKS_ABSORPTION, INCREASES_REQUIREMENT, PER_DOSE_UNIT,
+    REMOVES, Effect, gate_needed,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,17 @@ class AgentExposure:
     label: str
     occurrences: int = 1
     context: dict[str, float] = field(default_factory=dict)
+    #: The amount actually given, parsed, with the unit it was written in. None
+    #: means the record says the drug was given and does NOT say how much — a
+    #: real and common state on a flowsheet ("Venofer" with no parenthesis, 41
+    #: sessions). It must read as "amount not recorded" and never as a default:
+    #: a per-dose effect multiplied by an assumed 100 mg is a fabricated
+    #: clinical figure, which is worse than an absent one (§3aj).
+    dose_amount: float | None = None
+    dose_unit: str | None = None
+    #: Exactly as the record wrote it, so a refusal can quote the text it could
+    #: not read rather than saying only that it failed.
+    dose_text: str | None = None
 
 
 @dataclass
@@ -114,6 +125,30 @@ def _convert(value: float, from_unit: str | None, to_unit: str | None) -> float 
         return None
     factor = _TO_BASE.get((from_unit.lower(), to_unit.lower()))
     return None if factor is None else value * factor
+
+
+def _dose_in(effect_dose_unit: str | None, exposure: AgentExposure) -> float | None:
+    """How many of the effect's dose units this exposure actually delivered.
+
+    None means "cannot be worked out", and it has three distinct causes that all
+    demand the same answer: the record states no amount (a flowsheet reading
+    just "Venofer"), the amount is written in a unit that does not convert to
+    the effect's ("2.5 ml" against a figure stated per mg), or the effect never
+    said what its magnitude is per.
+
+    Every one of those must refuse. The alternative — assuming the usual dose,
+    or treating an unreadable one as the effect's own unit — fabricates a
+    clinical quantity out of a gap in the record, which is the §3aj failure the
+    dose guard exists to prevent.
+    """
+    if exposure.dose_amount is None or not exposure.dose_unit:
+        return None
+    if not effect_dose_unit:
+        return None
+    converted = _convert(exposure.dose_amount, exposure.dose_unit, effect_dose_unit)
+    if converted is None:
+        return None
+    return converted * max(1, exposure.occurrences)
 
 
 def apply_effects_to_totals(
@@ -171,12 +206,59 @@ def apply_effects_to_totals(
         # amounts of amino acid, and each is clamped on its own ratio.
         magnitude = 0.0
         size_unknown = False
+        counted = 0
+        unreadable: list[str] = []
         for exposure in matching:
             per_occurrence = effect.scaled_magnitude(exposure.context)
             if per_occurrence is None:
                 size_unknown = True
                 break
-            magnitude += per_occurrence * max(1, exposure.occurrences)
+            if effect.basis == PER_DOSE_UNIT and effect.dose_unit:
+                # `dose_unit` is what separates the two readings of "per dose".
+                # WITH one, the magnitude is per unit of drug — 1 mg of iron per
+                # mg of iron sucrose — so it means nothing until multiplied by
+                # how much was actually given, and Venofer is written with no
+                # amount on 41 sessions. Crediting those with a borrowed 100 mg
+                # would invent iron the record never claimed.
+                delivered = _dose_in(effect.dose_unit, exposure)
+                if delivered is None:
+                    unreadable.append(exposure.dose_text or "no amount recorded")
+                    continue
+                magnitude += per_occurrence * delivered
+            else:
+                # WITHOUT one, the magnitude is per ADMINISTRATION — "200 mg of
+                # phosphorus bound per dose taken" — which needs no amount at
+                # all. Demanding one here broke three passing tests, and they
+                # were right: a binder's effect is per tablet swallowed.
+                magnitude += per_occurrence * max(1, exposure.occurrences)
+            counted += 1
+
+        if (effect.basis == PER_DOSE_UNIT and effect.dose_unit
+                and counted == 0 and not size_unknown):
+            # Given, and we cannot say how much. That is a finding in itself and
+            # the one thing this must never render as zero (§3aa).
+            quoted = next((u for u in unreadable if u != "no amount recorded"), None)
+            day.applied.append(AppliedEffect(
+                nutrient_key=effect.nutrient_key, agent_label=effect.agent_label,
+                direction=effect.direction, delta=0.0, modelled=0.0, applied=False,
+                mechanism=effect.mechanism,
+                withheld=(
+                    f"{effect.agent_label} was given, but the amount recorded ("
+                    f"{quoted}) cannot be read as a dose, so its contribution "
+                    "cannot be worked out."
+                    if quoted else
+                    f"{effect.agent_label} was given, but no amount is recorded, "
+                    "so its contribution cannot be worked out."
+                ),
+            ))
+            continue
+
+        if unreadable and counted:
+            day.notes.append(
+                f"{effect.agent_label}: {len(unreadable)} of "
+                f"{len(unreadable) + counted} administrations today have no "
+                "readable amount, so only the recorded ones are counted."
+            )
 
         if size_unknown:
             day.applied.append(AppliedEffect(

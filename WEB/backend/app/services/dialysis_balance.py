@@ -156,11 +156,19 @@ DEFAULT_COEFFICIENTS: dict[str, Coefficients] = {
 #: loss on sessions with no recorded blood volume.
 _REFERENCE_DIALYSATE_L = 30.0
 
-#: Reference blood volume processed, in litres — the MEDIAN of this patient's
-#: 1,352 sessions that record it (mean 76.6, range 16–139). Read off the record
-#: rather than chosen, for the same reason the dialysate reference is 30: the
-#: literature's 6–12 g describes a TYPICAL treatment, so the prior has to land
-#: on a typical treatment.
+#: COLD-START fallback only. Use `SessionParams.reference_blood_volume_l` —
+#: the patient's OWN typical session — wherever their history supplies one.
+#:
+#: This figure is the median of a single record's 1,352 recorded sessions, and
+#: that is the whole problem with it: the database holds exactly ONE patient
+#: with a longitudinal dialysis history, so a "population median" computed today
+#: is a median of n=1. Scaling a second patient's treatments against a first
+#: patient's typical session reports their ordinary run as unusually large or
+#: small, and the error grows with every patient who is not this one.
+#:
+#: It is kept because a patient on their FIRST session has no history to be
+#: typical against, and the literature's 6-12 g does describe a typical adult
+#: treatment. That is a cold start, not a default.
 #:
 #: Why this replaces dialysate volume as the basis: amino-acid loss follows what
 #: passed through the filter, and dialysate volume is 30 L on nearly every home
@@ -237,6 +245,13 @@ class SessionParams:
     #: Empty on 27 of 2,094 sessions until the flowsheet import loss was
     #: recovered; now recorded on 1,544.
     blood_volume_recorded_l: float | None = None
+    #: What a TYPICAL session looks like FOR THIS PATIENT, in litres of blood
+    #: processed, computed from their own history. The amino-acid prior
+    #: describes a typical treatment, so "typical" has to mean typical for the
+    #: person being modelled — one patient's 40 L session and another's 120 L
+    #: session can each be entirely ordinary for them. None means no history
+    #: yet, and only then does the module-level cold start apply.
+    reference_blood_volume_l: float | None = None
     completed: bool = True
 
     @property
@@ -500,7 +515,11 @@ def estimate_session_removal(
         blood_l = session.blood_volume_processed_l
         if blood_l:
             lo, hi = _BLOOD_VOLUME_RATIO_BOUNDS
-            scale = max(lo, min(blood_l / _REFERENCE_BLOOD_VOLUME_L, hi))
+            # Against THIS patient's typical session wherever their record
+            # supplies one. A single constant cannot serve many patients, and
+            # the one in this module is the median of a single record.
+            reference = session.reference_blood_volume_l or _REFERENCE_BLOOD_VOLUME_L
+            scale = max(lo, min(blood_l / reference, hi))
             basis = "blood volume processed"
         else:
             # No throughput recorded and none derivable. Fall back to the old

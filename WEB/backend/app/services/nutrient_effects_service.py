@@ -161,6 +161,17 @@ class Effect:
     magnitude: float | None
     magnitude_unit: str | None
     basis: str
+    #: For a PER_DOSE_UNIT effect, the unit the magnitude is stated PER — "mg of
+    #: iron sucrose", not "mg of iron". Carried so application can REFUSE a dose
+    #: written in a unit that does not convert, rather than multiplying anyway:
+    #: a flowsheet's "3,000 SQ" and a label's "100 mg" are not comparable, and
+    #: treating them as though they were multiplies a nutrient by three thousand.
+    #:
+    #: Its ABSENCE is meaningful and is the commoner case: with no dose_unit the
+    #: magnitude is per ADMINISTRATION ("200 mg of phosphorus bound per tablet
+    #: taken"), which needs no recorded amount. Only an effect that names a unit
+    #: requires one.
+    dose_unit: str | None = None
     scales_with: str | None = None
     scale_reference: float | None = None
     scale_min: float | None = None
@@ -190,9 +201,19 @@ class Effect:
         if not self.scales_with or not self.scale_reference:
             return self.magnitude
         measured = (context or {}).get(self.scales_with)
-        if not measured or self.scale_reference <= 0:
+        if not measured:
             return self.magnitude
-        ratio = measured / self.scale_reference
+        # One stored row serves EVERY patient, so its `scale_reference` can only
+        # ever be a population default — and where a caller knows this patient's
+        # own typical exposure, that is the better reference and wins. Scaling
+        # one person's treatment against another's median reports an ordinary
+        # session as unusually large or small, which is the failure that scales
+        # with the number of patients rather than away from it.
+        reference = (context or {}).get(f"{self.scales_with}__reference") \
+            or self.scale_reference
+        if not reference or reference <= 0:
+            return self.magnitude
+        ratio = measured / reference
         if self.scale_min is not None:
             ratio = max(self.scale_min, ratio)
         if self.scale_max is not None:
@@ -205,6 +226,7 @@ def _row_to_effect(row: NutrientEffect) -> Effect:
         agent_kind=row.agent_kind, agent_key=row.agent_key, agent_label=row.agent_label,
         nutrient_key=row.nutrient_key, direction=row.direction,
         magnitude=row.magnitude, magnitude_unit=row.magnitude_unit, basis=row.basis,
+        dose_unit=row.dose_unit,
         scales_with=row.scales_with, scale_reference=row.scale_reference,
         scale_min=row.scale_min, scale_max=row.scale_max,
         mechanism=row.mechanism, evidence_level=row.evidence_level,
@@ -248,6 +270,7 @@ The angle brackets are placeholders — never echo them back:
               "magnitude":<number or null>,
               "unit":"<mg|mcg|g|IU|fraction>",
               "basis":"per_session|per_dose_unit|per_g_dietary|per_litre_dialysate|fraction_of_intake",
+              "dose_unit":"<the unit the dose is measured in, or null>",
               "mechanism":"<short clinical reason>",
               "evidence":"high|moderate|low"}}]}}
 
@@ -264,7 +287,17 @@ is useful — it records THAT the effect exists. An invented number is not.
 effect, and neither is a nutrient the agent merely contains as an excipient.
 5. If the agent has no established effect on nutrient totals, return an empty \
 array. Do NOT invent one.
-6. At most {limit} effects, most clinically significant first."""
+6. At most {limit} effects, most clinically significant first.
+7. Choose "basis" by asking whether the amount depends on THE DOSE GIVEN.
+ - If the nutrient delivered is proportional to the amount administered, you \
+MUST use "per_dose_unit", give "dose_unit", and state the magnitude per ONE \
+unit of that dose. Magnitude 1 with unit "mg" and dose_unit "mg" means one \
+milligram of the nutrient for every milligram administered. The record states \
+the dose actually given and that dose VARIES between administrations, so any \
+fixed amount would contradict the patient's own chart on every other day.
+ - Use "per_session" ONLY where the effect is the same however much was given.
+ A "per_dose_unit" effect naming no "dose_unit" has its magnitude discarded, \
+because the record's dose is the authority on how much reached the patient."""
 
 
 async def resolve_agent_effects(
@@ -363,6 +396,27 @@ async def _upsert(
 
     magnitude = item.get("magnitude")
     magnitude = float(magnitude) if isinstance(magnitude, (int, float)) else None
+
+    # `dose_unit` is what gives a per-dose magnitude meaning, and its ABSENCE is
+    # dangerous rather than merely incomplete: `apply_effects_to_totals` reads a
+    # missing dose_unit as "per ADMINISTRATION". So a model answering "200 mg"
+    # for a drug this record administers at 100 mg would double the patient's
+    # own recorded figure and present it as a modelled fact. The resolver
+    # returned exactly that for iron sucrose on its first run — a model number
+    # silently overriding the flowsheet sitting beside it.
+    #
+    # The MAGNITUDE is dropped, not the effect. That is this module's own rule,
+    # stated in the prompt: a null magnitude is useful because it records THAT
+    # the effect exists, and an invented number is not.
+    dose_unit = (str(item.get("dose_unit") or "").strip().lower()[:24]) or None
+    if basis == PER_DOSE_UNIT and dose_unit is None and magnitude is not None:
+        logger.info(
+            "nutrient effects: %r claims %s %s per dose but names no dose unit — "
+            "magnitude dropped; the effect itself is still recorded",
+            agent_key, magnitude, item.get("unit") or "",
+        )
+        magnitude = None
+
     evidence = str(item.get("evidence") or "moderate")
     if evidence not in VALID_EVIDENCE:
         evidence = "moderate"
@@ -384,6 +438,8 @@ async def _upsert(
         if existing.magnitude is None and magnitude is not None:
             existing.magnitude = magnitude
             existing.magnitude_unit = item.get("unit") or existing.magnitude_unit
+        if existing.dose_unit is None and dose_unit is not None:
+            existing.dose_unit = dose_unit
         if not existing.mechanism and item.get("mechanism"):
             existing.mechanism = str(item["mechanism"])[:2000]
         if agent_code and not existing.agent_code:
@@ -396,7 +452,7 @@ async def _upsert(
             agent_code=agent_code, nutrient_key=nutrient_key, direction=direction,
             magnitude=magnitude,
             magnitude_unit=(str(item["unit"])[:16] if item.get("unit") else None),
-            basis=basis,
+            basis=basis, dose_unit=dose_unit,
             mechanism=(str(item["mechanism"])[:2000] if item.get("mechanism") else None),
             evidence_level=evidence, provenance="llm",
             confidence=0.6 if evidence == "high" else 0.5,

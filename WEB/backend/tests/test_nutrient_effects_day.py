@@ -104,6 +104,109 @@ def test_two_sessions_in_a_day_both_count():
     assert adjusted[0]["nutrient_effects"][0]["delta"] == pytest.approx(-22.5)
 
 
+# ── A dose the unit gave: the amount decides, and a missing one must not ──
+
+
+def _iron_effect():
+    """IV iron as the store holds it: 1 mg of iron per mg of iron sucrose.
+
+    Venofer is iron sucrose, and the strength printed on it IS elemental iron —
+    which is why the magnitude is 1.0 per dose unit rather than a fraction.
+    """
+    from app.services.nutrient_effects_service import ADDS, PER_DOSE_UNIT
+
+    return Effect(
+        agent_kind="medication", agent_key="iron sucrose", agent_label="Iron sucrose",
+        nutrient_key="iron_mg", direction=ADDS, magnitude=1.0,
+        magnitude_unit="mg", basis=PER_DOSE_UNIT, dose_unit="mg",
+        mechanism="Intravenous iron enters the blood directly.",
+    )
+
+
+def _given(dose_amount=None, dose_unit=None, dose_text=None):
+    return AgentExposure(
+        kind="medication", key="iron sucrose", label="Iron sucrose",
+        occurrences=1, context={},
+        dose_amount=dose_amount, dose_unit=dose_unit, dose_text=dose_text,
+    )
+
+
+def test_a_recorded_dose_contributes_its_actual_amount():
+    """100 mg of iron sucrose is 100 mg of iron, not one unit of "a dose"."""
+    goals = [_goal("iron_mg", "mg", "target", current=8.0)]
+    adjusted, day = apply_effects_to_totals(
+        goals, [_given(100.0, "mg", "100 mg")], [_iron_effect()],
+        measurement_fresh=True,
+    )
+    attached = adjusted[0]["nutrient_effects"]
+    assert attached[0]["delta"] == pytest.approx(100.0)
+    assert day.had_effects
+
+
+def test_a_dose_the_record_does_not_state_is_reported_not_counted():
+    """Venofer appears with no amount on 41 sessions.
+
+    Crediting those with a borrowed 100 mg invents iron the record never
+    claimed; dropping them silently is how the drug stayed invisible for a
+    decade. It has to say "given, amount not recorded" (§3aa, §3aj).
+    """
+    goals = [_goal("iron_mg", "mg", "target", current=8.0)]
+    adjusted, _ = apply_effects_to_totals(
+        goals, [_given()], [_iron_effect()],
+        measurement_fresh=True,
+    )
+    effect = adjusted[0]["nutrient_effects"][0]
+    assert effect["applied"] is False
+    assert effect["delta"] == 0.0
+    assert "no amount is recorded" in (effect.get("withheld") or "")
+
+
+def test_a_dose_in_a_unit_that_does_not_convert_is_refused():
+    """"2.5 ml" against a figure stated per mg is not 2.5 of anything."""
+    goals = [_goal("iron_mg", "mg", "target", current=8.0)]
+    adjusted, _ = apply_effects_to_totals(
+        goals, [_given(2.5, "ml", "2.5 ml")], [_iron_effect()],
+        measurement_fresh=True,
+    )
+    effect = adjusted[0]["nutrient_effects"][0]
+    assert effect["applied"] is False
+    assert "2.5 ml" in (effect.get("withheld") or "")
+
+
+def test_a_readable_dose_still_counts_when_another_is_not():
+    """Two administrations, one unreadable: count the one that is recorded.
+
+    Reporting zero because part of the day is unreadable understates it just as
+    badly as assuming the missing amount.
+    """
+    goals = [_goal("iron_mg", "mg", "target", current=8.0)]
+    adjusted, day = apply_effects_to_totals(
+        goals,
+        [_given(100.0, "mg", "100 mg"), _given()],
+        [_iron_effect()],
+        measurement_fresh=True,
+    )
+    assert adjusted[0]["nutrient_effects"][0]["delta"] == pytest.approx(100.0)
+    assert any("no readable amount" in n for n in day.notes), day.notes
+
+
+def test_crediting_iron_against_a_target_needs_a_measurement():
+    """§3aj's dangerous row: raising a TARGET says "you are fine".
+
+    Telling an anaemic patient on IV iron that they have met their iron needs
+    is the one direction this layer must never take on its own.
+    """
+    goals = [_goal("iron_mg", "mg", "target", current=8.0)]
+    adjusted, _ = apply_effects_to_totals(
+        goals, [_given(100.0, "mg", "100 mg")], [_iron_effect()],
+        measurement_fresh=False,
+    )
+    effect = adjusted[0]["nutrient_effects"][0]
+    assert effect["applied"] is False
+    assert effect["modelled"] == pytest.approx(100.0), "it must still be MODELLED"
+    assert "no recent measurement" in (effect.get("withheld") or "")
+
+
 def test_an_agent_not_met_today_contributes_nothing():
     """A stored fact is not an exposure. Knowing what sevelamer does is not the
     same as the patient having taken it."""

@@ -199,6 +199,51 @@ def parse_drugs_administered(text: str | None) -> list[FlowsheetDrug]:
     return out
 
 
+#: Units we are willing to do ARITHMETIC with. A flowsheet dose carries all
+#: sorts of trailing text — "3,000 SQ" states a route, not a unit — and a number
+#: whose unit we cannot name is a number we must not multiply by anything.
+_ARITHMETIC_UNITS = {"mg", "mcg", "g", "iu", "ml", "unit", "units"}
+
+#: "100 mg", "2mcg", "2.5 ml x 2", "3,000 SQ". The multiplier tail is real:
+#: Sodium Citrate is written "(2.5 ml x 2)" for two catheter lumens.
+_DOSE_TEXT_RE = re.compile(
+    r"^\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*([a-zA-Z%]+)?\s*(?:[x×]\s*([0-9]+))?\s*$"
+)
+
+
+def parse_dose_text(text: str | None) -> tuple[float, str] | None:
+    """Parse a written dose into (amount, canonical unit), or None.
+
+    None means "this cannot be read as an amount", and it is the answer for far
+    more input than it looks: a bare drug name, "(NONE)", and critically
+    "3,000 SQ" — where SQ is the ROUTE. Parsing that as 3,000 of something and
+    letting it scale a per-dose effect would multiply a nutrient contribution by
+    three thousand.
+
+    Refusing is the whole point. A dose the record does not state must read as
+    "given, amount not recorded" (§3aj) — never as a default, and never as a
+    number borrowed from a different row. Callers get None and must say so.
+    """
+    if not text:
+        return None
+    match = _DOSE_TEXT_RE.match(str(text).strip())
+    if not match:
+        return None
+
+    amount = float(match.group(1).replace(",", ""))
+    unit = (match.group(2) or "").strip().lower()
+    if match.group(3):
+        # "2.5 ml x 2" is 5 ml given, across two lumens.
+        amount *= float(match.group(3))
+
+    unit = {"ug": "mcg", "mcgs": "mcg", "mgs": "mg", "iu.": "iu"}.get(unit, unit)
+    if unit not in _ARITHMETIC_UNITS:
+        return None
+    if amount <= 0:
+        return None
+    return amount, unit
+
+
 @dataclass
 class FlowsheetDrugSummary:
     """What a patient has actually been given during dialysis, over a period."""
