@@ -166,26 +166,34 @@ def _protein_effect() -> nes.Effect:
         agent_kind="treatment", agent_key="hemodialysis", agent_label="Hemodialysis",
         nutrient_key="protein_g", direction=REMOVES,
         magnitude=9.0, magnitude_unit="g", basis=PER_SESSION,
-        scales_with="dialysate_volume_l", scale_reference=30.0,
-        scale_min=0.5, scale_max=2.0,
+        scales_with="blood_volume_processed_l", scale_reference=75.0,
+        scale_min=0.15, scale_max=2.0,
     )
 
 
 @pytest.mark.parametrize("volume_l,expected_g", [
-    (30.0, 9.0),      # the reference prescription
-    (15.0, 4.5),      # half the volume, half the loss
-    (60.0, 18.0),     # double, at the clamp ceiling
-    (120.0, 18.0),    # beyond it — clamped, NOT four times the loss
-    (3.0, 4.5),       # below the floor — clamped at 0.5x
+    (75.0, 9.0),      # the reference session
+    (37.5, 4.5),      # half the throughput, half the loss
+    (150.0, 18.0),    # double, exactly at the clamp ceiling
+    (300.0, 18.0),    # beyond it — clamped, NOT four times the loss
+    (5.0, 1.35),      # below the floor — clamped at 0.15x
 ])
 def test_scaled_magnitude_reproduces_the_protein_prior(volume_l, expected_g):
-    """`grams_per_session * max(0.5, min(volume/30.0, 2.0))`, exactly.
+    """`grams_per_session * clamp(blood volume / 75 L, 0.15, 2.0)`, exactly.
 
-    If the store cannot reproduce today's shipping numbers, migrating protein
-    into it is a rewrite wearing a migration's name.
+    Deliberately arithmetic I typed here, where
+    `test_the_store_reproduces_the_shipping_model_exactly` reads the same
+    figures out of the model's own constants. Two independent statements of one
+    rule: this one fails if the model is edited to something I did not intend,
+    that one fails if the store and the model drift apart at all. Either alone
+    can pass while both sides move together.
+
+    The floor is 0.15 rather than the dialysate basis's 0.5 because blood volume
+    genuinely varies — 16 to 139 L across 1,352 recorded sessions — where
+    dialysate is 30 L on nearly every home session.
     """
     effect = _protein_effect()
-    got = effect.scaled_magnitude({"dialysate_volume_l": volume_l})
+    got = effect.scaled_magnitude({"blood_volume_processed_l": volume_l})
     assert got == pytest.approx(expected_g)
 
 
@@ -210,7 +218,10 @@ def test_a_null_magnitude_stays_null():
 
 # ── Re-resolution converges on one row ────────────────────────────────
 
-@pytest.mark.parametrize("volume_l", [15.0, 30.0, 45.0, 60.0, 90.0])
+#: Blood volume processed, in litres — the real range is 16-139 across 1,352
+#: recorded sessions, so these span the clamp floor, the 75 L reference and the
+#: ceiling rather than sitting safely in the middle.
+@pytest.mark.parametrize("volume_l", [10.0, 40.0, 75.0, 110.0, 160.0])
 def test_the_store_reproduces_the_shipping_model_exactly(volume_l):
     """The word "migration" has to be earned against the model, not my arithmetic.
 
@@ -224,25 +235,33 @@ def test_the_store_reproduces_the_shipping_model_exactly(volume_l):
     """
     from app.services.dialysis_balance import (
         DEFAULT_COEFFICIENTS, PROTEIN, SerumLevels, SessionParams,
-        _REFERENCE_DIALYSATE_L, estimate_session_removal,
+        _BLOOD_VOLUME_RATIO_BOUNDS, _REFERENCE_BLOOD_VOLUME_L,
+        estimate_session_removal,
     )
 
+    # The basis is BLOOD VOLUME PROCESSED, not dialysate volume. This test was
+    # written against the dialysate basis and failed the moment the model moved
+    # — all five parametrisations — which is exactly what it exists to do: the
+    # seeded effect had drifted from the shipping model and said so on the
+    # first run after the change.
     session = SessionParams(
-        dialysate_volume_l=volume_l, duration_minutes=240.0,
-        blood_flow_ml_min=350.0, bath_potassium_meq=1.0, completed=True,
+        dialysate_volume_l=30.0, duration_minutes=240.0,
+        blood_volume_recorded_l=volume_l, bath_potassium_meq=1.0, completed=True,
     )
     shipped = estimate_session_removal(session, SerumLevels(), DEFAULT_COEFFICIENTS)
     assert PROTEIN in shipped, "the shipping model stopped producing protein"
 
+    lo, hi = _BLOOD_VOLUME_RATIO_BOUNDS
     coeff = DEFAULT_COEFFICIENTS[PROTEIN]
     stored = nes.Effect(
         agent_kind="treatment", agent_key="hemodialysis", agent_label="Hemodialysis",
         nutrient_key="protein_g", direction=REMOVES,
         magnitude=coeff.grams_per_session, magnitude_unit="g", basis=PER_SESSION,
-        scales_with="dialysate_volume_l", scale_reference=_REFERENCE_DIALYSATE_L,
-        scale_min=0.5, scale_max=2.0,
+        scales_with="blood_volume_processed_l",
+        scale_reference=_REFERENCE_BLOOD_VOLUME_L,
+        scale_min=lo, scale_max=hi,
     )
-    from_store_g = stored.scaled_magnitude({"dialysate_volume_l": volume_l})
+    from_store_g = stored.scaled_magnitude({"blood_volume_processed_l": volume_l})
     assert from_store_g == pytest.approx(shipped[PROTEIN].mass_mg / 1000.0)
 
 

@@ -98,6 +98,10 @@ async def sessions_for_day(db: AsyncSession, user_id: int, day: date) -> list[Se
             blood_flow_ml_min=measured.get(row.id) or row.blood_flow_rate,
             ultrafiltration_ml=row.fluid_removed_ml,
             bath_potassium_meq=row.dialysate_potassium_meq,
+            # The machine's measured throughput. Dropped by this DTO until the
+            # flowsheet import loss was recovered, which is why amino-acid loss
+            # could only ever scale on dialysate volume.
+            blood_volume_recorded_l=row.total_blood_volume_processed,
             completed=status.lower() in {s.lower() for s in COMPLETED_STATUSES},
         ))
     return sessions

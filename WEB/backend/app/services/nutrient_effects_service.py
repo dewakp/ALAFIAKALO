@@ -173,10 +173,17 @@ class Effect:
     def scaled_magnitude(self, context: dict[str, float] | None = None) -> float | None:
         """Apply the stored scaling rule to this effect's magnitude.
 
-        Reproduces the protein prior exactly: 9 g per session multiplied by
-        (dialysate volume / 30 L), clamped to 0.5–2.0×. The clamp is not
-        decoration — an unclamped ratio would credit a 120 L session with four
-        times the amino-acid loss, which is not what happens.
+        The rule is `magnitude * clamp(measured / reference)`, and WHICH
+        measurement it reads is the stored effect's business, not this method's.
+        Protein scales on blood volume processed against 75 L; an effect that
+        scales on dialysate volume, dose units or nothing at all goes through
+        the same three lines. Naming one basis here is how this docstring came
+        to describe dialysate volume for a prior that had moved to blood volume.
+
+        The clamp is not decoration — an unclamped ratio would credit a session
+        of twice the throughput with four times the amino-acid loss, which is
+        not what happens. A missing measurement returns the magnitude UNSCALED
+        rather than zero: "not recorded" is not "none removed" (§3aa).
         """
         if self.magnitude is None:
             return None

@@ -59,6 +59,55 @@ class TestAgainstPublishedBands:
         grams = estimate_session_removal(a_session(), a_serum())[PROTEIN].mass_mg / 1000
         assert 5 <= grams <= 13
 
+    def test_amino_acid_loss_FOLLOWS_THROUGHPUT(self):
+        """Two sessions, same dialysate, different blood volume — different loss.
+
+        This is the defect the whole change exists to remove. Amino-acid loss
+        used to scale on dialysate volume alone, which is 30 L on nearly every
+        home session — so across 1,725 real sessions protein took exactly three
+        values (9.0, 12.0, 18.0 g). An 18-minute session that processed 3.6 L
+        of blood was credited the same 9.0 g as a 170-minute session that
+        processed 62.5 L, while potassium on those same sessions moved sixfold.
+        """
+        low = estimate_session_removal(
+            a_session(blood_volume_recorded_l=30.0), a_serum())[PROTEIN].mass_mg
+        high = estimate_session_removal(
+            a_session(blood_volume_recorded_l=110.0), a_serum())[PROTEIN].mass_mg
+        assert low < high, "throughput does not move the figure — still a constant"
+        # ~3.7x the blood, so materially more amino acid, not a rounding change.
+        assert high / low > 3.0
+
+    def test_the_reference_session_lands_on_the_literature_prior(self):
+        """75 L is the median of 1,352 recorded sessions, so it gets ~9 g."""
+        grams = estimate_session_removal(
+            a_session(blood_volume_recorded_l=75.0), a_serum()
+        )[PROTEIN].mass_mg / 1000
+        assert 8.5 <= grams <= 9.5
+
+    def test_a_recorded_blood_volume_beats_the_derivation(self):
+        """Qb x duration is an estimate from one mean; the machine's is measured.
+
+        Blood flow varies 150-480 mL/min through a session, so the two differ —
+        and `effective_volume_l` already prefers delivered over ordered for the
+        same reason.
+        """
+        derived_only = a_session()                       # 350 mL/min x 184 min = 64.4 L
+        recorded = a_session(blood_volume_recorded_l=110.0)
+        assert (estimate_session_removal(recorded, a_serum())[PROTEIN].mass_mg
+                > estimate_session_removal(derived_only, a_serum())[PROTEIN].mass_mg)
+
+    def test_a_session_with_no_throughput_still_reports_a_loss(self):
+        """It fell back, it did not vanish.
+
+        Returning nothing would read as "dialysis removed no protein", which is
+        false — the treatment happened (§3aa: an error is not an empty state).
+        """
+        estimate = estimate_session_removal(
+            a_session(blood_flow_ml_min=None, blood_volume_recorded_l=None), a_serum()
+        )[PROTEIN]
+        assert estimate.mass_mg > 0
+        assert "no blood volume recorded" in (estimate.note or "")
+
     def test_calcium_against_a_rich_bath_is_a_GAIN(self):
         """The classic effect: a 3.0 mEq/L bath loads calcium rather than removing it.
 

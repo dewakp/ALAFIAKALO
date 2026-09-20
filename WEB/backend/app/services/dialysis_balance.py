@@ -152,8 +152,36 @@ DEFAULT_COEFFICIENTS: dict[str, Coefficients] = {
     ),
 }
 
-#: Reference dialysate volume the protein prior was expressed against.
+#: Reference dialysate volume. Retained as the FALLBACK basis for amino-acid
+#: loss on sessions with no recorded blood volume.
 _REFERENCE_DIALYSATE_L = 30.0
+
+#: Reference blood volume processed, in litres — the MEDIAN of this patient's
+#: 1,352 sessions that record it (mean 76.6, range 16–139). Read off the record
+#: rather than chosen, for the same reason the dialysate reference is 30: the
+#: literature's 6–12 g describes a TYPICAL treatment, so the prior has to land
+#: on a typical treatment.
+#:
+#: Why this replaces dialysate volume as the basis: amino-acid loss follows what
+#: passed through the filter, and dialysate volume is 30 L on nearly every home
+#: session — so scaling on it made the figure a constant. Across 1,725 real
+#: sessions protein took exactly three values (9.0, 12.0, 18.0 g), and an
+#: 18-minute session that processed 3.6 L of blood was credited the same 9.0 g
+#: as a 170-minute session that processed 62.5 L, while potassium on those same
+#: sessions moved sixfold because it reads blood volume and duration.
+#:
+#: The column was empty when this model was written — 27 of 2,094 sessions —
+#: because the flowsheet import dropped it. It is populated now.
+_REFERENCE_BLOOD_VOLUME_L = 75.0
+
+#: Bounds on the throughput ratio. A clamp exists to stop extrapolating a
+#: literature prior far beyond the treatments it describes, NOT to flatten the
+#: range: the recorded 16–139 L spans ratios of 0.21–1.85, so both ends sit
+#: inside these bounds and every real session scales. The floor is deliberately
+#: low — a session that processed a fifth of the usual blood volume did lose
+#: proportionally less, and pinning it at half would repeat the flattening this
+#: change exists to remove.
+_BLOOD_VOLUME_RATIO_BOUNDS = (0.15, 2.0)
 
 #: Blood flow relative to dialysate flow governs how close the effluent gets to
 #: equilibrium with plasma. Volume alone is not enough: run the same 30 L
@@ -203,6 +231,12 @@ class SessionParams:
     #: sodium is not one of the analytes it covers — kept so the record is
     #: complete rather than silently dropped.
     bath_sodium_meq: float | None = None
+    #: Litres of blood the machine reports having processed. MEASURED, where
+    #: the derived property below is Qb × duration — and the two differ, because
+    #: blood flow varies through a session while the prescription does not.
+    #: Empty on 27 of 2,094 sessions until the flowsheet import loss was
+    #: recovered; now recorded on 1,544.
+    blood_volume_recorded_l: float | None = None
     completed: bool = True
 
     @property
@@ -221,7 +255,16 @@ class SessionParams:
 
     @property
     def blood_volume_processed_l(self) -> float | None:
-        """Litres of blood actually passed through the filter (Qb × duration)."""
+        """Litres of blood passed through the filter.
+
+        The machine's own figure wins over Qb × duration, for the same reason
+        `effective_volume_l` prefers delivered over ordered: blood flow varies
+        through a session — the intradialytic readings span roughly 150–480
+        mL/min — so the derivation using a single mean is an estimate, while
+        the recorded total is a measurement.
+        """
+        if self.blood_volume_recorded_l:
+            return self.blood_volume_recorded_l
         if not self.blood_flow_ml_min or not self.duration_minutes:
             return None
         return (self.blood_flow_ml_min * self.duration_minutes) / 1000.0
@@ -448,19 +491,34 @@ def estimate_session_removal(
             ),
         )
 
-    # ── Protein / amino acids: a per-session loss ──
+    # ── Protein / amino acids: a per-session loss, scaled by THROUGHPUT ──
     coeff = coeffs[PROTEIN]
     if coeff.grams_per_session:
-        # Scale gently with dialysate volume; loss is driven by the treatment
-        # itself rather than by a concentration gradient.
-        scale = (volume_l / _REFERENCE_DIALYSATE_L) if volume_l else 1.0
-        grams = coeff.grams_per_session * max(0.5, min(scale, 2.0))
+        # Amino acids leave with what passed through the filter, so the basis
+        # is blood volume processed — not dialysate volume, which is 30 L on
+        # nearly every home session and therefore carries no information.
+        blood_l = session.blood_volume_processed_l
+        if blood_l:
+            lo, hi = _BLOOD_VOLUME_RATIO_BOUNDS
+            scale = max(lo, min(blood_l / _REFERENCE_BLOOD_VOLUME_L, hi))
+            basis = "blood volume processed"
+        else:
+            # No throughput recorded and none derivable. Fall back to the old
+            # dialysate basis rather than dropping the figure: a session with
+            # an unrecorded blood volume still lost amino acids, and returning
+            # nothing would read as "dialysis removed no protein" (§3aa).
+            scale = ((volume_l / _REFERENCE_DIALYSATE_L) if volume_l else 1.0)
+            scale = max(0.5, min(scale, 2.0))
+            basis = "dialysate volume (no blood volume recorded)"
+
+        grams = coeff.grams_per_session * scale
         results[PROTEIN] = RemovalEstimate(
             analyte=PROTEIN,
             mass_mg=grams * 1000.0,
             diffusive_mg=grams * 1000.0,
             calibrated=coeff.calibrated,
-            note="Free amino acid loss; the basis for the raised protein target on dialysis.",
+            note=("Free amino acid loss; the basis for the raised protein target "
+                  f"on dialysis. Scaled by {basis}."),
         )
 
     return results

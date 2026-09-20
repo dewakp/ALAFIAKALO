@@ -40,16 +40,19 @@ from app.models.nutrient_effect import (
     AGENT_TREATMENT, PER_SESSION, REMOVES, NutrientEffect,
 )
 from app.services.dialysis_balance import (
-    DEFAULT_COEFFICIENTS, PROTEIN, _REFERENCE_DIALYSATE_L,
+    DEFAULT_COEFFICIENTS, PROTEIN,
+    _BLOOD_VOLUME_RATIO_BOUNDS, _REFERENCE_BLOOD_VOLUME_L,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("seed_nutrient_effects")
 
-#: The clamp `estimate_session_removal` applies to the volume ratio. Read here
-#: for the same reason as the magnitude: an unclamped ratio would credit a 120 L
-#: session with four times the amino-acid loss, which is not what happens.
-_SCALE_MIN, _SCALE_MAX = 0.5, 2.0
+#: The clamp `estimate_session_removal` applies to the throughput ratio, read
+#: from the model rather than retyped — one source, so the store cannot quietly
+#: disagree with the thing it mirrors. That disagreement is not hypothetical:
+#: when the model moved from dialysate volume to blood volume, the equivalence
+#: test failed all five parametrisations because this constant had not.
+_SCALE_MIN, _SCALE_MAX = _BLOOD_VOLUME_RATIO_BOUNDS
 
 #: Which therapy types this prior describes. `TherapyType` carries eleven
 #: members and the balance model knows one — that gap is what the resolver is
@@ -79,7 +82,9 @@ async def seed() -> int:
             if existing is not None:
                 # Converge, never duplicate (§3ab). A re-run must be a no-op.
                 existing.magnitude = coeff.grams_per_session
-                existing.scale_reference = _REFERENCE_DIALYSATE_L
+                existing.scales_with = "blood_volume_processed_l"
+                existing.scale_reference = _REFERENCE_BLOOD_VOLUME_L
+                existing.scale_min, existing.scale_max = _SCALE_MIN, _SCALE_MAX
                 existing.is_active = True
                 logger.info("protein_g for %s already present — refreshed", agent_key)
             else:
@@ -93,8 +98,12 @@ async def seed() -> int:
                     magnitude=coeff.grams_per_session,
                     magnitude_unit="g",
                     basis=PER_SESSION,
-                    scales_with="dialysate_volume_l",
-                    scale_reference=_REFERENCE_DIALYSATE_L,
+                    # Amino acids leave with what passed through the filter.
+                    # This was dialysate volume until the flowsheet import loss
+                    # was recovered — and dialysate is 30 L on nearly every home
+                    # session, so scaling on it made the figure a constant.
+                    scales_with="blood_volume_processed_l",
+                    scale_reference=_REFERENCE_BLOOD_VOLUME_L,
                     scale_min=_SCALE_MIN,
                     scale_max=_SCALE_MAX,
                     mechanism=(
@@ -119,8 +128,8 @@ async def seed() -> int:
                 written += 1
                 logger.info(
                     "seeded protein_g for %s: %.1f g/session, scaled by "
-                    "dialysate volume against %.0f L, clamped %.1f-%.1fx",
-                    agent_key, coeff.grams_per_session, _REFERENCE_DIALYSATE_L,
+                    "blood volume processed against %.0f L, clamped %.2f-%.1fx",
+                    agent_key, coeff.grams_per_session, _REFERENCE_BLOOD_VOLUME_L,
                     _SCALE_MIN, _SCALE_MAX,
                 )
 

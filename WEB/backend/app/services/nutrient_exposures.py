@@ -117,6 +117,17 @@ async def exposures_for_day(
             context: dict[str, float] = {}
             if row.dialysate_volume_liters is not None:
                 context["dialysate_volume_l"] = float(row.dialysate_volume_liters)
+            # Protein scales on THROUGHPUT, so the recorded blood volume has to
+            # reach the store or `scaled_magnitude` finds no basis and returns
+            # the flat 9 g prior — the constant this whole basis exists to
+            # replace, reinstated on the one path that feeds the day's totals.
+            # Only the MEASURED total goes in: `therapy_sessions.blood_flow_rate`
+            # is the PRESCRIBED rate, a flat 350 on every row (§3ac), so
+            # deriving Qb x duration here would manufacture a figure that looks
+            # measured and is identical for every patient.
+            if row.total_blood_volume_processed is not None:
+                context["blood_volume_processed_l"] = float(
+                    row.total_blood_volume_processed)
 
             out.append(AgentExposure(
                 kind="treatment",

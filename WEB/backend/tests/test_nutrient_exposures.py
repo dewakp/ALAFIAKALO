@@ -96,6 +96,44 @@ async def test_a_session_with_no_recorded_volume_omits_the_key(db):
 
 
 @pytest.mark.asyncio
+async def test_the_recorded_blood_volume_reaches_the_store(db):
+    """Protein scales on THROUGHPUT, and the store can only scale on what the
+    context carries.
+
+    Without this key `scaled_magnitude` finds no basis and returns the flat 9 g
+    prior — the constant the blood-volume basis exists to replace, reinstated on
+    the one path that feeds a patient's daily totals. Model and store would then
+    disagree about the same session while both looked healthy, which is the
+    failure the equivalence test cannot see: it checks the rule, not the wiring.
+    """
+    user = await _user(db, "exp-bvp@example.com")
+    db.add(_session(user.id, total_blood_volume_processed=98.0))
+    await db.flush()
+
+    exps = await exposures_for_day(db, user.id, DAY)
+    treatment = next(e for e in exps if e.kind == "treatment")
+    assert treatment.context["blood_volume_processed_l"] == 98.0
+
+
+@pytest.mark.asyncio
+async def test_an_unrecorded_blood_volume_is_omitted_never_derived(db):
+    """§3ac: `blood_flow_rate` is the PRESCRIBED rate — a flat 350 on every row.
+
+    Deriving Qb x duration from it would write a figure that looks measured and
+    is identical for every patient, so the store would scale confidently on a
+    constant. An absent basis returns the unscaled prior, which is honest; a
+    fabricated one is the §3am failure — a number that looks measured.
+    """
+    user = await _user(db, "exp-nobvp@example.com")
+    db.add(_session(user.id, blood_flow_rate=350.0))
+    await db.flush()
+
+    exps = await exposures_for_day(db, user.id, DAY)
+    treatment = next(e for e in exps if e.kind == "treatment")
+    assert "blood_volume_processed_l" not in treatment.context
+
+
+@pytest.mark.asyncio
 async def test_drugs_given_by_the_unit_are_collected(db):
     """The third source. These never appear in a dose log the patient fills in."""
     user = await _user(db, "exp-administered@example.com")
