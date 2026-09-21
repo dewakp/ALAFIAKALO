@@ -99,6 +99,20 @@ _SPREADSHEET_ERRORS = {
 #: flag means the lab said nothing, which is not the same as "normal" (§3aa).
 _ABNORMAL_FLAGS = {"l", "h", "ll", "hh", "a"}
 
+#: Rows per transaction.
+#:
+#: Committing all 8,853 at once produced a single insertmany of ~233 KB with
+#: 13,500+ bound parameters, and the Cloud SQL proxy dropped the connection
+#: mid-statement: "connection was closed in the middle of operation". Nothing
+#: was written — verified against production afterwards, 887 rows before and
+#: 887 after, zero rows carrying this script's provenance marker.
+#:
+#: Batching trades atomicity for resumability, and that is the right way round
+#: here: dedupe is on (date, analyte), so a run that stops halfway can simply
+#: be run again and whatever landed is skipped. An all-or-nothing transaction
+#: of that size is precisely what failed.
+_COMMIT_BATCH = 500
+
 
 def _find_csv(explicit: pathlib.Path | None) -> pathlib.Path:
     if explicit:
@@ -292,24 +306,33 @@ async def run(email: str, path: pathlib.Path, apply: bool, limit: int | None) ->
             logger.info("dry run — nothing written. Re-run with --apply.")
             return 0
 
-        for row in fresh:
-            db.add(LabResult(
-                user_id=user.id,
-                test_date=row.day,
-                test_name=row.name,          # as the source printed it (§3ax)
-                value=row.value,
-                value_string=row.value_string,
-                unit=row.unit,
-                reference_range_low=row.ref_low,
-                reference_range_high=row.ref_high,
-                is_abnormal=row.abnormal,
-                status="final",
-                performing_lab=row.lab,
-                notes=row.provenance,
-            ))
-        await db.commit()
+        written = 0
+        for start in range(0, len(fresh), _COMMIT_BATCH):
+            batch = fresh[start:start + _COMMIT_BATCH]
+            for row in batch:
+                db.add(LabResult(
+                    user_id=user.id,
+                    test_date=row.day,
+                    test_name=row.name,      # as the source printed it (§3ax)
+                    value=row.value,
+                    value_string=row.value_string,
+                    unit=row.unit,
+                    reference_range_low=row.ref_low,
+                    reference_range_high=row.ref_high,
+                    is_abnormal=row.abnormal,
+                    status="final",
+                    performing_lab=row.lab,
+                    notes=row.provenance,
+                ))
+            await db.commit()
+            written += len(batch)
+            # Progress is reported per batch so a run that dies partway says
+            # how far it got. The previous version logged only a total, which
+            # on failure printed nothing at all.
+            logger.info("   committed %d/%d", written, len(fresh))
+
         logger.info("")
-        logger.info("imported %d row(s)", len(fresh))
+        logger.info("imported %d row(s)", written)
     return 0
 
 
