@@ -98,6 +98,38 @@ async def _distinct_agents(db) -> list[tuple[str, str]]:
     return sorted(seen.values(), key=lambda p: (p[0], p[1].lower()))
 
 
+async def _rxnorm_identity(label: str) -> tuple[str | None, str | None]:
+    """(rxcui, suggestion) for one written name — identity PROPOSED, never applied.
+
+    `canonical_drug_name` recognises 5 of the 20 medication names this record
+    holds: `Sevelamer`, `Calcium Carbonate` and `Folic Acid` are real drugs its
+    hand-typed table lacks, and `Docusate`/`Docusolate` stay two agents for one
+    drug. RxNorm knows all three and resolves the misspellings — so the rxcui
+    is worth recording as `agent_code`, where the authority decides identity
+    rather than our spelling (§3aj).
+
+    What is NOT done here is renaming. `test_genuinely_different_names_are_NOT_
+    merged` pins Docusate apart from Docusolate on the stated ground that
+    "merging them would be guessing a drug name", and RxNorm shows exactly why:
+    asked about "Flucel Vax" it answers "Vaxelis", a different vaccine
+    altogether. A suggestion is printed for a human to act on; nothing is
+    folded automatically. Inference proposes, it never writes.
+
+    Never raises: an unreachable RxNorm must not stop the sweep, it just means
+    the agent is stored without a code, exactly as today.
+    """
+    try:
+        from app.services.rxnorm import lookup
+
+        facts = await lookup(label)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("rxnorm lookup failed for %r: %s", label, exc)
+        return None, None
+    if facts.known:
+        return facts.rxcui, None
+    return None, facts.suggestion
+
+
 async def sweep(*, apply: bool, limit: int | None, only: str | None) -> int:
     """Resolve unknown agents. Returns the number of agents newly described."""
     resolved_count = 0
@@ -123,13 +155,32 @@ async def sweep(*, apply: bool, limit: int | None, only: str | None) -> int:
             pending = pending[:limit]
 
         if not apply:
+            unknown: list[tuple[str, str]] = []
             for kind, label in pending:
-                logger.info("  would resolve %-11s %s", kind, label)
+                rxcui, suggestion = await _rxnorm_identity(label)
+                if rxcui:
+                    logger.info("  would resolve %-11s %-30s rxcui %s", kind, label, rxcui)
+                elif suggestion:
+                    logger.info("  would resolve %-11s %-30s RxNorm suggests %r",
+                                kind, label, suggestion)
+                    unknown.append((label, suggestion))
+                else:
+                    logger.info("  would resolve %-11s %-30s not in RxNorm", kind, label)
+                    unknown.append((label, ""))
+            if unknown:
+                logger.info("")
+                logger.info("%d name(s) RxNorm does not recognise. A suggestion is a "
+                            "PROPOSAL — it answers 'Flucel Vax' with 'Vaxelis', a "
+                            "different vaccine. Correct the record, do not rename here:",
+                            len(unknown))
+                for label, suggestion in unknown:
+                    logger.info("   %-34s %s", label, suggestion or "(no suggestion)")
             logger.info("dry run — nothing asked and nothing written. Use --apply.")
             return 0
 
         for kind, label in pending:
-            effects = await resolve_agent_effects(db, kind, label)
+            rxcui, _ = await _rxnorm_identity(label)
+            effects = await resolve_agent_effects(db, kind, label, agent_code=rxcui)
             if effects:
                 resolved_count += 1
                 for effect in effects:
