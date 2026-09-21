@@ -15,7 +15,7 @@ from app.services.nutrient_effects_day import (
     AgentExposure, apply_effects_to_totals,
 )
 from app.services.nutrient_effects_service import (
-    ADDS, INCREASES_REQUIREMENT, REMOVES, Effect,
+    ADDS, INCREASES_REQUIREMENT, PER_DOSE_UNIT, REMOVES, Effect,
 )
 
 
@@ -25,10 +25,18 @@ def _goal(key: str, unit: str, kind: str, current: float, goal: float = 100.0) -
 
 
 def _protein_effect(magnitude: float = 9.0) -> Effect:
+    """The seeded KDOQI prior, which is exactly what `provenance` marks.
+
+    Declared rather than defaulted: a model-supplied magnitude is reported and
+    NOT counted (see `test_a_model_supplied_magnitude_is_shown_but_not_counted`),
+    so a fixture that means "a figure we trust" has to say so. These tests are
+    about the arithmetic — occurrences multiply, the clamp applies per session —
+    and that arithmetic is only observable on a figure allowed to count.
+    """
     return Effect(
         agent_kind="treatment", agent_key="hemodialysis", agent_label="Hemodialysis",
         nutrient_key="protein_g", direction=REMOVES, magnitude=magnitude,
-        magnitude_unit="g", basis="per_session",
+        magnitude_unit="g", basis="per_session", provenance="literature_prior",
         mechanism="Free amino acids leave in the effluent.",
     )
 
@@ -96,7 +104,7 @@ def test_two_sessions_in_a_day_both_count():
     scaling = Effect(
         agent_kind="treatment", agent_key="hemodialysis", agent_label="Hemodialysis",
         nutrient_key="protein_g", direction=REMOVES, magnitude=9.0,
-        magnitude_unit="g", basis="per_session",
+        magnitude_unit="g", basis="per_session", provenance="literature_prior",
         scales_with="dialysate_volume_l", scale_reference=30.0,
         scale_min=0.5, scale_max=2.0,
     )
@@ -119,6 +127,7 @@ def _iron_effect():
         agent_kind="medication", agent_key="iron sucrose", agent_label="Iron sucrose",
         nutrient_key="iron_mg", direction=ADDS, magnitude=1.0,
         magnitude_unit="mg", basis=PER_DOSE_UNIT, dose_unit="mg",
+        provenance="literature_prior",
         mechanism="Intravenous iron enters the blood directly.",
     )
 
@@ -269,6 +278,79 @@ def test_a_refusal_beside_a_good_dose_is_still_reported():
     assert any("failed the dose check" in n for n in day.notes), day.notes
 
 
+# ── A figure a model supplied is shown, never counted ─────────────────
+
+
+def test_a_model_supplied_magnitude_is_shown_but_not_counted():
+    """Measured on the real store: the resolver answered 1 mg of sodium per mg
+    of docusate. Sodium docusate is about 5% sodium by mass, so that is roughly
+    twentyfold high — and it arrived as evidence "high", confidence 0.6, so no
+    confidence threshold would have caught it.
+
+    It is not gated either: `gate_needed(ADDS, "limit")` returns False, because
+    raising a limit's total tightens the budget and is normally the safe
+    direction. So without this rule that wrong figure lands straight on a
+    sodium limit.
+    """
+    goals = [_goal("sodium_mg", "mg", "limit", current=1500.0, goal=2000.0)]
+    docusate = Effect(
+        agent_kind="medication", agent_key="docusate", agent_label="Docusate",
+        nutrient_key="sodium_mg", direction=ADDS, magnitude=1.0,
+        magnitude_unit="mg", basis=PER_DOSE_UNIT, dose_unit="mg",
+        provenance="llm", evidence_level="high", confidence=0.6,
+        mechanism="Sodium docusate contains sodium.",
+    )
+    exposure = AgentExposure(
+        kind="medication", key="docusate", label="Docusate", occurrences=1,
+        context={}, dose_amount=100.0, dose_unit="mg", dose_text="100 mg",
+    )
+    adjusted, _ = apply_effects_to_totals(
+        goals, [exposure], [docusate], measurement_fresh=True)
+
+    entry = adjusted[0]["nutrient_effects"][0]
+    assert entry["applied"] is False, "an unconfirmed figure must not count"
+    assert entry["delta"] == 0.0
+    assert entry["modelled"] == pytest.approx(100.0), "what it would have been is kept"
+    assert "has not been confirmed" in (entry.get("withheld") or "")
+    # The EFFECT still reaches the patient — "this adds sodium" is true and
+    # useful even when the amount is not established (§3aa).
+    assert entry["mechanism"] == "Sodium docusate contains sodium."
+
+
+def test_a_literature_prior_still_counts():
+    """The rule targets unverified figures, not every figure. A seeded prior
+    with a citation, or a coefficient fitted to this patient, counts normally —
+    otherwise the layer would report everything and total nothing."""
+    goals = [_goal("protein_g", "g", "target", current=70.0)]
+    adjusted, _ = apply_effects_to_totals(
+        goals, [_session()], [_protein_effect()], measurement_fresh=True)
+    entry = adjusted[0]["nutrient_effects"][0]
+    assert entry["applied"] is True
+    assert entry["delta"] == pytest.approx(-9.0)
+
+
+def test_micrograms_spelled_two_ways_are_one_unit():
+    """The catalog declares "µg" while every key ends `_mcg`, so a stored
+    effect and a parsed dose can disagree on spelling alone. Refusing that as a
+    unit mismatch tells the patient the units do not match when they do — the
+    resolver stored exactly "µg" for Doxercalciferol."""
+    goals = [_goal("vitamin_b9_folate_mcg", "mcg", "target", current=100.0)]
+    effect = Effect(
+        agent_kind="medication", agent_key="folic acid", agent_label="Folic Acid",
+        nutrient_key="vitamin_b9_folate_mcg", direction=ADDS, magnitude=1.0,
+        magnitude_unit="µg", basis=PER_DOSE_UNIT, dose_unit="µg",
+        provenance="literature_prior", mechanism="Provides folate directly.",
+    )
+    exposure = AgentExposure(
+        kind="medication", key="folic acid", label="Folic Acid", occurrences=1,
+        context={}, dose_amount=400.0, dose_unit="mcg", dose_text="400 mcg",
+    )
+    adjusted, _ = apply_effects_to_totals(
+        goals, [exposure], [effect], measurement_fresh=True)
+    entry = adjusted[0]["nutrient_effects"][0]
+    assert entry["delta"] == pytest.approx(400.0), "µg and mcg are the same unit"
+
+
 def test_an_agent_not_met_today_contributes_nothing():
     """A stored fact is not an exposure. Knowing what sevelamer does is not the
     same as the patient having taken it."""
@@ -305,10 +387,13 @@ def test_a_withheld_effect_is_still_reported():
 
 def test_the_same_effect_counts_once_a_measurement_confirms_it():
     goals = [_goal("phosphorus_mg", "mg", "limit", current=900.0)]
+    # A trusted figure, declared: with the gate released by a fresh
+    # measurement, an unconfirmed model magnitude would still be withheld, and
+    # this test is about the GATE rather than about provenance.
     binder = Effect(
         agent_kind="medication", agent_key="a binder", agent_label="A Binder",
         nutrient_key="phosphorus_mg", direction=REMOVES, magnitude=200.0,
-        magnitude_unit="mg", basis="per_dose_unit",
+        magnitude_unit="mg", basis="per_dose_unit", provenance="literature_prior",
     )
     exposure = AgentExposure(kind="medication", key="a binder", label="A Binder")
     adjusted, _ = apply_effects_to_totals(
@@ -324,7 +409,7 @@ def test_an_addition_is_never_gated():
         agent_kind="treatment", agent_key="peritoneal dialysis",
         agent_label="Peritoneal Dialysis", nutrient_key="sugar_g",
         direction=ADDS, magnitude=60.0, magnitude_unit="g",
-        basis="per_litre_dialysate",
+        basis="per_litre_dialysate", provenance="literature_prior",
     )
     exposure = AgentExposure(kind="treatment", key="peritoneal dialysis",
                              label="Peritoneal Dialysis")

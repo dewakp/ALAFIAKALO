@@ -47,7 +47,24 @@ _TO_BASE = {
     ("g", "g"): 1.0, ("mg", "mg"): 1.0, ("mcg", "mcg"): 1.0, ("iu", "iu"): 1.0,
     ("g", "mg"): 1000.0, ("mg", "g"): 0.001,
     ("mg", "mcg"): 1000.0, ("mcg", "mg"): 0.001,
+    ("g", "mcg"): 1_000_000.0, ("mcg", "g"): 0.000_001,
 }
+
+#: The SAME unit under two spellings, not a conversion. `NUTRIENT_CATALOG`
+#: declares micrograms as "µg" while every key ends `_mcg`, and
+#: `_GOAL_UNIT_BY_SUFFIX` therefore yields "mcg" — so an effect whose unit
+#: arrived as "µg" (the resolver stored exactly that for Doxercalciferol) could
+#: never convert, and was refused with a message telling the patient the units
+#: do not match when in fact they are identical.
+_UNIT_ALIASES = {"µg": "mcg", "ug": "mcg", "mcgs": "mcg", "mgs": "mg",
+                 "gram": "g", "grams": "g", "iu.": "iu"}
+
+
+def _canonical_unit(unit: str | None) -> str | None:
+    if not unit:
+        return None
+    cleaned = unit.strip().lower()
+    return _UNIT_ALIASES.get(cleaned, cleaned)
 
 #: Goal key suffix → the unit that goal is expressed in.
 _GOAL_UNIT_BY_SUFFIX = {"_g": "g", "_mg": "mg", "_mcg": "mcg", "_iu": "iu"}
@@ -126,10 +143,16 @@ def _goal_unit(goal: dict) -> str | None:
 
 
 def _convert(value: float, from_unit: str | None, to_unit: str | None) -> float | None:
-    """Convert, or return None when we cannot do it honestly."""
-    if from_unit is None or to_unit is None:
+    """Convert, or return None when we cannot do it honestly.
+
+    Spellings are folded FIRST: "µg" and "mcg" are one unit, and refusing to
+    convert between them would report a unit mismatch that does not exist.
+    """
+    source = _canonical_unit(from_unit)
+    target = _canonical_unit(to_unit)
+    if source is None or target is None:
         return None
-    factor = _TO_BASE.get((from_unit.lower(), to_unit.lower()))
+    factor = _TO_BASE.get((source, target))
     return None if factor is None else value * factor
 
 
@@ -156,6 +179,8 @@ def _dose_in(effect_dose_unit: str | None, exposure: AgentExposure) -> float | N
         return None
     if not effect_dose_unit:
         return None
+    # Both sides fold through `_canonical_unit` inside `_convert`, so a dose
+    # written "4mcg" still matches an effect stored per "µg".
     converted = _convert(exposure.dose_amount, exposure.dose_unit, effect_dose_unit)
     if converted is None:
         return None
@@ -326,8 +351,27 @@ def apply_effects_to_totals(
         withheld = None
         if gated and not measurement_fresh:
             withheld = (
-                "Not counted: this would lower what you appear to need, and "
+                "Not counted: this would change what you appear to need, and "
                 "there is no recent measurement to confirm it."
+            )
+        elif not effect.calibrated and effect.provenance == "llm":
+            # A model-supplied MAGNITUDE is reported, never counted.
+            #
+            # Measured on the real store: the resolver returned 1 mg of sodium
+            # per mg of docusate. Sodium docusate is about 5% sodium by mass, so
+            # that figure is roughly twentyfold high — and it arrived as
+            # evidence "high" with confidence 0.6, so no confidence threshold
+            # would have caught it. On a sodium limit a wrong number is worse
+            # than no number.
+            #
+            # The effect itself still shows, with its mechanism: "this drug adds
+            # sodium, amount not established" is true and useful. What is
+            # refused is letting an unverified figure move a clinical total.
+            # A literature prior or a fitted coefficient counts normally.
+            withheld = (
+                f"{effect.agent_label} affects this, but the amount comes from "
+                "an automated source and has not been confirmed, so it is shown "
+                "rather than counted."
             )
 
         day.applied.append(AppliedEffect(

@@ -180,6 +180,11 @@ class Effect:
     evidence_level: str = "moderate"
     confidence: float = 0.5
     calibrated: bool = False
+    #: Where the figure came from: "literature_prior" | "clinician" | "measured"
+    #: | "llm". Carried because a model-supplied MAGNITUDE must be reported and
+    #: not counted — confidence cannot separate a good figure from a bad one
+    #: (the docusate sodium figure arrived at evidence "high", ~20x too large).
+    provenance: str = "llm"
 
     def scaled_magnitude(self, context: dict[str, float] | None = None) -> float | None:
         """Apply the stored scaling rule to this effect's magnitude.
@@ -232,6 +237,7 @@ def _row_to_effect(row: NutrientEffect) -> Effect:
         mechanism=row.mechanism, evidence_level=row.evidence_level,
         confidence=row.confidence,
         calibrated=(row.provenance in ("clinician", "measured")),
+        provenance=row.provenance or "llm",
     )
 
 

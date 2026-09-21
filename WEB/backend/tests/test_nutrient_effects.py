@@ -167,7 +167,7 @@ def _protein_effect() -> nes.Effect:
         nutrient_key="protein_g", direction=REMOVES,
         magnitude=9.0, magnitude_unit="g", basis=PER_SESSION,
         scales_with="blood_volume_processed_l", scale_reference=75.0,
-        scale_min=0.15, scale_max=2.0,
+        scale_min=0.15, scale_max=2.0, provenance="literature_prior",
     )
 
 
