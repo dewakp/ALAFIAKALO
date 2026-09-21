@@ -1504,7 +1504,9 @@
     "na": "Na",
     "vitd": "VitD",
     "fol": "Fol",
-    "chol": "Chol"
+    "chol": "Chol",
+    "from_agent": "{{sign}}{{delta}}{{unit}} from {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "Medications",
@@ -1800,7 +1802,9 @@
     "vitamin_c": "Vitamin C",
     "vitamin_a": "Vitamin A",
     "omega_3": "Omega-3",
-    "your_personalized_targets_could_not_be": "Your personalized targets could not be loaded, so the generic reference values below are shown instead."
+    "your_personalized_targets_could_not_be": "Your personalized targets could not be loaded, so the generic reference values below are shown instead.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} from {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "Nutrition",

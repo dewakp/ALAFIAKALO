@@ -344,6 +344,40 @@ function BalanceLine({ balance, unit }) {
   );
 }
 
+/* What a drug, supplement or treatment did to THIS nutrient — the sibling of
+   BalanceLine above, for everything that is not gradient transfer.
+
+   Its own component rather than a shared import, because this page keeps its
+   own BalanceLine too: it uses `t`, `fmtNum` and no unit-label helper, where
+   NutrientTracking uses `translate`, `fmtAmount` and `showUnit`. The cost is
+   that a change here must land in both files.
+
+   `applied: false` renders rather than vanishing — an amount the record does
+   not state, or a figure nobody has confirmed, is a finding, and a silent zero
+   is how a decade of IV iron stayed invisible. */
+function EffectLine({ effect, unit }) {
+  if (!effect.withheld && Math.abs(effect.delta) < 0.005) return null;
+  if (effect.withheld) {
+    return <div style={{ fontSize: '.64rem', color: '#b45309', marginTop: '.15rem' }}>{effect.withheld}</div>;
+  }
+  const adds = effect.direction === 'adds';
+  return (
+    <div style={{ fontSize: '.64rem', marginTop: '.15rem', lineHeight: 1.35 }}>
+      <span style={{ color: adds ? '#b45309' : 'var(--color-primary)', fontWeight: 600 }}>
+        {t('MealsDiary.from_agent', {
+          sign: adds ? '+' : '', delta: fmtNum(effect.delta),
+          unit, agent: effect.agent,
+        })}
+      </span>
+      {effect.mechanism && (
+        <span style={{ color: 'var(--color-text-tertiary)' }}>
+          {' '}{t('MealsDiary.effect_mechanism', { mechanism: effect.mechanism })}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function goalColor(status) {
   if (status === 'ok') return '#22c55e';      // green
   if (status === 'over') return '#ef4444';    // red
@@ -425,6 +459,9 @@ function NutrientGoalsCard({ data }) {
                 <div style={{ width: `${fill}%`, height: '100%', background: color, borderRadius: 999, transition: 'width .3s' }}/>
               </div>
               {g.dialysis_balance && <BalanceLine balance={g.dialysis_balance} unit={g.unit} />}
+              {g.nutrient_effects?.map((e, i) => (
+                <EffectLine key={i} effect={e} unit={g.unit} />
+              ))}
             </div>
           );
         })}

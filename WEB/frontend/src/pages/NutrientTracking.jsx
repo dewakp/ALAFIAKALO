@@ -69,6 +69,42 @@ function BalanceLine({ balance, unit }) {
   );
 }
 
+/* What a drug, supplement or treatment did to THIS nutrient, beside its intake
+   figure and never folded into it — the same rule BalanceLine follows.
+
+   `applied: false` is a real state and renders: an amount the record does not
+   state, a credit that would reassure without a measurement behind it, or a
+   figure an automated source supplied that nobody has confirmed. Showing the
+   mechanism with the reason is the point — "this adds sodium, amount not
+   established" is useful, and a silent zero is how a decade of IV iron stayed
+   invisible. */
+function EffectLine({ effect, unit }) {
+  const adds = effect.direction === 'adds';
+  if (!effect.withheld && Math.abs(effect.delta) < 0.005) return null;
+
+  return (
+    <div style={{ fontSize: '.68rem', marginTop: '.2rem', lineHeight: 1.4 }}>
+      {effect.withheld ? (
+        <span style={{ color: '#b45309' }}>{effect.withheld}</span>
+      ) : (
+        <>
+          <span style={{ color: adds ? '#b45309' : 'var(--color-primary)', fontWeight: 600 }}>
+            {translate('NutrientTracking.from_agent', {
+              sign: adds ? '+' : '', delta: fmtAmount(effect.delta),
+              unit: showUnit(unit), agent: effect.agent,
+            })}
+          </span>
+          {effect.mechanism && (
+            <span style={{ color: 'var(--color-text-tertiary)' }}>
+              {' '}{translate('NutrientTracking.effect_mechanism', { mechanism: effect.mechanism })}
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function barColor(pct, isLimit) {
   if (isLimit) return pct > 100 ? '#ef4444' : '#f59e0b';
   if (pct >= 100) return '#22c55e';
@@ -146,6 +182,10 @@ export default function NutrientTracking() {
         target: g.goal, intake: g.current ?? nutrientMap[g.key] ?? 0,
         isLimit: g.kind === 'limit', rationale: g.rationale, status: g.status,
         balance: g.dialysis_balance || null,
+        /* Dropping this here would repeat, one layer up, the bug that kept
+           these invisible: the day layer attached them and the schema threw
+           them away. A remap that picks fields is the same hazard. */
+        effects: g.nutrient_effects || [],
       }))
     : FALLBACK_TARGETS.map(t => ({
         key: t.key, label: t.label, unit: t.unit,
@@ -245,6 +285,9 @@ export default function NutrientTracking() {
                       </div>
                     )}
                     {r.balance && <BalanceLine balance={r.balance} unit={r.unit} />}
+                    {r.effects?.map((e, i) => (
+                      <EffectLine key={i} effect={e} unit={r.unit} />
+                    ))}
                   </div>
                 );
               })}
