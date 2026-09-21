@@ -78,6 +78,12 @@ class AgentExposure:
     #: Exactly as the record wrote it, so a refusal can quote the text it could
     #: not read rather than saying only that it failed.
     dose_text: str | None = None
+    #: Set when the amount parsed cleanly but cannot be a single administration
+    #: of this drug — the flowsheet writes doxercalciferol as "4mg" on 20
+    #: sessions where every other row reads "2 mcg", and 4 mg converts to 4,000
+    #: mcg without complaint. Carries the reason, so the day can say WHY a
+    #: recorded dose was not counted instead of reporting it as missing.
+    dose_refused: str | None = None
 
 
 @dataclass
@@ -141,6 +147,11 @@ def _dose_in(effect_dose_unit: str | None, exposure: AgentExposure) -> float | N
     clinical quantity out of a gap in the record, which is the §3aj failure the
     dose guard exists to prevent.
     """
+    if exposure.dose_refused:
+        # It parsed, and it cannot be right. Multiplying by it anyway is the
+        # whole hazard: 4 mg of a drug sold in 2.5 mcg units becomes a
+        # thousand-fold nutrient contribution that looks measured.
+        return None
     if exposure.dose_amount is None or not exposure.dose_unit:
         return None
     if not effect_dose_unit:
@@ -208,6 +219,7 @@ def apply_effects_to_totals(
         size_unknown = False
         counted = 0
         unreadable: list[str] = []
+        refused: list[str] = []
         for exposure in matching:
             per_occurrence = effect.scaled_magnitude(exposure.context)
             if per_occurrence is None:
@@ -222,7 +234,10 @@ def apply_effects_to_totals(
                 # would invent iron the record never claimed.
                 delivered = _dose_in(effect.dose_unit, exposure)
                 if delivered is None:
-                    unreadable.append(exposure.dose_text or "no amount recorded")
+                    if exposure.dose_refused:
+                        refused.append(exposure.dose_refused)
+                    else:
+                        unreadable.append(exposure.dose_text or "no amount recorded")
                     continue
                 magnitude += per_occurrence * delivered
             else:
@@ -238,21 +253,39 @@ def apply_effects_to_totals(
             # Given, and we cannot say how much. That is a finding in itself and
             # the one thing this must never render as zero (§3aa).
             quoted = next((u for u in unreadable if u != "no amount recorded"), None)
+            if refused:
+                # A dose that parsed and failed the check is a DIFFERENT finding
+                # from one nobody wrote down, and saying "no amount recorded"
+                # here would hide a probable units error in the chart.
+                withheld = f"{effect.agent_label}: {refused[0]}"
+            elif quoted:
+                withheld = (
+                    f"{effect.agent_label} was given, but the amount recorded "
+                    f"({quoted}) cannot be read as a dose, so its contribution "
+                    "cannot be worked out."
+                )
+            else:
+                withheld = (
+                    f"{effect.agent_label} was given, but no amount is recorded, "
+                    "so its contribution cannot be worked out."
+                )
             day.applied.append(AppliedEffect(
                 nutrient_key=effect.nutrient_key, agent_label=effect.agent_label,
                 direction=effect.direction, delta=0.0, modelled=0.0, applied=False,
-                mechanism=effect.mechanism,
-                withheld=(
-                    f"{effect.agent_label} was given, but the amount recorded ("
-                    f"{quoted}) cannot be read as a dose, so its contribution "
-                    "cannot be worked out."
-                    if quoted else
-                    f"{effect.agent_label} was given, but no amount is recorded, "
-                    "so its contribution cannot be worked out."
-                ),
+                mechanism=effect.mechanism, withheld=withheld,
             ))
             continue
 
+        # A refusal alongside readable doses must still be said out loud. The
+        # first version of this only reported `unreadable`, so a dose rejected
+        # by the guard would vanish while the others counted — the silent drop
+        # this whole layer exists to prevent (§3aa).
+        if refused and counted:
+            day.notes.append(
+                f"{effect.agent_label}: {len(refused)} administration(s) today "
+                f"record an amount that failed the dose check and were not "
+                f"counted. {refused[0]}"
+            )
         if unreadable and counted:
             day.notes.append(
                 f"{effect.agent_label}: {len(unreadable)} of "

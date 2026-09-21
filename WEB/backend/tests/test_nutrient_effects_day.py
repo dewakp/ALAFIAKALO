@@ -207,6 +207,68 @@ def test_crediting_iron_against_a_target_needs_a_measurement():
     assert "no recent measurement" in (effect.get("withheld") or "")
 
 
+# ── A dose that parsed and cannot be right ────────────────────────────
+
+_REFUSAL = ("4 mg of Doxercalciferol is 4 mg — the largest marketed single "
+            "unit is 2.5 mcg. Check the units. Not counted toward your totals "
+            "until the record is corrected.")
+
+
+def _refused(dose_amount=4.0, dose_unit="mg", dose_text="4mg"):
+    return AgentExposure(
+        kind="medication", key="iron sucrose", label="Iron sucrose",
+        occurrences=1, context={}, dose_amount=dose_amount, dose_unit=dose_unit,
+        dose_text=dose_text, dose_refused=_REFUSAL,
+    )
+
+
+def test_a_refused_dose_is_never_multiplied():
+    """The hazard, measured: doxercalciferol reads "2 mcg" on 399 sessions and
+    "4mg" on 20. Both parse; 4 mg converts to 4,000 mcg without complaint.
+
+    A dose the guard rejects must contribute NOTHING, however cleanly it parsed.
+    """
+    goals = [_goal("iron_mg", "mg", "target", current=8.0)]
+    adjusted, _ = apply_effects_to_totals(
+        goals, [_refused()], [_iron_effect()], measurement_fresh=True)
+    effect = adjusted[0]["nutrient_effects"][0]
+    assert effect["applied"] is False
+    assert effect["delta"] == 0.0
+    assert effect["modelled"] == 0.0, "a refused dose must not even be modelled"
+
+
+def test_a_refused_dose_says_WHY_and_not_that_it_is_missing():
+    """"No amount recorded" would hide a probable units error in the chart.
+
+    The record DOES state an amount. What is wrong is the amount, and the
+    reader needs to know that so the chart can be corrected (§3aa).
+    """
+    goals = [_goal("iron_mg", "mg", "target", current=8.0)]
+    adjusted, _ = apply_effects_to_totals(
+        goals, [_refused()], [_iron_effect()], measurement_fresh=True)
+    withheld = adjusted[0]["nutrient_effects"][0].get("withheld") or ""
+    assert "largest marketed single unit" in withheld
+    assert "no amount is recorded" not in withheld
+
+
+def test_a_refusal_beside_a_good_dose_is_still_reported():
+    """The readable dose counts; the rejected one must not vanish with it.
+
+    An earlier version reported only unreadable doses, so a refusal alongside a
+    countable dose was dropped in silence — which reads as though the day held
+    one administration when the record holds two.
+    """
+    goals = [_goal("iron_mg", "mg", "target", current=8.0)]
+    adjusted, day = apply_effects_to_totals(
+        goals,
+        [_given(100.0, "mg", "100 mg"), _refused()],
+        [_iron_effect()],
+        measurement_fresh=True,
+    )
+    assert adjusted[0]["nutrient_effects"][0]["delta"] == pytest.approx(100.0)
+    assert any("failed the dose check" in n for n in day.notes), day.notes
+
+
 def test_an_agent_not_met_today_contributes_nothing():
     """A stored fact is not an exposure. Knowing what sevelamer does is not the
     same as the patient having taken it."""

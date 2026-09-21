@@ -47,7 +47,7 @@ from app.services import dialysis_context
 from app.services.dialysis_day_adjustment import apply_to_totals
 from app.services.nutrient_effects_day import apply_effects_to_totals
 from app.services.nutrient_effects_service import stored_effects
-from app.services.nutrient_exposures import agent_pairs, exposures_for_day
+from app.services.nutrient_exposures import agent_pairs, exposures_for_day, screen_doses
 from app.schemas.nutrition import AgentEffectsDaySummary, AppliedEffectOut
 from app.services.learned_nutrient_service import (
     record_correction, per_100g_from_total, get_learned,
@@ -543,6 +543,13 @@ async def get_goal_progress(
         if exposures:
             effects = await stored_effects(db, agent_pairs(exposures))
             if effects:
+                # A dose that parsed cleanly can still be impossible: the
+                # flowsheet writes doxercalciferol as "4mg" on 20 sessions
+                # against "2 mcg" on 399, and 4 mg becomes 4,000 mcg without
+                # complaint. Screened only for the agents whose stored effect
+                # actually multiplies by a dose, so the page does not pay an
+                # RxNorm lookup per medication (§3ae).
+                exposures = await screen_doses(db, exposures, effects)
                 goal_dicts, effects_day = apply_effects_to_totals(
                     goal_dicts, exposures, effects,
                     # No serum draw exists in this system for the nutrients this

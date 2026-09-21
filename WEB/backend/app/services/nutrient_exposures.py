@@ -48,6 +48,7 @@ counted twice.
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from datetime import date, datetime, time
 
 from sqlalchemy import select
@@ -58,7 +59,7 @@ from app.services.clinical_sources import administration_events_on_day
 from app.services.dialysis_context import COMPLETED_STATUSES, reference_blood_volume_for
 from app.services.flowsheet_drugs import parse_dose_text
 from app.services.nutrient_effects_day import AgentExposure
-from app.services.nutrient_effects_service import normalize_agent
+from app.services.nutrient_effects_service import PER_DOSE_UNIT, normalize_agent
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +180,67 @@ async def exposures_for_day(
         ))
 
     return out
+
+
+async def screen_doses(
+    db: AsyncSession,
+    exposures: list[AgentExposure],
+    effects: list,
+) -> list[AgentExposure]:
+    """Refuse a recorded dose that cannot be one administration of that drug.
+
+    The hazard this closes, measured on the real record: doxercalciferol is
+    written "2 mcg" on 399 sessions and "4mg" on 20. Both parse cleanly, and
+    4 mg converts to 4,000 mcg — a thousand-fold nutrient contribution that
+    looks measured. The RxNorm guard already existed for exactly this class of
+    error (§3aj, "calcium calcitriol 1000 mg") and was wired into the dose-log
+    endpoints and never into the flowsheet path.
+
+    ONLY doses that will actually be multiplied are screened. `validate_dose`
+    does a profile query and an RxNorm lookup, and running one per medication
+    on every page load would be the §3ae latency failure; today exactly one
+    stored effect consumes a dose. RxNorm caches for 24h and FAILS OPEN — when
+    it is unreachable there is no ceiling and the dose is used, which is the
+    same honest trade `med_dose_validation` already documents.
+    """
+    consuming = {
+        (e.agent_kind, e.agent_key)
+        for e in effects
+        if getattr(e, "basis", None) == PER_DOSE_UNIT and getattr(e, "dose_unit", None)
+    }
+    if not consuming:
+        return exposures
+
+    from app.services.med_dose_validation import blocking, validate_dose
+
+    screened: list[AgentExposure] = []
+    for exposure in exposures:
+        if (exposure.dose_amount is None or not exposure.dose_unit
+                or (exposure.kind, exposure.key) not in consuming):
+            screened.append(exposure)
+            continue
+        try:
+            findings = blocking(await validate_dose(
+                db, exposure.label, exposure.dose_amount, exposure.dose_unit))
+        except Exception:  # noqa: BLE001
+            # A guard that cannot run must not break the nutrient page, and
+            # must not silently become a pass either — it is logged and the
+            # dose is used, matching the fail-open rule above.
+            logger.warning("dose screening failed for %r", exposure.label, exc_info=True)
+            screened.append(exposure)
+            continue
+
+        if findings:
+            screened.append(replace(
+                exposure,
+                dose_refused=(
+                    f"{findings[0].message} Not counted toward your totals "
+                    "until the record is corrected."
+                ),
+            ))
+        else:
+            screened.append(exposure)
+    return screened
 
 
 def agent_pairs(exposures: list[AgentExposure]) -> list[tuple[str, str]]:
