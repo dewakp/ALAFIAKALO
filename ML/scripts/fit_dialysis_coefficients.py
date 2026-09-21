@@ -30,6 +30,12 @@ The comparison is against *predict-the-previous-value*, which is a strong
 baseline for a slow-moving biomarker and is exactly what a clinician does by
 default. A coefficient that cannot beat it is not adopted, and the analyte keeps
 its prior and is marked uncalibrated.
+
+"Beat it" means beat it by a margin that is not noise. The errors are PAIRED —
+the same hold-out draws predicted two ways — so adoption requires the per-point
+difference to be at least 1.96 standard errors from zero. A bare `mae <
+baseline` adopts a coin flip, and these coefficients are permitted to widen a
+patient's dietary limit; magnesium is currently adopted on nine hold-out points.
 """
 
 from __future__ import annotations
@@ -142,6 +148,13 @@ class FitResult:
     baseline_mae: float | None
     holdout_bias: float | None
     beats_baseline: bool
+    #: Standard error of the PAIRED per-point error difference, and that
+    #: difference in standard errors. `improvement_z` is what decides adoption;
+    #: the raw MAE comparison alone cannot tell a win from a coin flip.
+    #: Defaulted so the early "not enough pairs" returns, which construct this
+    #: positionally up to `beats_baseline`, keep working unchanged.
+    holdout_se: float | None = None
+    improvement_z: float | None = None
     note: str = ""
 
     @property
@@ -331,6 +344,37 @@ def _fit_scale(x: np.ndarray, y: np.ndarray) -> float:
     return float(np.dot(x, y) / denom) if denom > 0 else 0.0
 
 
+def _score(predicted, actual, previous) -> tuple[float, float, float, float, float, bool]:
+    """Score a hold-out on the PAIRED per-point errors.
+
+    `mae < baseline` on its own adopts a coin flip. The two error sets are the
+    same hold-out points predicted two ways, so the question is whether their
+    difference is distinguishable from zero — not whether one mean happened to
+    land lower. `fit_iron_balance.py` produced exactly that failure: haemoglobin
+    at 0.588 against 0.592 over 24 points, a 0.6% edge reported as a win.
+
+    It matters more here than there, because these coefficients are LIVE: an
+    adopted one is allowed to widen a real patient's dietary limit.
+
+    One helper rather than three copies. The bare comparison was written out
+    separately in `fit_direct`, `fit_from_pairs` and `fit_interdialytic`, which
+    is how a fix lands on one path and misses the other two.
+    """
+    model_error = np.abs(predicted - actual)
+    baseline_error = np.abs(previous - actual)
+    mae = float(np.mean(model_error))
+    baseline = float(np.mean(baseline_error))
+    bias = float(np.mean(predicted - actual))
+
+    difference = baseline_error - model_error        # positive ⇒ the fit helps
+    standard_error = (
+        float(np.std(difference, ddof=1) / np.sqrt(len(difference)))
+        if len(difference) > 1 else 0.0
+    )
+    z = float(np.mean(difference) / standard_error) if standard_error > 0 else 0.0
+    return mae, baseline, bias, standard_error, z, bool(mae < baseline and z >= 1.96)
+
+
 def fit_direct(analyte: str, labs, post, sessions) -> FitResult | None:
     """Fit against measured post-dialysis values."""
     pre = series_for(labs, analyte)
@@ -361,10 +405,9 @@ def fit_direct(analyte: str, labs, post, sessions) -> FitResult | None:
     predicted = test["value"].to_numpy() - alpha * test_removal
     actual = test["post"].to_numpy()
 
-    mae = float(np.mean(np.abs(predicted - actual)))
-    bias = float(np.mean(predicted - actual))
     # Baseline: assume the session changed nothing.
-    baseline = float(np.mean(np.abs(test["value"].to_numpy() - actual)))
+    mae, baseline, bias, se, z, beats = _score(
+        predicted, actual, test["value"].to_numpy())
 
     implied_v = 1.0 / (alpha * (39.10 if analyte == "potassium" else 10.0)) if alpha > 0 else None
 
@@ -372,7 +415,7 @@ def fit_direct(analyte: str, labs, post, sessions) -> FitResult | None:
         analyte=analyte, method="direct", n_fit=len(train), n_holdout=len(test),
         alpha=alpha, accumulation_per_day=None, implied_volume_l=implied_v,
         holdout_mae=mae, baseline_mae=baseline, holdout_bias=bias,
-        beats_baseline=mae < baseline,
+        holdout_se=se, improvement_z=z, beats_baseline=beats,
     )
 
 
@@ -401,16 +444,15 @@ def fit_from_pairs(analyte: str, pairs: pd.DataFrame, sessions, method: str) -> 
     predicted = test["pre"].to_numpy() - alpha * test_removal
     actual = test["post"].to_numpy()
 
-    mae = float(np.mean(np.abs(predicted - actual)))
-    bias = float(np.mean(predicted - actual))
-    baseline = float(np.mean(np.abs(test["pre"].to_numpy() - actual)))
+    mae, baseline, bias, se, z, beats = _score(
+        predicted, actual, test["pre"].to_numpy())
     implied_v = 1.0 / (alpha * (39.10 if analyte == "potassium" else 10.0)) if alpha > 0 else None
 
     return FitResult(
         analyte=analyte, method=method, n_fit=len(train), n_holdout=len(test),
         alpha=alpha, accumulation_per_day=None, implied_volume_l=implied_v,
         holdout_mae=mae, baseline_mae=baseline, holdout_bias=bias,
-        beats_baseline=mae < baseline,
+        holdout_se=se, improvement_z=z, beats_baseline=beats,
     )
 
 
@@ -472,9 +514,8 @@ def fit_interdialytic(analyte: str, labs, sessions) -> FitResult | None:
         + rate * test["days"].to_numpy()
     )
     actual = test["next"].to_numpy()
-    mae = float(np.mean(np.abs(predicted - actual)))
-    bias = float(np.mean(predicted - actual))
-    baseline = float(np.mean(np.abs(test["prev"].to_numpy() - actual)))
+    mae, baseline, bias, se, z, beats = _score(
+        predicted, actual, test["prev"].to_numpy())
 
     implied_v = 1.0 / (alpha * (39.10 if analyte == "potassium" else 10.0)) if alpha > 0 else None
 
@@ -482,7 +523,7 @@ def fit_interdialytic(analyte: str, labs, sessions) -> FitResult | None:
         analyte=analyte, method="interdialytic", n_fit=len(train), n_holdout=len(test),
         alpha=alpha, accumulation_per_day=rate, implied_volume_l=implied_v,
         holdout_mae=mae, baseline_mae=baseline, holdout_bias=bias,
-        beats_baseline=mae < baseline,
+        holdout_se=se, improvement_z=z, beats_baseline=beats,
     )
 
 
@@ -527,19 +568,25 @@ def main() -> int:
         ):
             best[r.analyte] = r
 
-    header = f"{'analyte':12s} {'method':14s} {'n_fit':>6s} {'n_test':>7s} {'MAE':>8s} {'baseline':>9s} {'vs base':>8s}  adopt"
+    header = (f"{'analyte':12s} {'method':14s} {'n_fit':>6s} {'n_test':>7s} "
+              f"{'MAE':>8s} {'baseline':>9s} {'vs base':>8s} {'z':>7s}  adopt")
     print(header)
     print("-" * len(header))
     for r in results:
         if r.holdout_mae is None:
-            print(f"{r.analyte:12s} {r.method:14s} {r.n_fit:6d} {'—':>7s} {'—':>8s} {'—':>9s} {'—':>8s}  no   ({r.note})")
+            print(f"{r.analyte:12s} {r.method:14s} {r.n_fit:6d} {'—':>7s} {'—':>8s} "
+                  f"{'—':>9s} {'—':>8s} {'—':>7s}  no   ({r.note})")
             continue
         improvement = r.improvement_pct
         print(
             f"{r.analyte:12s} {r.method:14s} {r.n_fit:6d} {r.n_holdout:7d} "
-            f"{r.holdout_mae:8.3f} {r.baseline_mae:9.3f} {improvement:7.1f}%  "
+            f"{r.holdout_mae:8.3f} {r.baseline_mae:9.3f} {improvement:7.1f}% "
+            f"{r.improvement_z:+7.2f}  "
             f"{'YES' if r.beats_baseline else 'no'}"
         )
+    print()
+    print("adopt requires the paired improvement to be >= +1.96 standard errors,")
+    print("not merely a lower mean: these coefficients widen real dietary limits.")
 
     adopted = [r for r in best.values() if r.beats_baseline]
     print()
