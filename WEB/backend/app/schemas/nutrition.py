@@ -382,6 +382,29 @@ class AgentEffectsDaySummary(BaseModel):
     notes: list[str] = []
 
 
+class GoalNutrientEffect(BaseModel):
+    """One agent's effect on THIS nutrient, shown beside its intake figure.
+
+    The day-level `effects` summary says what the patient met today; this says
+    what it did to a particular number, which is the surface `dialysis_balance`
+    already occupies for the four gradient solutes.
+
+    `applied=False` with a `withheld` reason is a real state and must render:
+    a drug the unit gave whose amount the record does not state, a credit that
+    would reassure without a measurement, or a figure a model supplied that has
+    not been confirmed. Dropping those is how a decade of IV iron stayed
+    invisible (§3aa).
+    """
+
+    agent: str
+    direction: str
+    delta: float            # signed, in the goal's own unit; 0.0 when withheld
+    modelled: float         # what it would have been, before withholding
+    applied: bool
+    mechanism: str | None = None
+    withheld: str | None = None
+
+
 class NutrientGoalProgress(BaseModel):
     key: str
     name: str
@@ -393,6 +416,15 @@ class NutrientGoalProgress(BaseModel):
     status: str             # target: low|ok|over ; limit: ok|warning|over
     priority: int           # lower = show first (condition-driven)
     rationale: str
+
+    #: Effects of the day's agents on THIS nutrient — a drug the unit gave, a
+    #: supplement, a treatment's effect on glucose.
+    #:
+    #: `apply_effects_to_totals` has always attached these to the goal it
+    #: computed them for, and this field never existed, so `nutrition.py` never
+    #: passed them and every one was discarded at serialisation — computed and
+    #: dropped, exactly like the magnesium goal before it.
+    nutrient_effects: list[GoalNutrientEffect] = []
 
     # Present only on a day with a completed dialysis session.
     #

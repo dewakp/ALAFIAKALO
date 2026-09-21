@@ -48,7 +48,9 @@ from app.services.dialysis_day_adjustment import apply_to_totals
 from app.services.nutrient_effects_day import apply_effects_to_totals
 from app.services.nutrient_effects_service import stored_effects
 from app.services.nutrient_exposures import agent_pairs, exposures_for_day, screen_doses
-from app.schemas.nutrition import AgentEffectsDaySummary, AppliedEffectOut
+from app.schemas.nutrition import (
+    AgentEffectsDaySummary, AppliedEffectOut, GoalNutrientEffect,
+)
 from app.services.learned_nutrient_service import (
     record_correction, per_100g_from_total, get_learned,
 )
@@ -591,6 +593,12 @@ async def get_goal_progress(
             current=current, goal=goal, kind=g["kind"], pct=pct,
             status=status, priority=g["priority"], rationale=g["rationale"],
             dialysis_balance=DialysisBalance(**balance) if balance else None,
+            # The day layer attaches these per goal. Omitting them here is what
+            # made every one invisible: computed, attached, and then dropped at
+            # serialisation because the schema had nowhere to put them.
+            nutrient_effects=[
+                GoalNutrientEffect(**effect) for effect in (g.get("nutrient_effects") or [])
+            ],
         ))
 
     active_flags = [k for k, v in computed["flags"].items() if v]
