@@ -70,7 +70,21 @@ TOPIC_DESKS: dict[str, tuple[str, str]] = {
     "security": ("security@alafia.app", "Security Disclosure"),
     "billing": ("contact@alafia.app", "Billing & Membership"),
     "clinical": ("contact@alafia.app", "Clinical & Care Teams"),
+    # Requests to join the iOS TestFlight build, from the landing page. The
+    # address is nominal like every other desk — CONTACT_DELIVERY_EMAIL routes
+    # all of them to one real mailbox — and the point of the entry is that the
+    # CLIENT sends this key and never an address.
+    "beta_ios": ("contact@alafia.app", "iOS Beta Request"),
 }
+
+# Topics that also send a confirmation to the PERSON WHO WROTE.
+#
+# Scoped rather than global on purpose. Someone filing a security disclosure or
+# a deletion request has not asked for an automated reply in their inbox, and
+# turning one on for every desk would change what four existing desks do to
+# people who never opted into it. A beta request is different: the sender is
+# volunteering and is waiting to hear back, so silence reads as a dead form.
+CONFIRM_TO_SENDER: frozenset[str] = frozenset({"beta_ios"})
 
 
 class ContactRequest(BaseModel):
@@ -113,6 +127,32 @@ def _render(payload: ContactRequest, desk_label: str, reference: str = "") -> st
 <hr>
 <p style="color:#666;font-size:12px">Sent from the alafia.app contact form.
 Reply directly to reach the sender.</p>
+"""
+
+
+def _render_confirmation(payload: ContactRequest, desk_label: str, reference: str) -> str:
+    """What the SENDER receives — an acknowledgement, never a copy of the desk mail.
+
+    Deliberately thin. It confirms that the request arrived and gives the
+    reference; it does not quote the message back, because a contact form can
+    carry health details and mail is not a channel we control once it leaves
+    (§3d, on why a share notification names no clinical content).
+
+    It also promises nothing about timing or outcome. Being added to a beta is
+    a decision a person makes afterwards.
+    """
+    def esc(v: str | None) -> str:
+        return html.escape(v or "")
+
+    return f"""\
+<p>Hello {esc(payload.name)},</p>
+<p>We have your {esc(desk_label).lower()} — it reached us and is on the list.</p>
+<p>Your reference is <strong>{esc(reference)}</strong>. Quote it if you follow up.</p>
+<p>If you are already a member on the web, mention the email address you signed
+up with and we will match it when the invitations go out.</p>
+<p style="color:#666;font-size:12px">You are receiving this because this address
+was entered on the ALAFIA beta request form at alafia.app. If that was not you,
+no account has been changed and you can ignore this.</p>
 """
 
 
@@ -193,6 +233,24 @@ async def submit_contact(
             await db.commit()
         except Exception:  # noqa: BLE001
             await db.rollback()
+
+    # Acknowledge to the sender, where the topic asks for it. Best-effort in the
+    # strongest sense: the request has already succeeded on the write, the desk
+    # has already been told, and a bounced confirmation must never cost us the
+    # submission. It is logged, not raised, and not recorded as `notify_error` —
+    # that column is about whether the DESK was told, and conflating the two
+    # would make a delivered request look unrecorded.
+    if payload.topic in CONFIRM_TO_SENDER:
+        try:
+            confirmed = await send_email(
+                to=str(payload.email),
+                subject=f"We have your request — {reference}",
+                html_body=_render_confirmation(payload, desk_label, reference),
+            )
+            if not confirmed:
+                logger.warning("contact: %s confirmation to sender not sent", reference)
+        except Exception:  # noqa: BLE001
+            logger.exception("contact: %s confirmation to sender raised", reference)
 
     logger.info("contact: %s recorded for %s (topic=%s, notified=%s)",
                 reference, to_address, payload.topic, bool(row.notified_at))
