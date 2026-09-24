@@ -109,3 +109,53 @@ class ValidationMessageTest {
         assertEquals("Please check the details you entered.", msg)
     }
 }
+
+/**
+ * Signing up with an address that already has an account.
+ *
+ * /auth/signup/start answers 409 using FastAPI's OTHER shape — `detail` as a
+ * STRING — carrying both the reason and the way forward. There was no 409 arm,
+ * so it fell through to "Something went wrong. Please try again.": the one
+ * message that tells the person who demonstrably already has an account to go
+ * and retry the exact thing that just refused them (§3aj).
+ */
+class DuplicateSignupMessageTest {
+
+    private fun http409(body: String) = HttpException(
+        Response.error<Any>(409, body.toResponseBody("application/json".toMediaType()))
+    )
+
+    @Test
+    fun `the server's own sentence is shown, including the way forward`() {
+        val msg = ErrorUtil.userMessage(
+            http409("""{"detail":"An account already exists for this email address. Try signing in, or reset your password if you have forgotten it."}""")
+        )
+        assertTrue(msg, msg.contains("already exists"))
+        assertTrue(msg, msg.contains("reset your password"))
+    }
+
+    @Test
+    fun `it is never the generic retry message`() {
+        val msg = ErrorUtil.userMessage(http409("""{"detail":"An account already exists."}"""))
+        assertNotEquals("Something went wrong. Please try again.", msg)
+    }
+
+    @Test
+    fun `an unreadable body still names the problem`() {
+        // A proxy or gateway can answer 409 with HTML, or with nothing at all.
+        // Falling back to the generic message there would reintroduce the bug
+        // for exactly the case we cannot control.
+        val msg = ErrorUtil.userMessage(http409("<html>409</html>"))
+        assertTrue(msg, msg.contains("already exists"))
+        assertNotEquals("Something went wrong. Please try again.", msg)
+    }
+
+    @Test
+    fun `an object detail falls back instead of being rendered raw`() {
+        // Only a STRING detail is a sentence. Anything else must fall back
+        // rather than show "{message=...}" to the user.
+        val msg = ErrorUtil.userMessage(http409("""{"detail":{"message":"nope"}}"""))
+        assertTrue(msg, msg.contains("already exists"))
+        assertFalse(msg, msg.contains("message="))
+    }
+}
