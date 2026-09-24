@@ -1,6 +1,5 @@
 """Authentication endpoints."""
 
-import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -323,132 +322,30 @@ async def login(
     return Token(access_token=token, refresh_token=refresh)
 
 
-from pydantic import BaseModel
-
-
-class FirebaseTokenRequest(BaseModel):
-    """Firebase ID token minted client-side by any Firebase Auth provider
-    (google.com, apple.com, phone, password)."""
-    id_token: str
-
-
-@router.post("/firebase", response_model=Token)
-@limiter.limit(settings.RATE_LIMIT_AUTH)
-async def login_with_firebase(
-    request: Request,
-    response: Response,
-    body: FirebaseTokenRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """Exchange a Firebase Auth ID token for an ALAFIA session.
-
-    Supports phone (OTP) and social (Google / Apple) sign-in: the frontend
-    completes the provider flow with the Firebase JS SDK, then posts the ID
-    token here. We verify it with the Admin SDK, link or create the local
-    user (by firebase_uid → email → phone), and issue our JWTs.
-    """
-    from app.services.firebase_sync import get_firebase_app
-    from firebase_admin import auth as firebase_auth
-
-    if get_firebase_app() is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Firebase authentication is not configured on this server.",
-        )
-
-    try:
-        decoded = await asyncio.to_thread(firebase_auth.verify_id_token, body.id_token)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired sign-in token. Please try again.",
-        )
-
-    uid = decoded["uid"]
-    email = decoded.get("email")
-    phone = decoded.get("phone_number")
-    name = decoded.get("name") or ""
-    sign_in_provider = (decoded.get("firebase") or {}).get("sign_in_provider", "firebase")
-    provider = {
-        "google.com": "google",
-        "apple.com": "apple",
-        "phone": "phone",
-        "password": "firebase",
-    }.get(sign_in_provider, "firebase")
-
-    # Link precedence: firebase_uid → verified email → phone number.
-    user = (await db.execute(select(User).where(User.firebase_uid == uid))).scalar_one_or_none()
-    if user is None and email:
-        user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
-    if user is None and phone:
-        user = (await db.execute(select(User).where(User.phone_number == phone))).scalar_one_or_none()
-
-    if user is None:
-        if not email and not phone:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Sign-in token carries neither an email nor a phone number.",
-            )
-        import secrets
-
-        # Phone-only accounts get a synthetic local email (email is NOT NULL/unique).
-        # The random password is unguessable; these accounts sign in via Firebase only.
-        user = User(
-            email=email or f"phone_{uid}@alafia.local",
-            hashed_password=hash_password(secrets.token_urlsafe(32)),
-            full_name=name or (phone or email.split("@")[0]),
-            firebase_uid=uid,
-            phone_number=phone,
-            auth_provider=provider,
-        )
-        db.add(user)
-        await db.flush()
-        await db.refresh(user)
-        logger.info("Created user %s via Firebase %s sign-in", user.email, provider)
-    else:
-        # Keep the linkage current without clobbering existing identifiers.
-        if not user.firebase_uid:
-            user.firebase_uid = uid
-        if phone and not user.phone_number:
-            user.phone_number = phone
-        if user.auth_provider in (None, "local"):
-            user.auth_provider = provider
-        await db.flush()
-
-    await _record_login(db, user)
-    token = create_access_token(data={"sub": str(user.id)})
-    refresh = create_refresh_token(data={"sub": str(user.id)})
-    _set_refresh_cookie(response, refresh)
-    return Token(access_token=token, refresh_token=refresh)
-
-
-async def _verify_firebase_password(email: str, password: str) -> bool:
-    """
-    Verify a password against Firebase Auth using the REST API.
-    Firebase Admin SDK cannot verify passwords directly, so we use the
-    Firebase Auth REST signInWithPassword endpoint.
-    """
-    import httpx
-
-    api_key = settings.FIREBASE_WEB_API_KEY
-    if not api_key:
-        logger.warning("FIREBASE_WEB_API_KEY not configured — cannot verify Firebase passwords")
-        return False
-
-    url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}"
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json={
-                "email": email,
-                "password": password,
-                "returnSecureToken": False,
-            })
-        if resp.status_code == 200:
-            return True
-        return False
-    except Exception as e:
-        logger.error("Firebase password verification failed: %s", e)
-        return False
+# NOTE: /auth/firebase is RETIRED (2026-09-24).
+#
+# Social sign-in now verifies the provider's OWN ID token against Google's or
+# Apple's published JWKS — see app/services/oidc.py. Firebase brokered nothing
+# that ever worked here: Apple was never configured as a provider at all, and
+# this endpoint answered 503 to everything because FIREBASE_SERVICE_ACCOUNT was
+# empty while the `firebase-sa` secret sat unmounted in Secret Manager.
+#
+# Kept as a 410 rather than deleted, so anything still pointed at it is told what
+# happened instead of meeting a bare 404 — but nothing is: the web path is gone,
+# and both mobile clients' exchange methods had ZERO callers and were removed.
+#
+# `firebase-admin` itself STAYS: services/firebase_sync.py uses it for the
+# Firestore sync, which is a different feature from authentication.
+#
+# `_verify_firebase_password` went with it — a helper with no callers, which is
+# why this range was read before it was deleted rather than swept by line count.
+@router.post("/firebase", include_in_schema=False)
+async def login_with_firebase_retired():
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=("Firebase sign-in has been retired. Use POST /auth/oidc with "
+                "{provider, id_token}."),
+    )
 
 
 @router.post("/refresh", response_model=Token)
