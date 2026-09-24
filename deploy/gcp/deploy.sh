@@ -72,7 +72,8 @@ for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
          apple-shared-secret alafia-pseudonym-secret \
-         resend-api-key smtp-host smtp-user smtp-password smtp-from-email; do
+         resend-api-key resend-webhook-secret \
+         smtp-host smtp-user smtp-password smtp-from-email; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
 done
@@ -259,6 +260,9 @@ add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
 # no STARTTLS negotiation, and real error bodies instead of socket failures.
 #   printf 're_xxx' | gcloud secrets create resend-api-key --data-file=-
 add_secret_if_present RESEND_API_KEY           resend-api-key
+# Resend’s delivery webhook (Svix). Absent → the endpoint REFUSES every
+# callback rather than trusting unsigned input.
+add_secret_if_present RESEND_WEBHOOK_SECRET   resend-webhook-secret
 # SMTP fallback (used only when RESEND_API_KEY is absent).
 # Without these mounted the backend silently skips every send, which now blocks
 # signup outright: an account is never created for an unverified address, so a

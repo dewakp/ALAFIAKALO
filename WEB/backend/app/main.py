@@ -149,6 +149,9 @@ def _csrf_exempt(request: Request) -> bool:
     # authenticated by a provider signature (verified in the handler), not CSRF.
     if request.url.path.startswith("/api/v1/subscription/webhook/"):
         return True
+    # Same for the email provider's delivery callbacks (Svix signature).
+    if request.url.path.startswith("/api/v1/webhooks/"):
+        return True
     return False
 
 
@@ -531,3 +534,9 @@ app.include_router(marketing_router)
 # already deleted theirs). A paywalled contact form is not a contact form.
 from app.api.contact import router as contact_router  # noqa: E402
 app.include_router(contact_router, prefix="/api/v1")
+
+# Provider webhooks — NOT under api_router for the third time, and for the
+# plainest reason of the three: Resend is not a subscriber and has no session.
+# A paywall dependency on a machine callback would 402 every delivery event.
+from app.api.webhooks import router as webhooks_router  # noqa: E402
+app.include_router(webhooks_router, prefix="/api/v1")

@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     # generic socket failure. SMTP stays as the fallback for self-hosting.
     RESEND_API_KEY: str = ""
     RESEND_API_BASE: str = "https://api.resend.com"
+    # Signing secret for Resend's delivery webhook (Svix scheme, "whsec_…").
+    # Created in the Resend dashboard when the endpoint is added. Unset means
+    # the endpoint REFUSES every callback rather than trusting unsigned input —
+    # a webhook that accepts anything is a public writer into our tables.
+    RESEND_WEBHOOK_SECRET: str = ""
 
     # Email / SMTP (fallback when RESEND_API_KEY is unset)
     SMTP_HOST: str = ""

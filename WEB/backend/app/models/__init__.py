@@ -134,6 +134,7 @@ from app.models.food_nutrient_cache import FoodNutrientCache
 from app.models.learned_nutrient import LearnedFoodNutrient
 from app.models.condition_nutrition import ConditionNutritionFact
 from app.models.contact import ContactSubmission
+from app.models.email_event import EmailEvent
 from app.models.image_label import LabeledFoodImage
 from app.models.food_training_sample import FoodTrainingSample
 from app.models.inference_sample import InferenceSample

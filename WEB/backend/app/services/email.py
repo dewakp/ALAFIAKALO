@@ -49,8 +49,19 @@ async def _send_via_resend(to: str, subject: str, html_body: str) -> bool:
                 json=payload,
             )
         if resp.status_code in (200, 201):
-            logger.info("Email sent via Resend to %s: %s (id=%s)", to, subject,
-                        (resp.json() or {}).get("id"))
+            # "ACCEPTED", not "sent". Resend answers 200 with a message id for a
+            # send it will never transmit — an address on its suppression list,
+            # added automatically after an earlier hard bounce. This line said
+            # "Email sent via Resend to …" three times for one bounce and two
+            # sends that never left the building, and that sentence was then
+            # reported as proof of delivery.
+            #
+            # What arrives is knowable only from a delivery EVENT, never from
+            # this response (§3d: a success path reporting success without
+            # evidence, as the 17 unsubscribe links did).
+            logger.info("Resend ACCEPTED mail for %s: %s (id=%s) — acceptance is "
+                        "not delivery; a suppressed or bouncing address also "
+                        "returns 200", to, subject, (resp.json() or {}).get("id"))
             return True
         # Body, not just the status: Resend explains WHY (e.g. the sending domain
         # is not verified), and that is the difference between a five-minute fix
