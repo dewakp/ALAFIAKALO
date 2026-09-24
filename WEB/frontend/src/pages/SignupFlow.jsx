@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import api from '../services/api';
 import PasswordInput from '../components/PasswordInput';
 import { apiErrorMessage } from '../utils/apiError';
+import AlertDialog from '../components/AlertDialog';
 import { t } from '../i18n';
 
 /**
@@ -38,6 +39,11 @@ export default function SignupFlow() {
 
   const [step, setStep] = useState('details');
   const [error, setError] = useState('');
+  // A registration failure INTERRUPTS. The inline strip sits above a long form
+  // and is off-screen on a phone by the time the button at the bottom is
+  // pressed, so someone who already has an account saw nothing happen and
+  // tried again — instead of being told to sign in.
+  const [alert, setAlert] = useState(null);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -138,7 +144,17 @@ export default function SignupFlow() {
                 + 'You can set up payment now — the link will still be waiting.');
       setStep('payment');
     } catch (err) {
-      setError(apiErrorMessage(err, t('SignupFlow.we_could_not_start_your_signup')));
+      // 409 is the one the operator asked to be unmissable: the address is
+      // already registered. The server's own sentence is the message; only the
+      // TITLE and the way forward are decided here.
+      const duplicate = err?.response?.status === 409;
+      setAlert({
+        title: duplicate
+          ? t('SignupFlow.account_already_exists')
+          : t('SignupFlow.signup_could_not_start_title'),
+        message: apiErrorMessage(err, t('SignupFlow.we_could_not_start_your_signup')),
+        signIn: duplicate,
+      });
     } finally {
       setBusy(false);
     }
@@ -198,6 +214,19 @@ export default function SignupFlow() {
 
         {error && <div className="auth-error" role="alert">{error}</div>}
         {notice && <div className="auth-notice">{notice}</div>}
+
+        <AlertDialog
+          open={Boolean(alert)}
+          title={alert?.title}
+          message={alert?.message}
+          onClose={() => setAlert(null)}
+          actions={alert?.signIn ? (
+            // A refusal with no route forward is what sent this person back to
+            // the same form (§3aj).
+            <Link to="/login" className="btn-primary">{t('SignupFlow.go_to_sign_in')}</Link>
+          ) : null}
+        />
+
 
         {step === 'details' && (
           <form onSubmit={submitDetails}>

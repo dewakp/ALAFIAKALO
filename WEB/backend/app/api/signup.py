@@ -34,6 +34,7 @@ from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
 from app.core.rate_limit import limiter
 from app.services import email as email_service
 from app.services import signup_service as svc
+from app.services.auth_alerts import client_ip, notify_admin_auth_failure
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -160,8 +161,32 @@ async def signup_start(
         ) from exc
 
     if await svc.email_taken(db, body.email):
-        # Same response as success, so the endpoint cannot enumerate accounts.
-        return _sent_message()
+        # DELIBERATE REVERSAL, asked for by the operator.
+        #
+        # This used to return the success message verbatim so the endpoint could
+        # not enumerate accounts (§3e). The cost was paid by real people: someone
+        # who had already signed up got "a verification link has been sent",
+        # waited for mail that by definition was never sent, and had no way to
+        # learn that the thing to do was sign in. That is the same silent-success
+        # shape as the 17 unsubscribe links (§3d).
+        #
+        # So the address IS confirmed as registered here. What limits the damage
+        # is that the route carries RATE_LIMIT_AUTH (5/minute), which is what
+        # separates a lookup from a bulk harvest — the same reasoning §3e applies
+        # to recipient search. The message names the way forward rather than just
+        # refusing.
+        await notify_admin_auth_failure(
+            kind="registration", reason="email_already_registered",
+            email=body.email, client_ip=client_ip(request),
+            detail="Someone tried to sign up with an address that already has "
+                   "an account. They were told to sign in or reset instead.",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=("An account already exists for this email address. "
+                    "Try signing in, or reset your password if you have "
+                    "forgotten it."),
+        )
 
     # `full_name` is DERIVED, never asked for twice. Keeping it in step here
     # means every existing reader — greetings, clinician lists, the 85 rows that

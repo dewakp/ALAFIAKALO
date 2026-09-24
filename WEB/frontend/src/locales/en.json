@@ -2600,7 +2600,10 @@
     "we_could_not_start_your_signup": "We could not start your signup.",
     "we_could_not_open_the_payment_page": "We could not open the payment page.",
     "sent_check_your_inbox_and_your_spam": "Sent. Check your inbox, and your spam folder.",
-    "we_could_not_resend_that_email": "We could not resend that email."
+    "we_could_not_resend_that_email": "We could not resend that email.",
+    "account_already_exists": "That address already has an account",
+    "signup_could_not_start_title": "We could not start your signup",
+    "go_to_sign_in": "Go to sign in"
   },
   "Sleep": {
     "sleep": "Sleep",
@@ -3046,5 +3049,8 @@
   },
   "LanguageSwitcher": {
     "language": "Language"
+  },
+  "AlertDialog": {
+    "dismiss": "Dismiss"
   }
 }

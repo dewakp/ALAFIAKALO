@@ -37,6 +37,7 @@ from app.core.rate_limit import limiter
 from app.core.units import units_for_locale
 from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
 from app.services.email import password_reset_url, send_password_reset_email
+from app.services.auth_alerts import client_ip, notify_admin_auth_failure
 
 logger = logging.getLogger(__name__)
 
@@ -246,6 +247,13 @@ async def login(
     user = result.scalar_one_or_none()
 
     if not user:
+        # The operator is told which address was tried; the CALLER still gets
+        # the same sentence as a wrong password, so the response cannot be used
+        # to tell a registered address from an unregistered one (§3e).
+        await notify_admin_auth_failure(
+            kind="login", reason="no_such_account",
+            email=form_data.username, client_ip=client_ip(request),
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -256,6 +264,10 @@ async def login(
     local_ok = verify_password(form_data.password, user.hashed_password)
 
     if not local_ok:
+        await notify_admin_auth_failure(
+            kind="login", reason="bad_password",
+            email=form_data.username, client_ip=client_ip(request),
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

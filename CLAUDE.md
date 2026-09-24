@@ -253,9 +253,12 @@ finding; a blank card is a dead end.
 data** and prints which paths never executed:
 
 ```bash
-# NOTE: backend-test's env_file points DATABASE_URL at the *test* database, so
-# the bare command reports "users holding data: 0" and proves nothing. Override
-# it to sweep the dev copy of prod:
+# NOTE: backend-test's DATABASE_URL is `localhost:5435/alafia` — and `localhost`
+# inside that container is the container itself, not the compose `db` service —
+# so the bare command reaches NO database and proves nothing. (It does not point
+# at the test database, as this note claimed until 2026-09-24; the pytest
+# fixtures build their own engine from TEST_DB_NAME. Measured, not inferred.)
+# Override it to sweep the dev copy of prod:
 docker compose --profile test run --rm \
   -e DATABASE_URL="postgresql+asyncpg://alafia:alafia@db:5432/alafia" \
   backend-test python scripts/board_sweep.py
