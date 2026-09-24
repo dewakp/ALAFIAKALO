@@ -18,6 +18,7 @@ from sqlalchemy import and_, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.phone import digits as _digits, phone_candidates
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.rate_limit import limiter
@@ -128,8 +129,6 @@ _RECIPIENT_MAX_LIMIT = 25
 _MIN_PHONE_DIGITS = 7
 
 
-def _digits(value: str | None) -> str:
-    return "".join(ch for ch in (value or "") if ch.isdigit())
 
 
 def _mask_email(email: str | None) -> str | None:
@@ -152,17 +151,11 @@ def _mask_phone(phone: str | None) -> str | None:
 def _phone_candidates(term: str) -> list[str]:
     """Plausible stored forms of a typed number.
 
-    Numbers are stored E.164 (`+15551234567`) but people type `(555) 123-4567`.
-    Rather than a Postgres-only `regexp_replace` in the WHERE clause, compare
-    against the handful of forms the same digits could have been stored as.
+    Moved to `app/core/phone.py` when login needed the same matching: two
+    copies of "which shapes could this number have been stored as" drift, and
+    the copy that drifts is the one that stops finding someone's account.
     """
-    digits = _digits(term)
-    if len(digits) < _MIN_PHONE_DIGITS:
-        return []
-    forms = {digits, f"+{digits}"}
-    if not digits.startswith("1"):
-        forms |= {f"+1{digits}", f"1{digits}"}
-    return sorted(forms)
+    return phone_candidates(term)
 
 
 async def _connected_user_ids(db: AsyncSession, user_id: int) -> set[int]:

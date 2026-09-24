@@ -19,7 +19,7 @@ vi.mock('../services/api', () => ({
 // is preferable to wrapping in the real AuthProvider here: the provider fetches
 // a CSRF cookie and a session on mount, none of which this render is testing.
 vi.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ login: vi.fn(), loginWithFirebase: vi.fn(), user: null, loading: false }),
+  useAuth: () => ({ login: vi.fn(), loginWithOIDC: vi.fn(), user: null, loading: false }),
   AuthProvider: ({ children }) => children,
 }));
 

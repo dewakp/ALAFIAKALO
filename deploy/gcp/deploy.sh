@@ -204,6 +204,20 @@ BACKEND_ENV="${BACKEND_ENV},TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:
 BACKEND_ENV="${BACKEND_ENV},CONTACT_DELIVERY_EMAIL=${CONTACT_DELIVERY_EMAIL:-woleakpose@outlook.com}"
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
+# Social sign-in verifies the PROVIDER's own ID token (no Firebase broker).
+# Comma-separated because the same account presents a different `aud` per
+# platform: web uses the browser client id, iOS/Android their own. Pinning
+# one value works on one platform and locks out the rest.
+GOOGLE_OAUTH_CLIENT_IDS="${GOOGLE_OAUTH_CLIENT_IDS:-}"
+APPLE_CLIENT_IDS="${APPLE_CLIENT_IDS:-}"
+if [ -n "$GOOGLE_OAUTH_CLIENT_IDS" ]; then
+  BACKEND_ENV="${BACKEND_ENV},GOOGLE_OAUTH_CLIENT_IDS=${GOOGLE_OAUTH_CLIENT_IDS}"
+  echo "   + Google sign-in enabled"
+fi
+if [ -n "$APPLE_CLIENT_IDS" ]; then
+  BACKEND_ENV="${BACKEND_ENV},APPLE_CLIENT_IDS=${APPLE_CLIENT_IDS}"
+  echo "   + Apple sign-in enabled"
+fi
 # Private GPU Ollama LLM + the deployed commit stamp (surfaced by /api/health).
 # OLLAMA_VISION_MODEL is set EXPLICITLY. Left unset, the backend falls back to a
 # per-file default, and those defaults disagreed: image_ai.py said "moondream"

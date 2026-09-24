@@ -28,11 +28,6 @@ interface ApiService {
     @POST("auth/refresh")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): LoginResponse
 
-    /** Exchange a Firebase Auth ID token (native phone-OTP / Google / Apple
-     *  sign-in flow) for ALAFIA JWTs. Provider SDK flows are wired separately. */
-    @POST("auth/firebase")
-    suspend fun loginWithFirebase(@Body request: FirebaseTokenRequest): LoginResponse
-
     @POST("auth/password-reset/request")
     suspend fun requestPasswordReset(@Body request: PasswordResetRequest): PasswordResetResponse
 

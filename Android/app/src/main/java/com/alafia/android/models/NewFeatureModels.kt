@@ -460,12 +460,6 @@ data class WeightSeriesResponse(
     val summary: WeightSeriesSummary
 )
 
-// ── Firebase token exchange (phone / Google / Apple sign-in) ────────────────
-
-data class FirebaseTokenRequest(
-    @SerializedName("id_token") val idToken: String
-)
-
 // ── Food photo labeling (visual memory) ─────────────────────────────────────
 
 data class FoodLabelRequest(

@@ -38,6 +38,7 @@ from app.core.units import units_for_locale
 from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
 from app.services.email import password_reset_url, send_password_reset_email
 from app.services.auth_alerts import client_ip, notify_admin_auth_failure
+from app.core.phone import phone_candidates
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +215,51 @@ async def _record_login(db, user) -> None:
         logger.warning("Could not stamp last_login for user %s", getattr(user, "id", "?"), exc_info=True)
 
 
+async def _find_by_identifier(db: AsyncSession, identifier: str) -> User | None:
+    """Resolve the login identifier, which is an email OR a phone number.
+
+    The login form has had a Phone tab all along and this lookup only ever
+    compared `users.email`, so a correct number with a correct password was
+    answered "Incorrect email or password" — a real account, refused, with the
+    message naming a field the person never filled in.
+
+    Email first: it is the common case and unique. Then the candidate stored
+    FORMS of a typed number (§3e) — never a `regexp_replace` in the WHERE
+    clause, which would be Postgres-only and unindexable.
+
+    `phone_number` carries a UNIQUE index (`ix_users_phone_number`), so at most
+    one row can match — verified against the database, after first assuming the
+    opposite. `.first()` is kept anyway: if that index is ever relaxed, a
+    duplicated number should refuse the login rather than raise
+    MultipleResultsFound and answer 500 to everyone who shares it.
+    """
+    identifier = (identifier or "").strip()
+    if not identifier:
+        return None
+
+    user = (await db.execute(
+        select(User).where(User.email == identifier)
+    )).scalar_one_or_none()
+    if user is not None:
+        return user
+
+    forms = phone_candidates(identifier)
+    if not forms:
+        return None
+    return (await db.execute(
+        select(User).where(User.phone_number.in_(forms)).order_by(User.id)
+    )).scalars().first()
+
+
+#: ONE sentence for every credential failure, so the two can never drift apart.
+#: An unknown identifier and a wrong password must be indistinguishable to the
+#: caller or the 401 becomes an account-existence oracle (§3e). It says
+#: "credentials" rather than "email" because the form also accepts a phone
+#: number, and answering "Incorrect email or password" to someone who typed a
+#: phone number describes a field they never filled in.
+_BAD_CREDENTIALS = "Those credentials did not match an account."
+
+
 @router.post("/login", response_model=Token)
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 async def login(
@@ -235,16 +281,13 @@ async def login(
         # Stamp here too. This branch returns before the local-password path
         # below, and it is the branch most logins actually take (shared IdP →
         # SSO), so skipping it left last_login NULL for everyone.
-        sso_user = (await db.execute(
-            select(User).where(User.email == form_data.username)
-        )).scalar_one_or_none()
+        sso_user = await _find_by_identifier(db, form_data.username)
         if sso_user is not None:
             await _record_login(db, sso_user)
         _set_refresh_cookie(response, ident.get("refresh_token", ""))
         return Token(access_token=ident["access_token"], refresh_token=ident.get("refresh_token", ""))
 
-    result = await db.execute(select(User).where(User.email == form_data.username))
-    user = result.scalar_one_or_none()
+    user = await _find_by_identifier(db, form_data.username)
 
     if not user:
         # The operator is told which address was tried; the CALLER still gets
@@ -256,7 +299,7 @@ async def login(
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail=_BAD_CREDENTIALS,
         )
 
     # Legacy local-password fallback (PostgreSQL `users.hashed_password`) for accounts
@@ -270,7 +313,7 @@ async def login(
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail=_BAD_CREDENTIALS,
         )
 
     await _record_login(db, user)

@@ -149,6 +149,21 @@ class Settings(BaseSettings):
     EHR_ENABLE_SANDBOX: bool = True
 
     # Firebase (for migration & sync pipeline)
+    # ── Social sign-in ────────────────────────────────────────────────────
+    # The PROVIDER's own ID token is verified in-process (app/services/oidc.py);
+    # nothing is brokered through Firebase.
+    #
+    # Comma-separated, because one person signing into one account presents a
+    # different `aud` depending on where they are: the web OAuth client id, the
+    # iOS client id, Apple's Services ID on web versus the app's bundle id on
+    # device. Pinning a single value authenticates one platform and rejects the
+    # rest — the §3 parity failure, in a config value.
+    #
+    # Empty means that provider is REFUSED, never trusted: with nothing to check
+    # `aud` against, every token would otherwise be accepted.
+    GOOGLE_OAUTH_CLIENT_IDS: str = ""
+    APPLE_CLIENT_IDS: str = ""
+
     FIREBASE_SERVICE_ACCOUNT: str = ""  # Path to service account JSON
     FIREBASE_WEB_API_KEY: str = ""  # Firebase Web API key (for password verification)
     FIREBASE_SYNC_ENABLED: bool = False  # Enable real-time Firestore→PG sync

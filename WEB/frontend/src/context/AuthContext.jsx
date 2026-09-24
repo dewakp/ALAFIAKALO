@@ -53,9 +53,11 @@ export function AuthProvider({ children }) {
     await loadUser();
   }
 
-  async function loginWithFirebase(idToken) {
-    // Exchange a Firebase Auth ID token (phone / Google / Apple) for app JWTs.
-    const { data } = await api.post('/auth/firebase', { id_token: idToken });
+  async function loginWithOIDC(provider, idToken) {
+    // Exchange the PROVIDER's own ID token (Google / Apple) for app JWTs. No
+    // Firebase in the path: the backend verifies the token against the
+    // provider's published JWKS.
+    const { data } = await api.post('/auth/oidc', { provider, id_token: idToken });
     localStorage.setItem('token', data.access_token);
     api.defaults.headers.common.Authorization = `Bearer ${data.access_token}`;
     await loadUser();
@@ -101,7 +103,7 @@ export function AuthProvider({ children }) {
         user,
         loading,
         login,
-        loginWithFirebase,
+        loginWithOIDC,
         logout,
         refreshToken,
         requestPasswordReset,
