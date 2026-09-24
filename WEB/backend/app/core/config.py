@@ -164,6 +164,20 @@ class Settings(BaseSettings):
     GOOGLE_OAUTH_CLIENT_IDS: str = ""
     APPLE_CLIENT_IDS: str = ""
 
+    #: May a Google/Apple sign-in CREATE an account, or only sign in to one that
+    #: already exists?
+    #
+    #: True restores what /auth/firebase already did — it linked or created —
+    #: but stricter: creation requires a VERIFIED email, which the old path never
+    #: checked. The account is created unpaid and meets the paywall, exactly like
+    #: /auth/signup/complete-mobile, so this does not hand out entitlement.
+    #
+    #: False makes social sign-in link-only: an unknown identity is refused and
+    #: told to sign up. Safer against §3as's unpaid-account problem, at the cost
+    #: of "Sign in with Google" failing for every new person. One env var, so the
+    #: policy can change without a code change.
+    OIDC_ALLOW_SIGNUP: bool = True
+
     FIREBASE_SERVICE_ACCOUNT: str = ""  # Path to service account JSON
     FIREBASE_WEB_API_KEY: str = ""  # Firebase Web API key (for password verification)
     FIREBASE_SYNC_ENABLED: bool = False  # Enable real-time Firestore→PG sync

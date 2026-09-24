@@ -208,7 +208,11 @@ BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED
 # Comma-separated because the same account presents a different `aud` per
 # platform: web uses the browser client id, iOS/Android their own. Pinning
 # one value works on one platform and locks out the rest.
-GOOGLE_OAUTH_CLIENT_IDS="${GOOGLE_OAUTH_CLIENT_IDS:-}"
+# Versioned default, like PUBLIC_DOMAIN above. Unset it and every Google
+# token is refused as "not configured" — a button that cannot work, which
+# is the defect this replaced. An OAuth client id is public (it travels in
+# every authorization request), so it belongs in the pipeline, not a secret.
+: "${GOOGLE_OAUTH_CLIENT_IDS:=214891981468-8k22g0heta01kcflao4vfupm8uqgit6r.apps.googleusercontent.com}"
 APPLE_CLIENT_IDS="${APPLE_CLIENT_IDS:-}"
 if [ -n "$GOOGLE_OAUTH_CLIENT_IDS" ]; then
   BACKEND_ENV="${BACKEND_ENV},GOOGLE_OAUTH_CLIENT_IDS=${GOOGLE_OAUTH_CLIENT_IDS}"

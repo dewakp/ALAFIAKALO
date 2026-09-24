@@ -1,7 +1,10 @@
 """Authentication endpoints."""
 
 import logging
+import secrets
 from datetime import datetime, timezone
+
+from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
@@ -38,6 +41,8 @@ from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
 from app.services.email import password_reset_url, send_password_reset_email
 from app.services.auth_alerts import client_ip, notify_admin_auth_failure
 from app.core.phone import phone_candidates
+from app.models.user_identity import UserIdentity
+from app.services.oidc import OIDCError, verify_id_token
 
 logger = logging.getLogger(__name__)
 
@@ -346,6 +351,121 @@ async def login_with_firebase_retired():
         detail=("Firebase sign-in has been retired. Use POST /auth/oidc with "
                 "{provider, id_token}."),
     )
+
+
+class OIDCLoginRequest(BaseModel):
+    """An ID token minted by the provider itself, and which provider minted it.
+
+    The provider is named by the CLIENT because the token must be checked
+    against that provider's issuer and JWKS — but it is not trusted: an
+    unrecognised name is refused, and a token whose `iss` belongs to the other
+    provider fails verification.
+    """
+    provider: str
+    id_token: str
+
+
+@router.post("/oidc", response_model=Token)
+@limiter.limit(settings.RATE_LIMIT_AUTH)
+async def login_with_oidc(
+    request: Request,
+    response: Response,
+    body: OIDCLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Sign in with Google or Apple, verified directly against the provider.
+
+    Resolution order, and each step exists for a reason:
+
+    1. **The stored (provider, subject) link.** `sub` is the only identifier the
+       provider guarantees is stable. Apple sends `email` on the FIRST
+       authorization only, so on every later sign-in this link is all there is.
+    2. **A VERIFIED email matching an existing account**, which then gets linked
+       so step 1 answers next time. The verification check is the whole safety
+       of this step: matching on an unverified address would let anyone who can
+       mint a token for `someone@example.com` walk into that person's account.
+    3. **Create**, when `OIDC_ALLOW_SIGNUP` permits it and the email is verified.
+    """
+    try:
+        identity = await verify_id_token(body.provider, body.id_token)
+    except OIDCError as exc:
+        await notify_admin_auth_failure(
+            kind="login", reason=f"oidc_rejected_{body.provider}",
+            client_ip=client_ip(request), detail=str(exc),
+        )
+        # The verifier's sentence already distinguishes an expired token from an
+        # unconfigured provider from a JWKS outage (§3ae) — do not flatten it.
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+
+    link = (await db.execute(
+        select(UserIdentity).where(
+            UserIdentity.provider == identity.provider,
+            UserIdentity.subject == identity.subject,
+        )
+    )).scalars().first()
+
+    user = None
+    if link is not None:
+        user = (await db.execute(
+            select(User).where(User.id == link.user_id)
+        )).scalar_one_or_none()
+
+    if user is None and identity.email and identity.email_verified:
+        user = (await db.execute(
+            select(User).where(User.email == identity.email)
+        )).scalar_one_or_none()
+
+    if user is None:
+        if not settings.OIDC_ALLOW_SIGNUP:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=("No ALAFIA account is linked to that sign-in. Please "
+                        "sign up first, then link it from your profile."),
+            )
+        if not (identity.email and identity.email_verified):
+            # Without a verified address there is nothing to key the account on
+            # and no proof of mailbox control — the gate two-step signup exists
+            # to enforce (§3as).
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=("That sign-in did not supply a verified email address, "
+                        "so an account cannot be created from it."),
+            )
+        user = User(
+            email=identity.email,
+            # Unguessable: this account signs in through the provider, and a
+            # blank or predictable password would be a second way in.
+            hashed_password=hash_password(secrets.token_urlsafe(32)),
+            full_name=identity.name or identity.email.split("@")[0],
+            auth_provider=identity.provider,
+        )
+        db.add(user)
+        await db.flush()
+        await db.refresh(user)
+        logger.info("Created user %s via %s sign-in", user.id, identity.provider)
+
+    if not user.is_active:
+        # A deactivated account must not be revived by a social sign-in.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="That account is not active.",
+        )
+
+    now = datetime.now(timezone.utc)
+    if link is None:
+        db.add(UserIdentity(
+            user_id=user.id, provider=identity.provider, subject=identity.subject,
+            email=identity.email, last_used_at=now,
+        ))
+    else:
+        link.last_used_at = now
+    await db.flush()
+
+    await _record_login(db, user)
+    token = create_access_token(data={"sub": str(user.id)})
+    refresh = create_refresh_token(data={"sub": str(user.id)})
+    _set_refresh_cookie(response, refresh)
+    return Token(access_token=token, refresh_token=refresh)
 
 
 @router.post("/refresh", response_model=Token)
