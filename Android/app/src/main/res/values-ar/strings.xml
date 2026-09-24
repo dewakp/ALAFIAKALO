@@ -1272,4 +1272,6 @@
     <string name="import_document">استيراد مستند</string>
     <string name="no_results">لا توجد نتائج</string>
     <string name="upload_a_lab_report_medication_list_or">حمّل تقرير المختبر أو قائمة الأدوية أو الجدول. لن يتم إضافة أي شيء إلى سجلاتك حتى تراجعه وتختار الاستيراد.</string>
+    <string name="from_agent">%1$s%2$s %3$s from %4$s</string>
+    <string name="effect_mechanism"> · %1$s</string>
 </resources>

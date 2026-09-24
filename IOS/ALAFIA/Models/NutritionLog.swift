@@ -316,10 +316,46 @@ struct NutrientGoalProgress: Codable, Identifiable {
     /// beside it.
     let dialysisBalance: DialysisBalance?
 
+    /// Everything that is NOT gradient transfer: a drug the unit administered,
+    /// a supplement, a treatment's effect on glucose.
+    ///
+    /// Optional with an empty default at the use site, because a response from
+    /// before this field existed — an older backend, a cached payload — must
+    /// still decode rather than blank the screen.
+    let nutrientEffects: [GoalNutrientEffect]?
+
     enum CodingKeys: String, CodingKey {
         case key, name, unit, current, goal, kind, pct, status, priority, rationale
         case dialysisBalance = "dialysis_balance"
+        // Omitting a case from this block does not fail — it silently decodes
+        // as nil, which is exactly how a field reaches a client and renders
+        // nothing.
+        case nutrientEffects = "nutrient_effects"
     }
+}
+
+/// One agent's effect on one nutrient, beside that nutrient's intake figure.
+///
+/// `applied == false` with a `withheld` reason is a real state and must render:
+/// a drug the unit gave whose amount the record does not state, a credit that
+/// would reassure without a measurement behind it, or a figure an automated
+/// source supplied that nobody has confirmed. A silent zero is how a decade of
+/// IV iron reached this screen as nothing.
+struct GoalNutrientEffect: Codable {
+    let agent: String
+    let direction: String       // adds | removes | binds_dietary | …
+    /// Signed, in the goal's own unit. 0.0 when withheld.
+    let delta: Double
+    /// What it would have been, before withholding.
+    let modelled: Double
+    let applied: Bool
+    let mechanism: String?
+    let withheld: String?
+
+    var isGain: Bool { direction == "adds" }
+    /// Mirrors `DialysisBalance.hasEffect`: a withheld effect always shows, and
+    /// a delta too small to round is not worth a line.
+    var hasEffect: Bool { withheld != nil || abs(delta) >= 0.005 }
 }
 
 /// What a session did to one nutrient's day.
@@ -365,11 +401,42 @@ struct GoalProgressResponse: Codable {
     let conditions: [String]
     let goals: [NutrientGoalProgress]
     let dialysis: DialysisDaySummary?
+    /// The day's agents and what they did, beside `dialysis` rather than
+    /// inside it: that one covers only the four solutes with a serum draw and
+    /// a bath concentration, which is all the gradient model can do.
+    let effects: AgentEffectsDaySummary?
 
     enum CodingKeys: String, CodingKey {
-        case date, conditions, goals, dialysis
+        case date, conditions, goals, dialysis, effects
         case profileComplete = "profile_complete"
         case energyKcal = "energy_kcal"
+    }
+}
+
+/// What the patient met today, and what it moved.
+struct AgentEffectsDaySummary: Codable {
+    let agents: [String]?
+    let applied: [AppliedEffectOut]?
+    let notes: [String]?
+
+    var hasAny: Bool { !(agents ?? []).isEmpty }
+}
+
+/// The day-level form of an effect, carrying the nutrient it applies to.
+struct AppliedEffectOut: Codable {
+    let nutrientKey: String
+    let agentLabel: String
+    let direction: String
+    let delta: Double
+    let modelled: Double
+    let applied: Bool
+    let mechanism: String?
+    let withheld: String?
+
+    enum CodingKeys: String, CodingKey {
+        case direction, delta, modelled, applied, mechanism, withheld
+        case nutrientKey = "nutrient_key"
+        case agentLabel = "agent_label"
     }
 }
 

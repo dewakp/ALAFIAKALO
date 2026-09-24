@@ -1286,4 +1286,6 @@
     <!-- Screens. Extracted from Compose by scripts/i18n/android_extract.py. -->
     <string name="no_results">No results</string>
     <string name="upload_a_lab_report_medication_list_or">Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.</string>
+    <string name="from_agent">%1$s%2$s %3$s from %4$s</string>
+    <string name="effect_mechanism"> · %1$s</string>
 </resources>

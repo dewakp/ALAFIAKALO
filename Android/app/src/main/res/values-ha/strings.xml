@@ -1272,4 +1272,6 @@
     <string name="import_document">Shigo da Takarda</string>
     <string name="no_results">Babu sakamakon</string>
     <string name="upload_a_lab_report_medication_list_or">Loda rahoton jiya, jerin magungunan ko takarda. Ba a ƙara komai zuwa rikodin ku sai kun duba kuma kun zaɓi Shigo.</string>
+    <string name="from_agent">%1$s%2$s %3$s from %4$s</string>
+    <string name="effect_mechanism"> · %1$s</string>
 </resources>

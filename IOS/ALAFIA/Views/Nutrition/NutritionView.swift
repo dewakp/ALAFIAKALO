@@ -507,6 +507,13 @@ struct DailyTargetsCard: View {
                     if let balance = g.dialysisBalance, balance.hasEffect {
                         dialysisBalanceLine(balance, unit: g.unit)
                     }
+                    // Everything that is NOT gradient transfer: a drug the unit
+                    // gave, a supplement, a treatment's effect on glucose.
+                    ForEach(Array((g.nutrientEffects ?? []).enumerated()), id: \.offset) { _, effect in
+                        if effect.hasEffect {
+                            effectLine(effect, unit: g.unit)
+                        }
+                    }
                 }
             }
 
@@ -516,6 +523,29 @@ struct DailyTargetsCard: View {
         .padding()
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// What a drug, supplement or treatment did to one nutrient — the sibling
+    /// of `dialysisBalanceLine`, for everything the gradient model cannot cover.
+    ///
+    /// A withheld effect STILL renders, with its reason. "Given, amount not
+    /// recorded", or a figure an automated source supplied that nobody has
+    /// confirmed, is a finding worth reading; a blank line is how a decade of
+    /// IV iron reached this screen as nothing at all.
+    @ViewBuilder
+    private func effectLine(_ effect: GoalNutrientEffect, unit: String) -> some View {
+        if let withheld = effect.withheld {
+            Text(withheld).font(.caption2).foregroundStyle(.orange)
+        } else {
+            HStack(spacing: 4) {
+                Text("\(effect.isGain ? "+" : "")\(fmt(effect.delta)) \(unit) from \(effect.agent)")
+                    .font(.caption2).fontWeight(.semibold)
+                    .foregroundStyle(effect.isGain ? Color.orange : Color.accentColor)
+                if let mechanism = effect.mechanism {
+                    Text("· \(mechanism)").font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
+        }
     }
 
     /// Treatment effect on one nutrient, shown beside the intake figure and

@@ -179,8 +179,42 @@ data class NutrientGoalProgress(
      * assume the patient is on dialysis, so raising them would count that
      * clearance twice. [current] stays dietary intake; the balance sits beside it.
      */
-    @SerializedName("dialysis_balance") val dialysisBalance: DialysisBalance? = null
+    @SerializedName("dialysis_balance") val dialysisBalance: DialysisBalance? = null,
+    /**
+     * Everything that is NOT gradient transfer: a drug the unit administered,
+     * a supplement, a treatment's effect on glucose.
+     *
+     * Defaulted, so a response from before this field existed — an older
+     * backend, a cached payload — still parses instead of blanking the screen.
+     */
+    @SerializedName("nutrient_effects") val nutrientEffects: List<GoalNutrientEffect>? = null
 )
+
+/**
+ * One agent's effect on one nutrient, beside that nutrient's intake figure.
+ *
+ * [applied] false with a [withheld] reason is a real state and must render: a
+ * drug the unit gave whose amount the record does not state, a credit that
+ * would reassure without a measurement behind it, or a figure an automated
+ * source supplied that nobody has confirmed. A silent zero is how a decade of
+ * IV iron reached this screen as nothing.
+ */
+data class GoalNutrientEffect(
+    val agent: String,
+    val direction: String,            // adds | removes | binds_dietary | …
+    /** Signed, in the goal's own unit. 0.0 when withheld. */
+    val delta: Float = 0f,
+    /** What it would have been, before withholding. */
+    val modelled: Float = 0f,
+    val applied: Boolean = false,
+    val mechanism: String? = null,
+    val withheld: String? = null
+) {
+    val isGain: Boolean get() = direction == "adds"
+
+    /** Mirrors [DialysisBalance.hasEffect]: a withheld effect always shows. */
+    val hasEffect: Boolean get() = withheld != null || kotlin.math.abs(delta) >= 0.005f
+}
 
 /** What a session did to one nutrient's day. */
 data class DialysisBalance(
@@ -215,7 +249,34 @@ data class GoalProgressResponse(
     @SerializedName("energy_kcal") val energyKcal: Float,
     val conditions: List<String>,
     val goals: List<NutrientGoalProgress>,
-    val dialysis: DialysisDaySummary? = null
+    val dialysis: DialysisDaySummary? = null,
+    /**
+     * The day's agents and what they did, beside [dialysis] rather than inside
+     * it: that one covers only the four solutes with a serum draw and a bath
+     * concentration, which is all the gradient model can do.
+     */
+    val effects: AgentEffectsDaySummary? = null
+)
+
+/** What the patient met today, and what it moved. */
+data class AgentEffectsDaySummary(
+    val agents: List<String>? = null,
+    val applied: List<AppliedEffectOut>? = null,
+    val notes: List<String>? = null
+) {
+    val hasAny: Boolean get() = !agents.isNullOrEmpty()
+}
+
+/** The day-level form of an effect, carrying the nutrient it applies to. */
+data class AppliedEffectOut(
+    @SerializedName("nutrient_key") val nutrientKey: String,
+    @SerializedName("agent_label") val agentLabel: String,
+    val direction: String,
+    val delta: Float = 0f,
+    val modelled: Float = 0f,
+    val applied: Boolean = false,
+    val mechanism: String? = null,
+    val withheld: String? = null
 )
 
 // Lab Result

@@ -1272,4 +1272,6 @@
     <string name="import_document">Gbé Ìwé Wọlé</string>
     <string name="no_results">Àìní èsì</string>
     <string name="upload_a_lab_report_medication_list_or">Gbe ìwé ìsẹ̀wọ̀, àtòjọ oogun tàbí flowsheet. Ohunkóhun kò ní a ṣafikun sí àwọn ìtàn rẹ títí o ba wo ó àti yàn Gbé Wọlé.</string>
+    <string name="from_agent">%1$s%2$s %3$s from %4$s</string>
+    <string name="effect_mechanism"> · %1$s</string>
 </resources>

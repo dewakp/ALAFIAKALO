@@ -1272,4 +1272,6 @@
     <string name="import_document">导入文档</string>
     <string name="no_results">无结果</string>
     <string name="upload_a_lab_report_medication_list_or">上传实验室报告、用药清单或流程表。在您审核并选择导入之前，任何内容都不会添加到您的记录中。</string>
+    <string name="from_agent">%1$s%2$s %3$s from %4$s</string>
+    <string name="effect_mechanism"> · %1$s</string>
 </resources>

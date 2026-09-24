@@ -1405,6 +1405,11 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
                     g.dialysisBalance?.takeIf { it.hasEffect }?.let { b ->
                         DialysisBalanceLine(b, g.unit)
                     }
+                    // Everything that is NOT gradient transfer: a drug the unit
+                    // gave, a supplement, a treatment's effect on glucose.
+                    g.nutrientEffects?.forEach { e ->
+                        if (e.hasEffect) EffectLine(e, g.unit)
+                    }
                 }
             }
 
@@ -1424,6 +1429,49 @@ private fun DailyTargetsCard(data: GoalProgressResponse) {
 /** `fmt` above is local to another composable, so this needs its own. */
 private fun fmtAmount(v: Float) =
     if (kotlin.math.abs(v) < 10f) String.format("%.1f", v) else v.roundToInt().toString()
+
+/**
+ * What a drug, supplement or treatment did to one nutrient — the sibling of
+ * [DialysisBalanceLine], for everything the gradient model cannot cover.
+ *
+ * A withheld effect STILL renders, with its reason. "Given, amount not
+ * recorded", or a figure an automated source supplied that nobody has
+ * confirmed, is a finding worth reading; a blank line is how a decade of IV
+ * iron reached this screen as nothing at all.
+ */
+@Composable
+private fun EffectLine(effect: GoalNutrientEffect, unit: String) {
+    Spacer(Modifier.height(2.dp))
+    if (effect.withheld != null) {
+        Text(
+            effect.withheld,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFFB45309)
+        )
+        return
+    }
+    Row {
+        Text(
+            stringResource(
+                R.string.from_agent,
+                if (effect.isGain) "+" else "",
+                fmtAmount(effect.delta),
+                unit,
+                effect.agent,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = if (effect.isGain) Color(0xFFB45309) else MaterialTheme.colorScheme.primary
+        )
+        effect.mechanism?.let { mechanism ->
+            Text(
+                stringResource(R.string.effect_mechanism, mechanism),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
 
 @Composable
 private fun DialysisBalanceLine(balance: DialysisBalance, unit: String) {
