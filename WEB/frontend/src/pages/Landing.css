@@ -1068,3 +1068,65 @@
 
   .features-grid { grid-template-columns: 1fr; }
 }
+
+/* ── iOS beta request ──────────────────────────────────────────────────
+   The iPhone card opens a form in place rather than linking away: there is
+   a build, it is just not on the store, and sending someone to a separate
+   page to ask for it loses most of them. Reuses .contact-form / .form-group
+   / .form-input; only the card-specific overrides live here. */
+
+/* Two of the three platform cards link out; the iOS one opens a form, which
+   is a button, not a navigation. Reset the button chrome so all three read
+   identically. */
+button.platform-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.platform-link--cta {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.beta-panel {
+  margin-top: 1.25rem;
+  text-align: left;
+}
+
+/* .contact-form centres itself in a 640px column for the Contact PAGE. Inside
+   a platform card it has to fill the card instead. */
+.beta-panel.contact-form {
+  margin: 1.25rem 0 0;
+  max-width: none;
+  gap: 0.9rem;
+}
+
+.beta-panel h4 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.beta-panel p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: rgba(165, 195, 235, 0.62);
+  line-height: 1.6;
+}
+
+.beta-ref {
+  margin-top: 0.75rem !important;
+  font-size: 0.84rem;
+}
+
+.beta-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}

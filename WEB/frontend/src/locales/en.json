@@ -1400,7 +1400,22 @@
     "health_charts": "Health Charts",
     "beautiful_ai_powered_dashboards": "Beautiful AI-powered dashboards visualizing every dimension of your health over time.",
     "community_safety": "Community & Safety",
-    "fda_recall_alerts_wellness_resources_and": "FDA recall alerts, wellness resources, and evidence-based community health knowledge."
+    "fda_recall_alerts_wellness_resources_and": "FDA recall alerts, wellness resources, and evidence-based community health knowledge.",
+    "get_it_in_beta": "Get it in Beta.",
+    "beta_blurb": "If you already subscribed via web but want to see the iOS app in action, request beta today and we will send you an activation code.",
+    "your_name": "Your name",
+    "email": "Email",
+    "notes_optional": "Notes (optional)",
+    "beta_notes_hint": "Anything that helps us match you — the email you subscribed with, or your device.",
+    "leave_this_field_empty": "Leave this field empty",
+    "sending": "Sending…",
+    "request_beta": "Request beta ✦",
+    "cancel": "Cancel",
+    "close": "Close",
+    "beta_request_received": "Request received",
+    "beta_we_have_your_request": "We have your request. If you are already a member, we will match your address and send a TestFlight invitation.",
+    "your_reference_is": "Your reference is",
+    "beta_could_not_send": "We could not send your request. Please try again shortly."
   },
   "Lifestyle": {
     "lifestyle": "Lifestyle",
