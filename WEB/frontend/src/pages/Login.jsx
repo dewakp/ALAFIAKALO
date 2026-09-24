@@ -32,6 +32,11 @@ export default function Login() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');                 // which action is in flight
   const googleBtnRef = useRef(null);
+  // Separate from `error` ON PURPOSE. `error` is the form's slot for a FAILED
+  // SIGN-IN, rendered in red above the email field. A provider script that an
+  // extension blocked is neither — putting it there told someone whose email
+  // login was working perfectly that sign-in was broken.
+  const [googleBlocked, setGoogleBlocked] = useState(false);
 
   // Google's button is rendered BY Google — it will not hand an ID token to an
   // arbitrary click. Mount it once, and report a blocked script rather than
@@ -44,7 +49,7 @@ export default function Login() {
       renderGoogleButton(
         googleBtnRef.current,
         handleGoogleToken,
-        (err) => setError(oidcErrorMessage(err, t('Login.sign_in_failed'))),
+        () => setGoogleBlocked(true),
       ).then((fn) => { cleanup = fn; });
     }
     return () => cleanup();
@@ -220,6 +225,15 @@ export default function Login() {
               than no control (§3ar). */}
           <div style={{ margin: '1.25rem 0 0', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
             <div ref={googleBtnRef} style={{ display: 'flex', justifyContent: 'center' }} />
+            {googleBlocked && (
+              // Quiet, and in the button's place — not in the error slot. This
+              // is an unavailable extra, not a failure the user must act on:
+              // email and phone sign-in are untouched by it.
+              <p style={{ margin: '4px 0 0', textAlign: 'center', fontSize: '.82rem',
+                opacity: 0.7 }}>
+                {t('Login.google_sign_in_unavailable')}
+              </p>
+            )}
             {isAppleConfigured() && (
               <button type="button" style={{ ...socialBtnStyle, marginTop: 10 }}
                 disabled={!!busy} onClick={handleApple}>

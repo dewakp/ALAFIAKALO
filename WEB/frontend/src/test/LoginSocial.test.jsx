@@ -95,7 +95,12 @@ describe('social sign-in goes straight to the provider', () => {
     expect(screen.queryByRole('button', { name: /apple/i })).not.toBeInTheDocument();
   });
 
-  it('says so when a provider script is blocked, instead of showing nothing', async () => {
+  it('notes a blocked provider quietly — NOT as a sign-in error', async () => {
+    // Reported from production: an extension blocks accounts.google.com, and
+    // this was rendered in the form's error slot — red, above the email field —
+    // telling someone whose email login worked perfectly that sign-in was
+    // broken. A blocked optional provider is an unavailable extra, not a
+    // failure the user must act on.
     oidc.renderGoogleButton.mockImplementation(async (_el, _onToken, onError) => {
       onError(new Error('script-blocked'));
       return () => {};
@@ -103,7 +108,9 @@ describe('social sign-in goes straight to the provider', () => {
 
     renderLogin();
 
-    expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument();
+    expect(await screen.findByText(/isn't available in this browser/i)).toBeInTheDocument();
+    // The form's error path is for a FAILED SIGN-IN. This must never reach it.
+    expect(oidc.oidcErrorMessage).not.toHaveBeenCalled();
   });
 
   it('reports a refusal from our own API rather than a provider message', async () => {

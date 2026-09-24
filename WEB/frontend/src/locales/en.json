@@ -1459,7 +1459,8 @@
     "password_must_be_at_least_6_characters": "Password must be at least 6 characters",
     "login_failed": "Login failed",
     "enter_a_valid_phone_number_e_g": "Enter a valid phone number, e.g. +15551234567",
-    "sign_in_failed": "Sign-in failed."
+    "sign_in_failed": "Sign-in failed.",
+    "google_sign_in_unavailable": "Google sign-in isn't available in this browser."
   },
   "MealPlanner": {
     "cal": "cal",
