@@ -1274,4 +1274,7 @@
     <string name="upload_a_lab_report_medication_list_or">Carga un informe de laboratorio, lista de medicamentos o hoja de seguimiento. Nada se añade a tus registros hasta que lo revises y elijas Importar.</string>
     <string name="from_agent">%1$s%2$s %3$s from %4$s</string>
     <string name="effect_mechanism"> · %1$s</string>
+    <string name="account_already_exists">That address already has an account</string>
+    <string name="go_to_sign_in">Go to sign in</string>
+    <string name="dismiss_alert">Dismiss</string>
 </resources>

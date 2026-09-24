@@ -45,6 +45,36 @@ object ErrorUtil {
         }
     }
 
+    /**
+     * Reads FastAPI's OTHER shape — `{"detail":"a whole sentence"}` — which is
+     * what a deliberate refusal uses, as opposed to pydantic's list of field
+     * problems above.
+     *
+     * /auth/signup/start answers 409 with the reason AND the way forward
+     * ("An account already exists… try signing in, or reset your password").
+     * Collapsing that into "Something went wrong. Please try again." sends the
+     * one person who demonstrably already has an account back to the same form
+     * to try again — §3aj, where a guard that cannot explain itself gets blamed
+     * for the thing it did not do.
+     *
+     * NOTE: `errorBody().string()` is consumable ONCE. Call this or
+     * [validationMessage] for a given exception, never both.
+     */
+    fun detailMessage(e: HttpException): String? {
+        val body = try {
+            e.response()?.errorBody()?.string()
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        return try {
+            val detail = com.google.gson.JsonParser.parseString(body)
+                .asJsonObject.get("detail")
+            detail?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun userMessage(e: Exception): String {
         Log.e(TAG, "Error: ${e.javaClass.simpleName}", e)
         return when (e) {
@@ -55,6 +85,10 @@ object ErrorUtil {
                 403 -> "You don't have permission to perform this action."
                 404 -> "The requested data was not found."
                 429 -> "Too many requests. Please wait a moment."
+                // A deliberate refusal that already names the way forward —
+                // signing up with an address that already has an account.
+                409 -> detailMessage(e)
+                    ?: "An account already exists for this email address. Try signing in."
                 // FastAPI validation errors name the field that is wrong.
                 // Collapsing them into "Something went wrong" told a user with a
                 // mistyped email to try again, without saying what to change.

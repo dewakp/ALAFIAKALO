@@ -1274,4 +1274,7 @@
     <string name="upload_a_lab_report_medication_list_or">Bulie ọkwa ụlọ ọgwụ, ndepụta ọgwụ ma ọ bụ flowsheet. A naghị agbakwụnye ihe ọ bụla na ndekọ gị ruo mgbe ị nyochaa ya ma họpụta Import.</string>
     <string name="from_agent">%1$s%2$s %3$s from %4$s</string>
     <string name="effect_mechanism"> · %1$s</string>
+    <string name="account_already_exists">That address already has an account</string>
+    <string name="go_to_sign_in">Go to sign in</string>
+    <string name="dismiss_alert">Dismiss</string>
 </resources>

@@ -389,9 +389,20 @@ extension AuthManager {
             dateOfBirth: dateOfBirth,
             phone: cleaned.isEmpty ? nil : cleaned,
             country: Locale.current.region?.identifier)
-        // 202: "if that address can receive mail, a link has been sent" — the
-        // same answer whether or not the address is already in use, so signup
-        // cannot become an oracle for which emails have accounts.
+        // 202: "if that address can receive mail, a link has been sent".
+        //
+        // NOT the same answer whether or not the address is in use — that
+        // changed on 2026-09-24. A taken address now answers 409 with the
+        // reason and the way forward, because the old identical response told
+        // someone who had already signed up that a link had been sent, for mail
+        // that by definition was never sent, and left them no route but to try
+        // again. The endpoint can therefore confirm that an address holds an
+        // account; RATE_LIMIT_AUTH (5/minute) is what keeps that a lookup
+        // rather than a harvest. Deliberate, and a reversal of canon §3e.
+        //
+        // The 409 body is `{"detail": "<sentence>"}`, which APIClient's
+        // 400...499 arm decodes into APIError.clientError — so the caller shows
+        // the server's own wording rather than a status code.
         let _: SignupAck = try await APIClient.shared.post("/auth/signup/start", body: body)
     }
 

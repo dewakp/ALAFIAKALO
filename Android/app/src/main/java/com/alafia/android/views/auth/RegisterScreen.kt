@@ -1,6 +1,7 @@
 package com.alafia.android.views.auth
 
 import android.widget.Toast
+import retrofit2.HttpException
 import com.alafia.android.AppLanguage
 import com.alafia.android.util.ErrorUtil
 import com.alafia.android.schemas.SignupStartRequest
@@ -51,6 +52,10 @@ fun RegisterScreen(
     // sent date_of_birth = null, which the age gate rejects with a 422.
     var dateOfBirth by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    // Set when the address already has an account. Held rather than toasted:
+    // this is the one refusal that needs a route forward, not a message that
+    // vanishes while the person is still reading the form.
+    var duplicateMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -257,7 +262,20 @@ fun RegisterScreen(
                             awaitingVerification = true
                             notice = null
                         } catch (e: Exception) {
-                            Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_LONG).show()
+                            // A duplicate address INTERRUPTS. A Toast fades on
+                            // its own and offers no way forward, which is the
+                            // whole problem for the one person who already has
+                            // an account and is trying to create a second one.
+                            //
+                            // Read the body ONCE: errorBody().string() is not
+                            // re-readable, so calling two helpers on the same
+                            // exception leaves the second one with nothing.
+                            val message = ErrorUtil.userMessage(e)
+                            if ((e as? HttpException)?.code() == 409) {
+                                duplicateMessage = message
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                            }
                         } finally {
                             isLoading = false
                         }
@@ -289,6 +307,29 @@ fun RegisterScreen(
             enabled = !isLoading
         ) {
             Text(stringResource(R.string.already_have_an_account_login))
+        }
+
+        // The one refusal that must not fade. Web interrupts with the same
+        // message and the same way out; a Toast here would leave the person who
+        // already has an account staring at the form that just refused them.
+        duplicateMessage?.let { message ->
+            AlertDialog(
+                onDismissRequest = { duplicateMessage = null },
+                title = { Text(stringResource(R.string.account_already_exists)) },
+                // The server's own sentence, not a rewrite of it.
+                text = { Text(message) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        duplicateMessage = null
+                        navController.navigate("login")
+                    }) { Text(stringResource(R.string.go_to_sign_in)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { duplicateMessage = null }) {
+                        Text(stringResource(R.string.dismiss_alert))
+                    }
+                },
+            )
         }
     }
 }
