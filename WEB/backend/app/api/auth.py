@@ -41,6 +41,7 @@ from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
 from app.services.email import password_reset_url, send_password_reset_email
 from app.services.auth_alerts import client_ip, notify_admin_auth_failure
 from app.core.phone import phone_candidates
+from app.core.db_errors import violated_constraint
 from app.models.user_identity import UserIdentity
 from app.services.oidc import OIDCError, verify_id_token
 
@@ -179,7 +180,7 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
     db.add(user)
     try:
         await db.flush()
-    except IntegrityError:
+    except IntegrityError as exc:
         # The pre-check above is not a lock. Two registrations for the same
         # address arriving together both pass it, then both insert, and the
         # loser hits ix_users_email — which surfaced as a 500 in production
@@ -190,6 +191,16 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
         # Only the database can settle a uniqueness race, so the answer is the
         # same one the pre-check gives: this address is taken.
         await db.rollback()
+        # WHICH uniqueness rule fired matters. This handler answered "Email or
+        # username already registered" to every violation, so a duplicate phone
+        # number was reported as an email problem — a refusal naming a field the
+        # person never filled in, exactly like the login form telling someone
+        # with a valid phone number "Incorrect email or password".
+        if violated_constraint(exc) == "ix_users_phone_number":
+            raise HTTPException(
+                status_code=400,
+                detail="That phone number is already registered to another account.",
+            )
         raise HTTPException(status_code=400, detail="Email or username already registered")
 
     # Use the identity-minted canonical SID; fall back to a local canonical SID.

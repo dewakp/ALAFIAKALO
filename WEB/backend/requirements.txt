@@ -36,6 +36,13 @@ openai==1.58.1
 # Firebase
 firebase-admin==6.8.0
 
+# Phone numbers. Google's libphonenumber port — country calling codes and
+# national number lengths are exactly the table §3aj says never to type from
+# memory, and ALAFIA serves eleven locales, so a hardcoded +1 would be wrong for
+# most of them. Used to canonicalise to E.164 so the UNIQUE index on
+# users.phone_number compares one form instead of whatever was typed.
+phonenumbers==9.0.40
+
 # Testing
 pytest==8.3.4
 pytest-asyncio==0.25.0

@@ -13,8 +13,47 @@ This lives here rather than in one API module because two callers now need it:
 recipient lookup (§3e) and login.
 """
 
+import phonenumbers
+
 #: Below this a string is a name fragment or a typo, not a phone number.
 MIN_PHONE_DIGITS = 7
+
+
+def to_e164(value: str | None, region: str | None = None) -> str | None:
+    """The canonical `+<country><national>` form, or None if it is not a number.
+
+    **Uniqueness on a phone number is only meaningful once there is ONE form of
+    it.** `users.phone_number` carries a UNIQUE index, but the index compares
+    the literal string — so `9712606446` and `+19712606446` are two different
+    values and the same human can hold two accounts without the constraint ever
+    firing. Email has had this right all along (`email.strip().lower()` on the
+    way in); phone was stored exactly as typed.
+
+    `region` is the account's ISO-3166 country (`users.country`), needed only
+    when the number arrives without a `+`. A number that already carries one is
+    unambiguous and the region is ignored.
+
+    **None means "not a usable number", and the caller must not invent one.**
+    Production holds a 9-digit value on a US account: too short to be a US
+    number, so there is no honest way to canonicalise it. Prefixing `+1` would
+    fabricate a different person's number in a clinical record. Same rule as an
+    unreadable unit (§3am) — refuse rather than assume.
+
+    Parsing is delegated to libphonenumber rather than hand-written: country
+    calling codes and national number lengths are exactly the kind of table
+    §3aj says never to type from memory, and ALAFIA serves eleven locales — a
+    hardcoded `+1` would be wrong for most of them.
+    """
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = phonenumbers.parse(raw, (region or "").strip().upper() or None)
+    except phonenumbers.NumberParseException:
+        return None
+    if not phonenumbers.is_valid_number(parsed):
+        return None
+    return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
 
 
 def digits(value: str | None) -> str:

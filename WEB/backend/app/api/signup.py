@@ -35,6 +35,7 @@ from app.core.rate_limit import limiter
 from app.services import email as email_service
 from app.services import signup_service as svc
 from app.services.auth_alerts import client_ip, notify_admin_auth_failure
+from app.core.phone import to_e164
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -160,6 +161,33 @@ async def signup_start(
             ),
         ) from exc
 
+    # A phone number has to be ONE value or its UNIQUE index is decorative: the
+    # index compares the literal string, so `9712606446` and `+19712606446` are
+    # two rows for one person and the constraint never fires. Canonicalise HERE,
+    # at the boundary, once — normalising deeper in the service would silently
+    # drop a number that cannot be parsed, and storing it raw would defeat the
+    # uniqueness this is for.
+    phone_e164 = None
+    if (body.phone or "").strip():
+        phone_e164 = to_e164(body.phone, body.country)
+        if phone_e164 is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=("That phone number does not look valid for your country. "
+                        "Include the country code, for example +1 555 123 4567."),
+            )
+        if await svc.phone_taken(db, phone_e164):
+            await notify_admin_auth_failure(
+                kind="registration", reason="phone_already_registered",
+                email=body.email, client_ip=client_ip(request),
+                detail="Signup attempted with a phone number that already has an account.",
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=("That phone number is already registered to another account. "
+                        "Try signing in, or use a different number."),
+            )
+
     if await svc.email_taken(db, body.email):
         # DELIBERATE REVERSAL, asked for by the operator.
         #
@@ -197,7 +225,7 @@ async def signup_start(
         db, body.email, body.password, display_name,
         date_of_birth=body.date_of_birth, country=body.country,
         first_name=body.first_name.strip(), last_name=body.last_name.strip(),
-        phone=(body.phone or "").strip() or None,
+        phone=phone_e164,
     )
     await db.commit()
     return await _deliver_verification(background_tasks, body.email, raw_token, pending.id)
@@ -334,7 +362,14 @@ async def signup_complete(
             "email": pending.email,
         }
 
-    user = await svc.materialise(db, pending)
+    try:
+        user = await svc.materialise(db, pending)
+    except svc.PhoneAlreadyRegistered:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=("That phone number is now registered to another account. "
+                    "Sign in with it, or start again using a different number."),
+        )
     if user is None:
         raise HTTPException(status_code=409, detail="Signup is not ready to complete")
 
@@ -389,7 +424,23 @@ async def signup_complete_mobile(
             detail="Confirm your email address first — check your inbox for the link.",
         )
 
-    user = await svc.materialise(db, pending, require_paid=False)
+    try:
+        user = await svc.materialise(db, pending, require_paid=False)
+    except svc.PhoneAlreadyRegistered:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=("That phone number is now registered to another account. "
+                    "Sign in with it, or start again using a different number."),
+        )
+    # `materialise` returns None when a GATE is unmet — the age rule, most
+    # often. This call site never checked, so that refusal reached `user.id`
+    # as an AttributeError and answered 500 on the mobile signup path, while
+    # the web path twenty lines up has checked all along.
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Signup is not ready to complete",
+        )
     await db.commit()
     return {
         "message": "Account created. Sign in and choose a plan to start.",

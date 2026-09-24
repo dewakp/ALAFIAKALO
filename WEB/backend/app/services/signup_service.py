@@ -17,7 +17,10 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.db_errors import violated_constraint
 
 from app.core.security import hash_password
 from app.core.age_policy import AgeRestricted, InvalidDateOfBirth, assert_adult
@@ -31,6 +34,16 @@ PENDING_TTL = timedelta(days=7)
 # Verification links are short-lived; resending issues a fresh one.
 VERIFICATION_TTL = timedelta(hours=24)
 MAX_VERIFICATION_ATTEMPTS = 10
+
+
+class PhoneAlreadyRegistered(Exception):
+    """Another account claimed this number between /signup/start and completion.
+
+    Distinct from `materialise()` returning None, which means a GATE is unmet
+    (unverified, unpaid, under age). Collapsing the two would answer "Signup is
+    not ready to complete" to someone whose signup is entirely ready — naming
+    the wrong problem and leaving them to retry something that cannot succeed.
+    """
 
 
 def _now() -> datetime:
@@ -51,6 +64,20 @@ async def email_taken(db: AsyncSession, email: str) -> bool:
     """True if a real account already exists for this address."""
     row = (await db.execute(
         select(User.id).where(User.email == email.lower())
+    )).scalar_one_or_none()
+    return row is not None
+
+
+async def phone_taken(db: AsyncSession, phone_e164: str) -> bool:
+    """True if a real account already holds this number.
+
+    Takes the CANONICAL form. `users.phone_number` has a unique index, but it
+    compares the literal string — so checking a raw `9712606446` against a
+    stored `+19712606446` would report "free" and then hit the constraint at
+    insert time, which is the 500 this exists to prevent.
+    """
+    row = (await db.execute(
+        select(User.id).where(User.phone_number == phone_e164)
     )).scalar_one_or_none()
     return row is not None
 
@@ -231,7 +258,27 @@ async def materialise(db: AsyncSession, pending: PendingRegistration,
         is_active=True,
     )
     db.add(user)
-    await db.flush()
+    # Read BEFORE the flush. `db.rollback()` below expires every instance in the
+    # session, so touching `pending.email` afterwards triggers a lazy refresh —
+    # async IO from inside an `except` block, which raises MissingGreenlet and
+    # REPLACES the exception being handled. The caller then sees a driver error
+    # instead of the refusal this code raises, which is how the first version of
+    # this handler appeared not to run at all.
+    pending_email = pending.email
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # The pre-check at /signup/start is not a lock: a number free when the
+        # signup began can be taken by the time it completes. Only the database
+        # settles that, and until now this flush had no handler at all — so the
+        # loser of that race met a 500 on the LIVE signup path.
+        await db.rollback()
+        if violated_constraint(exc) == "ix_users_phone_number":
+            logger.warning(
+                "Refusing to materialise %s: phone number already registered", pending_email
+            )
+            raise PhoneAlreadyRegistered from exc
+        raise
     await db.refresh(user)
 
     # Provision the credential in the shared IdP so login (which consults the
