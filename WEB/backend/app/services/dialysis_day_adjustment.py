@@ -195,6 +195,12 @@ def apply_to_totals(
     if not completed:
         return adjusted, day
 
+    # Where the bath figures came from, when that needed saying — the SAK
+    # cartridge code disagreeing with the typed K+ cell, or filling a blank one.
+    # Deduplicated: three sessions in a day with the same correction is one fact.
+    for _note in dict.fromkeys(n for s in completed for n in s.bath_notes):
+        day.notes.append(_note)
+
     coeffs = {**DEFAULT_COEFFICIENTS, **(coefficients or {})}
 
     totals: dict[str, float] = {}

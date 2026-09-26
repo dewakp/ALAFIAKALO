@@ -235,6 +235,12 @@ class SessionParams:
     bath_potassium_meq: float | None = None
     bath_calcium_meq: float | None = None            # rarely recorded
     bath_magnesium_meq: float | None = None          # rarely recorded
+    #: What had to be said about where the bath figures came from — e.g. that
+    #: the SAK cartridge code and the typed K+ cell disagreed, and which was
+    #: used. Drained into the day's notes, NOT into `RemovalEstimate.assumptions`:
+    #: that field is written and never read by anything outside its own test, so
+    #: a note routed there would look surfaced and reach nobody (§3ar).
+    bath_notes: list[str] = field(default_factory=list)
     #: Recorded on some flowsheets. Not used by the transfer model because
     #: sodium is not one of the analytes it covers — kept so the record is
     #: complete rather than silently dropped.

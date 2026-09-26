@@ -94,6 +94,13 @@ DRUG_NAME_ANOMALIES = []
 # timestamp must be visible, never silent.
 DRUG_TIME_REPAIRS = []
 
+# (sheet_name, drug_row_count) for a sheet that HELD drug rows but produced no
+# session — `extract_session_data` returned None, usually because no date could
+# be read. Those rows were being discarded in silence, which is how the import
+# came up two rows short of its own source with nothing to say about it (§3aa:
+# an error is not an empty state, and a drop that reports nothing is worse).
+DRUG_ORPHAN_SHEETS = []
+
 
 def repair_typed_time(val):
     """Recover a time typed with the wrong separator — or None.
@@ -138,6 +145,13 @@ SKIP_SHEETS = {
     'VomitLog2021', 'VomitLog2022',
     'Access Maintenance', 'AccessMaintenance', 'Supplies Request',
     'Maintenance Log', 'Cleaning Log', 'Supplies',
+    # A SUPPLIES sheet, not a treatment. It was parsed as a session because the
+    # skip list held 'Supplies' and 'Supplies Request' but not this spelling,
+    # and its H24-H28 carry a DATE (2023-02-21) where a flowsheet carries drug
+    # names — so five "drugs" called "2023-02-21 00:00:00" were being offered to
+    # a clinical table. The isinstance(date) guard in the drugs loop catches the
+    # symptom; this is the cause.
+    'Supplies RAF',
 }
 
 # All flowsheet workbooks to import
@@ -924,6 +938,22 @@ def import_workbook(conn, wb_info):
             session, readings, drug_rows, session_number = extract_session_data(ws, sheet_name)
 
             if session is None:
+                # The sheet produced no session, so there is nothing to attach
+                # its drugs to. Say so rather than dropping them silently.
+                #
+                # `drug_rows` is EMPTY here even when the sheet holds drugs:
+                # extract_session_data returns early when it cannot read a date,
+                # before the drugs block runs. So count the cells directly —
+                # otherwise the one case this report exists for is the one case
+                # it cannot see. Measured: `Apr 14` and `Sep 17.18-2017` each
+                # hold a real drug row that was vanishing in silence.
+                held = len(drug_rows) or sum(
+                    1 for _r in range(24, 29)
+                    if safe_str(cell(ws, _r, 'H'))
+                    and not isinstance(cell(ws, _r, 'H'), (datetime, date))
+                )
+                if held:
+                    DRUG_ORPHAN_SHEETS.append((sheet_name, held))
                 continue
 
             # For same-day double sessions (.2 suffix), offset scheduled_date by 12 hours
@@ -1228,6 +1258,14 @@ def main():
         print("     indistinguishable from one the patient was actually given:")
         for sheet, row, raw in DRUG_NAME_ANOMALIES:
             print(f"       {sheet:<18} H{row}  = {raw!r}")
+
+    if DRUG_ORPHAN_SHEETS:
+        total = sum(n for _, n in DRUG_ORPHAN_SHEETS)
+        print(f"\n  ⚠ {total} drug row(s) on {len(DRUG_ORPHAN_SHEETS)} sheet(s) that produced")
+        print("     NO session — no date could be read, so there is nothing to")
+        print("     attach them to. They were not imported:")
+        for sheet, n in DRUG_ORPHAN_SHEETS:
+            print(f"       {sheet:<18} {n} drug row(s)")
 
     print(f"\n{'='*60}")
     print("DRY RUN — nothing was written" if args.dry_run else "IMPORT COMPLETE")

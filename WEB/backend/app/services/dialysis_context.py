@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chronic_conditions import IntradialyticReading, TherapySession
 from app.models.dialysis_coefficients import DialysisSoluteCoefficient
+from app.services.dialysate_products import reconcile_bath_potassium
 from app.models.labs import LabResult
 from app.services.dialysis_balance import (
     CALCIUM, MAGNESIUM, PHOSPHORUS, POTASSIUM,
@@ -139,13 +140,24 @@ async def sessions_for_day(db: AsyncSession, user_id: int, day: date) -> list[Se
     sessions: list[SessionParams] = []
     for row in rows:
         status = str(getattr(row.status, "value", row.status) or "")
+        # Resolve the bath ONCE so the value and the explanation cannot drift.
+        bath_k, bath_note = reconcile_bath_potassium(
+            row.sak_number, row.dialysate_potassium_meq
+        )
         sessions.append(SessionParams(
             reference_blood_volume_l=reference_bvp,
             dialysate_volume_l=row.dialysate_volume_liters,
             duration_minutes=row.duration_minutes,
             blood_flow_ml_min=measured.get(row.id) or row.blood_flow_rate,
             ultrafiltration_ml=row.fluid_removed_ml,
-            bath_potassium_meq=row.dialysate_potassium_meq,
+            # The SAK number identifies the CARTRIDGE that was run; the K+ cell
+            # is a human transcribing what they believe is in it. Where they
+            # disagree the product wins, and the disagreement is reported rather
+            # than swallowed — measured, ~18 typed cells are wrong and 5 record
+            # a SAK with no K at all. An unmapped or mistyped SAK falls back to
+            # whatever the flowsheet typed (app/services/dialysate_products.py).
+            bath_potassium_meq=bath_k,
+            bath_notes=[bath_note] if bath_note else [],
             # The machine's measured throughput. Dropped by this DTO until the
             # flowsheet import loss was recovered, which is why amino-acid loss
             # could only ever scale on dialysate volume.
