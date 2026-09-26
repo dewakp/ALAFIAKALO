@@ -126,17 +126,24 @@ def reconcile_bath_potassium(
     The SAK code wins when the two disagree, because it identifies the product
     actually run — but the disagreement is REPORTED rather than swallowed. The
     typed value is a clinical entry on the patient's record; silently replacing
-    it would hide a transcription error instead of surfacing one, and 18 of them
+    it would hide a transcription error instead of surfacing one, and 21 of them
     exist to surface.
+
+    Re-measured on the dev copy of production 2026-09-26 (this read 18 before the
+    recovered treatments landed, which is why it carries a date): SAK 401 is run
+    1,015 times — typed K=1 on 995, K=2 on 16, blank on 4 — and SAK 404 61 times,
+    typed K=2 on 56 and K=1 on 5. So 16 + 5 = 21 cells disagree with the product.
     """
     product = bath_for_sak(sak_number)
     if product is None:
         return typed_meq, None
 
     if typed_meq is None:
-        # Five sessions record a SAK and no K at all. This is the case the
-        # mapping is worth the most on: it fills a blank rather than overruling
-        # anyone.
+        # Four sessions reach here: all four are SAK 401 with no K at all. (A
+        # fifth session records a blank K against `sak_number = 1`, which is not
+        # a product code, so it returns above at `product is None` and keeps its
+        # blank.) This is the case the mapping is worth the most on: it fills a
+        # blank rather than overruling anyone.
         return product.potassium_meq, (
             f"Bath potassium {product.potassium_meq:g} mEq/L taken from SAK "
             f"{product.sak_number} ({product.evidence}); the flowsheet left it blank."
