@@ -52,19 +52,53 @@ _EVIDENCE = {401: "K=1 on 995 of 1,012 sessions", 404: "K=2 on 56 of 61 sessions
 
 @dataclass(frozen=True)
 class BathComposition:
-    """What a SAK product delivers. None means "this repo cannot say"."""
+    """What a SAK product delivers.
+
+    A field is None when this repository has no source for it — never a guess.
+    """
 
     sak_number: int
     potassium_meq: float
     #: Why this figure is believed, carried with it so a caller can show it.
     evidence: str
 
-    #: Deliberately absent: calcium, magnesium, glucose. See the module
-    #: docstring — no source, so no number.
+    #: From the printed cartridge label where one has been read. None elsewhere.
+    calcium_meq: float | None = None
+    magnesium_meq: float | None = None
+    sodium_meq: float | None = None
+    chloride_meq: float | None = None
+    lactate_meq: float | None = None
+    #: The bath's own glucose, in mg/dL — the concentration serum is compared
+    #: against. Above it the patient loses glucose to the dialysate; below it
+    #: they gain it. Without this number a glucose gradient cannot be modelled
+    #: at all, which is why it blocked the work until the label was read.
+    glucose_mg_dl: float | None = None
+    #: The document these came from, so a reader can check them against it.
+    source: str | None = None
 
+
+#: Read off the printed cartridge label (photographed 2026-09-26):
+#:
+#:     CaCl2·2H2O 4.63 · MgCl2·6H2O 2.13 · KCl 1.57 · NaCl 116.59
+#:     C6H12O6·H2O 23.1 · 1:20 (60L)
+#:     Lactate 45.0 mEq/L · Ca++ 3.0 (1.5 mmol/L) · Mg++ 1.0 (0.5)
+#:     K+ 1.0 (1.0) · Na+ 140.0 · Cl- 100.0 · Glucose 100.0 mg/dL
+#:     12.9 mS/cm · pH 6.0-7.6 · NxStage Medical, Inc. (c) 2021
+#:
+#: The K+ of 1.0 identifies it as the SAK 401 bath.
+_LABEL_401 = "NxStage PureFlow lactate cartridge label, K+ 1.0 mEq/L (photographed 2026-09-26)"
 
 _BY_SAK: dict[int, BathComposition] = {
-    401: BathComposition(401, 1.0, _EVIDENCE[401]),
+    401: BathComposition(
+        401, 1.0, _EVIDENCE[401],
+        calcium_meq=3.0, magnesium_meq=1.0, sodium_meq=140.0,
+        chloride_meq=100.0, lactate_meq=45.0, glucose_mg_dl=100.0,
+        source=_LABEL_401,
+    ),
+    # Potassium only: the 404 cartridge label has not been read. Its other
+    # constituents are very likely the same family, and "very likely" is not a
+    # measurement — so they stay None and the caller keeps its declared
+    # assumption rather than inheriting 401's numbers.
     404: BathComposition(404, 2.0, _EVIDENCE[404]),
 }
 

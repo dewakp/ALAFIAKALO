@@ -77,18 +77,29 @@ def test_no_sak_recorded_keeps_the_typed_cell():
     assert reconcile_bath_potassium(None, None) == (None, None)
 
 
-def test_calcium_magnesium_and_glucose_are_deliberately_absent():
-    """The bath contains them; this repo cannot say in what concentration.
+def test_a_constituent_is_present_only_when_a_SOURCE_is():
+    """The bath contains calcium, magnesium and glucose. Saying how much
+    requires a document.
 
-    The labels are not on disk and no citation exists for these SAK codes, so
-    `dialysis_balance` keeps applying its declared assumption. Filling these in
-    from recollection would turn an honest assumption into a false measurement —
-    and a glucose gradient cannot be modelled at all until its bath
-    concentration has a source.
+    This test previously asserted those fields did not EXIST, because nothing
+    in the repository could supply them and a glucose gradient could not be
+    modelled at all. The printed SAK 401 cartridge label (photographed
+    2026-09-26) supplied them, so the premise changed — but the rule did not.
+    A figure is carried only when `source` says where it came from, and the
+    404 cartridge, whose label has not been read, still reports None rather
+    than inheriting 401's numbers because the two products are not the same.
     """
-    product = bath_for_sak(401)
-    assert product is not None
-    for absent in ("calcium_meq", "magnesium_meq", "glucose_mg_dl"):
-        assert not hasattr(product, absent), (
-            f"{absent} must not be guessed at — see the module docstring"
+    labelled = bath_for_sak(401)
+    assert labelled is not None
+    assert labelled.source, "a constituent without a source is a guess"
+    assert labelled.calcium_meq == 3.0
+    assert labelled.magnesium_meq == 1.0
+    assert labelled.glucose_mg_dl == 100.0
+
+    unlabelled = bath_for_sak(404)
+    assert unlabelled is not None
+    assert unlabelled.source is None
+    for unknown in ("calcium_meq", "magnesium_meq", "glucose_mg_dl", "lactate_meq"):
+        assert getattr(unlabelled, unknown) is None, (
+            f"{unknown} has no source for SAK 404 — it must not be copied from 401"
         )

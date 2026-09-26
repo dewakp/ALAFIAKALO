@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from app.services.dialysis_balance import (
-    CALCIUM, MAGNESIUM, PHOSPHORUS, POTASSIUM, PROTEIN,
+    CALCIUM, GLUCOSE, MAGNESIUM, PHOSPHORUS, POTASSIUM, PROTEIN,
     Coefficients, DEFAULT_COEFFICIENTS, SerumLevels, SessionParams,
     SessionNotModellable, estimate_session_removal,
 )
@@ -42,6 +42,13 @@ GOAL_KEY = {
     PHOSPHORUS: "phosphorus_mg",
     MAGNESIUM: "magnesium_mg",
     CALCIUM: "calcium_mg",
+    # Carbohydrate, NOT `sugar_g`. Blood glucose crossing a dialyser is
+    # carbohydrate leaving the body; `sugar_g` is a LIMIT on added sugars.
+    # Crediting a glucose removal against it would tell a diabetic on dialysis
+    # they had room for more sugar because their blood glucose fell during
+    # treatment. `carbs_g` is a target, so this behaves exactly like protein:
+    # treatment removes some, so less of the day's intake is retained.
+    GLUCOSE: "carbs_g",
     PROTEIN: "protein_g",
 }
 
@@ -53,6 +60,12 @@ SERUM_BLOCK_ABOVE = {
     PHOSPHORUS: 5.5,     # mg/dL
     MAGNESIUM: 2.6,      # mg/dL
     CALCIUM: 10.5,       # mg/dL
+    # mg/dL — the ADA post-prandial target. The other thresholds here withhold
+    # removal credit against a LIMIT ("you have room to eat more"); this one
+    # withholds it against a TARGET, where crediting removal would tell a
+    # hyperglycaemic patient to eat MORE carbohydrate. Same conservative
+    # direction, opposite kind of goal. Gains are still always applied.
+    GLUCOSE: 180.0,
 }
 
 #: Serum older than this stops counting as confirmation; between the two the
@@ -124,6 +137,7 @@ def _serum_for(analyte: str, serum: SerumLevels) -> float | None:
         PHOSPHORUS: serum.phosphorus_mg_dl,
         MAGNESIUM: serum.magnesium_mg_dl,
         CALCIUM: serum.calcium_mg_dl,
+        GLUCOSE: serum.glucose_mg_dl,
     }.get(analyte)
 
 
@@ -240,7 +254,11 @@ def apply_to_totals(
             continue
 
         intake = float(goal.get("current") or 0.0)
-        scale = 0.001 if key == "protein_g" else 1.0   # protein is in grams
+        # The model works in milligrams; a goal measured in GRAMS needs scaling.
+        # This tested `key == "protein_g"` while protein was the only such goal
+        # — glucose maps to `carbs_g`, so a per-key test would have reported a
+        # carbohydrate change a thousand times too large.
+        scale = 0.001 if key.endswith("_g") else 1.0
         calibrated = coeffs[analyte].calibrated
 
         if mass_mg < 0:

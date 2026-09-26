@@ -101,6 +101,22 @@ DRUG_TIME_REPAIRS = []
 # an error is not an empty state, and a drop that reports nothing is worse).
 DRUG_ORPHAN_SHEETS = []
 
+#: Sheets that carry no date in the tab name OR in H4, dated by the operator.
+#:
+#: `Apr 14` holds a real treatment — weight 68, pre-systolic 143, K+ 1.0 mEq,
+#: Epogene and intradialytic readings — and no year anywhere on it. Workbook tab
+#: order runs reverse-chronologically and places it between `Apr 15-2018` and
+#: `Apr 12-2018`; no tab anywhere names Apr 13 or Apr 14 with a year; and the
+#: April 2018 cadence (1, 2, 3, 4, 7, 8, 10, 11, 12, [14], 15, 17, 19 …) fits.
+#:
+#: That is ordering EVIDENCE, not a recorded date, so the importer would not
+#: infer it — the date here was supplied by the operator on 2026-09-26. An entry
+#: in this table is a clinical assertion by a person, which is exactly why it is
+#: a short explicit list and not a heuristic.
+SHEET_DATE_OVERRIDES = {
+    'Apr 14': date(2018, 4, 14),
+}
+
 
 def repair_typed_time(val):
     """Recover a time typed with the wrong separator — or None.
@@ -348,8 +364,9 @@ def parse_session_date(sheet_name, ws):
             except ValueError:
                 pass
 
-    # No parseable tab name — fall back to the H4 cell.
-    return h4_date, session_number
+    # No parseable tab name — fall back to the H4 cell, and then to an explicit
+    # operator override for a sheet that carries no date ANYWHERE.
+    return h4_date or SHEET_DATE_OVERRIDES.get(sheet_name.strip()), session_number
 
 
 def value_under_label(ws, label, search_rows=range(1, 60), max_col=30):

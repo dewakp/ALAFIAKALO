@@ -59,7 +59,14 @@ PROTEIN = "protein"
 #: Validation only — urea is not a dietary target.
 UREA = "urea"
 
-ANALYTES = (POTASSIUM, PHOSPHORUS, MAGNESIUM, CALCIUM, PROTEIN)
+#: Glucose is a bath constituent like potassium and magnesium, so it crosses
+#: the membrane in WHICHEVER direction the gradient runs: the NxStage lactate
+#: bath is 100 mg/dL, so a serum above that loses glucose to the dialysate and
+#: a serum below it gains. Modelling it needed the bath figure, which is why it
+#: waited for the cartridge label rather than being guessed.
+GLUCOSE = "glucose"
+
+ANALYTES = (POTASSIUM, PHOSPHORUS, MAGNESIUM, CALCIUM, GLUCOSE, PROTEIN)
 
 #: A potassium bath outside this band is a recording error, not a prescription.
 #: 11 sessions in the corpus carry 45 mEq/L — the *lactate* value written into
@@ -76,6 +83,13 @@ DIALYSATE_VOLUME_PLAUSIBLE_L = (5.0, 120.0)
 #: says so. If a future flowsheet records them, prefer the record.
 DEFAULT_BATH_CALCIUM_MEQ = 3.0
 DEFAULT_BATH_MAGNESIUM_MEQ = 1.0
+
+#: Bath glucose, mg/dL. Read off the NxStage cartridge label rather than
+#: assumed — see `dialysate_products`, which carries the same figure with its
+#: source. Ca 3.0 and Mg 1.0 above were ASSUMPTIONS that the same label has now
+#: confirmed exactly; they are left as the fallback for a cartridge whose label
+#: has not been read.
+DEFAULT_BATH_GLUCOSE_MG_DL = 100.0
 
 BATH_ASSUMPTION_NOTE = (
     "Bath calcium and magnesium are not recorded for this session; "
@@ -146,6 +160,12 @@ DEFAULT_COEFFICIENTS: dict[str, Coefficients] = {
     # independent check that the transfer machinery is right.
     UREA: Coefficients(saturation=0.60, sieving=1.0, diffusible_fraction=1.0,
                        flow_sensitivity=1.0),
+    # Small (180 Da), freely filtered and not protein-bound, so the whole serum
+    # concentration is available to cross. Priors, like every other row here —
+    # per-patient coefficients replace them only when they beat
+    # predict-the-previous-value on a chronological hold-out.
+    GLUCOSE: Coefficients(saturation=0.75, sieving=1.0, diffusible_fraction=1.0,
+                          flow_sensitivity=0.25),
     # Free amino acid loss; drives the KDOQI 1.2 g/kg dialysis protein target.
     PROTEIN: Coefficients(
         saturation=0.0, sieving=0.0, diffusible_fraction=0.0, grams_per_session=9.0,
@@ -235,6 +255,9 @@ class SessionParams:
     bath_potassium_meq: float | None = None
     bath_calcium_meq: float | None = None            # rarely recorded
     bath_magnesium_meq: float | None = None          # rarely recorded
+    #: mg/dL. Never recorded per session — it comes from the cartridge the SAK
+    #: number identifies, or falls back to the standard concentrate.
+    bath_glucose_mg_dl: float | None = None
     #: What had to be said about where the bath figures came from — e.g. that
     #: the SAK cartridge code and the typed K+ cell disagreed, and which was
     #: used. Drained into the day's notes, NOT into `RemovalEstimate.assumptions`:
@@ -319,6 +342,10 @@ class SerumLevels:
     phosphorus_mg_dl: float | None = None
     magnesium_mg_dl: float | None = None
     calcium_mg_dl: float | None = None
+    #: Serum glucose, mg/dL — the units the lab reports. Compared against the
+    #: bath's own 100 mg/dL, so this one is routinely on BOTH sides of its
+    #: gradient rather than only above it.
+    glucose_mg_dl: float | None = None
     measured_on: object | None = None       # date; used for the staleness gate
 
 
@@ -509,6 +536,39 @@ def estimate_session_removal(
             note=(
                 "Net gain from the dialysate — this tightens the day's budget."
                 if mass < 0 else None
+            ),
+        )
+
+    # ── Glucose: the gradient that runs BOTH ways in ordinary use ──
+    #
+    # Every other analyte here is essentially always removed (or, for calcium,
+    # always gained). Glucose is the one whose direction depends on the day:
+    # the bath is 100 mg/dL, a fasting serum can sit below it, and a diabetic's
+    # can sit far above. The sign falls out of the gradient — no special case.
+    if serum.glucose_mg_dl is not None:
+        coeff = coeffs[GLUCOSE]
+        bath_glucose = (
+            session.bath_glucose_mg_dl
+            if session.bath_glucose_mg_dl is not None
+            else DEFAULT_BATH_GLUCOSE_MG_DL
+        )
+        serum_mg_l = serum.glucose_mg_dl * _DL_PER_L
+        bath_mg_l = bath_glucose * _DL_PER_L
+        diffusive, convective = _transfer(
+            serum_mg_l, bath_mg_l, volume_l, uf_l, coeff, efficiency, blood_l
+        )
+        mass = diffusive + convective
+        results[GLUCOSE] = RemovalEstimate(
+            analyte=GLUCOSE,
+            mass_mg=mass,
+            diffusive_mg=diffusive,
+            convective_mg=convective,
+            calibrated=coeff.calibrated,
+            note=(
+                "Net gain from the dialysate: your blood glucose sat below the "
+                "bath's, so treatment added sugar you did not eat."
+                if mass < 0 else
+                "Removed by treatment: your blood glucose sat above the bath's."
             ),
         )
 

@@ -18,10 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chronic_conditions import IntradialyticReading, TherapySession
 from app.models.dialysis_coefficients import DialysisSoluteCoefficient
-from app.services.dialysate_products import reconcile_bath_potassium
+from app.services.dialysate_products import bath_for_sak, reconcile_bath_potassium
 from app.models.labs import LabResult
 from app.services.dialysis_balance import (
-    CALCIUM, MAGNESIUM, PHOSPHORUS, POTASSIUM,
+    CALCIUM, GLUCOSE, MAGNESIUM, PHOSPHORUS, POTASSIUM,
     Coefficients, DEFAULT_COEFFICIENTS, SerumLevels, SessionParams,
 )
 
@@ -50,6 +50,11 @@ _SERUM_TESTS = {
     PHOSPHORUS: ("Phosphorus", "Phosphorous"),
     MAGNESIUM: ("Magnesium", "Magnessium"),
     CALCIUM: ("Calcium",),
+    # Both spellings appear on this record (169 `Glucose`, 2 `GLUCOSE`).
+    # `Glucose, UA` is deliberately NOT here: that is URINE glucose, a
+    # different analyte, and folding it in would put a urinalysis result into a
+    # serum gradient (§3ax).
+    GLUCOSE: ("Glucose", "GLUCOSE"),
 }
 
 
@@ -144,6 +149,11 @@ async def sessions_for_day(db: AsyncSession, user_id: int, day: date) -> list[Se
         bath_k, bath_note = reconcile_bath_potassium(
             row.sak_number, row.dialysate_potassium_meq
         )
+        # The cartridge also fixes calcium, magnesium and glucose, none of which
+        # is recorded per session. Where its label has been read these stop
+        # being assumptions; where it has not, these stay None and
+        # dialysis_balance keeps applying its DECLARED assumption.
+        product = bath_for_sak(row.sak_number)
         sessions.append(SessionParams(
             reference_blood_volume_l=reference_bvp,
             dialysate_volume_l=row.dialysate_volume_liters,
@@ -157,6 +167,9 @@ async def sessions_for_day(db: AsyncSession, user_id: int, day: date) -> list[Se
             # a SAK with no K at all. An unmapped or mistyped SAK falls back to
             # whatever the flowsheet typed (app/services/dialysate_products.py).
             bath_potassium_meq=bath_k,
+            bath_calcium_meq=product.calcium_meq if product else None,
+            bath_magnesium_meq=product.magnesium_meq if product else None,
+            bath_glucose_mg_dl=product.glucose_mg_dl if product else None,
             bath_notes=[bath_note] if bath_note else [],
             # The machine's measured throughput. Dropped by this DTO until the
             # flowsheet import loss was recovered, which is why amino-acid loss
@@ -199,6 +212,10 @@ async def latest_serum(db: AsyncSession, user_id: int, on_or_before: date) -> Se
         phosphorus_mg_dl=newest.get(PHOSPHORUS, (None, None))[0],
         magnesium_mg_dl=newest.get(MAGNESIUM, (None, None))[0],
         calcium_mg_dl=newest.get(CALCIUM, (None, None))[0],
+        # Without this line `_SERUM_TESTS` would fetch the glucose rows and
+        # then drop them here, leaving the analyte permanently unmeasured with
+        # every test still passing (§3ar).
+        glucose_mg_dl=newest.get(GLUCOSE, (None, None))[0],
     )
     dates = [d for _, d in newest.values() if d]
     # The staleness gate should judge on the freshest confirmation available.
