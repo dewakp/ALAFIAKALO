@@ -152,6 +152,11 @@ SKIP_SHEETS = {
     # a clinical table. The isinstance(date) guard in the drugs loop catches the
     # symptom; this is the cause.
     'Supplies RAF',
+    # The blank MASTER copy every session sheet is duplicated from: H4 is empty,
+    # there are no weights and no SAK, and B11 holds the label 'Sitting BP'
+    # rather than a reading. It parsed to no date, so it was reported as a
+    # treatment whose drugs could not be placed — it is not a treatment at all.
+    'Master',
 }
 
 # All flowsheet workbooks to import
@@ -229,18 +234,58 @@ def yes_no_bool(val):
     return None
 
 
+#: H4 is usually a real date cell, but not always: one sheet holds the STRING
+#: '09/18/2017'. A type check alone discards it, and because the tab name
+#: (`Sep 17.18-2017`) carries no parseable date either, that whole session — with
+#: its weights, BPs, Epogene and TEN intradialytic readings — was imported as
+#: nothing at all. A date a human can read should not be lost to its cell type.
+_H4_DATE_FORMATS = ("%m/%d/%Y", "%m-%d-%Y", "%Y-%m-%d", "%m/%d/%y")
+
+#: A same-day second session, marked `.N` ANYWHERE in the tab name — `.2` before
+#: the year (`Oct 13.2-2018`) as well as after it (`Jan 8-2018.2`), and one sheet
+#: written `.1` (`Feb 17-2018.1`). The old test was `name.endswith('.2')`, which
+#: catches 11 of the 13 marker tabs in these workbooks and misses two — and a
+#: missed marker is not a cosmetic problem: the importer de-duplicates on
+#: scheduled_date, so the second treatment of the day was silently DROPPED.
+#:
+#: The lookahead is load-bearing. `Sep 17.18-2017` must NOT match: its `.1` is
+#: followed by `8`, so that is a combined 17/18 sheet, not a session marker.
+_SESSION_MARKER = re.compile(r"\.(\d)(?=\D|$)")
+
+
+def h4_date_value(value):
+    """H4 as a date, whether the cell holds a date or a string. None if neither."""
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        for fmt in _H4_DATE_FORMATS:
+            try:
+                return datetime.strptime(text, fmt).date()
+            except ValueError:
+                continue
+    return None
+
+
 def parse_session_date(sheet_name, ws):
     """Parse session date from sheet name or H4 cell.
     
     Returns (date, session_number) where session_number is 1 for normal,
     2 for '.2' suffix sheets (same-day double sessions).
     """
-    # Detect .2 suffix for same-day double sessions
+    # Detect a same-day second-session marker ANYWHERE in the name, not just a
+    # trailing '.2' — see _SESSION_MARKER. Any marker means "the second session
+    # of this day", so it maps to 2 rather than to the digit written: no date in
+    # these workbooks carries more than one marker (verified across all four),
+    # and `session_number == 2` is what drives the 12-hour offset below.
     name = sheet_name.strip()
     session_number = 1
-    if name.endswith('.2'):
+    marker = _SESSION_MARKER.search(name)
+    if marker:
         session_number = 2
-        name = name[:-2]  # Strip .2 for date parsing
+        name = (name[:marker.start()] + name[marker.end():]).strip()
 
     # The TAB NAME wins over the H4 cell.
     #
@@ -257,7 +302,7 @@ def parse_session_date(sheet_name, ws):
     # workbooks whose tabs are not dates, and every disagreement is reported
     # rather than silently resolved.
     h4 = cell(ws, 4, 'H')
-    h4_date = h4.date() if isinstance(h4, datetime) else (h4 if isinstance(h4, date) else None)
+    h4_date = h4_date_value(h4)
 
     def _resolve(name_date):
         if name_date and h4_date and name_date != h4_date:
