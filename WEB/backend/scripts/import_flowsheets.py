@@ -89,6 +89,35 @@ DRUG_SESSION_COLLISIONS = []
 # parsed as a result and 30 rows of it reached a clinician.
 DRUG_NAME_ANOMALIES = []
 
+# (sheet_name, excel_row, raw_value, repaired) for a Time cell recovered from a
+# mistyped separator. Reported at the end of every run: a repair to a clinical
+# timestamp must be visible, never silent.
+DRUG_TIME_REPAIRS = []
+
+
+def repair_typed_time(val):
+    """Recover a time typed with the wrong separator — or None.
+
+    One cell in the corpus reads '1;47'. On a US keyboard `;` is the UNSHIFTED
+    `:` — the same key, missing the shift — so this is a slip of the finger, not
+    a different value. Only the SEPARATOR is interpreted here: the digits are
+    taken exactly as typed.
+
+    Everything else is still refused and reported. A value whose digits would
+    have to be invented, completed or reordered to become a time is not a typo
+    we can read, and guessing at one would be inventing a clinical fact (§0).
+    An hour above 23 or a minute above 59 is refused for the same reason.
+    """
+    if val is None or isinstance(val, (datetime, date, time)):
+        return None
+    m = re.fullmatch(r'\s*(\d{1,2})\s*[;.,]\s*(\d{2})\s*', str(val))
+    if not m:
+        return None
+    hour, minute = int(m.group(1)), int(m.group(2))
+    if hour > 23 or minute > 59:
+        return None
+    return time(hour, minute)
+
 
 def is_no_time_marker(val):
     """True when a Time cell explicitly says "none" rather than holding a time.
@@ -464,7 +493,13 @@ def extract_session_data(ws, sheet_name):
         raw_time = cell(ws, r, 'O')
         parsed_time = parse_time_value(raw_time)
         if parsed_time is None and raw_time is not None and not is_no_time_marker(raw_time):
-            DRUG_TIME_ANOMALIES.append((sheet_name, r, raw_time))
+            # A mistyped separator is readable; anything else is not.
+            repaired = repair_typed_time(raw_time)
+            if repaired is not None:
+                parsed_time = repaired
+                DRUG_TIME_REPAIRS.append((sheet_name, r, raw_time, repaired))
+            else:
+                DRUG_TIME_ANOMALIES.append((sheet_name, r, raw_time))
 
         drug_rows.append({
             # Which sheet row this came from — the dedupe key, so a re-import
@@ -1179,6 +1214,13 @@ def main():
         print("     Fix the cell in the workbook and re-run to recover it:")
         for sheet, row, raw in DRUG_TIME_ANOMALIES:
             print(f"       {sheet:<18} O{row}  = {raw!r}")
+
+    if DRUG_TIME_REPAIRS:
+        print(f"\n  ✎ {len(DRUG_TIME_REPAIRS)} drug Time cell(s) READ THROUGH a mistyped")
+        print("     separator (';' is the unshifted ':'). The digits are as typed;")
+        print("     only the separator was interpreted. Correct the cell to silence this:")
+        for sheet, row, raw, fixed in DRUG_TIME_REPAIRS:
+            print(f"       {sheet:<18} O{row}  = {raw!r}  ->  {fixed}")
 
     if DRUG_NAME_ANOMALIES:
         print(f"\n  ⚠ {len(DRUG_NAME_ANOMALIES)} Drugs Administered cell(s) that are not a")
