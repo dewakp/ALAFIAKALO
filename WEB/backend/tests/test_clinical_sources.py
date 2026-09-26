@@ -27,8 +27,10 @@ GUARDED = {
     # flowsheet line, with the route and the time. `therapy_sessions.
     # drugs_administered` still holds the same administrations as free text, so
     # reading only one of the two hides either the timing or the history —
-    # exactly the split §3aa exists for. Nothing reads this table yet, so the
-    # guard is here to stop the first direct reader, not to catch one.
+    # exactly the split §3aa exists for. `clinical_sources` reads it now
+    # (`_structured_drugs_for_day`, preferring these rows over the text in the
+    # one place `_flowsheet_items`); this guard stops the NEXT reader from
+    # going straight to the table and emitting both, which doubles every dose.
     "SessionDrug": "administrations live in BOTH drugs_administered and session_drugs",
 }
 

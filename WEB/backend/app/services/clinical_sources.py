@@ -464,14 +464,17 @@ async def _structured_drugs_for_day(db: AsyncSession, user_id: int, day: date
     TIME the sheet recorded. `therapy_sessions.drugs_administered` holds the same
     administrations flattened into text, with no time.
 
-    **Callers must PREFER these rows and never emit both.** Measured on the dev
-    copy of production: 670 sessions have structured rows, all 670 also have the
-    text, and the counts agree row for row (306 sessions with 1 each, 363 with 4
-    each). Emitting both would therefore double every dose on those sessions
-    exactly and silently — and `administration_events_on_day` feeds nutrient
-    arithmetic, so a doubled Venofer is doubled iron.
+    **Callers must PREFER these rows and never emit both.** Re-measured on the dev
+    copy of production 2026-09-26 (674 sessions, 1,764 rows — the figures below
+    read 670/306 before the recovered treatments and the Apr 14 date override
+    landed, which is why they carry a date): every one of the 674 sessions with
+    structured rows ALSO has the text, and the counts agree row for row (310
+    sessions with 1 each, 1 with 2, 363 with 4). Emitting both would therefore
+    double every dose on those sessions exactly and silently — and
+    `administration_events_on_day` feeds nutrient arithmetic, so a doubled Venofer
+    is doubled iron.
 
-    The text fallback cannot be dropped either: 1,297 of 1,967 sessions are
+    The text fallback cannot be dropped either: 1,299 of 2,029 sessions are
     text-only, because the workbooks behind them are not present to re-import
     (FlowsheetGermantown.xlsx, 2019-2022).
     """
