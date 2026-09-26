@@ -12,7 +12,7 @@ import { t } from '../i18n';
  * contradicting each other. If you change what the app collects, change both.
  */
 
-const LAST_UPDATED = '13 August 2026';
+const LAST_UPDATED = '26 September 2026';
 
 const COLLECTED = [
   {
@@ -57,6 +57,11 @@ export default function Privacy() {
         </div>
 
         <p className="mk-cta-note">{t('Privacy.last_updated', { LAST_UPDATED })}</p>
+
+        <h3>{t('Privacy.who_operates_alafia')}</h3>
+        <p>
+          {t('Privacy.alafia_is_a_product_of_6igma_health')}
+        </p>
 
         <h3>{t('Privacy.what_we_collect')}</h3>
         <p>
