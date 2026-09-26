@@ -640,7 +640,12 @@ export default function Medications() {
                   <div key={`fs-${i}`} className="card"
                     style={{ margin: 0, border: '1px solid var(--border,#e5e7eb)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                      <strong>{r.name}{r.dose ? ` – ${r.dose}` : ''}</strong>
+                      {/* The flowsheet records WHEN, on the rows imported from
+                          its drug table. Same `HH:MM – name` idiom the dose-log
+                          rows below use, so one list does not read two ways.
+                          Absent on a session whose sheet left the Time cell
+                          blank, which is most of them. */}
+                      <strong>{r.time ? `${r.time} – ` : ''}{r.name}{r.dose ? ` – ${r.dose}` : ''}</strong>
                       <span style={{
                         fontSize: '.68rem', padding: '1px 6px', borderRadius: 999,
                         border: '1px solid var(--border,#e5e7eb)',

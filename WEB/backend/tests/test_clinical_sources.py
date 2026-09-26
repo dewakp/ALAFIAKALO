@@ -23,6 +23,13 @@ GUARDED = {
     "HealthCondition": "conditions live in BOTH health_conditions and chronic_conditions",
     "ChronicCondition": "conditions live in BOTH health_conditions and chronic_conditions",
     "MedicationDoseLog": "medications live in BOTH medications and medication_dose_logs",
+    # The FOURTH view of a medication: drugs given during dialysis, one row per
+    # flowsheet line, with the route and the time. `therapy_sessions.
+    # drugs_administered` still holds the same administrations as free text, so
+    # reading only one of the two hides either the timing or the history —
+    # exactly the split §3aa exists for. Nothing reads this table yet, so the
+    # guard is here to stop the first direct reader, not to catch one.
+    "SessionDrug": "administrations live in BOTH drugs_administered and session_drugs",
 }
 
 # Files allowed to touch them directly.

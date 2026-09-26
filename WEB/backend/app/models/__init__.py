@@ -136,6 +136,7 @@ from app.models.condition_nutrition import ConditionNutritionFact
 from app.models.contact import ContactSubmission
 from app.models.email_event import EmailEvent
 from app.models.user_identity import UserIdentity
+from app.models.session_drug import SessionDrug
 from app.models.image_label import LabeledFoodImage
 from app.models.food_training_sample import FoodTrainingSample
 from app.models.inference_sample import InferenceSample

@@ -68,6 +68,40 @@ CONDITION_ID = None
 # at the end of the run so a bad cell is visible instead of silently applied.
 DATE_CONFLICTS = []
 
+# (sheet_name, excel_row, raw_value) for a Time cell holding something that is
+# neither a time nor a "none" marker. Measured: one such cell says '1;47' — a
+# semicolon struck instead of a colon, one key away, and a REAL administration
+# time. It is reported rather than repaired: 1;47 is obviously 1:47 to a reader,
+# but silently rewriting a clinical timestamp from a typo invents a fact, and
+# the workbook is the thing that should be corrected (§0, §3am).
+DRUG_TIME_ANOMALIES = []
+
+# (sheet_name, scheduled_date, session_id) where a SECOND sheet resolved to a
+# session that already received its drug table in this run. The rows are NOT
+# overwritten — two treatment days' drugs collapsing onto one session is
+# clinical data loss, and an overwrite would report success while doing it.
+DRUG_SESSION_COLLISIONS = []
+
+# (sheet_name, excel_row, raw_value) for a Drugs Administered cell holding
+# something that is not a drug name. Five rows hold a DATE (2023-02-21). Left
+# alone, safe_str() turns that into a drug called "2023-02-21 00:00:00" filed in
+# a clinical table — the §3ab failure where a lab report's legal boilerplate
+# parsed as a result and 30 rows of it reached a clinician.
+DRUG_NAME_ANOMALIES = []
+
+
+def is_no_time_marker(val):
+    """True when a Time cell explicitly says "none" rather than holding a time.
+
+    Human spelling, as actually found: NONE, NoNE, NonE, NONe, None, NOONE and
+    N"ONE. Compared on letters alone so the next variant is caught too. A cell
+    that is neither a time nor one of these is an ANOMALY worth reporting, not
+    a silent drop.
+    """
+    if val is None:
+        return False
+    return re.sub(r'[^A-Z]', '', str(val).upper()) in ('NONE', 'NOONE')
+
 # Skip these sheet names — they aren't sessions
 SKIP_SHEETS = {
     'Sheet1', 'Sheet2', 'Sheet3', 'Summary', 'Dummy', 'Template', 'template',
@@ -262,11 +296,55 @@ def parse_time_value(val):
     return None
 
 
+# The columns one drug row writes, named once. Both callers below — the
+# new-session path and the backfill path — go through `insert_drug_rows`,
+# because two copies of an INSERT is how a fix lands on one and misses the other.
+DRUG_COLUMNS = (
+    'session_id', 'user_id', 'row_index', 'name',
+    'dose_text', 'route', 'administered_time', 'administered_at', 'initials',
+)
+
+
+def insert_drug_rows(cur, session_id, drug_rows):
+    """Write the flowsheet's Drugs Administered table for one session.
+
+    Returns the number of rows written.
+
+    `ON CONFLICT` makes this CONVERGE rather than accumulate. §3ab records that
+    re-importing without a dedupe key lands corrected rows BESIDE the wrong ones,
+    leaving a record holding two contradictory versions of one fact. The unique
+    index on (session_id, row_index) means a second run UPDATES the row it wrote
+    the first time — which is what makes this safe to run more than once, and it
+    has to be, because the backfill path below runs over sessions that already
+    exist.
+    """
+    if not drug_rows:
+        return 0
+
+    cols = ', '.join(DRUG_COLUMNS)
+    placeholders = ', '.join(['%s'] * len(DRUG_COLUMNS))
+    # The identity columns are the conflict target; everything else is refreshed.
+    updates = ', '.join(
+        f"{c} = EXCLUDED.{c}" for c in DRUG_COLUMNS
+        if c not in ('session_id', 'user_id', 'row_index')
+    )
+
+    written = 0
+    for row in drug_rows:
+        cur.execute(
+            f"INSERT INTO session_drugs ({cols}) VALUES ({placeholders}) "
+            f"ON CONFLICT (session_id, row_index) DO UPDATE SET {updates}",
+            [session_id, USER_ID] + [row.get(c) for c in DRUG_COLUMNS[2:]],
+        )
+        written += 1
+    return written
+
+
 def extract_session_data(ws, sheet_name):
     """Extract all session data from a worksheet."""
     session_date, session_number = parse_session_date(sheet_name, ws)
     if not session_date:
-        return None, None, 1
+        return None, None, [], 1
 
     # --- Pre-Treatment Vitals ---
     pre_sit_sys = safe_int(cell(ws, 11, 'B'))
@@ -347,13 +425,61 @@ def extract_session_data(ws, sheet_name):
         if m:
             blood_flow_rate = float(m.group(1))
 
-    # Drugs
+    # Drugs.
+    #
+    # The sheet is a TABLE, not a sentence. Row 23 holds the captions:
+    #   H='Drugs Administered'  K='Dose'  M='Route'  O='Time'  Q='Initial'
+    #
+    # Only H and K were ever read, so route and time were dropped on every
+    # import — and inspecting the flattened `drugs_administered` afterwards
+    # made it look as though the source had never carried them. Measured across
+    # 694 session sheets in the four workbooks present: 1,769 drug rows, route
+    # on 1,763 (99.7%) — Access 1,451 · SC 309 · IV 2 · SCT 1 — and a time on
+    # 268 (15.1%). An earlier "408 timed" counted non-empty Time cells; 140 of
+    # those say "NONE" rather than holding a time.
+    #
+    # `drugs_str` is still built exactly as before. Every current reader depends
+    # on that column — clinical_sources.medications_administered, the clinician
+    # board, flowsheet_drugs — so these rows are ADDITIVE, not a replacement
+    # (§3ao: dropping a populated column to tidy up is how history is lost).
     drugs = []
-    for r in range(24, 29):
-        drug = safe_str(cell(ws, r, 'H'))
+    drug_rows = []
+    for idx, r in enumerate(range(24, 29)):
+        raw_name = cell(ws, r, 'H')
+        # A DATE is not a drug. Checked on the TYPE, before safe_str() flattens
+        # it to the string "2023-02-21 00:00:00" — at which point nothing
+        # downstream could tell it from a medication.
+        if isinstance(raw_name, (datetime, date)):
+            DRUG_NAME_ANOMALIES.append((sheet_name, r, raw_name))
+            continue
+        drug = safe_str(raw_name)
+        if not drug:
+            continue
         dose = safe_str(cell(ws, r, 'K'))
-        if drug:
-            drugs.append(f"{drug} ({dose})" if dose else drug)
+        drugs.append(f"{drug} ({dose})" if dose else drug)
+        # The Time cell holds one of three things: a real time (268 rows), an
+        # explicit "none" marker (140, spelled seven different ways), or — once
+        # — a typo of a real time. Tell the third case apart from the second, or
+        # a genuine administration time disappears with no trace (§3av).
+        raw_time = cell(ws, r, 'O')
+        parsed_time = parse_time_value(raw_time)
+        if parsed_time is None and raw_time is not None and not is_no_time_marker(raw_time):
+            DRUG_TIME_ANOMALIES.append((sheet_name, r, raw_time))
+
+        drug_rows.append({
+            # Which sheet row this came from — the dedupe key, so a re-import
+            # converges on the row it already wrote instead of landing beside
+            # it (§3ab).
+            'row_index': idx,
+            'name': drug,
+            'dose_text': dose,
+            # Access 1,451 · SC 309 · IV 2 · SCT 1 — four routes, not one.
+            'route': safe_str(cell(ws, r, 'M')),
+            # Verbatim from the sheet; resolved to a timestamp below, once the
+            # session's own start time is known.
+            'administered_time': parsed_time,
+            'initials': safe_str(cell(ws, r, 'Q')),
+        })
     drugs_str = '; '.join(drugs) if drugs else None
 
     # Start/Stop times.
@@ -382,6 +508,37 @@ def extract_session_data(ws, sheet_name):
         # If stop time is before start time, it's the next day
         if actual_start and actual_end < actual_start:
             actual_end += timedelta(days=1)
+
+    # Resolve each drug's time against the session date.
+    #
+    # A drug with no time stays NULL. An absent time is absent — filling it with
+    # the session start would invent a clinical fact, and 85% of rows have none.
+    #
+    # The rollover rule is NARROW, and the first version of it was wrong in a way
+    # worth recording. It read "if the time is before the session start, it is
+    # the next day" — which is true only of the segment AFTER midnight. These are
+    # nocturnal home runs starting late evening, so that test moved every drug
+    # given during the DAY forward a calendar day: Epogene at 16:11 was stamped
+    # to the following afternoon, ~15 hours after a treatment it preceded.
+    # 210 of 267 timestamps were wrong.
+    #
+    # So a time only moves when the session is KNOWN to cross midnight and the
+    # moved stamp lands inside the run. Anything else keeps the sheet's own date,
+    # because that is what the sheet asserts and a drug recorded before the start
+    # is an ordinary thing — given at home, before going on.
+    crosses_midnight = bool(
+        actual_start and actual_end and actual_end.date() > actual_start.date()
+    )
+    for _row in drug_rows:
+        _t = _row.get('administered_time')
+        if not _t:
+            _row['administered_at'] = None
+            continue
+        _stamp = datetime.combine(session_date, _t)
+        if (crosses_midnight and _stamp < actual_start
+                and _stamp + timedelta(days=1) <= actual_end):
+            _stamp += timedelta(days=1)
+        _row['administered_at'] = _stamp
 
     # Duration from row 52
     total_time_val = cell(ws, 52, 'C')
@@ -590,7 +747,7 @@ def extract_session_data(ws, sheet_name):
                 'created_at': datetime.utcnow(),
             })
 
-    return session, readings, session_number
+    return session, readings, drug_rows, session_number
 
 
 def extract_vomit_log(ws):
@@ -657,7 +814,7 @@ def import_workbook(conn, wb_info):
 
     if not os.path.exists(path):
         print(f"  SKIP: File not found: {path}")
-        return 0, 0, 0
+        return 0, 0, 0, 0
 
     # Is this a real xlsx, or a dehydrated OneDrive placeholder?
     #
@@ -671,11 +828,11 @@ def import_workbook(conn, wb_info):
             magic = fh.read(2)
     except OSError as exc:
         print(f"  SKIP: cannot read {path}: {exc}")
-        return 0, 0, 0
+        return 0, 0, 0, 0
     if magic != b"PK":
         print(f"  SKIP: not a readable xlsx — dehydrated OneDrive placeholder? {path}")
         print("        In Finder: right-click the file → Always Keep on This Device.")
-        return 0, 0, 0
+        return 0, 0, 0, 0
 
     print(f"\n{'='*60}")
     print(f"IMPORTING: {label}")
@@ -685,7 +842,7 @@ def import_workbook(conn, wb_info):
         wb = openpyxl.load_workbook(path, read_only=False, data_only=True)
     except Exception as e:
         print(f"  ERROR loading workbook: {e}")
-        return 0, 0, 0
+        return 0, 0, 0, 0
 
     sheets = wb.sheetnames
     session_sheets = [s for s in sheets if s not in SKIP_SHEETS]
@@ -697,24 +854,39 @@ def import_workbook(conn, wb_info):
 
     cur = conn.cursor()
 
-    # Get existing session dates to avoid duplicates
-    # Use full scheduled_date (datetime) to allow multiple sessions per day
+    # Existing sessions BY ID, not merely by date.
+    #
+    # The id is what makes the drug-table fix worth anything. A session already
+    # on file is skipped below, and every flowsheet tab in these workbooks is
+    # already on file — so reading route and time correctly would have recovered
+    # NOTHING on a re-run. §3ab: a parser fix does not repair what it already
+    # imported. Holding the id lets the drug rows be written against the session
+    # that is already there, rather than requiring it to be re-created.
+    # Full scheduled_date (datetime) so multiple sessions per day stay distinct.
     cur.execute("""
-        SELECT scheduled_date FROM therapy_sessions
+        SELECT id, scheduled_date FROM therapy_sessions
         WHERE user_id = %s AND therapy_type = 'HEMODIALYSIS'
     """, (USER_ID,))
-    existing_timestamps = {row[0] for row in cur.fetchall()}
+    existing_by_timestamp = {row[1]: row[0] for row in cur.fetchall()}
+    existing_timestamps = set(existing_by_timestamp)
     print(f"  Existing sessions in DB: {len(existing_timestamps)}")
 
     sessions_imported = 0
     readings_imported = 0
     vomits_imported = 0
+    drugs_imported = 0
+    # Sessions that have already received their drug table in THIS run. Several
+    # sheets resolve to the same date (41 of them disagree with their own H4
+    # cell), and without this the second sheet's ON CONFLICT would overwrite the
+    # first sheet's drugs — 310 rows vanished that way on the first dry run,
+    # reported as 1,762 written while only 1,452 existed.
+    written_sessions = set()
 
     # Import sessions
     for sheet_name in session_sheets:
         try:
             ws = wb[sheet_name]
-            session, readings, session_number = extract_session_data(ws, sheet_name)
+            session, readings, drug_rows, session_number = extract_session_data(ws, sheet_name)
 
             if session is None:
                 continue
@@ -726,7 +898,27 @@ def import_workbook(conn, wb_info):
                 )
 
             if session['scheduled_date'] in existing_timestamps:
-                continue  # Skip duplicate
+                # The SESSION is already on file — its DRUG TABLE may not be.
+                #
+                # This is the line that would have made the route/time fix
+                # worthless: all 674 tabs are already imported, so a plain
+                # re-run skips every one of them and writes no drug rows at all.
+                # Backfill them against the session that already exists; the
+                # ON CONFLICT in insert_drug_rows keeps it idempotent.
+                existing_id = existing_by_timestamp.get(session['scheduled_date'])
+                if existing_id is not None and drug_rows:
+                    if existing_id in written_sessions:
+                        # A different sheet already wrote this session's drugs.
+                        # REFUSE rather than overwrite, and name it: the second
+                        # sheet is a real treatment day whose date is wrong
+                        # somewhere, and silently replacing the first one loses
+                        # both (§3ab).
+                        DRUG_SESSION_COLLISIONS.append(
+                            (sheet_name, session['scheduled_date'], existing_id))
+                    else:
+                        written_sessions.add(existing_id)
+                        drugs_imported += insert_drug_rows(cur, existing_id, drug_rows)
+                continue  # the session itself is a duplicate
 
             # Insert session
             cols = list(session.keys())
@@ -740,7 +932,15 @@ def import_workbook(conn, wb_info):
             )
             session_id = cur.fetchone()[0]
             existing_timestamps.add(session['scheduled_date'])
+            # Record the id too, so a later tab landing on the same timestamp
+            # backfills against this session instead of finding no id and
+            # silently dropping its drug rows.
+            existing_by_timestamp[session['scheduled_date']] = session_id
             sessions_imported += 1
+
+            # The flowsheet's drug table, with the route and time it recorded.
+            written_sessions.add(session_id)
+            drugs_imported += insert_drug_rows(cur, session_id, drug_rows)
 
             # Insert intradialytic readings
             for reading in readings:
@@ -761,12 +961,20 @@ def import_workbook(conn, wb_info):
             conn.rollback()
             # Re-get cursor after rollback
             cur = conn.cursor()
-            # Re-fetch existing timestamps
+            # Re-fetch BOTH maps, in one step.
+            #
+            # The rollback discarded every session inserted since the last
+            # commit, so any id recorded for one of them now points at a row
+            # that does not exist. Refreshing only the timestamps would leave
+            # those stale ids in place and the next tab's drug backfill would
+            # write a session_id that was rolled back. The two maps describe one
+            # fact; rebuilding one without the other is how they disagree.
             cur.execute("""
-                SELECT scheduled_date FROM therapy_sessions
+                SELECT id, scheduled_date FROM therapy_sessions
                 WHERE user_id = %s AND therapy_type = 'HEMODIALYSIS'
             """, (USER_ID,))
-            existing_timestamps = {row[0] for row in cur.fetchall()}
+            existing_by_timestamp = {row[1]: row[0] for row in cur.fetchall()}
+            existing_timestamps = set(existing_by_timestamp)
             continue
 
     conn.commit()
@@ -816,8 +1024,12 @@ def import_workbook(conn, wb_info):
         conn.commit()
 
     wb.close()
-    print(f"  Imported: {sessions_imported} sessions, {readings_imported} readings, {vomits_imported} vomit entries")
-    return sessions_imported, readings_imported, vomits_imported
+    # Drug rows are reported separately because most of them are a BACKFILL onto
+    # sessions that already existed — so "0 sessions imported, 1,769 drug rows"
+    # is the expected shape of a re-run, not a contradiction.
+    print(f"  Imported: {sessions_imported} sessions, {readings_imported} readings, "
+          f"{vomits_imported} vomit entries, {drugs_imported} drug rows")
+    return sessions_imported, readings_imported, vomits_imported, drugs_imported
 
 
 def _parse_args():
@@ -910,12 +1122,14 @@ def main():
     total_sessions = 0
     total_readings = 0
     total_vomits = 0
+    total_drugs = 0
 
     for wb_info in WORKBOOKS:
-        s, r, v = import_workbook(conn, wb_info)
+        s, r, v, d = import_workbook(conn, wb_info)
         total_sessions += s
         total_readings += r
         total_vomits += v
+        total_drugs += d
 
     # Final state
     cur = conn.cursor()
@@ -925,6 +1139,15 @@ def main():
     final_readings = cur.fetchone()[0]
     cur.execute("SELECT COUNT(*) FROM vomiting_logs WHERE user_id = %s", (USER_ID,))
     final_vomits = cur.fetchone()[0]
+    # Read the ROWS back, rather than trusting the counter this script kept.
+    # The counter is my own arithmetic; the table is the receipt (§3d). The
+    # TIMED count is the figure that settles whether route and time actually
+    # landed — measured in the source: 1,769 drug rows, 268 carrying a time.
+    cur.execute(
+        "SELECT COUNT(*), COUNT(administered_at), COUNT(route) FROM session_drugs "
+        "WHERE user_id = %s",
+        (USER_ID,))
+    final_drugs, final_drugs_timed, final_drugs_routed = cur.fetchone()
 
     cur.execute("""
         SELECT MIN(DATE(scheduled_date)), MAX(DATE(scheduled_date))
@@ -942,15 +1165,48 @@ def main():
         for sheet, tab_d, h4_d in DATE_CONFLICTS:
             print(f"       {sheet:<18} used {tab_d}   (H4 said {h4_d})")
 
+    if DRUG_SESSION_COLLISIONS:
+        print(f"\n  ⚠ {len(DRUG_SESSION_COLLISIONS)} sheet(s) whose drugs were NOT written:")
+        print("     another sheet had already filled that session's drug table.")
+        print("     Nothing was overwritten. Two treatment days share one date —")
+        print("     correct the date in the workbook, then re-run:")
+        for sheet, sd, sid in DRUG_SESSION_COLLISIONS:
+            print(f"       {sheet:<18} -> session {sid} @ {sd}")
+
+    if DRUG_TIME_ANOMALIES:
+        print(f"\n  ⚠ {len(DRUG_TIME_ANOMALIES)} drug Time cell(s) that are neither a time")
+        print("     nor a 'none' marker. NOT guessed at — the time is stored as absent.")
+        print("     Fix the cell in the workbook and re-run to recover it:")
+        for sheet, row, raw in DRUG_TIME_ANOMALIES:
+            print(f"       {sheet:<18} O{row}  = {raw!r}")
+
+    if DRUG_NAME_ANOMALIES:
+        print(f"\n  ⚠ {len(DRUG_NAME_ANOMALIES)} Drugs Administered cell(s) that are not a")
+        print("     drug name. NOT imported — a date filed as a medication is")
+        print("     indistinguishable from one the patient was actually given:")
+        for sheet, row, raw in DRUG_NAME_ANOMALIES:
+            print(f"       {sheet:<18} H{row}  = {raw!r}")
+
     print(f"\n{'='*60}")
     print("DRY RUN — nothing was written" if args.dry_run else "IMPORT COMPLETE")
     print(f"{'='*60}")
     print(f"  New sessions imported: {total_sessions}")
     print(f"  New readings imported: {total_readings}")
     print(f"  New vomit entries imported: {total_vomits}")
+    # "written or refreshed": every upsert counts one, and on a re-run most are
+    # a refresh of a row this script wrote before, not a new row.
+    print(f"  Drug rows written or refreshed: {total_drugs}")
     print(f"\n  Total therapy sessions: {final_sessions}")
     print(f"  Total intradialytic readings: {final_readings}")
     print(f"  Total vomiting logs: {final_vomits}")
+    # These totals are counted INSIDE the transaction, so on a dry run they
+    # include the rehearsed writes and say nothing about what is on disk. Label
+    # which it is: "1,769 drug rows" under a DRY RUN banner otherwise reads as a
+    # finished backfill, and this count is the only evidence anyone will check.
+    _as_of = "would be, uncommitted" if args.dry_run else "on disk"
+    print(f"  Total drug rows ({_as_of}): {final_drugs}"
+          f"  ·  with a time: {final_drugs_timed}"
+          f"  ·  with a route: {final_drugs_routed}")
     if date_range[0]:
         print(f"  Date range: {date_range[0]} to {date_range[1]}")
 

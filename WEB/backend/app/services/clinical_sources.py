@@ -38,6 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.models.chronic_conditions import ChronicCondition, TherapySession
+from app.models.session_drug import SessionDrug
 from app.services.flowsheet_drugs import (
     canonical_drug_name,
     parse_drugs_administered,
@@ -455,6 +456,57 @@ class AdministrationView:
     dose_log_id: int | None     # set when a dose log backs this row (deletable)
 
 
+async def _structured_drugs_for_day(db: AsyncSession, user_id: int, day: date
+                                    ) -> dict[int, list[SessionDrug]]:
+    """The flowsheet's drug TABLE for one day, keyed by session id.
+
+    `session_drugs` holds one row per flowsheet line, carrying the route and the
+    TIME the sheet recorded. `therapy_sessions.drugs_administered` holds the same
+    administrations flattened into text, with no time.
+
+    **Callers must PREFER these rows and never emit both.** Measured on the dev
+    copy of production: 670 sessions have structured rows, all 670 also have the
+    text, and the counts agree row for row (306 sessions with 1 each, 363 with 4
+    each). Emitting both would therefore double every dose on those sessions
+    exactly and silently — and `administration_events_on_day` feeds nutrient
+    arithmetic, so a doubled Venofer is doubled iron.
+
+    The text fallback cannot be dropped either: 1,297 of 1,967 sessions are
+    text-only, because the workbooks behind them are not present to re-import
+    (FlowsheetGermantown.xlsx, 2019-2022).
+    """
+    rows = (await db.execute(
+        select(SessionDrug)
+        .join(TherapySession, TherapySession.id == SessionDrug.session_id)
+        .where(
+            SessionDrug.user_id == user_id,
+            func.date(TherapySession.scheduled_date) == day,
+        )
+        .order_by(SessionDrug.session_id, SessionDrug.row_index)
+    )).scalars().all()
+
+    by_session: dict[int, list[SessionDrug]] = {}
+    for row in rows:
+        by_session.setdefault(row.session_id, []).append(row)
+    return by_session
+
+
+def _flowsheet_items(session, structured: dict[int, list[SessionDrug]]
+                     ) -> list[tuple[str, str | None, str | None]]:
+    """One session's drugs as (written name, dose, time) — structured if present.
+
+    The ONE place the prefer-structured rule is applied, so the merged reader and
+    the un-merged one cannot disagree about which source a session was read from.
+    """
+    rows = structured.get(getattr(session, "id", None))
+    if rows:
+        return [(r.name, r.dose_text,
+                 str(r.administered_time)[:5] if r.administered_time else None)
+                for r in rows]
+    return [(d.name, d.dose, None)
+            for d in parse_drugs_administered(session.drugs_administered)]
+
+
 async def administrations_on_day(db: AsyncSession, user_id: int, day: date
                                  ) -> list[AdministrationView]:
     """What was actually given on ONE day — dose logs and flowsheet, merged.
@@ -501,9 +553,10 @@ async def administrations_on_day(db: AsyncSession, user_id: int, day: date
             func.date(TherapySession.scheduled_date) == day,
         )
     )).scalars().all()
+    structured = await _structured_drugs_for_day(db, user_id, day)
     for session in sessions:
-        for drug in parse_drugs_administered(session.drugs_administered):
-            canon, drug_class, _ = canonical_drug_name(drug.name or "")
+        for written, dose_text, when in _flowsheet_items(session, structured):
+            canon, drug_class, _ = canonical_drug_name(written or "")
             if not canon:
                 continue
             key = canon.lower()
@@ -513,12 +566,15 @@ async def administrations_on_day(db: AsyncSession, user_id: int, day: date
                 # with both sources rather than listing it twice.
                 if "administered" not in existing.sources:
                     existing.sources.append("administered")
-                existing.dose = existing.dose or drug.dose
+                existing.dose = existing.dose or dose_text
                 existing.drug_class = existing.drug_class or drug_class
+                # A dose log's own time wins — it is what the patient recorded.
+                # The flowsheet's fills the gap only where there was none.
+                existing.time = existing.time or when
                 continue
             merged[key] = AdministrationView(
-                date=day_str, name=canon, written_as=drug.name or canon,
-                dose=drug.dose, time=None, drug_class=drug_class,
+                date=day_str, name=canon, written_as=written or canon,
+                dose=dose_text, time=when, drug_class=drug_class,
                 sources=["administered"], dose_log_id=None,
             )
 
@@ -595,17 +651,18 @@ async def administration_events_on_day(db: AsyncSession, user_id: int, day: date
             func.date(TherapySession.scheduled_date) == day,
         )
     )).scalars().all()
+    structured = await _structured_drugs_for_day(db, user_id, day)
     for session in sessions:
-        for drug in parse_drugs_administered(session.drugs_administered):
-            canon, drug_class, _ = canonical_drug_name(drug.name or "")
+        for written, dose_text, when in _flowsheet_items(session, structured):
+            canon, drug_class, _ = canonical_drug_name(written or "")
             if not canon:
                 continue
             out.append(AdministrationEvent(
-                date=day_str, name=canon, written_as=drug.name or canon,
+                date=day_str, name=canon, written_as=written or canon,
                 # Verbatim, never parsed into a number here: a bare `Venofer`
                 # with no dose means "given, amount not recorded" and must
                 # never read as a default (§5).
-                dose=drug.dose, time=None, drug_class=drug_class,
+                dose=dose_text, time=when, drug_class=drug_class,
                 source="administered", dose_log_id=None,
             ))
 
