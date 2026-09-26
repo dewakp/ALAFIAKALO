@@ -243,3 +243,89 @@ struct MedicationDoseFinding: Decodable, Identifiable {
 struct MedicationIntakeRequest: Encodable {
     let text: String
 }
+
+// MARK: - The harmonised record (the half iOS never had)
+
+// Web has read `/medications/unified` and `/medications/day-record` for a while.
+// iOS read `/medications/` (prescriptions) and `/medications/dose-logs` (what
+// the patient typed) and nothing else — so drugs given DURING dialysis, the
+// third source (§3aa), were invisible on this client entirely, and the Intake
+// Log said "No intake logged for this date" on a treatment day whose drugs were
+// on the flowsheet all along. That is the screen that manufactures a duplicate:
+// told their record is empty, the patient logs the dose again.
+//
+// These live here rather than in a file of their own because this Xcode project
+// registers every source file explicitly in project.pbxproj — a new file that
+// is not registered is silently not compiled.
+
+/// One drug, harmonised across every source that records it
+/// (`GET /medications/unified`).
+///
+/// One row per DRUG, not per source: "Venofer" on the flowsheet, "venofer" in a
+/// dose log and "Iron sucrose" from a portal import are one iron, and a patient
+/// should not have to reconcile their own chart by eye.
+struct UnifiedMedication: Decodable, Identifiable {
+    let name: String                 // canonical
+    let drugClass: String?
+    /// Every spelling this drug appears under — shown when it differs from the
+    /// canonical name, so a merge is visible rather than done behind them.
+    let writtenAs: [String]
+    let sources: [String]            // prescribed | imported | logged | administered
+    let active: Bool
+    let dose: String?
+    let first: String?
+    let last: String?
+    /// Distinct DAYS given, unioned across sources — never a sum, so a dose
+    /// recorded both on the flowsheet and by hand counts once.
+    let days: Int?
+    let bySource: [String: Int]
+    let detail: String?
+
+    var id: String { name.lowercased() }
+    var isAdministered: Bool { sources.contains("administered") }
+
+    enum CodingKeys: String, CodingKey {
+        case name, sources, active, dose, first, last, days, detail
+        case drugClass = "drug_class"
+        case writtenAs = "written_as"
+        case bySource = "by_source"
+    }
+}
+
+/// One administration on one day, from whichever source recorded it
+/// (`GET /medications/day-record`).
+struct DayAdministration: Decodable, Identifiable {
+    let date: String
+    let name: String                 // canonical
+    let writtenAs: String            // the name as that source wrote it
+    /// Verbatim — "3,000 SQ", "2.5 ml x 2". Never parsed into a number: a bare
+    /// drug with no dose means "given, amount not recorded".
+    let dose: String?
+    /// "HH:mm". A dose log carries the patient's own time; a flowsheet row
+    /// carries the time the sheet recorded, on the 268 of 1,769 administrations
+    /// that recorded one — so absent is the common case and must not read as an
+    /// error.
+    let time: String?
+    let drugClass: String?
+    let sources: [String]
+    /// nil means no dose log backs this row, so it is not this screen's to
+    /// delete — a flowsheet administration is corrected on the flowsheet.
+    let doseLogId: Int?
+
+    /// A day holds at most one row per canonical drug (the backend merges them).
+    var id: String { "\(date)|\(name.lowercased())" }
+
+    /// Recorded only on the flowsheet — nothing for the patient to log or delete.
+    var isFlowsheetOnly: Bool { doseLogId == nil }
+
+    /// Their own entry, which the flowsheet ALSO records. Not a duplicate to
+    /// remove: one administration with two records.
+    var alsoOnFlowsheet: Bool { doseLogId != nil && sources.contains("administered") }
+
+    enum CodingKeys: String, CodingKey {
+        case date, name, dose, time, sources
+        case writtenAs = "written_as"
+        case drugClass = "drug_class"
+        case doseLogId = "dose_log_id"
+    }
+}

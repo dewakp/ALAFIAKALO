@@ -225,6 +225,36 @@ interface ApiService {
     @POST("medications/promote-logged")
     suspend fun promoteLoggedMedications(): PromoteLoggedResponse
 
+    /** THE medication list — every source harmonised, one row per drug.
+     *
+     *  Web has read this for a while; Android read `medications/` (prescriptions)
+     *  and `dose-logs` (what the patient typed) and nothing else, so drugs given
+     *  DURING dialysis were invisible on this client entirely (canon 3aa).
+     *
+     *  `days` omitted means the whole history, deliberately: "what am I on" is
+     *  not a 90-day question on a therapy given three times a week. */
+    @GET("medications/unified")
+    suspend fun getUnifiedMedications(
+        @Query("days") days: Int? = null
+    ): List<UnifiedMedication>
+
+    /** Everything given on ONE day, dose logs and flowsheet merged.
+     *
+     *  A drug in both sources comes back as ONE row tagged with both — one
+     *  administration with two records, not two doses. */
+    @GET("medications/day-record")
+    suspend fun getMedicationDayRecord(
+        @Query("day") day: String
+    ): List<DayAdministration>
+
+    /** Dates with at least one administration, from ANY source. Reading dose
+     *  logs alone marks treatment days empty on a calendar whose whole job is
+     *  to say which days have something on them. */
+    @GET("medications/administration-days")
+    suspend fun getAdministrationDays(
+        @Query("days") days: Int? = null
+    ): List<String>
+
     // Medication dose logs ("taken" events)
     /** Read free text into a confirmable dose proposal. Writes nothing. */
     @POST("medications/intake-intent")

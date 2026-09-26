@@ -821,6 +821,61 @@ data class MedicationIntakeRequest(val text: String)
  * prescribed and taken are different facts, and reading one table and calling it
  * the answer hides the other.
  */
+/**
+ * One drug, harmonised across every source that records it
+ * (`GET /medications/unified`).
+ *
+ * One row per DRUG, not per source: "Venofer" on the flowsheet, "venofer" in a
+ * dose log and "Iron sucrose" from a portal import are one iron. Web has read
+ * this endpoint for a while; Android read `medications/` and `dose-logs` only,
+ * so drugs given DURING dialysis — the third source, canon 3aa — never appeared.
+ */
+data class UnifiedMedication(
+    val name: String,
+    @com.google.gson.annotations.SerializedName("drug_class") val drugClass: String? = null,
+    /** Every spelling seen, so a merge is visible rather than done behind the patient. */
+    @com.google.gson.annotations.SerializedName("written_as") val writtenAs: List<String> = emptyList(),
+    val sources: List<String> = emptyList(),
+    val active: Boolean = true,
+    val dose: String? = null,
+    val first: String? = null,
+    val last: String? = null,
+    /** Distinct DAYS, unioned across sources — never a sum. */
+    val days: Int? = null,
+    @com.google.gson.annotations.SerializedName("by_source") val bySource: Map<String, Int> = emptyMap(),
+    val detail: String? = null,
+) {
+    val isAdministered: Boolean get() = sources.contains("administered")
+}
+
+/**
+ * One administration on one day (`GET /medications/day-record`).
+ *
+ * Every field is nullable or defaulted to match the API: Gson writes null into
+ * a non-null Kotlin field regardless of the declaration, so declaring otherwise
+ * buys nothing and hides the risk (canon 3aj).
+ */
+data class DayAdministration(
+    val date: String = "",
+    val name: String = "",
+    @com.google.gson.annotations.SerializedName("written_as") val writtenAs: String = "",
+    /** Verbatim — "3,000 SQ". Never parsed: a bare drug means amount not recorded. */
+    val dose: String? = null,
+    /** "HH:mm", where anything recorded one. Absent on most administrations. */
+    val time: String? = null,
+    @com.google.gson.annotations.SerializedName("drug_class") val drugClass: String? = null,
+    val sources: List<String> = emptyList(),
+    /** null => no dose log backs this row, so it is not this screen's to delete. */
+    @com.google.gson.annotations.SerializedName("dose_log_id") val doseLogId: Int? = null,
+) {
+    /** Recorded only on the flowsheet — nothing to log, nothing to delete. */
+    val isFlowsheetOnly: Boolean get() = doseLogId == null
+
+    /** Their own entry that the flowsheet ALSO records: one administration, two
+     *  records — not a duplicate to remove. */
+    val alsoOnFlowsheet: Boolean get() = doseLogId != null && sources.contains("administered")
+}
+
 data class FrequentMedication(
     val name: String,
     @com.google.gson.annotations.SerializedName("times_logged") val timesLogged: Int = 0,

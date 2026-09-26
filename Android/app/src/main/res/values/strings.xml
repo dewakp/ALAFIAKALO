@@ -449,6 +449,23 @@
     <string name="notes_optional">Notes (optional)</string>
     <string name="log">Log</string>
     <string name="no_intake_logged_for_this_date">No intake logged for this date.</string>
+    <!-- Drugs given during dialysis: on the record already, in no dose log the
+         patient fills in. Only the default catalog gets these; Android falls
+         back here for every other locale, and translations are produced by
+         scripts/i18n/translate_catalogs.py rather than written by hand. -->
+    <string name="on_your_flowsheet">On your flowsheet</string>
+    <string name="your_medication_record">Your medication record</string>
+    <string name="medication_record_footer">Every source together — what you were prescribed, what you logged, and what you were given at treatment.</string>
+    <string name="src_prescribed">prescribed</string>
+    <string name="src_imported">from your clinic</string>
+    <string name="src_logged">you logged it</string>
+    <string name="src_administered">given at treatment</string>
+    <string name="given_on_n_days">given on %1$d day(s)</string>
+    <string name="also_written_as">also written as %1$s</string>
+    <string name="also_on_your_flowsheet">also on your flowsheet</string>
+    <string name="given_during_treatment_already_recorded">Given during treatment — already on your record.</string>
+    <string name="you_did_not_log_anything_yourself">You did not log anything yourself for this date.</string>
+    <string name="written_as_on_the_sheet">(written as %1$s)</string>
     <string name="say_it_in_words">Say it in words</string>
     <string name="e_g_i_take_calcitriol">e.g. \"I take Calcitriol\"</string>
     <string name="read">Read</string>

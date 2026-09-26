@@ -55,7 +55,28 @@ final class MedicationsViewModel {
         }
     }
 
+    /// Drugs recorded on that day by ANY source — including the flowsheet.
+    var dayRecord: [DayAdministration] = []
+
+    /// Administrations the record holds that the patient did not type. These
+    /// are read-only: the flowsheet is the source of record for a session, and
+    /// an edit here would invite a correction the flowsheet then contradicts.
+    var flowsheetOnly: [DayAdministration] { dayRecord.filter { $0.isFlowsheetOnly } }
+
+    /// Dose-log ids the flowsheet ALSO records. Not duplicates to remove — one
+    /// administration with two records — but worth showing, so the patient can
+    /// see it is on their chart and not only in what they typed.
+    var alsoOnFlowsheet: Set<Int> {
+        Set(dayRecord.filter { $0.alsoOnFlowsheet }.compactMap { $0.doseLogId })
+    }
+
     /// Intake history for a single day (YYYY-MM-DD), newest first.
+    ///
+    /// Loads BOTH what the patient typed and what the record already holds for
+    /// that day. Wired here rather than at each call site so no screen can
+    /// refresh one and leave the other stale — the Intake Log claimed "No
+    /// intake logged for this date" on treatment days precisely because it only
+    /// ever asked for dose logs (§3aa).
     func fetchDoseLogs(date: String) async {
         loadingLogs = true
         defer { loadingLogs = false }
@@ -65,6 +86,10 @@ final class MedicationsViewModel {
             errorMessage = error.localizedDescription
             doseLogs = []
         }
+        // A failure here must not blank the dose logs above, and must not read
+        // as "nothing was given": one source being unreachable is not evidence
+        // about the other.
+        dayRecord = (try? await APIClient.shared.get("/medications/day-record?day=\(date)")) ?? []
     }
 
     func deleteDoseLog(id: Int) async {
@@ -76,6 +101,13 @@ final class MedicationsViewModel {
         }
     }
 
+    /// THE medication list — every source harmonised, one row per drug.
+    ///
+    /// The screen used to show prescriptions alone, which on the production
+    /// record is two rows stopped in 2017 against 943 dose logs and a decade of
+    /// drugs given at treatment. One row per DRUG, not per source.
+    var unified: [UnifiedMedication] = []
+
     func fetchMedications() async {
         isLoading = true
         errorMessage = nil
@@ -86,6 +118,10 @@ final class MedicationsViewModel {
             errorMessage = error.localizedDescription
             isLoading = false
         }
+        // Loaded BESIDE the prescription list, never instead of it: adding,
+        // editing or deleting still needs the row that carries an id. A failure
+        // here leaves the harmonised view empty rather than emptying the screen.
+        unified = (try? await APIClient.shared.get("/medications/unified")) ?? []
     }
     
     func addMedication(_ med: MedicationCreate) async -> Bool {
@@ -275,7 +311,7 @@ struct MedicationsView: View {
     @ViewBuilder private var medicationsList: some View {
         if vm.isLoading {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if vm.medications.isEmpty && vm.unlistedRegulars.isEmpty {
+        } else if vm.medications.isEmpty && vm.unlistedRegulars.isEmpty && vm.unified.isEmpty {
             EmptyStateView(icon: "pills.fill", title: "No Medications", message: "Tap + to add a medication")
         } else {
             List {
@@ -286,6 +322,19 @@ struct MedicationsView: View {
                 if !vm.unlistedRegulars.isEmpty {
                     Section {
                         promoteLoggedPrompt
+                    }
+                }
+                // THE list: one row per drug, every source folded together. A
+                // patient on one iron product saw "Venofer" here, "venofer" in
+                // their log and "Iron sucrose" from the portal, and was left to
+                // work out it was one drug.
+                if !vm.unified.isEmpty {
+                    Section {
+                        ForEach(vm.unified) { med in UnifiedMedicationRow(med: med) }
+                    } header: {
+                        Text("Your medication record")
+                    } footer: {
+                        Text("Every source together — what you were prescribed, what you logged, and what you were given at treatment.")
                     }
                 }
                 if !vm.medications.isEmpty {
@@ -309,6 +358,73 @@ struct MedicationsView: View {
                              ? "Prescriptions" : "Prescriptions (all stopped)")
                     }
                 }
+            }
+        }
+    }
+
+    /// One drug as the whole record sees it, with the sources that record it.
+    ///
+    /// No delete control: this row is a VIEW across sources, and removing it
+    /// would have to mean removing rows from tables it only reads. Editing
+    /// stays on the prescription list below, which carries an id.
+    struct UnifiedMedicationRow: View {
+        let med: UnifiedMedication
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack {
+                    Text(med.name).font(.subheadline).fontWeight(.semibold)
+                    Spacer()
+                    if let last = med.last {
+                        Text(last).font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+                HStack(spacing: 6) {
+                    if let cls = med.drugClass {
+                        Text(cls).font(.caption2).foregroundStyle(.secondary)
+                    }
+                    if let dose = med.dose {
+                        Text(dose).font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+                // Distinct DAYS, never a sum: a dose recorded both on the
+                // flowsheet and by hand is one administration, not two.
+                if let days = med.days, days > 0 {
+                    Text("given on \(days) day\(days == 1 ? "" : "s")")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                // Merging is SHOWN, not hidden: the other spellings are how the
+                // patient finds this drug on a bottle or a printout.
+                let others = med.writtenAs.filter {
+                    $0.caseInsensitiveCompare(med.name) != .orderedSame
+                }
+                if !others.isEmpty {
+                    Text("also written as \(others.joined(separator: ", "))")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                HStack(spacing: 4) {
+                    ForEach(med.sources, id: \.self) { source in
+                        Text(Self.sourceLabel(source))
+                            .font(.caption2)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .overlay(Capsule().stroke(.secondary.opacity(0.4)))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.vertical, 2)
+        }
+
+        /// Returns a LocalizedStringKey, not a String: SwiftUI only localises a
+        /// literal that reaches a LocalizedStringKey, so a `String` here would
+        /// render English on every translated screen (§3aw).
+        static func sourceLabel(_ source: String) -> LocalizedStringKey {
+            switch source {
+            case "prescribed":   return "prescribed"
+            case "imported":     return "from your clinic"
+            case "logged":       return "you logged it"
+            case "administered": return "given at treatment"
+            default:             return LocalizedStringKey(source)
             }
         }
     }
@@ -408,17 +524,35 @@ struct MedicationsView: View {
                     Label("Log New Intake", systemImage: "plus.circle.fill")
                 }
             }
+            // Already on the record: drugs given during treatment, which appear
+            // in no dose log the patient fills in. Read-only on purpose — the
+            // flowsheet is the source of record for a session, so an edit here
+            // would invite a correction the flowsheet then contradicts.
+            if !vm.flowsheetOnly.isEmpty {
+                Section("On your flowsheet") {
+                    ForEach(vm.flowsheetOnly) { row in FlowsheetAdministrationRow(row: row) }
+                }
+            }
             Section("Logged intake") {
                 if vm.loadingLogs {
                     HStack { Spacer(); ProgressView(); Spacer() }
                 } else if vm.doseLogs.isEmpty {
-                    Text("No intake logged for this date.")
+                    // "Nothing logged" is only true if nothing recorded the day
+                    // at all. On a treatment day the section above carries it,
+                    // and saying the record is empty is what makes a patient log
+                    // a dose they were already given (§3aa).
+                    Text(vm.flowsheetOnly.isEmpty
+                         ? "No intake logged for this date."
+                         : "You did not log anything yourself for this date.")
                         .font(.subheadline).foregroundStyle(.secondary)
                 } else {
-                    ForEach(vm.doseLogs) { log in DoseLogRow(log: log) }
-                        .onDelete { idx in
-                            Task { for i in idx { await vm.deleteDoseLog(id: vm.doseLogs[i].id) } }
-                        }
+                    ForEach(vm.doseLogs) { log in
+                        DoseLogRow(log: log,
+                                   alsoOnFlowsheet: vm.alsoOnFlowsheet.contains(log.id))
+                    }
+                    .onDelete { idx in
+                        Task { for i in idx { await vm.deleteDoseLog(id: vm.doseLogs[i].id) } }
+                    }
                 }
             }
         }
@@ -426,14 +560,62 @@ struct MedicationsView: View {
     }
 }
 
+/// One drug given during treatment, as the record already holds it.
+///
+/// No delete control, deliberately: this is not the patient's entry to remove.
+/// The time is shown where the flowsheet recorded one — most administrations
+/// have none, so its absence is ordinary and is left blank rather than
+/// explained away.
+struct FlowsheetAdministrationRow: View {
+    let row: DayAdministration
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(row.name).font(.subheadline).fontWeight(.semibold)
+                Spacer()
+                if let t = row.time {
+                    Text(t).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            HStack(spacing: 6) {
+                if let d = row.dose {
+                    Text(d).font(.caption).foregroundStyle(.secondary)
+                }
+                // The name as the sheet wrote it, when we merged it under
+                // another: the patient can find the row on the paper again.
+                if row.writtenAs.caseInsensitiveCompare(row.name) != .orderedSame,
+                   !row.writtenAs.isEmpty {
+                    Text("(written as \(row.writtenAs))")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            Text("Given during treatment — already on your record.")
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
 /// One intake entry: medication, time, dose, and any pre-medication vitals.
 struct DoseLogRow: View {
     let log: MedicationDoseLog
+    /// Their own entry that the flowsheet ALSO records. Not a duplicate to
+    /// remove — one administration with two records — but shown so they can see
+    /// it is on their chart and not only in what they typed.
+    var alsoOnFlowsheet: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(log.medicationName).font(.subheadline).fontWeight(.semibold)
+                if alsoOnFlowsheet {
+                    Text("also on your flowsheet")
+                        .font(.caption2)
+                        .padding(.horizontal, 6).padding(.vertical, 1)
+                        .overlay(Capsule().stroke(.secondary.opacity(0.4)))
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 if let t = log.timeDisplay {
                     Text(t).font(.caption).foregroundStyle(.secondary)

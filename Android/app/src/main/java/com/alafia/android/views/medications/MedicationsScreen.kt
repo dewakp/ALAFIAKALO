@@ -33,6 +33,8 @@ import com.alafia.android.schemas.MedicationIntakeProposal
 import com.alafia.android.schemas.MedicationIntakeRequest
 import com.alafia.android.schemas.MedicationDoseFinding
 import com.alafia.android.schemas.FrequentMedication
+import com.alafia.android.schemas.DayAdministration
+import com.alafia.android.schemas.UnifiedMedication
 import com.alafia.android.schemas.DoseGuardRefusal
 import com.alafia.android.util.DoseGuard
 import kotlinx.coroutines.launch
@@ -57,6 +59,17 @@ fun MedicationsScreen(navController: NavHostController) {
     var tab by remember { mutableStateOf(0) }                                   // 0 = Medications, 1 = Intake Log
     var logDate by remember { mutableStateOf(LocalDate.now()) }
     var doseLogs by remember { mutableStateOf<List<MedicationDoseLog>>(emptyList()) }
+    // What the RECORD holds for that day, from every source — including drugs
+    // given during dialysis, which appear in no dose log the patient fills in.
+    // Without this the Intake Log said "No intake logged for this date" on a
+    // treatment day, and a patient told their record is empty logs the dose
+    // again (canon 3aa).
+    var dayRecord by remember { mutableStateOf<List<DayAdministration>>(emptyList()) }
+    // THE medication list — every source harmonised, one row per drug. The
+    // screen showed prescriptions alone, which on the production record is two
+    // rows stopped in 2017 against 943 dose logs and a decade of drugs given at
+    // treatment.
+    var unified by remember { mutableStateOf<List<UnifiedMedication>>(emptyList()) }
     var loadingLogs by remember { mutableStateOf(false) }
     var showLogSheet by remember { mutableStateOf(false) }                      // general "Log New Intake"
     var intakeText by remember { mutableStateOf("") }
@@ -101,12 +114,17 @@ fun MedicationsScreen(navController: NavHostController) {
     fun loadDoseLogs() {
         scope.launch {
             loadingLogs = true
+            val day = logDate.format(DateTimeFormatter.ISO_DATE)
             try {
-                doseLogs = ApiClient.getApiService()
-                    .getMedicationDoseLogs(logDate = logDate.format(DateTimeFormatter.ISO_DATE))
+                doseLogs = ApiClient.getApiService().getMedicationDoseLogs(logDate = day)
             } catch (e: Exception) {
                 doseLogs = emptyList()
             }
+            // Loaded together so no caller can refresh one and leave the other
+            // stale. A failure here must NOT blank the dose logs above: one
+            // source being unreachable is not evidence the other is empty.
+            dayRecord = try { ApiClient.getApiService().getMedicationDayRecord(day) }
+                        catch (e: Exception) { emptyList() }
             loadingLogs = false
         }
     }
@@ -146,6 +164,12 @@ fun MedicationsScreen(navController: NavHostController) {
             } catch (e: Exception) {
                 Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
             }
+            // Loaded BESIDE the prescription list, never instead of it: editing
+            // and deleting still need the row that carries an id. A failure here
+            // leaves the harmonised view empty rather than emptying the screen,
+            // and does not raise a second toast for one refresh.
+            unified = try { ApiClient.getApiService().getUnifiedMedications() }
+                      catch (e: Exception) { emptyList() }
             isLoading = false
         }
     }
@@ -198,7 +222,7 @@ fun MedicationsScreen(navController: NavHostController) {
                 }
                 if (isLoading) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                } else if (medications.isEmpty() && unlistedRegulars.isEmpty()) {
+                } else if (medications.isEmpty() && unlistedRegulars.isEmpty() && unified.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.LocalPharmacy, "No medications", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -237,6 +261,25 @@ fun MedicationsScreen(navController: NavHostController) {
                                         }
                                     },
                                 )
+                            }
+                        }
+                        // THE list: one row per drug, every source folded
+                        // together. A patient on one iron product saw "Venofer"
+                        // here, "venofer" in their log and "Iron sucrose" from
+                        // the portal, and was left to work out it was one drug.
+                        if (unified.isNotEmpty()) {
+                            item {
+                                Column {
+                                    Text(stringResource(R.string.your_medication_record),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.medication_record_footer),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            items(unified, key = { "u|${it.name.lowercase()}" }) { med ->
+                                UnifiedMedicationCard(med = med)
                             }
                         }
                         if (medications.isNotEmpty()) {
@@ -290,6 +333,9 @@ fun MedicationsScreen(navController: NavHostController) {
                     date = logDate,
                     onDateChange = { logDate = it },
                     logs = doseLogs,
+                    administered = dayRecord.filter { it.isFlowsheetOnly },
+                    alsoOnFlowsheet = dayRecord.filter { it.alsoOnFlowsheet }
+                        .mapNotNull { it.doseLogId }.toSet(),
                     loading = loadingLogs,
                     onDelete = { id ->
                         scope.launch {
@@ -672,6 +718,12 @@ private fun IntakeLogContent(
     date: LocalDate,
     onDateChange: (LocalDate) -> Unit,
     logs: List<MedicationDoseLog>,
+    /** Drugs the RECORD holds for this day that the patient did not type —
+     *  given during dialysis, so they appear in no dose log. Read-only. */
+    administered: List<DayAdministration>,
+    /** Dose-log ids the flowsheet also records: one administration with two
+     *  records, not a duplicate to remove. */
+    alsoOnFlowsheet: Set<Int>,
     loading: Boolean,
     onDelete: (Int) -> Unit
 ) {
@@ -689,30 +741,176 @@ private fun IntakeLogContent(
         HorizontalDivider()
         when {
             loading -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            logs.isEmpty() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+            // "Nothing logged" only when NOTHING recorded the day. This used to
+            // test the dose logs alone, so a treatment day whose drugs were on
+            // the flowsheet read as empty — and a patient told their record is
+            // empty logs the dose again (canon 3aa).
+            logs.isEmpty() && administered.isEmpty() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.no_intake_logged_for_this_date), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             else -> LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(logs, key = { it.id }) { log -> DoseLogCard(log = log, onDelete = { onDelete(log.id) }) }
+                if (administered.isNotEmpty()) {
+                    item {
+                        Text(stringResource(R.string.on_your_flowsheet),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    items(administered, key = { "${it.date}|${it.name}" }) { row ->
+                        FlowsheetAdministrationCard(row = row)
+                    }
+                }
+                if (logs.isEmpty()) {
+                    item {
+                        Text(stringResource(R.string.you_did_not_log_anything_yourself),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    items(logs, key = { it.id }) { log ->
+                        DoseLogCard(
+                            log = log,
+                            alsoOnFlowsheet = alsoOnFlowsheet.contains(log.id),
+                            onDelete = { onDelete(log.id) },
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DoseLogCard(log: MedicationDoseLog, onDelete: () -> Unit) {
+private fun DoseLogCard(
+    log: MedicationDoseLog,
+    onDelete: () -> Unit,
+    /** Their own entry that the flowsheet ALSO records. One administration with
+     *  two records — shown, not hidden, so the patient can see it is on their
+     *  chart and not only in what they typed. */
+    alsoOnFlowsheet: Boolean = false,
+) {
     Card(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(log.medication_name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     log.log_time?.take(5)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    if (alsoOnFlowsheet) {
+                        Text(stringResource(R.string.also_on_your_flowsheet),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 Text("${doseText(log.dose_amount)} ${log.dose_unit}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 vitalsSummary(log)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 log.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
             IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) }
+        }
+    }
+}
+
+/**
+ * One drug given during treatment, as the record already holds it.
+ *
+ * No delete control, deliberately: this is not the patient's entry to remove.
+ * The flowsheet is the source of record for a session, and an edit here would
+ * invite a correction the flowsheet then contradicts.
+ *
+ * The time shows where the sheet recorded one — 268 of 1,769 administrations —
+ * so its absence is ordinary and is left blank rather than explained away.
+ */
+/**
+ * One drug as the whole record sees it, with the sources that record it.
+ *
+ * No delete control: this card is a VIEW across sources, and removing it would
+ * have to mean deleting rows from tables it only reads. Editing stays on the
+ * prescription list below, which carries an id.
+ */
+@Composable
+private fun UnifiedMedicationCard(med: UnifiedMedication) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(med.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                med.last?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                med.drugClass?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                med.dose?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            // Distinct DAYS, never a sum: a dose recorded both on the flowsheet
+            // and by hand is one administration, not two.
+            med.days?.takeIf { it > 0 }?.let {
+                Text(stringResource(R.string.given_on_n_days, it),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // Merging is SHOWN, not hidden: the other spellings are how the
+            // patient finds this drug on a bottle or a printout.
+            val others = med.writtenAs.filter { !it.equals(med.name, ignoreCase = true) }
+            if (others.isNotEmpty()) {
+                Text(stringResource(R.string.also_written_as, others.joinToString(", ")),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                med.sources.forEach { source ->
+                    Text(sourceLabel(source),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+/** Source tags in the patient's own words. A resource, never a literal (3aw). */
+@Composable
+private fun sourceLabel(source: String): String = when (source) {
+    "prescribed"   -> stringResource(R.string.src_prescribed)
+    "imported"     -> stringResource(R.string.src_imported)
+    "logged"       -> stringResource(R.string.src_logged)
+    "administered" -> stringResource(R.string.src_administered)
+    else           -> source
+}
+
+@Composable
+private fun FlowsheetAdministrationCard(row: DayAdministration) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(row.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                row.time?.take(5)?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                row.dose?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // The name as the sheet wrote it, when we merged it under
+                // another — so the patient can find the row on the paper again.
+                if (row.writtenAs.isNotBlank() && !row.writtenAs.equals(row.name, ignoreCase = true)) {
+                    Text(stringResource(R.string.written_as_on_the_sheet, row.writtenAs),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Text(stringResource(R.string.given_during_treatment_already_recorded),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
