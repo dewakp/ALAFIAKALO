@@ -10,6 +10,25 @@ whether they are attached to the version under review.
 
 This asks App Store Connect directly instead of guessing.
 
+⚠️ It must ask in TWO places. Auto-renewable subscriptions — which is what
+ALAFIA's membership is — do NOT appear under `inAppPurchasesV2`. Confirmed by
+asking Apple with a deliberately invalid filter value so the error enumerates
+the resource's own domain:
+
+    filter[inAppPurchaseType]=ZZZ_NOT_A_REAL_TYPE
+      -> 400  Expected one of: CONSUMABLE, NON_CONSUMABLE, NON_RENEWING_SUBSCRIPTION
+    filter[inAppPurchaseType]=AUTOMATICALLY_RENEWABLE_SUBSCRIPTION
+      -> 400  same message; not a valid value for this resource
+    filter[inAppPurchaseType]=NON_CONSUMABLE          (control)
+      -> accepted
+
+Until 2026-09-27 this script checked only `inAppPurchasesV2`, a resource that
+structurally cannot hold the two products it was written to find. It printed
+"MISSING ... ACTION NEEDED" — correct while nothing existed, and it would have
+gone on printing it unchanged after the subscriptions were created. A check that
+can never pass is worse than no check, and this one sits in the tool whose whole
+purpose is confirming this exact App Review rejection.
+
 Usage:
     export ASC_API_ISSUER_ID=<uuid from Users and Access -> Integrations>
     python3 IOS/scripts/asc_check.py
@@ -31,6 +50,22 @@ import jwt
 BUNDLE_ID = os.environ.get("ASC_BUNDLE_ID", "com.alafia.app")
 EXPECTED = ["alafia_plus_monthly", "alafia_plus_annual"]
 BASE = "https://api.appstoreconnect.apple.com/v1"
+
+#: States in which App Review can actually buy the product.
+#:
+#: PENDING_BINARY_APPROVAL is included deliberately: it is the NORMAL state for a
+#: product submitted alongside a build, so treating it as a failure would report
+#: a correct submission as broken — the opposite error to the one this script
+#: exists to catch. Any state NOT listed here is printed verbatim rather than
+#: summarised, so an unfamiliar value is visible instead of being flattened into
+#: a generic failure.
+PURCHASABLE = (
+    "APPROVED",
+    "READY_TO_SUBMIT",
+    "WAITING_FOR_REVIEW",
+    "IN_REVIEW",
+    "PENDING_BINARY_APPROVAL",
+)
 
 
 def _key() -> tuple[str, str]:
@@ -97,6 +132,24 @@ def main() -> None:
     if not iaps:
         print("  (none)")
 
+    # ── Auto-renewable subscriptions ──
+    # A SEPARATE resource. See the module docstring: these can never appear
+    # above, so checking only the list above answers the wrong question.
+    print("\nSubscription groups (auto-renewable products live here):")
+    groups = api(f"/apps/{app_id}/subscriptionGroups?limit=50", token)["data"]
+    for g in groups:
+        print(f"  group: {g['attributes'].get('referenceName')}")
+        subs = api(f"/subscriptionGroups/{g['id']}/subscriptions?limit=200", token)["data"]
+        for s in subs:
+            a = s["attributes"]
+            pid, state = a.get("productId"), a.get("state")
+            found[pid] = state
+            print(f"    {pid:<26} {a.get('name','?'):<24} {state}")
+        if not subs:
+            print("    (no subscriptions in this group)")
+    if not groups:
+        print("  (none)")
+
     print("\nWhat the binary asks StoreKit for:")
     ok = True
     for pid in EXPECTED:
@@ -104,7 +157,7 @@ def main() -> None:
         if state is None:
             ok = False
             print(f"  {pid:<28} MISSING  <- Product.products() returns nothing for this")
-        elif state in ("APPROVED", "READY_TO_SUBMIT", "WAITING_FOR_REVIEW", "IN_REVIEW"):
+        elif state in PURCHASABLE:
             print(f"  {pid:<28} {state}")
         else:
             ok = False
