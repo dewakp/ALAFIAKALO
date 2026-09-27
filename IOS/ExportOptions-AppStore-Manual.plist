@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  MANUAL signing for the App Store export.
+
+  Why this exists beside ExportOptions-AppStore.plist (which is automatic):
+
+  Automatic export fails on this team with
+
+      error: exportArchive Cloud signing permission error
+      error: exportArchive Provisioning profile "iOS Team Store Provisioning
+             Profile: com.alafia.app" doesn't include signing certificate
+             "Apple Distribution: 6igma (E48V6Y372K)".
+
+  and that is literally true. The Xcode-managed STORE profile embeds three
+  Apple Distribution certificates — serials 7818F922D4878CAFB53A6412E9B063B2,
+  3B8AE9BB00D76C6005F37B9964B3CC3C and 6035753948BD8F14D72B1430D442FF54 — and
+  the certificate the team actually holds now is 4D078FA022BB81E20679E4831F3F6EFF,
+  issued 2026-09-27. All three embedded certs are superseded. Regenerating that
+  profile is a CLOUD SIGNING operation, and it failed even though the API key
+  is ACCOUNT_HOLDER + ADMIN — so the key's role was never the problem.
+
+  The DEVELOPMENT profile did regenerate (it embeds 6A22DA5453D191C98E9AF0C7B3B8EBB2,
+  the current development cert), which is why `archive` succeeds and only
+  `exportArchive` fails.
+
+  So this file sidesteps cloud signing: an explicit App Store profile was minted
+  through the App Store Connect API against bundle J6WSKCPN52 (com.alafia.app)
+  and certificate ZVF96PA975 (the CURRENT distribution cert), and is named here.
+
+  ⚠️ The profile NAME below must match the one on the developer account. If the
+  profile is ever re-minted under a different name, change it here too — a name
+  that does not resolve fails with a message about the profile being missing,
+  which reads like the profile was never created rather than misnamed.
+-->
+<plist version="1.0">
+<dict>
+	<key>destination</key>
+	<string>export</string>
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>teamID</key>
+	<string>E48V6Y372K</string>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>signingCertificate</key>
+	<string>Apple Distribution: 6igma (E48V6Y372K)</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.alafia.app</key>
+		<string>ALAFIA AppStore 20260927</string>
+	</dict>
+	<!-- Pinned false: Xcode will otherwise renumber the build during export,
+	     and an artefact whose number differs from the archive it came from is
+	     the confusion export_ipa.sh exists to prevent (§3av). -->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<key>uploadSymbols</key>
+	<true/>
+</dict>
+</plist>
