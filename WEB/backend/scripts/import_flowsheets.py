@@ -69,11 +69,22 @@ CONDITION_ID = None
 DATE_CONFLICTS = []
 
 # (sheet_name, excel_row, raw_value) for a Time cell holding something that is
-# neither a time nor a "none" marker. Measured: one such cell says '1;47' — a
-# semicolon struck instead of a colon, one key away, and a REAL administration
-# time. It is reported rather than repaired: 1;47 is obviously 1:47 to a reader,
-# but silently rewriting a clinical timestamp from a typo invents a fact, and
-# the workbook is the thing that should be corrected (§0, §3am).
+# neither a time, nor a "none" marker, nor a readable mistyped separator — a
+# value whose digits would have to be invented, completed or reordered to become
+# a time. Those are still refused and reported, never guessed at (§0).
+#
+# ⚠️ This comment used to read "it is reported rather than repaired: 1;47 is
+# obviously 1:47 to a reader, but silently rewriting a clinical timestamp from a
+# typo invents a fact". That was SUPERSEDED by the operator on 2026-09-26: `;`
+# is the UNSHIFTED `:`, the same key, so it is a misspelling of a SEPARATOR, not
+# an unknown value. `repair_typed_time()` below reads it and DRUG_TIME_REPAIRS
+# makes the repair visible, so nothing is silent.
+#
+# The wording is corrected here rather than deleted because of what it cost:
+# it outlived the decision by a day, sat twenty lines above the function that
+# contradicts it, and was later read back as if it were still policy — so a
+# settled question was re-raised with the operator as though still open. A
+# comment that describes behaviour the code no longer has is not documentation.
 DRUG_TIME_ANOMALIES = []
 
 # (sheet_name, scheduled_date, session_id) where a SECOND sheet resolved to a

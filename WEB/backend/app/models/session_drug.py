@@ -13,15 +13,27 @@ had never carried them.
 
 MEASURED across the 694 session sheets in the four workbooks that are present
 (FlowsheetGermantown.xlsx is not synced): 1,769 drug rows, route on 1,763
-(99.7%), a time on 268 (15.1%).
+(99.7%), a time on 269 (15.2%).
+
+The timed figure was 268 until the '1;47' cell described below was read through
+as 1:47; the repair is the whole of the difference.
+
+Two denominators are in play here and they are NOT interchangeable. 1,769 is the
+SOURCE row count. Production holds 1,764 (`session_drugs`: 269 timed, 1,763
+routed, measured 2026-09-27) because the 5 rows whose drug NAME is a date are
+refused on import — see DRUG_NAME_ANOMALIES. Reconciling one against the other
+by "correcting" a figure that is right for its own denominator is how a true
+number becomes a wrong one.
 
 An earlier figure of "a time on 408" was WRONG, and wrong in a way worth
 recording: it counted NON-EMPTY Time cells. 140 of those hold the text "NONE",
 spelled seven different ways (NONE, NoNE, NonE, NONe, None, NOONE, N"ONE) — an
 explicit "not recorded", not a time. One further cell holds '1;47', a semicolon
-struck instead of a colon: a real administration time, which the importer
-REPORTS rather than repairs, because rewriting a clinical timestamp from a typo
-invents a fact (§0).
+struck instead of a colon — the UNSHIFTED `:`, the same key. The importer READS
+that as 1:47 and records the repair in `DRUG_TIME_REPAIRS`, which the run prints:
+a mistyped SEPARATOR is a misspelling, not an unknown value. Only the separator
+is interpreted; the digits are taken exactly as typed, and a value whose digits
+would have to be invented, completed or reordered is still refused (§0).
 
 Timing is not cosmetic. An IV iron runs over a period, so "when" and "for how
 long" change what the dose did; and a drug given at 23:47 on a session starting
