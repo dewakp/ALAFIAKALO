@@ -105,8 +105,18 @@ STAMP=$(date +%Y%m%d)
 echo "── built $V ($B)"
 
 ARCHIVE="build/archives/$NAME.xcarchive"
-[ -e "$ARCHIVE" ] && ARCHIVE="build/archives/older/$NAME-$STAMP.xcarchive"
-rm -rf "$ARCHIVE" && mv "$STAGE" "$ARCHIVE"
+# Same rule as the IPA below: the newest archive keeps the canonical name and
+# the previous one steps aside, dated by its own mtime. A stale archive under
+# the canonical name is the quieter half of the same trap — it is what a later
+# re-export reads from, so it would silently re-emit the old binary.
+if [ -e "$ARCHIVE" ]; then
+  PREV_STAMP=$(date -r "$ARCHIVE" +%Y%m%d 2>/dev/null || echo "$STAMP")
+  PREV_A="build/archives/older/$NAME-$PREV_STAMP.xcarchive"
+  [ -e "$PREV_A" ] && PREV_A="build/archives/older/$NAME-$PREV_STAMP-$(date +%H%M%S).xcarchive"
+  mv "$ARCHIVE" "$PREV_A"
+  echo "   previous: $PREV_A  (stepped aside; not deleted)"
+fi
+mv "$STAGE" "$ARCHIVE"
 echo "   archive: $ARCHIVE"
 
 echo "── exporting"
@@ -122,7 +132,29 @@ xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportOptionsPlist "$PLIST" \
 
 SRC=$(ls build/.staging-export/*.ipa | head -1)
 IPA="build/ipa/$NAME.ipa"
-[ -e "$IPA" ] && IPA="build/ipa/older/$NAME-$STAMP.ipa"
+# The NEWEST export keeps the canonical name; the previous one steps aside.
+#
+# This used to be the other way round — a repeat export of an existing build
+# number landed in older/ and left the EARLIER artefact under the canonical
+# name. The intent was "never overwrite", but the effect was to hide the fresh
+# binary and keep the stale one where anyone would reach for it.
+#
+# It bit on 2026-09-27: build/ipa/ALAFIA-1.5-11.ipa held a binary signed with a
+# SUPERSEDED distribution certificate (serial 7818F922D4878CAFB53A6412E9B063B2)
+# while the correctly signed rebuild sat in older/. Uploading by the documented
+# name would have shipped the unusable one — "a filename that lies is worse than
+# no filename", with the lie in the GOOD name.
+#
+# Nothing is deleted either way. The displaced file is dated by its OWN mtime,
+# not today's, so its name says when that binary was built rather than when it
+# was moved.
+if [ -e "$IPA" ]; then
+  PREV_STAMP=$(date -r "$IPA" +%Y%m%d 2>/dev/null || echo "$STAMP")
+  PREV="build/ipa/older/$NAME-$PREV_STAMP.ipa"
+  [ -e "$PREV" ] && PREV="build/ipa/older/$NAME-$PREV_STAMP-$(date +%H%M%S).ipa"
+  mv "$IPA" "$PREV"
+  echo "   previous: $PREV  (stepped aside; not deleted)"
+fi
 mv "$SRC" "$IPA"
 cp -f build/.staging-export/*.plist build/.staging-export/Packaging.log build/ipa/ 2>/dev/null || true
 rm -rf build/.staging-export
