@@ -536,3 +536,134 @@ async def send_signup_incomplete_email(to: str, *, full_name: str | None = None)
       </div>
     """
     return await send_email(to, f"Your {settings.APP_NAME} signup didn't finish", html)
+
+
+def is_clinical_role(role: str | None) -> bool:
+    """True when `role` is one of the clinical roles, by the enum's own grouping.
+
+    Derived from `ROLE_CATEGORIES` rather than a hand-typed list: the categories
+    already say which roles are clinical, and a second copy here would go stale
+    the first time a role is added — §3ad's "never type a code from memory",
+    applied to a role vocabulary instead of an ICD code.
+
+    `patient` is deliberately NOT clinical. Every account is a patient account;
+    a clinical role is what is added ON TOP, which is exactly the distinction
+    this function exists to draw.
+    """
+    if not role:
+        return False
+    from app.models.user_roles import ROLE_CATEGORIES
+    return any(role in members for members in ROLE_CATEGORIES.values())
+
+
+async def send_complimentary_invitation_email(
+    to: str,
+    *,
+    display_name: str | None = None,
+    months: int = 12,
+    signup_deadline: str | None = None,
+    clinical_role: str | None = None,
+    practice: str | None = None,
+) -> bool:
+    """Invite someone to claim a complimentary membership that is waiting for them.
+
+    ONE template, two faces. `clinical_role` switches both the wording and what
+    the letter promises, because the two must never drift apart: describing a
+    clinician board to someone who will not be granted a clinical role is a
+    promise the account cannot keep. Pass the role only when it will actually be
+    granted — an honorific is NOT a role. "Dr." in front of a name can mean a
+    PhD, and `display_name` carries that without implying clinical access.
+
+    MARKETING, not transactional — and the distinction is the opposite of
+    `send_signup_incomplete_email` above. That one is sent about an action the
+    person themselves began, so it must ignore `marketing_opt_out_at`. This one
+    is UNSOLICITED: nobody asked for it, so it discloses why it arrived and
+    offers a reply path. Getting that backwards would mail an offer to someone
+    who opted out.
+
+    The flow it describes is the one the system actually implements: sign up,
+    confirm the address, then STOP at the payment step. There is no code path
+    that lets a web signup skip payment on its own, so an operator finishes it
+    with `scripts/activate_comp_signup.py`. Saying "close the tab" is therefore
+    an instruction, not a courtesy — a card entered there would charge them for
+    something they were told was free.
+    """
+    name = _escape(display_name) if display_name else None
+    greeting = f"Welcome, {name}" if name else "Welcome"
+    app = _escape(settings.APP_NAME)
+    signup_url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/signup"
+    clinical = is_clinical_role(clinical_role)
+
+    # Only rendered when a clinical role is actually being granted.
+    clinician_block = ""
+    if clinical:
+        where = f" (we have you as {_escape(practice)})" if practice else ""
+        clinician_block = f"""
+        <h3 style="margin:28px 0 8px;font-size:16px;">Your account is both clinician and patient</h3>
+        <p style="margin:0 0 16px;">
+          Every {app} account is a patient account. Yours is elevated with
+          {_escape((clinical_role or '').replace('_', ' '))} access on top of it, so you can move
+          between your own health record and the clinical view of patients who
+          choose to share theirs with you.
+        </p>
+        <p style="margin:0 0 16px;">
+          Your clinician profile{where} — specialty, credentials and NPI — is what a
+          patient sees when deciding whether to share their record with you. Your
+          patient profile is separate, private, and yours.
+        </p>"""
+
+    deadline_line = ""
+    if signup_deadline:
+        deadline_line = (
+            f'<p style="margin:0 0 16px;"><strong>Please sign up by '
+            f'{_escape(signup_deadline)}.</strong> Your {months} months begin once '
+            f'your account is active.</p>'
+        )
+
+    html = f"""
+    <html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+                       max-width:560px;margin:0 auto;color:#0f172a;line-height:1.55;">
+      <h2 style="color:#ea580c;margin:0 0 4px;">{app}</h2>
+      <h3 style="margin:0 0 16px;font-size:18px;">{greeting}</h3>
+
+      <p style="margin:0 0 16px;">
+        We have set aside a complimentary {app} membership for
+        <strong>{months} months</strong> for you — no card, no charge, nothing to
+        cancel.
+      </p>
+      {clinician_block}
+
+      <h3 style="margin:28px 0 8px;font-size:16px;">Setting it up takes two minutes</h3>
+      <ol style="margin:0 0 16px;padding-left:20px;">
+        <li style="margin-bottom:8px;">
+          Go to <a href="{signup_url}" style="color:#ea580c;">{signup_url}</a> and sign
+          up with <strong>{_escape(to)}</strong> — use that address exactly, as it is
+          the one your complimentary membership is attached to.
+        </li>
+        <li style="margin-bottom:8px;">
+          Choose your own password and confirm the link we email you. (We never see
+          your password, and the confirmation link is good for 24 hours.)
+        </li>
+        <li style="margin-bottom:8px;">
+          You will then be offered a payment step.
+          <strong>Close the tab there — do not enter any card details.</strong>
+          We will activate your membership and email you the moment it is live.
+        </li>
+      </ol>
+      {deadline_line}
+
+      <p style="margin:0 0 16px;">
+        If anything does not work as it should, just reply to this message and a
+        person will read it.
+      </p>
+      <p style="margin:24px 0 0;">— The {app} team</p>
+
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+      <p style="color:#6b7280;font-size:12px;margin:0;">
+        You are receiving this because a complimentary {app} membership was
+        created for this address. If that was not meant for you, reply and we
+        will remove it — nothing has been charged and no account exists yet.
+      </p>
+    </body></html>
+    """
+    return await send_email(to, f"Your complimentary {settings.APP_NAME} membership", html)
