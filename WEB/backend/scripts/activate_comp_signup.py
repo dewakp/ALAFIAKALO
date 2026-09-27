@@ -33,18 +33,30 @@ which is idempotent, refuses to clobber a real billing rail, and writes an
 audit row. Two small tools that each do one thing beat one that does both
 slightly differently.
 
-USAGE
------
-    # DRY RUN (default) — resolves everything and rolls back
-    docker compose --profile test run --rm backend-test \\
-        python scripts/activate_comp_signup.py --email someone@example.com
+USAGE — THE PERSON YOU ARE ACTIVATING IS IN PRODUCTION
+-----------------------------------------------------
+Use the wrapper. It routes this script through the Cloud SQL Auth Proxy with
+production's credentials, derives PROD_DB_PASS from the `alafia-database-url`
+secret (there is no secret by that name), and makes you type a confirmation:
 
-    # commit
-    ... python scripts/activate_comp_signup.py --email someone@example.com --apply
+    scripts/db/activate_comp_against_prod.sh --email someone@example.com
+    scripts/db/activate_comp_against_prod.sh --email someone@example.com --apply
 
-Then grant the membership itself:
+Then grant the membership itself — BOTH steps, always. Between them the account
+exists but is UNPAID, so every gated route answers 402 and the person is locked
+out of what they were just told was live:
 
     scripts/db/grant_comp.sh --emails someone@example.com --months 12 --apply
+
+⚠️ The compose invocation below reaches the DEV copy of production, and is for
+testing this script ONLY. It was the documented command until 2026-09-27, which
+meant the one tool that keeps the invitation's promise pointed at the wrong
+database — and `backend-test`'s own DATABASE_URL is an unreachable
+`localhost:5435/alafia` (localhost being the container itself), so it may reach
+no database at all and still print "*** APPLIED. ***".
+
+    docker compose --profile test run --rm backend-test \\
+        python scripts/activate_comp_signup.py --email someone@example.com
 
 Do NOT override PYTHONPATH — the container sets `/ml/src:/app`, and replacing
 it with `/app` drops the canonical `alafia_model` and breaks collection.
