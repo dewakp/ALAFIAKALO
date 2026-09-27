@@ -7,10 +7,15 @@ All methods are async-safe (run SMTP in executor to avoid blocking the event loo
 """
 
 import asyncio
+import base64
 import smtplib
+from collections.abc import Sequence
+from dataclasses import dataclass
 from urllib.parse import quote
 
 import httpx
+from email import encoders
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -18,6 +23,45 @@ from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class Attachment:
+    """A file travelling with a letter, INLINE when it carries a content_id.
+
+    `content` is raw bytes. Both transports need it encoded differently —
+    Resend wants a base64 string in JSON, SMTP wants a base64-encoded MIME
+    part — so the encoding happens in each transport and never at the call
+    site, which would otherwise have to know which provider is configured.
+
+    An inline attachment (`content_id` set) is referenced from the HTML as
+    `<img src="cid:THAT_ID">`. Without a content_id the file is a plain
+    attachment.
+
+    `caption` is NOT transport data — it is ignored when sending, and read only
+    by letters that render the image and want a line of text beneath it.
+    """
+
+    filename: str
+    content: bytes
+    content_type: str = "application/octet-stream"
+    content_id: str | None = None
+    caption: str | None = None
+
+
+def _mime_part(att: Attachment) -> MIMEBase:
+    """One base64 MIME part, whatever the type.
+
+    MIMEBase rather than MIMEImage on purpose: MIMEImage sniffs the subtype,
+    which meant `imghdr` — removed in Python 3.13. We already know the type
+    from the caller, so guessing it is both unnecessary and a version
+    dependency.
+    """
+    main, _, sub = (att.content_type or "application/octet-stream").partition("/")
+    part = MIMEBase(main or "application", sub or "octet-stream")
+    part.set_payload(att.content)
+    encoders.encode_base64(part)
+    return part
 
 
 def _smtp_configured() -> bool:
@@ -28,12 +72,22 @@ def _resend_configured() -> bool:
     return bool(settings.RESEND_API_KEY)
 
 
-async def _send_via_resend(to: str, subject: str, html_body: str) -> bool:
+async def _send_via_resend(
+    to: str,
+    subject: str,
+    html_body: str,
+    attachments: Sequence[Attachment] | None = None,
+) -> bool:
     """Send through Resend's HTTPS API.
 
     Preferred over SMTP: no outbound mail ports, no STARTTLS negotiation, and a
     real error body when something is wrong (bad key, unverified sending domain)
     instead of an opaque socket failure.
+
+    Attachments go in Resend's own `attachments` array — `content` base64, and
+    `content_id` for anything the HTML embeds as `cid:`. Documented ceiling is
+    40 MB per email AFTER base64, which inflates by 4/3, so the caller's raw
+    bytes are the figure to watch.
     """
     payload = {
         "from": f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>",
@@ -41,6 +95,16 @@ async def _send_via_resend(to: str, subject: str, html_body: str) -> bool:
         "subject": subject,
         "html": html_body,
     }
+    if attachments:
+        payload["attachments"] = [
+            {
+                "filename": att.filename,
+                "content": base64.b64encode(att.content).decode("ascii"),
+                "content_type": att.content_type,
+                **({"content_id": att.content_id} if att.content_id else {}),
+            }
+            for att in attachments
+        ]
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
@@ -73,18 +137,62 @@ async def _send_via_resend(to: str, subject: str, html_body: str) -> bool:
         return False
 
 
-def _build_message(to: str, subject: str, html_body: str) -> MIMEMultipart:
-    msg = MIMEMultipart("alternative")
+def _build_message(
+    to: str,
+    subject: str,
+    html_body: str,
+    attachments: Sequence[Attachment] | None = None,
+) -> MIMEMultipart:
+    """Assemble the MIME tree, whose SHAPE depends on what is being carried.
+
+    `multipart/alternative` cannot hold an inline image — a `cid:` reference
+    only resolves against a sibling inside `multipart/related`, so an image
+    attached to an `alternative` renders as a broken picture in the letter
+    while the send itself reports success. The three shapes:
+
+        html only                 alternative
+        html + inline images      related
+        ... plus plain files      mixed[ related|alternative, files... ]
+    """
+    attachments = list(attachments or [])
+    inline = [a for a in attachments if a.content_id]
+    plain = [a for a in attachments if not a.content_id]
+
+    body = MIMEMultipart("related") if inline else MIMEMultipart("alternative")
+    body.attach(MIMEText(html_body, "html"))
+    for att in inline:
+        part = _mime_part(att)
+        # Angle brackets are required: a cid: URL resolves against the
+        # Content-ID *addr-spec*, and a bare id matches nothing in some clients.
+        part.add_header("Content-ID", f"<{att.content_id}>")
+        part.add_header("Content-Disposition", "inline", filename=att.filename)
+        body.attach(part)
+
+    if plain:
+        msg = MIMEMultipart("mixed")
+        msg.attach(body)
+        for att in plain:
+            part = _mime_part(att)
+            part.add_header("Content-Disposition", "attachment",
+                            filename=att.filename)
+            msg.attach(part)
+    else:
+        msg = body
+
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
     msg["To"] = to
     msg["Subject"] = subject
-    msg.attach(MIMEText(html_body, "html"))
     return msg
 
 
-def _send_sync(to: str, subject: str, html_body: str) -> None:
+def _send_sync(
+    to: str,
+    subject: str,
+    html_body: str,
+    attachments: Sequence[Attachment] | None = None,
+) -> None:
     """Blocking SMTP send — called inside an executor."""
-    msg = _build_message(to, subject, html_body)
+    msg = _build_message(to, subject, html_body, attachments)
     connect = smtplib.SMTP_SSL if settings.SMTP_PORT == 465 else smtplib.SMTP
     with connect(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
         if settings.SMTP_TLS and settings.SMTP_PORT != 465:
@@ -94,17 +202,23 @@ def _send_sync(to: str, subject: str, html_body: str) -> None:
     logger.info("Email sent to %s: %s", to, subject)
 
 
-async def send_email(to: str, subject: str, html_body: str) -> bool:
+async def send_email(
+    to: str,
+    subject: str,
+    html_body: str,
+    attachments: Sequence[Attachment] | None = None,
+) -> bool:
     """Send an email. Resend if configured, else SMTP. False if neither works."""
     if _resend_configured():
-        return await _send_via_resend(to, subject, html_body)
+        return await _send_via_resend(to, subject, html_body, attachments)
 
     if not _smtp_configured():
         logger.warning("No email provider configured — email to %s skipped", to)
         return False
     try:
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, _send_sync, to, subject, html_body)
+        await loop.run_in_executor(
+            None, _send_sync, to, subject, html_body, attachments)
         return True
     except Exception:
         logger.exception("Failed to send email to %s", to)
@@ -564,6 +678,8 @@ async def send_complimentary_invitation_email(
     signup_deadline: str | None = None,
     clinical_role: str | None = None,
     practice: str | None = None,
+    screenshots: Sequence[Attachment] | None = None,
+    postal_address: str | None = None,
 ) -> bool:
     """Invite someone to claim a complimentary membership that is waiting for them.
 
@@ -620,6 +736,59 @@ async def send_complimentary_invitation_email(
             f'your account is active.</p>'
         )
 
+    # Screenshots travel INLINE (cid:), never as a link to an image host: a
+    # remote <img> in a letter is a tracking pixel by construction, and it rots
+    # the moment the URL moves.
+    #
+    # The clinician letter and the patient letter must not show the same
+    # pictures. The 2026-09-15 invitation showed the CLINICIAN BOARD — a
+    # patient's conditions, medications, labs and dialysis on one screen — which
+    # is the right illustration for someone being granted clinical access and a
+    # promise the account cannot keep for anyone else. What each reader is shown
+    # has to match what they will actually be able to open.
+    shots_block = ""
+    if screenshots:
+        figures = []
+        for shot in screenshots:
+            if not shot.content_id:
+                # Rendering it anyway produces a broken image in a letter that
+                # cannot be recalled, while the send still reports success.
+                raise ValueError(
+                    f"screenshot {shot.filename!r} has no content_id, so "
+                    f"cid: cannot resolve and the letter would show a broken "
+                    f"image")
+            caption = (
+                f'<div style="font-size:12px;color:#6b7280;margin:6px 0 0;">'
+                f'{_escape(shot.caption)}</div>'
+            ) if shot.caption else ""
+            figures.append(
+                f'<div style="margin:0 0 18px;">'
+                f'<img src="cid:{shot.content_id}" '
+                f'alt="{_escape(shot.caption or shot.filename)}" width="560" '
+                f'style="width:100%;max-width:560px;height:auto;border:1px solid '
+                f'#e5e7eb;border-radius:8px;display:block;">{caption}</div>'
+            )
+        shots_block = (
+            '<h3 style="margin:28px 0 8px;font-size:16px;">What it looks '
+            'like</h3>' + "".join(figures) +
+            '<p style="margin:0 0 16px;font-size:12px;color:#6b7280;">'
+            'Shown on a new, empty account — nothing has been logged in it, and '
+            'no patient’s data appears in these images.</p>'
+        )
+
+    # CAN-SPAM requires a physical postal address in commercial email, and this
+    # letter is unsolicited. `send_comp_invitation.py` has always REFUSED to run
+    # without POSTAL_ADDRESS and printed it back as confirmation — while nothing
+    # here ever rendered it, so the gate collected the value and discarded it and
+    # the letter went out without the address it was demanding. Found on
+    # 2026-09-27 by reading the rendered bytes; the printed confirmation line
+    # looked like proof and was not. §3ar — a control nothing observes does
+    # nothing — and §3d's "verify the side effect, not the status".
+    postal_line = (
+        f'<p style="color:#9ca3af;font-size:12px;margin:10px 0 0;">'
+        f'{_escape(postal_address)}</p>'
+    ) if postal_address else ""
+
     html = f"""
     <html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;
                        max-width:560px;margin:0 auto;color:#0f172a;line-height:1.55;">
@@ -651,6 +820,7 @@ async def send_complimentary_invitation_email(
         </li>
       </ol>
       {deadline_line}
+      {shots_block}
 
       <p style="margin:0 0 16px;">
         If anything does not work as it should, just reply to this message and a
@@ -664,6 +834,9 @@ async def send_complimentary_invitation_email(
         created for this address. If that was not meant for you, reply and we
         will remove it — nothing has been charged and no account exists yet.
       </p>
+      {postal_line}
     </body></html>
     """
-    return await send_email(to, f"Your complimentary {settings.APP_NAME} membership", html)
+    return await send_email(
+        to, f"Your complimentary {settings.APP_NAME} membership", html,
+        attachments=list(screenshots or []))
