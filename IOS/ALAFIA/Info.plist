@@ -21,6 +21,15 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>ALAFIA</string>
+	<!-- ALAFIA is the PRODUCT; 6igma Health Inc is the company that publishes it.
+	     App Review rejected build 1.5(10) under Guideline 5.1.1(ix), which
+	     requires an app handling sensitive health data to be published under a
+	     seller and company name associated with the organisation providing the
+	     service. Nothing in the bundle named the publisher at all, so this key is
+	     part of the answer to that, not decoration — and it must keep agreeing
+	     with the App Store Connect seller name and with alafia.app/privacy. -->
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 6igma Health Inc. All rights reserved.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

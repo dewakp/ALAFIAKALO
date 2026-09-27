@@ -2,6 +2,9 @@
   "name": "alafia-frontend",
   "private": true,
   "version": "0.1.0",
+  "description": "ALAFIA — a 6igma Health Inc product. ALAFIA is the product name; 6igma Health Inc is the company that builds, operates and owns it.",
+  "author": "Wole Akpose",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",

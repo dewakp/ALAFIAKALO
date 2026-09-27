@@ -1,0 +1,52 @@
+ALAFIA
+Copyright © 2026 6igma Health Inc. All rights reserved.
+
+    Product   ALAFIA  (listed on the App Store as ALAFIA Holistic Health)
+    Author    Wole Akpose
+    Owner     6igma Health Inc
+
+ALAFIA is the PRODUCT name. 6igma Health Inc is the company that builds,
+operates and owns it. These are two different names for two different things
+and they are not interchangeable: the product is what a patient uses, the
+company is who they are dealing with and who is accountable for their data.
+
+6igma Health Inc is the data controller for the health information ALAFIA
+holds. That statement is also made to users directly, at
+https://alafia.app/privacy — and the two must always agree.
+
+
+WHY THIS FILE EXISTS
+--------------------
+Until 2026-09-27 nothing in this repository said who wrote or owned it: no
+LICENSE, no NOTICE, no author field in package.json, no copyright key in the
+iOS bundle, and no author header in any source file. The web footer asserted
+"© 2026 ALAFIA", which names the product — a product cannot hold a copyright.
+
+That gap was not only untidy. Apple rejected build 1.5(10) under
+
+    Guideline 5.1.1(ix) - Legal - Privacy - Data Collection and Storage
+
+    "The app must be published under a seller and company name that is
+     associated with the organization or company providing the services."
+
+An app handling sensitive health data has to be traceable to the organisation
+behind it. Where that ownership is declared, it must be declared consistently:
+
+    App Store Connect     seller / company name
+    Google Play Console   developer name
+    iOS bundle            NSHumanReadableCopyright (IOS/ALAFIA/Info.plist)
+    web                   footer copyright + alafia.app/privacy
+    npm                   author / license (WEB/frontend/package.json)
+
+Android has no source-level slot for this — Gradle declares no author, so the
+developer name lives only in the Play Console, exactly as the seller name lives
+only in App Store Connect. Both are set outside this repository and neither can
+be verified from it.
+
+
+LICENSING
+---------
+This software is proprietary and not licensed for redistribution. "All rights
+reserved" above is the operative statement; package.json carries the npm
+spelling of the same thing ("UNLICENSED"). Third-party dependencies remain
+under their own licences, which are unaffected by this notice.

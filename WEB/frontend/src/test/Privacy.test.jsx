@@ -32,7 +32,7 @@ import Privacy from '../pages/Privacy';
  * without a test going red.
  */
 describe('Privacy policy', () => {
-  it('names 6igma Health as the operating company and data controller', () => {
+  it('names 6igma Health Inc as the operating company and data controller', () => {
     render(
       <MemoryRouter>
         <Privacy />
@@ -43,7 +43,15 @@ describe('Privacy policy', () => {
 
     // Matched by substring rather than the whole sentence: the wording may be
     // edited, but the COMPANY and its ROLE are the facts under test.
-    const statement = screen.getByText(/6igma Health/);
+    //
+    // The name is pinned WITH "Inc". ALAFIA is the PRODUCT; 6igma Health Inc is
+    // the legal entity, and the App Store Connect seller name, the iOS bundle's
+    // NSHumanReadableCopyright, the web footer and this page must all state the
+    // same one. Apple rejected 1.5(10) under 5.1.1(ix) precisely because the
+    // publisher was not identifiable, so a refactor that shortens this to the
+    // brand re-opens that rejection silently. Matching /6igma Health/ would
+    // still pass with "Inc" gone; this fails on the missing suffix.
+    const statement = screen.getByText(/6igma Health Inc/);
     expect(statement).toBeInTheDocument();
     expect(statement.textContent).toMatch(/data controller/i);
   });
