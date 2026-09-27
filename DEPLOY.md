@@ -214,9 +214,19 @@ curl -s $API/api/v1/admin/health -H "Authorization: Bearer <token>"
 ```
 
 The health panel reports the DB, the **migration revision actually applied**, the
-vision-corpus size, the configured AI backends and the email provider. If
-`migration_revision` is not `dd004_nutrient_status`, the migration job did not
-run — do not proceed.
+vision-corpus size, the configured AI backends and the email provider. Compare
+`migration_revision` against what `alembic heads` reports for the code you just
+shipped — they must be equal. If they differ, the migration job did not run; do
+not proceed.
+
+> ⚠️ **This paragraph named `dd004_nutrient_status` until 2026-09-27.** By then
+> production was on `ak001_session_drugs` — which was *also* the code head, so
+> the deploy was healthy and this instruction said to halt it. A stale number
+> here does not fail safe: it stops a good release and teaches the next person
+> to ignore the check. That is the **third** stale revision in this file (§3
+> records the other two), which is why neither §3 nor this section may name one.
+> The correct value changes every time anyone ships a migration, and a number in
+> prose cannot notice it has died. Ask `alembic heads`, and ask the database.
 
 Then open `https://alafia.app/minister` and sign in as `dew@6igma.com`.
 
