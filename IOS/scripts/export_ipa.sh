@@ -32,9 +32,22 @@ echo "── archiving ($PLIST)"
 printf '   manageAppVersionAndBuildNumber: '
 plutil -extract manageAppVersionAndBuildNumber raw "$PLIST" 2>/dev/null || echo "(unset)"
 
+# -allowProvisioningUpdates is REQUIRED, not a convenience. A provisioning
+# profile embeds SPECIFIC certificates, so every profile generated before a
+# certificate was issued is stale for it. Without this flag xcodebuild may only
+# use profiles already cached on disk — it will not contact Apple — so
+# `CODE_SIGN_STYLE = Automatic` cannot repair anything and the archive dies with
+#   "Provisioning profile ... doesn't include signing certificate ..."
+#
+# That is exactly what happened on 2026-09-27: both signing certificates expired
+# within hours of each other, new ones were issued, and two consecutive
+# re-exports still failed — first on the missing development certificate, then
+# on the team profile that predated its replacement. Neither wrote an artefact,
+# and both reported success upstream.
 rm -rf "$STAGE"
 xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
   -destination 'generic/platform=iOS' -archivePath "$STAGE" archive \
+  -allowProvisioningUpdates \
   > "$LOGDIR/archive.log" 2>&1 || { tail -20 "$LOGDIR/archive.log"; exit 1; }
 
 # The archive is the authority on what was built — not the project file, and
@@ -53,8 +66,12 @@ echo "   archive: $ARCHIVE"
 
 echo "── exporting"
 rm -rf build/.staging-export
+# Same flag, same reason: the STORE profile embeds certificates too, and is
+# stale for a newly issued distribution certificate. Fixing only the archive
+# step above just moves the failure here.
 xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportOptionsPlist "$PLIST" \
-  -exportPath build/.staging-export > "$LOGDIR/export.log" 2>&1 \
+  -exportPath build/.staging-export -allowProvisioningUpdates \
+  > "$LOGDIR/export.log" 2>&1 \
   || { tail -20 "$LOGDIR/export.log"; exit 1; }
 
 SRC=$(ls build/.staging-export/*.ipa | head -1)
