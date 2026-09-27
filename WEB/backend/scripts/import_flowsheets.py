@@ -100,6 +100,33 @@ DRUG_SESSION_COLLISIONS = []
 # parsed as a result and 30 rows of it reached a clinician.
 DRUG_NAME_ANOMALIES = []
 
+# (sheet_name, excel_row, raw_value) for a DOSE cell holding a date rather than
+# a dose. The NAME cell has been checked for this since the table was first
+# read; the DOSE cell was not, and one slipped through — `Epogene` with
+# dose_text 'Oct' reached production (session_drugs id 2018, session 2017-10-15,
+# route SC). 'Oct' is a MONTH: the cell holds a date, not an amount, so a
+# clinician reading that record saw a drug dosed "Oct".
+#
+# Storing it is worse than storing nothing. NULL reads as "given, amount not
+# recorded", which is true; 'Oct' is indistinguishable from a real dose (§3aa —
+# an error is not an empty state, and a wrong value is worse than an absent
+# one). So it is refused and reported, exactly like a date in the NAME cell.
+#
+# Deliberately NARROW: only a date-typed cell and a bare month name are refused.
+# Every real dose in this corpus carries a digit ('2 mcg', '3,000 SQ',
+# '2.5 ml x 2'), but refusing everything digitless would discard values nobody
+# has inspected — §0, never widen a guard past what was measured.
+DRUG_DOSE_ANOMALIES = []
+
+#: A dose cell holding nothing but a month name. Written out rather than built
+#: from prefixes so it cannot accidentally match a real unit — `mar` must not
+#: swallow a dose, and the three-letter forms are the ones the sheets use.
+_MONTH_ONLY = re.compile(
+    r'^\s*(jan|january|feb|february|mar|march|apr|april|may|jun|june|'
+    r'jul|july|aug|august|sep|sept|september|oct|october|nov|november|'
+    r'dec|december)\s*$',
+    re.IGNORECASE)
+
 # (sheet_name, excel_row, raw_value, repaired) for a Time cell recovered from a
 # mistyped separator. Reported at the end of every run: a repair to a clinical
 # timestamp must be visible, never silent.
@@ -571,7 +598,17 @@ def extract_session_data(ws, sheet_name):
         drug = safe_str(raw_name)
         if not drug:
             continue
-        dose = safe_str(cell(ws, r, 'K'))
+        # A DATE is not a DOSE — the same check the NAME cell already gets, on
+        # the column that was missing it. Tested on the cell TYPE first, before
+        # safe_str() flattens it to a string, then on a bare month name, which
+        # is the form that actually reached production ('Oct').
+        raw_dose = cell(ws, r, 'K')
+        if isinstance(raw_dose, (datetime, date)) or (
+                raw_dose is not None and _MONTH_ONLY.match(str(raw_dose))):
+            DRUG_DOSE_ANOMALIES.append((sheet_name, r, raw_dose))
+            dose = None
+        else:
+            dose = safe_str(raw_dose)
         drugs.append(f"{drug} ({dose})" if dose else drug)
         # The Time cell holds one of three things: a real time (268 rows), an
         # explicit "none" marker (140, spelled seven different ways), or — once
@@ -1331,6 +1368,14 @@ def main():
         print("     indistinguishable from one the patient was actually given:")
         for sheet, row, raw in DRUG_NAME_ANOMALIES:
             print(f"       {sheet:<18} H{row}  = {raw!r}")
+
+    if DRUG_DOSE_ANOMALIES:
+        print(f"\n  ⚠ {len(DRUG_DOSE_ANOMALIES)} Dose cell(s) holding a DATE, not a dose.")
+        print("     Stored as ABSENT rather than verbatim: 'given, amount not")
+        print("     recorded' is true, while a month name filed as a dose reads")
+        print("     as a real one. Fix the cell in the workbook and re-run:")
+        for sheet, row, raw in DRUG_DOSE_ANOMALIES:
+            print(f"       {sheet:<18} K{row}  = {raw!r}")
 
     if DRUG_ORPHAN_SHEETS:
         total = sum(n for _, n in DRUG_ORPHAN_SHEETS)
