@@ -872,7 +872,11 @@
     <string name="message_optional">Message (optional)</string>
     <string name="alafia_membership">ALAFIA Membership</string>
     <string name="month"> / month</string>
+    <string name="year"> / year</string>
+    <string name="plan_monthly">Monthly</string>
+    <string name="plan_annual">Annual</string>
     <string name="billed_monthly_through_google_play">Billed monthly through Google Play. Cancel anytime in Play Store settings.</string>
+    <string name="billed_annually_through_google_play">Billed yearly through Google Play. Cancel anytime in Play Store settings.</string>
     <string name="restore_purchase">Restore purchase</string>
     <string name="you_re_subscribed">You\'re subscribed</string>
     <string name="plan">Plan: %1$s</string>

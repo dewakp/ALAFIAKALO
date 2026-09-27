@@ -32,7 +32,14 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.alafia.android.R
 
-private const val PLUS_PRODUCT_ID = "alafia_plus_monthly"
+// Android offered ONLY the monthly plan until 2026-09-27, while web and iOS both
+// sold annual and the backend advertised alafia_plus_annual at $149 on the
+// google_play rail — a §3 parity gap on the paywall itself. iOS asks StoreKit for
+// both ids; this asks Play for both, which is why no backend model change was
+// needed: the STORE quotes the price it will actually charge.
+private const val MONTHLY_PRODUCT_ID = "alafia_plus_monthly"
+private const val ANNUAL_PRODUCT_ID = "alafia_plus_annual"
+private val MEMBERSHIP_PRODUCT_IDS = listOf(MONTHLY_PRODUCT_ID, ANNUAL_PRODUCT_ID)
 
 private val PLUS_FEATURES = listOf(
     "Unlimited AI health-guide conversations",
@@ -71,6 +78,7 @@ fun SubscriptionScreen(
     var purchasing by remember { mutableStateOf(false) }
     var billingReady by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    var selectedProductId by remember { mutableStateOf(MONTHLY_PRODUCT_ID) }
 
     suspend fun refreshStatus() {
         try { status = ApiClient.getApiService().getSubscriptionStatus() } catch (_: Exception) {}
@@ -80,14 +88,21 @@ fun SubscriptionScreen(
     val billingManager = remember {
         BillingManager(
             context = context,
-            productId = PLUS_PRODUCT_ID,
+            productIds = MEMBERSHIP_PRODUCT_IDS,
             onReady = { billingReady = true },
-            onPurchase = { token, orderId ->
+            onPurchase = { token, orderId, purchasedProductId ->
                 scope.launch {
                     try {
                         status = ApiClient.getApiService().verifyGooglePurchase(
                             GoogleVerifyRequest(purchaseToken = token,
-                                productId = PLUS_PRODUCT_ID, orderId = orderId)
+                                // What PLAY says was bought, never what the screen
+                                // had selected. A restored purchase arrives with no
+                                // selection at all, and crediting an annual purchase
+                                // as monthly would record the wrong plan and the
+                                // wrong period end, with nothing downstream able to
+                                // tell. The selection is only a fallback.
+                                productId = purchasedProductId ?: selectedProductId,
+                                orderId = orderId)
                         )
                         message = "You're now on ALAFIA Membership. Welcome aboard!"
                     } catch (e: Exception) {
@@ -180,10 +195,54 @@ fun SubscriptionScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(Modifier.padding(20.dp)) {
+                        // The selector appears only when Play actually offers the
+                        // annual plan. Showing a choice the store cannot honour is
+                        // worse than showing one plan: the tap would dead-end at
+                        // "that plan is still loading" forever.
+                        val annualOffered = billingManager.isAvailable(ANNUAL_PRODUCT_ID)
+                        if (annualOffered) {
+                            Row(Modifier.fillMaxWidth()) {
+                                if (selectedProductId == MONTHLY_PRODUCT_ID) {
+                                    Button(onClick = { }, modifier = Modifier.weight(1f)) {
+                                        Text(stringResource(R.string.plan_monthly))
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = { selectedProductId = MONTHLY_PRODUCT_ID },
+                                        modifier = Modifier.weight(1f),
+                                    ) { Text(stringResource(R.string.plan_monthly)) }
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                if (selectedProductId == ANNUAL_PRODUCT_ID) {
+                                    Button(onClick = { }, modifier = Modifier.weight(1f)) {
+                                        Text(stringResource(R.string.plan_annual))
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = { selectedProductId = ANNUAL_PRODUCT_ID },
+                                        modifier = Modifier.weight(1f),
+                                    ) { Text(stringResource(R.string.plan_annual)) }
+                                }
+                            }
+                            Spacer(Modifier.height(14.dp))
+                        }
+
                         Row(verticalAlignment = Alignment.Bottom) {
-                            Text(androidPrice?.let { "$%.2f".format(it) } ?: "—",
+                            // PLAY'S own formatted price for the selected plan, in
+                            // the buyer's currency. The backend catalog figure is
+                            // only a fallback before Play answers: the store is what
+                            // charges, and quoting anything else lets the purchase
+                            // sheet contradict the paywall (§3au).
+                            Text(
+                                billingManager.formattedPrice(selectedProductId)
+                                    ?: androidPrice?.let { "$%.2f".format(it) } ?: "—",
                                 fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
-                            Text(stringResource(R.string.month), color = Color.Gray,
+                            Text(
+                                stringResource(
+                                    if (selectedProductId == ANNUAL_PRODUCT_ID) R.string.year
+                                    else R.string.month
+                                ),
+                                color = Color.Gray,
                                 modifier = Modifier.padding(bottom = 6.dp))
                         }
                         Spacer(Modifier.height(14.dp))
@@ -203,7 +262,7 @@ fun SubscriptionScreen(
                                     message = "Unable to start checkout."
                                 } else {
                                     purchasing = true
-                                    billingManager.launch(activity)
+                                    billingManager.launch(activity, selectedProductId)
                                 }
                             },
                             enabled = billingReady && !purchasing,
@@ -218,7 +277,16 @@ fun SubscriptionScreen(
                                     fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        Text(stringResource(R.string.billed_monthly_through_google_play),
+                        // The billing cadence has to follow the SELECTION. Left
+                        // unconditional, this told a buyer choosing the annual
+                        // plan they would be "billed monthly" — on the one line
+                        // whose entire job is stating what they are agreeing to.
+                        Text(
+                            stringResource(
+                                if (selectedProductId == ANNUAL_PRODUCT_ID)
+                                    R.string.billed_annually_through_google_play
+                                else R.string.billed_monthly_through_google_play
+                            ),
                             fontSize = 12.sp, color = Color.Gray,
                             modifier = Modifier.padding(top = 12.dp))
                     }
@@ -271,7 +339,14 @@ private fun SubscribedCard(status: SubscriptionStatus) {
             }
             Spacer(Modifier.height(10.dp))
             Text(stringResource(R.string.plan, status.productName), fontSize = 14.sp)
-            status.priceUsd?.let { Text("Price: $%.2f / month".format(it), fontSize = 14.sp) }
+            // The interval follows the PLAN, not the layout. This read
+            // "Price: $%.2f / month" unconditionally, which was harmless only
+            // while Android could not sell an annual plan — the moment it can,
+            // it tells a $149/year subscriber they pay $149 a month.
+            status.priceUsd?.let {
+                val perInterval = if (status.plan == "plus_annual") "/ year" else "/ month"
+                Text("Price: $%.2f %s".format(it, perInterval), fontSize = 14.sp)
+            }
             Text(stringResource(R.string.billing_via, prettyProvider(status.provider)), fontSize = 14.sp)
             status.currentPeriodEnd?.let {
                 val label = if (status.cancelAtPeriodEnd) "Access ends" else "Renews"
