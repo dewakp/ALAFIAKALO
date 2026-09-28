@@ -848,3 +848,173 @@ async def send_complimentary_invitation_email(
     return await send_email(
         to, f"Your complimentary {settings.APP_NAME} membership", html,
         attachments=list(screenshots or []))
+
+
+async def send_membership_ready_email(
+    to: str,
+    *,
+    display_name: str | None = None,
+    membership_ends: str | None = None,
+    reset_url: str | None = None,
+    screenshots: Sequence[Attachment] | None = None,
+    postal_address: str | None = None,
+) -> bool:
+    """Tell someone who ALREADY has an account that their membership is live.
+
+    The third case, and neither of the existing two fits it:
+
+      `send_complimentary_invitation_email` tells the reader "no account exists
+      yet" and sends them to /signup to create one. False for someone who has
+      an account — and following it would strand them on an address that is
+      already taken.
+
+      `send_signup_incomplete_email` says "your account exists and your password
+      works — it just has no membership attached yet". That is exactly backwards
+      here: the membership is the part that IS attached.
+
+    Written for an account that was created, given a complimentary membership,
+    and then never signed into. Nothing in the product can tell that person
+    anything, because every existing letter is addressed to a different problem.
+
+    ── Why there is NO reset link in this email ──────────────────────────────
+    A reset token lives `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES` — 30 minutes. This
+    letter is unsolicited, so it may be opened tomorrow, or next week. Embedding
+    a link would hand the reader a DEAD LINK on the one message whose entire
+    purpose is getting them in, and an expired link does not read as "expired",
+    it reads as "this is broken". So it points at "Forgot password", which mints
+    a fresh token at the moment they are actually ready to use it.
+
+    NO CLINICAL CONTENT, and no claim about what is in the record — the account
+    may be empty. It states only that the account and the membership exist.
+    """
+    name = _escape(display_name) if display_name else None
+    greeting = f"Hello, {name}" if name else "Hello"
+    app = _escape(settings.APP_NAME)
+    login_url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/login"
+
+    ends = (
+        f'<p style="margin:0 0 16px;">It runs until '
+        f'<strong>{_escape(membership_ends)}</strong>, and there is nothing to pay '
+        f'and nothing to cancel.</p>'
+    ) if membership_ends else ""
+
+    # A reset link is a LIVE credential-setting capability that lives
+    # PASSWORD_RESET_TOKEN_EXPIRE_MINUTES — 30 minutes. Pass one ONLY when the
+    # recipient is known to be reading now; otherwise it is dead on arrival, and
+    # an expired link on a "here is how to get in" letter reads as broken rather
+    # than as expired.
+    #
+    # Either way the letter still works, because the expiry case is written into
+    # it: if the link has lapsed, Forgot password mints a fresh one. A letter
+    # whose only route can expire is a letter that stops working.
+    if reset_url:
+        access_block = f"""
+      <h3 style="margin:28px 0 8px;font-size:16px;">Getting in takes a minute</h3>
+      <p style="margin:0 0 16px;">
+        You have not signed in yet, so set a password and you are straight in:
+      </p>
+      <p style="text-align:center;margin:28px 0;">
+        <a href="{reset_url}"
+           style="background:#ea580c;color:#fff;text-decoration:none;padding:12px 24px;
+                  border-radius:8px;display:inline-block;font-weight:600;">
+          Set my password
+        </a>
+      </p>
+      <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">
+        This link works for <strong>30 minutes</strong>. If it has expired by the
+        time you reach it, go to
+        <a href="{login_url}" style="color:#ea580c;">{login_url}</a>, choose
+        <strong>Forgot password</strong>, and we will send a fresh one.
+      </p>
+      <p style="color:#6b7280;font-size:13px;">
+        If the button does not work, paste this into your browser:<br>
+        <span style="word-break:break-all;">{reset_url}</span>
+      </p>"""
+    else:
+        access_block = f"""
+      <h3 style="margin:28px 0 8px;font-size:16px;">Getting in takes a minute</h3>
+      <p style="margin:0 0 16px;">
+        Our records show you have not signed in yet, so the quickest way in is to
+        set a password:
+      </p>
+      <ol style="margin:0 0 16px;padding-left:20px;">
+        <li style="margin-bottom:8px;">
+          Go to <a href="{login_url}" style="color:#ea580c;">{login_url}</a>
+        </li>
+        <li style="margin-bottom:8px;">
+          Choose <strong>Forgot password</strong> and enter this same address.
+        </li>
+        <li style="margin-bottom:8px;">
+          We email you a link. It is good for 30 minutes, so it is worth asking
+          for it when you have a moment to finish — not before.
+        </li>
+        <li style="margin-bottom:8px;">
+          Set a password, and you are in. Your membership is already there.
+        </li>
+      </ol>"""
+
+    shots_block = ""
+    if screenshots:
+        figures = []
+        for shot in screenshots:
+            if not shot.content_id:
+                raise ValueError(
+                    f"screenshot {shot.filename!r} has no content_id, so cid: "
+                    f"cannot resolve and the letter would show a broken image")
+            caption = (
+                f'<div style="font-size:12px;color:#6b7280;margin:6px 0 0;">'
+                f'{_escape(shot.caption)}</div>'
+            ) if shot.caption else ""
+            figures.append(
+                f'<div style="margin:0 0 18px;">'
+                f'<img src="cid:{shot.content_id}" '
+                f'alt="{_escape(shot.caption or shot.filename)}" width="560" '
+                f'style="width:100%;max-width:560px;height:auto;border:1px solid '
+                f'#e5e7eb;border-radius:8px;display:block;">{caption}</div>'
+            )
+        shots_block = (
+            '<h3 style="margin:28px 0 8px;font-size:16px;">What is waiting for '
+            'you</h3>' + "".join(figures) +
+            '<p style="margin:0 0 16px;font-size:12px;color:#6b7280;">'
+            'Shown on a new, empty account — no patient’s data appears '
+            'in these images.</p>'
+        )
+
+    postal_line = (
+        f'<p style="color:#9ca3af;font-size:12px;margin:10px 0 0;">'
+        f'{_escape(postal_address)}</p>'
+    ) if postal_address else ""
+
+    html = f"""
+    <html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+                       max-width:560px;margin:0 auto;color:#0f172a;line-height:1.55;">
+      <h2 style="color:#ea580c;margin:0 0 4px;">{app}</h2>
+      <h3 style="margin:0 0 16px;font-size:18px;">{greeting}</h3>
+
+      <p style="margin:0 0 16px;">
+        You already have an {app} account, under <strong>{_escape(to)}</strong>,
+        and a complimentary membership is on it.
+      </p>
+      {ends}
+
+      {access_block}
+      {shots_block}
+
+      <p style="margin:0 0 16px;">
+        If anything does not work as it should, just reply to this message and a
+        person will read it.
+      </p>
+      <p style="margin:24px 0 0;">— The {app} team</p>
+
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+      <p style="color:#6b7280;font-size:12px;margin:0;">
+        You are receiving this because an {app} account and a complimentary
+        membership already exist for this address. If that was not meant for
+        you, reply and we will remove it — nothing has been charged.
+      </p>
+      {postal_line}
+    </body></html>
+    """
+    return await send_email(
+        to, f"Your {settings.APP_NAME} membership is ready", html,
+        attachments=list(screenshots or []))
