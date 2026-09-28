@@ -710,6 +710,14 @@ async def send_complimentary_invitation_email(
     signup_url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/signup"
     clinical = is_clinical_role(clinical_role)
 
+    # "1 months" went out in TWO sentences of a one-month invitation before this
+    # existed — the headline offer and the deadline line both interpolated the
+    # bare number. Every letter until 2026-09-28 was for 12 months, which is why
+    # it had never shown. A grant length is the single most material figure in
+    # this letter, so it must not arrive looking like a template someone forgot
+    # to finish.
+    months_label = f"{months} month" if months == 1 else f"{months} months"
+
     # Only rendered when a clinical role is actually being granted.
     clinician_block = ""
     if clinical:
@@ -732,8 +740,8 @@ async def send_complimentary_invitation_email(
     if signup_deadline:
         deadline_line = (
             f'<p style="margin:0 0 16px;"><strong>Please sign up by '
-            f'{_escape(signup_deadline)}.</strong> Your {months} months begin once '
-            f'your account is active.</p>'
+            f'{_escape(signup_deadline)}.</strong> Your {months_label} begin{"s" if months == 1 else ""} '
+            f'once your account is active.</p>'
         )
 
     # Screenshots travel INLINE (cid:), never as a link to an image host: a
@@ -797,7 +805,7 @@ async def send_complimentary_invitation_email(
 
       <p style="margin:0 0 16px;">
         We have set aside a complimentary {app} membership for
-        <strong>{months} months</strong> for you — no card, no charge, nothing to
+        <strong>{months_label}</strong> for you — no card, no charge, nothing to
         cancel.
       </p>
       {clinician_block}

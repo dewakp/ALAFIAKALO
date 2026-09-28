@@ -83,7 +83,7 @@ def _comp_reference(now: datetime) -> str:
     return f"comp:{now.strftime('%Y-%m-%dT%H:%M:%SZ')}"
 
 
-async def run(email: str, apply: bool) -> int:
+async def run(email: str, apply: bool, months: int = 12) -> int:
     email = (email or "").strip().lower()
     if not email:
         print("ERROR: --email is required", file=sys.stderr)
@@ -100,7 +100,8 @@ async def run(email: str, apply: bool) -> int:
             print(f"Account already exists: id={existing.id} {existing.email} "
                   f"(active={existing.is_active})")
             print("Nothing to activate. Grant the membership with:")
-            print(f"  scripts/db/grant_comp.sh --emails {email} --months 12 --apply")
+            print(f"  scripts/db/grant_comp.sh --emails {email} "
+                  f"--months {months} --apply")
             return 0
 
         pending = (await db.execute(
@@ -180,7 +181,8 @@ async def run(email: str, apply: bool) -> int:
         print("The account exists but is UNPAID, so every gated route still "
               "answers 402.")
         print("Grant the membership now:")
-        print(f"  scripts/db/grant_comp.sh --emails {email} --months 12 --apply")
+        print(f"  scripts/db/grant_comp.sh --emails {email} "
+              f"--months {months} --apply")
         return 0
 
 
@@ -191,8 +193,15 @@ def main() -> int:
                     help="the address that signed up and stopped at payment")
     ap.add_argument("--apply", action="store_true",
                     help="actually commit (default is a dry run)")
+    # The printed next-step used to hardcode `--months 12`. That is silently
+    # wrong for any other term: a one-month invitation would have told the
+    # operator to grant TWELVE, over-granting against what the letter promised.
+    # It must match the `--months` the invitation was sent with.
+    ap.add_argument("--months", type=int, default=12,
+                    help="length promised in the invitation; only used to print "
+                         "the matching grant_comp.sh command (default 12)")
     args = ap.parse_args()
-    return asyncio.run(run(args.email, args.apply))
+    return asyncio.run(run(args.email, args.apply, args.months))
 
 
 if __name__ == "__main__":
