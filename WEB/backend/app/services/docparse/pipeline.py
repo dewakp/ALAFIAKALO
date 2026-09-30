@@ -102,9 +102,40 @@ async def parse(
 
     result.metadata = extract_metadata(document)
     result.tables = layout.parse_document(document)
-    records, layout_kind = _read_records(document, result.metadata, result.tables)
+
+    records, layout_kind, productive_pages = _read_records(
+        document, result.metadata, result.tables
+    )
     result.records = records
     result.layout_kind = layout_kind
+
+    # SAY when a page contributed nothing. A page that yielded no results used
+    # to disappear without a trace: `parse_page` returns None both when it finds
+    # no header and when it finds no rows, `parse_document` skipped it either
+    # way, and the import landed looking complete. A 3-page Quest report stored
+    # 46 results from page 1 and lost the entire CBC, lipid panel, sed rate and
+    # TSH — and nothing on the record, in `notes` or in `error_detail` said so.
+    # It was found only because someone happened to produce the source PDF.
+    #
+    # This is §3aa turned on the parser itself: an error is not an empty state.
+    # The note fires even when other pages parsed perfectly, because that is
+    # exactly the case a reader cannot otherwise detect — a wholly unreadable
+    # document already announces itself through `error_detail` below.
+    #
+    # Measured on PRODUCTIVE pages, not on tables: a page of boilerplate can
+    # still produce a table row that normalisation then discards as prose, and
+    # treating that as covered would silence the note on precisely the page it
+    # is meant to describe.
+    if records:
+        missing = [p.number for p in document.pages if p.number not in productive_pages]
+        if missing:
+            listed = ", ".join(str(number) for number in missing)
+            plural = "s" if len(missing) > 1 else ""
+            result.notes.append(
+                f"No results could be read from page{plural} {listed} of "
+                f"{len(document.pages)}. Nothing from {'those pages' if plural else 'that page'} "
+                f"was imported — check the document for content missing here."
+            )
 
     classification = classify_mod.classify(
         document.text,
@@ -134,21 +165,47 @@ async def parse(
 
 def _read_records(
     document: Document, meta: ReportMetadata, tables: list[layout.Table]
-) -> tuple[list[LabRecord], str]:
-    """Try each layout shape; return the first that yields anything."""
+) -> tuple[list[LabRecord], str, set[int]]:
+    """Try each layout shape; return the first that yields anything.
+
+    The third element is the set of pages that produced at least one SURVIVING
+    RECORD — deliberately not "pages that produced a table".
+
+    Those are different, and the difference is the whole point. A page holding
+    nothing but a confidentiality footer can still yield a table row: the line
+    "This report is confidential and intended solely" puts "solely" past the
+    name/value boundary, which satisfies the two-column test and becomes an
+    anchor. `records_from_table` then correctly discards it as prose, so nothing
+    bad reaches the record — but the page has contributed NOTHING, and counting
+    it as covered hides exactly the case the coverage note exists to surface.
+
+    Carrying page geometry onto unheaded pages makes this commoner, not rarer:
+    every line on such a page is now measured against inherited columns, so
+    boilerplate has more opportunity to look like a row.
+    """
     if tables:
         records: list[LabRecord] = []
+        productive: set[int] = set()
         for table in tables:
-            records.extend(records_from_table(table, report_date=meta.report_date))
+            found = records_from_table(table, report_date=meta.report_date)
+            if found:
+                productive.add(table.page)
+            records.extend(found)
         if records:
-            return records, "columns"
+            return records, "columns", productive
 
     matrices = [m for m in (layout_matrix.parse_page(p) for p in document.pages) if m]
     if matrices:
         records = []
+        productive = set()
         for matrix in matrices:
-            records.extend(records_from_matrix(matrix))
+            found = records_from_matrix(matrix)
+            if found:
+                page = getattr(matrix, "page", None)
+                if page is not None:
+                    productive.add(page)
+            records.extend(found)
         if records:
-            return records, "matrix"
+            return records, "matrix", productive
 
-    return [], "none"
+    return [], "none", set()

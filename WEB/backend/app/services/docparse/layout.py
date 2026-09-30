@@ -355,15 +355,36 @@ def _cell_text(words: list[Word]) -> str:
     return " ".join(w.text for w in sorted(words, key=lambda w: w.x0))
 
 
-def parse_page(page: Page) -> Table | None:
-    """Reconstruct the table on one page, de-wrapping continuation lines."""
+def parse_page(page: Page, fallback_columns: list[Column] | None = None) -> Table | None:
+    """Reconstruct the table on one page, de-wrapping continuation lines.
+
+    `fallback_columns` carries the previous page's geometry so a CONTINUATION
+    page can be read. Many labs print the column header once and run the table
+    on across later pages unheaded — Quest does, DaVita does not — and the
+    difference is invisible from inside one page. Without this, the unheaded
+    pages found no header, returned None, and were dropped in silence: a 3-page
+    Quest report imported 46 results from page 1 and lost the entire CBC, lipid
+    panel, sed rate and TSH on pages 2-3, with no note, no error_detail, and
+    nothing on the record to say anything was missing.
+
+    A page's OWN header always wins. Inheritance is a fallback, never an
+    override, so a document that genuinely starts a new table with different
+    columns is still parsed on its own terms.
+    """
     lines = group_lines(page.words)
     header = find_header(lines)
     if header is None:
-        return None
-
-    _, header_end, columns = header
-    body = lines[header_end + 1 :]
+        if fallback_columns is None:
+            return None
+        # A continuation page: there is no header line to skip, so the whole
+        # page is body. Rows still have to satisfy every existing test — two
+        # populated columns, and the prose guard — so inherited geometry cannot
+        # manufacture rows out of a page of footnotes.
+        columns = fallback_columns
+        body = lines
+    else:
+        _, header_end, columns = header
+        body = lines[header_end + 1 :]
 
     # Pass 1 — split lines into anchors (real rows) and fragments (wrapped text).
     #
@@ -442,10 +463,26 @@ def _nearest(tops: list[float], target: float) -> int | None:
 
 
 def parse_document(document: Document) -> list[Table]:
-    """Reconstruct every table in the document, one per page that has one."""
-    tables = []
+    """Reconstruct every table in the document, one per page that has one.
+
+    Column geometry carries forward. A lab that prints its header once and then
+    continues the table over later pages used to lose every page after the
+    first, because each was asked to find a header it never had.
+
+    The signature is unchanged on purpose: `scripts/docparse_corpus_check.py`
+    and every other caller take `list[Table]`, and widening the return type to
+    report coverage would have been a change in every call site. The caller that
+    needs to know what was dropped — `pipeline.parse` — derives it by comparing
+    the pages it got back against the pages the document has.
+    """
+    tables: list[Table] = []
+    carried: list[Column] | None = None
     for page in document.pages:
-        table = parse_page(page)
+        table = parse_page(page, fallback_columns=carried)
         if table is not None:
             tables.append(table)
+            # Inherit from the most recent page that produced a table. When that
+            # page had its own header the geometry is authoritative; when it
+            # inherited, the columns are identical anyway, so this cannot drift.
+            carried = table.columns
     return tables
