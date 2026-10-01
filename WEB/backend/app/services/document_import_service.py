@@ -194,6 +194,58 @@ async def _stage_labs(db: AsyncSession, user_id: int, parsed: ParseResult) -> li
             existing_id = prior_id
             dedupe = DEDUPE_DUPLICATE if prior_value == record.value else DEDUPE_CONFLICT
 
+        # What does LOINC say this analyte IS?
+        #
+        # Deliberately NOT routed through `canonical_name()`. That feeds
+        # `analyte_key()`, which is the dedupe key, and §3ab is explicit that a
+        # fix which changes the NAME makes a re-import land BESIDE the wrong row
+        # instead of correcting it — the patient ends up holding two
+        # contradictory values for one date. So the document's wording is left
+        # exactly as it was (§3ax) and LOINC is added alongside it.
+        #
+        # This finally populates `lab_results.loinc_code`, a column that has
+        # existed since the first migration and that docparse has never written;
+        # only the FHIR import ever filled it in, so the two importers disagreed
+        # about identity.
+        # ⚠️ LOINC IS DELIBERATELY NOT WIRED HERE (measured 2026-10-01).
+        #
+        # This block used to read `term = loinc.resolve(record.raw_name)` and
+        # write `payload["loinc_code"] = term.loinc_num`. It was removed before
+        # it ever reached a patient record, because the resolver cannot yet
+        # answer DETERMINATELY and this column is not a place for a default.
+        #
+        # `scripts/loinc_precision_audit.py`, over the 136 names in
+        # ANALYTE_NAMES — 76 resolve, and of those:
+        #
+        #     29  decided by COMMON_TEST_RANK between tests the authority
+        #         itself separates (ALBUMIN: Ser/Plas vs Urine vs Synv fld)
+        #     46  answered from the SYNONYM tier, which the resolver's own
+        #         docstring calls its weakest and noisiest signal
+        #      1  determinate
+        #
+        # The failure is not theoretical. `Platelet` resolves to 32623-1
+        # `PMV Bld Auto` — mean platelet VOLUME — while `Platelets` resolves to
+        # 777-3, the count: a singular/plural difference in the printed word
+        # changes the analyte. `MCV` resolved to a rheumatoid-arthritis
+        # autoantibody until the long-name head index landed.
+        #
+        # `lab_results.loinc_code` is also written by the FHIR import with codes
+        # that came off a real system. Mixing a rank tiebreak into that column
+        # makes the two indistinguishable — §3c's confidently-wrong match, with
+        # a clinical identifier attached, which this resolver's own docstring
+        # calls worse than the 33% dictionary it replaces.
+        #
+        # `value_shape_disagrees()` is left out for the same reason: a scale
+        # warning derived from the WRONG term is a confident false alarm, and
+        # §3ab is explicit that a guard which cries wolf gets ticked past — which
+        # is how a haematocrit of 338.4 was approved in the first place.
+        #
+        # WHAT WOULD MAKE IT SAFE: a specimen read off the report, so the
+        # (COMPONENT, SYSTEM) tier can fire. `ReportMetadata` carries patient,
+        # dates, lab and provider — no specimen — and nothing in the parse result
+        # records one, so that is its own change. Until then the document's own
+        # wording is the identity (§3ax) and `analyte_key()` does the matching.
+
         # Is the VALUE possible? Deliberately not "is it abnormal" — a dialysis
         # patient's creatinine of 11.91 is 9.2x its reference ceiling and
         # entirely real. This catches what cannot be true at all: a haematocrit

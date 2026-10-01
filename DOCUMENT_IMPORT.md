@@ -420,3 +420,85 @@ validated novel method`. Shape cannot separate them from a terse real row, and
 inventing a threshold that could would start eating real ones.
 `test_a_citation_with_digits_still_survives_this_layer` pins the current
 behaviour so a change that fixes it fails loudly and gets its own measurement.
+
+## 2026-10-01 — LOINC is generated, correct, and deliberately NOT wired
+
+§3ad forbids typing a code from memory and §3aj proved a 23-row seed wrong in
+both directions, but neither rule had reached `docparse`: `ANALYTE_NAMES` is 136
+hand-typed entries naming **136 of 411 stored test names (33.1%)**. So the
+authority was generated — `scripts/build_loinc_catalog.py` reads the official
+release into `app/data/loinc_core.tsv.gz`, **62,148 ACTIVE CLASSTYPE-1 terms
+from LOINC 2.83**, and `docparse/loinc.py` resolves against it.
+
+It resolves better than the dictionary. **It is still not wired into import**,
+and the measurement is why.
+
+### COMPONENT is not the key, and neither is the fix that replaced it
+
+`718-7` (haemoglobin), `785-6` (MCH) and `786-4` (MCHC) all carry
+`COMPONENT = 'Hemoglobin'`. An index keyed on component collapses them and the
+best-RANKED wins — so plain "Hemoglobin" resolved to **MCHC**, which ranks 13
+against true haemoglobin's 17. The module's docstring warned about this *and the
+module did it anyway*.
+
+The printed word often sits on no indexed axis at all. LOINC 2.83 gives
+hematocrit the component `Erythrocyte/Blood` — correct, and unreachable from a
+report that says "HEMATOCRIT": **zero** terms normalise to `hematocrit` on that
+axis. The word a report prints lives in LONG_COMMON_NAME, ahead of the bracket,
+so that analyte head is now a tier of its own. Derived from the authority, not
+typed. Measured over all 136 names — 3 gained, 2 corrected, **0 lost**:
+
+    HEMATOCRIT   (none)                       -> 4544-3   Hct VFr Bld Auto
+    MCH          (none)                       -> 785-6    MCH RBC Qn Auto
+    MCHC         (none)                       -> 786-4    MCHC RBC Auto-EntMCnc
+    HEMOGLOBIN   786-4  MCHC RBC Auto         -> 718-7    Hgb Bld-mCnc
+    MCV          54022-9 Mut cit vimentin Ab  -> 787-2    MCV RBC Auto
+
+> ⚠️ Read the MCV row. "MCV" resolved to **mutated citrullinated vimentin
+> antibody** — a rheumatoid-arthritis autoantibody — for a routine red-cell
+> index. It was found only by diffing all 136 names; a ten-name spot check
+> missed it, exactly as a ten-name spot check is what made COMPONENT look usable.
+
+### Why it is not wired: 1 of 136 answers is determinate
+
+`scripts/loinc_precision_audit.py` asks the question coverage cannot. Of 136
+names, 76 resolve — and of those 76:
+
+| | |
+|---|---|
+| **29** | decided by `COMMON_TEST_RANK` between tests the authority separates |
+| **46** | answered from the SYNONYM tier — the resolver's own weakest signal |
+| **1** | determinate |
+
+`ALBUMIN` picks Ser/Plas over Urine and Synovial fluid by rank alone. And
+**`Platelet` resolves to `32623-1 PMV Bld Auto` — mean platelet VOLUME — while
+`Platelets` resolves to `777-3`, the count.** A singular/plural difference in
+the printed word changes the analyte.
+
+`lab_results.loinc_code` is also written by the FHIR import, with codes that came
+off a real system. Writing a rank tiebreak into that column makes the two
+indistinguishable — §3c's confidently-wrong match with a clinical identifier
+attached, which is worse than the 33% dictionary it replaces.
+`test_import_unified_labs.py` had already reached this conclusion: provenance
+belongs in provenance, "not in `loinc_code`, where it would claim to" be
+authoritative.
+
+`value_shape_disagrees()` is left out for the same reason: a scale warning
+derived from the WRONG term is a confident false alarm, and a guard that cries
+wolf gets ticked past — which is how 338.4 was approved.
+
+**What would make it safe:** a specimen read off the report, so the
+`(COMPONENT, SYSTEM)` tier can fire and serum glucose stops being
+indistinguishable from urine glucose. `ReportMetadata` carries patient, dates,
+lab and provider — no specimen — so that is its own change. Until then the
+document's wording is the identity (§3ax) and `analyte_key()` does the matching.
+
+> **Two faults in the AUDIT, both scoring an unmeasured index as a clean one.**
+> `_tier_of` was written before the head index existed, so it probed only
+> shortname/component/synonym: answers from the head tier were reported as
+> "component" and the per-tier counts summed to 73 against 76 resolved. Then the
+> rival buckets covered only those same three indexes, so all 46 synonym answers
+> were scored CONFIDENT *by never being examined* — reported as "47 confident"
+> when the real figure was 1. The report now prints `(sum)` beside `resolved`
+> and fails loudly if they disagree, and counts UNMEASURED apart from
+> DETERMINATE. §3aa, twice, inside the tool written to stop exactly this.

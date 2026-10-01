@@ -62,6 +62,15 @@ _MECHANICS = {
     # TTY=DF holds 126 DOSE FORMS ("Buccal Tablet") and TTY=DFG holds 44 product
     # groups ("Injectable Product") — neither is a route. Probing RxNav for
     # 'bid', 'tid', 'qhs' and 'twice daily' returned 0 rxcui matches each.
+    # Maps a specimen word a report prints ("serum", "urine") onto LOINC's own
+    # SYSTEM vocabulary ("Ser/Plas", "Urine"). It is presentation→authority
+    # translation and asserts no clinical fact: it adds no analyte, no range and
+    # no relationship. Without it the authority's own axis is unreachable from a
+    # document, which is the opposite of the goal.
+    "_SYSTEM_HINTS": (
+        "maps printed specimen words onto LOINC's SYSTEM axis — translation to "
+        "the authority's vocabulary, not clinical knowledge of our own"
+    ),
     "_ROUTES": (
         "routes are SNOMED CT 284009009, whose Affiliate License restricts "
         "redistribution — not shippable like ICD-11/GTS, so the list stays"
