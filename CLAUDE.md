@@ -2108,6 +2108,55 @@ than trusted.
 > is perfectly consistent. §3ar's dead control, one layer up: it is not enough
 > for a field to exist, something must be able to put a value in it.
 
+### A field the form submits but never DECLARES erases itself (2026-10-01)
+
+Reported as "machine total time is not sticking". It was worse than not
+sticking: the **second save of a session destroyed the value**, and the first
+save looked like it worked.
+
+`emptyForm()` is the form's field set and the only list `startEdit` copies from:
+
+    const f = emptyForm();
+    Object.keys(f).forEach(k => { if (session[k] != null) f[k] = session[k]; });
+
+`machine_total_time_minutes` and `saline_added_ml` were rendered and POSTed
+while absent from that object. So the stored value was never loaded back — the
+input drew its placeholder, which reads as *never recorded* — and `handleSubmit`
+still sent the key, as `null`, because `formData` had no value for it.
+`model_dump(exclude_unset=True)` cannot filter an explicitly-sent null, so
+`setattr(db_session, field, None)` overwrote what was there. The printed report
+then said `—`, which its own footer defines as NOT RECORDED, on a session whose
+Clock Time computed 305 min from the same row.
+
+- **Both mobile clients were already correct**, so §3av's rule applies again:
+  Android writes the key only when the parse succeeds
+  (`parseMachineTime(machineTime)?.let { body[...] = it }`), iOS loads it at
+  `HemodialysisView.swift:372`. When one platform eats data and two do not, the
+  two are the specification.
+- **Neither field is derivable from anything else on the row** (§3at: saline is
+  volume put BACK; machine time is time ON DIALYSIS, always less than the wall
+  clock, and the figure Kt/V uses). Losing them loses the finding, not the field.
+- `HemodialysisFormFields.test.jsx` fails on ANY field the form binds or posts
+  that `emptyForm()` does not declare. One omission is an oversight; two is a
+  shape that recurs.
+
+> **A scan is evidence only once it is shown to see what it claims to.** The
+> first version of that check used `^\s+[a-z_0-9]+:` and so read only the FIRST
+> key per line, while `emptyForm` declares most fields several to a line. It
+> reported 38 declared keys against the real 77 and produced a 40-item list of
+> "defects" that were plainly declared. Corrected, it found exactly two. The
+> ratchet in `test_parser_hardcoding_ratchet.py` was fabricated the same way
+> (334 by mental arithmetic against a real 290) — **run the scan, never the
+> arithmetic.**
+
+> **A test that fails at COLLECTION proves nothing.** This guard first read its
+> source with `new URL('../pages/…', import.meta.url)`; under jsdom
+> `import.meta.url` is an http URL, so `readFileSync` threw "The URL must be of
+> scheme file" and vitest reported a failed *suite* — red, beside 266 passes,
+> with not one line of the guard executed. It was only evidence once it failed
+> on the assertion, naming both fields, and went green on the fix (§3ay: prove a
+> capture test fails against the OLD code).
+
 ## 3au. Mobile cannot buy the way the web buys
 
 Apple and Google require digital subscriptions to be sold through their own

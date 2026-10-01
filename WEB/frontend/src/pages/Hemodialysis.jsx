@@ -36,7 +36,31 @@ export function newClinicalNote(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-const emptyForm = () => ({
+/**
+ * The form's complete field set — and the ONLY list `startEdit` copies from.
+ *
+ * A field the form submits but does not declare here is write-only, and it
+ * erases itself. `startEdit` iterates `Object.keys(emptyForm())`, so a stored
+ * value this object does not name is never loaded back into the form; the field
+ * then renders empty (its placeholder showing, which reads as "never recorded"),
+ * and `handleSubmit` still posts the key — as `null`, because `formData` has no
+ * value for it. `model_dump(exclude_unset=True)` cannot filter an explicit null,
+ * so `setattr` writes it over whatever was stored.
+ *
+ * So the second save of a session DESTROYS the field rather than merely failing
+ * to persist it. Found 2026-10-01 on `machine_total_time_minutes` and
+ * `saline_added_ml`, both absent here while being rendered and posted: the
+ * flowsheet showed an empty Machine Total Time and the printed report said
+ * "—" (which its own footer defines as NOT RECORDED) on a session that had one.
+ *
+ * iOS and Android were never affected — Android writes the key only when the
+ * parse succeeds — so §3av applies: when one platform eats data and two do not,
+ * the two are the specification.
+ *
+ * Exported so a test pins this against the fields the form actually submits,
+ * rather than by hope.
+ */
+export const emptyForm = () => ({
   // Resolved from the patient's own chronic conditions at load — see
   // loadCondition(). It was hardcoded to 14, an id that exists for nobody, so
   // the API's ownership check rejected every save with "Chronic condition not
@@ -79,6 +103,13 @@ const emptyForm = () => ({
   // Post-treatment
   total_dialysate_liters: '', total_uf_liters: '', total_blood_volume_processed: '',
   dialyzer_appearance: '', post_bleeding_stop_time: '',
+  // Rendered and POSTed while absent from this object until 2026-10-01, so each
+  // was write-only: never loaded back by startEdit, then overwritten with null
+  // on the next save. Neither is derivable from anything else on the row —
+  // §3at, saline is volume put BACK, and the machine's total time is time ON
+  // DIALYSIS, always less than the wall clock and the figure Kt/V uses — so
+  // losing them loses the finding, not just the field.
+  saline_added_ml: '', machine_total_time_minutes: '',
   post_bruising: false, post_infiltration: false, post_shortness_of_breath: false,
   post_swelling: false, post_digestion_problems: false, post_access_thrill_bruit: true,
   // Maintenance
