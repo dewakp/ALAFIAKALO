@@ -145,3 +145,93 @@ def review_meal(total_weight_g: float | None, aggregate: dict) -> list[str]:
     if cal and w and w > 0 and (cal / w * 100.0) > MAX_KCAL_100G:
         warnings.append("meal energy density exceeds pure fat — check portions/items")
     return warnings
+
+
+# ── Lab results ──────────────────────────────────────────────────────────────
+
+#: A value this far above its own printed ceiling is worth a human's attention.
+#: NOT a smaller multiple, and the figure is measured rather than chosen: on the
+#: reference record creatinine reads 11.91 against a 0.7-1.3 range — 9.2x over,
+#: and entirely real for a patient on dialysis. Fifteen legitimate creatinines
+#: sit between 5x and 9.2x. PTH-I 8,478 against 18-80 is 106x, and the unified
+#: importer's own docstring already singles that row out as needing a look.
+SUSPECT_RANGE_MULTIPLE = 20.0
+
+#: Proportions cannot exceed the whole. Kept as a WARNING, never a deletion —
+#: some assays really do report activity above 100%.
+PERCENT_CEILING = 100.0
+
+
+def _is_percent(unit: str | None) -> bool:
+    # Units arrive with the status welded on ("%Final", "InchesFinal") because a
+    # narrow unit column absorbs the next one; match the leading symbol.
+    return (unit or "").strip().startswith("%")
+
+
+def review_lab_value(
+    test_name: str,
+    value: float | None,
+    unit: str | None = None,
+    ref_low: float | None = None,
+    ref_high: float | None = None,
+) -> tuple[list[str], bool]:
+    """Is this lab value POSSIBLE? Returns (warnings, believable).
+
+    Deliberately NOT "is it abnormal" — that is what `is_abnormal` is for, and
+    conflating the two is how a guard ends up shouting about real disease.
+
+    THE ROW THIS EXISTS FOR. A patient's record carried
+
+        HGBX   338.4 %   reference 42 - 52
+
+    and the app rendered it with a green tick. The true value is 38.4 %: the
+    analyte is HCT CALC (HGBX3), haematocrit calculated as haemoglobin x 3, and
+    that day's haemoglobin was 12.8 — 12.8 x 3 = 38.4 exactly. A literal "3" had
+    migrated from the END of the NAME to the FRONT of the VALUE somewhere
+    upstream, so the stored figure is exactly 300 too high. Three rows on that
+    record carry the same +300 signature, each confirmed against the source PDF.
+
+    We did not invent that number — it arrived that way in a third-party export.
+    What we did was accept it without a murmur, and `import_unified_labs.py`
+    says so in its own docstring: "Telling them apart needs per-analyte
+    plausibility bands ... They are imported and counted in the report so a
+    human can look." This is that check, so the human is TOLD rather than
+    expected to notice.
+
+    WHY NOT A MULTIPLE OF THE REFERENCE RANGE. Because the range is a
+    general-population figure and the patient is not the general population
+    (§3an). Creatinine 11.91 against 0.7-1.3 is 9.2x over and is simply what
+    end-stage renal disease looks like; a 3x rule would rank fifteen true
+    creatinines as more suspicious than an impossible haematocrit.
+
+    NOTHING IS EVER DELETED HERE. `believable=False` means the row must not
+    arrive pre-accepted, and must carry its reason. Deleting on a threshold is
+    how a real finding is lost (§3am: only what is IMPOSSIBLE gets repaired, and
+    even then by a human).
+    """
+    warnings: list[str] = []
+    believable = True
+    v = _num(value)
+    if v is None:
+        return warnings, True
+
+    if _is_percent(unit) and v > PERCENT_CEILING:
+        warnings.append(
+            f"{v:g}% is above 100% — a proportion cannot exceed the whole. "
+            f"Check the value against the report before importing."
+        )
+        believable = False
+
+    if v < 0:
+        warnings.append(f"{v:g} is negative, which no assay reports.")
+        believable = False
+
+    hi = _num(ref_high)
+    if hi and hi > 0 and v > hi * SUSPECT_RANGE_MULTIPLE:
+        warnings.append(
+            f"{v:g} is more than {SUSPECT_RANGE_MULTIPLE:g}x the upper reference "
+            f"limit of {hi:g} printed on this report — confirm it was read correctly."
+        )
+        believable = False
+
+    return warnings, believable

@@ -569,7 +569,12 @@ data class ClinicianLabItem(
     val value: String? = null,
     val unit: String? = null,
     val date: String? = null,
-    @SerializedName("is_abnormal") val isAbnormal: Boolean = false
+    // NULLABLE, because the wire is. `is_abnormal` is null whenever nothing
+    // compared the value to a reference range — 96.6% of stored results on this
+    // database — and Gson writes that null into a non-null Kotlin field anyway,
+    // so the old `Boolean = false` bought nothing and hid the risk (§3aj). It
+    // also made "never checked" indistinguishable from "checked and fine".
+    @SerializedName("is_abnormal") val isAbnormal: Boolean? = null
 )
 
 data class PatientSummary(

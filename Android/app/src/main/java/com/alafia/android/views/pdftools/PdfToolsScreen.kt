@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -73,6 +74,16 @@ private fun ParseLabReportTab() {
     var isImporting by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf<String?>(null) }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
+    // Removing a CONFIRMED import deletes clinical rows, so it asks first.
+    //
+    // rememberSaveable, not remember: §3ar — `remember` does not survive
+    // process death, and the low-memory phones most likely to kill a
+    // backgrounded process are exactly the ones this app runs on. A
+    // confirmation that vanishes on the way back reads as "it did not work",
+    // which on a delete is the worst thing it could read as.
+    var isRemoving by remember { mutableStateOf(false) }
+    var confirmRemove by rememberSaveable { mutableStateOf(false) }
+    var removedMessage by rememberSaveable { mutableStateOf<String?>(null) }
     // Item ids the patient has chosen to import.
     val selectedIds = remember { mutableStateListOf<Int>() }
     val context = LocalContext.current
@@ -139,7 +150,60 @@ private fun ParseLabReportTab() {
             }
         }
 
-        importMessage?.let { NoticeCard(it, MaterialTheme.colorScheme.primary) }
+        removedMessage?.let { NoticeCard(it, MaterialTheme.colorScheme.primary) }
+
+        importMessage?.let { msg ->
+            NoticeCard(msg, MaterialTheme.colorScheme.primary)
+
+            // The way OUT of a bad import, offered exactly when it becomes
+            // useful: after the rows are on the record. Deletes only what this
+            // document added (§3ab, "delete first, then re-import").
+            if (confirmRemove) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                isRemoving = true
+                                try {
+                                    val response = ApiClient.getApiService()
+                                        .discardDocumentImport(result!!.importId!!)
+                                    removedMessage = response.message
+                                    result = null
+                                    selectedIds.clear()
+                                    selectedUri = null
+                                    importMessage = null
+                                    confirmRemove = false
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
+                                }
+                                isRemoving = false
+                            }
+                        },
+                        enabled = !isRemoving,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(
+                            if (isRemoving) stringResource(R.string.removing)
+                            else stringResource(R.string.remove_from_records)
+                        )
+                    }
+                    OutlinedButton(onClick = { confirmRemove = false }, enabled = !isRemoving) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            } else {
+                Column {
+                    OutlinedButton(onClick = { confirmRemove = true }) {
+                        Text(stringResource(R.string.remove_from_records))
+                    }
+                    Text(
+                        stringResource(R.string.remove_import_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
 
         result?.let { res ->
             // A document that could not be read must say so. An empty table

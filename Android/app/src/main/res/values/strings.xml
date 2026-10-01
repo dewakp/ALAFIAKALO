@@ -1312,4 +1312,10 @@
     <string name="account_already_exists">That address already has an account</string>
     <string name="go_to_sign_in">Go to sign in</string>
     <string name="dismiss_alert">Dismiss</string>
+    <string name="lab_abnormal">⚠️ Abnormal</string>
+    <string name="lab_in_range">✅ In range</string>
+    <string name="lab_not_assessed">— Not assessed</string>
+    <string name="remove_from_records">Remove from my records</string>
+    <string name="removing">Removing…</string>
+    <string name="remove_import_hint">Removes only what this document added. You can upload it again afterwards.</string>
 </resources>

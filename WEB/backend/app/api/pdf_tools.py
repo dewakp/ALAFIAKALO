@@ -259,6 +259,56 @@ async def reject_import(
     )
 
 
+@router.post("/imports/{import_id}/discard", response_model=ConfirmImportResponse)
+async def discard_import(
+    import_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Take a CONFIRMED import back out — delete the rows it wrote.
+
+    Distinct from `/reject`, which only marks an import nothing was ever
+    written from. This one deletes, and it exists because §3ab's remedy for a
+    bad import — "delete first, then re-import" — had no route through the
+    product: a re-import alone lands the corrected reading BESIDE the wrong one
+    and leaves the patient holding two contradictory values for one date.
+
+    Only the rows THIS import created are removed, by the `imported_row_id`
+    stamped on each staged row at confirm time. Readings the patient typed, and
+    readings from another document, are untouched.
+    """
+    record = await _load_import(db, current_user.id, import_id)
+    if record.status != STATUS_CONFIRMED:
+        # Nothing was written, so there is nothing to take back out. Saying so
+        # beats a cheerful "removed 0 rows", which reads as success.
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"This import was never written to your records (status: "
+                f"{record.status}), so there is nothing to remove. Use reject "
+                f"to discard it without importing."
+            ),
+        )
+
+    removed = await importer.discard(db, current_user.id, record)
+    await db.commit()
+
+    total = sum(removed.values())
+    detail = ", ".join(f"{n} from {table}" for table, n in removed.items() if n)
+    return ConfirmImportResponse(
+        import_id=record.id,
+        status=record.status,
+        removed=removed,
+        total_removed=total,
+        message=(
+            f"Removed {total} record(s): {detail}. You can upload this document "
+            f"again to re-import it."
+            if total else
+            "Nothing was removed — this import's rows are no longer on your record."
+        ),
+    )
+
+
 # ── Flowsheet reports ────────────────────────────────────────────────────────
 
 async def _flowsheet_spec(

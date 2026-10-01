@@ -862,6 +862,17 @@ interface ApiService {
     @POST("pdf/imports/{importId}/reject")
     suspend fun rejectDocumentImport(@Path("importId") importId: Int): ConfirmImportResponse
 
+    /**
+     * Take back an import that was ALREADY written to the record.
+     *
+     * [rejectDocumentImport] cannot: it marks an import nothing was ever saved
+     * from. Deletes only the rows this document added, by the id recorded
+     * against each staged row at import time — §3ab's "delete first, then
+     * re-import", which previously had no route through the product.
+     */
+    @POST("pdf/imports/{importId}/discard")
+    suspend fun discardDocumentImport(@Path("importId") importId: Int): ConfirmImportResponse
+
     @POST("pdf/generate-flowsheet")
     suspend fun generateFlowsheet(@Body request: FlowsheetRequest): FlowsheetResponse
 

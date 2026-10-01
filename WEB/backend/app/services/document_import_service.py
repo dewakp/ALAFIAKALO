@@ -22,7 +22,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chronic_conditions import (
@@ -35,6 +35,7 @@ from app.models.document_import import (
     DEDUPE_DUPLICATE,
     DEDUPE_NEW,
     STATUS_CONFIRMED,
+    STATUS_DISCARDED,
     STATUS_FAILED,
     STATUS_PARSED,
     STATUS_REJECTED,
@@ -51,6 +52,15 @@ from app.services.docparse.records_clinical import (
     records_from_condition_table,
     records_from_medication_table,
 )
+from app.services.import_learning import (
+    ROLES_KEY,
+    SHAPE_KEY,
+    SIGNATURE_KEY,
+    learned_verdicts,
+    record_review_decisions,
+    row_signature,
+)
+from app.services.plausibility import review_lab_value
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +92,12 @@ async def find_existing_import(
         .where(
             DocumentImport.user_id == user_id,
             DocumentImport.content_hash == content_hash,
-            DocumentImport.status != STATUS_REJECTED,
+            # A rejected or DISCARDED import must not block re-uploading the
+            # same file. Discarding exists precisely so a bad import can be
+            # taken out and the document read again; if the hash still matched a
+            # discarded row the patient would be handed back the import they
+            # just deleted, and the re-import could never happen.
+            DocumentImport.status.notin_([STATUS_REJECTED, STATUS_DISCARDED]),
         )
         .order_by(DocumentImport.id.desc())
     )
@@ -141,6 +156,14 @@ async def stage(db: AsyncSession, user_id: int, parsed: ParseResult) -> Document
 async def _stage_labs(db: AsyncSession, user_id: int, parsed: ParseResult) -> list[DocumentImportItem]:
     meta = parsed.metadata
     existing = await _existing_labs(db, user_id)
+
+    # One indexed lookup for the whole document rather than one per row.
+    signatures = [
+        row_signature(r.raw_name, r.value, r.value_text, r.unit, r.reference_text)[0]
+        for r in parsed.records
+    ]
+    verdicts = await learned_verdicts(db, signatures)
+
     items: list[DocumentImportItem] = []
 
     for index, record in enumerate(parsed.records):
@@ -171,6 +194,48 @@ async def _stage_labs(db: AsyncSession, user_id: int, parsed: ParseResult) -> li
             existing_id = prior_id
             dedupe = DEDUPE_DUPLICATE if prior_value == record.value else DEDUPE_CONFLICT
 
+        # Is the VALUE possible? Deliberately not "is it abnormal" — a dialysis
+        # patient's creatinine of 11.91 is 9.2x its reference ceiling and
+        # entirely real. This catches what cannot be true at all: a haematocrit
+        # of 338.4%, which reached a real record and was rendered with a green
+        # tick beside it.
+        #
+        # An implausible row is NEVER dropped. It arrives UNTICKED and carries
+        # its reason, because the failure this is guarding against is a reviewer
+        # in a hurry ticking through what the system already ticked for them.
+        problems, believable = review_lab_value(
+            record.test_name, record.value, record.unit,
+            record.reference_low, record.reference_high,
+        )
+        if not test_date:
+            problems.insert(0, "No date could be determined for this result.")
+
+        # What did previous reviewers make of a row shaped like this one?
+        #
+        # Advisory only: it unticks and explains. It cannot delete, and it does
+        # not overrule the deterministic guard — a row that reached here has
+        # already been judged a measurement by `row_is_prose`, and a learned
+        # mistake that removed clinical data would be worse than the boilerplate
+        # this exists to catch.
+        signature, roles, shape = row_signature(
+            record.raw_name, record.value, record.value_text,
+            record.unit, record.reference_text,
+        )
+        # Stamp it on the staged payload so CONFIRM reads back this exact key
+        # rather than recomputing it from a lossier dict — see
+        # `record_review_decisions` for what recomputation silently broke.
+        payload[SIGNATURE_KEY] = signature
+        payload[ROLES_KEY] = roles
+        payload[SHAPE_KEY] = shape
+
+        judged = verdicts.get(signature)
+        if judged is not None:
+            problems.append(
+                f"Previous reviewers marked this line as part of the document "
+                f"rather than a result ({judged.times_confirmed} times). "
+                f"Tick it if that is wrong."
+            )
+
         items.append(DocumentImportItem(
             target_table=TABLE_LABS,
             row_index=index,
@@ -181,9 +246,16 @@ async def _stage_labs(db: AsyncSession, user_id: int, parsed: ParseResult) -> li
             dedupe_status=dedupe,
             existing_row_id=existing_id,
             # A duplicate is unticked by default: confirming an import must not
-            # quietly write a second copy of a reading already on file.
-            accepted=(dedupe != DEDUPE_DUPLICATE) and bool(test_date),
-            error=None if test_date else "No date could be determined for this result.",
+            # quietly write a second copy of a reading already on file. An
+            # implausible value is unticked for the same reason.
+            # `judged is None` is what makes the learned verdict DO something.
+            # Without it the note below still rendered while the row stayed
+            # ticked — which is worse than saying nothing, because it tells the
+            # reader the case was handled. §3ar, inside the feature built to
+            # act on what reviewers decided.
+            accepted=((dedupe != DEDUPE_DUPLICATE) and bool(test_date)
+                      and believable and judged is None),
+            error="; ".join(problems) or None,
         ))
     return items
 
@@ -297,6 +369,14 @@ async def confirm(
             if accepted_item_ids is not None
             else item.accepted
         )
+        # Write the reviewer's ACTUAL decision back onto the row.
+        #
+        # `accepted` held the staged default and nothing ever recorded what the
+        # person chose, so the learning step below would have learned what the
+        # PARSER proposed rather than what the HUMAN decided — the one thing it
+        # exists to capture. §3ar, one layer deeper than the usual case: the
+        # control was read, just never updated.
+        item.accepted = bool(wanted)
         if not wanted or item.imported_row_id is not None:
             continue
 
@@ -314,6 +394,21 @@ async def confirm(
         await db.flush()
         item.imported_row_id = row.id
         counts[item.target_table] = counts.get(item.target_table, 0) + 1
+
+    # Learn from what the reviewer just decided. This is the half that was
+    # missing: `accepted` has always been written and never read back (§3ar).
+    #
+    # Wrapped, because a learning outage must never fail a clinical import —
+    # the same rule §3ah applies to the payment webhook's email. The rows are
+    # already written by this point; losing a lesson costs far less than losing
+    # the import.
+    try:
+        learned = await record_review_decisions(db, record.items, record.lab_name)
+        if learned:
+            logger.info("import %s taught %d row judgments", record.id, learned)
+    except Exception:  # noqa: BLE001
+        logger.warning("could not record review decisions for import %s",
+                       record.id, exc_info=True)
 
     record.status = STATUS_CONFIRMED
     record.confirmed_at = datetime.now(timezone.utc)
@@ -392,3 +487,70 @@ def _as_datetime(value):
 async def reject(db: AsyncSession, record: DocumentImport) -> None:
     record.status = STATUS_REJECTED
     await db.flush()
+
+
+#: Which model each staged row was written into, so a discard can take it back
+#: out of the same table it went into.
+_MODEL_FOR_TABLE = {
+    TABLE_LABS: LabResult,
+    TABLE_MEDICATIONS: Medication,
+    TABLE_CONDITIONS: ChronicCondition,
+}
+
+
+async def discard(
+    db: AsyncSession, user_id: int, record: DocumentImport
+) -> dict[str, int]:
+    """Take a CONFIRMED import back out — delete the rows it wrote.
+
+    Returns a per-table count of what was removed.
+
+    WHY THIS HAS TO EXIST. §3ab: a parser fix does not repair what it already
+    imported, and re-importing makes it WORSE. Dedupe is keyed on
+    `(test_date, lower(test_name))` and the commit path only ever constructs a
+    new row, so a corrected reading lands BESIDE the wrong one and the patient
+    ends up holding two contradictory values for one date. The documented remedy
+    has always been "delete first, then re-import" — and until now the only way
+    to do that was a DBA running SQL against production. `reject` does not do
+    it: that marks an import nothing was ever written from.
+
+    WHAT MAKES IT SAFE. `imported_row_id` is stamped on every staged row at
+    confirm time, so this deletes exactly the rows THIS import created — not
+    everything matching a name and a date, which would take out readings the
+    patient entered by hand or a different document supplied. `lab_results`
+    carries no foreign keys pointing at it (checked), so nothing is orphaned.
+
+    Every delete is scoped by `user_id` as well as by row id. The id alone would
+    be enough given the import is already loaded for this patient, and it is
+    still written twice: a bug in the row that finds the import must never
+    become a bug that deletes somebody else's clinical record.
+
+    `imported_row_id` is cleared as each row goes, so a discard interrupted
+    half-way can be run again without trying to delete rows that are gone.
+    """
+    removed: dict[str, int] = {}
+    for item in record.items:
+        if item.imported_row_id is None:
+            continue
+        model = _MODEL_FOR_TABLE.get(item.target_table)
+        if model is None:
+            logger.warning(
+                "Import %s item %s targets unknown table %r — left in place",
+                record.id, item.id, item.target_table,
+            )
+            continue
+
+        result = await db.execute(
+            delete(model).where(
+                model.id == item.imported_row_id,
+                model.user_id == user_id,
+            )
+        )
+        if result.rowcount:
+            removed[item.target_table] = removed.get(item.target_table, 0) + result.rowcount
+        # Whether or not a row was there, this item no longer points at one.
+        item.imported_row_id = None
+
+    record.status = STATUS_DISCARDED
+    await db.flush()
+    return removed

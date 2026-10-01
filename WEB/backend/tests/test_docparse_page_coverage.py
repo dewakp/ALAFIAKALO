@@ -30,7 +30,6 @@ a regression guard built on it could not run in CI. These reproduce the exact
 geometry — a header on page 1 only — with invented values.
 """
 
-import asyncio
 import io
 
 import pytest
@@ -98,10 +97,35 @@ def _build(second_page_rows, second_page_header=False) -> bytes:
     return buffer.getvalue()
 
 
-def _parse(content: bytes):
-    return asyncio.run(pipeline.parse(content, filename="fixture.pdf",
-                                      content_type="application/pdf",
-                                      use_model=False))
+async def _parse(content: bytes):
+    """Parse a fixture through the real pipeline — AWAITED, never `asyncio.run()`.
+
+    `conftest.py` holds a SESSION-scoped `event_loop`. A nested `asyncio.run()`
+    builds its own loop and closes it underneath the session's, and
+    pytest-asyncio then stops awaiting anything: every async test collected
+    AFTER this file ran as a plain function and asserted NOTHING, reporting only
+
+        RuntimeWarning: coroutine '...' was never awaited
+
+    Measured: this file followed by `test_document_import_api.py` turned 18
+    passing tests into 18 failures — the entire guard on the import path,
+    silently disabled. Alone, both files pass, which is exactly why it survived
+    review. A test helper that reaches for its own event loop can take the suite
+    with it.
+
+    EVERY async test here carries `@pytest.mark.asyncio`, and must. `pytest.ini`
+    declares `asyncio_mode = "auto"` under a `[tool.pytest.ini_options]` header —
+    that is the *pyproject.toml* section name, `pytest.ini` reads only
+    `[pytest]`, and no `pyproject.toml` exists here. pytest loads the file
+    (`configfile: pytest.ini`) and applies none of it, so auto mode has never
+    been on and `testpaths` has never applied. Without the marker a bare
+    `async def` is SKIPPED, not run: converting these two to `async def` alone
+    made them silent no-ops while the suite still reported green. A skipped
+    guard is worse than a failing one — §3aa, inside a test file.
+    """
+    return await pipeline.parse(content, filename="fixture.pdf",
+                                content_type="application/pdf",
+                                use_model=False)
 
 
 def test_a_continuation_page_without_a_header_is_still_read():
@@ -129,23 +153,25 @@ def test_the_values_on_the_inherited_page_are_read_correctly():
     assert rows["MCV"].get("value") == "68.0"
 
 
-def test_a_page_with_no_results_is_REPORTED_not_silently_dropped():
+@pytest.mark.asyncio
+async def test_a_page_with_no_results_is_REPORTED_not_silently_dropped():
     """The half that matters even once parsing is fixed.
 
     A page really can hold nothing but boilerplate. That is fine — what is not
     fine is the reader being unable to tell. Before this, `notes` was empty and
     the import looked complete.
     """
-    result = _parse(_build(None))
+    result = await _parse(_build(None))
     assert result.records, "page 1 should still import"
     assert result.notes, "a page contributed nothing and nothing said so"
     joined = " ".join(result.notes)
     assert "page 2" in joined, f"the note must name the page: {result.notes!r}"
 
 
-def test_a_fully_parsed_document_is_not_annotated():
+@pytest.mark.asyncio
+async def test_a_fully_parsed_document_is_not_annotated():
     """The note must mean something — it cannot fire when nothing was lost."""
-    result = _parse(_build(_PAGE_2, second_page_header=True))
+    result = await _parse(_build(_PAGE_2, second_page_header=True))
     assert not [n for n in result.notes if "could be read from page" in n]
 
 

@@ -70,6 +70,7 @@ shell environment or a password manager — **never** commit it.
 | `scripts/db/fingerprint.sql` | read-only; emits the parity fingerprint |
 | `scripts/db/verify_parity.sh` | fingerprints both sides, diffs, exits non-zero on drift |
 | `scripts/db/pull_prod.sh` | dump prod → restore into dev → verify |
+| `scripts/db/repair_impossible_labs.sh` | repairs a transposed-digit lab value and fills in abnormality flags nobody computed |
 
 `verify_parity.sh --dev-only` prints the dev fingerprint without touching prod —
 useful offline.
@@ -261,3 +262,62 @@ scripts/db/set_pro_profile.sh --emails someone@example.org --role physician \
 Note that the `verification_status` in `clinician_directory.py` is a **different
 table** — it lives on the `Physician` model (the ingested public directory), not
 on `ProfessionalProfile`. Nothing in the app gates a feature on either one.
+
+
+## Repairing lab values that cannot be true (2026-09-30)
+
+```bash
+DB=dev scripts/db/repair_impossible_labs.sh            # dry run against the dev copy
+scripts/db/repair_impossible_labs.sh                   # dry run against PROD
+scripts/db/repair_impossible_labs.sh --apply           # write (types a confirmation)
+```
+
+Dry run is the default, and it executes the **identical** statements inside a
+transaction it rolls back — so the printed output is exactly what `--apply`
+would do, rather than a separate query that can drift from the action.
+
+### Part 1 — a haematocrit of 338.4 %
+
+A record carried `HGBX 338.4 %` against a printed range of 42–52, rendered to
+the patient with a green tick. The true value is **38.4 %**: the analyte is
+`HCT CALC (HGBX3)`, haematocrit calculated as haemoglobin × 3, and that day's
+haemoglobin was 12.8. A literal `3` had migrated from the **end of the name** to
+the **front of the value** upstream, leaving the figure exactly 300 too high.
+
+**This is a repair, not a guess, and the SQL proves that to itself before
+writing.** The UPDATE fires only where two independent derivations agree —
+`stored − 300` and `that day's HGB × 3`. Measured on the dev copy:
+
+```
+id 217  2025-01-27  327.3 → 27.30   HGB 9.1 × 3 = 27.30    REPAIRABLE
+id 154  2025-03-21  324.6 → 24.60   HGB 8.2 × 3 = 24.60    REPAIRABLE
+id 100  2025-07-17  338.4 → 38.40   HGB 12.8 × 3 = 38.40   REPAIRABLE
+→ 0 percentages above 100 remain
+```
+
+A row where the two disagree is **left exactly as it is**, for a human. §3ab:
+putting an invented value onto a clinical record is worse than removing the row.
+
+The value arrives corrupted in the Firestore export — `Records.xlsx` sheet `Lab`
+is clean (2016-04-28 → 2023-03-09, nothing over 100) and every source PDF prints
+`HGBX3` correctly. What was ours is accepting it in silence; the parser now
+refuses to pre-tick a percentage above 100, so it cannot recur through document
+import.
+
+### Part 2 — the abnormality flag nobody computed
+
+`is_abnormal` is a **tri-state**, and **9,417 of 9,745 rows were NULL** because
+the bulk importers store `ref_low`, `ref_high` *and* `value` while passing
+through whatever `flag` the source CSV carried — empty, for every firestore row
+— and never call `normalize.compute_abnormal`. Every client rendered NULL as the
+reassuring branch, so a potassium of 6.7 against 3.5–5.5 displayed **"✅
+Normal"**. Measured on the dev copy:
+
+```
+137 rows contradict their own printed range
+217 rows are in range
+→ 354 flags set; NULL falls 9,417 → 9,063
+```
+
+The 9,063 that remain NULL genuinely carry no reference range. That is now
+honest rather than silent: the clients say **"Not assessed"**, never "Normal".

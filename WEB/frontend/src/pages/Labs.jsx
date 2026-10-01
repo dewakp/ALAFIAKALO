@@ -275,7 +275,19 @@ export default function Labs() {
                 <td>{r.value ?? r.value_string ?? '-'}</td>
                 <td>{r.unit ?? '-'}</td>
                 <td>{r.reference_range_low != null ? `${r.reference_range_low} - ${r.reference_range_high}` : '-'}</td>
-                <td>{r.is_abnormal ? '⚠️ Abnormal' : '✅ Normal'}</td>
+                {/* THREE states, not two. `is_abnormal` is null when nothing
+                    ever compared the value to a range — 9,417 of 9,745 stored
+                    results on this database. Collapsing that to a boolean put
+                    "✅ Normal" beside a potassium of 6.7 (range 3.5–5.5) and a
+                    haemoglobin of 12.8 (range 14–18). An unchecked result is
+                    not a normal one; §3aa, and §3at's thrill/bruit checkbox. */}
+                <td title={r.is_abnormal == null ? t('Labs.not_assessed_title') : undefined}>
+                  {r.is_abnormal === true
+                    ? t('Labs.abnormal')
+                    : r.is_abnormal === false
+                      ? t('Labs.in_range')
+                      : t('Labs.not_assessed')}
+                </td>
                 <td>
                   <button className="btn btn-danger btn-sm" onClick={() => handleDelete(r.id)}>{t('Labs.delete')}</button>
                 </td>

@@ -335,6 +335,127 @@ Upload → parse → **staged for review** → import. Full detail:
 > is how boilerplate-as-a-lab-result shipped past a green gate. When you change
 > extraction, check what it *added* as well as what it recovered.
 
+### The corpus cannot see what it does not contain (2026-09-30)
+
+All thirteen corpus PDFs are DaVita reports. A real Quest report exposed four
+faults the harness scored as perfect, and one attempted fix nearly deleted a
+neutropenia. Full detail: **`DOCUMENT_IMPORT.md`**, "the name-only guard was not
+enough".
+
+- **`looks_like_prose` judges the NAME.** The prose lives in the other cells. A
+  lab's street address (`01: Quest Diagnostics-Houston = Lab, 5850 Rogerdale`),
+  its director, a section heading and four lines of LDL footnote all have short,
+  capitalised, connective-free names and all imported as results.
+  `row_is_prose(cells)` judges the row as the document drew it.
+- ⚠️ **"A real row has a number in its value column" deletes 49 of 106 rows** on
+  that report — `WBC = NONE SEEN`, `RBC = 0-2`, `ABSOLUTE BLASTS = DNR`, an
+  entire urinalysis microscopy panel. **The corpus scores that rule as free**,
+  because no corpus document has microscopy.
+- ⚠️ **A threshold is only valid in the context it was measured for.** Rejoining
+  the cells pushed ordinary rows past `looks_like_prose`'s 10-word ceiling — a
+  figure calibrated for names — and the guard removed the patient's WBC count of
+  2.4, both eGFRs and the sed rate. A bare number is a measurement, whatever
+  else the row contains.
+- **Plausibility is "impossible", never "abnormal".** Creatinine 11.91 against
+  0.7-1.3 is 9.2x over and is simply ESRD; fifteen legitimate creatinines sit
+  between 5x and 9.2x. A guard that cries wolf over those teaches its reader to
+  tick past it — which is how an impossible haematocrit got approved. Nothing is
+  deleted: an implausible row arrives **unticked with its reason**.
+
+### `is_abnormal` is a TRI-STATE and every client read it as a boolean
+
+`{r.is_abnormal ? 'Abnormal' : 'Normal'}` — with **9,417 of 9,745 rows NULL**,
+nearly every stored result displayed "✅ Normal", including 137 that numerically
+contradict their own printed range: potassium 6.7 (3.5-5.5), haemoglobin 12.8
+(14-18), LDH 378 (120-246). §3at's thrill/bruit checkbox, on the most dangerous
+surface in the product. iOS and Android showed no abnormality at all — they drew
+`status` ("Final"), and Android coloured it green. All three now distinguish
+abnormal / in range / **not assessed**, and not-assessed is never green.
+
+> **A value nobody checked is not a normal one.** `import_unified_labs.py` stores
+> `ref_low`, `ref_high` AND `value` while passing through whatever `flag` the
+> source had — empty, for every firestore row — and never calls
+> `normalize.compute_abnormal`. `scripts/db/repair_impossible_labs.sql` fills it
+> in where the row already carries the range.
+
+### Deleting a whole import — the route §3ab always assumed existed
+
+§3ab says "delete first, then re-import" and until 2026-09-30 there was **no way
+to do it through the product**: `/reject` only marks an import nothing was
+written from, and all three clients hid even that once an import succeeded.
+`POST /pdf/imports/{id}/discard` deletes exactly the rows that import created,
+by the `imported_row_id` stamped on each staged row at confirm time — hand-typed
+readings and other documents' readings are untouched, and every delete is scoped
+by `user_id` as well as row id.
+
+### The reviewer's decisions are the training signal, and were discarded
+
+`document_import_items.accepted` has always been written and never read back —
+§3ar's dead control on the richest signal in the product, because unlike a
+model's guess it is a human looking at the document. `document_row_judgments`
+(migration `al001`) stores a row **shape**: normalised name, which roles the
+document populated, whether the value was a number or a word — never a
+measurement, so one patient's review helps the next patient's import without
+either seeing the other's data.
+
+- A verdict is **advisory**: it unticks a row and says why. It never deletes,
+  and never overrules a row the deterministic guard judged a measurement.
+- It acts only after **two** agreeing reviewers. One person's slip must not
+  teach the parser to hide an analyte from everybody else; a contradiction
+  retires the judgment rather than flip-flopping.
+### The parser is 290 hand-written clinical literals, and that is the real bug
+
+Measured 2026-09-30 by AST scan across `docparse`: **290 elements in 17
+collections** of typed-in clinical vocabulary. The largest, `ANALYTE_NAMES`,
+recognises **136 of the 411 distinct test names in production — 33.1%**. It
+cannot name `ALT`, `AST`, `BILIRUBIN, TOTAL`, `Anion Gap`,
+`ALBUMIN/GLOBULIN RATIO` or `BUN/CREATININE RATIO`: ordinary chemistry. §3ad,
+§3aj and §3c all forbid this and none of them reached the parser.
+
+`tests/test_parser_hardcoding_ratchet.py` is a **ratchet**, not a pass/fail:
+the count may only decrease. A guard that goes red the moment it lands is one
+the team learns to ignore (§4's red CI that hid four real faults).
+
+> ⚠️ **Its first baseline was fabricated.** It was written as 334 by subtracting
+> exemptions in someone's head; the measured figure is 290. The test reported
+> `5 passed` while silently permitting 44 new entries — a green check measuring
+> nothing, inside the test written to stop people asserting clinical facts
+> without measuring them. **Run the scan; never compute the baseline.** Slack
+> must be 0, or adding a literal does not fail the build.
+
+**Verify the authority before deleting the list.** `_ROUTES` and
+`_FREQUENCY_HINTS` were going to be deleted as "duplicating RxNorm". Probed
+live: RxNorm carries **dose forms** (126 `DF`, 44 `DFG` — `Injectable Product`,
+not `subq`) and returned **0 rxcui** for `bid`, `tid`, `qhs`, `twice daily`.
+Routes are SNOMED CT `284009009`, whose Affiliate Licence restricts
+redistribution. Frequencies are HL7 `v3-GTSAbbreviation` — CC0, but **16 codes
+covering 9 of our 30**, and `looks_like_frequency()` does substring detection on
+free text, not code lookup. Both lists stay, with their reason recorded.
+Deleting them would have broken medication parsing to satisfy a principle —
+§3ap's "classify a static finding before acting on it".
+
+**LOINC is the authority for the analytes**, and three defects fall out of it
+rather than needing special-case code: `SCALE_TYP` makes urine occult blood
+**Ord** (so `2+` is the value and a bare `2` is provably wrong), `SYSTEM`
+separates serum from urine glucose (two rows both named "Glucose" today), and
+`PROPERTY`/`EXAMPLE_UCUM_UNITS` make a 338.4 % haematocrit impossible by
+definition instead of by a `PERCENT_CEILING` constant invented for it.
+`scripts/build_loinc_catalog.py` is written and gated on a **free-account
+download** — there is no unauthenticated URL and no PyPI package redistributes
+the table, so it takes `--zip` like `build_icd11_catalog.py`'s offline path.
+
+> ⚠️ **LOINC does not own everything here.** Of 411 stored names only **150**
+> carry a printed reference range; `BLDFLOW`, `AMPUTATE FACTOR`, `DAYS/WEEK` and
+> `Dialyzer KOA` are dialysis machine and prescription parameters no lab
+> vocabulary covers. The resolver must fall through for those, not discard them.
+
+- ⚠️ **Compute the signature ONCE, at staging, and store it on the payload.**
+  Recomputing it at confirm time looks equivalent and is not: staging sees the
+  range as the document PRINTED it, the payload keeps only the parsed bounds, so
+  an unreadable range makes the two paths derive different digests. Lessons get
+  filed under keys nothing looks up and the loop presents as "it never fires" —
+  §3ay's never-plugged-in sink, one layer subtler.
+
 ## 3ac. Dialysis changes the day's totals, not the limits
 
 A session clears potassium and phosphorus in gram quantities and *adds* calcium

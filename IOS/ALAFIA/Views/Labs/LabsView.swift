@@ -111,6 +111,7 @@ struct LabRow: View {
                     }
                 }
                 Spacer()
+                AbnormalBadge(isAbnormal: result.isAbnormal)
                 StatusBadge(status: result.status)
             }
             
@@ -134,6 +135,45 @@ struct LabRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// Whether the result is in range — a THREE-state fact, never a boolean.
+///
+/// `is_abnormal` is null when nothing ever compared the value to a reference
+/// range: 9,417 of 9,745 stored results on this database. Web collapsed that to
+/// a boolean and printed "✅ Normal" beside a potassium of 6.7 (range 3.5–5.5).
+/// This screen showed nothing at all — it drew `status` ("Final"), which says
+/// the lab finished the test, not that the number is safe.
+struct AbnormalBadge: View {
+    let isAbnormal: Bool?
+
+    private var label: LocalizedStringKey {
+        switch isAbnormal {
+        case .some(true):  return "Abnormal"
+        case .some(false): return "In range"
+        case .none:        return "Not assessed"
+        }
+    }
+
+    private var tint: Color {
+        switch isAbnormal {
+        case .some(true):  return .red
+        case .some(false): return .green
+        // Deliberately NOT green. An unchecked result is not a reassuring one.
+        case .none:        return .secondary
+        }
+    }
+
+    var body: some View {
+        Text(label)
+            .font(.caption2)
+            .fontWeight(.medium)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(tint.opacity(0.15))
+            .foregroundStyle(tint)
+            .clipShape(Capsule())
     }
 }
 

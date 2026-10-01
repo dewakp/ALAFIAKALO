@@ -58,6 +58,12 @@ async function uploadFile(response = PARSED) {
     if (url.includes('/confirm')) {
       return Promise.resolve({ data: { import_id: 42, status: 'confirmed', total_imported: 2, message: 'Imported 2 record(s): 2 → lab_results' } });
     }
+    if (url.includes('/discard')) {
+      return Promise.resolve({ data: {
+        import_id: 42, status: 'discarded', removed: { lab_results: 2 }, total_removed: 2,
+        message: 'Removed 2 record(s): 2 from lab_results. You can upload this document again to re-import it.',
+      } });
+    }
     return Promise.resolve({ data: {} });
   });
   renderPage();
@@ -137,5 +143,68 @@ describe('document import review', () => {
   it('shows what the document called a test when it was renamed', async () => {
     await uploadFile();
     await waitFor(() => expect(screen.getByText(/document: “ALBUMIN”/)).toBeInTheDocument());
+  });
+});
+
+/* Taking back an import that has ALREADY been written.
+ *
+ * §3ab's remedy for a bad import is "delete first, then re-import", and until
+ * now it had no route through the product: /reject only abandons an import
+ * nothing was written from, and this page hid even that button the moment an
+ * import succeeded — which is exactly when a misread document gets noticed.
+ *
+ * This control DELETES clinical rows, so the test that matters most is
+ * "asks before deleting anything": a confirm step that still fires the request
+ * on the first click is decoration, and decoration on a delete is worse than
+ * no confirm at all. */
+describe('taking back an import that was already written', () => {
+  async function importSomething() {
+    await uploadFile();
+    await waitFor(() => expect(screen.getByText('Albumin')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Import 2 selected/i }));
+    await waitFor(() => expect(screen.getByText(/Imported 2 record/i)).toBeInTheDocument());
+  }
+
+  it('is offered only once rows have actually been written', async () => {
+    await uploadFile();
+    await waitFor(() => expect(screen.getByText('Albumin')).toBeInTheDocument());
+    // Nothing is on the record yet, so there is nothing to take back.
+    expect(screen.queryByRole('button', { name: /Remove from my records/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Import 2 selected/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Remove from my records/i })).toBeInTheDocument());
+  });
+
+  it('asks before deleting anything', async () => {
+    await importSomething();
+    const before = postImpl.mock.calls.length;
+
+    fireEvent.click(screen.getByRole('button', { name: /Remove from my records/i }));
+
+    // The first click only ASKS. Nothing may reach the server.
+    expect(postImpl.mock.calls.length).toBe(before);
+    expect(screen.getByRole('button', { name: /Keep them/i })).toBeInTheDocument();
+  });
+
+  it('deletes only on confirmation, and says what went', async () => {
+    await importSomething();
+    fireEvent.click(screen.getByRole('button', { name: /Remove from my records/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Remove from my records/i }));
+
+    await waitFor(() =>
+      expect(postImpl).toHaveBeenCalledWith('/pdf/imports/42/discard'));
+    await waitFor(() =>
+      expect(screen.getByText(/Removed 2 record/i)).toBeInTheDocument());
+  });
+
+  it('keeps the records when the patient backs out', async () => {
+    await importSomething();
+    fireEvent.click(screen.getByRole('button', { name: /Remove from my records/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Keep them/i }));
+
+    expect(postImpl).not.toHaveBeenCalledWith('/pdf/imports/42/discard');
+    // …and the way back in is still offered, rather than the page dead-ending.
+    expect(screen.getByRole('button', { name: /Remove from my records/i })).toBeInTheDocument();
   });
 });

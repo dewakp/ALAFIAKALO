@@ -25,6 +25,11 @@ STATUS_PARSED = "parsed"
 STATUS_CONFIRMED = "confirmed"
 STATUS_REJECTED = "rejected"
 STATUS_FAILED = "failed"
+#: Confirmed, then taken back out again — the rows this import wrote have been
+#: deleted from their clinical tables. Distinct from REJECTED, which means
+#: nothing was ever written, because the two are different clinical histories
+#: and a reader has to be able to tell them apart.
+STATUS_DISCARDED = "discarded"
 
 #: DocumentImportItem.dedupe_status
 DEDUPE_NEW = "new"

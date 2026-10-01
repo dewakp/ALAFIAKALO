@@ -260,6 +260,134 @@ def looks_like_prose(name: str) -> bool:
     return len(words) >= 4 and connectives >= len(words) / 2
 
 
+#: Results a lab prints as words on rows that carry no unit and no range —
+#: microscopy and differential findings, and the two ways a lab says "we did not
+#: report this". Same kind of set as NON_NUMERIC_RESULTS above, and it exists for
+#: the same reason: each of these is a clinical fact, not a blank.
+_RESULT_WORDS = {"DNR", "NONE SEEN", "NOT APPLICABLE", "NOT APPL", "TRACE",
+                 "NOT DONE", "NEG", "POS", "NONE"}
+
+#: Roles rejoined to judge a row as the document drew it.
+_ROW_ROLES = ("name", "value", "flag", "unit", "ref_range", "status", "comments")
+
+#: A bare number, optionally bounded ("< 9") or graded ("2+").
+_PLAIN_VALUE = re.compile(r"^[<>]?=?\s*-?\d+(?:\.\d+)?\+?$")
+
+
+def _is_plain_measurement(value: str) -> bool:
+    """True when the value cell is a bare number, give or take the lab's flag.
+
+    `2.4`, `92`, `37.2 L`, `< 9`, `2+`. This is the short-circuit that keeps a
+    legitimately LONG row out of the prose test below, whose word ceiling was
+    calibrated for NAMES and not for whole rows. Without it,
+
+        CBC (INCLUDES DIFF/PLT) WHITE BLOOD CELL COUNT 2.4 LOW 3.8-10.8 Thousand/uL 01
+
+    is 11 words and reads as prose — and the guard deleted that patient's WBC
+    count of 2.4 (the neutropenia), both eGFRs, the sed rate, and six real rows
+    per document across the PHI corpus. Measured, on the way to being shipped.
+
+    A range is deliberately NOT plain: `0.55-2.73` is the tail of a pregnancy
+    reference footnote, and `0-2` is a real microscopy count that the row's own
+    flag and range already spare.
+    """
+    text = _FLAG_RE.sub(" ", f" {value} ").strip()
+    return bool(_PLAIN_VALUE.match(text))
+
+_HAS_DIGIT = re.compile(r"\d")
+
+
+def row_is_prose(cells: dict) -> bool:
+    """True when a whole ROW is the document's furniture rather than a result.
+
+    `looks_like_prose` judges the NAME alone, and that is not enough. On a real
+    3-page Quest report every one of these was imported as a lab result, because
+    each has a short, capitalised, connective-free name:
+
+        01: Quest Diagnostics-Houston = Lab, 5850 Rogerdale   <- a street address
+        Martin SS et al. JAMA.        = 2013;310(19): 2061-2068 <- a citation
+        Desirable range <100          = mg/dL for primary prev  <- a footnote
+        Director: Dr Robert L         = Breckenridge            <- the lab director
+        Performing Laboratory         = Information:            <- a section heading
+
+    The prose was in the cells the name-only guard never inspected.
+
+    WHY NOT "a real row has a number in its value column"
+    ----------------------------------------------------
+    Because it is wrong, and measurably so: on that same report it removes 49 of
+    106 rows, and most are REAL findings —
+
+        WBC = NONE SEEN · RBC = 0-2 · BACTERIA = NONE SEEN
+        HYALINE CAST = NONE SEEN · ABSOLUTE BLASTS = DNR
+        BUN/CREATININE RATIO = NOT APPLICABLE
+
+    an entire urinalysis microscopy panel and half a differential, deleted to
+    remove an address. This module already makes that argument about `Error` and
+    `N/A`: they are things a lab really prints and each means something other
+    than "no result".
+
+    The 13-document PHI corpus scores that rule as FREE — 0 rows lost — because
+    every corpus document is a DaVita report with no microscopy. A green corpus
+    run is not evidence about precision (§3ab); this is the second time that has
+    had to be said.
+
+    WHAT ACTUALLY SEPARATES THEM
+    ----------------------------
+    Measured on that report, every real finding carries a FLAG and a RANGE, even
+    the wordless ones — `COLOR YELLOW NORMAL YELLOW 01` — while the furniture
+    carries neither: `Performing Laboratory = Information:` and
+    `Director: Dr Robert L = Breckenridge` occupy name and value and nothing
+    else. So the signals are the document's own structure, not a vocabulary we
+    have to maintain:
+
+      1. a closed-vocabulary result ("DNR", "NEG") is always a finding;
+      2. the row REJOINED is judged as prose — the lab's address is 12 words
+         across four cells, which the name alone never revealed;
+      3. a row occupying only name and value, with no digit, is furniture.
+
+    Sparing any row with a non-empty range was the earlier rule, and it is what
+    let the address through: that row's range cell reads
+    `TX, 77072-1602, phone: ,`. A non-empty cell is not structure.
+    """
+    populated = {role: (text or "").strip()
+                 for role, text in (cells or {}).items() if (text or "").strip()}
+    value = populated.get("value", "")
+    if not value:
+        # A valueless row is discarded downstream on its own terms.
+        return False
+
+    # A closed-vocabulary result is a clinical fact whatever structure it has.
+    upper = value.upper()
+    if upper in _RESULT_WORDS or upper in NON_NUMERIC_RESULTS:
+        return False
+
+    # A bare number is a measurement, however long the row reads. This must come
+    # BEFORE the prose test: that test counts words against a ceiling meant for
+    # names, and a real row with a long name plus flag, range and unit sails
+    # past it. See `_is_plain_measurement` for what this cost when it was missing.
+    if _is_plain_measurement(value):
+        return False
+
+    # Judge the row REJOINED. A footnote is one sentence split across the
+    # columns, so it is only visible as a sentence once they are put back
+    # together — the lab's address runs to 12 words across four cells and trips
+    # the word ceiling that the name alone never reached.
+    whole = " ".join(populated.get(role, "") for role in _ROW_ROLES).strip()
+    if looks_like_prose(whole):
+        return True
+
+    # A row occupying ONLY name and value has none of the structure a lab gives
+    # a measurement — no flag, no unit, no range. Measured on the Quest report,
+    # every real finding carries a flag AND a range (even the wordless ones:
+    # `COLOR YELLOW NORMAL YELLOW 01`), while `Director: Dr Robert L =
+    # Breckenridge` and `Performing Laboratory = Information:` carry neither.
+    # A number is still a number, so a bare `GLUCOSE 84` survives.
+    if set(populated) <= {"name", "value"} and not _HAS_DIGIT.search(value):
+        return True
+
+    return False
+
+
 def _finish(record: LabRecord) -> LabRecord:
     """Assign category and a confidence the reviewer can sort on."""
     record.category = category_for(record.test_name)
@@ -290,6 +418,12 @@ def records_from_table(table: Table, report_date: date | None = None) -> list[La
         # "up to and including termination of" with the value "employment with
         # DaVita." among real results.
         if looks_like_prose(raw_name):
+            continue
+        # …and the NAME alone is not enough. A lab's street address, its
+        # director and a journal citation all have short, capitalised,
+        # connective-free names; the prose sits in the cells this guard never
+        # inspected. `row_is_prose` judges the row as the document drew it.
+        if row_is_prose(row.cells):
             continue
 
         name, unit_from_name = split_trailing_unit(raw_name)

@@ -1343,7 +1343,11 @@
     "status_2": "Status",
     "delete": "Delete",
     "no_lab_results_yet": "No lab results yet",
-    "upload_lab_report_pdf": "Upload lab report (PDF)"
+    "upload_lab_report_pdf": "Upload lab report (PDF)",
+    "abnormal": "⚠️ Abnormal",
+    "in_range": "✅ In range",
+    "not_assessed": "— Not assessed",
+    "not_assessed_title": "This result was never checked against a reference range."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1982,7 +1986,12 @@
     "generate_flowsheet": "Generate Flowsheet",
     "already_recorded": "Already recorded",
     "differs_from_existing": "Differs from existing",
-    "the_pdf_could_not_be_downloaded": "The PDF could not be downloaded."
+    "the_pdf_could_not_be_downloaded": "The PDF could not be downloaded.",
+    "remove_from_records": "Remove from my records",
+    "remove_confirm": "Remove the {{count}} record(s) this document added?",
+    "removing": "Removing…",
+    "remove_hint": "Removes only what this document added — nothing you entered yourself. You can upload it again afterwards.",
+    "keep": "Keep them"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

@@ -162,6 +162,26 @@ private fun LabResultCard(result: LabResult, onDelete: () -> Unit) {
                     }
                     Text(result.test_date, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                // Whether the value is in range — a THREE-state fact. This card
+                // used to show only `status`, and coloured "Final" GREEN, so
+                // every result read as reassuring whatever the number was. A
+                // potassium of 6.7 against a 3.5–5.5 range looked fine here.
+                val (abnormalLabel, abnormalTint) = when (result.is_abnormal) {
+                    true -> R.string.lab_abnormal to Color(0xFFF44336)
+                    false -> R.string.lab_in_range to Color(0xFF4CAF50)
+                    // Never green: unchecked is not the same as fine.
+                    null -> R.string.lab_not_assessed to MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Surface(color = abnormalTint.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
+                    Text(
+                        stringResource(abnormalLabel),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        color = abnormalTint,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+                Spacer(Modifier.width(6.dp))
                 Surface(color = statusColor.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
                     Text(
                         result.status.replaceFirstChar { it.uppercase() },

@@ -31,6 +31,10 @@ final class PdfToolsViewModel {
     var selectedItemIds: Set<Int> = []
     var isImporting = false
     var importMessage: String?
+    /// Removing a CONFIRMED import deletes clinical rows, so it asks first.
+    var isRemoving = false
+    var confirmRemove = false
+    var removedMessage: String?
 
     // Flowsheet
     var sessionType = "hemodialysis"
@@ -89,6 +93,35 @@ final class PdfToolsViewModel {
         importMessage = nil
         selectedFileData = nil
         selectedFileName = nil
+    }
+
+    /// Take back an import that has ALREADY been written to the record.
+    ///
+    /// `discardImport` above cannot do this: `/reject` marks an import nothing
+    /// was ever saved from. Until this existed, the only way out of a bad
+    /// import was somebody running SQL against production (§3ab), and
+    /// re-importing on top makes it worse — the corrected reading lands beside
+    /// the wrong one and the patient holds two values for one date.
+    ///
+    /// Deletes only what this document added, by the row id recorded against
+    /// each staged item at import time. Anything typed by hand is untouched.
+    func removeImportedRecords() async {
+        guard let importId = parseResult?.importId else { return }
+        isRemoving = true
+        errorMessage = nil
+        do {
+            let response: ConfirmImportResponse = try await postJSON(
+                [:], to: "/pdf/imports/\(importId)/discard"
+            )
+            removedMessage = response.message
+            parseResult = nil
+            selectedItemIds = []
+            importMessage = nil
+            selectedFileData = nil
+            selectedFileName = nil
+            confirmRemove = false
+        } catch { errorMessage = error.localizedDescription }
+        isRemoving = false
     }
 
     // MARK: - PDF download
@@ -299,8 +332,46 @@ struct PdfToolsView: View {
             }
             .disabled(vm.selectedFileData == nil)
 
+            if let removed = vm.removedMessage {
+                banner(removed, systemImage: "arrow.uturn.backward.circle.fill", tint: .blue)
+            }
+
             if let message = vm.importMessage {
                 banner(message, systemImage: "checkmark.circle.fill", tint: .green)
+
+                // The way OUT of a bad import, offered exactly when it becomes
+                // useful: after the rows are on the record, which is when a
+                // misread document gets noticed.
+                if vm.confirmRemove {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Remove the records this document added?")
+                            .font(.caption)
+                        HStack(spacing: 10) {
+                            Button(role: .destructive) {
+                                Task { await vm.removeImportedRecords() }
+                            } label: {
+                                Text(vm.isRemoving ? "Removing…" : "Remove from my records")
+                            }
+                            .disabled(vm.isRemoving)
+                            Button("Keep them") { vm.confirmRemove = false }
+                                .disabled(vm.isRemoving)
+                        }
+                        .font(.subheadline)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(Color.orange.opacity(0.12))
+                    .cornerRadius(8)
+                } else {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Button("Remove from my records") { vm.confirmRemove = true }
+                            .font(.subheadline)
+                        Text("Removes only what this document added. You can upload it again afterwards.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
 
             if let result = vm.parseResult {

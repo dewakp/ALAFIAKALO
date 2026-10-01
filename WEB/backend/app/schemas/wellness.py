@@ -457,6 +457,11 @@ class ConfirmImportResponse(BaseModel):
     status: str
     imported: dict[str, int] = {}
     total_imported: int = 0
+    #: What a discard took back out, per clinical table. Defaulted so the
+    #: shipped iOS and Android builds, which have never seen these fields,
+    #: decode the same response unchanged.
+    removed: dict[str, int] = {}
+    total_removed: int = 0
     message: str | None = None
 
 

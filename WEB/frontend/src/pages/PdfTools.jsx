@@ -57,6 +57,12 @@ function ImportDocument() {
   const [imported, setImported] = useState(null);
   const [error, setError] = useState(null);
   const [showRaw, setShowRaw] = useState(false);
+  // Removing a CONFIRMED import deletes clinical rows, so it asks first — two
+  // clicks inline rather than a browser dialog, which is untestable and easy to
+  // dismiss by reflex.
+  const [removing, setRemoving] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removed, setRemoved] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -109,6 +115,30 @@ function ImportDocument() {
     setResult(null); setSelected(new Set()); setImported(null); setFile(null);
   }
 
+  // Take back an import that was ALREADY written. `reject` cannot do this — it
+  // marks an import nothing was ever saved from — and until now the only route
+  // out of a bad import was somebody running SQL against production (§3ab).
+  // Deletes only the rows this document added, by the id recorded against each
+  // one at import time; anything the patient typed is untouched.
+  async function handleRemove() {
+    if (!result?.import_id) return;
+    setRemoving(true);
+    setError(null);
+    try {
+      const { data } = await api.post(`/pdf/imports/${result.import_id}/discard`);
+      setImported(null);
+      setResult(null);
+      setSelected(new Set());
+      setFile(null);
+      setConfirmRemove(false);
+      setRemoved(data.message);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Those records could not be removed.');
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   const canImport = result?.target_table && selected.size > 0 && !imported;
 
   return (
@@ -149,9 +179,47 @@ function ImportDocument() {
         </div>
       )}
 
+      {removed && (
+        <div style={bannerStyle('#e0f2fe', '#7dd3fc', '#0369a1')}>
+          <Check size={15} /> {removed}
+        </div>
+      )}
+
       {imported && (
         <div style={bannerStyle('#dcfce7', '#86efac', '#15803d')}>
           <Check size={15} /> {imported.message}
+        </div>
+      )}
+
+      {/* The way OUT of a bad import. Offered exactly when it is useful —
+          after the rows have been written — which is when someone notices the
+          document was misread. Before this, the only route was a DBA. */}
+      {imported && result?.import_id && (
+        <div style={{ marginTop: '.6rem' }}>
+          {!confirmRemove ? (
+            <>
+              <button className="btn btn-secondary btn-sm" type="button"
+                onClick={() => setConfirmRemove(true)}>
+                <X size={14} /> {t('PdfTools.remove_from_records')}
+              </button>
+              <div style={{ fontSize: '.72rem', color: 'var(--color-text-tertiary)', marginTop: '.3rem' }}>
+                {t('PdfTools.remove_hint')}
+              </div>
+            </>
+          ) : (
+            <div style={bannerStyle('#fef3c7', '#fcd34d', '#b45309')}>
+              <AlertTriangle size={15} />
+              <span>{t('PdfTools.remove_confirm', { count: imported.total_imported })}</span>
+              <button className="btn btn-danger btn-sm" type="button"
+                disabled={removing} onClick={handleRemove}>
+                {removing ? t('PdfTools.removing') : t('PdfTools.remove_from_records')}
+              </button>
+              <button className="btn btn-secondary btn-sm" type="button"
+                disabled={removing} onClick={() => setConfirmRemove(false)}>
+                {t('PdfTools.keep')}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

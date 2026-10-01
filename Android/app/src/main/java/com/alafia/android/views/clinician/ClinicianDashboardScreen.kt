@@ -177,7 +177,9 @@ fun ClinicianDashboardScreen(
 
 @Composable
 private fun PatientCard(patient: PatientSummary, onOpen: () -> Unit) {
-    val abnormal = patient.latestLabs.count { it.isAbnormal }
+    // `== true` on purpose: the flag is a tri-state and null means "never
+    // assessed", which must not be counted as a reassuring negative.
+    val abnormal = patient.latestLabs.count { it.isAbnormal == true }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
