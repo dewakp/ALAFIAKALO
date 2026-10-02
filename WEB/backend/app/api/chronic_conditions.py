@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from typing import List
 
 import alafia_crypto as _rc  # Rust crypto backend
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -78,16 +78,59 @@ _NAIVE_SESSION_DATETIMES = (
 )
 
 
-def _naive_session_payload(data: dict) -> dict:
+def _naive_session_payload(data: dict, stored_start: datetime | None = None) -> dict:
     """Normalise every naive-column datetime in a session payload.
 
     `_naive_utc` was already applied to the query FILTERS and not to the body,
     so reading a date range worked and writing one 500'd. The test suite could
     not see it: it ran on SQLite, which has no aware/naive distinction at all.
+
+    A TREATMENT THAT ENDS AFTER MIDNIGHT ENDS ON THE NEXT DAY
+    ---------------------------------------------------------
+    All three clients compose the stored timestamp by stamping the session's
+    date onto one clock at a time — `${day}T${clock}:00` on web,
+    `iso(day:clock:)` on iOS, `isoAt(date, endTime)` on Android — so an
+    overnight session arrives with its end on the START's date and the stored
+    clock is negative. Measured on production 2026-10-02: 4 of the 22 live-app
+    sessions carrying both ends (ids 2745, 2749, 2750, 2755, created
+    2026-08-27 to 2026-09-16) read -1145 to -1213 minutes, and each rolls to
+    227-295 — against a stored median of 227. The times the patient typed are
+    right; the day was discarded.
+
+    A helper handed ONE time cannot know it belongs to the next day; only the
+    PAIR shows that. So this is not one platform wrong beside two right
+    (3av) — there is no correct client to copy, and the rule belongs here,
+    where both values are in hand and where every SHIPPED client is covered
+    without waiting on an app release.
+
+    Only a SAME-DATE inversion is rolled. Three rows have an end dated days
+    before their start (ids 4, 11, 13 — gaps of 7, 3 and 1 days, from the
+    2026-06-04 import); 24 hours would not repair those, so they are left for
+    a person. An end already on a later date is never touched, or the
+    flowsheet backfill's own correct values would be rolled a second time.
+
+    `stored_start` exists because the update path sends `exclude_unset=True`:
+    editing only the end time arrives WITHOUT the start, and the rule would be
+    blind exactly where a correction is most likely. Fixing create and leaving
+    update is the half-wiring that left `session_drugs` ten months behind.
     """
     for key in _NAIVE_SESSION_DATETIMES:
         if key in data:
             data[key] = _naive_utc(data[key])
+
+    # After normalisation, never before: comparing an aware value from the
+    # browser to a naive one raises TypeError.
+    end = data.get("actual_end_time")
+    start = data.get("actual_start_time", stored_start)
+    if start is None:
+        start = stored_start
+    if (end is not None and start is not None
+            and end < start and end.date() == start.date()):
+        data["actual_end_time"] = end + timedelta(days=1)
+        logger.info(
+            "Session end %s precedes start %s on one date — rolled to %s "
+            "(overnight treatment)", end, start, data["actual_end_time"],
+        )
     return data
 
 
@@ -571,7 +614,12 @@ async def update_therapy_session(
     if not db_session:
         raise HTTPException(status_code=404, detail="Therapy session not found")
     
-    update_data = _naive_session_payload(session_update.model_dump(exclude_unset=True))
+    # `exclude_unset=True` means an edit to the end time alone arrives with no
+    # start, so the stored one is handed over for the overnight-rollover check.
+    update_data = _naive_session_payload(
+        session_update.model_dump(exclude_unset=True),
+        stored_start=db_session.actual_start_time,
+    )
     old_status = db_session.status
     for field, value in update_data.items():
         setattr(db_session, field, value)
