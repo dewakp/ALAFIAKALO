@@ -455,6 +455,67 @@ written:
 A refused name is left exactly as written and reported for a human to check at
 source. A wrong drug name on a clinical record is worse than an unmatched one.
 
+#### Resolved by the operator — and only ONE was a misspelling
+
+The four refusals went back to the person who owns the record. The answers
+reframe what the refusal list actually was:
+
+| name | what it is | action |
+|---|---|---|
+| `Oedesetron` | **ondansetron** | CORRECT — a real typo |
+| `Marine Bone Discovery` | a **supplement** | reclassify, do not rename |
+| `Flucel Vax` | **flu vaccine**, season = the logged date (2018-10-17 → 2018-2019) | reclassify, do not rename |
+| `Rugby Stimulant Laxative Plus Stool Softener` | **OTC** product | reclassify, do not rename |
+
+> **Three of the four were never bad data.** They are real products that RxNorm
+> does not cover, and a list headed "names RxNorm does not recognise" reads as an
+> error report when it is a COVERAGE BOUNDARY. §3aj's *fail open* rule applies to
+> absence as well as to unreachability: not in the authority ≠ invalid.
+
+`Oedesetron` is correctable because two independent sources agree — the operator
+names the drug, and RxNorm names the spelling (`ondansetron`, rxcui 26225, TTY
+`IN`, an ingredient concept, the right granularity for a dose log). §3aj forbids
+acting on string SIMILARITY; it does not forbid acting on a human who knows the
+record. The distinction is the whole point: RxNorm's own approximate matcher
+offered nothing for `Oedesetron` and offered *Vaxelis* for `Flucel Vax`.
+
+**RxNorm genuinely holds no Flucelvax concept, and the control proves the query
+was sound.** `Flublok 2024-2025` resolved to rxcui 2687737 through the identical
+exact-name call that returned nothing for `Flucelvax 2018-2019`,
+`Flucelvax 2019-2020` and `Flucelvax Quadrivalent`. Approximate matching returned
+**eight candidates tied at an identical 15.382, every one resolving to no name** —
+a matcher scraping bottom, not a near miss.
+
+> **A probe that returns zero for a known-present concept is broken, not
+> informative.** `drugs.json?name=Flucelvax` returned 0 concepts — and so did
+> `drugs.json?name=Flublok`, for a product whose seasonal concepts demonstrably
+> exist. Without the Flublok control that empty answer would have been reported
+> as "RxNorm has no Flucelvax", which happens to be true, reached by an argument
+> that proves nothing. Run the control first.
+
+A rename there would also have had to reach TWO sources, and one carries data the
+other does not:
+
+    therapy_sessions  id=776   2018-10-17  "Venofer (200 ml); Flucel Vax (5 ml)"
+    session_drugs     id=1781  session 776  row_index=1  name="Flucel Vax"
+                      dose_text="5 ml"  route=IV  administered_time=14:30
+
+The `session_drugs` row carries a route and a timestamp from the workbook import
+that the flattened text does not. (Its `route=IV` on an intramuscular vaccine is
+very likely wrong, but that is the record's own content and not a parser's to
+alter.)
+
+**What reclassification means in practice.** `NutrientEffect` already defines
+`AGENT_SUPPLEMENT` and `AGENT_HERB` beside `AGENT_MEDICATION`, but
+`resolve_nutrient_effects.py` labels everything out of `medication_dose_logs` as
+a medication because that is the table it came from. A supplement is not a
+prescription, and the distinction matters for how a finding is explained to a
+patient (§3an: a trigger is not an allergy — they are enforced alike and must be
+EXPLAINED differently). None of the three wrote a wrong row: Marine Bone
+Discovery and Flucel Vax both returned no effects, and Rugby resolved correctly
+on mechanism anyway — `removes potassium_mg / sodium_mg`, *"increased fecal
+losses via osmotic and stimulant laxative action"*.
+
 ### The effects store: resolved once, remembered, never typed
 
 `nutrient_effects` answers "what does this AGENT do to this NUTRIENT" for

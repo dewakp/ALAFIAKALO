@@ -75,22 +75,55 @@ CORRECTIONS: dict[str, tuple[str, str, str]] = {
         "Flublok 2026-2027", "2746444",
         "three seasons tied at 14.87; season chosen by the operator against the "
         "2026-09-15 administration date, not by match score"),
+    "Oedesetron": (
+        "Ondansetron", "26225",
+        "TWO independent sources: the operator identified the drug, and RxNorm "
+        "names rxcui 26225 'ondansetron' (TTY=IN, an ingredient concept — the "
+        "right granularity for a dose log). RxNorm's own approximate matcher "
+        "offered NO candidate, so similarity never entered into it (§3aj)"),
 }
 
-#: Left exactly as written, and reported. Each needs a human to check the
-#: source record — a wrong drug name is worse than an unmatched one.
-REFUSED: dict[str, str] = {
-    "Flucel Vax":
-        "best match resolves to Vaxelis, a DIFFERENT vaccine; RxNorm holds "
-        "nothing under Flucelvax either",
-    "Oedesetron":
-        "RxNorm returned no candidate at all; resembles ondansetron (26225) "
-        "but similarity is not evidence (§3aj)",
+#: Real products that RxNorm does not cover. These are NOT misspellings and must
+#: never be renamed — the operator identified each one. A list headed "names
+#: RxNorm does not recognise" reads as an error report when it is a COVERAGE
+#: BOUNDARY, and §3aj's fail-open rule covers absence as well as unreachability:
+#: not in the authority is not the same as invalid.
+#:
+#: `NutrientEffect` already defines AGENT_SUPPLEMENT and AGENT_HERB beside
+#: AGENT_MEDICATION, but `resolve_nutrient_effects.py` labels everything out of
+#: `medication_dose_logs` as a medication because that is the table it came
+#: from. A supplement is not a prescription, and §3an's rule applies — enforced
+#: alike, EXPLAINED differently.
+OUTSIDE_RXNORM: dict[str, str] = {
     "Marine Bone Discovery":
-        "two rxcuis tied at an identical score, neither resolving to a name",
+        "supplement (operator-identified). Two candidate rxcuis tied at an "
+        "identical 12.731 and neither resolves to a name.",
+    "Flucel Vax":
+        "flu vaccine, season = the logged date (2018-10-17 -> 2018-2019). "
+        "RxNorm holds NO Flucelvax concept: `Flublok 2024-2025` resolved to "
+        "2687737 through the identical exact-name call that returned nothing "
+        "for every Flucelvax form, and all 8 approximate candidates tied at "
+        "15.382 resolve to no name. Its only 'match' was Vaxelis, a different "
+        "vaccine. Lives in TWO places — therapy_sessions id=776 free text and "
+        "session_drugs id=1781, which carries a route and timestamp the text "
+        "does not.",
     "Rugby Stimulant Laxative Plus Stool Softener":
-        "candidate rxcuis resolve to no name",
+        "OTC product (operator-identified). The branded combination is not in "
+        "RxNorm, though the sweep still resolved its effects correctly from "
+        "mechanism: removes potassium_mg / sodium_mg via increased fecal "
+        "losses.",
 }
+
+#: Nothing is listed here any more. The four names this script originally
+#: refused went back to the operator, and only ONE was a misspelling
+#: (`Oedesetron`, now in CORRECTIONS). The other three are real products RxNorm
+#: does not carry — see OUTSIDE_RXNORM above.
+#:
+#: Kept as an empty dict rather than deleted: a name that cannot be resolved AND
+#: cannot be identified by the operator still belongs here, left exactly as
+#: written. A wrong drug name on a clinical record is worse than an unmatched
+#: one.
+REFUSED: dict[str, str] = {}
 
 
 async def main() -> int:
@@ -130,10 +163,17 @@ async def main() -> int:
             await db.commit()
 
     print()
-    print("REFUSED — left exactly as written, for a human to check the source:")
-    for name, why in REFUSED.items():
+    print("OUTSIDE RxNORM — real products, identified by the operator, NOT renamed:")
+    for name, why in OUTSIDE_RXNORM.items():
         print(f"  {name}")
         print(f"      {why}")
+
+    if REFUSED:
+        print()
+        print("REFUSED — left exactly as written, for a human to check the source:")
+        for name, why in REFUSED.items():
+            print(f"  {name}")
+            print(f"      {why}")
 
     print()
     if args.apply:
