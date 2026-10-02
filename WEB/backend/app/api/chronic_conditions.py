@@ -18,6 +18,7 @@ from app.models.user import User
 from app.models.chronic_conditions import ChronicCondition, TherapySession, ConditionMetric, IntradialyticReading, ClinicalNote, FlowsheetStatus
 from app.services import flowsheet_defaults as fs_defaults
 from app.services.flowsheet_drugs import COMMON_DIALYSIS_DRUGS
+from app.services.session_drug_sync import sync_session_drugs
 from app.services.icd11_catalog import (
     ICD11_CODE_RE,
     catalog_version as icd11_catalog_version,
@@ -508,6 +509,20 @@ async def create_therapy_session(
         db.add(db_session)
     await db.commit()
 
+    # Structure the drugs this flowsheet recorded. Until 2026-10-02 the ONLY
+    # writer of `session_drugs` was the Excel importer, so the table could never
+    # be newer than the last workbook somebody imported — measured on
+    # production it stopped at 2025-12-31 while dosing continued, leaving 1,299
+    # sessions (2018-11-16 → 2026-09-25) with drug text and no structured rows.
+    # Invisible on the clinical surfaces, which fall back to parsing the text;
+    # very visible to anything reading the table, which saw a patient who had
+    # ceased IV iron ten months before they actually did.
+    #
+    # Fills a gap only: a session that already has rows keeps them, with the
+    # route and time the flattened text cannot reproduce. Never raises.
+    if await sync_session_drugs(db, db_session):
+        await db.commit()
+
     # Re-query with relationships eagerly loaded to avoid async lazy-load errors
     result = await db.execute(
         select(TherapySession)
@@ -562,6 +577,12 @@ async def update_therapy_session(
         setattr(db_session, field, value)
     
     await db.commit()
+
+    # Same gap-fill as the create path. Wiring only one of the two would leave
+    # either every edited session or every new session unstructured — and a
+    # half-wired control is how `session_drugs` fell ten months behind.
+    if await sync_session_drugs(db, db_session):
+        await db.commit()
 
     # Re-query with relationships eagerly loaded
     result = await db.execute(

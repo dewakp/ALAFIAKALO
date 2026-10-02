@@ -2157,6 +2157,109 @@ Clock Time computed 305 min from the same row.
 > on the assertion, naming both fields, and went green on the fix (§3ay: prove a
 > capture test fails against the OLD code).
 
+### The structured drug table had no live writer, and fell ten months behind
+
+Found 2026-10-02 from a patient saying *"Venofer was administered 3 times in the
+past two weeks"* against a database that said the last dose was 2025-12-31.
+
+`session_drugs` holds one row per flowsheet drug line (route, time);
+`therapy_sessions.drugs_administered` holds the same administrations as text.
+`clinical_sources` PREFERS the structured rows and parses the text only for a
+session with none — so the clinical surfaces were correct throughout. **The
+structured table was the stale one**, because its only writer was
+`scripts/import_flowsheets.py`, which reads Excel workbooks. It can never be
+newer than the last workbook somebody imported.
+
+Measured on production: **1,299 sessions spanning 2018-11-16 → 2026-09-25**
+carried drug text and no structured rows.
+
+- **Anything reading the table directly saw a patient who had stopped
+  treatment.** The ML exposure series does. It therefore learned from a series
+  ending 2025-12-31 across exactly the window where ferritin fell 1,033 → 24 and
+  transferrin saturation to 6%, and could not see the dose change from
+  `Venofer (100 mg)` to `Venofer (200 mg)`, because every 2026 session was in
+  the unparsed 1,299.
+- `services/session_drug_sync.py` parses on save, from BOTH the create and the
+  update path. Wiring one would leave either every new session or every edited
+  one unstructured — a half-wired control is how this happened.
+- **Fill a gap; never overwrite a richer row.** The workbook carries a route on
+  1,763 of 1,764 rows and a time on 269; the flattened text carries neither. A
+  session that already has rows is left alone, or re-parsing would destroy the
+  timing §3at exists to protect.
+- **Store the name VERBATIM.** `parse_drugs_administered` canonicalises
+  (`Epogene` → `Epoetin alfa`) but production holds `Epogene` 673, `Venofer`
+  364, `Doxercalcif` 363. Writing the canonical form would split one drug into
+  two spellings inside the table that exists to stop that (§3ax).
+  Canonicalisation already happens at READ time.
+- `SessionDrug` is a §3aa GUARDED model, so the writer needed an `ALLOWED` entry
+  with its reason — its only read is an existence check scoped to the session it
+  is about to populate.
+
+> **A planner estimate is not a count.** `n_live_tup` reported `therapy_sessions`
+> at 27 and `ai_interactions` at 33; the exact counts are **2,032** and 57. One
+> of those nearly became "the dialysis history is missing from production".
+
+### What the record could and could not identify about IV iron
+
+`ML/scripts/fit_iron_balance.py` fits `next − prev = β·iron − rate·days` on a
+chronological hold-out and reports `beats_baseline=False` for ferritin,
+saturation and iron, with the coefficients physiologically inverted. Its
+docstring attributes that to **confounding by indication**. Measured against the
+record, that explanation does not hold here:
+
+      year  % sessions dosed   mean ferritin AT the dose   doses given >800
+      2021        100%                   672                     64
+      2022        100%                   783                    142
+      2024        100%                  1013                    105 of 151
+      2026          6%                    56                      0
+
+IV iron was given at a mean ferritin of **1013** in 2024 — dosing was
+independent of the marker, not driven by it. The operator confirms this was
+routine practice, later informed by analysis. So the real obstacles are:
+
+- **No dose variation in the window where labs are dense.** 597 consecutive
+  sessions record an identical `Venofer (100 mg)`, and `units_per_dose` for the
+  ESA is **3,000 in every quarter from 2021-Q1 to 2026-Q3**. The 20,000/10,000
+  strengths all end by 2020-08.
+- **A regime change mid-series.** `doses_next_90d` collapses 30 → 3 between
+  2025-11 and 2026-01 while `doses_prev_90d` stays high. Pooling the two
+  assignment regimes recovers a sign governed by whichever dominates.
+- **Ferritin's own volatility.** It swings ±400 in a fortnight under identical
+  exposure (1224 → 806 → 1228 across April 2024). Grouped by exposure the
+  relationship is non-monotonic, and the groups differ in starting level
+  (278 / 632 / 714), so they are not comparable.
+
+> **Do not demote an analyte from one record.** Ferritin's unreliability HERE is
+> a fact about this patient's inflammation, not about ferritin. The system is
+> built for patients arriving with their own data, so this belongs in a
+> per-patient fit with `times_confirmed`, never in a hardcoded judgement.
+
+### Every learning loop is built, and every one is frozen at n=1
+
+Measured on production 2026-10-02. The mechanisms exist; nothing comes back
+round:
+
+| store | designed to grow by | actual |
+|---|---|---|
+| `nutrient_effects` | `times_confirmed`, re-resolution | **1 row** |
+| `condition_nutrition_facts` | sharpen on re-resolution | 50 rows, **every one `times_confirmed=1`** |
+| `dialysis_solute_coefficients` | per-patient refit | 5 rows, one user, **one run**, 2026-08-20 |
+| `inference_samples` | `trained_on` claim flag | 208 rows, **all false**, no consumer |
+| `document_row_judgments` | two agreeing reviewers | **0 rows** |
+| `food_training_samples` | consented photos | 23 rows, **0 images retained** |
+
+`times_confirmed += 1` IS wired (`condition_nutrition_service.py:285`,
+`nutrient_effects_service.py:440`, `import_learning.py:194`) and APScheduler is
+already imported in `main.py`. What is missing is not a mechanism; it is a clock.
+
+> ⚠️ **The 12 risk classifiers are tautological.** Every target is a same-day
+> threshold on a feature that is itself in the 284-feature input —
+> `risk_anemia = lab_hemoglobin < 10.0`, `risk_hyperkalemia = lab_potassium > 5.5`,
+> and so on through all twelve (`03_feature_engineering.ipynb`). That is why they
+> report `AUC = 1.000`. They restate their input and have **no lead time at all**,
+> so nothing built on them can answer a question about cause or about what comes
+> next.
+
 ## 3au. Mobile cannot buy the way the web buys
 
 Apple and Google require digital subscriptions to be sold through their own

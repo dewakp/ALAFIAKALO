@@ -47,6 +47,15 @@ ALLOWED = {
     # it the answer hides facts; every clinical read in this module still goes
     # through clinical_sources (see `get_medications`).
     "services/record_tools.py",
+    # The WRITER that structures a flowsheet's drugs when the session is saved.
+    # Until 2026-10-02 the only writer of `session_drugs` was the Excel
+    # importer, so the table stopped at 2025-12-31 while dosing continued and
+    # 1,299 sessions (2018-11-16 → 2026-09-25) held drug text with no rows.
+    # Its single read is an existence check scoped to the one session it is
+    # about to populate (`SELECT id WHERE session_id = :id LIMIT 1`) — not a
+    # clinical question, and it is what enforces "fill a gap, never overwrite a
+    # richer row". Every clinical READ still goes through clinical_sources.
+    "services/session_drug_sync.py",
     "api/ehr.py",                     # the EHR/FHIR import writes both
     "services/med_nutrient_service.py",   # dose-log nutrient resolution
     "services/nutrient_goals_service.py",  # documented condition matching

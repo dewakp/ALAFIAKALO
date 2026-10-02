@@ -421,6 +421,88 @@ inventing a threshold that could would start eating real ones.
 `test_a_citation_with_digits_still_survives_this_layer` pins the current
 behaviour so a change that fixes it fails loudly and gets its own measurement.
 
+## 2026-10-02 — a misspelled drug is a drug the system cannot see
+
+`resolve_nutrient_effects.py` reported seven names RxNorm does not recognise. A
+misspelling is not cosmetic: `canonical_drug_name` cannot map it, so the drug
+never joins its own history, never reaches nutrient tracking, and appears as a
+separate drug on the medication list (§3aj).
+
+`scripts/correct_drug_spellings.py` corrects **only what RxNorm itself names**.
+Each candidate rxcui was resolved to its actual RxNorm name before anything was
+written:
+
+    Cyclobenzeprine        -> 21949    cyclobenzaprine         CORRECTED (7 rows)
+    Vancomicine            -> 11124    vancomycin              CORRECTED (1 row)
+    Flublok 2024 - 2026    -> 2746444  Flublok 2026-2027       operator-chosen
+    Flucel Vax             -> 2109616  Vaxelis                 REFUSED
+    Marine Bone Discovery  -> 2738225  (no name)               REFUSED
+    Rugby Stimulant …      -> 2282120  (no name)               REFUSED
+    Oedesetron             -> (no candidate at all)            REFUSED
+
+> **An approximate match is a PROPOSAL, never a correction.** `Flucel Vax` is the
+> case that proves it: its best match resolves to **Vaxelis, a different
+> vaccine**, and RxNorm holds nothing under the correct spelling either —
+> `Flucelvax`, `Flucelvax Quadrivalent` and `influenza virus vaccine` all return
+> no rxcui. `Oedesetron` looks like ondansetron (26225 exists) and RxNorm offered
+> **no candidate at all**; §3aj already records that string similarity is the
+> wrong instrument for drug names. Two rxcuis tied at an identical 12.731 for
+> `Marine Bone Discovery` — a tie is the authority declining to choose.
+>
+> The three Flublok seasons also tied (14.87), so the season came from the
+> operator against the 2026-09-15 administration date, not from the match score.
+
+A refused name is left exactly as written and reported for a human to check at
+source. A wrong drug name on a clinical record is worse than an unmatched one.
+
+### The effects store: resolved once, remembered, never typed
+
+`nutrient_effects` answers "what does this AGENT do to this NUTRIENT" for
+treatments, medications, conditions, supplements and herbs — the generalisation
+of §3an's condition→food facts. It held **one** row (a seeded
+`Hemodialysis → protein_g` literature prior) until
+`scripts/resolve_nutrient_effects.py --apply` swept the record on 2026-10-02 and
+took it to **26 rows across 12 agents**.
+
+What it produced is the relationship layer the iron analysis lacked:
+
+    Epoetin alfa      increases_requirement  iron_mg        per_session   high
+    Iron sucrose      adds                   iron_mg    1   per_dose_unit high
+    Calcium Carbonate blocks_absorption      iron_mg        per_g_dietary moderate
+    Hydrochlorothiazide removes              potassium_mg   per_session   high
+    Tramadol          blocks_absorption      sodium_mg      per_session   moderate
+
+`Epoetin alfa increases_requirement iron_mg` is the variable whose absence
+`fit_iron_balance.py` names as a reason its fit could not measure anything: the
+ESA consumes iron, it was co-administered at essentially every Venofer session,
+and nothing in the model knew.
+
+- **The sweep never invents an agent.** It reads what the record holds —
+  `therapy_sessions.therapy_type`, `medication_dose_logs.medication_name`, and
+  the drugs in `drugs_administered` — and dedupes on the canonical key so
+  Venofer/venofer/Iron sucrose resolve once rather than three times.
+- **An agent with a stored effect is SKIPPED, not re-asked.** The seeded
+  protein row kept `provenance=literature_prior, confidence=0.8`; a model answer
+  would have overwritten a citation with something weaker.
+- **A fact nothing can apply is refused at write time**: `'citrate' is not a
+  catalog nutrient, skipped`, same for `'fluid'`. The nutrient key must exist in
+  `app/core/nutrition_data.NUTRIENT_CATALOG` or the row could never reach a
+  total.
+- It is a SCRIPT, not a request path: `resolve_agent_effects` is a model call
+  (~0.6–2.1 s each here, via `anthropic:claude-haiku-4-5-20251001`), and the
+  store is shared, so the answer is worth computing once for everyone.
+
+> ⚠️ **Running a backend script against PROD needs host networking AND
+> `ML/src` on PYTHONPATH.** `docker compose run backend-test` has the path but
+> cannot reach the proxy on the host; `docker run --network host` reaches it but
+> lacks `alafia_model` — and that failure is SILENT: every agent logged
+> "ALAFIAModel not available", nothing was written, and the script still printed
+> `done: 0 agent(s) newly described` with **exit 0**. The working form is
+> `docker run --network host` with both `-v ML/src:/ml/src` and
+> `PYTHONPATH=/ml/src:/app`. Take `$DB_USER`/`$DB_NAME` from `db_lib.sh` — the
+> production user is **`alafia`**, not `postgres`, and the stored DSN is a
+> Unix-socket URL with no host or port.
+
 ## 2026-10-01 — LOINC is generated, correct, and deliberately NOT wired
 
 §3ad forbids typing a code from memory and §3aj proved a 23-row seed wrong in

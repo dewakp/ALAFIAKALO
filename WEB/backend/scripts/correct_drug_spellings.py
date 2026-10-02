@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""Correct misspelled drug names — only where RxNorm names the correction.
+
+`resolve_nutrient_effects.py` reported seven names RxNorm does not recognise.
+A misspelled drug is not cosmetic: `canonical_drug_name` cannot map it, so the
+drug never joins its own history, never reaches nutrient tracking, and shows up
+as a separate drug on the medication list (§3aj).
+
+WHAT THIS WILL AND WILL NOT DO
+------------------------------
+RxNorm's `approximateTerm` returns CANDIDATES, not corrections. Probed
+2026-10-02, each candidate rxcui resolved to its actual RxNorm name:
+
+    Cyclobenzeprine        -> 21949   cyclobenzaprine          CORRECT
+    Vancomicine            -> 11124   vancomycin               CORRECT
+    Flublok 2024 - 2026    -> 2746444 Flublok 2026-2027        operator-chosen
+    Flucel Vax             -> 2109616 Vaxelis                  REFUSED
+    Marine Bone Discovery  -> 2738225 (no name)                REFUSED
+    Rugby Stimulant ...    -> 2282120 (no name)                REFUSED
+    Oedesetron             -> (no candidate at all)            REFUSED
+
+`Flucel Vax` is the case that proves the rule. Its best match is **Vaxelis, a
+different vaccine**, and RxNorm holds nothing under the correct spelling either
+(`Flucelvax`, `Flucelvax Quadrivalent` and `influenza virus vaccine` all return
+no rxcui). A rename there would put a wrong vaccine on a clinical record.
+`Oedesetron` looks like ondansetron (rxcui 26225 exists) — but RxNorm offered no
+candidate, and §3aj is explicit that string similarity is the wrong instrument
+for drug names: "calcium calcitriol" scores 0.63 against "calcium carbonate" and
+its nearest match is a third drug entirely.
+
+Two rxcuis tied at an identical score for `Marine Bone Discovery` (2738225 and
+352755, both 12.731). A tie is the authority declining to choose.
+
+The three vaccine seasons also tied at 14.87 — 2024-2025, 2025-2026, 2026-2027 —
+so the season came from the operator against the administration date, not from
+the match score.
+
+WHERE THE NAMES LIVE (production, 2026-10-02)
+---------------------------------------------
+    medication_dose_logs   Cyclobenzeprine 6, Oedesetron 4, Marine Bone 3,
+                           Flublok 1, Rugby Stimulant 1, Vancomicine 1
+    medications            Cyclobenzeprine 1, Oedesetron 1
+    therapy_sessions       one 2018 flowsheet line carrying `Flucel Vax (5 ml)`
+
+Dry run is the default: this UPDATES clinical rows.
+
+    python scripts/correct_drug_spellings.py            # dry run
+    python scripts/correct_drug_spellings.py --apply
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import sys
+
+from sqlalchemy import select
+
+sys.path.insert(0, "/app")
+
+from app.core.database import async_session            # noqa: E402
+from app.models.med_nutrient import MedicationDoseLog  # noqa: E402
+from app.models.medications import Medication          # noqa: E402
+
+
+#: wrong -> (right, rxcui, why). ONLY names RxNorm itself resolved.
+CORRECTIONS: dict[str, tuple[str, str, str]] = {
+    "Cyclobenzeprine": (
+        "Cyclobenzaprine", "21949",
+        "RxNorm names rxcui 21949 'cyclobenzaprine'"),
+    "Vancomicine": (
+        "Vancomycin", "11124",
+        "RxNorm names rxcui 11124 'vancomycin'"),
+    "Flublok 2024 - 2026": (
+        "Flublok 2026-2027", "2746444",
+        "three seasons tied at 14.87; season chosen by the operator against the "
+        "2026-09-15 administration date, not by match score"),
+}
+
+#: Left exactly as written, and reported. Each needs a human to check the
+#: source record — a wrong drug name is worse than an unmatched one.
+REFUSED: dict[str, str] = {
+    "Flucel Vax":
+        "best match resolves to Vaxelis, a DIFFERENT vaccine; RxNorm holds "
+        "nothing under Flucelvax either",
+    "Oedesetron":
+        "RxNorm returned no candidate at all; resembles ondansetron (26225) "
+        "but similarity is not evidence (§3aj)",
+    "Marine Bone Discovery":
+        "two rxcuis tied at an identical score, neither resolving to a name",
+    "Rugby Stimulant Laxative Plus Stool Softener":
+        "candidate rxcuis resolve to no name",
+}
+
+
+async def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--apply", action="store_true",
+                    help="write the corrections (default: dry run)")
+    args = ap.parse_args()
+
+    changed = 0
+    async with async_session() as db:
+        for wrong, (right, rxcui, why) in CORRECTIONS.items():
+            logs = (await db.execute(
+                select(MedicationDoseLog).where(
+                    MedicationDoseLog.medication_name == wrong)
+            )).scalars().all()
+            meds = (await db.execute(
+                select(Medication).where(Medication.name == wrong)
+            )).scalars().all()
+
+            if not logs and not meds:
+                print(f"  {wrong!r}: no rows — nothing to correct")
+                continue
+
+            print(f"  {wrong!r} -> {right!r}  (rxcui {rxcui})")
+            print(f"      {why}")
+            print(f"      dose logs: {len(logs)}   prescriptions: {len(meds)}")
+            for row in logs:
+                if args.apply:
+                    row.medication_name = right
+                changed += 1
+            for row in meds:
+                if args.apply:
+                    row.name = right
+                changed += 1
+
+        if args.apply:
+            await db.commit()
+
+    print()
+    print("REFUSED — left exactly as written, for a human to check the source:")
+    for name, why in REFUSED.items():
+        print(f"  {name}")
+        print(f"      {why}")
+
+    print()
+    if args.apply:
+        print(f"applied: {changed} row(s) corrected.")
+    else:
+        print(f"dry run: {changed} row(s) would change. Use --apply to write.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(asyncio.run(main()))
