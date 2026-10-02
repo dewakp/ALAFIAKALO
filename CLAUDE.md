@@ -2260,6 +2260,363 @@ already imported in `main.py`. What is missing is not a mechanism; it is a clock
 > so nothing built on them can answer a question about cause or about what comes
 > next.
 
+### The clock was in the workbooks all along (2026-10-02)
+
+`therapy_sessions` held `actual_start_time` on **49 of 2,032** rows and
+`machine_total_time_minutes` on **4**. The flowsheet workbooks carry a start on
+**653 sheets** and a machine total time on **653** — and per §3at neither is
+derivable from anything else on the row. `scripts/extract_flowsheet_clocks.py`
+reads the books on the host; `scripts/backfill_session_clock.py` matches and
+writes, dry-run by default, filling only NULLs.
+
+Every fault below was a SILENT WRONG ANSWER, found only by making the extractor
+report what it refused. None of them crashed.
+
+> **A parser that drops what it cannot read, without counting it, hides its own
+> failure.** `if day is None: continue` discarded **76 of 332** sheets in the
+> 2017-18 book and reported a confident 618 total. They were not junk tabs: the
+> month regex was `^([A-Z][a-z]{2})\s`, so every `July`, `June` and `March`
+> sheet failed — 48 of them — along with the typo `Marc` and the lowercase
+> `oct`. Months are now matched on their first three letters, case-folded, so
+> `Marc` resolves and `Master` does not. **Count the rejects and print them**;
+> this is §3av's "run the scan, never the arithmetic", one layer earlier.
+
+> **`.N` appears on EITHER side of the year.** `Oct 13.2-2018` and
+> `Nov 9-2018.2` both mean "the second treatment that day", and recognising
+> only the first form discarded eight of eleven second-treatment sheets — the
+> exact set that decides how many days held two treatments. Reported as 4; the
+> real answer is **54 of 77 multi-session days**, peaking at 19 in 2022.
+
+> **`min(reading_time)` IS NOT a session's start.** It is `00:xx` on a session
+> that began at 22:00, because **43% of this record's treatments cross
+> midnight** and the readings wrap: `min()` returns the post-midnight reading
+> and `max()` the pre-midnight one. Comparing windows built that way made every
+> session span the whole day and overlap everything, so 54 two-treatment days
+> read as 4 and the pairs were called "one treatment recorded twice". Overnight
+> home dialysis is the NORM here — starts cluster at 20h-23h (279 of 653) — so
+> any window over `reading_time` must be re-anchored first, and a session whose
+> readings are entirely post-midnight cannot be detected from the readings
+> alone; the sheet's own window is the evidence for shifting them.
+
+> **A fixed cell coordinate is an assumption, not a location.** `Start Time` is
+> at r24c19 on the 2018+ sheets and **r24c22** on the 2017 ones, which cost 19
+> sheets written off as "template not recognised". Worse, `Total Time`'s value
+> is at **r52c3 — two columns RIGHT, same row —** on 646 sheets and directly
+> beneath the label on 7. Reading one offset found **7 machine times out of
+> 653**. Find the LABEL, then search the region between it and the next label in
+> its row plus the cell beneath; when two candidates both parse and disagree,
+> report it rather than picking.
+
+> **An identical corrupt value across many sheets is the proof it is an
+> artifact.** `1900-03-05T04:48:00` sits in the start cell of **eighteen**
+> 2017-18 sheets, to the second — a template copy-paste, an Excel serial of
+> ~65.2 days whose fraction renders as 04:48. An earlier pass wrote it as a real
+> 04:48 start on all 18 and quoted it in a report. But `1900-01-01T00:45` IS a
+> real time: a time-only cell legitimately carries the epoch date. **The epoch
+> DAY is the test, not the year** — the first fix rejected both and lost four
+> genuine stops.
+
+> **Only a four-digit integer is a time.** `1254` is unambiguously 12:54. `10`
+> is not 00:10 — it is as likely 10:00 — and `103` is not 01:03. Parsing those
+> was §0's "never guess" inside a format reader. Both are refused by name.
+
+> **A comma can be a decimal point.** `'62,8'` stripped of commas as a thousands
+> separator became **628 L** of dialysate against a median of 41. One comma
+> before one or two digits is a decimal.
+
+> **The sheet NAME is the date authority, and the record proves it.** `r4c8`
+> disagrees with the name on 41 of 689 sheets. On all 14 large disagreements the
+> NAME's date has a session and the cell's date has none: `'May 21-2013'` carries
+> `r4c8 = 2018-05-21`, and the database holds exactly one 2013 session —
+> 2013-05-21, its earliest row — and nothing on 2018-05-21, with `May 20`,
+> `May 23` and `May 24-2018` all present as separate sheets. Three July 2017
+> sheets share one stale `2021-09-15`.
+
+> **A gap of twelve hours is an AM/PM error, not a long pause.** §3at says the
+> wall clock always exceeds the machine's time on dialysis, and across the 486
+> sheets carrying both the excess is tight — median **22 min**, p95 **47** —
+> then EMPTY from 60 to 600, then 12 sheets at **612-858**. Those 12 are a
+> separate population: `'Nov 11-2017' 10:07 -> 02:00` rolls to 953 min against
+> 197 on the machine, and a `22:07` start gives 233 min, a 36-minute gap;
+> `'10-23-2025' 20:30 -> 12:30` against 221 min becomes 240 min with a `00:30`
+> stop. WHICH cell is wrong differs per sheet, so neither is corrected: the
+> start is written and `actual_end_time` is withheld, because a 16-hour duration
+> would corrupt every duration-based feature and any Kt/V comparison reading it.
+> A threshold anywhere in that empty region works, which is why it was read off
+> the distribution instead of chosen (`MAX_CLOCK_MINUS_MACHINE`).
+
+> **A transposed pair is caught by its RELATIONSHIP, never by either value.**
+> `'04-05-2025'` reads `Total UF = 99` and `Total BVP = 1.5`; 99 and 1.5 are
+> each a possible number, and only `BVP ÷ minutes` — 6 ml/min against a median
+> of 426 and §3ac's delivered median of 397 — says they swapped. Both are
+> withheld, not swapped: which box the operator meant is a guess. The same check
+> cleared the other 642 of 645 sheets, which is what makes it evidence.
+
+**Independent confirmation, from data this work never touched.** A separate
+import on 2026-06-04 wrote 21 sessions carrying clocks for dates the 2025 book
+covers. Of the 14 comparable, **12 agree to the minute** with the sheets. The
+two that differ are findings in themselves, and they corroborate the rollover
+and the corrupt-row repair: session 1 stores its end at `2025-07-08 02:30`, the
+same date as its `21:53` start, where the sheet says `2025-07-09`; session 13
+stores `2025-07-10 10:43`, the day BEFORE its start, where the sheet says
+`2025-07-11 10:43`. Nothing stored is ever overwritten — those are reported for
+a person to repair.
+
+> **Only the IMPOSSIBLE is withheld (§3ab).** Machine times of 14, 18, 53, 58
+> and 59 minutes are kept: they are aborted treatments, and their dialysate, UF
+> and BVP all scale down with them — `'Jan 30-2018'` reads 14 min / 2.3 L /
+> 0.0 L / 5 L, internally consistent. Withholding those would delete the record
+> of a treatment that failed, which is itself a clinical finding.
+
+The books also hold `Vomit Log` (2023, 2024, 2025), `Access Maintenance` and
+`Supplies Request` tabs, none of which has ever been imported — `Vomit Log`
+is the source for `vomiting_logs.time_since_last_meal_hours`, which is populated
+on **0 of 1,994** rows.
+
+### A treatment that ends after midnight ends on the NEXT day (2026-10-02)
+
+Found in the data while backfilling the clock, not from a screen. **4 of the 22
+live-app sessions carrying both clock ends store the end BEFORE the start** —
+ids 2745, 2749, 2750, 2755, created 2026-08-27 to 2026-09-16:
+
+    2026-08-26  22:10 -> 02:15 both stamped 08-26   -1195 min  (rolls to 245)
+    2026-09-03  20:43 -> 00:50 both stamped 09-03   -1193 min  (rolls to 247)
+    2026-09-05  21:03 -> 00:50 both stamped 09-05   -1213 min  (rolls to 227)
+    2026-09-15  22:45 -> 03:40 both stamped 09-15   -1145 min  (rolls to 295)
+
+Against a stored median of 227 minutes, every rolled value is an ordinary
+treatment. The times the patient typed were right; the app discarded the day.
+
+> **Every client rolls over for DISPLAY and none rolls over for STORAGE.** Web
+> `minutesBetween` does `if (mins < 0) mins += 24 * 60`, iOS does
+> `if d < 0 { d += 24 * 60 }` (HemodialysisView.swift:73), Android does
+> `if (mins < 0) mins += 24 * 60` (HemodialysisScreen.kt:1154) — so the
+> duration SHOWN and SENT was correct while the timestamp pair stored beside it
+> was negative. §3ai's "two computations of one interval must not disagree",
+> now on three platforms at once, and the comment above `clockMinutes` in
+> `Hemodialysis.jsx` already cites that rule for a different fault in the same
+> function.
+
+> **A helper handed ONE clock cannot know it belongs to the next day.** That is
+> only visible from the pair, and all three compose the stored value one field
+> at a time — `` `${day}T${clock}:00` `` on web, `iso(day:clock:)` on iOS,
+> `isoAt(date, endTime)` on Android. So §3av's "when one platform eats data and
+> two do not, the two are the specification" does NOT apply: there is no correct
+> client to copy. The rule belongs where both values are in hand.
+
+The fix is **`_naive_session_payload`** in `api/chronic_conditions.py`. It has
+exactly two callers — create (456) and update (574) — and the app holds exactly
+one `TherapySession(` constructor, so one function covers every path AND every
+SHIPPED client, including the TestFlight build and the distributed APK that no
+source change can reach. The clients are deliberately NOT given their own copy:
+four copies of one normalisation is the drift this canon keeps paying for.
+
+- **`stored_start` is not optional politeness.** Update sends
+  `model_dump(exclude_unset=True)` and both clock fields are `Optional`, so
+  editing only the end time arrives with no start and the rule would be blind
+  exactly where a correction is most likely. Fixing create alone is the
+  half-wiring that left `session_drugs` ten months behind.
+- **Only a SAME-DATE inversion is rolled.** Three rows have an end dated days
+  before their start (ids 4, 11, 13 — gaps of 7, 3 and 1 days, from the
+  2026-06-04 import). Adding 24 hours would not repair those, and a fix that
+  half-corrected a corrupt row would hide it. An end already on a later date is
+  never touched, or the flowsheet backfill's own correct values get rolled twice.
+- **The rollover runs AFTER `_naive_utc`.** Both values arrive from a browser
+  with a `Z`; comparing an aware datetime to a naive one raises TypeError.
+
+> ⚠️ **`timedelta` was not imported, and nothing would have caught it but a
+> call.** `from datetime import date, datetime, timezone` — the fix's
+> `timedelta(days=1)` was a `NameError` waiting on the clinical write path.
+> Line 985 of the same file does `__import__('datetime').timedelta(...)`,
+> which is someone else having hit the identical gap and worked around it
+> rather than fixing the import. A compile check passes; only the green run
+> found it.
+
+> **The printed report shows a negative clock as "—".**
+> `therapy_report.py` computes `delta` and sets the figure only `if delta > 0`,
+> so those four sessions print the string its own footer defines as NOT
+> RECORDED — on a treatment that was recorded in full. §3aa's "an error is not
+> an empty state", in the clinical record a clinician reads on paper.
+
+**`services/firebase_sync.py` has the same bug and it is DORMANT, not fixed.**
+It writes sessions through a raw `INSERT INTO therapy_sessions`, so
+`_naive_session_payload` never sees it, and `start_dt`/`end_dt` each combine the
+same `data['date']` with their own time string. It is scheduled
+(`main.py:356`, `id="firebase_sync"`) but **`FIREBASE_SYNC_ENABLED=false` in
+production** (asked of revision `alafia-backend-00215-jkv`, per §5a) and
+`PRACTICE_GEOCODE_ENABLED` is false too — and since the scheduler only starts
+`if _scheduler.get_jobs()`, APScheduler never starts there at all. Flipping that
+flag wakes a writer with a known defect.
+
+> ⚠️ **And a fix written at the first copy of that helper would be dead code.**
+> `_parse_time_str`, `_parse_session_dt`, `_parse_hhmm_to_minutes` and
+> `_parse_ref_range` are each defined TWICE in that file (986/1047, 1000/1061,
+> 1017/1078, 1034/1095) — a repeated ~61-line block where every second
+> definition shadows the first. Behaviour is unchanged today; a one-line repair
+> aimed at line 1000 would silently do nothing.
+
+`tests/test_session_clock_rollover.py` was run against the OLD code first and
+reported **4 failed, 9 passed**. Only those 4 are regression guards — the
+same-date rollover, the four production rows, the `stored_start` parameter
+(`TypeError: unexpected keyword argument`), and the rollover on aware input.
+The 9 that were already green are coverage, and calling all 13 "guards" would
+be §3al's mistake of counting a test that passes against the broken
+implementation.
+
+### `duration_minutes` is the WALL CLOCK or the MACHINE time, by provenance
+
+Found while corroborating the repair above, and it is the §3at conflation inside
+a single column.
+
+| Written by | `duration_minutes` holds |
+|---|---|
+| the live app (web / iOS / Android) | the **wall clock**, computed by `minutesBetween` etc. |
+| the 2026-06-04 import | the **machine's total time on dialysis** |
+
+Measured, not inferred. On the four live-app rows it equals the rolled wall
+clock exactly (245, 247, 227, 295). On every one of the five import rows where
+a comparison is possible it equals that day's sheet `Total Time` exactly —
+**254, 247, 243, 228, 216, with zero disagreements** — and the wall clock for
+those same rows is 19-28 minutes larger, which is the gap §3at describes.
+
+> **So anything that averages, charts or models "duration" across this record
+> is mixing two different measurements.** The two are not interchangeable:
+> machine time excludes alarms and pauses and is what Kt/V is computed from,
+> and it is always the smaller number. `machine_total_time_minutes` is the
+> column that means machine time; `duration_minutes` cannot be trusted to mean
+> either until its row's provenance is known.
+
+⚠️ After the flowsheet backfill, **12 of those 21 import rows now carry
+`machine_total_time_minutes` as well** — holding the same figure as their
+`duration_minutes`, because both came from the sheet's `Total Time`. That is
+harmless duplication, but it means a row can present a "duration" that is not a
+wall clock at all, and a reader comparing the two columns will find them
+identical and conclude the treatment had no pauses.
+
+### `reading_time = 00:00` means the time was LOST, not midnight
+
+Measured on production 2026-10-02, after asserting the wrong thing twice.
+
+    intradialytic_readings                    16,290
+      at 00:00:00                              3,662
+        ...carrying real BP or pulse           3,074      <- measurements
+        ...carrying no vitals at all             588      <- empty rows
+      sessions holding at least one            1,855 of 1,997
+      sessions whose FIRST reading changes
+        if 00:00 rows are excluded             1,820
+
+All 3,662 belong to sessions written by the **2026-08-15 import**, so the
+import defaulted a missing timestamp to midnight. **The measurement is real and
+the time is not.**
+
+> ⚠️ **I called these "placeholder rows" twice, from two examples.** Sessions
+> 1168 and 1244 each hold exactly one 00:00 reading with NULL vitals, and both
+> happen to fall in the 588. The population says the opposite: 84% of them
+> carry a blood pressure. Two rows are not evidence about 3,662 — §0, and the
+> same shape as the `n_live_tup` planner estimate that nearly became "the
+> dialysis history is missing from production".
+
+This is the real cause of the artifact §3av already records under "the clock was
+in the workbooks all along": `min(reading_time)` is `00:00` on most sessions
+because the time is absent, not because the readings wrapped past midnight. Both
+happen — 181 sheets do cross midnight — but the minima are overwhelmingly lost
+timestamps.
+
+- **An unknown time cannot bound a window.** Exclude `00:00` when computing a
+  session's span, and say how many sessions are left with nothing: **35 of
+  1,995**. Do NOT drop the row — the vitals are valid, and 3,074 of them are the
+  only record of that pressure.
+- **The two-treatment finding is robust to this.** Recomputed both ways: **54**
+  days treating 00:00 as midnight, **55** excluding it as unknown (one day moves
+  out of "overlapping", 2022 going 19 → 20). The mechanism was misdiagnosed; the
+  count was not.
+- The workbooks are a separate matter. A sheet row whose time cell reads 00:00
+  **and** which carries no measurement is a blank template row, and skipping it
+  there is correct — that is not the same thing as the database's lost stamps.
+
+### The sheet adjudicates its own clock — the READINGS say which cell is wrong
+
+`backfill_session_clock.py` withheld `actual_end_time` on 12 sheets whose wall
+clock exceeded machine time by about twelve hours, and recorded that WHICH of
+the two cells was wrong "is not knowable from here". **That was false, and the
+operator said so.** The sheet carries its own per-reading times — the readings
+table header is row 29 with `Time` in column 1 — and those bracket the
+treatment independently of the Start/Stop cells. The evidence sat twenty rows
+below the cells being argued about, and the DATABASE's readings had been used
+for matching while the SHEET was never asked for its own.
+
+> **The arithmetic alone can NEVER choose between the two cells.** Shifting
+> either by twelve hours changes the clock by the same ±720 and produces an
+> identical gap — which is why every one of those sheets reports two candidate
+> fixes with the same score. Only the readings break the tie:
+> `'Nov 11-2017'` reads `10:07 -> 02:00` with readings `10:14..12:25`, agreeing
+> with the START to seven minutes, so the STOP is wrong. `'Marc 23-2018.2'`
+> reads `11:23 -> 01:43` with readings `23:25..01:42`, 718 minutes from the
+> start cell, so the START is wrong.
+
+Applied 2026-10-02 (`scripts/repair_flowsheet_clock_cells.py`): **8 corrected,
+2 ends withdrawn, 0 skipped.** `actual_end_time` 529 → 535, starts unchanged at
+688 with two corrected in place, inverted clocks still 0, median clock 230 min.
+Each repaired row lands 8-57 min above its own machine time.
+
+**FOUR attempts at the reading-column rule, each wrong differently.** This is
+the part worth keeping:
+
+1. **121 sheets flagged, nearly all artifacts.** No midnight normalisation
+   between the start CELL and the first READING, so every overnight sheet
+   showed a spurious ~1,400-minute offset — on a record where 43% of treatments
+   cross midnight. Plus a 120-minute ceiling on how long after its last reading
+   a treatment may end: readings stop early by habit (§3ac, cadence 9.5 → 3.2
+   per session), and `'01-05-2025'` logs two readings in the first 11 minutes of
+   a 166-minute session.
+2. **Machine time as the trigger — correct** — but wraps classified with
+   `prev >= 22:00 and cur <= 02:00`. With two readings hours apart an ordinary
+   crossing reads `21:49 -> 01:06` and fails both bounds, so 46 benign sheets
+   were filed "unclassified".
+3. **The smallest step whose span stayed plausible — but never required the
+   step to RESTORE ORDER.** For `21:49 -> 01:06`, `+720` gives `13:06`, still
+   behind, yet the test passed vacuously: `+720` always won and 172 sheets were
+   mislabelled 12-hour. `'May 10-2018'` printing a `21:53..12:17` window is that
+   bug on its face. It also narrowed candidates to ±720 and so lost the
+   digit-error class.
+4. **Order AND plausibility** → **181 midnight / 5 twelve-hour / 9 mistyped**.
+   181 corroborates the independently measured 43%, which is the cross-check
+   rather than the threshold talking.
+
+> **A SPIKE is not a wrap.** `'01-25-2023'` reads `…15:44, 04:20, 16:38…` — one
+> value out of order with BOTH neighbours, a mistyped cell. Unwrapping it shifts
+> every later reading by twelve hours and then blames the wrong clock cell.
+> Nine sheets carry one.
+
+> **Five sheets write their readings on a 12-hour clock with no AM/PM.**
+> `'July 18-2017'` reads `…12:33, 01:08, 01:40`, which is monotonic only as
+> pm → am — a 130-minute treatment, not a 12½-hour one. Its corrected stop of
+> `14:05` then agrees with a reading window of `11:30..13:40`.
+
+**Two stored ends were WITHDRAWN rather than corrected.** `'07-06-2024'` stored
+a stop of `17:05` against its own last reading at `18:53`, and `'03-12-2024'`
+`17:20` against `18:26`. A treatment cannot end before a reading taken during
+it — that is impossible, not merely abnormal, so §3ab says withhold. Both were
+written by the backfill and flagged only as "machine exceeds clock", which is
+weaker evidence than this. Their STARTS agree with their first readings to
+within 11 minutes and are kept.
+
+**Nine are reported and deliberately left**, because naming the fault is honest
+and guessing the keystroke is not:
+
+- **No reading carries a time** — `05-18-2024`, `10-16-2025`, `12-11-2025`. A
+  twelve-hour shift of either cell fits equally well; nothing breaks the tie.
+- **The slip is not twelve hours.** `'July 11-2018'` reads `08:05` against
+  readings from `18:08` — ten hours, one digit in the tens place. The readings
+  name the CELL; they do not name the keystroke, so ±720 correctly refuses to
+  invent a replacement.
+- **The start sits 55-85 min from the first reading** — `May 10-2018`,
+  `Jan 3-2018`, `05-17-2025`, `12-13-2025`: neither agreeing nor twelve hours
+  out.
+- `'03-27-2025'` leans the other way entirely: its last reading carries a
+  **systolic of 44**, and a session cut short after a pressure like that makes
+  the clock right and the machine's 221 minutes the odd value.
+
 ## 3au. Mobile cannot buy the way the web buys
 
 Apple and Google require digital subscriptions to be sold through their own
