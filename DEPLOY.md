@@ -55,7 +55,7 @@ dig +short TXT send.alafia.app                # SPF
 | Project | `alafia-prod-6igma` (number `1087818475199`) — one of 22 this account can see |
 | Region | `us-east4` |
 | Cloud Run | `alafia-backend`, `alafia-frontend`, `alafia-identity` |
-| Cloud SQL | `alafia-db-va` — Postgres 16 |
+| Cloud SQL | `alafia-db-va` — **Postgres 18** (`POSTGRES_18`, asked of the instance 2026-10-02; this line said 16 until then) |
 | Artifact Registry | `alafia`, `alafia-ml` |
 | Domain mappings | `alafia.app` + `www` → frontend · `api.alafia.app` → backend |
 

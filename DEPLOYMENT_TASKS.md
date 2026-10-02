@@ -15,8 +15,18 @@ Last updated: 2026-07-22.
 | API (mobile targets this) | https://alafia-backend-xj37wg452q-uk.a.run.app |
 | Identity (PQC SSO) | https://alafia-identity-xj37wg452q-uk.a.run.app |
 
-Cloud Run ×3 + Cloud SQL `alafia-db-va` (Postgres 16) + Secret Manager, region **`us-east4`**
+Cloud Run ×3 + Cloud SQL `alafia-db-va` (**Postgres 18** — `POSTGRES_18`, asked of the instance
+2026-10-02; this line said 16 until then) + Secret Manager, region **`us-east4`**
 (Northern Virginia). Migrated from europe-west1 2026-07-22; europe torn down.
+
+> ⚠️ **This file is dated 2026-07-22 and calls itself the single source of truth; several of
+> its 🔴 items are done.** Verified 2026-10-02: AI is live (Anthropic, DeepSeek, OpenAI and
+> Moonshot keys are mounted on `alafia-backend`, and `alafia-ollama` serves the GPU model),
+> email is live (`resend-api-key` exists and `alafia.app` is verified in Resend), and the
+> Stripe secrets (`stripe-secret-key`, `stripe-price-id`, `stripe-price-id-annual`,
+> `stripe-webhook-secret`) all exist. Ask the project, not this table:
+> `gcloud secrets list --project alafia-prod-6igma` and
+> `gcloud run services describe alafia-backend --region us-east4 --format=json`.
 
 ---
 
