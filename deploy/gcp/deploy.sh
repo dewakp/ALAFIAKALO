@@ -76,7 +76,7 @@ for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
          apple-shared-secret alafia-pseudonym-secret \
          resend-api-key resend-webhook-secret \
-         apns-auth-key apns-key-id apns-team-id firebase-sa \
+         apns-auth-key apns-key-id firebase-sa \
          smtp-host smtp-user smtp-password smtp-from-email; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
