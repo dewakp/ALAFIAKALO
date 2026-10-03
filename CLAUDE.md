@@ -3373,6 +3373,83 @@ mount time.
 > (copy the untracked `deploy/gcp/config.env` into it), and change nothing under
 > `WEB/` or `ML/src` while a deploy runs.
 
+## 5b. Copyright, and what must NOT carry it
+
+Every first-party source and documentation file carries a two-line header
+(`c416205`, 2026-10-02). **`NOTICE` is the authoritative statement** and is
+deliberately unchanged — it records the distinction the headers compress:
+
+    Product   ALAFIA  (a product cannot hold a copyright)
+    Author    Wole Akpose
+    Owner     6igma Health Inc
+
+1,126 files: 667 `.py`, 130 `.jsx`, 108 `.swift`, 91 `.kt`, 44 `.md`, 31 `.js`,
+25 `.sql`, 21 `.sh`, 5 `.rs`, 4 `.css`. A new file gets the same two lines in
+that language's comment syntax.
+
+> **Asserting ownership over someone else's work is worse than asserting
+> nothing.** Externally sourced files are never stamped: `Android/gradlew` and
+> `gradlew.bat` (Gradle's own, and they already say "Copyright 2015 the original
+> author or authors"), `gradle-wrapper.jar`, `ML/data/**` (USDA FoodData
+> Central, LOINC, ICD-11 — and `build_loinc_catalog.py` deliberately EMITS
+> Regenstrief's notice), `.github/copilot-instructions.md` and
+> `.github/instructions/*.instructions.md` (Copilot's own config format),
+> `basis_fix_prompt.md` (an inbound prompt), and `migrations/versions/**`
+> (generated from Alembic's template).
+
+Comment-less formats are excluded because a header corrupts them: `.json`,
+`.png`, `.csv`, `.joblib`, `.zip`, `.xlsx`, `.plist`, `.xliff`, `.properties`,
+`project.pbxproj`.
+
+**Placement, each rule measured rather than assumed:**
+
+- A comment ABOVE a Python module docstring does not break it — comments are
+  not statements, so the docstring is still the first one. Verified by importing
+  a stamped file and reading `__doc__`, then across the tree: **657 module
+  docstrings at HEAD, 657 after, 0 lost, 0 invented**, compared PER FILE against
+  `HEAD`. Counting them only in the new tree proves nothing — 657 is equally
+  consistent with ten having been destroyed.
+- 98 files open with a shebang and the header goes beneath it. Still 98
+  shebang-first files afterwards.
+
+> ⚠️ **Two risks I asserted did not exist, and both were my own bad greps.**
+> "10 files carry a PEP 263 declaration" came from `git grep -l "coding[:=]"`
+> matching `encoding="utf-8"` MID-FILE; the real count on line 1 or 2 is
+> **zero**. And the three Markdown files with YAML front-matter are the Copilot
+> ones, which are excluded — so that branch guards nothing in scope. Same shape
+> as §3av's fabricated field count and §3ab's fabricated ratchet baseline: a
+> grep reported as a finding without checking what it matched.
+
+**What makes a 1,126-file diff reviewable:** 3,377 insertions and **0
+deletions**, exactly 3.00 lines per file, no file with an insertion count other
+than 2 or 3, the notice present **exactly once** in every file, and 0 files
+carrying it anywhere but line 1 (or line 2 behind a shebang). The stamper skips
+on a marker match, so a second run is a no-op. Those checks, not reading the
+diff, are the evidence.
+
+### The comp that had no audit trail
+
+`subscription_events` held **zero** rows for `ios_reviewr@alafia.app` while
+subscription 81 entitled it through 2027-08-12 — so the App Review account's
+membership existed with nothing on the record saying where it came from. One
+row was reconstructed to match `grant_comp_and_role.sql`'s own INSERT
+(`provider='none'`, `event_id = 'comp:<uid>:<ISO8601>'`,
+`event_type='complimentary_grant'`), dated from `subscriptions.created_at` so
+it records when the grant happened rather than when it was noticed.
+
+> **An audit row must not lie about its own provenance.** The script stamps
+> `granted_by: scripts/db/grant_comp_and_role.sql`, and that script did not
+> create this subscription: users 56 and 158 carry its signature
+> (`cancel_at_period_end=true`, `plus_annual`, an audit row) while 157 has none
+> of it. So this row says it is a reconstruction for a subscription created
+> outside the script, and carries `reconstructed_at`. The subscription itself
+> was NOT touched — `cancel_at_period_end` stays `false`, which disagrees with
+> what the script would have written, and that disagreement is a fact about the
+> record rather than something to tidy away.
+
+`ux_subscription_events_provider_event` is UNIQUE on `(provider, event_id)`, so
+the `ON CONFLICT DO NOTHING` is real protection and a re-run cannot duplicate.
+
 ## 6. Reporting
 
 State what was actually run and what wasn't. "Builds" ≠ "works". If a suite
