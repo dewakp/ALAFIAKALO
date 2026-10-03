@@ -355,12 +355,25 @@ async def admin_app_health(
             .group_by(DeviceToken.platform)
         )).all()
         held = ", ".join(f"{p} {n}" for p, n in rows) or "no devices"
+        # "configured" and "deliverable" are different facts and fail
+        # independently: on 2026-10-03 this reported `apns ok` while the
+        # process could not construct an HTTP/2 client at all, so every send
+        # died with ImportError. Say which.
+        if not s["apns_configured"]:
+            apns = f"UNCONFIGURED ({s['apns_reason']})"
+        elif not s["apns_transport_ok"]:
+            apns = f"CONFIGURED BUT UNDELIVERABLE ({s['apns_transport_reason']})"
+        else:
+            apns = "ok"
         rails = [
-            "apns " + ("ok" if s["apns_configured"]
-                       else f"UNCONFIGURED ({s['apns_reason']})"),
+            f"apns {apns}",
             "fcm " + ("ok" if s["fcm_configured"] else "UNCONFIGURED"),
         ]
-        if rows and not (s["apns_configured"] or s["fcm_configured"]):
+        if s["apns_configured"] and not s["apns_transport_ok"]:
+            raise RuntimeError(
+                f"APNs credentials are mounted but the transport cannot be "
+                f"built — every send will fail: {s['apns_transport_reason']}")
+        if rows and not (s["apns_deliverable"] or s["fcm_configured"]):
             raise RuntimeError(
                 f"no push transport configured — {held} registered and "
                 f"unreachable ({'; '.join(rails)})")

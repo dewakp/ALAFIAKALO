@@ -3121,10 +3121,26 @@ it from `reference_ranges` without inventing a band, matching on
 `app/services/push.py`. Before it, measured on production:
 
     device_tokens   21 tokens / 4 users, EVERY ONE platform='ios',
-                    64 characters, pure hex, no colon -> raw APNs tokens
+                    pure hex, no colon -> raw APNs tokens
     android tokens  ZERO
     senders         none anywhere in the backend
     notifications   21 rows, 19 UNREAD
+
+> ⚠️ **"every one 64 characters" was wrong, and the census said so.** It
+> reported `min_len 64, max_len 160`; the sampled rows happened to be 64 and
+> that got written up as the whole population — into this section, into
+> `793850a`'s message and into `deploy.sh`. The real split, measured
+> 2026-10-03:
+>
+>     len=64   19 tokens      standard 32-byte APNs tokens
+>     len=160   2 tokens      80 bytes — user 63 ×1, user 158 ×1
+>
+> It matters because the 160-char token on user 63 is exactly the one Apple
+> refused with **400 BadDeviceToken** on the first live send, while that
+> account's 64-char token took **HTTP/2 200 OK**. Two different users hold one
+> each, so it looks like a client-side pattern rather than a stray row — worth
+> finding on the iOS side, since `handleDeviceToken` hex-encodes whatever
+> `Data` it is handed. **Read the aggregate, not the sample.**
 
 **iOS goes to APNs DIRECTLY, never through Firebase** — operator decision, and
 a hard constraint besides. A raw APNs device token **cannot be addressed by

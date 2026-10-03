@@ -134,6 +134,27 @@ def _apns_unconfigured_reason() -> str:
     return "missing " + ", ".join(missing) if missing else ""
 
 
+def _transport_ok() -> tuple[bool, str | None]:
+    """Can an HTTP/2 client actually be CONSTRUCTED? APNs needs one.
+
+    ⚠️ `status()` used to answer `apns ok` on the strength of the four config
+    values alone — so it reported healthy while the transport could not be
+    built at all. That is §3ah's advertised-but-undeliverable rail, inside the
+    very probe written to prevent it.
+
+    Measured 2026-10-03: a container whose image predated `h2` in
+    requirements.txt reported `apns_configured: True` and then failed every
+    send with `ImportError: Using http2=True, but the 'h2' package is not
+    installed`. Configured is not deliverable, and the probe must say which.
+    """
+    try:
+        import httpx
+        httpx.Client(http2=True).close()
+        return True, None
+    except Exception as exc:
+        return False, f"{type(exc).__name__}: {str(exc)[:120]}"
+
+
 def _fcm_app():
     """The Firebase app, reusing the one `firebase_sync` already initialises.
 
@@ -500,12 +521,23 @@ async def stop() -> None:
 
 
 def status() -> dict[str, Any]:
-    """What admin health should show. An unconfigured rail must be visible."""
+    """What admin health should show. An unconfigured rail must be visible.
+
+    `apns_configured` means the CREDENTIALS are present.
+    `apns_transport_ok` means an HTTP/2 client can be built.
+    Both are required to deliver, and they fail independently — reporting only
+    the first is how this probe once said `apns ok` about a process that could
+    not send at all.
+    """
+    transport_ok, transport_reason = _transport_ok()
     return {
         "running": _queue is not None,
         "queued": _queue.qsize() if _queue is not None else 0,
         "apns_configured": bool(_apns_config()),
         "apns_reason": _apns_unconfigured_reason() or None,
+        "apns_transport_ok": transport_ok,
+        "apns_transport_reason": transport_reason,
+        "apns_deliverable": bool(_apns_config()) and transport_ok,
         "apns_environment": "sandbox" if settings.APNS_USE_SANDBOX else "production",
         "fcm_configured": _fcm_app() is not None,
         "sent": _sent,

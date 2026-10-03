@@ -98,6 +98,42 @@ class TestAnUnconfiguredRailIsHonest:
         assert s["apns_reason"]
         assert s["apns_environment"] in ("sandbox", "production")
 
+    def test_configured_and_DELIVERABLE_are_separate_facts(self):
+        """REGRESSION GUARD. `apns ok` once meant only "credentials present".
+
+        Measured 2026-10-03: a process with all four values set reported
+        `apns_configured: True` and then failed every send with
+        `ImportError: Using http2=True, but the 'h2' package is not
+        installed` — APNs is HTTP/2 only. A rail that reports healthy and
+        cannot deliver is §3ah's PayPal failure, here inside the probe built
+        to prevent it.
+        """
+        s = push.status()
+        for key in ("apns_transport_ok", "apns_transport_reason",
+                    "apns_deliverable"):
+            assert key in s, f"status() must report {key}"
+        # Credentials are blanked by the fixture, so deliverable must be False
+        # whatever the transport happens to be in this environment.
+        assert s["apns_deliverable"] is False
+        ok, reason = push._transport_ok()
+        assert isinstance(ok, bool)
+        assert (reason is None) == ok, "a failure must carry its reason"
+
+    def test_h2_is_PINNED_so_the_transport_cannot_silently_vanish(self):
+        """The dependency, asserted at the SOURCE rather than the environment.
+
+        Checking `import h2` would make this test pass or fail according to
+        which image it runs in — and the suite was green at 1,895 tests with
+        h2 absent, because every test here stubs `_send_apns`. Pinning is the
+        fact that matters, and it is the same in every environment.
+        """
+        import pathlib
+        req = pathlib.Path(__file__).resolve().parents[1] / "requirements.txt"
+        text = req.read_text()
+        assert "h2==" in text, (
+            "APNs is HTTP/2 only; httpx raises ImportError at construction "
+            "without h2, so it must stay pinned in requirements.txt")
+
     @pytest.mark.asyncio
     async def test_delivering_with_no_credential_sends_nothing_and_raises_nothing(
             self, db):

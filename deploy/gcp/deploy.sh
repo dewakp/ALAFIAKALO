@@ -292,8 +292,10 @@ add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
 # registered across 4 users and no code ever addressed them (§3ar).
 #
 # iOS goes to APNs DIRECTLY, not through Firebase. The tokens already
-# registered by SHIPPED builds are raw APNs device tokens (measured: all 64 hex
-# characters), which FCM cannot address — v1 needs its own registration token —
+# registered by SHIPPED builds are raw APNs device tokens (19 of 21 are the
+# standard 64 hex chars; 2 are 160 — an earlier version of this comment said
+# "all 64", read off a sample instead of the aggregate), which FCM cannot
+# address — v1 needs its own registration token —
 # so routing iOS via Firebase would need the Firebase iOS SDK plus a new App
 # Store release to reach devices we can reach today.
 #
