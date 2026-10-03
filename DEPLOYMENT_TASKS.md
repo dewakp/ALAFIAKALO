@@ -151,11 +151,15 @@ automatic signing, release `baseURL = https://api.alafia.app/api/v1`.
 
 **Bundle ID = `com.alafia.app`** (matches the alafia.app domain).
 - [x] ✅ Backend `APPLE_BUNDLE_ID=com.alafia.app` (config default fixed; applies on next backend deploy).
-- [ ] 🔴👤 Use the same bundle `com.alafia.app` when creating the app in App Store Connect.
+- [x] ✅ Use the same bundle `com.alafia.app` when creating the app in App Store Connect.
+      *(The app exists there: build 1.3(5) was reviewed on 31 Aug 2026 — see
+      `docs/APP_REVIEW_REPLY_2026-09-26.md` — and the shipped profile carries
+      `beta-reports-active`, i.e. TestFlight distribution.)*
 
 **Accounts & signing**
-- [ ] 🔴👤 **Apple Developer Program** membership ($99/yr).
-- [ ] 🔴👤 Register App ID `com.alafia.app`; set the **DEVELOPMENT_TEAM** in the Xcode project; create
+- [x] ✅ **Apple Developer Program** membership ($99/yr). *(Proven below — a valid
+      distribution profile cannot be issued without it.)*
+- [x] ✅ Register App ID `com.alafia.app`; set the **DEVELOPMENT_TEAM** in the Xcode project; create
       distribution certificate + App Store provisioning profile (or automatic signing with the team).
       The team is **`E48V6Y372K`** (keychain: "Apple Distribution: 6igma") and is now set in the
       Xcode project. It MUST match the `appIDs` prefix published in
@@ -168,6 +172,35 @@ automatic signing, release `baseURL = https://api.alafia.app/api/v1`.
         - HealthKit            (`com.apple.developer.healthkit`, `.access`, `.background-delivery`)
         - Push Notifications   (`aps-environment`)
       Debug/simulator builds are unaffected and still succeed.
+
+      > ⚠️ **These two boxes were stale, and a stale checkbox got read as an open
+      > task.** On 2026-10-03 this list was used to tell the operator that Push
+      > Notifications still had to be enabled on the App ID — work that had in
+      > fact been done. **Ask the artefact, not the task list.** Measured from
+      > the `embedded.mobileprovision` inside the shipped `ALAFIA-1.5-12.ipa`:
+      >
+      >     aps-environment                                    production
+      >     com.apple.developer.associated-domains             *
+      >     com.apple.developer.healthkit                      true
+      >     com.apple.developer.healthkit.access               health-records
+      >     com.apple.developer.healthkit.background-delivery  true
+      >     beta-reports-active                                true
+      >     team-identifier                                    E48V6Y372K
+      >
+      > All **three** capabilities are granted, not just Push. Three profiles are
+      > installed for `E48V6Y372K.com.alafia.app` — two `production` (Store,
+      > AppStore) and one `development` — all valid to 2027-09-27, and signing is
+      > `CODE_SIGN_STYLE = Automatic`. Since the note above records that the
+      > wildcard profile is REJECTED for each capability, a successful signed
+      > export IS the proof.
+      >
+      > To re-verify rather than trust this line:
+      > `unzip -p IOS/build/ipa/ALAFIA-latest.ipa 'Payload/*.app/embedded.mobileprovision' \`
+      > `| security cms -D -i /dev/stdin | plutil -extract Entitlements xml1 -o - -`
+      >
+      > The `development` profile matters for push: a debug install registers a
+      > SANDBOX APNs token, so the stored tokens are plausibly mixed — which is
+      > why the sender never prunes on `BadDeviceToken` (CLAUDE.md §3az).
 
 **Backend / config wiring**
 - [x] ✅ `baseURL` = `https://api.alafia.app/api/v1` (AppConfig). Goes live once the domain mapping (B) is up.

@@ -3183,12 +3183,34 @@ Android uses FCM because Google's platform offers nothing else.
 > carries an **issuer UUID**, an APNs key uses the **Team ID** as `iss` — and
 > APNs refuses an ASC key with **403 InvalidProviderToken**.
 >
-> What is actually needed: an **APNs Auth Key** (Certificates, Identifiers &
-> Profiles → Keys, with APNs enabled), and before that, **Push Notifications
-> enabled on the App ID** — still an unchecked box in `DEPLOYMENT_TASKS.md`
-> ("Register an explicit App ID `com.alafia.app` … enable these three
-> capabilities … Push Notifications (`aps-environment`)"). No key will work
-> until the App ID carries the capability.
+> What is actually needed is ONE thing: an **APNs Auth Key** (Certificates,
+> Identifiers & Profiles → Keys, with APNs enabled) and its Key ID.
+>
+> ⚠️ **The App ID capability was already enabled, and this section first said
+> otherwise.** It claimed Push was "still an unchecked box in
+> `DEPLOYMENT_TASKS.md`" and that "no key will work until the App ID carries
+> the capability" — read off a stale checkbox rather than the artefacts.
+> **Ask the profile, not the task list.** Measured 2026-10-03 from the
+> `embedded.mobileprovision` inside the shipped `ALAFIA-1.5-12.ipa`:
+>
+>     aps-environment                                    production
+>     com.apple.developer.associated-domains             *
+>     com.apple.developer.healthkit                      true
+>     com.apple.developer.healthkit.access               health-records
+>     com.apple.developer.healthkit.background-delivery  true
+>     beta-reports-active                                true
+>
+> All three capabilities that bullet lists are GRANTED, not just Push. Apple's
+> profile service cannot issue a profile carrying `aps-environment` unless the
+> App ID has the capability, and that file's own note records that the wildcard
+> profile is REJECTED for each of the three — so a successful signed export IS
+> the proof. Three profiles are installed for `E48V6Y372K.com.alafia.app`: two
+> `production` (Store, AppStore) and one `development`, all valid to
+> 2027-09-27. `beta-reports-active` confirms TestFlight distribution.
+>
+> That `development` profile matters for push: a debug install registers a
+> SANDBOX token, so the 21 stored tokens are plausibly mixed — which is exactly
+> why `BadDeviceToken` must never prune (see the pruning rule above).
 >
 > **Two of the three values were never missing.** `APNS_TEAM_ID` is
 > **`E48V6Y372K`**, stated in `DEPLOYMENT_TASKS.md` and visible in the keychain

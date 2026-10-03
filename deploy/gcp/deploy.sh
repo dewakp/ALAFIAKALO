@@ -314,9 +314,14 @@ add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
 # signing). The two are different auth models — an ASC key needs an issuer
 # UUID; an APNs key uses the TEAM ID as `iss` — and APNs answers an ASC key
 # with 403 InvalidProviderToken. An APNs Auth Key is a separate key, created
-# under Certificates/Identifiers/Profiles → Keys with APNs enabled, and it
-# requires Push Notifications enabled on the App ID first (still unchecked in
-# DEPLOYMENT_TASKS.md).
+# under Certificates/Identifiers/Profiles → Keys with APNs enabled.
+#
+# The App ID capability is ALREADY in place — verified 2026-10-03 by reading
+# the embedded.mobileprovision inside the shipped ALAFIA-1.5-12.ipa:
+# aps-environment=production, associated-domains and healthkit all granted,
+# team E48V6Y372K. So the key is the ONLY thing still missing. (An earlier
+# version of this comment said the capability was unchecked — that came from a
+# stale checkbox in DEPLOYMENT_TASKS.md, not from the artefacts.)
 #
 # Only the KEY and its ID are secrets. The team and bundle are published
 # identifiers and go in the pipeline below, so a setup cannot stall waiting for
