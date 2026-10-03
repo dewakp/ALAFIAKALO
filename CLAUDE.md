@@ -3057,7 +3057,12 @@ it from `reference_ranges` without inventing a band, matching on
   across 4 users, a docstring saying they existed "so the backend can deliver",
   an Android receiver ready to render one, and no code addressing any of them.
   **iOS delivery is still credential-blocked** and that is an operator action,
-  not a code gap: no Apple `.p8` key secret exists.
+  not a code gap — but NOT for want of a `.p8`: one has existed since
+  2026-08-11 and is an App Store CONNECT key, unusable for APNs. What is
+  missing is an APNs Auth Key, and Push enabled on the App ID. Detail and the
+  evidence are below; the first version of this line asserted "no Apple `.p8`
+  key secret exists" from `gcloud secrets list` alone, without reading the
+  repo's own documentation.
 - ✅ **A misspelled allergy now matches the real drug** (2026-10-03), and the
   declared text is still never rewritten — see "A misspelled allergy, resolved
   once" below. `Penicilin` on the profile catches a dose logged as
@@ -3163,9 +3168,34 @@ Android uses FCM because Google's platform offers nothing else.
   callback, after login, and on session restore (which is the path an
   already-signed-in user actually takes). iOS has always done both.
 
-> ⚠️ **iOS delivery is credential-blocked, and that is an operator action.**
-> No Apple `.p8` key secret exists, and one cannot be manufactured from here —
-> it comes from the Apple Developer portal, downloadable exactly once.
+> ⚠️ **iOS delivery is credential-blocked — but NOT for want of a `.p8`.**
+> This was first recorded here as "no Apple `.p8` key secret exists", which was
+> asserted from `gcloud secrets list` alone, without reading the project's own
+> documentation or the places this repo keeps signing secrets. A `.p8` HAS
+> existed since 2026-08-11:
+>
+>     ~/.appstoreconnect/private_keys/AuthKey_3CYNQQQ89C.p8
+>
+> It is an **App Store Connect API key**, not an APNs Auth Key, and the two are
+> not interchangeable. `IOS/scripts/export_ipa.sh` states its use: `ASC_KEY_PATH`
+> / `ASC_KEY_ID` / `ASC_ISSUER_ID=<uuid>` passed to `-authenticationKeyPath`
+> ("signing via App Store Connect API key"). The auth models differ — an ASC key
+> carries an **issuer UUID**, an APNs key uses the **Team ID** as `iss` — and
+> APNs refuses an ASC key with **403 InvalidProviderToken**.
+>
+> What is actually needed: an **APNs Auth Key** (Certificates, Identifiers &
+> Profiles → Keys, with APNs enabled), and before that, **Push Notifications
+> enabled on the App ID** — still an unchecked box in `DEPLOYMENT_TASKS.md`
+> ("Register an explicit App ID `com.alafia.app` … enable these three
+> capabilities … Push Notifications (`aps-environment`)"). No key will work
+> until the App ID carries the capability.
+>
+> **Two of the three values were never missing.** `APNS_TEAM_ID` is
+> **`E48V6Y372K`**, stated in `DEPLOYMENT_TASKS.md` and visible in the keychain
+> as "Apple Distribution: 6igma"; `APNS_BUNDLE_ID` is `com.alafia.app`. Both are
+> published identifiers, so they are pipeline defaults rather than secrets, and
+> only the key and its id are held in Secret Manager. Asking an operator for a
+> value the repo already documents stalls a setup on nothing.
 > `deploy.sh` carries the three `add_secret_if_present` lines and the commands
 > to create them, so iOS push lights up on the next deploy after the secrets
 > exist, with **no code change and no app release**. Set

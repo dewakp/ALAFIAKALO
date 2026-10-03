@@ -208,6 +208,16 @@ BACKEND_ENV="${BACKEND_ENV},TWO_STEP_SIGNUP_REQUIRED=${TWO_STEP_SIGNUP_REQUIRED:
 BACKEND_ENV="${BACKEND_ENV},CONTACT_DELIVERY_EMAIL=${CONTACT_DELIVERY_EMAIL:-woleakpose@outlook.com}"
 # Schedulers OFF: in-process cron must not run on an autoscaled service.
 BACKEND_ENV="${BACKEND_ENV},FIREBASE_SYNC_ENABLED=false,PRACTICE_GEOCODE_ENABLED=false"
+# APNs identifiers (NOT secrets — both are published: the team appears in the
+# signed entitlements and must match the appIDs prefix in
+# apple-app-site-association). Versioned here so only the key itself is held in
+# Secret Manager. APNS_USE_SANDBOX stays false because the Release entitlement
+# is aps-environment=production; override it if the registered tokens came from
+# debug builds (a wrong-environment token is refused as BadDeviceToken, which
+# reads exactly like a dead device — and is NOT pruned, by design).
+BACKEND_ENV="${BACKEND_ENV},APNS_TEAM_ID=${APNS_TEAM_ID:-E48V6Y372K}"
+BACKEND_ENV="${BACKEND_ENV},APNS_BUNDLE_ID=${APNS_BUNDLE_ID:-com.alafia.app}"
+BACKEND_ENV="${BACKEND_ENV},APNS_USE_SANDBOX=${APNS_USE_SANDBOX:-false}"
 # Social sign-in verifies the PROVIDER's own ID token (no Firebase broker).
 # Comma-separated because the same account presents a different `aud` per
 # platform: web uses the browser client id, iOS/Android their own. Pinning
@@ -298,9 +308,21 @@ add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
 # Set APNS_USE_SANDBOX=true while the tokens come from TestFlight/debug builds:
 # a sandbox token sent to the production gateway is refused as BadDeviceToken,
 # which reads exactly like a dead device.
+# ⚠️ The `.p8` already on this machine is NOT usable for push.
+# ~/.appstoreconnect/private_keys/AuthKey_3CYNQQQ89C.p8 is an App Store CONNECT
+# API key (IOS/scripts/export_ipa.sh passes it to -authenticationKeyPath for
+# signing). The two are different auth models — an ASC key needs an issuer
+# UUID; an APNs key uses the TEAM ID as `iss` — and APNs answers an ASC key
+# with 403 InvalidProviderToken. An APNs Auth Key is a separate key, created
+# under Certificates/Identifiers/Profiles → Keys with APNs enabled, and it
+# requires Push Notifications enabled on the App ID first (still unchecked in
+# DEPLOYMENT_TASKS.md).
+#
+# Only the KEY and its ID are secrets. The team and bundle are published
+# identifiers and go in the pipeline below, so a setup cannot stall waiting for
+# a value the repo already documents.
 add_secret_if_present APNS_AUTH_KEY           apns-auth-key
 add_secret_if_present APNS_KEY_ID             apns-key-id
-add_secret_if_present APNS_TEAM_ID            apns-team-id
 # Android goes to FCM, the only route Google's platform offers. `firebase-sa`
 # has existed as a secret and was never mounted, so FIREBASE_SERVICE_ACCOUNT
 # pointed nowhere and `get_firebase_app()` logged "service account not found"

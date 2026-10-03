@@ -201,9 +201,19 @@ class Settings(BaseSettings):
     # an env var verbatim, so there is no file to point at. Each value is
     # separately required — `push.status()` names whichever is missing rather
     # than failing per notification (§3ae: never a blank error).
+    # Only the KEY and its id are secret. The team and bundle are published
+    # identifiers — they appear in the signed entitlements and in
+    # /.well-known/apple-app-site-association — so by deploy.sh's own rule
+    # ("an OAuth client id is public… it belongs in the pipeline, not a
+    # secret") they are versioned defaults here, not Secret Manager entries.
+    # Asking an operator to supply a value the repo already documents is how
+    # a setup gets stalled on nothing.
     APNS_AUTH_KEY: str = ""              # ES256 private key, PEM ("-----BEGIN…")
-    APNS_KEY_ID: str = ""                # 10 chars, shown when you create the key
-    APNS_TEAM_ID: str = ""               # 10 chars, your Apple Developer team
+    APNS_KEY_ID: str = ""                # 10 chars, shown once when you create it
+    #: DEPLOYMENT_TASKS.md: "The team is E48V6Y372K (keychain: Apple
+    #: Distribution: 6igma)". It must match the appIDs prefix in
+    #: apple-app-site-association, or Universal Links break silently.
+    APNS_TEAM_ID: str = "E48V6Y372K"
     APNS_BUNDLE_ID: str = "com.alafia.app"
     # TestFlight and debug builds receive tokens from Apple's SANDBOX gateway.
     # A sandbox token sent to production (or the reverse) is refused as

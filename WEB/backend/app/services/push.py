@@ -233,12 +233,29 @@ async def _send_apns(tokens: list[str], d: Delivery) -> set[str]:
                     reason = (resp.json() or {}).get("reason", "")
                 except Exception:
                     reason = resp.text[:120]
-                # 410 Gone, or 400 BadDeviceToken: the app was uninstalled or
-                # the token was issued for the other environment. Prune it —
-                # a token nobody can deliver to is noise on every later send.
-                if resp.status_code == 410 or reason in (
-                        "BadDeviceToken", "Unregistered", "DeviceTokenNotForTopic"):
+                # Prune ONLY on proof the token is dead for this topic.
+                #
+                # ⚠️ `BadDeviceToken` is NOT that proof. Apple returns it both
+                # for a malformed token AND for one registered in the OTHER
+                # environment — its own docs say "verify that the token matches
+                # the environment". This record's 21 tokens span
+                # 2026-08-21..09-28, a window holding both distribution builds
+                # (Release entitlement: aps-environment=production) and local
+                # debug builds (development), so a mismatch is EXPECTED here.
+                # Pruning on it would delete working devices on the first send —
+                # the same mistake as pruning on a timeout, which this module
+                # already refuses to do.
+                #
+                # `DeviceTokenNotForTopic` is a bundle-id mismatch: a config
+                # fault on our side, never a dead device.
+                if resp.status_code == 410 or reason == "Unregistered":
                     dead.add(token)
+                elif reason in ("BadDeviceToken", "DeviceTokenNotForTopic"):
+                    logger.warning(
+                        "push: APNs refused a token as %s — NOT pruned. Likely an "
+                        "environment or bundle mismatch (APNS_USE_SANDBOX=%s, "
+                        "topic=%s), not a dead device.",
+                        reason, settings.APNS_USE_SANDBOX, cfg["bundle"])
                 _last_error = f"apns {resp.status_code} {reason}"
                 logger.warning("push: APNs refused (%s)", _last_error)
     except Exception as exc:

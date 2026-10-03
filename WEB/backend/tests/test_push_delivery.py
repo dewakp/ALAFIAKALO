@@ -237,6 +237,38 @@ class TestOnlyAProvablyDeadTokenIsPruned:
     async def test_pruning_nothing_is_not_an_error(self, db):
         assert await push._prune(db, set()) == 0
 
+    def test_only_UNREGISTERED_and_410_count_as_proof_of_death(self):
+        """REGRESSION GUARD. `BadDeviceToken` must NOT prune.
+
+        Apple returns `BadDeviceToken` both for a malformed token AND for one
+        registered in the OTHER environment — its own documentation says to
+        "verify that the token matches the environment". This record's 21
+        tokens span 2026-08-21..09-28, a window containing both
+        distribution-signed builds (Release entitlement:
+        aps-environment=production) and local debug builds (development), so a
+        mismatch is EXPECTED. Pruning on it would delete working devices on the
+        very first send, and the patient would then silently stop receiving
+        alerts with nothing to explain it.
+
+        `DeviceTokenNotForTopic` is a bundle-id mismatch: our config is wrong,
+        the device is fine.
+
+        Read off the source so the rule cannot drift from its comment.
+        """
+        import inspect
+        src = inspect.getsource(push._send_apns)
+        prune_line = next(
+            (ln for ln in src.splitlines()
+             if "dead.add(token)" in ln or "resp.status_code == 410" in ln), "")
+        assert "Unregistered" in src
+        # The pruning CONDITION must not mention the ambiguous reasons.
+        cond = src.split("dead.add(token)")[0].splitlines()[-3:]
+        cond_text = " ".join(cond)
+        assert "BadDeviceToken" not in cond_text, (
+            f"BadDeviceToken must not gate pruning; found: {cond_text!r}")
+        assert "DeviceTokenNotForTopic" not in cond_text, (
+            f"DeviceTokenNotForTopic must not gate pruning; found: {cond_text!r}")
+
     @pytest.mark.asyncio
     async def test_a_transport_failure_prunes_NOTHING(self, db, monkeypatch):
         """A timeout says nothing about the token.
