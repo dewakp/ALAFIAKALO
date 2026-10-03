@@ -5,6 +5,7 @@
 
 from app.models.user import User
 from app.models.clinical_threshold import ClinicalThreshold
+from app.models.allergy_resolution import AllergyTermResolution
 from app.models.food_category_cache import FoodCategoryCache
 from app.models.nutrition import NutritionLog
 from app.models.fitness import FitnessLog

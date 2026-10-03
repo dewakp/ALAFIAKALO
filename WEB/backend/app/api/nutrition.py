@@ -12,7 +12,7 @@ from datetime import date
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.core.notification_engine import notify_nutrition_restriction
+from app.services import active_response
 from app.core.nutrition_data import (
     search_usda_foods,
     get_usda_food_detail,
@@ -276,21 +276,16 @@ async def estimate_meal(
         await db.refresh(log)
         log_id = log.id
 
-        # Notify on key nutrient limit breaches (same thresholds as single-food log)
-        _LIMITS = {
-            "sodium_mg": ("Sodium", 2300, "mg"),
-            "potassium_mg": ("Potassium", 4700, "mg"),
-            "phosphorus_mg": ("Phosphorus", 1000, "mg"),
-            "sugar_g": ("Sugar", 50, "g"),
-        }
-        for field, (label, limit, unit) in _LIMITS.items():
-            val = agg.get(field)
-            if val is not None and val > limit:
-                await notify_nutrition_restriction(
-                    db, user_id=current_user.id, nutrient=label,
-                    logged_value=f"{val:.1f} {unit}", limit_value=f"{limit} {unit}",
-                    log_id=log_id,
-                )
+        # The record answers back: this patient's OWN limits, measured against
+        # the whole DAY, plus anything their profile or their diagnoses say they
+        # must not eat at all. The four thresholds that used to sit here
+        # (sodium 2300 / potassium 4700 / phosphorus 1000 / sugar 50) were
+        # hand-typed population constants and LOOSER than every limit
+        # `compute_goals` derives for a renal or diabetic patient — potassium
+        # 4700 is the generic adult RDA §3am names as exactly the wrong figure
+        # to hand a dialysis patient, whose computed cap here is 2200 mg. The
+        # alert could not fire for the people it existed for.
+        await active_response.evaluate_nutrition_log(db, log, current_user)
 
     return MealEstimateResponse(
         description=result["description"],
@@ -697,21 +692,15 @@ async def create_nutrition_log(
         # request's session is closed by then.
         background_tasks.add_task(enrich_log, log.id)
 
-    # Notification: check key nutrients against common clinical limits
-    _LIMITS = {
-        "sodium_mg": ("Sodium", 2300, "mg"),
-        "potassium_mg": ("Potassium", 4700, "mg"),
-        "phosphorus_mg": ("Phosphorus", 1000, "mg"),
-        "sugar_g": ("Sugar", 50, "g"),
-    }
-    for field, (label, limit, unit) in _LIMITS.items():
-        val = getattr(log, field, None)
-        if val is not None and val > limit:
-            await notify_nutrition_restriction(
-                db, user_id=current_user.id, nutrient=label,
-                logged_value=f"{val} {unit}", limit_value=f"{limit} {unit}",
-                log_id=log.id,
-            )
+    # Judge it only when the numbers are already in hand. A meal that needs
+    # estimation is evaluated at the END of `enrich_log` instead, because the
+    # check that used to sit here ran BEFORE the background task filled the row
+    # in (§3c) — every nutrient it read was None, so it could not fire, and the
+    # task that later writes the real figures told nobody. Measured: 8
+    # nutrition alerts exist on production, all on one day in June 2026,
+    # against 1,056 meals whose `sugar_g` is populated on 1,031.
+    if not needs_enrichment:
+        await active_response.evaluate_nutrition_log(db, log, current_user)
 
     return log
 

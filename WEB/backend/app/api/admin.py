@@ -335,6 +335,40 @@ async def admin_app_health(
         return f"{s['samples']} samples ({s['untrained']} untrained) — {rungs}"
     await probe("alafia_corpus", _alafia_corpus)
 
+    # Push delivery. Until 2026-10-03 nothing in this backend ever sent one:
+    # 21 device tokens were registered across 4 users, `device_tokens`'s own
+    # docstring said they existed "so the backend can deliver", and no code
+    # addressed them (§3ar, on the delivery channel itself).
+    #
+    # An unconfigured transport must be VISIBLE HERE, not only in a log line.
+    # §3ah's PayPal rail was advertised and unbuyable for weeks precisely
+    # because nothing surfaced that it had no credential — so this RAISES when
+    # tokens are held that nothing can reach, the same way `_ai` raises on "no
+    # LLM backend configured".
+    async def _push():
+        from app.models.device_tokens import DeviceToken
+        from app.services import push as push_service
+
+        s = push_service.status()
+        rows = (await db.execute(
+            select(DeviceToken.platform, func.count(DeviceToken.id))
+            .group_by(DeviceToken.platform)
+        )).all()
+        held = ", ".join(f"{p} {n}" for p, n in rows) or "no devices"
+        rails = [
+            "apns " + ("ok" if s["apns_configured"]
+                       else f"UNCONFIGURED ({s['apns_reason']})"),
+            "fcm " + ("ok" if s["fcm_configured"] else "UNCONFIGURED"),
+        ]
+        if rows and not (s["apns_configured"] or s["fcm_configured"]):
+            raise RuntimeError(
+                f"no push transport configured — {held} registered and "
+                f"unreachable ({'; '.join(rails)})")
+        return (f"{held}; {'; '.join(rails)}; apns env {s['apns_environment']}; "
+                f"sent {s['sent']}, failed {s['failed']}, "
+                f"pruned {s['pruned']}, dropped {s['dropped']}")
+    await probe("push", _push)
+
     # AI reachability. Reports which backends are configured without leaking keys.
     async def _ai():
         configured = []

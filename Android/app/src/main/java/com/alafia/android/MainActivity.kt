@@ -37,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import com.alafia.android.api.ApiClient
 import com.alafia.android.api.EntitlementState
 import com.alafia.android.api.KeychainHelper
+import com.alafia.android.services.PushRegistration
 import com.alafia.android.ui.theme.ALAFIATheme
 import kotlinx.coroutines.launch
 import com.alafia.android.views.auth.LoginScreen
@@ -111,6 +112,12 @@ fun AppNavigation(activity: MainActivity, intent: Intent?) {
                 // 402 to every gated path without an active membership, so ask
                 // once here rather than opening a shell of failed requests.
                 EntitlementState.refresh()
+                // Put this device on the record for push. This is the path an
+                // ALREADY signed-in install takes — it never reaches the login
+                // screen, and `onNewToken` fires only when the token rotates,
+                // so without this hook an existing user would never register.
+                // iOS does the same from `AuthManager` on session restore.
+                PushRegistration.register(activity)
             } catch (_: Exception) {
                 // Token expired / invalid – clear stored credentials
                 KeychainHelper.clearAll(activity)

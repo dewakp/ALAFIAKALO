@@ -3,7 +3,7 @@
 
 """User profile endpoints."""
 
-from fastapi import File, UploadFile, APIRouter, Depends, HTTPException
+from fastapi import BackgroundTasks, File, UploadFile, APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -65,6 +65,7 @@ def _age_years(dob: str | None) -> float | None:
 @router.patch("/me", response_model=UserResponse)
 async def update_profile(
     updates: UserUpdate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -189,6 +190,16 @@ async def update_profile(
 
     await db.flush()
     await db.refresh(current_user)
+
+    # A declared allergy is only worth what it MATCHES, and this profile's
+    # `Penicilin` did not match a dose logged as `Penicillin`. Resolving the
+    # spelling asks RxNorm, so it runs AFTER the response with its own session
+    # (§3c) — the save must never wait on a third party, and the guard is no
+    # worse off in the meantime because the declared term still matches itself.
+    if any(k in changed for k in ("allergies", "food_intolerances")):
+        from app.services.allergy_resolution import resolve_for_user_id
+        background_tasks.add_task(resolve_for_user_id, current_user.id)
+
     result = await db.execute(
         select(UserRoleAssignment).where(
             UserRoleAssignment.user_id == current_user.id,

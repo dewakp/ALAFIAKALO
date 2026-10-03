@@ -155,6 +155,28 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
         await db.commit()
         logger.info("Enriched log %s: calories=%s", log_id, getattr(log, "calories", None))
 
+        # NOW the figures exist, so now the record can answer. The nutrient
+        # limit check used to live in the endpoint, which runs BEFORE this task:
+        # it read None for every nutrient and so never fired for any meal that
+        # needed estimating — which is most of them.
+        #
+        # Deliberately AFTER the commit above. The meal and its nutrients are
+        # already durable at this point, so an evaluation failure cannot roll
+        # back the clinical write, and the log keeps its `done` status whatever
+        # happens here. Losing an alert beats losing the meal (§3ah).
+        try:
+            from app.models.user import User
+            from app.services import active_response
+
+            user = (await db.execute(
+                select(User).where(User.id == log.user_id)
+            )).scalar_one_or_none()
+            if user is not None:
+                await active_response.evaluate_nutrition_log(db, log, user)
+                await db.commit()
+        except Exception:
+            logger.exception("Post-enrichment evaluation failed for log %s", log_id)
+
 
 async def _mark(log_id: int, status: str) -> None:
     """Record a terminal status. Best-effort — never raises."""

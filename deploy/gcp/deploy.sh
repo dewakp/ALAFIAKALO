@@ -76,6 +76,7 @@ for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
          apple-shared-secret alafia-pseudonym-secret \
          resend-api-key resend-webhook-secret \
+         apns-auth-key apns-key-id apns-team-id firebase-sa \
          smtp-host smtp-user smtp-password smtp-from-email; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
     --role=roles/secretmanager.secretAccessor --quiet >/dev/null 2>&1 || true
@@ -276,6 +277,46 @@ add_secret_if_present STRIPE_PRICE_ID         stripe-price-id
 add_secret_if_present STRIPE_PRICE_ID_ANNUAL  stripe-price-id-annual
 add_secret_if_present STRIPE_WEBHOOK_SECRET   stripe-webhook-secret
 add_secret_if_present APPLE_SHARED_SECRET     apple-shared-secret
+# ── Push delivery ────────────────────────────────────────────────────────────
+# Nothing in this backend sent a push until 2026-10-03: 21 device tokens were
+# registered across 4 users and no code ever addressed them (§3ar).
+#
+# iOS goes to APNs DIRECTLY, not through Firebase. The tokens already
+# registered by SHIPPED builds are raw APNs device tokens (measured: all 64 hex
+# characters), which FCM cannot address — v1 needs its own registration token —
+# so routing iOS via Firebase would need the Firebase iOS SDK plus a new App
+# Store release to reach devices we can reach today.
+#
+# All three values are needed together; absent them `push.status()` reports
+# apns_configured=false and names what is missing, and the sender is a no-op
+# that logs once rather than throwing per notification. Create the key ONCE in
+# the Apple Developer portal (Keys → +, enable APNs) — Apple does not let you
+# download the .p8 a second time — then:
+#   gcloud secrets create apns-auth-key --data-file=AuthKey_XXXXXXXXXX.p8
+#   printf 'XXXXXXXXXX' | gcloud secrets create apns-key-id  --data-file=-
+#   printf 'YYYYYYYYYY' | gcloud secrets create apns-team-id --data-file=-
+# Set APNS_USE_SANDBOX=true while the tokens come from TestFlight/debug builds:
+# a sandbox token sent to the production gateway is refused as BadDeviceToken,
+# which reads exactly like a dead device.
+add_secret_if_present APNS_AUTH_KEY           apns-auth-key
+add_secret_if_present APNS_KEY_ID             apns-key-id
+add_secret_if_present APNS_TEAM_ID            apns-team-id
+# Android goes to FCM, the only route Google's platform offers. `firebase-sa`
+# has existed as a secret and was never mounted, so FIREBASE_SERVICE_ACCOUNT
+# pointed nowhere and `get_firebase_app()` logged "service account not found"
+# on every call. Mounted as a FILE because the setting is a PATH — the same
+# form the identity service already uses for its keys.
+#
+# ⚠️ This does NOT turn the Firestore sync on. `get_firebase_app()` is
+# independent of FIREBASE_SYNC_ENABLED, which stays false above on purpose:
+# `firebase_sync` writes sessions through a raw INSERT that bypasses the
+# overnight-rollover fix, so waking it would wake a writer with a known defect.
+if gcloud secrets versions list firebase-sa --filter='state=enabled' \
+     --format='value(name)' --limit=1 2>/dev/null | grep -q .; then
+  BACKEND_SECRETS="${BACKEND_SECRETS},/run/keys/firebase-sa.json=firebase-sa:latest"
+  BACKEND_ENV="${BACKEND_ENV},FIREBASE_SERVICE_ACCOUNT=/run/keys/firebase-sa.json"
+  echo "   + mounting firebase-sa at /run/keys/firebase-sa.json (Android FCM push)"
+fi
 # Email — transactional (signup verification, password reset).
 # Resend (HTTPS API) is preferred over SMTP on Cloud Run: no outbound mail ports,
 # no STARTTLS negotiation, and real error bodies instead of socket failures.

@@ -172,8 +172,18 @@ def _conditional(subject: str) -> bool:
 
 
 def build_guidance(user: Any, facts: Iterable[Any] = (),
-                   nutrient_limits: Iterable[str] = ()) -> Guidance:
+                   nutrient_limits: Iterable[str] = (),
+                   aliases: dict[str, str] | None = None) -> Guidance:
     """Everything this patient should avoid and should favour.
+
+    `aliases` maps a normalised declared term to an ADDITIONAL term to match
+    on, from `allergy_resolution.aliases_for_user` — a single indexed SELECT,
+    never a network call. It exists because this profile declares `Penicilin`
+    and a dose logged as the correctly-spelled `Penicillin` did not match: the
+    matcher compares words, and neither spelling is a prefix of the other. The
+    declared text is never rewritten (that would invent a clinical fact about
+    what the patient told us); the resolved spelling is added beside it, so
+    both forms are caught.
 
     `facts` are `NutritionFact`s from `condition_nutrition_service` — resolved
     from their diagnoses and stored, never written here. Passing none yields
@@ -202,10 +212,31 @@ def build_guidance(user: Any, facts: Iterable[Any] = (),
             avoid[term] = Restriction(term=term, label=raw, kind=kind,
                                       reason=reason, mechanism=mechanism)
 
-    for item in profile_list(getattr(user, "allergies", None)):
+    allergy_items = profile_list(getattr(user, "allergies", None))
+    intolerance_items = profile_list(getattr(user, "food_intolerances", None))
+    for item in allergy_items:
         _add_avoid(item, ALLERGY, f"allergy: {item}")
-    for item in profile_list(getattr(user, "food_intolerances", None)):
+    for item in intolerance_items:
         _add_avoid(item, INTOLERANCE, f"food intolerance: {item}")
+
+    # A MISSPELLED declaration must still catch the real thing. `Penicilin` on
+    # the profile did not match a dose logged as `Penicillin`, which defeated
+    # the one guard that exists to stop exactly that.
+    #
+    # The alias is ADDITIVE and keeps the patient's own words as its `label`,
+    # so the warning still says what they wrote rather than correcting them to
+    # their face. Resolution happens elsewhere, once, against RxNorm
+    # (`allergy_resolution`); nothing is resolved here and nothing is guessed.
+    for item, kind in ([(i, ALLERGY) for i in allergy_items]
+                       + [(i, INTOLERANCE) for i in intolerance_items]):
+        alias = (aliases or {}).get(_normalise(item))
+        if not alias or alias in avoid:
+            continue
+        label = "allergy" if kind == ALLERGY else "food intolerance"
+        avoid[alias] = Restriction(
+            term=alias, label=item, kind=kind,
+            reason=f"{label}: {item} — also matched as “{alias}”",
+        )
 
     for f in facts or ():
         relation = getattr(f, "relation", None)

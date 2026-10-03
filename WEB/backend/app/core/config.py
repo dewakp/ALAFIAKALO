@@ -186,6 +186,31 @@ class Settings(BaseSettings):
     FIREBASE_SYNC_ENABLED: bool = False  # Enable real-time Firestore→PG sync
     FIREBASE_SYNC_INTERVAL_SECONDS: int = 300  # Polling interval for sync
 
+    # ── Push delivery (app/services/push.py) ────────────────────────────────
+    # iOS is served by APNs DIRECTLY and deliberately NOT through Firebase.
+    # Three reasons, in order of weight:
+    #   1. The tokens already registered are RAW APNs device tokens (measured:
+    #      21 tokens, all 64 hex characters), which FCM cannot address — v1
+    #      needs its own registration token.
+    #   2. Reaching iOS through FCM would require the Firebase iOS SDK and a new
+    #      App Store release, while APNs reaches every ALREADY-SHIPPED build.
+    #   3. One fewer third party between a clinical alert and the patient.
+    # Android uses FCM because Google's platform requires it.
+    #
+    # The .p8 KEY CONTENTS, not a path: Cloud Run mounts a secret's bytes into
+    # an env var verbatim, so there is no file to point at. Each value is
+    # separately required — `push.status()` names whichever is missing rather
+    # than failing per notification (§3ae: never a blank error).
+    APNS_AUTH_KEY: str = ""              # ES256 private key, PEM ("-----BEGIN…")
+    APNS_KEY_ID: str = ""                # 10 chars, shown when you create the key
+    APNS_TEAM_ID: str = ""               # 10 chars, your Apple Developer team
+    APNS_BUNDLE_ID: str = "com.alafia.app"
+    # TestFlight and debug builds receive tokens from Apple's SANDBOX gateway.
+    # A sandbox token sent to production (or the reverse) is refused as
+    # BadDeviceToken — which reads exactly like a dead device, so this must
+    # match the build the tokens came from.
+    APNS_USE_SANDBOX: bool = False
+
     # ── Scheduled practice-facility geocoding (server-side worker) ──────────
     # A background job (APScheduler, in-process with the backend) that upgrades
     # practice-facility coordinates ZIP-fallback → exact via the free US Census

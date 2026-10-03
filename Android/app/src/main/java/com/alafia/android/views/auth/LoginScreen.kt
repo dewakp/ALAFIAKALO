@@ -20,6 +20,7 @@ import com.alafia.android.api.ApiClient
 import com.alafia.android.api.KeychainHelper
 import com.alafia.android.api.loginWithCsrf
 import com.alafia.android.schemas.LoginRequest
+import com.alafia.android.services.PushRegistration
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.alafia.android.R
@@ -86,6 +87,14 @@ fun LoginScreen(
                             val languageChanged = AppLanguage.choose(context, user.preferred_language)
                             KeychainHelper.saveUserId(context, user.id.toString())
                             KeychainHelper.saveUsername(context, user.email)
+                            // Put this device on the record now that a token
+                            // exists to authenticate with. `onNewToken` only
+                            // fires on rotation, so without this an existing
+                            // install never registers for push at all — which
+                            // is why production holds zero Android tokens.
+                            // Best-effort and non-blocking: it must never cost
+                            // anyone a login.
+                            PushRegistration.register(context)
                             onLoginSuccess()
                             navController.navigate("main") {
                                 popUpTo("login") { inclusive = true }

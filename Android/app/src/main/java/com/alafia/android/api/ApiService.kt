@@ -37,6 +37,18 @@ interface ApiService {
     @POST("auth/password-reset/confirm")
     suspend fun confirmPasswordReset(@Body request: PasswordResetConfirm): PasswordResetResponse
 
+    /**
+     * Register this device for push. Android is served by FCM (the only route
+     * Google's platform offers); iOS posts to `notifications/apns-token` and is
+     * served by APNs directly.
+     *
+     * The backend upserts by token, so calling this repeatedly is safe and is
+     * what makes it reliable: `onNewToken` only fires when the token ROTATES,
+     * so without a call at login an existing install would never register.
+     */
+    @POST("notifications/fcm-token")
+    suspend fun registerFcmToken(@Body request: DeviceTokenRequest): DeviceTokenOut
+
     // User Endpoints
     @GET("users/me")
     suspend fun getCurrentUser(): UserSchema

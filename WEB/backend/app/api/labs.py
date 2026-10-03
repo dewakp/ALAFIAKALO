@@ -14,6 +14,7 @@ from app.core.notification_engine import notify_lab_anomaly
 from app.models.user import User
 from app.models.labs import LabResult
 from app.schemas.labs import LabResultCreate, LabResultUpdate, LabResultResponse
+from app.services import active_response
 
 router = APIRouter()
 
@@ -53,20 +54,42 @@ async def create_lab_result(
     if lab.value is not None:
         is_anomaly = False
         range_str = ""
-        if lab.reference_range_low is not None and lab.value < lab.reference_range_low:
+        resolved_note = ""
+        low, high = lab.reference_range_low, lab.reference_range_high
+        if low is None and high is None:
+            # A result printing no range is the NORMAL case here, not the
+            # exception: of 9,791 production results 9,091 have `is_abnormal`
+            # NULL and only 680 carry a range, so this gate could not judge
+            # 93% of the record — which is why two lab notifications exist for
+            # nearly ten thousand results. §3aa already recorded the display
+            # side of the same gap: 137 stored results numerically contradict
+            # their own printed range, including a potassium of 6.7 against
+            # 3.5-5.5.
+            #
+            # `reference_ranges` resolves a band without inventing one — this
+            # patient's own most recent reported range, then the population
+            # mode, then a recorded guideline in `clinical_thresholds`, then a
+            # range learned from observed values, and then nothing.
+            band = await active_response.resolved_range_for(
+                db, current_user.id, lab.test_name)
+            if band:
+                low, high = band
+                resolved_note = " (your previously reported range)"
+        unit = lab.unit or ""
+        if low is not None and lab.value < low:
             is_anomaly = True
-            range_str = f"{lab.reference_range_low}–{lab.reference_range_high or '?'} {lab.unit or ''}"
-        elif lab.reference_range_high is not None and lab.value > lab.reference_range_high:
+            range_str = f"{low}–{high if high is not None else '?'} {unit}{resolved_note}"
+        elif high is not None and lab.value > high:
             is_anomaly = True
-            range_str = f"{lab.reference_range_low or '?'}–{lab.reference_range_high} {lab.unit or ''}"
+            range_str = f"{low if low is not None else '?'}–{high} {unit}{resolved_note}"
         elif lab.is_abnormal:
             is_anomaly = True
             range_str = "flagged abnormal"
         if is_anomaly:
             await notify_lab_anomaly(
                 db, user_id=current_user.id, test_name=lab.test_name,
-                value=f"{lab.value} {lab.unit or ''}".strip(),
-                normal_range=range_str, lab_id=lab.id,
+                value=f"{lab.value} {unit}".strip(),
+                normal_range=range_str.strip(), lab_id=lab.id,
             )
 
     return lab

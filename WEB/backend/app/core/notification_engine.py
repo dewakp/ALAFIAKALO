@@ -8,6 +8,7 @@ Call these helpers from other API endpoints when relevant events occur
 """
 
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -19,6 +20,8 @@ from app.models.notifications import (
     NotificationPreference,
     NotificationPriority,
 )
+
+logger = logging.getLogger(__name__)
 
 
 async def _is_enabled(db: AsyncSession, user_id: int, category: NotificationCategory) -> bool:
@@ -67,6 +70,32 @@ async def create_notification(
     )
     db.add(notif)
     await db.flush()
+
+    # Deliver it to the patient's phone. Until 2026-10-03 nothing in this
+    # backend ever sent a push: 21 device tokens were registered across 4
+    # users, `device_tokens`'s own docstring said they existed "so the backend
+    # can deliver", and 19 of 21 notifications sat unread because the only way
+    # to learn of one was to open the app and look (§3ar, on the delivery
+    # channel itself).
+    #
+    # `enqueue` is deliberately the smallest thing that can be done here: it
+    # puts a dict on a bounded queue and returns. No DB read, no network, no
+    # await — this runs inside a request transaction while a patient waits for
+    # a clinical save, and a push must never couple that save to Apple's or
+    # Google's availability (§3ah). A drain task delivers with its own session.
+    try:
+        from app.services import push
+        push.enqueue(
+            user_id=user_id,
+            title=title,
+            body=message,
+            category=category.value,
+            notification_id=notif.id,
+            action_url=action_url,
+        )
+    except Exception:  # noqa: BLE001 — the notification must still be WRITTEN
+        logger.warning("push enqueue failed for notification %s", notif.id,
+                       exc_info=True)
     return notif
 
 

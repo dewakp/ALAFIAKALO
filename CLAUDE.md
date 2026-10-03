@@ -2948,6 +2948,321 @@ Readiness shows in admin health as `alafia_corpus`, and at
 (`food_training_samples`, gated on `allow_collective_insights`, §3a): a base64
 image on the inference path would bloat every row and route around that consent.
 
+## 3az. The record answers back, and the thresholds were never the patient's
+
+Operator instruction, 2026-10-02: *"the db and the model must be alive. Alive
+means actively responding to new data."* Examples named: a diabetic exceeding a
+sugar quota, and an allergen appearing in food **or medication** logged.
+
+**The notification engine was never the missing piece.** Measured on production
+before any of this:
+
+    notifications          21 rows / 4 users / 19 unread
+      nutrition_alert       8 rows, ONE user, every one on 2026-06-26
+      system                8    record_access  3    lab_anomaly  2 (one day)
+    NEVER fired (10 of 14): treatment_anomaly, medication_conflict,
+      therapy_session, record_shared, adherence_alert, calendar,
+      refill_reminder, prescription_created/ready, dispense_complete
+
+against 1,056 nutrition logs, 1,022 dose logs and 9,791 lab results. Eleven
+`notify_*` producers existed, wired into eight routers. What did not exist was
+anything comparing a new row to what the record already knew.
+
+`services/active_response.py` is that comparison, and `tests/test_active_response.py`
+pins it.
+
+### Why the nutrition alert fired on one day in June and never again
+
+Two independent faults, each sufficient alone:
+
+- **It read the row before the numbers existed.** §3c: the meal is persisted and
+  returned immediately and nutrients are filled in by a background task. The
+  check sat inline in the endpoint, so for any meal needing estimation every
+  value it read was `None` — and `nutrient_enrichment.py`, which later writes the
+  real figures, contained no notification call at all. The proof is in the data:
+  `nutrient_status='pending'` is 0 and `sugar_g` is populated on 1,031 of 1,056
+  rows. The values arrive; nobody was told. The evaluation now runs at the END of
+  `_enrich`, after its commit.
+- **The thresholds were population constants LOOSER than the patient's own
+  limits.** The dict was hand-typed and duplicated at both call sites. Measured
+  against `compute_goals` for the reference record (ESRD + diabetes + anaemia,
+  55 kg, 1688 kcal):
+
+      key              this patient    old hardcoded
+      sodium_mg            2000            2300
+      potassium_mg         2200            4700
+      phosphorus_mg         900            1000
+      sugar_g              21.1              50
+
+  **All four were looser.** Potassium 4,700 is the generic adult RDA §3am names
+  as exactly the wrong figure for a renal patient. So the alert could not fire
+  for any of the four nutrients it policed at any intake that endangered them —
+  the diabetic exceeding a sugar quota, the operator's own example, was the
+  patient it was structurally unable to warn.
+  `tests/test_renal_limits_are_personal.py` made this argument about the
+  clinician board and `tests/test_no_hardcoded_thresholds.py` states the canon
+  outright (*no hardcoded data, no exception*); neither reached these two dicts.
+
+### Where every threshold comes from, since none may be invented
+
+| judging | authority |
+|---|---|
+| a nutrient against a daily quota | `compute_goals`, `kind == "limit"` only |
+| a food or a drug against a restriction | declared allergies + `condition_nutrition_facts` via `food_safety.build_guidance` |
+| a glucose reading, a lab value | `reference_ranges.resolve()` — own reported range → population mode → `clinical_thresholds` → learned → **nothing** |
+
+- **`resolve_missing=False` is load-bearing** on `facts_for_conditions`. It
+  otherwise asks a model to resolve an unseen condition, and this is a write
+  path — §3ae's timeout failure by construction. `get_goal_progress` makes the
+  same choice and says so.
+- **The DAY is the unit, not the meal.** Three 900 mg portions are each
+  unremarkable and together breach a 2200 mg cap. The aggregate goes through
+  `_aggregate_daily_nutrients`, the function the Nutrition screen already uses —
+  §3ai, two computations of one quantity must not disagree.
+- **A glucose range is a FASTING range.** The LOW bound is applied
+  unconditionally (hypoglycaemia does not depend on having eaten); the HIGH bound
+  only when the timing is fasting or unstated, because applying a serum ceiling
+  to a deliberate post-meal fingerstick flags ordinary physiology and a guard
+  that cries wolf is one its reader learns to tick past (§3ab). **A
+  post-prandial ceiling needs an authority this system does not hold**, so
+  nothing is said rather than something invented.
+
+### Retroactive notification is impossible by construction, not by a flag
+
+Operator instruction: *"do not notify retroactively. Notify from when this
+update lands onward."* There is no cutoff constant, no watermark and no switch —
+every entry point takes the row the request just wrote, and nothing in the module
+queries history. `test_the_module_queries_no_clinical_table` walks the AST and
+fails the build if any `select()` there touches anything but `Notification`,
+which is the dedupe read. A constant would have been the thing to leave in the
+wrong position on a redeploy; this cannot be.
+
+**One finding is one notification.** Cross the sugar cap at lunch and every later
+meal re-crosses it. Keyed `nutrient:date`, as `notify_record_accessed` already
+learned — without a window the patient gets five alerts for one visit and learns
+to ignore all five.
+
+### `notify_lab_anomaly` could not judge 93% of the record
+
+Of 9,791 results, **9,091 have `is_abnormal` NULL and only 680 carry a reference
+range** — and the gate required one or the other, which is why two lab
+notifications exist for nearly ten thousand results. `resolved_range_for()` fills
+it from `reference_ranges` without inventing a band, matching on
+`analyte_key()` so §3ax's `ALP`/`Alk Phos` split does not lose half a series.
+
+### What this does NOT do, recorded rather than implied
+
+- ✅ **A push sender now exists** (`app/services/push.py`, 2026-10-03) — see
+  "The notification reaches the phone" below. It was absent entirely: 21 tokens
+  across 4 users, a docstring saying they existed "so the backend can deliver",
+  an Android receiver ready to render one, and no code addressing any of them.
+  **iOS delivery is still credential-blocked** and that is an operator action,
+  not a code gap: no Apple `.p8` key secret exists.
+- ✅ **A misspelled allergy now matches the real drug** (2026-10-03), and the
+  declared text is still never rewritten — see "A misspelled allergy, resolved
+  once" below. `Penicilin` on the profile catches a dose logged as
+  `Penicillin`; `Raw Apples` still does NOT catch sugar, which is the half that
+  took the work.
+- **The import paths are deliberately NOT wired.** `document_import_service`,
+  `api/ehr.py` and `import_unified_labs.py` all construct `LabResult` rows; a
+  confirmed PDF of 100 results would become 100 notifications. Whether a bulk
+  import should speak at all is the operator's call, not a default.
+- ⚠️ **`notify_nutrition_restriction` now has ZERO callers.** It had exactly two
+  — the two `_LIMITS` loops — and this change removed both. It is NOT routed
+  through, deliberately: its signature fixes the title, the priority and the
+  `action_url`, and its `metadata_dict` has no room for the `dedupe_key` or the
+  `authority`, which are the two fields that stop a patient getting one alert
+  per meal and make a quoted figure traceable to what set it. Preserving the
+  function would have cost the thing it exists to deliver. Left in place rather
+  than deleted — it is a shared module and deletion was not asked for — but it
+  is dead code until someone calls it, which is the §3ar shape pointing the
+  other way, and it should go or be adopted rather than linger.
+- **No client change was needed and none was made.** Only pre-existing categories
+  are used (`nutrition_alert`, `medication_conflict`, `lab_anomaly`), so there is
+  no migration: web keys `CATEGORY_META` with a `system` fallback and has icons
+  and labels for all three, iOS decodes `category` as a plain field, Android
+  renders a pushed category. Verified by reading those call sites — not by
+  building three apps.
+
+> **4 guards, 18 coverage — and the distinction took work to get right.** Every
+> direct-call test still PASSES with the old call sites restored, because the
+> evaluator is new code nothing reverts. Only the four end-to-end endpoint tests
+> go red, because the `_LIMITS` dict lived in the ENDPOINT. Proven by stashing
+> the tracked `app/` changes (the untracked module survives, so imports still
+> resolve) and watching `_LIMITS` occurrences in `nutrition.py` go 0 → 4 and all
+> four e2e tests fail, then restore and 22 pass. Calling all 22 guards would be
+> §3al's mistake again.
+
+> ⚠️ **A wrong theory recorded, because it was confidently argued for a while.**
+> `therapy_session` has never fired from two live call sites, and this was
+> diagnosed as a case mismatch: the gate reads `status == "completed"` while the
+> database enum domain prints `COMPLETED`. **That is wrong.**
+> `TherapyStatus.COMPLETED` has the VALUE `"completed"` and the class is a
+> `str, enum.Enum`, so the comparison is True; the uppercase in Postgres is
+> SQLAlchemy persisting the enum by NAME. The gate is correct and the silence is
+> still unexplained — user 63's six preference rows are all `enabled=true`, so it
+> is not suppression either. §0: the DB enum domain is not the Python enum, and
+> reading one and inferring the other is the same shortcut this canon keeps
+> paying for.
+
+> **`treatment_anomaly`'s gate is also the wrong instrument**, untouched here.
+> `fluid_removed_ml > 4000` matches **1 session in the entire production
+> record** — and §3at records that the figure goes NEGATIVE when the patient
+> finishes heavier (production holds -8500 and -500). A flat ceiling on a
+> weight-derived net figure, with no reference to the patient's own dry weight.
+
+### The notification reaches the phone (2026-10-03)
+
+`app/services/push.py`. Before it, measured on production:
+
+    device_tokens   21 tokens / 4 users, EVERY ONE platform='ios',
+                    64 characters, pure hex, no colon -> raw APNs tokens
+    android tokens  ZERO
+    senders         none anywhere in the backend
+    notifications   21 rows, 19 UNREAD
+
+**iOS goes to APNs DIRECTLY, never through Firebase** — operator decision, and
+a hard constraint besides. A raw APNs device token **cannot be addressed by
+FCM**: v1 requires its own registration token, and `PushNotificationManager`
+hex-encodes the APNs `Data` and posts it verbatim. Three reasons, in order of
+weight: FCM cannot reach the tokens we already hold; routing iOS through
+Firebase would need the Firebase iOS SDK plus a new App Store release to reach
+devices reachable today (the §3av argument for fixing where both values are in
+hand); and it is one fewer third party between a clinical alert and a patient.
+Android uses FCM because Google's platform offers nothing else.
+
+- ⚠️ **`h2` is a required dependency now.** APNs is HTTP/2 ONLY, and
+  `httpx.AsyncClient(http2=True)` raises ImportError without it — measured: h2
+  was not pulled in transitively by httpx, firebase-admin or anything else.
+  `h2==4.4.1` was resolved by pip and verified to make `http2=True` construct,
+  not typed from memory.
+- **Every transport is gated on its own credential and SAYS SO.** §3ah's PayPal
+  rail was advertised and unbuyable for weeks because nothing surfaced that it
+  had no key. An unconfigured transport is a no-op that logs **once**, naming
+  exactly which values are missing; `push.status()` carries it and the admin
+  health probe RAISES when tokens are held that nothing can reach.
+- **It never sends inline.** `create_notification` runs inside a request
+  transaction while a patient waits for a clinical save, so the caller only
+  does `enqueue()` — put a dict on a BOUNDED queue, no DB read, no network, no
+  await — and a drain task delivers with its own session. Exactly
+  `inference_corpus`'s shape (§3ay). The queue drops loudly: an unbounded one
+  turns an Apple outage into memory exhaustion.
+- **`notification_preferences.push` is finally READ.** It has existed as long
+  as the table while `_is_enabled` only ever consulted `enabled` — a dead
+  control sitting inside a live one. Absent row still means enabled.
+- **Only a PROVABLY dead token is pruned** — an explicit `Unregistered` /
+  `BadDeviceToken` / 410, never a timeout or a 5xx. Deleting on those would
+  unregister working devices because Apple had a bad minute, and the patient
+  would then silently stop receiving alerts with nothing to explain it.
+- **The Android TODO was the whole reason that platform had zero tokens.**
+  `ALAFIAFirebaseMessagingService.onNewToken` held
+  `// TODO: Send this token to backend` and nothing else, while the service was
+  in the manifest and `firebase-messaging-ktx` was a declared dependency.
+  `PushRegistration` is called from THREE places, because `onNewToken` fires
+  only on ROTATION and would never register an existing install: the token
+  callback, after login, and on session restore (which is the path an
+  already-signed-in user actually takes). iOS has always done both.
+
+> ⚠️ **iOS delivery is credential-blocked, and that is an operator action.**
+> No Apple `.p8` key secret exists, and one cannot be manufactured from here —
+> it comes from the Apple Developer portal, downloadable exactly once.
+> `deploy.sh` carries the three `add_secret_if_present` lines and the commands
+> to create them, so iOS push lights up on the next deploy after the secrets
+> exist, with **no code change and no app release**. Set
+> `APNS_USE_SANDBOX=true` while the tokens come from TestFlight or debug
+> builds: a sandbox token sent to the production gateway is refused as
+> BadDeviceToken, which reads exactly like a dead device.
+
+> **Mounting `firebase-sa` does NOT turn the Firestore sync on.**
+> `get_firebase_app()` is independent of `FIREBASE_SYNC_ENABLED`, which stays
+> false: `firebase_sync` writes sessions through a raw INSERT that bypasses the
+> overnight-rollover fix, so waking it wakes a writer with a known defect.
+
+### A misspelled allergy, resolved once (2026-10-03)
+
+The reference profile declares `Penicilin, Latex, Heparine, Raw Apples, Raw
+Berries`. Two are misspelled, and `food_safety.violations` compares words — so
+a dose logged as the correctly-spelled `Penicillin` did not match, and the one
+guard whose job is to catch that was defeated by a missing letter.
+
+**RxNorm CHOOSES the identity; similarity only REFUSES a proposal that is not a
+spelling variant.** That is the opposite direction from §3aj, where similarity
+was used to PICK a drug and confidently named a third one. The refusal half is
+where the danger lives — measured live against RxNav:
+
+    Penicilin    -> PENICILLIN   (rxcui 7986)      score  8.75   accept
+    Heparine     -> HEPARIN      (rxcui 5224)      score 11.73   accept
+    Latex        -> latex        (rxcui 1314891)   score 12.79   exact
+    Raw Apples   -> "raw sugar"  (rxcui 1483267)   score 12.75   REFUSE
+
+> ⚠️ **`approximateTerm`'s score is not a spelling-similarity score.** The bogus
+> match scored HIGHER than both genuine typo fixes. Taking the top candidate on
+> score would map a fruit allergy onto sugar — warning this patient off
+> everything sweet while still missing the penicillin.
+
+> **A ratio threshold alone is not safe either.** `penicillin` against
+> `penicillamine` — a chelator, a different drug — scores ~0.87, above any
+> threshold low enough to accept the real typos. Edit distance separates them:
+> every genuine misspelling here is **1**, that pair is **3** (measured in the
+> container; it was first written as "four or more" from arithmetic in someone's
+> head, §3av again). Acceptance needs the same word count, the same first letter
+> per word, and Levenshtein within budget — ratio is only a backstop.
+
+- **The declared text is NEVER rewritten.** Correcting what a patient said
+  about their own body invents a clinical fact, and the wording is how they
+  recognise their own record. The resolution is stored beside it and the alias
+  is ADDITIVE, keeping the patient's own spelling as the warning's `label` —
+  so the message says what they wrote rather than correcting them to their face.
+- **No `user_id` on `allergy_term_resolutions`.** "Penicilin" means
+  "Penicillin" for everybody; the row holds a TERM and its clinical identity,
+  never whose profile it came from and never a measurement. Same privacy shape
+  as `document_row_judgments`, and it is what lets one patient's typo help the
+  next patient's guard.
+- **Nothing resolves on a write path.** `stored_aliases()` is one indexed
+  SELECT; `resolve_term()` is the network call and belongs to
+  `scripts/resolve_allergy_terms.py` (dry run by default) or the background
+  task a profile save enqueues. An `unreachable` never overwrites a real
+  answer — a third-party outage must not erase what we already knew.
+
+> ⚠️ **An EXACT match can STILL need an alias — missed on the first pass.**
+> `Heparine` is a real RxNorm synonym (rxcui 5224), so it was filed as `exact`
+> and stored nothing, and a dose logged as `Heparin` still missed: the
+> `Penicilin` failure pointing the other way. The canonical name for 5224 is
+> `heparin`, one edit away, so the alias is now taken from the rxcui's own name
+> and put through the SAME veto — an exact match earns no free pass to widen
+> what counts as this patient's allergy. **Found by running the resolver
+> against the real profile, not by reading the code.**
+>
+> **Comparing rxcuis is NOT a usable matching rule.** `Heparine` is 5224 and
+> `Heparin` is **235473** — equality would report two spellings of one drug as
+> unrelated concepts. The canonical NAME is what relates them. And not every
+> concept has one: rxcui 7986 (penicillin) returns no name property at all, so
+> None is an ordinary answer rather than a failure.
+>
+> `canonical_name()` is deliberately NOT folded into `rxnorm.lookup()`. That
+> function sits on the dose-log write path through `validate_dose`, and this is
+> a third HTTP round trip — putting it there would slow every clinical save.
+> Its own rxcui→name cache is separate from `_cache`, which is keyed by typed
+> NAME and holds `DrugFacts`: one dict for both would conflate two key spaces
+> that merely happen to be strings.
+
+**Measured against the real profile (dry run, 2026-10-03) — 6 terms, ZERO
+false aliases:**
+
+    Penicilin        spelling   PENICILLIN  (distance 1)
+    Heparine         spelling   heparin     (distance 1, via rxcui 5224's name)
+    Latex            exact      latex       — already matches itself
+    Raw Apples       refused    raw sugar — 'apple' and 'sugar' start differently
+    Raw Berries      refused    raw sugar — 'berry' and 'sugar' start differently
+    G6PD Deficiency  refused    "Vitamin Deficiency Injectable System - B12 KIT"
+                                — word count differs (2 vs 6)
+
+That `G6PD Deficiency` row is the clearest argument for the refusal half: it is
+a CONDITION somebody typed into an intolerance field, and unchecked it would
+have made every B12 and vitamin product an "allergen" for this patient. Each
+refusal is stored WITH its reason, because the refusals are the half worth
+reviewing — every one is a confident wrong answer that was stopped.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

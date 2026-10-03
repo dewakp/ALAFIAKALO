@@ -26,6 +26,12 @@ email-validator==2.2.0
 
 # CORS & HTTP
 httpx==0.28.1
+# APNs is HTTP/2 ONLY — there is no HTTP/1.1 endpoint for it. Without this,
+# `httpx.AsyncClient(http2=True)` raises ImportError at construction and iOS
+# push cannot be sent at all (measured: h2 is not pulled in transitively by
+# httpx, firebase-admin or anything else here). Version resolved by pip and
+# verified to make http2=True work, not typed from memory.
+h2==4.4.1
 
 # Rate Limiting
 slowapi==0.1.9

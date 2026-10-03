@@ -18,7 +18,14 @@ class ALAFIAFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // TODO: Send this token to backend via POST /notifications/fcm-token
+        // This single missing line is why production holds ZERO Android device
+        // tokens: the service was registered in the manifest, the dependency
+        // was declared, and the token was simply dropped on the floor.
+        //
+        // `onNewToken` fires only when the token ROTATES, so this alone would
+        // never register an existing install — `PushRegistration` is also
+        // called after login, which is what gets the first token on file.
+        PushRegistration.register(applicationContext, knownToken = token)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {

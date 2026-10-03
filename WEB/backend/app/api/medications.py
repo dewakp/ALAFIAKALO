@@ -30,6 +30,7 @@ from app.schemas.medications import (
 from app.services.med_dose_validation import validate_dose, blocking
 from app.services.med_intake_intent import propose_intake
 from app.services.med_nutrient_service import lookup_med_nutrients
+from app.services import active_response
 
 logger = logging.getLogger(__name__)
 
@@ -429,6 +430,14 @@ async def log_medication_dose(
             status_code=status.HTTP_409_CONFLICT,
             detail="This exact dose is already logged for that date and time.",
         )
+    # Does this patient's own profile say they must not take this? Nothing in
+    # this module consulted `users.allergies` before: the guard above decides
+    # whether a DOSE is physically possible (§3aj), never whether the DRUG is
+    # one the patient declared an allergy to. On the reference record three of
+    # the five declared allergies are medications or materials — Penicilin,
+    # Latex, Heparine — and only the meal planner was reading them.
+    await active_response.evaluate_medication_dose(db, dose_log, current_user)
+
     await db.refresh(dose_log)
     return dose_log
 

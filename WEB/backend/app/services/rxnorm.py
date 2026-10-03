@@ -71,6 +71,60 @@ def _store(key: str, facts: DrugFacts) -> DrugFacts:
     return facts
 
 
+#: rxcui -> canonical RxNorm Name. A SEPARATE cache from `_cache`, which is
+#: keyed by the typed NAME and holds DrugFacts. Sharing one dict would conflate
+#: two key spaces that merely happen to both be strings.
+_name_cache: dict[str, tuple[float, str | None]] = {}
+
+
+async def canonical_name(rxcui: str) -> str | None:
+    """RxNorm's own spelling for a concept, or None. Never raises.
+
+    **Deliberately NOT folded into `lookup()`.** That function sits on the
+    dose-log write path through `validate_dose`, and this is a third HTTP round
+    trip — putting it there would slow a clinical save for every dose logged.
+    Only the allergy-resolution path calls it, and that runs in a script or a
+    background task.
+
+    Why it is needed at all: a declared term can resolve EXACTLY and still be
+    spelled differently from the drug. Measured 2026-10-03 — `Heparine` is a
+    real RxNorm synonym (rxcui 5224) whose canonical name is `heparin`, so a
+    profile declaring `Heparine` matched only itself and missed a dose logged
+    as `Heparin`. That is the `Penicilin` failure pointing the other way.
+
+    > ⚠️ **Comparing rxcuis is NOT a usable matching rule.** The two spellings
+    > resolve to DIFFERENT concepts — `Heparine` is 5224 and `Heparin` is
+    > 235473 — so equality would have reported them as unrelated drugs. The
+    > canonical NAME is what relates them.
+
+    Not every concept has one: rxcui 7986 (penicillin) returns no name property
+    at all, so None is an ordinary answer rather than a failure.
+    """
+    key = str(rxcui or "").strip()
+    if not key:
+        return None
+    hit = _name_cache.get(key)
+    if hit and hit[0] > time.time():
+        return hit[1]
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.get(f"{BASE_URL}/rxcui/{key}/property.json",
+                                    params={"propName": "RxNorm Name"})
+            resp.raise_for_status()
+            props = ((resp.json().get("propConceptGroup") or {})
+                     .get("propConcept")) or []
+            name = next((p.get("propValue") for p in props if p.get("propValue")),
+                        None)
+    except Exception as exc:
+        # Unreachable is not an answer, so it is NOT cached — ask again later
+        # rather than remembering an outage as "this drug has no name".
+        logger.warning("RxNorm canonical name failed for %s (%s: %s)",
+                       key, type(exc).__name__, str(exc)[:120])
+        return None
+    _name_cache[key] = (time.time() + _CACHE_TTL, name)
+    return name
+
+
 def _max_strength_mg(payload: dict) -> float | None:
     """Largest single-unit strength in MG across this drug's marketed products.
 

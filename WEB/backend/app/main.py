@@ -337,6 +337,19 @@ async def startup_event():
     except Exception as exc:
         logger.warning("ALAFIA training corpus not started: %s", exc)
 
+    # Start delivering notifications to phones. Nothing in this backend ever
+    # sent a push until 2026-10-03 — the tokens were collected and never used.
+    # iOS goes to APNs DIRECTLY (not Firebase: the registered tokens are raw
+    # APNs tokens, which FCM cannot address); Android goes to FCM. Each
+    # transport is a no-op that says so when its credential is absent, so this
+    # starting is not a claim that anything can be delivered — ask
+    # `push.status()`, which the admin health endpoint reports.
+    try:
+        from app.services import push
+        push.start()
+    except Exception as exc:
+        logger.warning("push delivery not started: %s", exc)
+
     # Start Redis-backed WebSocket managers
     try:
         from app.api.ws_messaging import manager as msg_manager
@@ -406,6 +419,11 @@ async def shutdown_event():
     from app.api.ws_messaging import manager as msg_manager
     from app.api.ws_telehealth import signaling_manager, chat_manager
     from app.core.redis import close_redis
+    try:
+        from app.services import push
+        await push.stop()
+    except Exception as exc:  # noqa: BLE001 — shutdown must not raise
+        logger.warning("push delivery shutdown: %s", exc)
     await msg_manager.shutdown()
     await signaling_manager.shutdown()
     await chat_manager.shutdown()

@@ -19,6 +19,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.models.vitals import VitalsLog
 from app.schemas.vitals import VitalsLogCreate, VitalsLogUpdate, VitalsLogResponse
+from app.services import active_response
 
 router = APIRouter()
 
@@ -55,6 +56,14 @@ async def create_vitals(
     entry = VitalsLog(**payload, user_id=current_user.id)
     db.add(entry)
     await db.flush()
+
+    # This endpoint evaluated nothing at all — it computed a BMI and returned —
+    # on the table that holds `blood_glucose_mg_dl` and `glucose_timing`. A
+    # glucose reading is now judged against the range THIS patient's own
+    # laboratory reported, because `compute_goals` emits no glucose target and
+    # inventing one here is what §0 forbids.
+    await active_response.evaluate_vitals(db, entry, current_user)
+
     await db.refresh(entry)
     return entry
 
