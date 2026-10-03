@@ -3168,7 +3168,17 @@ Android uses FCM because Google's platform offers nothing else.
   callback, after login, and on session restore (which is the path an
   already-signed-in user actually takes). iOS has always done both.
 
-> ⚠️ **iOS delivery is credential-blocked — but NOT for want of a `.p8`.**
+> ✅ **iOS delivery is CONFIGURED as of 2026-10-03** — key `AlafiaPush`,
+> Key ID `GJVL2XQ63G`, stored as `apns-auth-key` / `apns-key-id` and mounted on
+> revision `alafia-backend-00223-vcs`. The admin probe reports
+> `ios 21; apns ok; fcm ok; apns env production`. The key was verified BEFORE
+> use by signing a provider token locally (`alg=ES256`, `kid=GJVL2XQ63G`,
+> `iss=E48V6Y372K`), so a bad key would have failed at the desk rather than as
+> a 403 from Apple mid-deploy. Nothing has been SENT yet (`sent 0`).
+>
+> The history below is kept because the route to it was wrong twice.
+>
+> ⚠️ **It was blocked — but NOT for want of a `.p8`.**
 > This was first recorded here as "no Apple `.p8` key secret exists", which was
 > asserted from `gcloud secrets list` alone, without reading the project's own
 > documentation or the places this repo keeps signing secrets. A `.p8` HAS
