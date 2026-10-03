@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Build comprehensive POST-dialysis lab assignments with 4 rules + time delta.
 
 Rules:

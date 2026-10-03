@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 /**
  * Categorical palette for the clinician trend charts.
  *

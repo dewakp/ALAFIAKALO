@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The clinician's patient board — one registry of shareable data categories.
 
 A clinician opening a patient sees a board of category cards (latest/summary per

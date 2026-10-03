@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Contract-drift check: do the iOS models still match the live backend?
 
 The recurring class of ALAFIA bugs (Chronic Conditions "wrong format", Privacy

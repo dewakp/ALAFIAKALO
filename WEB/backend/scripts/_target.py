@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Resolve which patient an import script writes to — by EMAIL, never a literal id.
 
 Every import script in this directory once carried `USER_ID = 1` (commented

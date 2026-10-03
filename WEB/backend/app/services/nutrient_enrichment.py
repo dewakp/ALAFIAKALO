@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Fill in a meal's nutrients after it has already been saved.
 
 Nutrient lookup costs seconds — USDA per item, a branded lookup, and an LLM

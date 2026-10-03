@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel LLM Capability — Health Coaching & Clinical Reasoning.
 
 Phase 3 (planned): Fine-tuned BioMistral 7B served via Ollama for:

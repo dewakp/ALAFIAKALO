@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Train the ALAFIA Phase 5 food classifier from a folder of labelled photos.
 
 The folder needs a labels.csv — the format is in VISION_TRAINING.md. Runs in

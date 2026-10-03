@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Recipient lookup — the enumeration boundary.
 
 The compose form needs to find people by name, email or phone instead of asking

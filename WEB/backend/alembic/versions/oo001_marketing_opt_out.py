@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Marketing opt-out, so a bulk announcement can carry a real unsubscribe.
 
 The app had no marketing consent surface at all. `NotificationCategory` has

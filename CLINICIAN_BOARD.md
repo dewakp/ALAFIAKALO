@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # The clinician patient board
 
 How a physician sees a patient, and the traps that made it show the wrong thing.

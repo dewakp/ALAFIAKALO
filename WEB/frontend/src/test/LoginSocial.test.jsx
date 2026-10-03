@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';

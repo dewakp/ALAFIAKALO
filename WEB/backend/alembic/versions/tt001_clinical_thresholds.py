@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Clinical thresholds become data, seeded from the published bands.
 
 Every trapezoid bound HEBCS used lived as a constant in `hebcs_engine`. A

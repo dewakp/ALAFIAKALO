@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Health score computed from measured values against the patient's own targets.
 
 What this replaces, and why each piece was wrong:

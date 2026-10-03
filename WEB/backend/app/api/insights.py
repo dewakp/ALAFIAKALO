@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Insights API — relationships (patterns) and forecasts (predicted states).
 
 Basis cornerstones #4 (relationship graphs / cause-effect) and #5 (predict future

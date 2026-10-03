@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """How a patient is referred to in anything sent to a model. One place.
 
 Canon §3al: the patient's IDENTITY never leaves — their clinical detail does.

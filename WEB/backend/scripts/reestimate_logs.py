@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Re-estimate existing nutrition logs + resolve medication dose-log nutrients.
 
 Why: the food nutrient estimator was fixed (head-noun matching, raw-form

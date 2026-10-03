@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Vitals schemas — standalone vital-signs data collection (Basis ground truth)."""
 
 from datetime import date, datetime, time

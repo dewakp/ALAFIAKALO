@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Layer 1b — reconstruct a trend matrix (analyte × period).
 
 The other layout module handles the common shape: one row per measurement, with

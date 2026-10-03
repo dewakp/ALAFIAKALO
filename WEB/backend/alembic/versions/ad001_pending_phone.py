@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Carry a phone number through a pending registration.
 
 Additive only (canon §3ao): one nullable column, no drops.

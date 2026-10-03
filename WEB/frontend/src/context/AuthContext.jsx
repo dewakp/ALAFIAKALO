@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import i18n, { normaliseLanguage } from '../i18n';

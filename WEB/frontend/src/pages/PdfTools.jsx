@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { useState } from 'react';
 import api from '../services/api';
 import { FileText, Download, Upload, FileBarChart, Check, X, AlertTriangle } from 'lucide-react';

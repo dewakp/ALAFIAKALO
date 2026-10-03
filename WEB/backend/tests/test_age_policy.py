@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Account-holder age rule.
 
 The interesting cases are the boundaries: the day before a birthday, the

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Marketing unsubscribe — public, unauthenticated, never paywalled.
 
 Mounted on the app directly rather than under `api_router`, because that router

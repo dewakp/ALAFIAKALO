@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 SELECT 'lab_results' as tbl, MIN(test_date)::text as earliest, MAX(test_date)::text as latest FROM lab_results WHERE user_id=1
 UNION ALL SELECT 'therapy_sessions', MIN(scheduled_date::date)::text, MAX(scheduled_date::date)::text FROM therapy_sessions WHERE condition_id=14
 UNION ALL SELECT 'nutrition_logs', MIN(log_date)::text, MAX(log_date)::text FROM nutrition_logs WHERE user_id=1

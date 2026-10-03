@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """LLM provider registry — the round-robin pool.
 
 Every hosted provider is one row here. A provider is ENABLED only when its API

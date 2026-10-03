@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Seed a FICTIONAL patient for App Store screenshots and demos.
 
 App Store screenshots are public and indexed. The reference record on this

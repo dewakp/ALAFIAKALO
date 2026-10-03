@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Medication dose-log uniqueness includes log_time.
 
 The unique key on ``medication_dose_logs`` was

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """LLM call telemetry — the substrate for the ALAFIA model ("so we learn").
 
 Every provider attempt (success or failure) is recorded. By DEFAULT only

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Unit tests for firebase_sync helper functions.
 
 These are pure-Python, no DB, no Firebase — fast and deterministic.

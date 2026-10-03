@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AssistantMarkdown from '../components/AssistantMarkdown';

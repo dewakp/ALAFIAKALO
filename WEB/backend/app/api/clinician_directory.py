@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Clinician directory — ingestion (CMS seed + search worker), admin verification,
 and the global map overlay. Mounted under the existing `/physicians` prefix.
 

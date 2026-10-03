@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """User roles & professional-profile endpoints.
 
 Every user is a *patient* by default.  This module lets users claim additional

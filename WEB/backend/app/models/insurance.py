@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Multi-insurance models — locale-structured insurance for patients."""
 
 from datetime import datetime, timezone, date

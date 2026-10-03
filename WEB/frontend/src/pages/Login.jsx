@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import { Link, useNavigate } from 'react-router-dom';

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """upgrade hash columns from SHA-256 (64 chars) to SHA-512 (128 chars)
 
 Revision ID: s512_upgrade_hash

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The tool loop: let the model ask for what it needs, until it can answer.
 
 This is what replaces guessing at the question. Previously the backend decided

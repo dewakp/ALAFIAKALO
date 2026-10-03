@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 /* Social sign-in against the providers directly — no Firebase broker.
  *
  * The browser completes the flow with Google or Apple and gets THEIR ID token;

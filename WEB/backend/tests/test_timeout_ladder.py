@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The AI timeout ladder must stay ordered, and no two rungs may be equal.
 
 CLAUDE.md §3ae and §5. The rule keeps being re-learned in a new place, so it is

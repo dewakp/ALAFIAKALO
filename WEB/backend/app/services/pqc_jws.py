@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Hybrid post-quantum compact JWS for 6IGMA identity tokens.
 
 Signs/verifies with BOTH Ed25519 (classical) AND ML-DSA-65 (FIPS 204, PQC) so a

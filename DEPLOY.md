@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Deploying ALAFIA
 
 Runbook for shipping the web/API stack to Cloud Run. Written 2026-08-05 for the

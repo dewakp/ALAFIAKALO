@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Replace the local dev database with an exact copy of PROD, then prove it.
 #
 #   scripts/db/pull_prod.sh

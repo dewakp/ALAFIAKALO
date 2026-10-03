@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Keep a user's Profile insurance fields and their Insurance Plans in sync.
 
 Profile holds a single insurance (``users.insurance_id/insurance_provider/

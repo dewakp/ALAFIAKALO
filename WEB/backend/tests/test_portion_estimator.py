@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Portion phrase → grams.
 
 Every phrasing below came out of a real vision-model reply or a USDA serving

@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 SELECT 'lab_results' as tbl, COUNT(*) as cnt FROM lab_results WHERE user_id=1
 UNION ALL SELECT 'therapy_sessions', COUNT(*) FROM therapy_sessions WHERE condition_id=14
 UNION ALL SELECT 'intradialytic_readings', COUNT(*) FROM intradialytic_readings r JOIN therapy_sessions s ON r.session_id=s.id WHERE s.condition_id=14

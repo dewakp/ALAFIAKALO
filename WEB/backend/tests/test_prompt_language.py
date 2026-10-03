@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The patient is answered in their language — and a guard's fields never are.
 
 `preferred_language` was saved by the Profile screens and read by nothing that

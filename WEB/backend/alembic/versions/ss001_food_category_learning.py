@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Remember what a food IS, not just what it contains.
 
 `food_nutrient_cache` stored a food's nutrients but never its category, so every

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Peritoneal Dialysis models — APD/CAPD exchanges and sessions."""
 
 import enum

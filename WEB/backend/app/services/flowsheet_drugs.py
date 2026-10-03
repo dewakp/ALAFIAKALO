@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Drugs given DURING dialysis — parsed out of the flowsheet's free-text field.
 
 CLAUDE.md §3aa says the medication picture lives in two tables. It lives in

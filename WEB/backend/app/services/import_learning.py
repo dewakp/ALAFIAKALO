@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Remember what a reviewer decided about a parsed row, and use it next time.
 
 Every import already ends with a human judging each row — `accepted` on the

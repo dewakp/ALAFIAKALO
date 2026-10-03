@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Streaming chat must exhaust paid providers before falling back to Ollama.
 
 `/ai/chat/stream` used to POST straight to Ollama. That single shortcut meant:

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Stripe webhook attribution, and what a DECLINED CARD is allowed to buy.
 
 The production incident these pin: a user registered, opened the paywall, and

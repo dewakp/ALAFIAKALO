@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """OpenAI adapter — cloud LLM fallback (TEMPORARY).
 
 IMPORTANT: This adapter is a FALLBACK only. All PHI must be de-identified

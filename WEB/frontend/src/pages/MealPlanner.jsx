@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { useState, useEffect } from 'react';
 import { apiErrorMessage } from '../utils/apiError';
 import api, { AI_TIMEOUT_MS } from '../services/api';

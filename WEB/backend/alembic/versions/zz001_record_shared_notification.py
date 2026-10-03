@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tell the person a record was shared WITH that it happened.
 
 Sharing was silent. `POST /data-sharing/grants` created the grant and returned

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add log_time + pre/post vitals to medication_dose_logs.
 
 Matches the "Log New Medication Intake" form (time + pre/post-medication BP & HR)

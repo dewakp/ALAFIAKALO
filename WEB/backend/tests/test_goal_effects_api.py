@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Per-goal effects must reach the client, not be computed and then dropped.
 
 `apply_effects_to_totals` has always attached each effect to the goal it was

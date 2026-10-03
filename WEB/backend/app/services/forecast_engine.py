@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Forecast engine (Basis req #5: predict future outcomes/states).
 
 Projects a daily health signal forward with an ordinary least-squares trend over

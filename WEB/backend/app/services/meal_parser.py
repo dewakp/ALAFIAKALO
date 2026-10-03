@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """NLM Meal Text Parser — extracts (food, qty_g) pairs from free-text meal descriptions.
 
 This module implements the NLM (Nutritional Language Matching) layer that:

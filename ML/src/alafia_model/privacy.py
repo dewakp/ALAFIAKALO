@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What may cross the boundary to a third-party model provider.
 
 Two rules, and the second exists because the first cannot be perfect:

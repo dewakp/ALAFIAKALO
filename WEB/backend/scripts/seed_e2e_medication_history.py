@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Seed the dose history `e2e/medication-intake.spec.js` asserts on. Dev only.
 
 The spec checks that the intake panel proposes a dose "from your last N doses"

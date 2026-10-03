@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Subscription / billing endpoints.
 
 One membership tier ("ALAFIA Membership"), monthly or annual, three rails:

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Run send_announcement.py against the PRODUCTION database.
 #
 #   scripts/email/run_against_prod.sh              # dry run (default)

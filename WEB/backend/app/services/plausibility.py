@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Believability guardrail for nutrient analysis (NLM parser + USDA/LLM outputs).
 
 Wrong nutrient data in a health app can cause real harm (e.g. a meal logged at

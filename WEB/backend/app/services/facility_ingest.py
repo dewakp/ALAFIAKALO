@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Ingest healthcare facilities (places) into the separate `facilities` directory.
 
 Facilities are NOT clinicians and never enter `physicians`. OpenStreetMap is the

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """One drug given during one dialysis session — as the flowsheet recorded it.
 
 `therapy_sessions.drugs_administered` is a single text column holding

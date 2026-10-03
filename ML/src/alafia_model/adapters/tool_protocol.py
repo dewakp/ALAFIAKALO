@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """One tool shape for twenty providers.
 
 The registry holds 20 providers across two wire formats plus Ollama, and none

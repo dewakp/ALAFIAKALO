@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 package com.alafia.android.schemas
 
 import com.google.gson.annotations.SerializedName

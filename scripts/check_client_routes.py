@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Every path a client calls must exist on the backend.
 
 Four calls to routes that never existed were shipped and invisible:

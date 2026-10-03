@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Canonical readers for clinical domains backed by MORE THAN ONE table.
 
 Several domains in this schema are split across two tables for historical

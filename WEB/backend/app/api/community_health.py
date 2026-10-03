@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Community Health endpoints — alerts, recalls, guidelines, reports, subscriptions."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query

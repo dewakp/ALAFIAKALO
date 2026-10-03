@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Undo deactivate_test_accounts.sql.
 --
 -- Restores every account listed in `deactivated_accounts` to its original email

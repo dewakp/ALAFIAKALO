@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The parser learns what reviewers decide — end to end, or not at all.
 
 WHY THE ROUND TRIP IS THE TEST THAT MATTERS. `telemetry.register_sink` was

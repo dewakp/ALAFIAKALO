@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """
 ALAFIA Android MCP Server - Model Context Protocol Integration
 Provides structured access to Android development tasks and queries

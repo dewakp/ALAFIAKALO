@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Category cards: the domain layer between a trend line and a raw table.
 
 Neither a line nor a table answers "is this patient's potassium safe this week".

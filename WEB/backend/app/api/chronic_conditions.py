@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 from fastapi.responses import HTMLResponse
 from app.services.therapy_report import render_session_report
 from fastapi import APIRouter, Depends, HTTPException, Query

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Boilerplate is not a lab result.
 
 Production shows a clinician this, among real results, on a shared patient board:

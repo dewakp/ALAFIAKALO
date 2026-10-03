@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Medication-derived nutrients must be attributable and physiologically possible.
 
 Both guards here exist because of one production row. On 2026-08-17 a dose

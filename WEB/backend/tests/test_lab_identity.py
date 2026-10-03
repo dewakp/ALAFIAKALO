@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A lab analyte is one thing, whatever the report called it.
 
 Reports print alkaline phosphatase as ALP, ALK PHOS or in full. On the dev copy

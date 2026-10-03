@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # HEBCS — Multi-Pathway Wellness Score Framework
 
 A patient-specific machine learning system that computes a continuous wellness score and clinical risk predictions for an ESRD (End-Stage Renal Disease) patient on home hemodialysis.

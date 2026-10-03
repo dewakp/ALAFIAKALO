@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Print everything ALAFIA owns in Google Cloud, with console links.
 #
 #   scripts/gcp/inventory.sh

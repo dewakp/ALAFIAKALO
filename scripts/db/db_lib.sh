@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Shared config + helpers for the ALAFIA database parity tooling.
 #
 # Every postgres client call goes through a PINNED Docker image. Nothing is

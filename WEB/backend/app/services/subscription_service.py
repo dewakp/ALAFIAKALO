@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Subscription / billing service.
 
 The backend owns entitlement. Each billing rail (Stripe on the web, Google Play

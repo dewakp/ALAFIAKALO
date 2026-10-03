@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """separate facility directory — facilities + physician_facilities tables
 
 Physicians are humans; facilities are places they practice from. Move any

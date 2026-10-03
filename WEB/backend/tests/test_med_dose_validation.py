@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A dose the record should never accept without a challenge.
 
 From production: a dose log reading "calcium calcitriol 1000 mg". Calcium

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Staging for parsed clinical documents.
 
 A parser is sometimes wrong, and a clinical table is the wrong place to find that

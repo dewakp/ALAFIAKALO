@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Entitlement gating.
 
 ``require_plus`` is a FastAPI dependency any premium endpoint can add to require

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tell the operator when someone could not get in, or could not sign up.
 
 Four real addresses signed up and were left holding an account that could do

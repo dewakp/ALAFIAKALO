@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Quick inspect of FlowsheetGermantown.xlsx using openpyxl read_only mode."""
 import os
 import re

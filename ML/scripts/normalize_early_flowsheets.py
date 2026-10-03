@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """
 Convert early flowsheet data (Machine sheet, 2016-2017) to match
 the standardized flowsheet_sessions.csv format so we get continuous

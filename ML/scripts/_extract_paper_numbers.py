@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Extract fresh results from all models/data for paper update."""
 import joblib, json, pandas as pd, numpy as np
 from pathlib import Path

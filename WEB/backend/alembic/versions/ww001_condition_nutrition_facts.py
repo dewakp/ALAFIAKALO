@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """condition_nutrition_facts — what a diagnosis means for food, learned and stored
 
 Revision ID: ww001_condition_nutrition

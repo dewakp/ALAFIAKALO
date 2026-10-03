@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Registering the same address twice must not 500.
 
 Production, 2026-08-24 14:32:11 — four register POSTs inside 300ms:

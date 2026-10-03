@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Telehealth schemas — request/response DTOs for the telehealth API."""
 
 from datetime import date, time, datetime

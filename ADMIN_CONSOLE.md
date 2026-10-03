@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # ALAFIA Admin Console
 
 Single-operator console for **dew@6igma.com**, served at **`/minister`** on the

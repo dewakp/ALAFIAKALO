@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Repair the nine therapy sessions whose stored end precedes their start.
 
     python scripts/repair_session_clocks.py            # dry run

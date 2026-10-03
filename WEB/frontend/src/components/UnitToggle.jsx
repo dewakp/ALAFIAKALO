@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { useUnits } from '../context/UnitsContext';
 import { METRIC, IMPERIAL } from '../utils/units';
 import { t } from '../i18n';

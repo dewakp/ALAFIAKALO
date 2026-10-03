@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Hardware Upgrade and Alafia Integration Plan
 
 This document consolidates the wearable-to-Alafia design into a more complete reference that combines narrative explanations, architecture diagrams, payload examples, and PostgreSQL implementation details.

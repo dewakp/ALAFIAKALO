@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Fit what IV iron actually does to THIS patient's iron stores.
 
 The effects store currently holds an iron magnitude a language model supplied.

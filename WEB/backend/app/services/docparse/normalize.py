@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Layer 3 — turn reconstructed cells into canonical clinical records.
 
 Both layout engines converge here, so a labelled-column lab report and a trend

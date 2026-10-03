@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Saline given during a session, and the machine's own recorded time.
 
 Additive only (canon §3ao): two nullable columns, no drops.

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Provider callbacks that tell us what actually happened.
 
 Today that is Resend's delivery events. The application could not answer "did

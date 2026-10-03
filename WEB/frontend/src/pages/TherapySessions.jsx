@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { fmtDateTime } from '../utils/datetime';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';

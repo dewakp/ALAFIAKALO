@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Attach or fill in the ProfessionalProfile on a user's professional role.
 #
 #   scripts/db/set_pro_profile.sh --emails a@x.com --role physician \

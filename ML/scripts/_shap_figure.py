@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """
 Generate SHAP summary plots for top clinical risk models.
 Produces a multi-panel figure for the paper.

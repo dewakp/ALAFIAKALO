@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Coverage and correctness of condition → dietary-rule detection.
 
 `detect_condition_flags()` recognises six diagnoses by substring-matching free

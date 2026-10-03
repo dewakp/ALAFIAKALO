@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What happened to an email AFTER we handed it to the provider.
 
 The application could not answer "did it arrive?" for any message it has ever

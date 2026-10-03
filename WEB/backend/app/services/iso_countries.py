@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ISO 3166 country tables (generated from pycountry) + free-text name resolver.
 
 Used by disease surveillance to normalize sources: WHO GHO emits ISO3, our user/

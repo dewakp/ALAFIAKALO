@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Dig deeper into medication timing and dialysis session medication data."""
 from pathlib import Path
 import pandas as pd

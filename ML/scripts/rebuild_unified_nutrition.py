@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """
 Rebuild unified_nutrition.csv from:
   1. data/raw/excel/records_food.csv (freshly extracted from RecordsN.xlsx)

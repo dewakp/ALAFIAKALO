@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Deep-dive: Kaiser labs on dialysis days/next-day for POST identification.
 
 Rule 4: Home dialysis + Kaiser lab same/next day → POST

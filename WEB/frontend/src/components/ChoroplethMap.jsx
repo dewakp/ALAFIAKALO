@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 /**
  * Disease-surveillance choropleth — dependency-free + offline. Renders the bundled
  * world GeoJSON (public/world-countries.geojson) with an equirectangular projection

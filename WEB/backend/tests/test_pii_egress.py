@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What is allowed to reach a third-party model provider.
 
 Prompts carrying clinical material never get here — they are local-only

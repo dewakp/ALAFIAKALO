@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Generate persistent hybrid signing keys for the 6IGMA identity service.
 
 Produces a JSON keys file with:

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What the lab importer refuses, and what it must never invent.
 
 Every case here comes from the real corpus (`ML/data/processed/unified_labs.csv`,

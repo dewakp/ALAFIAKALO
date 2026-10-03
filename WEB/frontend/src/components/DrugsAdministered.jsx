@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import React, { useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import api from '../services/api';

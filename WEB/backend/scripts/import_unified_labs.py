@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Import the ten-year lab corpus the application database has never seen.
 
 `ML/data/processed/unified_labs.csv` holds 9,660 results spanning 2016-2026.

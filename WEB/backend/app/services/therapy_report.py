@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Render a hemodialysis session as printable HTML.
 
 ONE renderer, printed by all three clients. Web has its own React view for the

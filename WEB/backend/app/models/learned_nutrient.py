@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Learned food→nutrient values — the nutrition learning model.
 
 User corrections (and verified seeds) of a food's per-100 g nutrient profile are

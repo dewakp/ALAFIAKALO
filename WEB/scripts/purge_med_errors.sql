@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Purge known source data-entry errors from medication tables.
 -- "Sodium Carbonate" is a mislabel for "Sodium Bicarbonate" (and includes the
 -- lone implausible 22500 mg 2025-06-16 dose). Per product decision these are

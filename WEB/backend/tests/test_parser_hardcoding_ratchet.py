@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Clinical vocabulary typed into the parser may only ever DECREASE.
 
 §3ad: never type an ICD code from memory. §3aj: RxNorm is the authority on

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """document_row_judgments — what a reviewer decided, remembered
 
 Revision ID: al001_import_judgments

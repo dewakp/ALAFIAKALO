@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Medication and condition records, read from the same reconstructed tables.
 
 A medication list and a problem list are the same geometry as a lab report — a

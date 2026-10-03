@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The intake picker must offer what the patient actually takes.
 
 From production: an account with **943 dose logs and 0 prescriptions** typed

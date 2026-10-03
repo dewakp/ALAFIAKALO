@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The Phase 5 network: MobileNetV3-Small with one output per kind of label.
 
     dish        softmax — what is being made or served

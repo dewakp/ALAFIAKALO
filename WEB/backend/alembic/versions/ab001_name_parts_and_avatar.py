@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Names in parts, and a face to go with them.
 
 `full_name` was one required string. A single field cannot be sorted, greeted,

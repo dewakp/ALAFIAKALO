@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Remove lab rows a document parser invented from a PDF's boilerplate and column
 # overflow, in PRODUCTION.
 #

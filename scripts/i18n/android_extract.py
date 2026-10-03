@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Move Android's hard-coded Compose strings into res/values/strings.xml.
 
     docker run --rm -v "$PWD":/repo -w /repo web-backend-test \

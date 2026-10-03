@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """AI Assistant endpoint — powered by local Ollama LLM.
 
 Every request is enriched with the logged-in patient's full health record so

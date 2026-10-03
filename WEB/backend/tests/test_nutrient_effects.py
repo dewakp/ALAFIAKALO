@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The effects store resolves and remembers; it never carries typed-in facts.
 
 `nutrient_effects` exists because the previous design charged a code change per

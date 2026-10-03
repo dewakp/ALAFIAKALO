@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import SwiftUI
 
 /// The paywall as a WALL. A signed-in user without an active membership does not

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Every `show…` flag an iOS view sets must be observed by something.
 
 Found from a real report: the meal form's Camera button set `showCamera = true`

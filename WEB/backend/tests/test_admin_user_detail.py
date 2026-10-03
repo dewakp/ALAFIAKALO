@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The admin user detail: identifiers an operator can reconcile, and real activity.
 
 Built because the console showed a user as "—" with no way to see why. Two things

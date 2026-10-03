@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A test name longer than its header label must not lose its value.
 
 Column boundaries come from the header labels, so a NAME wider than the words

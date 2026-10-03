@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Capture date of birth and country on a pending signup, for the age gate.
 
 An account holder must be an adult by their own jurisdiction's standard (see

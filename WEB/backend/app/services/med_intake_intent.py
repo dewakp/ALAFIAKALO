@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Turn "I take Calcitriol" into a dose the user only has to confirm.
 
 Two jobs, kept apart on purpose:

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Matching a typed phone number against the forms it may have been stored as.
 
 Numbers reach us in whatever shape a person types — `(971) 260-6446`,

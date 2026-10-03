@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What a CONDITION means for food — learned and stored, never hardcoded.
 
 A diagnosis changes what a patient should eat in two directions, and only one of

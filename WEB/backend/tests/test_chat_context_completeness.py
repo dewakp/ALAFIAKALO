@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The chat context must let the model answer the question it is asked.
 
 A patient asked "what food contributed the most to my sugar intake today?" and

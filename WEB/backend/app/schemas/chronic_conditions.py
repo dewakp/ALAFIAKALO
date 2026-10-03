@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 from datetime import datetime, time

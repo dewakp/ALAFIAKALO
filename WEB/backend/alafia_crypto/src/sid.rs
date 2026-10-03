@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 // 255-character System Identifier (SID) generation & verification.
 //
 // Format: S1.FN3.LN3.DOB8.GEN1.EPOCH10.RND93.SHA512CHK

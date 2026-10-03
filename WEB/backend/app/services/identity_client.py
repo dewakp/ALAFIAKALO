@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Client for the shared 6IGMA Identity service.
 
 Verifies identity-issued **hybrid EdDSA + ML-DSA-65** JWTs via the service's JWKS so

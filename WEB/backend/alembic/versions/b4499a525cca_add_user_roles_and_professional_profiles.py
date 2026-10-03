@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """add_user_roles_and_professional_profiles
 
 Revision ID: b4499a525cca

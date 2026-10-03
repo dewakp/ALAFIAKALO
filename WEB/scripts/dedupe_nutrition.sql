@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Deduplicate nutrition_logs: keep the richest row per
 -- (user_id, log_date, meal_type, food_name) group, repoint the Firebase
 -- ledger to the survivor, then delete the duplicates.

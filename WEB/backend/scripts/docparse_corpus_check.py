@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Regression harness: run the geometry parser over a corpus of real PDFs.
 
 Not part of CI. It reads `ML/data/raw/pdf/`, which is gitignored because it

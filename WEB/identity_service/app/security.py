@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Auth primitives for the 6IGMA identity service.
 
 - Passwords: **Argon2id** (memory-hard), with bcrypt verify-and-rehash so legacy

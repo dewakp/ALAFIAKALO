@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Fit per-patient dialysis solute-transfer coefficients against measured serum.
 
 The model in `app/services/dialysis_balance.py` ships literature priors. This

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Reconcile model/migration drift (additive only).
 
 The migration chain drifted from the ORM models: a few model tables/columns were

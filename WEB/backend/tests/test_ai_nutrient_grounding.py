@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The AI must be given this patient's limits, or it invents them.
 
 A production answer capped potassium at **4.8**. That number is in neither the

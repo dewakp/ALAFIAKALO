@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Two-step signup: verify the email, pay, then the account is created.
 
 The order matters and is not negotiable in code: `materialise()` refuses unless

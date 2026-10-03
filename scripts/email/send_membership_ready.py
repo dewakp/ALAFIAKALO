@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tell ONE person who already has an account that their membership is live.
 
     python scripts/email/send_membership_ready.py --email a@b.com --name Ruth \\

@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 /**
  * FDA recall descriptions are a product name followed by every package
  * configuration it shipped in — brand, net weight, UPC, distributor address,

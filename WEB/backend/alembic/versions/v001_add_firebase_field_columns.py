@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add missing Firebase field columns to nutrition_logs and bowel_movements
 
 Revision ID: v001_add_firebase_field_columns

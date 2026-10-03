@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Capture every resolution as an ALAFIA training sample.
 
 This is the sink `alafia_model.telemetry.register_sink` was written for and

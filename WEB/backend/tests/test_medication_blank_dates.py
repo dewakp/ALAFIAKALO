@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """An empty date field is "no date", not a malformed one.
 
 HTML date inputs submit `""` when cleared. `date | None` rejects that with

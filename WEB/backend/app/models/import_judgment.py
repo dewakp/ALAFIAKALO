@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What a reviewer decided about a row — remembered, so the parser improves.
 
 THE SIGNAL WE WERE THROWING AWAY. Every document import already ends with a

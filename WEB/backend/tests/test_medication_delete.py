@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A delete button that could never succeed.
 
 The endpoint refused EVERY delete with a flat 403 — "Medication entries cannot

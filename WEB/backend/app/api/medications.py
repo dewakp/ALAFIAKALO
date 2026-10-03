@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Medications CRUD endpoints + medication dose log (nutrient-contributing doses)."""
 
 import json

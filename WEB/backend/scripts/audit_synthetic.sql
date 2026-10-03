@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Identify synthetic (seeded) vs real (imported) data for user_id=1
 
 SELECT 'medications_master' as tbl, COUNT(*) as cnt FROM medications WHERE user_id=1

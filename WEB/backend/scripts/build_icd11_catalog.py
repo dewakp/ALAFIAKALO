@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Rebuild app/data/icd11_mms.tsv.gz from WHO's published MMS linearization.
 
 The ICD-11 API (id.who.int) needs OAuth client credentials we do not have, but

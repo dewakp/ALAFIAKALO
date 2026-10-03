@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 Table of Contents
 No table of contents entries found.
  The human body system is a complex bio-chemical plant where various reactions take place. These reactions, or chains of reactions are often characterized as sets of bio-chemical pathways. Indeed, a better characterization will be electro-bio-chemical pathways. These pathways have intermediate and final outcomes or outputs. It is these outputs that govern our physiological characteristics, states or symptoms, depending on the context.

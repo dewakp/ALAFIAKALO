@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Recipe-URL ingestion — the third meal-content input (URL / description / photo).
 
 Recipe pages embed schema.org/Recipe JSON-LD (name, recipeIngredient, yield,

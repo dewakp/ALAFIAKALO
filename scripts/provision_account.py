@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Provision a test account through the ALAFIA API — never by writing rows.
 
 Creating a user with INSERTs looks equivalent and is not: `POST /auth/register`

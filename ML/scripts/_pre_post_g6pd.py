@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """
 Pre/Post G6PD Diagnosis Analysis
 Inflection point: October 2018 (G6PD discovery)

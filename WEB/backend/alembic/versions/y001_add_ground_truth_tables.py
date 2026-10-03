@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add ground-truth tables: genetic_markers + env_social_logs (Basis req #3)."""
 
 from alembic import op

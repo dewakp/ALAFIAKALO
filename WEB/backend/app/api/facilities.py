@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Facility directory API — places (hospitals, clinics, pharmacies, …).
 
 Separate from clinicians (`/physicians`): a facility is a place, never a licensed

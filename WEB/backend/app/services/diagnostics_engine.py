@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """AI-powered Diagnostics Engine.
 
 This is the core intelligence layer that powers:

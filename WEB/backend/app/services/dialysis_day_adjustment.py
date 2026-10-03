@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Apply a dialysis session's solute transfer to the day's nutrient totals.
 
 **Limits do not move because a treatment happened.** A dietary limit is a

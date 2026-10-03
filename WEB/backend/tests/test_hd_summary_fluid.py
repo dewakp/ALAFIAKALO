@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Ultrafiltration averages must exclude physically impossible values.
 
 `fluid_removed_ml` is derived from (pre_weight - post_weight). When the weights

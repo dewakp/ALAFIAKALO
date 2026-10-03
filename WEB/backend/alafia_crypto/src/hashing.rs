@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 // Core hashing primitives: SHA-512, HMAC-SHA512, data hash.
 
 use hmac::{Hmac, Mac};

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Archive and export an iOS release, named by what is INSIDE the build.
 #
 #   IOS/scripts/export_ipa.sh [ExportOptions.plist]

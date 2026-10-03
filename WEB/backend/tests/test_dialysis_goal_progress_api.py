@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Dialysis balance as it reaches the clients, over HTTP.
 
 The one thing these must not let regress: a treatment changes the day's

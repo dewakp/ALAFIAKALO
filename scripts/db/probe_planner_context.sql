@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Read-only probe: what profile context does the planner/chat actually have?
 -- Answers "why does ALAFIA not know the weight, and why is G6PD missing?"
 -- Safe to run against prod: SELECT only.

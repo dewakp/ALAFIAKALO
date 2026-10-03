@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Parse September worksheet PDF and append Jul+Sep 2025 data to pdf_labs_extracted.csv."""
 import pandas as pd
 from pathlib import Path

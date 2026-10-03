@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add fdc_id and extended_nutrients columns to nutrition_logs
 
 Revision ID: f5a6b7c8d9e0

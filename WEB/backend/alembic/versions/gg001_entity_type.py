@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """directory — entity_type (clinician vs facility); facilities are not clinicians
 
 Revision ID: gg001_entity_type

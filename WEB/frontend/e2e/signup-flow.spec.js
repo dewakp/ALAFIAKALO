@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { expect, test } from '@playwright/test';
 import { mockAppChrome } from './helpers.js';
 

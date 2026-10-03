@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Saving a flowsheet structures the drugs it records — without losing timing.
 
 `session_drugs` had exactly one writer: `scripts/import_flowsheets.py`, which

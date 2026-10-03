@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What a patient was exposed to on one day, from every source that records it.
 
 The collection layer for `nutrient_effects_day`, kept separate for the same

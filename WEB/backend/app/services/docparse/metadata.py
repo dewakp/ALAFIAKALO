@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Layer 2a — pull report-level context out of a document.
 
 Who the report is about, when the specimen was taken, which lab ran it, who

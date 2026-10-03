@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- ALAFIA DB parity fingerprint.
 --
 -- Emits one line per table: schema, table, row count, content hash — plus a

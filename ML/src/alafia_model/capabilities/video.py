@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel Video Capability — Exercise Form Analysis.
 
 Phase 8 (planned): video → exercise form feedback.

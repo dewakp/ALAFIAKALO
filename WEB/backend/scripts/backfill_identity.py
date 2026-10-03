@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Backfill existing ALAFIA users into the shared 6IGMA Identity store (Phase 1.4).
 
 For each ALAFIA user not yet linked, this either (a) links to an identity user

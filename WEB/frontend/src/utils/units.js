@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 /**
  * Unit conversions + display helpers — the frontend mirror of the backend
  * `app/core/units.py`.

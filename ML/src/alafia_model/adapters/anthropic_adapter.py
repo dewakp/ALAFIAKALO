@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Anthropic (Claude) adapter — native Messages API.
 
 Anthropic's wire format differs from OpenAI (system is a top-level field, not a

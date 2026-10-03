@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Retire accounts left behind by the broken one-step signup, in PRODUCTION.
 #
 #   scripts/db/deactivate_incomplete_signups_prod.sh            # DRY RUN (default)

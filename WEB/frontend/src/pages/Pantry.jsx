@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus, Trash2, Edit2, Refrigerator, Snowflake, Package, AlertTriangle } from 'lucide-react';

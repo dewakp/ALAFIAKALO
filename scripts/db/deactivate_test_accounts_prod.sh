@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Deactivate robot/test accounts in PRODUCTION.
 #
 #   scripts/db/deactivate_test_accounts_prod.sh            # DRY RUN (default)

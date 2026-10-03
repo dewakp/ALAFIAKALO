@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Pharmacy API – Prescribe → Dispense → Adhere lifecycle.
 
 Physicians create prescriptions, pharmacists dispense, patients track adherence.

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 import asyncio, statistics, time
 import app.services.alafia_model_service  # noqa: F401
 from alafia_model import privacy

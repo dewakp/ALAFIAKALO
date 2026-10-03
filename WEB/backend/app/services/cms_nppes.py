@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """CMS NPPES (National Plan & Provider Enumeration System) adapter.
 
 The NPI Registry API (https://npiregistry.cms.hhs.gov/api/) is a free, key-less

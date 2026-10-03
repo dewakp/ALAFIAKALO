@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Deep dive: recover missing Creatinine POST values.
 
 Key finding: BUN POST=169 dates, Creatinine POST=90 dates  

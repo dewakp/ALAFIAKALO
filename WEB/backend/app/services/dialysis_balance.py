@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Solute mass transfer across a dialysis session.
 
 A dialysis day is not a normal day. Potassium and phosphorus leave the body in

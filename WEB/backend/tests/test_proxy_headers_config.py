@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The served app must trust the proxy's scheme header.
 
 Behind Cloud Run, TLS terminates at the front end. Without `--proxy-headers`

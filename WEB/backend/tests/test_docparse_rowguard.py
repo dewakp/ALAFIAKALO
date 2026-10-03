@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A lab's address is not a lab result — and "NONE SEEN" is.
 
 THE INCIDENT. A real 3-page Quest report (`results - Jan 2022.pdf`) imported a

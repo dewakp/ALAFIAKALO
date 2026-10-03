@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What an unpaid, signed-in account can still reach.
 
 Login is deliberately open — a lapsed member has to be able to sign in to

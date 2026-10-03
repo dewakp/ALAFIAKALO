@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Catch impossible medication doses before they reach the record.
 
 The case that prompted this: a production dose log reading

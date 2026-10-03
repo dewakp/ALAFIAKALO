@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add identity_uid bridge to users (link to the shared 6IGMA Identity user).
 
 Reference-only key (zero duplication): identity data lives in the `identity`

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add health_embeddings table for semantic RAG
 
 Revision ID: h1i2j3k4l5m6

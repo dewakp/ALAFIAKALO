@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Remove synthetic/seed data from demo user (user_id=1)
 -- Keep: medications master list, community_health_alerts (useful for demo UI)
 -- Keep: ALL real imported data (labs, therapy sessions, nutrition, bowel, vomit, medication_logs, vitals, symptoms)

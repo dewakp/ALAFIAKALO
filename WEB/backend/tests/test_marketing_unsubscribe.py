@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The unsubscribe boundary.
 
 `/personalization` and `/planners` shipped with zero tests and three AI panels

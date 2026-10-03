@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Clear auto-fabricated medication LIST rows.
 -- The buggy get-or-CREATE sync invented one `medications` (LIST = curated
 -- prescription record) row per drug NAME seen in dose events. These rows carry

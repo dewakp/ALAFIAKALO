@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Post-deploy smoke test, including the AI surfaces.
 #
 # Why this exists: the checklist in DEPLOY.md checked /subscription/plans and

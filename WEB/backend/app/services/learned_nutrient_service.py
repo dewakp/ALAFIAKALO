@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Nutrition learning model — learns correct food→nutrient values from feedback.
 
 When a user corrects an estimate (or a verified seed is added), the per-100 g

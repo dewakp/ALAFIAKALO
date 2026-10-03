@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Drift guard for the split-table clinical domains.
 
 Some domains are backed by two tables and reading one is silently wrong (see

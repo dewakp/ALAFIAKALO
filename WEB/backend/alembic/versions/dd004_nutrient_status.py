@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """nutrition_logs.nutrient_status — background nutrient enrichment
 
 Nutrient lookup costs seconds (USDA per item, branded, LLM fallback). It used to

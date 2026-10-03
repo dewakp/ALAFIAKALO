@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Correcting a meal must teach NUTRIENTS, not just the food's name.
 
 From production, verified on live data: a "Confirm / correct — teach ALAFIA"

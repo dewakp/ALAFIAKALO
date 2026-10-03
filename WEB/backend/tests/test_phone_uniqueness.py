@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A phone number identifies ONE account — the way an email address does.
 
 `users.phone_number` has carried a UNIQUE index all along, but the index

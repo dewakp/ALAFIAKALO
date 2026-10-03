@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Regression tests for the data-driven curated catalog + locale unit factors.
 
 These lock in the two "curated dishes become data" / "per-locale units" workstream

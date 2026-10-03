@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 // Date/time helpers — display EVERYTHING in the user's machine locale + timezone.
 //
 // The backend stores timestamps in UTC. Some columns serialize with a 'Z'/offset,

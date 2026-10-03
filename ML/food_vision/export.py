@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Convert a trained food model for the phones, and prove each copy agrees with it.
 
 Runs in the linux/amd64 conversion image (Dockerfile.export):

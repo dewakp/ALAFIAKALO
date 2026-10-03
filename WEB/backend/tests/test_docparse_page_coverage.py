@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A page that contributes nothing must never disappear in silence.
 
 THE INCIDENT. A 3-page Quest report was imported for a real patient. 46 results

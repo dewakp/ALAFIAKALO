@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 /**
  * Chrome shared by every public marketing page (Landing, Help, Contact,
  * Investors) — the particle canvas, the angel, the navbar and the footer.

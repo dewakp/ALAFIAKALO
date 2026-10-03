@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """GET /notifications/ 500s on any user who actually has a notification.
 
 `metadata` is reserved on a SQLAlchemy declarative class — it is the `MetaData`

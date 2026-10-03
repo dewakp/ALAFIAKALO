@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The parse pipeline — bytes in, reviewable clinical records out.
 
 Ties the layers together and, importantly, decides *nothing* about the database.

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Let a patient KEEP an AI answer, and remember the conversation.
 
 An AI answer vanished the moment the screen changed. `ai_interactions` was

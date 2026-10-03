@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Renal ceilings must belong to the patient they are shown for.
 
 The clinician board used one hardcoded tuple for everybody:

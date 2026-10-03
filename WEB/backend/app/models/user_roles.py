@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """User roles & professional profiles — multi-persona support.
 
 Every user is a **patient** at the core.  Users may additionally hold one or

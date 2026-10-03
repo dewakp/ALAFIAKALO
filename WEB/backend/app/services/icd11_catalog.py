@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ICD-11 MMS catalog — the complete WHO linearization, searchable offline.
 
 The data is **generated, never typed**: `app/data/icd11_mms.tsv.gz` comes from

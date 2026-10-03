@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Deactivate robot/test accounts (*@example.com, *@x.com) — REVERSIBLE.
 --
 -- Deliberately NOT a DELETE. 65 of the 101 foreign keys pointing at `users` are

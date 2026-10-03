@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Subscription / billing models.
 
 ALAFIA has a single paid tier ("ALAFIA Plus"). Entitlement is owned by the

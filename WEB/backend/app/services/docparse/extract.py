@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Layer 0 — get words and their geometry out of a document.
 
 Nothing here knows what a lab report is. It answers one question: where is each

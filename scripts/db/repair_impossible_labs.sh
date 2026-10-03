@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Repair lab values that cannot be true, and abnormality flags nobody computed.
 #
 #   scripts/db/repair_impossible_labs.sh            # DRY RUN (default)

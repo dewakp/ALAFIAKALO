@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Pharmacy schemas – Prescription / Dispensing / Adherence / Schedule / Refill."""
 
 from datetime import date, datetime

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add pre/post weight + image columns to urination_logs and vomiting_logs.
 
 Brings urine/vomit events to parity with bowel_movements so the unified

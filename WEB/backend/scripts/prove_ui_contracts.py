@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Drive every endpoint the three UIs call, against the running dev backend.
 
 Not a unit test: this is real HTTP to http://localhost:8005 with a real account

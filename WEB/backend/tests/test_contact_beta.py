@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The iOS beta request, and what the contact form must never become.
 
 `/contact` had no test of any kind before this one. It is public,

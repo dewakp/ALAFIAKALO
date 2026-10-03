@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Does a converted model make the same decisions as the model that was evaluated?
 
 numpy only: this runs in the training image (ONNX), the conversion image

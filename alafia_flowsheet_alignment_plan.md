@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # ALAFIA ⇄ FlowSheet Alignment — Plan & Prompts
 
 > **Goal.** Fully align **ALAFIA Therapies (HHD + PD)** with **FlowSheet**, with FlowSheet as the

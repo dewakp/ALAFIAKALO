@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import SwiftUI
 
 /// What the AI does with your data — stated in the app, not only in the policy.

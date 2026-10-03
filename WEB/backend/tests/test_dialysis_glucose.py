@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Glucose is a bath constituent, so it crosses the membrane BOTH ways.
 
 Potassium and phosphorus are essentially always removed; calcium against a

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Which external identities belong to which account.
 
 Social sign-in used to be brokered by Firebase, and the link was a single

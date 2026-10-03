@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Rename image_retained -> training_consented.
 
 "Retained" and "stored" mean the same thing, so using one for "kept at all" and

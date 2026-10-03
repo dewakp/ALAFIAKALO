@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # ALAFIA — queued work
 
 Work that is agreed but not yet started. Completed work goes in `WORKLOG.md`.

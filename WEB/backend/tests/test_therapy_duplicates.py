@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Duplicate therapy sessions and duplicate intradialytic readings.
 
 Both were real, and both came from a save that half-succeeded:

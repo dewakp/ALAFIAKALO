@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import Avatar from '../components/Avatar';
 import { fmtDateTime, fmtTime } from '../utils/datetime';
 import { useState, useEffect, useRef, useCallback } from 'react';

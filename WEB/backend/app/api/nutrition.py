@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Nutrition CRUD endpoints with USDA FoodData Central + AI nutrient estimation."""
 
 import logging

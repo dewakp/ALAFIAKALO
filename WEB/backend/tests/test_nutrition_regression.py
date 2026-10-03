@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Regression guard for nutrition believability.
 
 Captures every historical failure (water→2122 kcal, rice→dry match, suya→peanut,

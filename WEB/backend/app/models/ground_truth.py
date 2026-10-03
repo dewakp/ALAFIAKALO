@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Ground-truth overlays (Basis req #3): genetic data + environmental/social factors.
 
 These are the slow-moving "ground truths" the collected day-to-day data is overlaid

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tests for recipe-URL ingestion: JSON-LD parsing, SSRF guard, auth gates."""
 
 import pytest

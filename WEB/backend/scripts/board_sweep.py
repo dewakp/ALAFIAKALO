@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Run every clinician-board category against EVERY user that holds data.
 
 Verifying the board against a single patient proves almost nothing: it exercises

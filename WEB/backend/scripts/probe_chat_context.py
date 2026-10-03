@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Print what _fetch_patient_context() actually hands the model for one user.
 
 Read-only. Diagnostic for "the AI doesn't know my weight / my G6PD".

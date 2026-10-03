@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Upload → review → import, end to end.
 
 The staging step is the point of this design. A parser is sometimes wrong, and

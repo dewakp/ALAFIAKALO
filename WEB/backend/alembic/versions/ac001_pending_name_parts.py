@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Carry first/last name through a pending registration.
 
 Additive only (canon §3ao): two nullable columns, no drops. Existing pending

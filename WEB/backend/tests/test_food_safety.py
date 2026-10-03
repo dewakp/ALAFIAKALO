@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Food guidance, pinned against the production record that motivated it.
 
 User 63 lists `Penicilin, Latex, Heparine, Raw Apples, Raw Berries` with

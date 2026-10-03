@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Guards for the ICD-11 catalog.
 
 The catalog is generated from WHO's published MMS linearization, so the codes

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Reference knowledge base for nutrition believability — the "what is correct".
 
 Instead of hardcoding fixes per food, we classify a food into a coarse **category**

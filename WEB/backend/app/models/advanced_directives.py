@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Advanced Directives model — healthcare agents, organ donation, life-sustaining treatment."""
 
 from datetime import datetime, timezone

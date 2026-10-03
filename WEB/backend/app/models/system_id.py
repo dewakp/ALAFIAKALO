@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """System Identifier (SID) audit log model.
 
 Each time a 255-char SID is generated or regenerated for a user, a row

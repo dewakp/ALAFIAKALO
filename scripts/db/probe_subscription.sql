@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Read-only investigation of one member's subscription. SELECT only.
 -- Usage: prod_psql -v who='%cecilia%' -f /sql/probe_subscription.sql
 \set ON_ERROR_STOP on

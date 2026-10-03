@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Staging tables for parsed clinical documents.
 
 Uploaded documents are read into `document_imports` + `document_import_items`

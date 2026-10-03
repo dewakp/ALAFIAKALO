@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Health data sync API – one-way ingest from mobile health platforms.
 
 Supports Apple HealthKit and Android Health Connect.  Every record is

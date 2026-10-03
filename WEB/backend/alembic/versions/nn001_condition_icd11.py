@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ICD-11 coding for chronic conditions.
 
 Conditions are one of the app's cornerstones (CLAUDE.md §3aa) but carried only

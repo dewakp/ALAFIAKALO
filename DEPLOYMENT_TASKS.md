@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # ALAFIA — Deployment & Outstanding Tasks
 
 Single source of truth for what's shipped and what's left. Status: ✅ done · 🟡 in progress ·

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Real hosted-provider call: show the payload, the response, and the latency."""
 import asyncio, json, time
 import app.services.alafia_model_service  # sys.path side effect  # noqa: F401

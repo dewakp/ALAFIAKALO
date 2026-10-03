@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ICD-10 Reference Data — comprehensive code catalog.
 
 Contains the 22 ICD-10 chapters with commonly-encountered codes.

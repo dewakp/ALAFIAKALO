@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """blockchain_ledger_tables
 
 Revision ID: e1f2a3b4c5d6

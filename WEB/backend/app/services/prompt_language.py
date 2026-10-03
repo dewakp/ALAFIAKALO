@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The language a patient is answered in. One place, like prompt_identity.
 
 A patient writes in the language they think in, and the assistant answered in

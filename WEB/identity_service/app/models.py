@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Identity schema — the SINGLE source of truth for user identity (zero dup).
 
 Tables live in the `identity` schema, co-resident on ALAFIA's Postgres cluster.

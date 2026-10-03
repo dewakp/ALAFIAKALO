@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Stage a parsed document, then import what the patient accepts.
 
 Two steps on purpose. `stage` writes only to `document_imports` /

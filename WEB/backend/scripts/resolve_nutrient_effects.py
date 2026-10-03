@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Resolve what every agent in the record does to nutrient totals.
 
 The sweep that makes `nutrient_effects` cover the patient's actual record rather

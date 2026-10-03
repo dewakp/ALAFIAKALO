@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel Voice Capability — Speech → Clinical NLP (Phase 7).
 
 Pipeline: audio → Whisper (multilingual transcription) → LLM clinical extraction.

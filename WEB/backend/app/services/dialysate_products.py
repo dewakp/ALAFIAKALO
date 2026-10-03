@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What bath a SAK number actually delivered.
 
 The flowsheet records TWO things about the dialysate: a typed `K+` cell, and the

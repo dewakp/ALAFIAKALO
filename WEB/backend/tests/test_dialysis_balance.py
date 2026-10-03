@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Solute transfer across a session, and the gates on letting it move a limit.
 
 The physiology tests pin the model against published per-session bands. The

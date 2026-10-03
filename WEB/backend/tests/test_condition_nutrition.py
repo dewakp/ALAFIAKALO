@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Condition→food knowledge is resolved once, stored, and converges.
 
 This replaces a hardcoded dict. The tests that matter most are the ones proving

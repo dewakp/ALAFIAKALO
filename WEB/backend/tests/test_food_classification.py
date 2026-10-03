@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Food category matching was substring-based, so it fired on coincidences.
 
 `classify()` decides a food's plausibility band AND its default portion, and it

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Liveness, readiness, and what a database outage looks like to a client.
 
 During the PostgreSQL 16 -> 18 upgrade on 2026-08-16, production answered

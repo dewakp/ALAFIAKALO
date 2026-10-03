@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Check overlap between Machine sheet and Lab sheet."""
 import pandas as pd
 from pathlib import Path

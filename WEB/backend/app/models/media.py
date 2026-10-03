@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Media assets captured by users (S3 object storage or legacy base64)."""
 
 from datetime import datetime, timezone

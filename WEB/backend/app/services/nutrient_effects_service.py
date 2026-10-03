@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Resolve what an AGENT does to a NUTRIENT, store it, and reuse it.
 
 The companion to `condition_nutrition_service`, and deliberately the same shape:

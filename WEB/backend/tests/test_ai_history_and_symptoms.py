@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """An AI answer the patient can come back to, and symptoms that get tracked.
 
 Every chat exchange has been recorded in `ai_interactions` since the feature

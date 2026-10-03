@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Visual memory: user-labeled food photos (perceptual hash + ground truth).
 
 Stores dHash + the corrected food list per user — repeat meals are identified

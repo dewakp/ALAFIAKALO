@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The ALAFIA training corpus — one row per resolution, whatever answered it.
 
 ALAFIA is the model we train ourselves, independent of any third party. Ollama

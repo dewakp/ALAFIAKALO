@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Two-step signup gates.
 
 The anti-robot property is a single invariant: **no `users` row exists until the

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Image AI follows the provider order and never calls a model server directly.
 
 Medication labels, symptom and elimination photos, the meal caption fallback and

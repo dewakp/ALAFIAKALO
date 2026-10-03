@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """WebSocket signaling server for real-time WebRTC negotiation and session chat.
 
 Two WebSocket endpoints:

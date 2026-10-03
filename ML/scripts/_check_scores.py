@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Analyze pathway-level and composite score distributions for clinical plausibility."""
 import pandas as pd
 import numpy as np

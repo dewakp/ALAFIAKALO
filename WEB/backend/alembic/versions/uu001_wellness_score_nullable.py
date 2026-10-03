@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A wellness score with nothing to measure must be storable as NULL.
 
 `overall_score` was NOT NULL, which was consistent while the score always

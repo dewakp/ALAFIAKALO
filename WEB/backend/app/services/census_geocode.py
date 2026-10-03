@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Bulk geocode US practice facilities via the free US Census batch geocoder.
 
 The Census geocoder accepts up to 10,000 addresses per request (no key, built for

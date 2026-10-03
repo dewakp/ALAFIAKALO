@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel capabilities package."""
 
 from alafia_model.capabilities.base import BaseCapability, CapabilityResult

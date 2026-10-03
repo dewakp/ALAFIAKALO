@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Re-mint ALAFIA users' System Identifiers with the CANONICAL 6IGMA algorithm.
 
 Part of Prompt 1.2 (ALAFIA⇄FlowSheet alignment). Legacy ALAFIA SIDs used

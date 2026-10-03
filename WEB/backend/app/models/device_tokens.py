@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Push notification device token model.
 
 Stores APNs (iOS) and FCM (Android) device tokens so the backend can deliver

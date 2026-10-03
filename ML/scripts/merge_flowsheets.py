@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """
 Merge early flowsheet sessions (Machine sheet, 2016-2017) with
 standard flowsheet sessions (2017-2026) into one unified file.

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Records nutrient estimates that failed the believability (category-band) check.
 
 The self-correcting estimator returns a low-confidence value when no source fits

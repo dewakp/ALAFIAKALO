@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add users.phone_number for phone (OTP) sign-in.
 
 Phone-auth users arrive via Firebase phone verification and may have no email;

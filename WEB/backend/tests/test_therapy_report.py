@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The printable treatment report.
 
 Pins the things that would silently mislead a clinician holding a printout:

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """clinician directory — extend physicians + provenance/quarantine/audit tables
 
 Revision ID: ee001_clinician_directory

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """EHR connection models — SMART on FHIR patient-portal access (Epic MyChart et al.)."""
 
 from datetime import datetime, timezone

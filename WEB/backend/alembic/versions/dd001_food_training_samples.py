@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """food_training_samples: the Phase 5 vision corpus
 
 Nothing was accumulating training data. `labeled_food_images` keeps a 64-bit

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Relationship / cause-effect engine (Basis req #4: patterns, relationship graphs,
 cause & effect).
 

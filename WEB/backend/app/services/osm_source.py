@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """OpenStreetMap (Overpass) source adapter — a non-CMS, global discovery source.
 
 OSM yields healthcare *places* (clinics, practices, pharmacies) with real

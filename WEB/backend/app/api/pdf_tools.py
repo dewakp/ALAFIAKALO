@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """PDF tools — document import and clinical report generation.
 
 Upload is a two-step flow. `parse-document` reads a file and stages what it

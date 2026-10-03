@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """SMART on FHIR client for patient-portal record access (Epic MyChart et al.).
 
 Implements the patient-facing "standalone launch" described by the SMART App

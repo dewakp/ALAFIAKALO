@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Signing in with Google or Apple, verified directly against the provider.
 
 `services/oidc.py` is tested separately for token verification; this file is

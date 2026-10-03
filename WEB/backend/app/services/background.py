@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Background task helpers for FastAPI.
 
 Uses FastAPI's built-in BackgroundTasks for lightweight async work.

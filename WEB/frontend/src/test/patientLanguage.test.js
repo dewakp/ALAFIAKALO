@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { afterEach, describe, expect, it } from 'vitest';
 import i18n, { normaliseLanguage, SUPPORTED_LANGUAGES } from '../i18n';
 import api from '../services/api';

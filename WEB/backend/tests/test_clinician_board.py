@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The clinician patient board (/api/v1/clinician-dashboard/patient/{id}/…).
 
 The property that matters most here is the grant boundary: a category must be

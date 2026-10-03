@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A journal entry's mood must come from the entry, not from a default.
 
 The form pre-filled 7/10 — "Good" — and saved that for anyone who wrote their

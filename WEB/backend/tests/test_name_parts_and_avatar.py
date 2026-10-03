@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """First/last name as separate fields, and the profile photo.
 
 Two rules are pinned here because both were, at some point, enforced only in a

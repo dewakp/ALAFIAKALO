@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Smoke tests for the Symptoms and Sleep CRUD endpoints.
 
 Full CRUD needs an authenticated user (unavailable offline); here we assert the

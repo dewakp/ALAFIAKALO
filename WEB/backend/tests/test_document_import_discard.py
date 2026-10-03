@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Taking a bad import back out — and touching nothing else.
 
 WHY THIS ENDPOINT EXISTS. §3ab: a parser fix does not repair what it already

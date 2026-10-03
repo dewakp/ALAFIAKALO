@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Send ONE complimentary-membership invitation to a named person.
 
     python scripts/email/send_comp_invitation.py --email a@b.com --name "Dr. Owolabi" \\

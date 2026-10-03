@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """session_drugs — the flowsheet's drug table, with the route and time it recorded
 
 `therapy_sessions.drugs_administered` flattens four drugs into one string, so

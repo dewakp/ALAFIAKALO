@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Disease surveillance schemas — global map signal + country drill-down."""
 
 from pydantic import BaseModel

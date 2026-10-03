@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """LOINC — the published authority for what a lab analyte IS.
 
 `ANALYTE_NAMES` in `dictionaries.py` is 136 hand-typed entries. Measured against

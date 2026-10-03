@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Train, evaluate and ONNX-export the Phase 5 food classifier.
 
 Entry point: scripts/train_food_vision.py. A run writes one versioned folder,

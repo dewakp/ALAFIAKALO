@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """
 Backend launcher — loads .env via python-dotenv (avoids shell mangling of JSON values)
 then starts uvicorn in-process.

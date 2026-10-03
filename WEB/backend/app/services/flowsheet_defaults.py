@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Defaults for a new treatment, so a patient re-types as little as possible.
 
 Three things a flowsheet should already know when it opens:

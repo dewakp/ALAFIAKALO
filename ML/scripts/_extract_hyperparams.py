@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Extract hyperparameters from all clinical risk models."""
 import json, joblib, sys
 from pathlib import Path

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Build + deploy the ALAFIA web/API stack to Cloud Run: identity → migrate →
 # backend → frontend, then a second pass to point the backend at the public URL.
 # Re-runnable: each run ships the current source. Run ./provision.sh first.

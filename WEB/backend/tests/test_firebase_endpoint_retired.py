@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """/auth/firebase is retired, and says so.
 
 Social sign-in now verifies the provider's own ID token (app/services/oidc.py).

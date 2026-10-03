@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Sending a bulk announcement
 
 `send_announcement.py` mails the "return to ALAFIA" announcement to dormant

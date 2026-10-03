@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Reference ranges come from the data, never from a constant in the source.
 
 A reference range is not a fact about medicine — it is a fact about a lab, an

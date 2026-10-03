@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The SAK number is the product; the K+ cell is a person transcribing it.
 
 `dialysate_products` resolves bath potassium from the cartridge code rather than

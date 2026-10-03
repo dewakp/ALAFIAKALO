@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Collecting a day's agents from all three sources — and missing none of them.
 
 §3aa names two medication tables and warns about a third. The reference record

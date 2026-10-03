@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Fill the treatment clock and machine totals from the flowsheet workbooks.
 
 Consumes the JSON written by `extract_flowsheet_clocks.py`, matches each sheet

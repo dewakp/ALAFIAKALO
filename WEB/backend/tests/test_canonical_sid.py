@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tests for the canonical 6IGMA SID (Prompt 1.2). Pure functions — run offline.
 
 Includes a cross-app vector: a SID assembled exactly as FlowSheet's PostgreSQL

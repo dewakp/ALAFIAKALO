@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Authorization for the admin console.
 
 The boundary is here, in the API. Serving the console on its own hostname

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel Vision Capability — Food Photos, Lab Reports, Skin, Pills.
 
 Phase 5 (pipeline built, no trained model yet): Food photo → dish, components, stage

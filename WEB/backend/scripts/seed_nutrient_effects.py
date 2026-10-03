@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Seed the literature priors that already exist in code into `nutrient_effects`.
 
 This is a MIGRATION of behaviour, not a new set of facts, and the distinction is

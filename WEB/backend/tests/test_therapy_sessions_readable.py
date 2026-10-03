@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A stored session is always readable, whatever it holds.
 
 The weight plausibility check lived on the schema the RESPONSE inherits, so one

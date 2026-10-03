@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Medication lists and problem lists read through the same geometry.
 
 These share the layout engine with lab reports — a subject column plus

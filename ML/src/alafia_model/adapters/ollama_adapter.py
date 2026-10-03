@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Ollama adapter — local LLM via Ollama server.
 
 This is the PRIMARY LLM adapter — it runs on ALAFIA infrastructure (no data

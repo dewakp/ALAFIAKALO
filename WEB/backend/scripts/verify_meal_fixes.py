@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """End-to-end check of the meal fixes against the DEV copy of prod.
 
 Creates real NutritionLog rows, runs the actual background worker (`enrich_log`),

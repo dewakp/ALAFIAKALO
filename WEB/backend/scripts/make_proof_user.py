@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Create a local account for the e2e specs and prove_ui_contracts.py. Dev only.
 
 Seeds the DATA the specs assert on as well as the account.

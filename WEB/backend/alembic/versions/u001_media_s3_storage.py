@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add storage_url to media_assets; make image_base64 nullable.
 
 Revision ID: u001_media_s3_storage

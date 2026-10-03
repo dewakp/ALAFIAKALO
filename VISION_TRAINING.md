@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Food vision — storing, labelling, identification, quantity
 
 How ALAFIA turns meal photos into a labelled training corpus, and what still

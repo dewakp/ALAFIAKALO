@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What an AGENT does to a NUTRIENT — resolved once, remembered, never typed in.
 
 An agent is anything a patient is exposed to that can move a nutrient total: a

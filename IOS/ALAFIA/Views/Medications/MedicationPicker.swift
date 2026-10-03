@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import SwiftUI
 
 /// One option offered in the intake form, with the evidence for offering it.

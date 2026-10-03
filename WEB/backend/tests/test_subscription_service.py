@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Regression tests for subscription entitlement + event idempotency.
 
 Focus: the test-mode Stripe rail hands every caller the same constant reference

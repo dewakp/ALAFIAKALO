@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Document parsing: geometry, not reflowed text.
 
 Fixtures are synthesised here rather than committed, because the corpus this was

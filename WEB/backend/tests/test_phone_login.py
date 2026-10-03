@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Signing in with a phone number.
 
 The login form has had a Phone tab since it shipped, and the backend only ever

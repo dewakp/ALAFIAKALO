@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel Unified Router — single entry point for all AI inference.
 
 This is the Phase 9 target interface. All ALAFIA AI calls will eventually

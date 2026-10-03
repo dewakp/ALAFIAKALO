@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 Next full feature == Subscription
 
 1) Subscribe via Web (Stripe): $12/month

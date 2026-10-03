@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel NLM Capability — Natural Language → Structured Health Data.
 
 Phase 1 (implemented): food text → (food_name, qty_g) component list.

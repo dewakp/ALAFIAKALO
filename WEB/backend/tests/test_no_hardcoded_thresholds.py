@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Clinical thresholds must come from data, not from constants in the source.
 
 Canon, stated plainly: **no hardcoded data, no exception.** At the scale this

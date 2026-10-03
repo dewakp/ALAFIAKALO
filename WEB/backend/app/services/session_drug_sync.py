@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Structure the drugs a flowsheet records, when the flowsheet is saved.
 
 `session_drugs` holds one row per flowsheet drug line; `therapy_sessions.

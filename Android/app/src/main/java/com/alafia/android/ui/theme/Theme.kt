@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 package com.alafia.android.ui.theme
 
 import androidx.compose.material3.MaterialTheme

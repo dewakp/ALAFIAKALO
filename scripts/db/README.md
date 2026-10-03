@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Database parity — keeping dev identical to prod
 
 **Deployed is the gospel. Dev must be an exact copy of it.**

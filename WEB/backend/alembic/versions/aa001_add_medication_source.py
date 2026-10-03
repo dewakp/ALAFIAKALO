@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add `source` to medications: distinguish user-entered from portal-imported.
 
 FHIR/portal-synced medications (see ehr.py) were written unlabeled, so imported

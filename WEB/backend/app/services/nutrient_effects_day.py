@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Fold a day's AGENT exposures into the nutrient picture, alongside the totals.
 
 The general sibling of `dialysis_day_adjustment`, and deliberately modelled on

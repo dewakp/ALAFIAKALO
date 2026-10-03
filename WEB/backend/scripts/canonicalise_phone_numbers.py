@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Put every stored phone number into ONE canonical form (E.164).
 
 `users.phone_number` has always carried a UNIQUE index, but the index compares

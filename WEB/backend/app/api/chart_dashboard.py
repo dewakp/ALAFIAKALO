@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Chart Dashboard API – provides aggregated, chart-ready data from all health domains."""
 
 from datetime import date, timedelta

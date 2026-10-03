@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Attach (or fill in) the ProfessionalProfile on a user's professional role —
 -- IDEMPOTENT, and safe to re-run.
 --

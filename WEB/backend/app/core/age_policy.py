@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Minimum-age policy for ALAFIA account holders.
 
 CANON: **an account holder is an adult (by their jurisdiction's standard). A

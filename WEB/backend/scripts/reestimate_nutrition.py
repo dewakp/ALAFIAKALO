@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Re-run nutrient estimation over meals whose figures never resolved.
 
 WHY THIS EXISTS. A meal is saved immediately and its nutrients filled in

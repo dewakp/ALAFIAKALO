@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Record that a dose was overridden, and why.
 
 `acknowledge_unusual` was a request flag only — nothing persisted. A clinician

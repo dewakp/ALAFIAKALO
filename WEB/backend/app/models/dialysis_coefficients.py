@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Per-patient dialysis solute-transfer coefficients, and how well they predict.
 
 The transfer model in `app/services/dialysis_balance.py` ships literature priors.

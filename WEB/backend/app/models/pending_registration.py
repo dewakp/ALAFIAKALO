@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A signup in progress — deliberately NOT a user account.
 
 Robot signups were creating real `users` rows: 55 of 77 accounts in this

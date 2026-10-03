@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Nutrition Intelligence — believability, locale, learning & goals
 
 Nutrient estimates and clinical goals must be **believable**: in production, an

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """One spec, two renderers.
 
 The clients show a text preview and download a PDF. With two independent

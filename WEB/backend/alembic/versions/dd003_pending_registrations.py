@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """pending_registrations: signups that are not yet accounts
 
 Direct registration created a `users` row for one unauthenticated POST, which is

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Notification engine – creates notifications based on domain events.
 
 Call these helpers from other API endpoints when relevant events occur

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A value may travel with its unit; the backend converts. Never the patient.
 
 The requirement: the patient's locale sets their default system, they choose a

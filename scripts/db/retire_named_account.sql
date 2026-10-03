@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Retire ONE account the operator names — REVERSIBLE.
 --
 -- The bulk script (`deactivate_incomplete_signups.sql`) selects by state and

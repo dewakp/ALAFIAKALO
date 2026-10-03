@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Flagged nutrient estimates — the review/learning queue.
 
 When the self-correcting estimator cannot find any source whose calorie density

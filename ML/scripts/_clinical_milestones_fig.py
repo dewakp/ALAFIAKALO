@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """
 Clinical Milestones Figure — 5-panel visualization showing:
   1. G6PD diagnosis (Oct 2018) — treatment protocol revolution

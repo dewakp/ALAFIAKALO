@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """enhance hemodialysis schema with flowsheet fields and intradialytic readings
 
 Revision ID: c3d4e5f6a7b9

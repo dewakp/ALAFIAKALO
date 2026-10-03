@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIA's UI string catalogs — read, write, and check placeholders. No network.
 
 `translate_catalogs.py` does the translating; this module owns the formats, so

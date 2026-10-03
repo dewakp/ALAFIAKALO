@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Add med_nutrient_profiles and medication_dose_logs tables."""
 
 from alembic import op

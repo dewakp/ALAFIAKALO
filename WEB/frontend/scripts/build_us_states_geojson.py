@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Build public/us-states.geojson from the Census-derived state boundaries.
 
 The coverage map used to be a grid of labelled squares — a "statebins" layout —

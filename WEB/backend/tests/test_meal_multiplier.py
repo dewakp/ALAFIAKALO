@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A portion multiplier must scale every nutrient, and never leave stale ones.
 
 A patient logged a meal, then edited the description to record that they ate a

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Finish a complimentary signup against PRODUCTION.
 #
 #   scripts/db/activate_comp_against_prod.sh --email a@b.com           # DRY RUN

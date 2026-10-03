@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Ground-truth CRUD: genetic markers + environmental/social logs (Basis req #3).
 
 Minimal CRUD — these feed the AI context and the relationship/forecast engines.

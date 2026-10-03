@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """flagged_estimates — believability review/learning queue
 
 Revision ID: ii001_flagged_estimates

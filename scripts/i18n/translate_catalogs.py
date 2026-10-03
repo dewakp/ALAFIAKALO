@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Fill ALAFIA's UI catalogs in every product language with AI; flag every result for review.
 
 Runs in Docker, through ALAFIA's own provider chain (hosted first, Ollama last —

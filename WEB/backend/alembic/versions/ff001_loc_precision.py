@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """clinician directory — location_precision (exact vs approximate map coords)
 
 Revision ID: ff001_loc_precision

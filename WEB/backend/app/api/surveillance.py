@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Global disease surveillance — outward (WHO/CDC) + inward (patient symptoms).
 
 `outward` looks at authoritative sources (WHO GHO globally, CDC NNDSS for the US,

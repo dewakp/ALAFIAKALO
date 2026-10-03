@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tests for the composite weight series (all-sources retrieval + statistics).
 
 The series builder is pure and fully testable offline; endpoint routes are

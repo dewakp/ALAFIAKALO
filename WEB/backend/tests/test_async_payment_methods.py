@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Cash App Pay, ACH and friends settle AFTER the checkout session completes.
 
 Stripe's asynchronous payment methods finish the session first and move the

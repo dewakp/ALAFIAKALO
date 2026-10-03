@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Grant a complimentary membership (and optionally a professional role).
 #
 #   scripts/db/grant_comp.sh --emails a@x.com,b@y.com                    # DRY RUN on PROD

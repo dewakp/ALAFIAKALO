@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Vomit episode frequency analysis pre/post G6PD diagnosis."""
 import pandas as pd
 from pathlib import Path

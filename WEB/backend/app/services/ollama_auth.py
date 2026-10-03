@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Auth for a private (IAM-protected) Ollama Cloud Run service.
 
 Production runs Ollama as its own GPU Cloud Run service with

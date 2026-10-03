@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Build app/data/loinc_core.tsv.gz from the official LOINC release.
 
 WHY THIS EXISTS. `docparse/dictionaries.py` carries a hand-typed

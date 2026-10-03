@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Source- and layout-agnostic clinical document parsing.
 
 Pipeline, each layer usable on its own:

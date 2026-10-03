@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Blank the weights that are not a person's, and the fluid figure derived from
 -- them, in PRODUCTION.
 --

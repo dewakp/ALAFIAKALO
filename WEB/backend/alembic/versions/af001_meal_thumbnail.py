@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A small thumbnail kept with the meal itself.
 
 Additive only (canon §3ao): one nullable column, no drops.

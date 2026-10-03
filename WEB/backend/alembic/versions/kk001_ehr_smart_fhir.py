@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """SMART on FHIR patient-portal access (Epic MyChart: Kaiser, Trinity Health, …).
 
 - ehr_endpoints: vendor directory of portal FHIR base URLs (Epic R4 list).

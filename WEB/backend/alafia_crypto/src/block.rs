@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 // Block-level cryptographic operations: hash computation, signing, chain verification.
 
 use pyo3::prelude::*;

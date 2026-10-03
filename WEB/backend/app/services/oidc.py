@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Verifying a Google or Apple ID token directly — no Firebase in the path.
 
 Social sign-in used to be brokered by Firebase: the browser completed the

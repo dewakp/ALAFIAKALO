@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # ALAFIA Android App
 
 A modern Android companion application for ALAFIA health and wellness platform, built with Kotlin and Jetpack Compose.

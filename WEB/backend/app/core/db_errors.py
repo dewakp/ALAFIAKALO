@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Which constraint a database refusal actually violated.
 
 A bare `except IntegrityError` cannot tell one uniqueness rule from another, so

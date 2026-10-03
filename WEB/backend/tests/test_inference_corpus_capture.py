@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Every resolution reaches the ALAFIA corpus — whatever rung answered it.
 
 ALAFIA is the model we train ourselves. Ollama is not ALAFIA: it is a runtime

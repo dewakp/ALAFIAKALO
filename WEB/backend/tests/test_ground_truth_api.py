@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Smoke tests for ground-truth endpoints (genetics + environmental/social).
 
 Auth-gating runs offline; full CRUD happy-path runs in CI/Docker.

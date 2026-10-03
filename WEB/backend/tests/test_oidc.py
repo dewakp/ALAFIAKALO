@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Verifying a provider's own ID token, with Firebase out of the path.
 
 These sign real RS256 tokens with a throwaway key and let the real `jwt.decode`

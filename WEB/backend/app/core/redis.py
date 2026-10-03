@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Redis client — async connection pool for pub/sub and caching."""
 
 from __future__ import annotations

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Extract NB05 hypothesis test numbers for paper update."""
 import pandas as pd, numpy as np
 from pathlib import Path

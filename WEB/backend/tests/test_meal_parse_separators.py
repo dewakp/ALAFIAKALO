@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Separators the meal parser must honour, and the notes it must not ignore.
 
 Both pinned from real logged meals that came back with no nutrients at all.

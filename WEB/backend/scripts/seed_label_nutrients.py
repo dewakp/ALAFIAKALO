@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Teach the estimator a product from its printed LABEL.
 
 A label is the authoritative statement of what is in a food. The estimator

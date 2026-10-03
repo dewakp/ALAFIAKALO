@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # One-time GCP provisioning for the ALAFIA web/API stack: APIs, Artifact Registry,
 # Cloud SQL, and the app secrets in Secret Manager. Idempotent — safe to re-run.
 #

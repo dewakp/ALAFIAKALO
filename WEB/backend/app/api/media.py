@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Media capture endpoints — multipart upload to S3 with base64 fallback."""
 
 from datetime import datetime

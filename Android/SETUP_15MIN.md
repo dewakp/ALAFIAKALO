@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # 15-Minute Android Setup Guide
 
 Get the ALAFIA Android app up and running in 15 minutes.

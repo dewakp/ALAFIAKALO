@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Correct profile heights that were stored as inches in a centimetre column.
 --
 -- The API used to accept a bare `height_cm` with no unit and no bounds, while

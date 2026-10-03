@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Layer 2 — decide what kind of clinical document this is.
 
 Deterministic first: each type has a signature of vocabulary and structure, and

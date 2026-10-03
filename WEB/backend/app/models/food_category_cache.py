@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What a food IS, remembered on its own terms.
 
 Kept apart from `food_nutrient_cache` deliberately: that table's `nutrients` is

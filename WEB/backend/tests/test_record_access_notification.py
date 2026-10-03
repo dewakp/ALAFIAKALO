@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A patient is told when someone else opens their record.
 
 The rules that matter are the ones that are easy to get backwards:

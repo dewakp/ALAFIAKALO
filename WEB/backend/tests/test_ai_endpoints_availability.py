@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Availability contract for the LLM-backed endpoints.
 
 These two routers had **no test coverage at all** — that is how

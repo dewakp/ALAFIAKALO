@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Shared pytest fixtures for the ALAFIA backend test suite."""
 
 import asyncio

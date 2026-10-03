@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The delivery webhook's boundary.
 
 This endpoint exists because the send path cannot tell us what happened: Resend

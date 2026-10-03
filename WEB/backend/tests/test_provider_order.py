@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Dev and production want OPPOSITE provider orders.
 
 Dev prefers Ollama: free, never rate-limited, no user content leaving our

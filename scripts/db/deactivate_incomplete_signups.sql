@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Retire accounts left behind by the BROKEN one-step signup — REVERSIBLE.
 --
 -- Why these rows exist: `POST /auth/register` created a loginable account

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Admin console authorization.
 
 This is the security boundary for a console over patient-adjacent data, so the

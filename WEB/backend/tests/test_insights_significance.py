@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Health Insights must not present noise as a finding.
 
 The first version kept any |r| >= 0.35 over as few as FIVE daily points, with no

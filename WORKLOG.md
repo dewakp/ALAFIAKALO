@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # ALAFIA — Work Log
 
 A running log of user instructions and the work done in response. Newest entries at the bottom of each session.

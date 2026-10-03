@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Whisper adapter — multilingual speech-to-text.
 
 Mirrors the Ollama → OpenAI fallback pattern used for the LLM:

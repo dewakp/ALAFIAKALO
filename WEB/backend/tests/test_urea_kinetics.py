@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """nPCR is computed, because the lab never reports it.
 
 nPCR (normalised protein catabolic rate) is the marker of how much protein a

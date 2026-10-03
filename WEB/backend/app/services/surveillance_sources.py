@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Disease surveillance — outward source clients (WHO GHO + CDC NNDSS).
 
 Two live, key-free public sources feed the "looking outward" view:

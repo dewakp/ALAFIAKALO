@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tests for the Prompt-Hub intent router (POST /api/v1/ai/route).
 
 The AI classification is stubbed so the test is deterministic and offline —

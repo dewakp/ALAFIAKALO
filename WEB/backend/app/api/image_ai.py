@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Image AI & Dosage Verification endpoints.
 
 Food and medication photos run through the real vision pipeline

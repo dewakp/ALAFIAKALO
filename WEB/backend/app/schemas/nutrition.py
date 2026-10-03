@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Nutrition schemas — comprehensive 150+ nutrient support."""
 
 from datetime import date, datetime, time

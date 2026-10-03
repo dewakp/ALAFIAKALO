@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Implausible weights must not enter, because everything downstream trusts them.
 
 Nothing bounded these fields, and the record still carries what got in: a

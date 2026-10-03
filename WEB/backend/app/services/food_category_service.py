@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """What a food IS — looked up from an authority, then remembered.
 
 The band a food is judged against (and its default portion) used to come from a

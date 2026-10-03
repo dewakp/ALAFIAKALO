@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Canonical clinical vocabulary for document parsing.
 
 Seeded from the curated map in `scripts/import_pdf_labs.py`, which was built by

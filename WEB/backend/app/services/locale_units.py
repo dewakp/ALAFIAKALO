@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Locale-aware cooking-measure volumes.
 
 A "cup"/"tablespoon"/"teaspoon" is not the same size everywhere: the US uses

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Gather what the transfer model needs for one patient on one day.
 
 `dialysis_balance` and `dialysis_day_adjustment` are deliberately pure. This is

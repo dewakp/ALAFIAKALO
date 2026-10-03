@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Structure the drugs on sessions saved before the parser was wired in.
 
 `services/session_drug_sync.py` parses `drugs_administered` when a session is

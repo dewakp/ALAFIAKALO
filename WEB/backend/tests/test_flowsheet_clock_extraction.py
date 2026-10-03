@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Pin the flowsheet clock rules. Every one was a SILENT wrong answer.
 
 `scripts/extract_flowsheet_clocks.py` and `scripts/backfill_session_clock.py`

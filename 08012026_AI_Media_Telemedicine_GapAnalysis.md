@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # AI · Voice · Video · Telemedicine — Instructions Surfaced vs. Delivery Gaps
 
 > **Generated:** 2026-08-01 · **Against:** local HEAD `c7dd01b` (prod backend rev `00026` = `f9f7143`).

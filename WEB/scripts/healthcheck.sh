@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # healthcheck.sh — Quick smoke test for auth + AI chat endpoints
 # Usage: ./scripts/healthcheck.sh [base_url]
 # Example: ./scripts/healthcheck.sh http://localhost:8005

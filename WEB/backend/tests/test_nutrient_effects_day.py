@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The effects pass reports alongside the totals — it never rewrites them.
 
 `apply_to_totals` states the contract this must honour: "the limit is untouched,

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """No direct identifier may be interpolated into a string. Fails the build.
 
 Canon §3al says the patient's IDENTITY never leaves — the clinical detail does.

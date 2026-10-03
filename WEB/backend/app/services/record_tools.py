@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The patient's record, as tools a model can call. No question parsing here.
 
 Earlier attempts at this problem all failed the same way: they tried to

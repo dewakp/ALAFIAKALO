@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 #
 # Periodic Docker housekeeping for the ALAFIA dev stack.
 #

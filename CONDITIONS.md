@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Conditions — the patient's problem list, ICD-11 coded
 
 Diagnosed conditions are a cornerstone of the record: they drive the nutrient

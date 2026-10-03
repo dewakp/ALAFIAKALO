@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A flowsheet should already know what the record holds.
 
 Two gaps, both making the patient re-type data the system had:

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIA Nutrition MCP Server
 
 A Model Context Protocol (MCP) server exposing branded/packaged-food

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Clinical thresholds as DATA, not constants in the source.
 
 A threshold is a fact about a guideline, a lab, a sex and an age — not about

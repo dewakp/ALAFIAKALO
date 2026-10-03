@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Verify in App Store Connect what App Review said was missing (guideline 2.1(b)).
 
 Apple rejected 1.0 (2) with "In-app purchase products ... such as Membership,

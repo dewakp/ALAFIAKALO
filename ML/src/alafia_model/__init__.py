@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel — Unified Multimodal Health AI.
 
 This package is the future backbone of ALAFIA's AI layer. It provides a single

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Turn whatever a phone camera produced into a small square avatar.
 
 `profile_picture_url` has existed since the first migration and nothing ever

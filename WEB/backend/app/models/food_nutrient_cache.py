@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Cached nutrient estimates for foods — USDA or AI-derived."""
 
 from datetime import datetime, timezone

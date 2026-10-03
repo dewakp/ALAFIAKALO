@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Auth failures the operator has to hear about — and the alert that outlives them.
 
 Three behaviours meet here, and the second is the subtle one.

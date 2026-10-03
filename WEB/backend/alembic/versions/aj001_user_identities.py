@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """user_identities — external sign-in identities, one row per (provider, subject)
 
 Social sign-in no longer goes through Firebase, so the link can no longer be a

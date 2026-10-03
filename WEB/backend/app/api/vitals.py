@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Vitals CRUD endpoints — standalone vital-signs data collection.
 
 Vitals are their own domain (not lifestyle): this reads/writes the vitals_logs

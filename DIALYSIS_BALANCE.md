@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Dialysis balance — what a treatment does to the day's nutrition
 
 A dialysis session changes a patient's nutrient balance in gram quantities.

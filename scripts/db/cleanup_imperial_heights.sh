@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Correct profile heights stored as INCHES in a centimetre column, in PRODUCTION.
 #
 #   scripts/db/cleanup_imperial_heights.sh            # DRY RUN (default)

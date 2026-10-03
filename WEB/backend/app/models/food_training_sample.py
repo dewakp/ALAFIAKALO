@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Append-only corpus of meal photos, model predictions, and user corrections.
 
 This is the training set for ALAFIAModel Vision Phase 5 (on-device food

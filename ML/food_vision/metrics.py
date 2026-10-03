@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Validation metrics for the food classifier — every figure beside a baseline.
 
 Two rules from elsewhere in this codebase shape this module:

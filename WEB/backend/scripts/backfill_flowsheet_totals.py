@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Restore the post-treatment totals the flowsheet import dropped.
 
 WHAT WAS LOST

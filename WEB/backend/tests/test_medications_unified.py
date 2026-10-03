@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """One drug, one row — no matter how many tables it is written in.
 
 The medication picture is split across four sources (see

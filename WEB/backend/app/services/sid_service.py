@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """255-character System Identifier (SID) service.
 
 As of the ALAFIA⇄FlowSheet alignment (Prompt 1.2), the SID is the **canonical

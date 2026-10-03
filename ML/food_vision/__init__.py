@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """ALAFIAModel Phase 5 — the on-device food classifier: data, training, export.
 
 Deliberately OUTSIDE ``ML/src/alafia_model``: that package is vendored into the

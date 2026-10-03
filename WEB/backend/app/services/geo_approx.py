@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Offline approximate geocoding for the directory map.
 
 Policy (per product): use a record's real coordinates/address when available;

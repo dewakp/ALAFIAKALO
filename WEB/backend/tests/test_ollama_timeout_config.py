@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The Ollama client must honour OLLAMA_TIMEOUT.
 
 Production sets OLLAMA_TIMEOUT=300 — deploy.sh configures it explicitly — and

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The health score measured diligence, not health.
 
 Four faults, each of which changed the number a patient was shown:

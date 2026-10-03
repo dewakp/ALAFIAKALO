@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Can this address receive mail at all?
 
 Payment is now taken BEFORE the mailbox is proven, so a typo becomes a person

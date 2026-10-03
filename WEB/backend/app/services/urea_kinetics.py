@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """nPCR derived from urea kinetics, because the lab never reports it.
 
 `nPCR` (normalised protein catabolic rate, also written nPNA — normalised

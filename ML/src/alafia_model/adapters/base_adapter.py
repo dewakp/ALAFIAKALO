@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Adapter base — all external AI adapters must implement this interface.
 
 Adapters are the ONLY place where external AI services (OpenAI, Anthropic,

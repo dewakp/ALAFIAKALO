@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """HEBCS matched stored lab names verbatim, so seven biomarkers never scored.
 
 `compute_hebcs` looked up `Biomarker.name` in a dict the caller keys by the raw

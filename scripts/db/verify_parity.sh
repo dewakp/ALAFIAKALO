@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 # Prove that the local dev database is logically identical to PROD.
 #
 #   scripts/db/verify_parity.sh            # compare dev against prod

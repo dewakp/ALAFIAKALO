@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Compare hemoglobin extremes pre vs post January 2019 — using ALL data sources."""
 import pandas as pd
 import numpy as np

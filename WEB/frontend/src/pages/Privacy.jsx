@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 import { Link } from 'react-router-dom';
 import MarketingPage from '../components/MarketingChrome';
 import { t } from '../i18n';

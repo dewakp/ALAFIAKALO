@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # `alafia.app` → ALAFIA production (Cloud Run) — DNS cutover record
 
 **Date:** 2026-07-28 · **Operator account:** `dew@6igma.com` · **GCP project:** `alafia-prod-6igma`

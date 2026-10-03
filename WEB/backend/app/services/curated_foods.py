@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Curated food/dish catalog — data-driven (loaded from app/data/regional_dishes.json).
 
 Composite and regional dishes that generic USDA search matches poorly (suya →

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """users.last_login for the admin console
 
 The admin console reports when each account last signed in. Nothing recorded it

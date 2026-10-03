@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Drift guard: the ALAFIA corpus is training data, never a retrieval source.
 
 `inference_samples.prompt` holds the patient's own words UNREDACTED, and that is

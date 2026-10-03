@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # Document import — parse any clinical PDF, review, then import
 
 Source- and layout-agnostic reading of clinical documents, staged for review

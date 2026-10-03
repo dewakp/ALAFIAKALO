@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tests for the Vision capability (food photo → nutrition estimate).
 
 The OpenAI vision adapter is stubbed so these run offline. We verify graceful

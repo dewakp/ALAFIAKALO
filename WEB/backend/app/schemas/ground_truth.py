@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Schemas for ground-truth overlays: genetic markers + environmental/social logs."""
 
 from datetime import date, datetime

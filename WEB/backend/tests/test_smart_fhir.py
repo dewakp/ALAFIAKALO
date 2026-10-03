@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Tests for the SMART on FHIR service: PKCE, token crypto, FHIR→ALAFIA mapping."""
 
 from datetime import date

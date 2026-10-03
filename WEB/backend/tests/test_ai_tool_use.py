@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The tool loop, pinned at every seam it broke at.
 
 The assistant used to decide IN ADVANCE which slice of the record a question

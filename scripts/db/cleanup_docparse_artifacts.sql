@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Remove lab rows that a document parser invented from a PDF's boilerplate and
 -- column overflow. See CLAUDE.md §3ab.
 --

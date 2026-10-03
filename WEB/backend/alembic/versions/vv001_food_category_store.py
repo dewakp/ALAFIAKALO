@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A learned food category needs its own row, not a borrowed one.
 
 `resolve_band_category` wrote the category onto `food_nutrient_cache` — but only

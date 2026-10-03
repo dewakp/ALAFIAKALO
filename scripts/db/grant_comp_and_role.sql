@@ -1,3 +1,6 @@
+-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+-- All rights reserved. ALAFIA — proprietary and confidential.
+
 -- Grant a complimentary membership (and optionally a professional role) to
 -- named accounts — IDEMPOTENT, and safe to re-run.
 --

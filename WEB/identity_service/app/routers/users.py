@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """User/profile + SID lookup endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Correction classification for the Phase 5 training corpus.
 
 `correction_kind` is what makes the corpus queryable — "every photo where the

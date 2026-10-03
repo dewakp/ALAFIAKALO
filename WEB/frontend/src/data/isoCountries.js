@@ -1,3 +1,6 @@
+// Copyright © 2026 Wole Akpose / 6igma Health Inc.
+// All rights reserved. ALAFIA — proprietary and confidential.
+
 // ISO 3166 tables (generated). Numeric -> alpha-2 keys the choropleth by the
 // GeoJSON feature `id` (ISO 3166-1 numeric); alpha-2 -> name for labels/flags.
 export const NUM_TO_A2 = {

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Resolve what a condition means for food — once — then remember it.
 
 The canonical reader for `condition_nutrition_facts`. Nothing else should query

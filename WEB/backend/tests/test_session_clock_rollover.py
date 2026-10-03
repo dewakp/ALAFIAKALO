@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A treatment that ends after midnight ends on the NEXT day.
 
 Reported from the data, not a screen: 4 of 22 live-app sessions carrying both

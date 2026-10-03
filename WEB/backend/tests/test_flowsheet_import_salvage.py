@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The importer's two salvage rules, pinned.
 
 Both exist because a clinical cell held something that was ALMOST a value, and

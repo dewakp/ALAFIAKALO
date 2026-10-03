@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The ALAFIA training corpus collects, and collects only what it may.
 
 ALAFIA is the model we train ourselves. It is not Ollama — Ollama is a runtime

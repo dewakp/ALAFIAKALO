@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """RxNorm (NLM RxNav) — the authority on what is actually a medication.
 
 Free, public, no API key. https://rxnav.nlm.nih.gov/

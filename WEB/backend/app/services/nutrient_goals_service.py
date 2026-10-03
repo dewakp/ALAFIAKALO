@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Personalized daily nutrient goals.
 
 Computes per-nutrient daily targets and limits from a patient's biology

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Print the patient block the PLANNER prompts now send, for one user.
 
 Read-only. Proves the planner carries age/sex/weight/targets/dialysis and the

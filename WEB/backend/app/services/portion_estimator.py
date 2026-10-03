@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Turn a portion phrase into grams.
 
 Vision models answer with prose — "1 cup / 150 g", "1 medium sized slice",

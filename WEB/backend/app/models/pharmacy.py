@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Pharmacy models – Prescription → Dispensing → Adherence lifecycle."""
 
 import enum

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """The flowsheet records WHEN a drug was given — without doubling what it already holds.
 
 `session_drugs` carries one row per flowsheet drug line, with the route and the

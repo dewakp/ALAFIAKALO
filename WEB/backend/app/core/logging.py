@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Structured JSON logging configuration.
 
 Replaces print-based logging with structured JSON output suitable for

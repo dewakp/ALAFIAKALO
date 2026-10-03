@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # ALAFIA — Google Cloud deployment (web/API track)
 
 Ship the backend (FastAPI) + frontend (React SPA) + shared PQC identity service to

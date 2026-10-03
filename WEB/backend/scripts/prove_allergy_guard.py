@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Prove the allergy guard over real HTTP, against the seeded demo patient.
 
 Unit tests exercise `food_safety` directly. This drives the actual endpoint —

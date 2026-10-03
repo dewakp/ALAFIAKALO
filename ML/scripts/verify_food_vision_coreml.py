@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Execute the Core ML conversions on macOS and compare them with the trained model.
 
 Core ML can be converted on Linux but only EXECUTED on macOS, so this is the one

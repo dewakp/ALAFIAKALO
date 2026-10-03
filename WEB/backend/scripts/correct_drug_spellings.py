@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Correct misspelled drug names — only where RxNorm names the correction.
 
 `resolve_nutrient_effects.py` reported seven names RxNorm does not recognise.

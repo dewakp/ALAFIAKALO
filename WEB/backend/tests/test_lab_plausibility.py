@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """A haematocrit of 338% is impossible. A creatinine of 11.91 is Tuesday.
 
 THE ROW THIS EXISTS FOR. A production record carried

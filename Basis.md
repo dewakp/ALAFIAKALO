@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 This is fundamentally a deta collection HUB. It collects data about a person such as what they consume (food, drinks, medications), what they discharge(poop, urine, vomit), what they do (physical activities), what they think (journaling, thoughts), symptoms (injuries, feelings, pain), Sleep.
 
 It overlays these on ground truths. Biology (Age, Sex, Height, Body Structure, Weight, Lab Results, Genetic Data), Hospital Notes, Medical Therapies and Treatments (Dialysis, Chemotherapy, etc), Environmental and Social Factors.

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Locale-sensitive food-name normalization.
 
 ALAFIA's users are global, so meal text arrives in many languages and regional

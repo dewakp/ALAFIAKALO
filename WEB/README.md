@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # ALAFIA — Holistic Health Platform (WEB)
 
 A fullstack web application for holistic personal health management: **Nutrition, Fitness, Labs (EHR-compliant), Medications, Mood/Mental Health, Lifestyle** — powered by a custom AI assistant.

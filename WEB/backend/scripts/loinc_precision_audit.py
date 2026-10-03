@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """Does the LOINC resolver answer CORRECTLY — not merely often?
 
 `docparse_corpus_check.py` scores reference-range recall, and §3ab records what

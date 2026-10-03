@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # LAFIAKALO / ALAFIA — Gap Analysis (Stock-Take #2)
 
 **Audit Date:** 2026-06-11

@@ -1,3 +1,6 @@
+# Copyright © 2026 Wole Akpose / 6igma Health Inc.
+# All rights reserved. ALAFIA — proprietary and confidential.
+
 """nutrient_effects: what an AGENT does to a nutrient, learned and stored
 
 Anything a patient is exposed to can move a nutrient total, in one of a few

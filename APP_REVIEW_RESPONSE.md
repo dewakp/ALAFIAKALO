@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Wole Akpose / 6igma Health Inc.
+     All rights reserved. ALAFIA — proprietary and confidential. -->
+
 # App Review — reply for submission 0ace0f33-c59f-4a82-ae58-5927d9a27c7d
 
 Reviewed: **1.0 (2)**, iPad Air 11-inch (M3), iPadOS 26.6, 25 Aug 2026.
