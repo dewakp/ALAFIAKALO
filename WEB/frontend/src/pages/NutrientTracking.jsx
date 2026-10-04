@@ -88,7 +88,22 @@ function EffectLine({ effect, unit }) {
   return (
     <div style={{ fontSize: '.68rem', marginTop: '.2rem', lineHeight: 1.4 }}>
       {effect.withheld ? (
-        <span style={{ color: '#b45309' }}>{effect.withheld}</span>
+        /* The reason AND its mechanism. This branch used to render `withheld`
+           alone, discarding `agent` and `mechanism` even though both are on
+           the wire — so the patient read "The size of this effect is not
+           established" with nothing saying what effect, or what caused it.
+           That is the opposite of what the comment above this function asks
+           for, and it was reported as confusing from the live screen. The
+           agent now leads the sentence server-side; the mechanism belongs
+           beside it exactly as it does on the counted path. */
+        <>
+          <span style={{ color: '#b45309' }}>{effect.withheld}</span>
+          {effect.mechanism && (
+            <span style={{ color: 'var(--color-text-tertiary)' }}>
+              {' '}{translate('NutrientTracking.effect_mechanism', { mechanism: effect.mechanism })}
+            </span>
+          )}
+        </>
       ) : (
         <>
           <span style={{ color: adds ? '#b45309' : 'var(--color-primary)', fontWeight: 600 }}>

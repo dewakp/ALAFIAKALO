@@ -326,8 +326,19 @@ def apply_effects_to_totals(
                 nutrient_key=effect.nutrient_key, agent_label=effect.agent_label,
                 direction=effect.direction, delta=0.0, modelled=0.0, applied=False,
                 mechanism=effect.mechanism,
-                withheld=("The size of this effect is not established, so it is "
-                          "noted but not counted."),
+                # NAME THE AGENT. Every sibling branch does ("{agent} was
+                # given, but no amount is recorded…") and this one did not, so
+                # the patient read a sentence about an "effect" with no subject
+                # — reported as confusing from the live screen, where
+                # Phosphorus, Iron and Magnesium each carried it with nothing
+                # saying what caused them. The data was on the wire the whole
+                # time (`agent_label`, `mechanism`); only the sentence and the
+                # client's rendering dropped it.
+                withheld=(
+                    f"{effect.agent_label} affects this, but how much it "
+                    "changes has not been established, so it is shown here "
+                    "and not added to your total."
+                ),
             ))
             continue
 
@@ -353,9 +364,20 @@ def apply_effects_to_totals(
         gated = gate_needed(effect.direction, str(goal.get("kind") or "target"))
         withheld = None
         if gated and not measurement_fresh:
+            # "measurement" meant a BLOOD TEST, and not saying so left the
+            # reader guessing what they were supposed to have measured. The
+            # sibling gate in `dialysis_day_adjustment` already says it plainly
+            # ("No recent blood test to confirm this…"); this now matches.
+            #
+            # Deliberately NOT quoting how old the test is: `measurement_fresh`
+            # is a single flag precisely because several nutrients here
+            # (glucose, thiamine, folate, zinc) have no serum draw in this
+            # system at all, so naming an age would invent a measurement that
+            # was never taken.
             withheld = (
-                "Not counted: this would change what you appear to need, and "
-                "there is no recent measurement to confirm it."
+                f"{effect.agent_label} would count in your favour here, so it "
+                "needs a recent blood test to confirm it. There isn't one, so "
+                "it is shown and not counted."
             )
         elif not effect.calibrated and effect.provenance == "llm":
             # A model-supplied MAGNITUDE is reported, never counted.

@@ -216,7 +216,16 @@ def test_crediting_iron_against_a_target_needs_a_measurement():
     effect = adjusted[0]["nutrient_effects"][0]
     assert effect["applied"] is False
     assert effect["modelled"] == pytest.approx(100.0), "it must still be MODELLED"
-    assert "no recent measurement" in (effect.get("withheld") or "")
+    withheld = effect.get("withheld") or ""
+    # It must say a BLOOD TEST is what is missing. "no recent measurement" left
+    # the reader guessing what they were meant to have measured — reported as
+    # confusing from the live screen — and the sibling gate in
+    # `dialysis_day_adjustment` already says it plainly.
+    assert "blood test" in withheld, withheld
+    # And it must NAME THE AGENT. A subjectless sentence is the defect this
+    # whole wording change exists to fix: the screen showed "...this effect..."
+    # with nothing saying what caused it, while agent_label sat on the wire.
+    assert "Iron sucrose" in withheld, withheld
 
 
 # ── A dose that parsed and cannot be right ────────────────────────────
@@ -385,6 +394,11 @@ def test_a_withheld_effect_is_still_reported():
     assert entry["applied"] is False
     assert entry["delta"] == 0.0
     assert entry["withheld"], "a withheld effect must say why"
+    # `assert entry["withheld"]` passes on ANY non-empty string, including the
+    # subjectless "The size of this effect is not established..." that a
+    # patient actually saw on three nutrients at once with nothing naming the
+    # cause. A reason the reader cannot attach to anything is not a reason.
+    assert "A Binder" in entry["withheld"], entry["withheld"]
     assert entry["modelled"] == pytest.approx(-200.0), "what it would have been is kept"
 
 

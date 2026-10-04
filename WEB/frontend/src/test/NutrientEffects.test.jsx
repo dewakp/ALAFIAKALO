@@ -93,6 +93,25 @@ describe('agent effects on a nutrient', () => {
     );
   });
 
+  it('gives the mechanism on a WITHHELD effect too, not just a counted one', async () => {
+    /* The reason alone is not enough. `EffectLine` used to render `withheld`
+       by itself and drop `agent` and `mechanism`, so a patient saw a sentence
+       about an "effect" with nothing saying what it was or what caused it —
+       reported from the live screen, where Phosphorus, Iron and Magnesium each
+       carried a subjectless line at once.
+
+       Note the sibling test above passes on the COUNTED effect (protein /
+       Hemodialysis), so it never exercised this branch: the iron fixture has
+       carried a mechanism all along and nothing asserted it rendered. */
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText(/has not been confirmed/i)).toBeInTheDocument()
+    );
+    expect(
+      screen.getByText(/IV iron delivers elemental iron directly/i)
+    ).toBeInTheDocument();
+  });
+
   it('does not show a withheld effect as an amount', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText(/has not been confirmed/i)).toBeInTheDocument());
