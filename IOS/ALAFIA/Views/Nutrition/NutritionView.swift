@@ -556,18 +556,42 @@ struct DailyTargetsCard: View {
     /// must not read as licence to eat more.
     @ViewBuilder
     private func dialysisBalanceLine(_ balance: DialysisBalance, unit: String) -> some View {
-        if let withheld = balance.withheld {
-            Text(withheld).font(.caption2).foregroundStyle(.orange)
-        } else {
-            HStack(spacing: 4) {
-                Text("\(balance.isGain ? "+" : "")\(fmt(balance.delta)) \(unit) from dialysis")
-                    .font(.caption2).fontWeight(.semibold)
-                    .foregroundStyle(balance.isGain ? Color.orange : Color.accentColor)
-                Text("· net \(fmt(balance.net)) \(unit) retained")
-                    .font(.caption2).foregroundStyle(.tertiary)
-                if !balance.calibrated {
-                    Text("· estimated").font(.caption2).foregroundStyle(.tertiary)
+        VStack(alignment: .leading, spacing: 1) {
+            if let withheld = balance.withheld {
+                Text(withheld).font(.caption2).foregroundStyle(.orange)
+            } else {
+                HStack(spacing: 4) {
+                    Text("\(balance.isGain ? "+" : "")\(fmt(balance.delta)) \(unit) from dialysis")
+                        .font(.caption2).fontWeight(.semibold)
+                        .foregroundStyle(balance.isGain ? Color.orange : Color.accentColor)
+                    Text("· net \(fmt(balance.net)) \(unit) retained")
+                        .font(.caption2).foregroundStyle(.tertiary)
+                    if !balance.calibrated {
+                        Text("· estimated").font(.caption2).foregroundStyle(.tertiary)
+                    }
                 }
+            }
+            // WHY the figure is what it is. `reasons` has been decoded by this
+            // model and read by no view: measured on production, one dialysis
+            // day carries 5-6 of them — "Reduced because your most recent blood
+            // test is getting old", "Only part of the modelled removal is
+            // counted: this nutrient's transfer has not been confirmed against
+            // your own blood tests", "Today's dialysate is richer in this than
+            // your blood, so treatment added to your total".
+            //
+            // Computed, serialised, decoded, discarded — on all three clients.
+            // That is what made this screen read as unexplained: a nutrient
+            // shown as reduced with the one sentence explaining it thrown away.
+            // Rendered on BOTH paths: a reason accompanies a COUNTED balance
+            // at least as often as a withheld one (5 balances, 0 withheld, 6
+            // reasons on the day this was measured).
+            // Keyed on OFFSET, not on the string. `id: \.self` over [String]
+            // collides the moment two reasons are identical, and SwiftUI's
+            // behaviour with duplicate ids is undefined — rows vanish or
+            // animate wrongly. The composer appends distinct sentences today,
+            // which is exactly the kind of thing that stops being true later.
+            ForEach(Array((balance.reasons ?? []).enumerated()), id: \.offset) { _, reason in
+                Text(reason).font(.caption2).foregroundStyle(.tertiary)
             }
         }
     }

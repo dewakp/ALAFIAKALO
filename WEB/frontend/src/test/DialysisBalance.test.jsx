@@ -90,6 +90,28 @@ describe('dialysis balance', () => {
     await waitFor(() => expect(screen.getAllByText(/estimated/i).length).toBeGreaterThan(0));
   });
 
+  it('shows WHY the figure is what it is, on a counted balance', async () => {
+    /* `reasons` was composed by the backend, serialised, decoded by all three
+       clients and rendered by none. Measured on production: one dialysis day
+       carries 5-6 of them across 5 balances with ZERO withheld — so they
+       accompany COUNTED balances, which is the path that dropped them.
+
+       This is what made the screen read as unexplained: potassium and
+       phosphorus shown as reduced, with "Reduced because your most recent
+       blood test is getting old" computed and thrown away. */
+    const data = withDialysis();
+    data.goals[0].dialysis_balance.reasons = [
+      'Reduced because your most recent blood test is getting old.',
+    ];
+    mock(data);
+    renderPage();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/most recent blood test is getting old/i)
+      ).toBeInTheDocument()
+    );
+  });
+
   it('explains a withheld removal instead of showing nothing', async () => {
     const data = withDialysis();
     data.goals[0].dialysis_balance = {

@@ -1479,26 +1479,47 @@ private fun EffectLine(effect: GoalNutrientEffect, unit: String) {
 @Composable
 private fun DialysisBalanceLine(balance: DialysisBalance, unit: String) {
     Spacer(Modifier.height(2.dp))
-    if (balance.withheld != null) {
-        Text(
-            balance.withheld,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFFB45309)
-        )
-        return
-    }
-    Row {
-        Text(
-            stringResource(R.string.from_dialysis, if (balance.isGain) "+" else "", fmtAmount(balance.delta), unit),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = if (balance.isGain) Color(0xFFB45309) else MaterialTheme.colorScheme.primary
-        )
-        Text(
-            " · net ${fmtAmount(balance.net)} $unit retained" +
-                if (!balance.calibrated) stringResource(R.string.estimated) else "",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-        )
+    Column {
+        if (balance.withheld != null) {
+            Text(
+                balance.withheld,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFFB45309)
+            )
+        } else {
+            Row {
+                Text(
+                    stringResource(R.string.from_dialysis, if (balance.isGain) "+" else "", fmtAmount(balance.delta), unit),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (balance.isGain) Color(0xFFB45309) else MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    " · net ${fmtAmount(balance.net)} $unit retained" +
+                        if (!balance.calibrated) stringResource(R.string.estimated) else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+        }
+        // WHY the figure is what it is. `reasons` has been decoded by this
+        // model (Models.kt) and read by no composable: measured on production,
+        // one dialysis day carries 5-6 of them — "Reduced because your most
+        // recent blood test is getting old", "Only part of the modelled
+        // removal is counted...", "Today's dialysate is richer in this than
+        // your blood, so treatment added to your total".
+        //
+        // Computed, serialised, decoded, discarded — on all three clients.
+        // Rendered on BOTH paths: a reason accompanies a COUNTED balance at
+        // least as often as a withheld one (5 balances, 0 withheld, 6 reasons
+        // on the day this was measured), so the early `return` that used to
+        // sit on the withheld branch would have dropped most of them.
+        balance.reasons.orEmpty().forEach { reason ->
+            Text(
+                reason,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+        }
     }
 }

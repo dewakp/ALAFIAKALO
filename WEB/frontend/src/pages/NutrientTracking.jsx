@@ -68,6 +68,21 @@ function BalanceLine({ balance, unit }) {
           )}
         </>
       )}
+      {/* WHY the figure is what it is. The backend composes these and no
+          client showed them: measured on production, a dialysis day carries
+          5-6 of them — "Reduced because your most recent blood test is getting
+          old", "Only part of the modelled removal is counted: this nutrient's
+          transfer has not been confirmed against your own blood tests",
+          "Today's dialysate is richer in this than your blood, so treatment
+          added to your total". Computed, serialised, thrown away.
+
+          That is the complaint this page drew: a nutrient shown as reduced or
+          not counted, with the one sentence explaining it discarded. Rendered
+          on BOTH paths, because a reason accompanies a counted balance just as
+          often as a withheld one. */}
+      {(balance.reasons || []).map((reason, i) => (
+        <div key={i} style={{ color: 'var(--color-text-tertiary)' }}>{reason}</div>
+      ))}
     </div>
   );
 }
