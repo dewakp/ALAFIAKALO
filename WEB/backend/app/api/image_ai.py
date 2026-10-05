@@ -623,6 +623,8 @@ _COLOR_WORDS = ("brown", "black", "red", "green", "yellow", "pale", "amber",
 
 def _extract_elimination(event_type: str, text: str) -> tuple[dict, list[str]]:
     """Keyword-extract structured elimination fields + attention flags from a caption."""
+    from app.services import elimination_text
+
     low = text.lower()
     suggested: dict = {}
     flags: list[str] = []
@@ -637,10 +639,16 @@ def _extract_elimination(event_type: str, text: str) -> tuple[dict, list[str]]:
                 suggested["bristol_scale"] = scale
                 suggested["consistency"] = consistency
                 break
-        if "blood" in low and "no blood" not in low and "no visible blood" not in low:
+        # One reader for "does this text say blood", shared with the wellness
+        # score and any backfill — `services/elimination_text.py`. It also
+        # resolves ordinary misspellings by edit distance, which matters here
+        # because the same function reads patient-typed notes, where this
+        # record carries "Blooy" alongside 134 correct spellings.
+        found = elimination_text.read_notes(low)
+        if found.blood:
             suggested["blood_present"] = True
             flags.append("Possible blood visible — worth mentioning to your care team.")
-        if "mucus" in low and "no mucus" not in low:
+        if found.mucus:
             suggested["mucus_present"] = True
         if color in ("black", "red"):
             flags.append(f"{color.capitalize()} stool can indicate bleeding — "

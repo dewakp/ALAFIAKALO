@@ -159,14 +159,40 @@ private struct ScoreSection: View {
                     }
                     .padding(.top, 12)
 
+                    // Findings that must not be read past. Drawn ABOVE the
+                    // sub-scores and the explanation: each one names a value
+                    // and what judged it ("25 of 32 treatments ended below
+                    // 90 mmHg systolic"), and a score is exactly what gets
+                    // skimmed instead.
+                    if let findings = s.criticalFindings, !findings.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Needs attention", systemImage: "exclamationmark.triangle.fill")
+                                .font(.headline)
+                                .foregroundStyle(.red)
+                            ForEach(Array(findings.enumerated()), id: \.offset) { _, finding in
+                                Text("• \(finding)")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(Color.red.opacity(0.08))
+                        .cornerRadius(16)
+                    }
+
                     // Sub-scores
                     VStack(spacing: 14) {
                         SubScoreBar(label: "Nutrition", value: s.nutritionScore, icon: "leaf.fill")
-                        SubScoreBar(label: "Fitness", value: s.fitnessScore, icon: "figure.run")
+                        SubScoreBar(label: "Vitals", value: s.vitalsScore, icon: "heart.fill")
+                        SubScoreBar(label: "Dialysis", value: s.dialysisScore, icon: "cross.case.fill")
+                        SubScoreBar(label: "Medication Adherence", value: s.medicationAdherenceScore, icon: "pills.fill")
+                        SubScoreBar(label: "Symptoms", value: s.symptomScore, icon: "waveform.path.ecg")
+                        SubScoreBar(label: "Elimination", value: s.eliminationScore, icon: "drop.fill")
                         SubScoreBar(label: "Sleep", value: s.sleepScore, icon: "moon.fill")
                         SubScoreBar(label: "Mood", value: s.moodScore, icon: "face.smiling.fill")
-                        SubScoreBar(label: "Vitals", value: s.vitalsScore, icon: "heart.fill")
-                        SubScoreBar(label: "Medication Adherence", value: s.medicationAdherenceScore, icon: "pills.fill")
+                        SubScoreBar(label: "Fitness", value: s.fitnessScore, icon: "figure.run")
                     }
                     .padding()
                     .background(Color(.systemBackground))
@@ -592,6 +618,15 @@ private let whatIfParams: [(field: WritableKeyPath<WhatIfRequest, Double?>, labe
 ]
 
 private struct HEBCSSection: View {
+    /// "Glucose 273 (reference 74–106)" — the value and what judged it, in one
+    /// string so a translator can reorder it.
+    static func criticalLine(_ b: HEBCSBiomarkerScore) -> String {
+        let value = b.value.map { String(format: "%g", $0) } ?? "—"
+        let range = (b.optRange?.compactMap { $0 }.map { String(format: "%g", $0) })
+            .flatMap { $0.count == 2 ? "\($0[0])–\($0[1])" : nil } ?? "—"
+        return "\(b.name) \(value) (reference \(range))"
+    }
+
     @Bindable var vm: WellnessViewModel
     @State private var request = WhatIfRequest()
     @State private var enabled: [String: Bool] = [:]
@@ -616,10 +651,17 @@ private struct HEBCSSection: View {
                         .frame(width: 160, height: 160)
                         .overlay {
                             VStack(spacing: 2) {
+                                // A marker sitting at the floor of its own band
+                                // overrides the adjective. Ω 0.777 drew green
+                                // and said "Good" on a patient whose glucose
+                                // scores 0.000 — the number is an average and
+                                // the average is what hides it.
+                                let criticals = d.criticalBiomarkers ?? []
+                                let tint = criticals.isEmpty ? omegaColor(d.omega) : Color.red
                                 Text(String(format: "Ω %.3f", d.omega))
                                     .font(.system(size: 26, weight: .black))
-                                    .foregroundStyle(omegaColor(d.omega))
-                                Text(omegaLabel(d.omega))
+                                    .foregroundStyle(tint)
+                                Text(criticals.isEmpty ? omegaLabel(d.omega) : "Critical")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -659,15 +701,30 @@ private struct HEBCSSection: View {
                     .cornerRadius(20)
                     .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
 
-                    // Interpretation
+                    // Interpretation.
+                    // The card was hardcoded GREEN with a check-seal whatever it
+                    // said, so "relatively well-managed health" arrived as
+                    // reassurance for a patient whose glucose scores zero.
+                    // Chrome is a claim too: it follows the content now.
                     if let interp = d.interpretation {
-                        HStack {
-                            Image(systemName: "checkmark.seal.fill").foregroundStyle(.green)
-                            Text(interp).font(.callout).foregroundStyle(.secondary)
+                        let criticals = d.criticalBiomarkers ?? []
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .top) {
+                                Image(systemName: criticals.isEmpty
+                                      ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                                    .foregroundStyle(criticals.isEmpty ? .green : .red)
+                                Text(interp).font(.callout).foregroundStyle(.secondary)
+                            }
+                            ForEach(Array(criticals.enumerated()), id: \.offset) { _, b in
+                                Text(Self.criticalLine(b))
+                                    .font(.caption)
+                                    .foregroundStyle(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
-                        .background(Color.green.opacity(0.07))
+                        .background((criticals.isEmpty ? Color.green : Color.red).opacity(0.07))
                         .cornerRadius(12)
                     }
 

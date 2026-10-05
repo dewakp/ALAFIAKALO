@@ -56,6 +56,12 @@ const SUB_SCORE_META = {
   mood_score: { get label() { return t('Wellness.mood'); }, color: '#f59e0b', icon: Smile },
   vitals_score: { get label() { return t('Wellness.vitals'); }, color: '#ef4444', icon: Activity },
   medication_adherence_score: { get label() { return t('Wellness.medication'); }, color: '#ec4899', icon: Pill },
+  // Three domains the score could not previously express at all: a patient on
+  // dialysis had no dialysis contribution, a symptom rated 9/10 had nowhere to
+  // go, and blood recorded in one bowel movement in five reached no score.
+  dialysis_score: { get label() { return t('Wellness.dialysis'); }, color: '#0891b2', icon: Stethoscope },
+  symptom_score: { get label() { return t('Wellness.symptoms'); }, color: '#f97316', icon: AlertCircle },
+  elimination_score: { get label() { return t('Wellness.elimination'); }, color: '#64748b', icon: FlaskConical },
 };
 
 const PRIORITY_COLORS = {
@@ -261,6 +267,24 @@ function ScoreTab() {
         </div>
       </div>
 
+      {/* Findings that must not be read past.
+          Each is a finished sentence naming the value and what judged it —
+          "25 of 32 treatments ended below 90 mmHg systolic (lowest 54)". They
+          are drawn ABOVE the analysis and the history, because a score is a
+          summary and a summary is exactly what gets skimmed. */}
+      {(score.critical_findings || []).length > 0 && (
+        <div className="card" style={{ marginBottom: 20, background: '#fef2f2', borderColor: '#fecaca' }}>
+          <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: '#b91c1c' }}>
+            {t('Wellness.needs_attention')}
+          </h4>
+          <ul style={{ margin: 0, paddingLeft: 20 }}>
+            {(score.critical_findings || []).map((finding, i) => (
+              <li key={i} style={{ fontSize: 14, color: '#7f1d1d', lineHeight: 1.6 }}>{finding}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Explanation */}
       {score.explanation && (
         <div className="card" style={{ marginBottom: 20 }}>
@@ -322,13 +346,22 @@ const WHATIF_INPUTS = [
   { field: 'Calcium',           label: 'Calcium',       unit: 'mg/dL',min: 6.5,  max: 12.0, step: 0.1, pathway: 'Bone_Mineral' },
 ];
 
-function OmegaGauge({ omega, size = 180 }) {
+function OmegaGauge({ omega, size = 180, criticalCount = 0 }) {
   const pct = Math.max(0.001, Math.min(0.999, omega || 0.5));
   const radius = (size - 16) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - pct * circumference;
-  const color = pct >= 0.65 ? '#10b981' : pct >= 0.45 ? '#f59e0b' : '#ef4444';
-  const label = pct >= 0.65 ? 'Good' : pct >= 0.45 ? 'Moderate' : 'Critical';
+  // A pathway score is a weighted ARITHMETIC mean, so a biomarker at the floor
+  // of its own band is averaged up by its neighbours. On the reference record
+  // Ω reads 0.777 — drawn green and labelled "Good" — while glucose scores
+  // 0.000 and transferrin saturation 0.048. The adjective is the part that
+  // misleads: a reader takes "Good" and stops. Where any marker is critical,
+  // the gauge says so and the interpretation beneath names which.
+  const critical = criticalCount > 0;
+  const color = critical ? '#ef4444'
+    : pct >= 0.65 ? '#10b981' : pct >= 0.45 ? '#f59e0b' : '#ef4444';
+  const label = critical ? 'Critical'
+    : pct >= 0.65 ? 'Good' : pct >= 0.45 ? 'Moderate' : 'Critical';
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
@@ -448,7 +481,7 @@ function HEBCSTab() {
     <div>
       {/* Omega gauge + meta */}
       <div className="card" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 28, marginBottom: 20 }}>
-        <OmegaGauge omega={omega.omega} />
+        <OmegaGauge omega={omega.omega} criticalCount={(omega.critical_biomarkers || []).length} />
         <div style={{ flex: 1, minWidth: 220 }}>
           <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
             {t('Wellness.hebcs_wellness_score')}
@@ -474,12 +507,39 @@ function HEBCSTab() {
         </div>
       </div>
 
-      {/* Interpretation */}
-      {omega.interpretation && (
-        <div className="card" style={{ marginBottom: 20, background: '#f0fdf4', borderColor: '#bbf7d0' }}>
-          <p style={{ margin: 0, fontSize: 14, color: '#15803d', lineHeight: 1.6 }}>{omega.interpretation}</p>
-        </div>
-      )}
+      {/* Interpretation.
+          The card used to be hardcoded GREEN — background #f0fdf4, text
+          #15803d — whatever it said. So the sentence "relatively well-managed
+          health given your ESRD diagnosis" arrived inside a reassuring green
+          panel for a patient whose glucose scores zero. Colour is a claim too:
+          it now follows the content rather than the component. */}
+      {omega.interpretation && (() => {
+        const anyCritical = (omega.critical_biomarkers || []).length > 0;
+        const palette = anyCritical
+          ? { background: '#fef2f2', borderColor: '#fecaca', color: '#7f1d1d' }
+          : { background: '#f8fafc', borderColor: '#e2e8f0', color: '#334155' };
+        return (
+          <div className="card" style={{ marginBottom: 20, background: palette.background, borderColor: palette.borderColor }}>
+            <p style={{ margin: 0, fontSize: 14, color: palette.color, lineHeight: 1.6 }}>{omega.interpretation}</p>
+            {anyCritical && (
+              <ul style={{ margin: '10px 0 0', paddingLeft: 20 }}>
+                {(omega.critical_biomarkers || []).map((b, i) => (
+                  <li key={i} style={{ fontSize: 13, color: palette.color, lineHeight: 1.6 }}>
+                    {/* One key, not three fragments: a language that reorders
+                        cannot be served by "name", ":" and "(reference" glued
+                        together in English order (§3aw). */}
+                    {t('Wellness.reference', {
+                      name: b.name,
+                      value: b.value,
+                      value2: Array.isArray(b.opt_range) ? b.opt_range.join('–') : '—',
+                    })}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Pathway breakdown */}
       <div className="card" style={{ marginBottom: 20 }}>

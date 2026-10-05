@@ -2906,7 +2906,7 @@
     "score_history_last_30_days": "Historique des scores (30 derniers jours)",
     "no_wellness_score_yet": "Aucun score de bien-être pour le moment",
     "hebcs_wellness_score": "Score de bien-être HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Notation trapézoïdale 7 voies (J-BHI 2026)",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Notation trapézoïdale 7 voies",
     "latest_labs": "Derniers résultats : {{value}}",
     "score_0_100": "Score (0–100)",
     "data_coverage": "Couverture des données",
@@ -2948,7 +2948,12 @@
     "failed_to_load_trends": "Impossible de charger les tendances.",
     "failed_to_load_recommendations": "Impossible de charger les recommandations.",
     "medical": "Médical",
-    "failed_to_load_improvements": "Impossible de charger les améliorations."
+    "failed_to_load_improvements": "Impossible de charger les améliorations.",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "Catégorie",

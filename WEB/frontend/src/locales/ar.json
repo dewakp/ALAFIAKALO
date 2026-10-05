@@ -2906,7 +2906,7 @@
     "score_history_last_30_days": "سجل النقاط (آخر 30 يومًا)",
     "no_wellness_score_yet": "لا توجد درجة صحة حتى الآن",
     "hebcs_wellness_score": "درجة ALAFIA للعافية",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "تقييم سباعي المسارات شبه منحرف (J-BHI 2026)",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "تقييم سباعي المسارات شبه منحرف",
     "latest_labs": "آخر الفحوصات: {{value}}",
     "score_0_100": "الدرجة (0–100)",
     "data_coverage": "تغطية البيانات",
@@ -2948,7 +2948,12 @@
     "failed_to_load_trends": "فشل تحميل الاتجاهات.",
     "failed_to_load_recommendations": "فشل تحميل التوصيات.",
     "medical": "طبي",
-    "failed_to_load_improvements": "فشل تحميل التحسنات."
+    "failed_to_load_improvements": "فشل تحميل التحسنات.",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "الفئة",

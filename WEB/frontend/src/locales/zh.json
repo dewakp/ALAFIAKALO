@@ -2906,7 +2906,7 @@
     "score_history_last_30_days": "评分历史（过去 30 天）",
     "no_wellness_score_yet": "还没有健康评分",
     "hebcs_wellness_score": "HEBCS 健康评分",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7通路梯形评分法（J-BHI 2026）",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7通路梯形评分法",
     "latest_labs": "最新检查结果：{{value}}",
     "score_0_100": "评分（0–100）",
     "data_coverage": "数据覆盖范围",
@@ -2948,7 +2948,12 @@
     "failed_to_load_trends": "加载趋势失败。",
     "failed_to_load_recommendations": "加载建议失败。",
     "medical": "医疗",
-    "failed_to_load_improvements": "加载改善情况失败。"
+    "failed_to_load_improvements": "加载改善情况失败。",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "类别",

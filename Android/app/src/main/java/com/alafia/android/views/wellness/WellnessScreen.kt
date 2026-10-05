@@ -159,21 +159,64 @@ private fun ScoreTab() {
                 }
             }
 
+            // Findings that must not be read past, drawn ABOVE the sub-scores.
+            // Each names a value and what judged it ("25 of 32 treatments ended
+            // below 90 mmHg systolic"), and a score is exactly what a reader
+            // skims instead.
+            val findings = s.criticalFindings.orEmpty()
+            if (findings.isNotEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                stringResource(R.string.needs_attention),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            findings.forEach { finding ->
+                                Text(
+                                    "• $finding",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Spacer(Modifier.height(4.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Text(stringResource(R.string.sub_scores), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
 
+            // Resource IDs, not literals: this list is built in a LazyListScope
+            // block, which is NOT composable, so `stringResource` cannot be
+            // called here. The labels were therefore plain English strings and
+            // rendered English in every language (§3aw). Resolving them inside
+            // the `items` block — which IS composable — is what makes them
+            // translatable at all.
             val subScores = listOf(
-                "Nutrition" to s.nutritionScore,
-                "Fitness" to s.fitnessScore,
-                "Sleep" to s.sleepScore,
-                "Mood" to s.moodScore,
-                "Vitals" to s.vitalsScore,
-                "Medication Adherence" to s.medicationAdherenceScore
+                R.string.score_nutrition to s.nutritionScore,
+                R.string.score_vitals to s.vitalsScore,
+                R.string.score_dialysis to s.dialysisScore,
+                R.string.score_medication_adherence to s.medicationAdherenceScore,
+                R.string.score_symptoms to s.symptomScore,
+                R.string.score_elimination to s.eliminationScore,
+                R.string.score_sleep to s.sleepScore,
+                R.string.score_mood to s.moodScore,
+                R.string.score_fitness to s.fitnessScore
             )
 
-            items(subScores) { (label, value) ->
-                SubScoreRow(label = label, value = value)
+            items(subScores) { (labelRes, value) ->
+                SubScoreRow(label = stringResource(labelRes), value = value)
             }
         }
     }
@@ -594,15 +637,22 @@ private fun HEBCSTab() {
     }
 
     val d = data!!
+    // A marker at the floor of its own band overrides the adjective. Ω 0.777
+    // drew green and said "Good" for a patient whose glucose scores 0.000 and
+    // whose transferrin saturation scores 0.048 — a pathway score is a weighted
+    // arithmetic mean, so the average is exactly what hides them.
+    val criticals = d.criticalBiomarkers
     val omegaColor = when {
+        criticals.isNotEmpty() -> Color(0xFFEF4444)
         d.omega >= 0.65 -> Color(0xFF10B981)
         d.omega >= 0.45 -> Color(0xFFF59E0B)
         else -> Color(0xFFEF4444)
     }
     val omegaLabel = when {
-        d.omega >= 0.65 -> "Good"
-        d.omega >= 0.45 -> "Moderate"
-        else -> "Critical"
+        criticals.isNotEmpty() -> stringResource(R.string.omega_critical)
+        d.omega >= 0.65 -> stringResource(R.string.omega_good)
+        d.omega >= 0.45 -> stringResource(R.string.omega_moderate)
+        else -> stringResource(R.string.omega_critical)
     }
 
     LazyColumn(
@@ -678,17 +728,39 @@ private fun HEBCSTab() {
             }
         }
 
-        // Interpretation
+        // Interpretation.
+        // The card was hardcoded GREEN with a tick whatever it said, so
+        // "relatively well-managed health" arrived as reassurance beside a
+        // glucose scoring zero. Chrome is a claim too — it follows the content.
         if (d.interpretation != null) {
             item {
+                val bad = criticals.isNotEmpty()
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4))
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (bad) Color(0xFFFEF2F2) else Color(0xFFF0FDF4))
                 ) {
-                    Row(modifier = Modifier.padding(16.dp)) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF15803D), modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(d.interpretation, style = MaterialTheme.typography.bodySmall, color = Color(0xFF15803D))
+                    val fg = if (bad) Color(0xFF7F1D1D) else Color(0xFF15803D)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row {
+                            Icon(
+                                if (bad) Icons.Default.Warning else Icons.Default.CheckCircle,
+                                contentDescription = null, tint = fg,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(d.interpretation, style = MaterialTheme.typography.bodySmall, color = fg)
+                        }
+                        criticals.forEach { b ->
+                            Spacer(Modifier.height(4.dp))
+                            val value = b.value?.let { String.format("%.6g", it).trimEnd('0').trimEnd('.') } ?: "—"
+                            val range = b.optRange?.takeIf { it.size == 2 }
+                                ?.joinToString("–") { String.format("%.6g", it).trimEnd('0').trimEnd('.') } ?: "—"
+                            Text(
+                                stringResource(R.string.omega_reference, b.name, value, range),
+                                style = MaterialTheme.typography.labelSmall, color = fg
+                            )
+                        }
                     }
                 }
             }

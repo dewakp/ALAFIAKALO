@@ -129,13 +129,32 @@ def omega_score(pathway_scores: dict[str, Optional[float]],
 
 # ── ESRD / HEBCS 7-Pathway Definition ──────────────────────────────────────
 #
-# Weights from the J-BHI 2026 paper (Table 3):
-#   Metabolic 0.20 | Hematologic 0.15 | Bone_Mineral 0.15
-#   Cardiovascular 0.15 | Nutritional 0.15 | Dialysis_Adequacy 0.10
-#   Inflammatory 0.10
+# ⚠️ These are NOT the paper's Table 3, and the comment here claimed they were
+# until 2026-10-04. Measured against `docs/HEBCS_medRxiv_draft.md` §2.3:
+#
+#   Table 3   Metabolic 0.20 | Hemolytical 0.22 | Endocrinology 0.15
+#             Digestive 0.12 | Immunological 0.11 | Bone Formation 0.10
+#             Neurological 0.10                        — 48 biomarkers
+#
+#   here      Metabolic 0.20 | Hematologic 0.15 | Bone_Mineral 0.15
+#             Cardiovascular 0.15 | Nutritional 0.15 | Dialysis_Adequacy 0.10
+#             Inflammatory 0.10                        — 23 biomarkers
+#
+# Only `Metabolic 0.20` agrees. The pathway SETS are different, not merely the
+# weights: the paper has no Dialysis_Adequacy or Inflammatory pathway and this
+# file has no Digestive or Neurological one. Citing Table 3 above a different
+# decomposition is the kind of claim §0 exists to stop — a reader checking the
+# score against the published framework would have found neither matched.
+#
+# The implemented set is kept deliberately (operator decision, 2026-10-04): it
+# is the one this product has always scored, ESRD-specific, and re-anchoring to
+# the paper would move Ω for every patient and make the stored history
+# non-comparable. What changes is that it no longer claims to be something it
+# is not.
 #
 # Biomarker thresholds derived from appendixD.tex / pathway_definitions_15.m
-# and KDIGO/NKF-KDOQI 2023 guidelines for ESRD.
+# and KDIGO/NKF-KDOQI 2023 guidelines for ESRD. Where a lab reports a range for
+# this patient, `apply_reference_range` replaces the band with theirs.
 
 ESRD_PATHWAYS: list[Pathway] = [
 
@@ -264,6 +283,13 @@ ESRD_PATHWAYS: list[Pathway] = [
 # Matching is by shape, not by a per-name list: a name is normalised to its
 # letters and digits, and each biomarker is also indexed by its pre-parenthesis
 # base and its parenthetical. Only genuinely different WORDS need an alias.
+
+#: At or below this, a biomarker is at the bottom of its own trapezoid — the
+#: value is at or past the critical bound the band itself declares. It is not a
+#: threshold invented here: 0 is what `trapezoidal_score` returns outside
+#: `crit_low`/`crit_high`, and the small margin admits a value sitting just
+#: inside the ramp (TSAT 6% against a 21-49% band scores 0.048).
+_CRITICAL_SCORE = 0.2
 
 _OVERGENERIC = {"serum", "intact", "dialysisadequacy", "ureareductionratio",
                 "proteincatabolicrate"}
@@ -496,10 +522,43 @@ def compute_hebcs(biomarker_values: dict[str, float],
     # blank is the difference between a score and a claim (canon 3aa).
     unscored = [name for name, r in pathway_results.items() if r["score"] is None]
 
+    # ── A failing marker must survive its own pathway ────────────────────
+    #
+    # The framework's argument for product aggregation is that "failure in any
+    # single pathway cannot be masked by others" — and that holds BETWEEN
+    # pathways. Inside one, `pathway_score` is a weighted ARITHMETIC mean, so a
+    # marker at zero is averaged up by its neighbours and the masking the
+    # design forbids happens one level below where it was prevented.
+    #
+    # Measured on the reference record 2026-10-04:
+    #
+    #   Metabolic    0.549   Glucose 273 mg/dL -> 0.000   (a diabetic patient)
+    #   Hematologic  0.627   TSAT 6%           -> 0.048
+    #
+    # Ω read 0.777 — "relatively well-managed" — on a record whose glucose
+    # scores zero and whose transferrin saturation is near it. Changing the
+    # within-pathway mean would alter every stored Ω and make the series
+    # non-comparable, so the aggregation is left exactly as published and the
+    # markers are NAMED instead. The number keeps its meaning; it stops being
+    # the only thing the reader gets.
+    # `weight` travels too. The mobile clients decode these through the
+    # EXISTING `HEBCSBiomarkerScore`, where `weight` is non-optional — omitting
+    # it fails the iOS decode for the whole response and silently gives Android
+    # 0.0. One shape for every client beats loosening two models.
+    critical_biomarkers = [
+        {"name": b["name"], "pathway": pname, "value": b["value"],
+         "score": b["score"], "weight": b["weight"], "opt_range": b["opt_range"]}
+        for pname, r in pathway_results.items()
+        for b in r["biomarkers"]
+        if b["score"] is not None and b["score"] <= _CRITICAL_SCORE
+    ]
+    critical_biomarkers.sort(key=lambda b: b["score"])
+
     return {
         "omega": round(omega, 4) if omega is not None else None,
         "omega_pct": round(omega * 100, 2) if omega is not None else None,
         "pathways": pathway_results,
         "data_coverage": round(all_present / all_expected, 3) if all_expected else 0,
         "unscored_pathways": unscored,
+        "critical_biomarkers": critical_biomarkers,
     }

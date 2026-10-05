@@ -157,14 +157,111 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
                   await sources.medications_prescribed(db, user_id, active_only=True)]
     logged = [m.name for m in await sources.medications_taken(db, user_id, since=cutoff)]
 
+    # ── The bands every vital is judged against ──────────────────────────
+    # From `clinical_thresholds`, each row carrying the guideline it came from.
+    # An input with no band goes UNSCORED: the reason this component scored a
+    # dialysis patient's 81/62 as 100 was a band written into the source.
+    from app.models.conditions import SymptomLog
+    from app.models.elimination import BowelMovement, VomitingLog
+    from app.services import elimination_text
+    from app.services import reference_ranges as refs
+
+    bands = await refs.bands(db)
+
+    # A treatment-based window: 30 days is three or four sessions, too few to
+    # say anything about either attendance or how treatments are ending.
+    cutoff_90 = today - timedelta(days=90)
+    cutoff_365 = today - timedelta(days=365)
+
+    # ── What the treatment did to the pressure ───────────────────────────
+    post_systolics = [
+        float(v) for v in (await db.execute(
+            select(TherapySession.post_systolic_bp).where(
+                TherapySession.user_id == user_id,
+                TherapySession.scheduled_date >= cutoff_90,
+                TherapySession.post_systolic_bp.isnot(None))
+        )).scalars().all() if v is not None
+    ]
+
+    # ── Attendance, against this patient's OWN established rate ──────────
+    sessions_90 = (await db.execute(
+        select(func.count(TherapySession.id)).where(
+            TherapySession.user_id == user_id,
+            TherapySession.scheduled_date >= cutoff_90)
+    )).scalar() or 0
+    sessions_365 = (await db.execute(
+        select(func.count(TherapySession.id)).where(
+            TherapySession.user_id == user_id,
+            TherapySession.scheduled_date >= cutoff_365)
+    )).scalar() or 0
+    baseline_per_week = (sessions_365 / (365 / 7.0)) if sessions_365 else None
+
+    # Delivered Kt/V — the measured one. `KT/V PRESCRIBED` is deliberately not
+    # matched (canon §3ac: the prescription is not what the patient received).
+    ktv_row = (await db.execute(
+        select(LabResult.value).where(
+            LabResult.user_id == user_id,
+            LabResult.value.isnot(None),
+            func.lower(LabResult.test_name).in_(("spkt/v", "kt/v", "ktv")))
+        .order_by(LabResult.test_date.desc()).limit(1)
+    )).scalar_one_or_none()
+
+    # ── Symptoms ─────────────────────────────────────────────────────────
+    symptom_rows = (await db.execute(
+        select(SymptomLog).where(
+            SymptomLog.user_id == user_id, SymptomLog.log_date >= cutoff_90)
+    )).scalars().all()
+    symptoms = [{"symptom_name": s.symptom_name, "severity": s.severity,
+                 "affects_function": s.affects_function} for s in symptom_rows]
+
+    # ── Elimination: the column OR what the row says ─────────────────────
+    # Two of the five writers of `bowel_movements` insert only
+    # (user_id, log_date, log_time, notes), so everything they migrate arrives
+    # as prose with the boolean NULL — 134 of 648 rows here read "Bloody" with
+    # `blood_present` empty on every one. Reading the flag alone scores that as
+    # no blood at all.
+    bowel_rows = (await db.execute(
+        select(BowelMovement.blood_present, BowelMovement.notes).where(
+            BowelMovement.user_id == user_id, BowelMovement.log_date >= cutoff_90)
+    )).all()
+    bowel_blood = sum(
+        1 for flag, notes in bowel_rows
+        if elimination_text.blood_in_row(flag=flag, notes=notes))
+
+    vomit_90 = (await db.execute(
+        select(func.count(VomitingLog.id)).where(
+            VomitingLog.user_id == user_id, VomitingLog.log_date >= cutoff_90)
+    )).scalar() or 0
+    vomit_365 = (await db.execute(
+        select(func.count(VomitingLog.id)).where(
+            VomitingLog.user_id == user_id, VomitingLog.log_date >= cutoff_365)
+    )).scalar() or 0
+
     components = [
         hs.nutrition_adherence(intake, goals_payload.get("goals") or []),
         hs.medication_adherence(list(prescribed), list(logged)),
         hs.vitals_component(
+            bands=bands,
             bmi=getattr(vitals, "bmi", None) if vitals else None,
             systolic=getattr(vitals, "blood_pressure_systolic", None) if vitals else None,
             diastolic=getattr(vitals, "blood_pressure_diastolic", None) if vitals else None,
+            heart_rate=getattr(vitals, "heart_rate_bpm", None) if vitals else None,
+            post_dialysis_systolics=post_systolics,
             on_dialysis=on_dialysis,
+        ),
+        hs.dialysis_component(
+            sessions_in_window=sessions_90, window_days=90,
+            baseline_per_week=baseline_per_week,
+            latest_ktv=float(ktv_row) if ktv_row is not None else None,
+            ktv_band=bands.get("KtV (Dialysis Adequacy)"),
+        ) if (sessions_365 or on_dialysis) else hs.Component(
+            "dialysis", None, hs.DEFAULT_WEIGHTS["dialysis"],
+            {"reason": "not on dialysis"}),
+        hs.symptom_component(symptoms),
+        hs.elimination_component(
+            bowel_blood=bowel_blood, bowel_total=len(bowel_rows),
+            vomit_in_window=vomit_90, window_days=90,
+            vomit_baseline_per_week=(vomit_365 / (365 / 7.0)) if vomit_365 else None,
         ),
         hs.sleep_component(avg_hours=avg_sleep, avg_quality=avg_quality),
         hs.mood_component(avg_mood=avg_mood, avg_energy=avg_energy, avg_stress=avg_stress),
@@ -193,6 +290,13 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
         parts.append("Not assessed for lack of data: "
                      + ", ".join(result["components_unknown"]) + ".")
 
+    # A finding outranks the summary and is stated before it. "Blood recorded
+    # in 134 of 648 bowel movements" must not sit below "Intake is within your
+    # targets" — §3aa, applied to the order of sentences.
+    findings = result.get("critical_findings") or []
+    if findings:
+        parts = list(findings) + parts
+
     return {
         "overall_score": result["overall_score"],
         "nutrition_score": by_key.get("nutrition"),
@@ -201,8 +305,12 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
         "mood_score": by_key.get("mood"),
         "vitals_score": by_key.get("vitals"),
         "medication_adherence_score": by_key.get("medication_adherence"),
+        "dialysis_score": by_key.get("dialysis"),
+        "symptom_score": by_key.get("symptoms"),
+        "elimination_score": by_key.get("elimination"),
         "confidence": result["confidence"],
         "components_unknown": result["components_unknown"],
+        "critical_findings": findings,
         "detail": result["detail"],
         "explanation": " ".join(parts),
         "recommendations": json.dumps(parts),
@@ -329,28 +437,72 @@ async def get_hebcs_omega_score(
                                 reference_ranges=resolved_ranges)
     omega = result_data["omega"]
 
-    # Build plain-language interpretation
+    # ── What Ω is, said before what it is worth ──────────────────────────
+    #
+    # Ω scores BIOLOGICAL STATE from laboratory values. It carries no vital
+    # sign, no treatment attendance, no symptom and no elimination finding, so
+    # presenting it alone as a wellness verdict overstates what was looked at.
+    #
+    # And the old wording was the specific complaint: at 0.777 this read
+    # "relatively well-managed health given your ESRD diagnosis" for a patient
+    # whose glucose scored 0.000 and whose transferrin saturation scored 0.048.
+    # A reassuring adjective in front of that is worse than no sentence.
+    # `clinical_sources` is imported inside `_compute_wellness_score`, not at
+    # module scope, so this function never had it — captured from the real call
+    # as `NameError: name 'sources' is not defined` rather than reasoned about.
+    # Conditions go through the canonical reader because they live in TWO
+    # tables and reading one alone reports "no active conditions" for a patient
+    # with four (§3aa).
+    from app.services import clinical_sources as sources
+
+    conditions_now = await sources.conditions(db, current_user.id, active_only=True)
+    # Names are stripped for joining only. The stored wording is never
+    # rewritten — one of these rows reads "G6PD Deficitency", and correcting a
+    # patient's own clinical record to tidy a sentence invents a fact about
+    # their chart (§3aj: the declared text is never rewritten).
+    severe = [c.name.strip() for c in conditions_now
+              if getattr(c, "is_severe", False) and c.name]
+    others = [c.name.strip() for c in conditions_now
+              if not getattr(c, "is_severe", False) and c.name]
+    criticals = result_data.get("critical_biomarkers") or []
+
     if omega is None:
         interp = (
             "There are no lab results on file yet, so a wellness score cannot be "
             "calculated. This is not a score of zero — nothing has been measured."
         )
-    elif omega >= 0.70:
-        interp = f"Your wellness score is {omega:.3f} (Ω), which is above 0.70 — indicating relatively well-managed health given your ESRD diagnosis."
-    elif omega >= 0.50:
-        interp = f"Your wellness score is {omega:.3f} (Ω). Several pathways are sub-optimal. Review your Bone Mineral, Hematologic, and Dialysis Adequacy pathways for priority areas."
-    elif omega >= 0.35:
-        interp = f"Your wellness score is {omega:.3f} (Ω), indicating moderate clinical burden across multiple pathways. Close monitoring of all low-scoring pathways is recommended."
     else:
-        interp = f"Your wellness score is {omega:.3f} (Ω), indicating high clinical burden. Immediate clinical review is advised."
+        interp = (f"Ω {omega:.3f} scores your most recent laboratory values "
+                  "across seven pathways. It measures biological state only — "
+                  "it does not include your blood pressure, your treatments, "
+                  "your symptoms or anything you have logged.")
 
-    # Add specific pathway flags
+        # The burden is stated as a fact beside the score, never blended into
+        # it. A number that mixed "managed well" with "has a terminal illness"
+        # could answer neither question — and capping by diagnosis would erase
+        # the difference between a well-controlled patient and a deteriorating
+        # one, which is the distinction worth keeping.
+        if severe:
+            interp += (" You are living with " + ", ".join(severe)
+                       + ", recorded as severe. A good score here describes how "
+                         "well that is being managed, not its absence.")
+        elif others:
+            interp += " Recorded conditions: " + ", ".join(others) + "."
+
+        if criticals:
+            named = ", ".join(
+                f"{b['name']} {b['value']:g}" for b in criticals[:3]
+                if b.get("value") is not None)
+            interp += (f" {len(criticals)} marker(s) sit at or below the bottom "
+                       f"of their own reference band: {named}. A pathway score "
+                       "is an average, so these do not show in it.")
+
     low_pathways = [] if omega is None else [
         name for name, pdata in result_data["pathways"].items()
         if pdata["score"] is not None and pdata["score"] < 0.5
     ]
     if low_pathways:
-        interp += f" Critical pathways: {', '.join(low_pathways)}."
+        interp += f" Lowest pathways: {', '.join(low_pathways)}."
 
     # Say what could NOT be assessed. A pathway with no biomarker drops out of
     # the geometric mean silently, so without this the score reads as a
@@ -388,6 +540,7 @@ async def get_hebcs_omega_score(
         data_coverage=result_data["data_coverage"],
         pathways=pathway_response,
         unscored_pathways=result_data["unscored_pathways"],
+        critical_biomarkers=criticals,
         interpretation=interp,
     )
 
@@ -408,10 +561,25 @@ async def get_wellness_score(
     columns = {c.name for c in WellnessScoreModel.__table__.columns}
     persisted = {k: v for k, v in data.items() if k in columns}
 
-    score_obj = WellnessScoreModel(
-        user_id=current_user.id, score_date=today, **persisted,
-    )
-    db.add(score_obj)
+    # One row per DAY, updated in place. This used to `db.add` on every GET, so
+    # merely opening the page inserted another row for today: measured on the
+    # reference record 2026-10-04, **117 rows across 49 distinct days**, which
+    # is why the 30-day history chart repeats dates (Sep 14, Sep 14 · Sep 10,
+    # Sep 10 · Sep 6, Sep 6). The score is recomputed per request either way —
+    # it answers "right now" — but the stored series is a daily history and a
+    # day must appear in it once.
+    score_obj = (await db.execute(
+        select(WellnessScoreModel).where(
+            WellnessScoreModel.user_id == current_user.id,
+            WellnessScoreModel.score_date == today)
+        .order_by(WellnessScoreModel.id.desc()).limit(1)
+    )).scalar_one_or_none()
+
+    if score_obj is None:
+        score_obj = WellnessScoreModel(user_id=current_user.id, score_date=today)
+        db.add(score_obj)
+    for key, value in persisted.items():
+        setattr(score_obj, key, value)
     await db.flush()
     await db.refresh(score_obj)
 
@@ -419,6 +587,7 @@ async def get_wellness_score(
         **{c: getattr(score_obj, c) for c in columns},
         confidence=data.get("confidence"),
         components_unknown=data.get("components_unknown") or [],
+        critical_findings=data.get("critical_findings") or [],
         detail=data.get("detail"),
     )
 
@@ -638,43 +807,76 @@ async def get_health_improvements(
     mood_improvements = []
     medical_improvements = []
 
-    if data["nutrition_score"] < 70:
+    # `None` means the domain was never measured, and `None < 70` raises
+    # TypeError. Captured from the deployed service on 2026-10-04:
+    #
+    #   GET /api/v1/wellness/improvements -> 500
+    #   TypeError: '<' not supported between instances of 'NoneType' and 'int'
+    #
+    # Every one of the five comparisons below carried it, and the summary line
+    # formatted `score` the same way. The faults are the same shape as the ones
+    # `74c8671` fixed in /score and `44641f5` fixed again: making a score
+    # legitimately None is only half a change — every reader has to learn that
+    # absence is not a low number. This endpoint never did, so the Improve tab
+    # has answered 500 to any patient missing a domain, which on the reference
+    # record is sleep, mood and fitness.
+    def _below(key: str, threshold: float) -> bool:
+        """True only when the domain was MEASURED and fell short."""
+        value = data.get(key)
+        return value is not None and value < threshold
+
+    if _below("nutrition_score", 70):
         nutrition_improvements.extend([
             "Log meals consistently to track nutrient intake.",
             "Focus on whole foods: fruits, vegetables, lean proteins, whole grains.",
             "Reduce processed food and added sugar intake.",
         ])
-    if data["fitness_score"] < 70:
+    if _below("fitness_score", 70):
         fitness_improvements.extend([
             "Start with 150 minutes of moderate exercise per week.",
             "Include both cardio and strength training.",
             "Take breaks from sitting every hour.",
         ])
-    if data["sleep_score"] < 70:
+    if _below("sleep_score", 70):
         sleep_improvements.extend([
             "Maintain a consistent sleep schedule.",
             "Limit caffeine after 2 PM.",
             "Create a dark, quiet sleep environment.",
         ])
-    if data["mood_score"] < 60:
+    if _below("mood_score", 60):
         mood_improvements.extend([
             "Practice daily gratitude journaling.",
             "Engage in activities you enjoy.",
             "Consider mindfulness meditation for stress management.",
         ])
-    if data["vitals_score"] < 50:
+    if _below("vitals_score", 50):
         medical_improvements.extend([
             "Log vitals regularly to track health trends.",
             "Schedule a check-up with your healthcare provider.",
         ])
 
-    summary = f"Your wellness score is {score:.0f}/100. "
-    if score >= 80:
-        summary += "You're doing great! Keep up the healthy habits."
-    elif score >= 60:
-        summary += "You're on the right track. Focus on the areas below for improvement."
+    # A clinical finding outranks a lifestyle tip. These are already written as
+    # finished sentences naming the value and what judged it, so they are shown
+    # verbatim rather than summarised into something vaguer.
+    for finding in (data.get("critical_findings") or []):
+        medical_improvements.append(finding)
+
+    if score is None:
+        summary = ("There is not enough recorded yet to calculate a wellness "
+                   "score. This is not a score of zero — nothing has been "
+                   "measured.")
     else:
-        summary += "There are several areas where you can improve. Start with small changes."
+        summary = f"Your wellness score is {score:.0f}/100. "
+        if data.get("critical_findings"):
+            # Never congratulate past a finding. A patient whose treatments end
+            # hypotensive must not read "You're doing great".
+            summary += "Some findings below need clinical attention."
+        elif score >= 80:
+            summary += "You're doing great! Keep up the healthy habits."
+        elif score >= 60:
+            summary += "You're on the right track. Focus on the areas below for improvement."
+        else:
+            summary += "There are several areas where you can improve. Start with small changes."
 
     return HealthImprovementsResponse(
         summary=summary, wellness_score=score,

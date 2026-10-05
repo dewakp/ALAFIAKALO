@@ -457,12 +457,21 @@ async def get_health_score(
         for c in conditions
     )
 
+    # Bands come from `clinical_thresholds`, never from constants — and this
+    # route is sync throughout, so it takes the sync twin. Without them
+    # `vitals_component` returns UNKNOWN, and this endpoint would then disagree
+    # with /wellness/score about the same patient on the same day.
+    from app.services import reference_ranges as _refs
+    _bands = _refs.bands_sync(db)
+
     components = [
         hs.nutrition_adherence(intake, goals_payload.get("goals") or []),
         hs.vitals_component(
+            bands=_bands,
             bmi=_val(vitals, "bmi"),
             systolic=_val(vitals, "blood_pressure_systolic"),
             diastolic=_val(vitals, "blood_pressure_diastolic"),
+            heart_rate=_val(vitals, "heart_rate_bpm"),
             on_dialysis=on_dialysis,
         ),
         hs.sleep_component(

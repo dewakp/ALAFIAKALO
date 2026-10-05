@@ -153,28 +153,164 @@ def test_nothing_measured_is_no_score_at_all():
 
 # ── Vitals ────────────────────────────────────────────────────────────────
 
+#: The bands `reference_ranges.bands()` reads out of `clinical_thresholds`
+#: (migration an001), with their guideline recorded on each row. Stated here as
+#: the fixture so these tests exercise the real shape; the point of the change
+#: is that the SOURCE is a table, not that the numbers live anywhere in code.
+_BANDS = {
+    "Blood Pressure Systolic": (70.0, 90.0, 120.0, 180.0),
+    "Blood Pressure Diastolic": (40.0, 60.0, 80.0, 120.0),
+    "Heart Rate": (40.0, 60.0, 100.0, 150.0),
+    "Post-Dialysis Systolic BP": (70.0, 90.0, 140.0, 180.0),
+}
+
+
 def test_bmi_is_not_scored_on_dialysis():
     """Weight swings with fluid between sessions; that is not body composition."""
-    c = hs.vitals_component(bmi=31.0, systolic=125, diastolic=75, on_dialysis=True)
+    c = hs.vitals_component(bands=_BANDS, bmi=31.0, systolic=115, diastolic=75,
+                            on_dialysis=True)
     assert c.score == 100.0                       # decided by BP alone
     assert "bmi" not in c.detail
     assert "bmi_excluded" in c.detail
 
 
 def test_bmi_still_counts_off_dialysis():
-    c = hs.vitals_component(bmi=31.0, systolic=125, diastolic=75, on_dialysis=False)
+    c = hs.vitals_component(bands=_BANDS, bmi=31.0, systolic=115, diastolic=75,
+                            on_dialysis=False)
     assert c.score < 100.0
     assert c.detail["bmi"] == 31.0
 
 
 def test_high_blood_pressure_lowers_vitals():
-    good = hs.vitals_component(systolic=120, diastolic=75, on_dialysis=True)
-    bad = hs.vitals_component(systolic=175, diastolic=105, on_dialysis=True)
+    good = hs.vitals_component(bands=_BANDS, systolic=115, diastolic=75, on_dialysis=True)
+    bad = hs.vitals_component(bands=_BANDS, systolic=175, diastolic=105, on_dialysis=True)
     assert bad.score < good.score
 
 
+def test_LOW_blood_pressure_lowers_vitals_too():
+    """The half the band never had.
+
+    The rule was `if systolic < 130 and diastolic < 80: 100.0` — one-sided, so
+    it could only ever penalise HIGH pressure. Measured on the reference record
+    2026-10-04: the latest reading is 81/62 and it scored **100.0**, and so
+    would 54/30. This is the regression guard for that.
+    """
+    good = hs.vitals_component(bands=_BANDS, systolic=115, diastolic=75, on_dialysis=True)
+    low = hs.vitals_component(bands=_BANDS, systolic=81, diastolic=62, on_dialysis=True)
+    assert low.score < good.score
+    assert low.score < 80, "hypotension must not read as near-perfect"
+    assert any("below" in c for c in low.critical), low.critical
+
+
+def test_a_fast_pulse_is_read_at_all():
+    """Heart rate has always been a column and was never scored."""
+    calm = hs.vitals_component(bands=_BANDS, systolic=115, diastolic=75,
+                               heart_rate=70, on_dialysis=True)
+    fast = hs.vitals_component(bands=_BANDS, systolic=115, diastolic=75,
+                               heart_rate=118, on_dialysis=True)
+    assert fast.score < calm.score
+    assert fast.detail["heart_rate"] == 118
+
+
+def test_the_treatment_nadir_is_the_finding_not_the_mean():
+    """A session ending at 54 must not be averaged away by four good ones.
+
+    `vitals_component` read one row of `vitals_logs` and never looked at
+    `therapy_sessions`, where this patient has a pre/post pair per treatment —
+    25 of 37 ending below 90 mmHg across 90 days.
+    """
+    c = hs.vitals_component(bands=_BANDS, systolic=115, diastolic=75,
+                            post_dialysis_systolics=[54, 130, 135, 138, 140],
+                            on_dialysis=True)
+    assert c.detail["post_dialysis_nadir"] == 54
+    assert c.detail["post_dialysis_below_floor"] == 1
+    assert any("lowest 54" in x for x in c.critical), c.critical
+
+
+def test_a_band_that_does_not_exist_leaves_the_input_unscored():
+    """No band is UNKNOWN, never a default invented at the call site."""
+    assert hs.vitals_component(bands={}, systolic=81, diastolic=62).score is None
+
+
 def test_no_vitals_is_unknown():
-    assert hs.vitals_component().score is None
+    assert hs.vitals_component(bands=_BANDS).score is None
+
+
+# ── Domains that had nowhere to be stored ─────────────────────────────────
+
+
+def test_falling_behind_your_own_treatment_rate_is_scored():
+    """Attendance is measured against the patient's OWN cadence.
+
+    There is no prescribed-schedule column anywhere in the schema, so a
+    hardcoded "three a week" would be wrong for everyone on another regimen.
+    And `status` cannot be the instrument: the enum has MISSED and nothing has
+    ever written it — all 2,032 sessions on the reference record read
+    COMPLETED.
+    """
+    keeping_up = hs.dialysis_component(sessions_in_window=39, window_days=90,
+                                       baseline_per_week=3.0)
+    falling_away = hs.dialysis_component(sessions_in_window=18, window_days=90,
+                                         baseline_per_week=3.0)
+    assert falling_away.score < keeping_up.score
+    assert any("fallen" in c for c in falling_away.critical), falling_away.critical
+
+
+def test_inadequate_clearance_is_named():
+    c = hs.dialysis_component(sessions_in_window=39, window_days=90,
+                              baseline_per_week=3.0, latest_ktv=1.18,
+                              ktv_band=(0.8, 1.4, 1.8, None))
+    assert any("1.18" in x for x in c.critical), c.critical
+
+
+def test_the_worst_symptom_decides_not_the_average():
+    """A 9/10 pain averaged with a 2/10 ache reports 5.5 and reads as moderate."""
+    c = hs.symptom_component([
+        {"symptom_name": "twisted abdominal pain", "severity": 9},
+        {"symptom_name": "mild ache", "severity": 2},
+    ])
+    assert c.score == 10.0
+    assert c.detail["worst_severity"] == 9
+
+
+def test_blood_in_stool_is_a_finding_whatever_the_score():
+    c = hs.elimination_component(bowel_blood=134, bowel_total=648,
+                                 vomit_in_window=0, window_days=90)
+    assert c.score is not None and c.score < 100
+    assert any("134 of 648" in x for x in c.critical), c.critical
+
+
+def test_nothing_logged_in_elimination_is_unknown_not_perfect():
+    c = hs.elimination_component(bowel_blood=0, bowel_total=0,
+                                 vomit_in_window=0, window_days=90)
+    assert c.score is None
+
+
+def test_one_failing_domain_is_not_averaged_away():
+    """The complaint that started this round.
+
+    Arithmetically, nutrition 37.4 + vitals 100 + medication 57.1 produced
+    **59.6** — a passing number resting on a vitals score of 100 awarded to a
+    patient whose latest reading was 81/62. A geometric mean lets the failing
+    domain pull the result toward itself, which is the property HEBCS argues
+    for between pathways and `nutrition_adherence` already uses between
+    nutrients.
+    """
+    components = [
+        hs.Component("nutrition", 37.4, 0.20),
+        hs.Component("vitals", 100.0, 0.18),
+        hs.Component("medication_adherence", 57.1, 0.15),
+    ]
+    result = hs.overall_score(components)
+    arithmetic = sum(c.score * c.weight for c in components) / sum(c.weight for c in components)
+    assert result["overall_score"] < arithmetic - 2, (
+        f"geometric {result['overall_score']} vs arithmetic {arithmetic}")
+
+
+def test_critical_findings_survive_the_summary():
+    v = hs.vitals_component(bands=_BANDS, systolic=81, diastolic=62, on_dialysis=True)
+    result = hs.overall_score([v, hs.Component("nutrition", 80.0, 0.20)])
+    assert result["critical_findings"], "a named finding must not vanish into a number"
 
 
 # ── Medication adherence measures the regimen, not the existence of a row ──

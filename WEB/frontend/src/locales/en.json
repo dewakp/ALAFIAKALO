@@ -2940,7 +2940,7 @@
     "score_history_last_30_days": "Score History (Last 30 Days)",
     "no_wellness_score_yet": "No wellness score yet",
     "hebcs_wellness_score": "HEBCS Wellness Score",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring (J-BHI 2026)",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "Latest labs: {{value}}",
     "score_0_100": "Score (0–100)",
     "data_coverage": "Data coverage",
@@ -2982,7 +2982,12 @@
     "failed_to_load_trends": "Failed to load trends.",
     "failed_to_load_recommendations": "Failed to load recommendations.",
     "medical": "Medical",
-    "failed_to_load_improvements": "Failed to load improvements."
+    "failed_to_load_improvements": "Failed to load improvements.",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "Category",

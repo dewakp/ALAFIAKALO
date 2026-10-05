@@ -2906,7 +2906,7 @@
     "score_history_last_30_days": "Histórico de Pontuação (Últimos 30 Dias)",
     "no_wellness_score_yet": "Nenhuma pontuação de bem-estar ainda",
     "hebcs_wellness_score": "Pontuação de Bem-estar HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Pontuação trapezoidal de 7 vias (J-BHI 2026)",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Pontuação trapezoidal de 7 vias",
     "latest_labs": "Últimos exames: {{value}}",
     "score_0_100": "Pontuação (0–100)",
     "data_coverage": "Cobertura de dados",
@@ -2948,7 +2948,12 @@
     "failed_to_load_trends": "Falha ao carregar tendências.",
     "failed_to_load_recommendations": "Falha ao carregar recomendações.",
     "medical": "Médico",
-    "failed_to_load_improvements": "Falha ao carregar melhorias."
+    "failed_to_load_improvements": "Falha ao carregar melhorias.",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "Categoria",

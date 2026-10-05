@@ -2906,7 +2906,7 @@
     "score_history_last_30_days": "Ìtàn Ìgbésẹ̀ (Ọjọ́ 30 Sẹ́yìn)",
     "no_wellness_score_yet": "Àìsí wellness score lọ́wọ́",
     "hebcs_wellness_score": "Ìsọ̀rọ̀ Àlàáfíà HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Ìsọ̀rọ̀ trapezoidal ọ̀nà méje (J-BHI 2026)",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Ìsọ̀rọ̀ trapezoidal ọ̀nà méje",
     "latest_labs": "Àwọn ìdánwọ̀ tuntun: {{value}}",
     "score_0_100": "Ìsọ̀rọ̀ (0–100)",
     "data_coverage": "Ìbámu dátà",
@@ -2948,7 +2948,12 @@
     "failed_to_load_trends": "Àkọ̀ṣe lílò àwọn ìṣiro.",
     "failed_to_load_recommendations": "Àkọ̀ṣe lílò àwọn ìmọ̀ràn.",
     "medical": "Ìjìnlẹ̀",
-    "failed_to_load_improvements": "Àkọ̀ṣe lílò àwọn ilọ́siwájú."
+    "failed_to_load_improvements": "Àkọ̀ṣe lílò àwọn ilọ́siwájú.",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "Ẹ̀kọ́",

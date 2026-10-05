@@ -3341,6 +3341,151 @@ have made every B12 and vitamin product an "allergen" for this patient. Each
 refusal is stored WITH its reason, because the refusals are the half worth
 reviewing — every one is a confident wrong answer that was stopped.
 
+## 3ba. The wellness score read one side of the band, and four domains had nowhere to go
+
+Reported 2026-10-04: *"The vital scores for these patient are far from clinical
+optimal yet you show 100!"* — and `c11de58` had claimed this surface fixed two
+months earlier. It fixed nutrition and left the rest.
+
+**The band was one-sided and written into the source.**
+
+    if systolic < 130 and diastolic < 80:
+        bp_score = 100.0
+
+It can only penalise HIGH pressure. Proven against the old code by stashing the
+rebuild and calling it:
+
+    OLD vitals_component(81/62, on dialysis) -> 100.0
+    OLD has dialysis_component?    False
+    OLD has elimination_component? False
+
+81/62 is this patient's latest reading, and 54/30 would also have scored 100.
+`test_no_hardcoded_thresholds.py` already states the canon — *no hardcoded data,
+no exception* — and only ever reached `hebcs_engine`, so these constants sat
+beside it untouched. Bands now come from `clinical_thresholds` (migration
+`an001`) carrying the guideline each came from; an input with no band is
+UNSCORED rather than judged against a number invented at the call site.
+
+**It also read one row of `vitals_logs` and never opened `therapy_sessions`.**
+Three readings existed in the 30-day window while 32 treatments carried a
+post-dialysis pressure, **25 of them below 90 mmHg systolic, the lowest 54**.
+The nadir is the finding, not the mean (§3am). Heart rate — 96-109 on every
+reading — had a column all along and was never scored.
+
+**One good domain paid for the others.** `overall_score` used a weighted
+ARITHMETIC mean, so vitals 100 held up a score built on nutrition 37:
+`59.6` overall. It is geometric now — the aggregation `nutrition_adherence`
+already used one level down for the reason stated there, and the property the
+HEBCS framework argues for between pathways. Measured on the reference record:
+
+    before   overall 59.6   vitals 100.0   (dialysis/symptoms/elimination absent)
+    after    overall 46.1   vitals  54.2   dialysis 74.8  symptoms 10.0
+                                            elimination 62.6
+
+**Findings outrank the summary.** A score is skimmed; "25 of 32 treatments ended
+below 90 mmHg systolic (lowest 54)" is not. `critical_findings` travels on the
+response and is drawn above the bars on web, iOS and Android.
+
+### Ω scores biological state. It is not the wellness score
+
+Operator, 2026-10-04: *"HEBCS is supposed to measure health (biological/clinical)
+state (using prior as modeling data and present data for current score)."* So Ω
+staying lab-driven is correct BY DESIGN — the multi-domain score is
+`/wellness/score`, not Ω. Its faults were different ones:
+
+- **A pathway hides a zero inside itself.** The paper argues product aggregation
+  so "failure in any single pathway cannot be masked" — true BETWEEN pathways,
+  while `pathway_score` is a weighted ARITHMETIC mean. Metabolic reads 0.549
+  with **Glucose 273 scoring 0.000**; Hematologic 0.627 with **TSAT 6% scoring
+  0.048**. The masking the design forbids happens one level below where it was
+  prevented. The aggregation is left exactly as published — changing it moves
+  every stored Ω — and `critical_biomarkers` NAMES them instead.
+- ⚠️ **`ESRD_PATHWAYS` is not the paper's Table 3, and the comment said it was.**
+  Table 3: Metabolic 0.20, Hemolytical 0.22, Endocrinology 0.15, Digestive 0.12,
+  Immunological 0.11, Bone Formation 0.10, Neurological 0.10 over **48**
+  biomarkers. The code: Metabolic, Hematologic, Bone_Mineral, Cardiovascular,
+  Nutritional, Dialysis_Adequacy, Inflammatory over **23**. Only
+  `Metabolic 0.20` agrees — the pathway SETS differ, not merely the weights. The
+  UI printed the same citation. Both corrected; the implemented set is kept
+  (operator decision) because re-anchoring would make stored history
+  non-comparable.
+- **Burden is stated beside the score, never blended into it.** Capping by
+  diagnosis would erase the difference between a well-controlled patient and a
+  deteriorating one — which is the distinction worth keeping. Condition
+  specificity already lives where it belongs: `compute_goals` gives THIS patient
+  potassium 2200 because of dialysis and sugar 18.8 because of diabetes. Putting
+  diagnoses into domain WEIGHTS would be a disease cap by another name, and
+  `test_condition_flags_coverage.py` already records that a six-keyword list
+  "cannot be the mechanism" for a 35,339-code catalog.
+
+### A finding written in prose is still a finding
+
+`bowel_movements` has FIVE writers and two of them — `import_firestore.py:346`
+and `migrate_all_firebase.py:508` — insert only
+`(user_id, log_date, log_time, notes, created_at)`, naming no structured column.
+Everything they migrate arrives as prose:
+
+    648 rows   blood_present true on 0
+               notes matching blood on 134   ("Bloody" 109, "Very bloody" 5,
+               "bloody" 5, "traces of blood" 2, "Blooy" 1)
+
+**One bowel movement in five, and every reader that consults the boolean saw
+none of them.** `services/elimination_text.py` is the one reader — shared by the
+photo-caption path in `api/image_ai`, the wellness score, and the backfill. A
+set column always wins (a writer that filled it made a statement); only NULL
+falls through to the words.
+
+> **Do not fix a misspelling with a list of misspellings.** `"blood" in text`
+> catches 134 of 135 and misses `"Blooy"`. Adding that literal fixes one record
+> and nothing else. A token sharing the first FOUR letters is compared by edit
+> distance (budget 1), and the matched token is recorded so the rule can be
+> audited rather than trusted. Negations are explicit: `"no blood"` must never
+> read as blood.
+>
+> ⚠️ **Three letters was not enough, and the arithmetic that said otherwise was
+> done in someone's head.** `blond` is **one** edit from `blood`
+> (`b-l-o-n-d` → `b-l-o-o-d`) — the same distance as the real typo `blooy` — so
+> a three-letter prefix plus a distance budget admitted an ordinary English word
+> as a clinical finding, and this entry first claimed it was refused "at 2".
+> Distance cannot separate those two; the PREFIX does. `bloo` admits
+> `blooy`/`blood`/`bloody` and refuses `blond`/`blot`/`blow`. Caught by the test
+> that asserted the wrong reason — §3av's "run the scan, never the arithmetic",
+> committed while writing the paragraph that cites it.
+
+### The history was in the workbooks, and the newest copy is not the one anyone hardcoded
+
+- **`Records.xlsx` exists five times**, strict supersets all starting 2022-06-01.
+  `import_food_bowel.py` names the **iCloud** copy (1,155 rows, 206 blood-positive);
+  `Developer/data` holds **1,777 rows and 417 blood-positive** through 2024-11-17.
+  Taking the hardcoded path loses more than half the finding. Read the newest and
+  print which file was read.
+- **Measure overlap before deciding insert vs enrich.** Stool: DB starts
+  2025-06-01, workbook ends 2024-11-17 → zero overlap, 1,777 inserts. Vomiting:
+  607 workbook rows across three `Vomit Log` tabs, **607 already present** →
+  enrichment only. Treating the second as an import would have created 607
+  contradictory duplicates (§3ab).
+- ⚠️ **A two-row header with REPEATING labels defeats label matching.** Row 2 of
+  the 2023 and 2025 tabs reads `Date, Time, Pre, Post, Delta, —, Time, Date,
+  Time`. A dict keyed by label let the LAST win, so the reader resolved the
+  episode date to the **last meal's** date and its time to the **last dialysis**
+  time — 234 of 609 statements aimed at the wrong instant. Caught by reading the
+  emitted SQL, not by any count. Fixed by forward-filling the group row
+  (`last meal date`) and taking first-wins on bare labels, plus a refusal if the
+  episode columns do not resolve to (0, 1).
+- ⚠️ **A missing time is MISSING.** Defaulting it to `00:00` writes an instant
+  the sheet never recorded — §3av measured that exact harm on 3,662
+  `intradialytic_readings`. It also collapses the dedupe key: three dates
+  carried two untimed rows each, and on **2024-03-12 those were one
+  blood-positive and one blood-negative event**. The positive survived only
+  because it came first in the sheet. Untimed rows now store NULL and are
+  guarded by a per-date ordinal, which is idempotent AND keeps both.
+- **Count the rejects.** 3,374 of 3,504 rows in the 2025 `Vomit Log` are blank;
+  four are `Maximum/Minimum/Mean/STD Deviation`. A parser that drops what it
+  cannot read without saying so hides its own failure.
+
+`scripts/import_elimination_history.py` writes no rows: it reports, emits SQL,
+and applying is a separate visible step.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

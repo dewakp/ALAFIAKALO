@@ -2906,7 +2906,7 @@
     "score_history_last_30_days": "Historia ya Alama (Siku 30 za Mwisho)",
     "no_wellness_score_yet": "Hakuna alama ya afya bado",
     "hebcs_wellness_score": "Alama ya Afya HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Alama ya njia saba ya trapezoidal (J-BHI 2026)",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Alama ya njia saba ya trapezoidal",
     "latest_labs": "Majaribio ya hivi karibuni: {{value}}",
     "score_0_100": "Alama (0–100)",
     "data_coverage": "Kufunika kwa data",
@@ -2948,7 +2948,12 @@
     "failed_to_load_trends": "Imeshindwa kupakia mwenendo.",
     "failed_to_load_recommendations": "Imeshindwa kupakia mapendekezo.",
     "medical": "Kimatibabu",
-    "failed_to_load_improvements": "Imeshindwa kupakia maboresho."
+    "failed_to_load_improvements": "Imeshindwa kupakia maboresho.",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "Kategoria",

@@ -2906,7 +2906,7 @@
     "score_history_last_30_days": "Tarihin Score (Jiya 30)",
     "no_wellness_score_yet": "Babu wellness score har yanzu",
     "hebcs_wellness_score": "Jiyya HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Ƙididdiga hanya 7 (J-BHI 2026)",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Ƙididdiga hanya 7",
     "latest_labs": "Ƙarshen gwaje: {{value}}",
     "score_0_100": "Ƙididdiga (0–100)",
     "data_coverage": "Ɗimbin bayani",
@@ -2948,7 +2948,12 @@
     "failed_to_load_trends": "An kasa jefa trends.",
     "failed_to_load_recommendations": "An kasa jefa shawarwari.",
     "medical": "Likita",
-    "failed_to_load_improvements": "An kasa jefa haɓaka."
+    "failed_to_load_improvements": "An kasa jefa haɓaka.",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "Nau'i",

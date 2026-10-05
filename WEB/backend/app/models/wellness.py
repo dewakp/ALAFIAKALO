@@ -28,6 +28,14 @@ class WellnessScore(Base):
     mood_score: Mapped[float | None] = mapped_column(Float)
     vitals_score: Mapped[float | None] = mapped_column(Float)
     medication_adherence_score: Mapped[float | None] = mapped_column(Float)
+    # Added an001. A patient with 2,032 dialysis sessions had no dialysis
+    # contribution to their wellness score, a record holding a symptom rated
+    # 9/10 had nowhere to put it, and one in five of their bowel movements is
+    # recorded as bloody with no column able to carry that either. A domain
+    # with nowhere to be stored is a domain that reads as perfect.
+    dialysis_score: Mapped[float | None] = mapped_column(Float)
+    symptom_score: Mapped[float | None] = mapped_column(Float)
+    elimination_score: Mapped[float | None] = mapped_column(Float)
 
     explanation: Mapped[str | None] = mapped_column(Text)
     recommendations: Mapped[str | None] = mapped_column(Text)  # JSON

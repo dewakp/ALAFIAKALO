@@ -933,6 +933,25 @@
     <string name="based_on_of_the_usual_picture">Based on %1$s%% of the usual picture.</string>
     <string name="sub_scores">Sub-Scores</string>
     <string name="not_measured">not measured</string>
+    <!-- Sub-score labels. These were Kotlin literals inside a LazyListScope
+         block, where stringResource cannot be called, so they rendered English
+         in every language. Resolved in the composable items block instead. -->
+    <string name="score_nutrition">Nutrition</string>
+    <string name="score_vitals">Vitals</string>
+    <string name="score_dialysis">Dialysis</string>
+    <string name="score_medication_adherence">Medication Adherence</string>
+    <string name="score_symptoms">Symptoms</string>
+    <string name="score_elimination">Elimination</string>
+    <string name="score_sleep">Sleep</string>
+    <string name="score_mood">Mood</string>
+    <string name="score_fitness">Fitness</string>
+    <string name="needs_attention">Needs attention</string>
+    <!-- Ω gauge. "Good" is suppressed whenever a biomarker sits at the floor of
+         its own band, however high the average reads. -->
+    <string name="omega_good">Good</string>
+    <string name="omega_moderate">Moderate</string>
+    <string name="omega_critical">Critical</string>
+    <string name="omega_reference">%1$s %2$s (reference %3$s)</string>
     <string name="no_trend_data_available">No trend data available</string>
     <string name="correlations">Correlations</string>
     <string name="no_recommendations_available">No recommendations available</string>

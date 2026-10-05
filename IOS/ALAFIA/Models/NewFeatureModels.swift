@@ -62,10 +62,20 @@ struct WellnessScore: Codable, Identifiable {
     let moodScore: Double?
     let vitalsScore: Double?
     let medicationAdherenceScore: Double?
+    /// Added 2026-10-04. A patient on dialysis had no dialysis contribution to
+    /// their score at all, a symptom rated 9/10 had nowhere to be stored, and
+    /// blood recorded in one bowel movement in five reached no score. A domain
+    /// with nowhere to go is a domain that reads as perfect.
+    let dialysisScore: Double?
+    let symptomScore: Double?
+    let eliminationScore: Double?
     /// How much of the intended picture had data behind it (0-1).
     let confidence: Double?
     /// Domains excluded from the score for lack of data.
     let componentsUnknown: [String]?
+    /// Findings stated as finished sentences naming the value and what judged
+    /// it. A score is a summary and a summary is what gets skimmed.
+    let criticalFindings: [String]?
     let explanation: String?
     let recommendations: String?
     let createdAt: String?
@@ -81,8 +91,12 @@ struct WellnessScore: Codable, Identifiable {
         case moodScore = "mood_score"
         case vitalsScore = "vitals_score"
         case medicationAdherenceScore = "medication_adherence_score"
+        case dialysisScore = "dialysis_score"
+        case symptomScore = "symptom_score"
+        case eliminationScore = "elimination_score"
         case confidence
         case componentsUnknown = "components_unknown"
+        case criticalFindings = "critical_findings"
         case explanation, recommendations
         case createdAt = "created_at"
     }
@@ -1670,6 +1684,12 @@ struct HEBCSScoreResponse: Codable {
     let omegaPct: Double?
     let dataCoverage: Double
     let pathways: [String: HEBCSPathwayScore]
+    /// Biomarkers at or below the bottom of their own band. A pathway score is
+    /// a weighted ARITHMETIC mean, so a marker at zero is averaged up by its
+    /// neighbours: on the reference record Glucose 273 scores 0.000 and
+    /// Metabolic still reads 0.549. Decoded through the same
+    /// `HEBCSBiomarkerScore` the pathways use — one shape, not a near-duplicate.
+    let criticalBiomarkers: [HEBCSBiomarkerScore]?
     let interpretation: String?
 
     enum CodingKeys: String, CodingKey {
@@ -1678,6 +1698,7 @@ struct HEBCSScoreResponse: Codable {
         case omega
         case omegaPct = "omega_pct"
         case dataCoverage = "data_coverage"
+        case criticalBiomarkers = "critical_biomarkers"
         case pathways, interpretation
     }
 }

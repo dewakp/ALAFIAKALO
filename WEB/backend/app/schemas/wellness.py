@@ -57,6 +57,13 @@ class HEBCSScoreResponse(BaseModel):
     #: from a number presented as whole-patient. Naming them is the difference
     #: between a score and a claim.
     unscored_pathways: list[str] = []
+    #: Biomarkers sitting at or below the bottom of their own band. A pathway
+    #: score is a weighted ARITHMETIC mean, so a marker at zero is averaged up
+    #: by its neighbours: on the reference record Glucose 273 scores 0.000 and
+    #: Metabolic still reads 0.549. The framework's own argument — that failure
+    #: in one pathway cannot be masked — holds BETWEEN pathways and not inside
+    #: them, so these are named rather than silently absorbed.
+    critical_biomarkers: list[dict] = []
     interpretation: str
 
 
@@ -129,8 +136,19 @@ class WellnessScoreResponse(BaseModel):
     mood_score: float | None = None
     vitals_score: float | None = None
     medication_adherence_score: float | None = None
+    #: Added 2026-10-04. A patient on dialysis had no dialysis contribution at
+    #: all, a symptom rated 9/10 had nowhere to go, and blood recorded in one
+    #: bowel movement in five reached no score. A domain with nowhere to be
+    #: stored is a domain that reads as perfect.
+    dialysis_score: float | None = None
+    symptom_score: float | None = None
+    elimination_score: float | None = None
     #: Fraction of the intended picture that had data behind it.
     confidence: float | None = None
+    #: Findings stated as finished sentences naming the value and what judged
+    #: it — "4 of 5 treatments ended below 90 mmHg systolic (lowest 54)". A
+    #: score can be read past; these are what must not be.
+    critical_findings: list[str] = []
     #: Domains with no data. They are excluded from the score rather than
     #: scored 0, so naming them is what stops the number reading as a verdict
     #: on domains nobody measured.

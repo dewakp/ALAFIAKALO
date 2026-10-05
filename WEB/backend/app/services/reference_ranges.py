@@ -200,6 +200,83 @@ async def learn_from_distribution(db: AsyncSession,
     return learned
 
 
+async def bands(db: AsyncSession) -> dict[str, tuple[float | None, float, float, float | None]]:
+    """Full FOUR-bound trapezoids for the analytes that carry them.
+
+    `resolve()` deliberately collapses everything to `(low, high)`, because a
+    reference range as a lab prints it IS two numbers. A vital sign is not: a
+    systolic of 85 and one of 55 are both below range and are not the same
+    finding, so the band needs its critical bounds to ramp between them rather
+    than falling off a cliff at the edge of normal.
+
+    Only `clinical_thresholds` can answer this — a lab report carries a range,
+    never a critical bound — so this reads that table alone and returns nothing
+    for an analyte with no row. A caller that gets nothing must leave the input
+    UNSCORED rather than substituting a default: the whole reason
+    `vitals_component` scored a dialysis patient's 81/62 as 100 was a band
+    written into the source instead of looked up.
+    """
+    from app.models.clinical_threshold import ClinicalThreshold
+
+    try:
+        rows = (await db.execute(
+            select(ClinicalThreshold.analyte,
+                   ClinicalThreshold.crit_low,
+                   ClinicalThreshold.opt_low,
+                   ClinicalThreshold.opt_high,
+                   ClinicalThreshold.crit_high)
+            .where(ClinicalThreshold.is_active.is_(True))
+        )).all()
+    except Exception:  # noqa: BLE001 - a missing band must not break a score
+        logger.warning("Could not read clinical thresholds", exc_info=True)
+        return {}
+
+    out: dict[str, tuple[float | None, float, float, float | None]] = {}
+    for analyte, crit_low, opt_low, opt_high, crit_high in rows:
+        if opt_low is None or opt_high is None or opt_high <= opt_low:
+            continue
+        out[analyte] = (
+            float(crit_low) if crit_low is not None else None,
+            float(opt_low),
+            float(opt_high),
+            float(crit_high) if crit_high is not None else None,
+        )
+    return out
+
+
+def bands_sync(db) -> dict[str, tuple[float | None, float, float, float | None]]:
+    """`bands()` for a caller holding a classic Session.
+
+    `/personalization/health-score` is sync throughout (`get_sync_db`), and it
+    is the SECOND caller of `vitals_component`. Giving it no bands would leave
+    its vitals permanently UNKNOWN while `/wellness/score` scored them — two
+    implementations of one score disagreeing, which OPEN_ITEMS already warns
+    about for exactly this pair. A sync twin is the smaller evil.
+    """
+    from app.models.clinical_threshold import ClinicalThreshold
+
+    try:
+        rows = db.query(
+            ClinicalThreshold.analyte, ClinicalThreshold.crit_low,
+            ClinicalThreshold.opt_low, ClinicalThreshold.opt_high,
+            ClinicalThreshold.crit_high,
+        ).filter(ClinicalThreshold.is_active.is_(True)).all()
+    except Exception:  # noqa: BLE001 - a missing band must not break a score
+        logger.warning("Could not read clinical thresholds (sync)", exc_info=True)
+        return {}
+
+    out: dict[str, tuple[float | None, float, float, float | None]] = {}
+    for analyte, crit_low, opt_low, opt_high, crit_high in rows:
+        if opt_low is None or opt_high is None or opt_high <= opt_low:
+            continue
+        out[analyte] = (
+            float(crit_low) if crit_low is not None else None,
+            float(opt_low), float(opt_high),
+            float(crit_high) if crit_high is not None else None,
+        )
+    return out
+
+
 async def resolve(db: AsyncSession, user_id: int) -> dict[str, Range]:
     """Every range available for this patient, most specific first.
 

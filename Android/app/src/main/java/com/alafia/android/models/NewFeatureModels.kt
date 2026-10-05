@@ -44,10 +44,24 @@ data class WellnessScore(
     @SerializedName("mood_score") val moodScore: Double? = null,
     @SerializedName("vitals_score") val vitalsScore: Double? = null,
     @SerializedName("medication_adherence_score") val medicationAdherenceScore: Double? = null,
+    /**
+     * Added 2026-10-04. A patient on dialysis had no dialysis contribution to
+     * their score, a symptom rated 9/10 had nowhere to be stored, and blood
+     * recorded in one bowel movement in five reached no score. A domain with
+     * nowhere to go is a domain that reads as perfect.
+     */
+    @SerializedName("dialysis_score") val dialysisScore: Double? = null,
+    @SerializedName("symptom_score") val symptomScore: Double? = null,
+    @SerializedName("elimination_score") val eliminationScore: Double? = null,
     /** How much of the intended picture had data behind it (0-1). */
     val confidence: Double? = null,
     /** Domains excluded from the score for lack of data. */
     @SerializedName("components_unknown") val componentsUnknown: List<String>? = null,
+    /**
+     * Findings stated as finished sentences naming the value and what judged
+     * it. A score is a summary, and a summary is what gets skimmed.
+     */
+    @SerializedName("critical_findings") val criticalFindings: List<String>? = null,
     val explanation: String? = null,
     val recommendations: String? = null
 )
@@ -875,6 +889,11 @@ data class HEBCSScoreResponse(
     @SerializedName("omega_pct") val omegaPct: Double? = null,
     @SerializedName("data_coverage") val dataCoverage: Double,
     val pathways: Map<String, HEBCSPathwayScore> = emptyMap(),
+    /** Biomarkers at or below the bottom of their own band. A pathway score is
+     *  a weighted ARITHMETIC mean, so a marker at zero is averaged up by its
+     *  neighbours — Glucose 273 scores 0.000 while Metabolic reads 0.549.
+     *  Decoded through the same [HEBCSBiomarkerScore] the pathways use. */
+    @SerializedName("critical_biomarkers") val criticalBiomarkers: List<HEBCSBiomarkerScore> = emptyList(),
     val interpretation: String? = null
 )
 

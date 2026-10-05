@@ -2906,7 +2906,7 @@
     "score_history_last_30_days": "Score History (Ụbọchị 30 Gara Aga)",
     "no_wellness_score_yet": "Enwebeghị wellness score ka ugbu a",
     "hebcs_wellness_score": "HEBCS Wellness Score",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring (J-BHI 2026)",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "Latest labs: {{value}}",
     "score_0_100": "Score (0–100)",
     "data_coverage": "Data coverage",
@@ -2948,7 +2948,12 @@
     "failed_to_load_trends": "Ọ dị adịghị mma ịlọ na trends.",
     "failed_to_load_recommendations": "Ọ dị adịghị mma ịlọ na ndụmọdụ.",
     "medical": "Ahụike",
-    "failed_to_load_improvements": "Ọ dị adịghị mma ịlọ na mgbabanya."
+    "failed_to_load_improvements": "Ọ dị adịghị mma ịlọ na mgbabanya.",
+    "dialysis": "Dialysis",
+    "symptoms": "Symptoms",
+    "elimination": "Elimination",
+    "needs_attention": "Needs attention",
+    "reference": "{{name}}: {{value}} (reference {{value2}})"
   },
   "CategoryDetail": {
     "category": "Ụdị",

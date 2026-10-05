@@ -934,3 +934,70 @@ The guard stops new ones; it does not repair that row.
   question through Anthropic cites the record correctly and invents no limit.
   Item 1 stays open only for the deeper grounding work (last treatment, current
   nutrients, elimination), which no provider swap addresses.
+
+## 7. Wellness score: one-sided bands, missing domains, prose findings — 2026-10-04
+
+Reported: *"The vital scores for these patient are far from clinical optimal yet
+you show 100!"* and *"HEBCS of 76% for this patients is the biggest joke."*
+Full detail in CLAUDE.md §3ba. What was measured, and what remains.
+
+### Fixed and verified on the dev copy
+
+| | before | after |
+|---|---|---|
+| overall | 59.6 | **46.1** |
+| vitals | **100.0** | 54.2 |
+| dialysis | — | 74.8 |
+| symptoms | — | 10.0 |
+| elimination | — | 62.6 |
+
+- `vitals_component`'s band was `systolic < 130 and diastolic < 80 -> 100`, one
+  sided. Proven against the stashed old code: `vitals_component(81/62) -> 100.0`.
+- Peri-dialysis pressure was never read: **25 of 32 treatments below 90 mmHg
+  systolic, lowest 54**. Heart rate (96-109 every reading) was never scored.
+- `overall_score` is a weighted GEOMETRIC mean now, so one good domain cannot
+  pay for the rest.
+- `/wellness/improvements` 500'd on `TypeError: '<' not supported between
+  instances of 'NoneType' and 'int'`, captured from Cloud Run.
+- `/wellness/score` inserted a row on EVERY GET: 117 rows across 49 days, which
+  is why the history chart repeated dates. One row per day, updated in place.
+- Ω: `critical_biomarkers` names what a pathway average hides (Glucose 273
+  scoring 0.000, TSAT 6% scoring 0.048). The false "J-BHI 2026 Table 3" citation
+  is corrected in the code AND in all 11 locale catalogs.
+
+### Elimination history imported — DEV ONLY, prod outstanding
+
+Applied to the dev copy and verified row by row:
+
+    bowel_movements   648 -> 2,425   (1,777 inserted, 2022-06-01..2024-11-17)
+      blood_present true 552          (417 from the sheet's Blood? column,
+                                       135 from prose incl. the "Blooy" typo)
+    vomiting_logs     1,991 unchanged — 607 rows ENRICHED, 0 inserted
+      time_since_last_meal_hours  0 -> 568   (§3av said 0 of 1,994 — its source
+                                              was the Vomit Log tabs all along)
+      contains_bile 0 -> 50   contains_blood 0 -> 3   pre/post weights 13 -> 615/624
+
+> ⚠️ **This is on DEV, which `pull_prod.sh` erases.** The data only becomes real
+> against Cloud SQL, and that is 1,777 clinical inserts plus 607 updates into a
+> live patient record. Not done: it needs the operator's explicit word, and
+> `PROD_DB_PASS` out of the `alafia-database-url` secret. The proxy is reachable
+> on 5436 from a `--network host` container (NOT from the macOS host — that
+> distinction cost a wrong "prod unreachable" call).
+
+### Still open
+
+- **`import_firestore.py` and `migrate_all_firebase.py` still drop the
+  structured columns.** They were not changed. Any patient migrated through
+  either path arrives with findings in prose and NULL flags, so the next import
+  recreates exactly the gap this work closed. They should write
+  `blood_present` / `contains_blood` through `elimination_text`, or be retired.
+- **`detect_condition_flags` is still six hardcoded keywords.** Its own test
+  file says that cannot be the mechanism for a 35,339-code catalog and carries
+  strict xfails for G6PD, sickle cell, coeliac and gout. Nothing here changed
+  it; weights deliberately do not depend on it.
+- **`/personalization/health-score` scores vitals differently** from
+  `/wellness/score` — 77.5 vs 54.2 on the same patient, because it passes no
+  peri-dialysis readings. Legitimate (different inputs available) but it is the
+  drift OPEN_ITEMS §5 already warned about for this pair. Pick one.
+- **`urination_logs` is empty** (0 rows) and no workbook carries a urine tab, so
+  "blood in urine" has a column, a reader and no data anywhere.
