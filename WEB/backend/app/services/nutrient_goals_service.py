@@ -150,6 +150,7 @@ def compute_goals(
     dietary_restrictions: Iterable[str] | None = None,
     allergies: Iterable[str] | None = None,
     today: date | None = None,
+    quotas: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return personalized daily nutrient goals from the user's full profile.
 
@@ -185,12 +186,52 @@ def compute_goals(
 
     goals: list[dict[str, Any]] = []
 
+    # A CITED quota from `condition_nutrient_quotas` supersedes the ladder for
+    # any nutrient it covers. The override lives inside `add()` rather than
+    # beside one branch, so it reaches all thirteen nutrients and every one
+    # added later — the point being that this stops being a ladder someone has
+    # to extend per condition.
+    #
+    # `quotas` is passed IN rather than read here. This function is
+    # synchronous with eighteen call sites across nutrition, wellness,
+    # personalization, the AI tools and the dialysis adjustment; making it
+    # async to reach the database would change every nutrition surface at
+    # once. A caller holding a session supplies the overrides
+    # (`nutrient_quota_service.quotas_for_conditions(...).as_goal_overrides()`);
+    # a caller without one gets byte-identical behaviour to before.
+    supplied: dict[str, Any] = quotas or {}
+
     def add(key, name, unit, goal, kind, priority, rationale):
-        goals.append({
+        quota = supplied.get(key)
+        authority = None
+        if quota:
+            goal = quota["amount"]
+            unit = quota.get("unit") or unit
+            kind = quota.get("kind") or kind
+            authority = quota.get("source")
+            rationale = quota.get("rationale") or rationale
+        entry = {
             "key": key, "name": name, "unit": unit,
             "goal": round(float(goal), 1), "kind": kind,
             "priority": priority, "rationale": rationale,
-        })
+            # Per-goal provenance. None means "this came from the general
+            # reference ladder below", which is a different claim from "a
+            # guideline says this about your condition" and must be readable
+            # apart from it (§3am: a generic RDA must never be handed over as
+            # the patient's own target).
+            "authority": authority,
+        }
+        if quota:
+            entry["quota"] = {
+                "cited_text": quota.get("cited_text"),
+                "citation_url": quota.get("citation_url"),
+                "evidence_level": quota.get("evidence_level"),
+                "includes_supplements": quota.get("includes_supplements"),
+                "time_course": quota.get("time_course"),
+                "condition_label": quota.get("condition_label"),
+                "tension": bool(quota.get("tension")),
+            }
+        goals.append(entry)
 
     # ── Energy ──────────────────────────────────────────────────────────────
     add("calories", "Calories", "kcal", energy, "target", 50,
@@ -290,9 +331,22 @@ def compute_goals(
         f"Keep dietary cholesterol under {chol_limit} mg/day.")
 
     # ── Calcium / Iron / Vitamin D (targets) ────────────────────────────────
+    # ⚠️ This is the GENERAL-POPULATION reference and nothing more. Unlike
+    # sodium, potassium, phosphorus and cholesterol, calcium has no condition
+    # branch here, and deliberately still does not get one: the guideline
+    # answer is not a 16th `if`. For CKD it is 800–1,000 mg/day of TOTAL
+    # ELEMENTAL calcium counting calcium-based phosphate binders (KDOQI 2020);
+    # for dialysis KDOQI and KDIGO state no figure at all; after a
+    # parathyroidectomy with hungry bone syndrome it is 3.2 g/day tapering to
+    # 2.4 g; in hypoparathyroidism it is 2–3 g/day with a ≤500 mg per-dose
+    # ceiling; and for calcium oxalate stones it must NOT be restricted.
+    # Those live in `condition_nutrient_quotas` with the sentence each came
+    # from, and arrive through `quotas` above. The rationale says "general" so
+    # that a figure nobody scoped to this patient cannot read as one that was.
     calcium = 1200 if (age and age >= 50 and not male) or (age and age >= 70) else 1000
     add("calcium_mg", "Calcium", "mg", calcium, "target", 130,
-        "Bone health RDA (1,000–1,200 mg/day by age/sex).")
+        "General bone-health RDA (1,000–1,200 mg/day by age/sex) — not scoped "
+        "to your conditions. A guideline figure for a diagnosis supersedes it.")
     iron = 18 if (not male and (age is None or age < 51)) else 8
     add("iron_mg", "Iron", "mg", iron, "target", 140,
         "RDA 18 mg (menstruating women) / 8 mg otherwise.")

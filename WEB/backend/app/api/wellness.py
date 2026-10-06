@@ -68,6 +68,13 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
 
     # ── This patient's goals decide WHICH nutrients are worth averaging ───
     conditions = list(await sources.conditions(db, user_id, active_only=True))
+    from app.services.nutrient_quota_service import quotas_for_conditions
+    _quota_set = await quotas_for_conditions(
+        db, conditions,
+        weight_kg=user.current_weight_kg if user else None,
+        sex=user.gender if user else None,
+        date_of_birth=user.date_of_birth if user else None,
+    )
     _goals_preview = compute_goals(
         date_of_birth=str(user.date_of_birth) if user and user.date_of_birth else None,
         sex=user.gender if user else None,
@@ -76,6 +83,7 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
         target_weight_kg=user.target_weight_kg if user else None,
         activity_level=user.activity_level if user else None,
         conditions=conditions,
+        quotas=_quota_set.as_goal_overrides(),
     )
 
     # ── Nutrition: mean daily intake vs this patient's own goals ──────────

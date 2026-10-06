@@ -365,6 +365,16 @@ async def list_nutrient_catalog(
     goals_by_key: dict[str, dict] = {}
     try:
         conditions = list(await sources.conditions(db, current_user.id, active_only=True))
+        # A cited guideline figure for one of this patient's diagnoses
+        # supersedes the general ladder (ap001). Stored rows only — no model
+        # call on a read path.
+        from app.services.nutrient_quota_service import quotas_for_conditions
+        quota_set = await quotas_for_conditions(
+            db, conditions,
+            weight_kg=current_user.current_weight_kg,
+            sex=current_user.gender,
+            date_of_birth=current_user.date_of_birth,
+        )
         payload = compute_goals(
             date_of_birth=str(current_user.date_of_birth) if current_user.date_of_birth else None,
             sex=current_user.gender,
@@ -373,6 +383,7 @@ async def list_nutrient_catalog(
             target_weight_kg=current_user.target_weight_kg,
             activity_level=current_user.activity_level,
             conditions=conditions,
+            quotas=quota_set.as_goal_overrides(),
         )
         for g in payload.get("goals") or []:
             key = str(g.get("key") or "").strip()
@@ -484,6 +495,13 @@ async def get_goal_progress(
         except (ValueError, TypeError):
             return [s.strip() for s in str(val).split(",") if s.strip()]
 
+    from app.services.nutrient_quota_service import quotas_for_conditions
+    quota_set = await quotas_for_conditions(
+        db, conditions,
+        weight_kg=current_user.current_weight_kg,
+        sex=current_user.gender_at_birth or current_user.gender,
+        date_of_birth=current_user.date_of_birth,
+    )
     computed = compute_goals(
         date_of_birth=current_user.date_of_birth,
         sex=current_user.gender_at_birth or current_user.gender,
@@ -496,6 +514,7 @@ async def get_goal_progress(
         dietary_preferences=_json_list(current_user.dietary_preferences),
         dietary_restrictions=_json_list(current_user.dietary_restrictions),
         allergies=_json_list(current_user.allergies),
+        quotas=quota_set.as_goal_overrides(),
     )
 
     # Attach the day's intake to each goal so the dialysis layer can work out

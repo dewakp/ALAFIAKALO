@@ -3988,6 +3988,331 @@ it records when the grant happened rather than when it was noticed.
 `ux_subscription_events_provider_event` is UNIQUE on `(provider, event_id)`, so
 the `ON CONFLICT DO NOTHING` is real protection and a re-run cannot duplicate.
 
+## 3bb. The record could not hold a surgery (2026-10-05)
+
+As-built detail — data model, the FHIR refusal table, the API contract, the
+client traps and how to verify it: **`HOSPITAL_HISTORY.md`**.
+
+A patient said they take calcium *"after removal of parathyroid glands"*.
+Measured: **zero** rows mention a parathyroidectomy in `chronic_conditions`,
+`symptom_logs` or anywhere else in the database. The fact existed only in a
+chat message, so no amount of retrieval could reach it and the nutrient targets
+kept quoting a bone-health RDA. `hospitalizations` + `surgical_procedures`
+(migration `ao001_hospital_history`, dev only) are where it now lives.
+
+**Two tables, and EITHER ROW CAN STAND ALONE.** That is the whole design.
+`surgical_procedures.hospitalization_id` is NULLABLE on purpose: day-case
+surgery and anything recorded years after the fact arrive with no encounter,
+and a required FK would have refused precisely the row the models were written
+for. So `clinical_sources` exposes BOTH `hospitalizations()` (stays, with
+their procedures attached) and `procedures()` (every procedure, including the
+orphans) — a reader that starts from stays and walks down silently loses the
+operations that matter most. `tests/test_hospital_history.py` asserts the
+orphan case FIRST, because it is the half that disappears.
+
+- **`lasting_surgical_effects()` is separate, and never windowed.** A nutrient
+  target does not need the operation list, it needs the CONSEQUENCE — and the
+  consequence persists. A `since` filter on the history deliberately does not
+  apply to it: a 2019 parathyroidectomy governs today's calcium.
+- **Only a STATED effect is an effect.** `ongoing_effects` is returned only
+  where the record fills it in. Deriving "parathyroid glands removed →
+  calcium must be supplemented" from a procedure NAME would be the system
+  asserting a clinical fact nobody recorded (§0).
+- **`SET NULL`, not `CASCADE`, and the ORM disagreed with the schema.** The
+  deployed FK keeps a procedure when its stay is deleted; the model shipped
+  with `cascade="all, delete-orphan"`, which an ORM delete would have honoured
+  by destroying it. Corrected to `passive_deletes=True`, and the delete route
+  detaches explicitly so the outcome is stated at the call site. An operation
+  that happened is a fact about the patient's body.
+- **A code travels with `code_system` or it is unusable.** ICD-10-PCS, CPT,
+  SNOMED and ICHI are different vocabularies under different licences (§3ab),
+  and nothing converts between them.
+
+### `SQLEnum` persists by NAME — and this schema holds both conventions
+
+Migration `ao001` was first written with lowercase enum labels and a
+`server_default="discharged"`. **Both wrong.** `Column(SQLEnum(AdmissionType))`
+with no `values_callable` stores the Python member NAME, so the column holds
+`DISCHARGED` while `AdmissionStatus.DISCHARGED.value` is `"discharged"` — a
+type built from the values would have refused every row the ORM inserts.
+
+Asked of the dev database rather than reasoned about:
+
+    therapystatus         SCHEDULED, IN_PROGRESS, COMPLETED, …   ← NAMES
+    notificationpriority  low, medium, high, urgent              ← values
+
+**Both conventions are live in one schema**, so the rule is to ask per enum,
+never to adopt a project-wide assumption. §3az records this confusion pointing
+the other way (reading the uppercase domain and inferring a Python mismatch,
+which was wrong). The DB enum domain and the Python enum are different things.
+
+> A `server_default` that exists only in the DDL is unmodelled drift, which is
+> what makes `--autogenerate` propose destructive changes (§3ao). `status` and
+> both timestamps now declare it in the model as well, so the two agree.
+
+> **`exclude_none=True` on create, `exclude_unset=True` on patch.** `status` is
+> NOT NULL with a Python-side default, and SQLAlchemy applies that default only
+> when the attribute was never SET — `model_dump()` emits `status: None`, which
+> INSERTs NULL and 500s a create that merely omitted the field. PATCH keeps
+> `exclude_unset`, because there an explicit null legitimately clears a value
+> (§3av's "a field the form submits but never declares erases itself", from the
+> other side).
+
+### A Swift file on disk is INVISIBLE to the build
+
+`ALAFIA.xcodeproj` is `objectVersion = 56` with **zero**
+`PBXFileSystemSynchronizedRootGroup` entries, so every source file is listed
+explicitly — **four times**: `PBXBuildFile`, `PBXFileReference`, its group's
+`children`, and the `Sources` build phase. Two new files measured **0**
+occurrences after being written; the build would have shipped a screen that
+existed in nothing. §3ad's "the page existed but had no route", in a project
+file, and no compiler or test can see it.
+
+- A new feature directory also needs its own `PBXGroup` (templated on
+  `Chronic`/`Privacy`) listed in the `Views` group's children — a file
+  reference with no parent group has no resolvable path.
+- Ids here are sequential placeholders (`BB00000000000000000003xx`), not
+  random hashes. Take the next free block; `BB…0511` was the highest in use.
+- **`plutil -lint project.pbxproj` validates it** before a build is spent on
+  it, and `xcodebuild -list` names the scheme rather than guessing it.
+- Verified after: 0 → 10 entries, lint OK, `** BUILD SUCCEEDED **`, 0 `error:`
+  lines, and the two files named 12 times in the compile log.
+
+### "2 passed, 1 skipped" was not evidence
+
+`tests/test_ios_presentation_flags.py` — the guard that fails the build on a
+`show…` flag that is set but never READ (§3ar's dead camera button) — **skips
+inside the backend container**, saying so plainly: *"iOS sources not mounted
+here"*. The `backend-test` service mounts `WEB/backend` as `/app`, so
+`IOS/ALAFIA/Views` does not exist and the real scan never runs. Banking that
+green would have left two new flags unverified.
+
+    docker run --rm -v "$PWD":/src:ro -w /src python:3.12-slim sh -c \
+      "pip install -q pytest && python -m pytest \
+       WEB/backend/tests/test_ios_presentation_flags.py --noconftest"
+
+`--noconftest` matters: the backend conftest imports app modules that a bare
+container has not got. The same shape applies to `scripts/i18n/test_catalogs.py`
+(43 passed) and to `ruff` — neither is installed in `backend-test`, and the
+repo's `scripts/` is not mounted there. §3aj again: a suite that cannot reach
+the thing it tests is not evidence, and this one at least says so out loud.
+
+### FHIR Encounter / Procedure: what is refused, and why
+
+`map_encounter` / `map_procedure` in `smart_fhir.py`. The dedupe marker goes in
+`external_ref` — unlike `map_condition`, which has to park `FHIR:{id}` in
+`notes` because `chronic_conditions` has nowhere else to put it.
+
+- **A resource with no `id` is REFUSED.** The marker would be the literal
+  `"FHIR:None"`, so two such stays would dedupe AGAINST EACH OTHER and the
+  second real admission would vanish as a duplicate. §3ab's contradictory-copy
+  failure, except this version deletes instead of duplicating, which is harder
+  to notice.
+- **`not-done` and `entered-in-error` produce NO row.** They state that the
+  operation did not happen; importing one into a surgical history asserts an
+  operation the patient never had.
+- **The `Encounter.class` map is deliberately PARTIAL.** `EMER` and `OBSENC`
+  mean what our enum means; `IMP` and `AMB` state a SETTING, not a reason, and
+  mapping them to the nearest-looking member would put a clinical claim in the
+  record that the source never made. Unmapped leaves the column NULL.
+- **An over-long unrecognised system URI is kept WHOLE in `notes`, never
+  truncated** into `code_system`'s 40 chars. Half a URI is not a vocabulary
+  name, it is a wrong one, and a code attributed to the wrong system is worse
+  than a code with no system.
+- `ongoing_effects` is never set from FHIR: there is no such field, and the
+  value comes from a discharge summary, a clinician or the patient, in words.
+
+> **The sync loop's own claims were asserted only in comments until tested.**
+> `tests/test_fhir_hospital_sync.py` drives the endpoint with a real
+> Fernet-encrypted token (so `_valid_access_token` executes rather than being
+> stubbed) and pins two things a mapper test cannot reach: a procedure attaches
+> to a stay imported in an EARLIER sync (the lookup is keyed over every stay
+> the patient has, not just this run's), and a second sync inserts nothing —
+> checked by COUNTING ROWS, because a dedupe bug that reports 0 while inserting
+> is the exact failure being guarded.
+
+### The assistant can now answer "why do I take calcium?"
+
+`get_surgical_history` in `record_tools.py`, with `TOOL_LABELS` beside it. It
+reports `lasting_effects` first-class, because that is what a question about
+calcium, phosphate or bone actually needs.
+
+> **It returns NO facility and NO surgeon name, and not the reader's
+> `admission` label either** — that label embeds the hospital's name. Whether
+> an operation happened during an inpatient stay is clinical; WHERE it happened
+> is identifying, and this module's contract is clinical rows only (§3al).
+
+### Every JSON response gets a `Z` stamped on it by a middleware
+
+Storage is tz-naive and the wire carries `Z`. Both measured:
+
+    stored ORM value  datetime.datetime(2024, 3, 2, 14, 0)   tzinfo None
+    column            timestamp without time zone
+    POST response     "2024-03-02T14:00:00Z"
+    pydantic 2.10.4   naive -> "…T14:00:00"    aware -> "…T14:00:00Z"
+
+The cause is **`normalize_datetimes_middleware`** (`main.py:114`), and it is
+deliberate: it buffers every `application/json` response and runs
+
+    _NAIVE_ISO_DT.sub(rb'"\1Z"', body)
+
+over the response BYTES, so a naive ISO datetime is declared UTC on the wire
+rather than leaving the client to guess. Its own comment says it "repairs
+existing naive data on read". Nothing in the chain was wrong — the suffix is
+added after pydantic and after FastAPI have finished.
+
+> ⚠️ **I recorded this as "cause not established" and that was wrong.** I had
+> grepped for the mechanisms I imagined — `json_encoders`, `isoformat`,
+> `default=`, `ORJSONResponse`, `keyEncodingStrategy` — and the real mechanism
+> is a regex substitution on bytes, which matches none of those patterns. Then
+> I argued from the four measurements instead of widening the search. **Grep
+> for the BEHAVIOUR you observed (`Z`), not for the mechanism you have in
+> mind**, and when measurements "contradict", suspect a layer you have not
+> looked at rather than a measurement you trust (§0).
+
+Three consequences worth knowing, because they are app-wide and not specific to
+this feature:
+
+- **A test must assert on the COLUMN, never the response string.** The string
+  is the middleware's output, so it tells you nothing about what was stored —
+  which is why `tests/test_hospital_api.py` reads the row.
+- **It returns early unless the content type is `application/json`**, which is
+  what keeps `/ai/chat/stream` (`text/event-stream`) out of the buffer — a
+  middleware that joined the body iterator on an SSE response would hold the
+  whole stream and defeat the §3am streaming work.
+- **The regex matches a SHAPE, not a type.** Any quoted `YYYY-MM-DDTHH:MM:SS`
+  string in any JSON response gains a `Z`, including a free-text field a
+  patient happened to type that way. Narrow, but it is a rewrite of user data
+  on egress, so it is worth remembering before adding a field whose text could
+  look like a timestamp.
+
+### Chunking the suite: my own file count measured nothing
+
+The backend suite was run in three chunks, each with an `echo` reporting its
+file count. Inside `sh -c '…'` the escaped `\"$CHUNK\"` made `wc -l` count ONE
+line, so the check added specifically to verify chunk coverage reported `1` and
+`1` while really running 45 files each. §3av's "run the scan, never the
+arithmetic", in the instrumentation rather than the thing instrumented.
+
+Worse, the lists differed in length between runs (new test files had appeared),
+so index 91 of a 138-file list is index 93 of the earlier 140-file list and
+**about two files fell between chunk 2's end and chunk 3's start, run by
+neither.** Closed by running a 13-file boundary band that overlaps both (94
+passed). **Chunk by a list you pin once, and verify coverage by a band that
+overlaps, not by arithmetic on indices.**
+
+> Two pytest processes must never share a test database. `conftest.setup_db`
+> does `create_all`/`drop_all` per test, so a second run dropping tables
+> mid-flight produced 16 setup/teardown ERRORs in a file that passed alone —
+> and silently corrupted the chunk that was running, which then had to be
+> thrown away and repeated. Pass `-e TEST_DB_NAME=…` per concurrent run.
+
+**What was verified, 2026-10-05:** chunk 1 690 passed / 9 xfailed, chunk 2 670
+passed / 1 skipped, chunk 3 581 passed, boundary band 94 passed, 0 failures;
+34 new backend tests across four files; web 273 passed in 42 files; i18n
+catalogs 43 passed; `ruff --select F,E9` clean on every changed file; iOS
+`BUILD SUCCEEDED`; Android `BUILD SUCCESSFUL`, `app-debug.apk` **32,917,125
+bytes** at 15:24 (the earlier 32,916,653-byte artefact predates the Android
+add-stay dialog — the size CHANGING is what proves the rebuild carried the new
+code rather than reporting a cached one); a final confirmation run of the four
+new test files plus the §3aa guard, 41 passed. Dev is at
+`ao001_hospital_history`; **production is not** — the migration is unshipped.
+
+---
+
+## 3bc. A nutrient quota is cited DATA — and calcium proved a float cannot hold one
+
+`compute_goals` was a hand-written ladder: 13 nutrients, 6 condition flags, 26
+`flags[...]` reads, a literal at every leaf. **Calcium had no branch at all**,
+so every patient got the bone-health RDA as a `target` to aim FOR — including a
+dialysis patient whose calcium load is mostly their phosphate binder. Full
+detail and what remains open: **`OPEN_ITEMS.md` §8a**.
+
+**A 16th branch was the wrong fix, and the literature says so with numbers.**
+Measured 2026-10-05, calcium alone: healthy adult 1,000-1,200 mg/d dietary;
+CKD 3-4 **800-1,000 total elemental INCLUDING calcium-based binders** (KDOQI
+2020); **CKD G5D — no figure exists in KDOQI 2020 or KDIGO 2009/2017**; EU
+consensus 800 floor / 1,500 ceiling, self-described as "clinical practice
+points without high-level evidence"; hungry bone post-PTX **6-16 g/d, tapering**
+3.2 g wk1 → 2.4 g wk6; hypoparathyroidism 2-3 g/d **and ≤500 mg PER
+INGESTION**; calcium oxalate stones 1,000 mg/d and **do NOT restrict** — low
+calcium *raises* stone risk. One nutrient, ~0 to 16,000 mg/day, where three
+answers are not a daily dietary number at all.
+
+- **Nothing can be imported.** EFSA's DRVs are healthy-population only, ESPEN
+  ships 14 disease guidelines as prose, the Academy's EAL ~40 projects. There
+  is no LOINC or RxNorm for condition→nutrient quotas, so every figure is
+  resolved once, cited, and stored.
+- **Enumeration is not available either:** 35,369 ICD-11 MMS codes × 116
+  catalog nutrients ≈ 4.1M single-condition cells, before combinations, and
+  age/sex/weight/height are continuous.
+- ⚠️ **Conflicts live at the INTERSECTION, and models miss them there.**
+  Formalising 12 guidelines into logic found **90.6% of conflicts are "Local"**
+  — arising only from comorbidity intersections — frontier LLMs failed to
+  detect them, and a symbolic check reached F1 0.861: *logical verification
+  must precede retrieval* (Xie & Du, AAAI 2026). NutriOrion, with agents and
+  guideline grounding over 330 multimorbid patients, still violates drug-food
+  safety **12.1%** of the time. So the conflict check in
+  `nutrient_quota_service` is deterministic code, never a prompt.
+
+`condition_nutrient_quotas` (`ap001`, **dev only**) therefore carries amount +
+unit + `basis` + `kind` + `includes_supplements` + `time_course` + scope, with
+**`source` and `cited_text` NOT NULL**: a quota with no citation is REFUSED,
+because §3az's own history is a hardcoded potassium limit of 4,700 mg sitting
+LOOSER than the patient's real 2,200 mg cap.
+
+Non-obvious points, each already the cause of a bug:
+
+- **`scope_key` is NOT NULL and is what the unique constraint uses.** Postgres
+  treats NULLs as distinct, so keying on the nullable `stage`/`therapy` lets
+  re-resolution insert BESIDE the row it meant to sharpen. ⚠️ I then broke my
+  own invariant in the seed — the stones row read `scope_key="age_max=70"`,
+  which `scope_key_for()` can never produce, so a re-resolution would compute
+  `""`, miss it, and create exactly §3ab's contradictory duplicate. A test now
+  asserts every seeded key equals what the normaliser produces.
+- **`per_dose` must never be summed into a daily total.** 500 mg is a ceiling
+  on one ingestion; treated as a daily allowance it cuts a 2,000 mg/day
+  requirement to a quarter.
+- **A `per_kg` quota with no weight on file is UNSCOPED, not 70 kg** (§3am:
+  guessing is how a number lands in the wrong column).
+- **A floor above a ceiling is a stated TENSION.** The ceiling governs — it is
+  the bound whose breach the guideline calls harmful — and both citations
+  travel with it. Never averaged, never silently dropped.
+- **The override lives in `add()`**, so it reaches all 13 nutrients and any
+  added later. `quotas` is passed IN rather than read from the DB: the function
+  is synchronous with **18 call sites**, and going async would change every
+  nutrition surface at once. All five live call sites pass it, and a static
+  guard fails the build if one stops — §3ar's dead control, pre-empted.
+- **Every goal now carries `authority`** (None = the general ladder), so a
+  generic RDA cannot read as the patient's own figure.
+- ⚠️ **The figure reaches all three clients; the citation does not.** Web, iOS
+  and Android render `goal`/`goal_kind`, so the corrected value and its flip
+  from target to limit appear with no client change. `authority`,
+  `quota.cited_text` and `quota.tension` are returned and **nothing draws them
+  yet** — a patient sees the right number without seeing which guideline set
+  it, or that two of their conditions disagree.
+- ⚠️ **No clock.** Nothing re-resolves, so `times_confirmed` stays 1, exactly
+  as for all six stores in "every learning loop is frozen at n=1".
+- ⚠️ **The drug axis has lost its authority.** NLM retired the **RxNav Drug
+  Interaction API on ~2 Jan 2024** with no replacement (ONCHigh and DrugBank
+  went with it); RxNorm/RxClass/RxTerms remain. Drug→nutrient effects exist
+  only as prose and need the same resolve-cite-store treatment.
+- ⚠️ **Cited AND schema-valid cannot be one provider call** — document
+  citations are incompatible with `output_config.format` (400) per the API
+  contract, **unverified on the wire** (§3al). Nothing is wired for it anyway:
+  the adapters carry only `response_format: {"type": "json_object"}`, with no
+  structured outputs, citations or server-side search, `anthropic_adapter.py`
+  included.
+
+> **Guards vs coverage, stated because it took work to tell apart.** Run
+> against the pre-change tree, five tests fail — the four `compute_goals` ones
+> (`TypeError: unexpected keyword argument 'quotas'`, and the missing
+> `authority` key) plus the dead-control scan. Those are the regression
+> guards. The other ~37 exercise a module that did not exist, so they are
+> coverage; calling them guards would be §3al's mistake again.
+
+---
+
 ## 6. Reporting
 
 State what was actually run and what wasn't. "Builds" ≠ "works". If a suite

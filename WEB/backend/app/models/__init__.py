@@ -137,6 +137,7 @@ from app.models.ground_truth import GeneticMarker, EnvSocialLog
 from app.models.food_nutrient_cache import FoodNutrientCache
 from app.models.learned_nutrient import LearnedFoodNutrient
 from app.models.condition_nutrition import ConditionNutritionFact
+from app.models.nutrient_quota import ConditionNutrientQuota
 from app.models.contact import ContactSubmission
 from app.models.email_event import EmailEvent
 from app.models.user_identity import UserIdentity
@@ -315,6 +316,7 @@ __all__ = [
     "FoodNutrientCache",
     "LearnedFoodNutrient",
     "ConditionNutritionFact",
+    "ConditionNutrientQuota",
     "FlaggedEstimate",
     "DocumentImport",
     "DocumentImportItem",

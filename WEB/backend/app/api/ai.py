@@ -1289,6 +1289,25 @@ async def _fetch_patient_context(user: User, db: AsyncSession,
     # Unlike the planner, a prose answer cannot be filtered after the fact, so
     # here this is a prompt-level control only. `app/services/food_safety.py`
     # is the single place that decides what is forbidden, for both surfaces.
+    # A cited guideline quota for one of this patient's diagnoses supersedes
+    # the general ladder (ap001). Resolved ONCE here and used by both the cap
+    # list below and the authoritative targets block further down: a quota can
+    # flip a nutrient from target to limit — calcium does exactly that in CKD —
+    # so feeding one site and not the other would make the two disagree about
+    # which nutrients are capped (§3ai: two computations of one quantity must
+    # not disagree). Defined before the try so it is in scope either way.
+    _quota_overrides: dict = {}
+    try:
+        from app.services.nutrient_quota_service import quotas_for_conditions
+        _quota_overrides = (await quotas_for_conditions(
+            db, cc_list,
+            weight_kg=user.current_weight_kg,
+            sex=user.gender,
+            date_of_birth=user.date_of_birth,
+        )).as_goal_overrides()
+    except Exception:  # noqa: BLE001 - a missing quota must not fail a chat
+        logger.warning("nutrient quotas unavailable", exc_info=True)
+
     try:
         from app.services import food_safety
         from app.services import condition_nutrition_service as cns
@@ -1308,6 +1327,7 @@ async def _fetch_patient_context(user: User, db: AsyncSession,
                     current_weight_kg=user.current_weight_kg,
                     target_weight_kg=user.target_weight_kg,
                     activity_level=user.activity_level, conditions=cc_list,
+                    quotas=_quota_overrides,
                 ).get("goals") or [])
                 if g.get("kind") == "limit"
             ]
@@ -1352,6 +1372,7 @@ async def _fetch_patient_context(user: User, db: AsyncSession,
             target_weight_kg=user.target_weight_kg,
             activity_level=user.activity_level,
             conditions=cc_list,
+            quotas=_quota_overrides,
         )
         goal_rows = goals_payload.get("goals") or []
         if goal_rows:

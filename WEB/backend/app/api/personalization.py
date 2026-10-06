@@ -416,6 +416,13 @@ async def get_health_score(
 
     # ── The patient's own goals ───────────────────────────────────────────
     conditions = context.get("chronic_conditions") or []
+    from app.services.nutrient_quota_service import quotas_for_conditions
+    quota_set = await quotas_for_conditions(
+        db, conditions,
+        weight_kg=current_user.current_weight_kg,
+        sex=current_user.gender,
+        date_of_birth=current_user.date_of_birth,
+    )
     goals_payload = compute_goals(
         date_of_birth=str(current_user.date_of_birth) if current_user.date_of_birth else None,
         sex=current_user.gender,
@@ -424,6 +431,7 @@ async def get_health_score(
         target_weight_kg=current_user.target_weight_kg,
         activity_level=current_user.activity_level,
         conditions=conditions,
+        quotas=quota_set.as_goal_overrides(),
     )
 
     nutrition = recent.get("nutrition") or {}

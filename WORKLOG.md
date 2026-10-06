@@ -2530,3 +2530,186 @@ suite, which a compile check would not have. Also initially reported the 16
 never evaluate. Classified each line before claiming, which changed the finding.
 
 1197 passed, 9 xfailed — unchanged before and after the import sweep.
+
+## Session 2026-10-05 — The record could not hold a surgery
+
+Operator: *"add a new model for hospitalization, surgical procedures. importing
+hospital records will need these"*, then *"add a canon reader"*.
+
+A patient had said they take calcium *"after removal of parathyroid glands"*.
+Measured: **zero** rows mention a parathyroidectomy in `chronic_conditions`,
+`symptom_logs` or anywhere else. The fact existed only in a chat message, so no
+amount of retrieval could reach it and the nutrient targets kept quoting a
+bone-health RDA.
+
+`hospitalizations` (26 columns) + `surgical_procedures` (21), migration
+`ao001_hospital_history`, **dev only** — production remains on
+`an001_vital_thresholds`. As-built detail: `HOSPITAL_HISTORY.md`; condensed
+canon: CLAUDE.md §3bb; verbatim record: `docs/VERBATIM_LOG_2026-10-05.md`.
+
+- **Two tables, either row standing alone.** `hospitalization_id` is nullable
+  on purpose — day-case surgery and anything recorded years later have no
+  encounter — so `clinical_sources` exposes both `hospitalizations()` and
+  `procedures()`, the latter including the orphans a stay-first reader loses.
+  `lasting_surgical_effects()` is separate and deliberately not windowed.
+- **`facilities` was the only model module `app/models/__init__.py` never
+  imported**, so `Base.metadata.create_all` had no such table and every test
+  touching a facility path ran against a schema missing it. 124 → 126 tables.
+- FHIR `map_encounter` / `map_procedure`, dedupe on `external_ref`; a resource
+  with no `id` is refused (the marker would be `"FHIR:None"` and two stays
+  would dedupe against each other); `not-done` / `entered-in-error` produce no
+  row; the `Encounter.class` map is deliberately partial.
+- `/hospital/*` (9 routes), `get_surgical_history` AI tool returning no
+  facility or surgeon name (§3al), and web + iOS + Android.
+
+**Three faults of my own, found and fixed rather than shipped:** the migration's
+enum labels were lowercase when `SQLEnum` persists by NAME (the database said
+so, and also showed `notificationpriority` IS lowercase — both conventions are
+live); two new Swift files had **zero** entries in `project.pbxproj` and would
+have shipped in nothing; and an Android FAB navigated to `"hospital-add"`, a
+route that does not exist, so it would have crashed on tap.
+
+**A parity gap I created and closed:** Android had no add-stay form while web
+and iOS did. §3 says disclosing one does not satisfy the rule.
+
+**Instrumentation wrong four times, which is the lesson worth keeping:** the
+chunk-coverage `echo` counted one line instead of 45 (escaped quotes inside
+`sh -c`); a `--include=*.swift` glob was eaten by zsh and reported no call
+sites; a locale-key regex matched `api.get(` because it ends in `t(`; and
+`test_ios_presentation_flags.py` **skips** inside the backend container, so its
+"2 passed, 1 skipped" said nothing about the two new flags until it was run from
+a repo-root mount (then 3 passed). Each would have let me report coverage I did
+not have.
+
+**Two documentation corrections, same day:** the new canon section was numbered
+`§3ba`, which already existed — renumbered `§3bb` after checking that the one
+cross-reference belongs to the wellness item. And `OPEN_ITEMS` §8a asked for
+"the number for CKD G3–G5D" and whether a parathyroidectomy "changes the
+direction" — one-patient, one-disease framing. Operator: *"you are again turning
+this into a one patient solution. It is not."* Rewritten around the real defect:
+`compute_goals` is a hand-written ladder of literals, and
+`condition_nutrition_facts` can say avoid/favour a nutrient but carries **no
+amount, unit, basis or target/limit column**, so there is nowhere to express a
+per-condition quota. Still `NEEDS DECISION`.
+
+**`Z` resolved, having been wrongly filed as unexplained.** Stored values are
+tz-naive (`tzinfo None`, `timestamp without time zone`) while responses carry
+`Z`, because `normalize_datetimes_middleware` (`main.py:114`) rewrites every
+JSON body with `_NAIVE_ISO_DT.sub(rb'"\1Z"', body)`. I had grepped for the
+mechanisms I imagined rather than for the behaviour I measured.
+
+chunk 1 690 passed / 9 xfailed, chunk 2 670 / 1 skipped, chunk 3 581, boundary
+band 94, final confirmation 41 — 0 failures. Web 273 in 42 files; i18n catalogs
+43; `ruff --select F,E9` clean; iOS `BUILD SUCCEEDED` (0 `error:` lines);
+Android `BUILD SUCCESSFUL`, `app-debug.apk` 32,917,125 bytes.
+
+**Not done:** the calcium quota (needs the operator's decision), the production
+deploy, any commit or push, and the partner page — blocked because the linked
+Q&A artifact returns only its Docs app shell, only bundle assets from
+`list_files`, and `read_db` fails with "does not declare the database
+capability". Partner copy and desk routing are facts about the business and
+would be fabricated if invented, on a public page.
+
+## Session 2026-10-05 (later) — A nutrient quota is cited data, not a branch
+
+Operator asked what the literature says about calcium "on hundreds of
+conditions and conditional combinations", then: *"we will have same issue to
+resolve for every micro nutrient, medications and corresponding biology
+(disease condition, genetic condition, age, sex, weight, height) --- this is
+why we build an intelligent model and also chech provider api. A continuous
+learning algorithm, framework and model"*. Then: *"yes re-write, build then
+commit and merge"*, and *"test, test, test thoroughly"*.
+
+Condensed canon: CLAUDE.md §3bc. Full detail and what is still open:
+OPEN_ITEMS.md §8a, rewritten from NEEDS DECISION to BUILT.
+
+**The literature was measured, not recalled.** Calcium spans ~0 to 16,000 mg/day
+across conditions, and three of the answers are not a daily dietary number at
+all: KDOQI's CKD figure counts calcium-based phosphate binders toward itself,
+hypoparathyroidism carries a ≤500 mg PER-INGESTION ceiling beside its daily
+target, and hungry bone syndrome is a six-week taper. KDOQI 2020 and KDIGO
+2009/2017 state **no** calcium figure for dialysis at all, and calcium oxalate
+stones say explicitly do NOT restrict. No body publishes any of it
+machine-readably — EFSA is healthy-population only, ESPEN is prose, the EAL is
+~40 projects — so there was nothing to import.
+
+**Why a 16th `if` was the wrong fix.** 35,369 ICD-11 codes × 116 catalog
+nutrients ≈ 4.1M single-condition cells before combinations. And the
+combinations are where it breaks: formalising 12 guidelines into symbolic logic
+found **90.6% of conflicts arise only at comorbidity intersections**, frontier
+LLMs failed to detect them, and a symbolic check reached F1 0.861 (Xie & Du,
+AAAI 2026). NutriOrion, with agents and guideline grounding, still violates
+drug-food safety 12.1% of the time. So the conflict check is deterministic
+code, not a prompt.
+
+Built: `condition_nutrient_quotas` (`ap001_nutrient_quotas`, dev only) with
+`source`/`cited_text` NOT NULL — an uncited quota is REFUSED;
+`nutrient_quota_service` (read path with no resolve flag to misconfigure, a
+pure resolver for basis/scope/tensions, and a write path that refuses anything
+malformed and sharpens on re-resolution); `compute_goals(quotas=...)` with the
+override in the `add()` closure so it reaches all 13 nutrients rather than
+calcium alone; and **all five live call sites wired**, with a static guard that
+fails the build if one stops passing quotas.
+
+**Three faults of my own, each caught before shipping:**
+
+- The AST guard flagged the resolver PROMPT, which names dialysis precisely to
+  tell the model that an absent recommendation is a real answer. Deleting that
+  sentence to satisfy a checker would have broken what the checker protects, so
+  the guard was sharpened to what it actually means — no condition in a
+  COLLECTION or a COMPARISON — with the prompt exempt by name and reason, plus
+  a third test proving the exemption cannot hide a quantity (§3ar).
+- I seeded the stones row with `scope_key="age_max=70"`, a key
+  `scope_key_for()` can never produce. A later re-resolution would compute
+  `""`, miss the row and insert beside it: §3ab's contradictory duplicate,
+  created by the very column added to prevent it. A test now asserts every
+  seeded key equals the normaliser's output.
+- I had built the override as a **dead control** — `compute_goals` accepted
+  `quotas` and no endpoint supplied them. Caught while writing the docs, which
+  is later than it should have been. Wiring one site would also have been
+  wrong: `ai.py` computes a cap list and then the authoritative targets block,
+  and a quota can flip calcium from target to limit, so feeding one and not the
+  other makes the two disagree (§3ai). One resolution now serves both.
+
+**Instrumentation traps hit again, both already in the canon.** BSD `split` has
+no `-n l/3`, so the chunk list was range-split from a list pinned once and
+checked at the seams rather than by index arithmetic (§3bb). `ruff` could not
+write its cache on a read-only mount and reported "ruff failed" — not a lint
+error. And the 14 F401s in `app/models/__init__.py` are the deliberate
+SQLAlchemy registration imports (§3ap): HEAD measured 14 and the working tree
+measures 14, so my import added none — the line only appeared in ruff output as
+context for its neighbours.
+
+**Still open, recorded rather than implied:** there is no clock, so
+`times_confirmed` stays 1 like all six stores already frozen at n=1; the drug
+axis is unmodelled and NLM retired the RxNav Drug Interaction API on ~2 Jan
+2024 with no replacement; cited-and-schema-valid cannot be one provider call
+(citations are incompatible with `output_config.format`, **unverified on the
+wire**) and nothing is wired for it — the adapters carry only
+`response_format: {"type": "json_object"}`; and the corrected figure reaches
+all three clients (they render `goal`/`goal_kind`) while `authority`,
+`cited_text` and `tension` are returned and nothing draws them yet. Production
+is not migrated.
+
+**Verified 2026-10-05.** Backend suite in three chunks range-split from a list
+pinned once, plus two overlapping seam bands, each run with its own
+`TEST_DB_NAME`: chunk 1 **756 passed / 9 xfailed**, chunk 2 **646 / 1
+skipped**, chunk 3 **607**, band 1 **213**, band 2 **72** — **0 failures**.
+`tests/test_nutrient_quotas.py` is in chunk 3 and reports **41 passed**
+standalone; of those **5 are regression guards**, proven by swapping
+`nutrient_goals_service.py` for its HEAD version and watching exactly those
+fail (4 on `compute_goals`, 1 the dead-control scan) — the other 36 are
+coverage, and the file's docstring says so. Web **273 passed in 42 files**: no
+frontend file was changed by this work, so that was run to confirm rather than
+assumed. `ruff --select F,E9` clean on every new and changed file. Migration
+applied to dev, then downgraded and re-applied after correcting the seed;
+`alembic heads` and `alembic current` both report a single head,
+`ap001_nutrient_quotas`, with **7 seeded rows across 4 conditions, all 7
+cited**, and every `scope_key` equal to what `scope_key_for()` produces.
+
+**Not run, stated rather than implied (§6):** iOS and Android builds — no
+client file was touched by the quota work; the hospital-history changes sharing
+this branch were built and verified earlier today (§3bb). No deploy: production
+remains behind `ap001`, and the quota resolver has no scheduled job, so the
+store holds only its seed until something re-resolves.
+

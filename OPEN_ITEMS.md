@@ -1001,3 +1001,192 @@ Applied to the dev copy and verified row by row:
   drift OPEN_ITEMS §5 already warned about for this pair. Pick one.
 - **`urination_logs` is empty** (0 rows) and no workbook carries a urine tab, so
   "blood in urine" has a column, a reader and no data anywhere.
+
+---
+
+## 8. Hospital & surgery history — 2026-10-05
+
+`hospitalizations` + `surgical_procedures` were added because a patient said
+they take calcium *"after removal of parathyroid glands"* and the record had
+nowhere to hold it (measured: zero mentions anywhere in the database). Models,
+migration `ao001_hospital_history`, the canonical reader, the FHIR
+Encounter/Procedure import, the API, an AI tool and all three clients are in.
+What follows was deliberately NOT actioned.
+
+### 8a. The calcium target was a generic RDA — BUILT 2026-10-05, the clock is what is left
+
+`services/nutrient_goals_service.py` emitted, for every patient alive:
+
+    calcium = 1200 if (age and age >= 50 and not male) or (age and age >= 70) else 1000
+    add("calcium_mg", "Calcium", "mg", calcium, "target", 130,
+        "Bone health RDA (1,000-1,200 mg/day by age/sex).")
+
+Every other renally-relevant nutrient branched — sodium on
+hypertension/CKD/heart failure, potassium with dialysis/CKD/general arms,
+phosphorus flipping to a **limit** for CKD. **Calcium had no branch at all**,
+and it was a `target` to aim FOR: wrong for a dialysis patient whose calcium
+load is mostly their binder, and wrong the other way after a
+parathyroidectomy.
+
+> ⚠️ **CORRECTED the same day, 2026-10-05.** The first version of this item
+> asked for "the number for CKD G3-G5D" and whether a parathyroidectomy
+> "changes the direction". All three questions were **one-patient,
+> one-disease framing** — a 16th branch bolted onto a ladder of 15. Operator:
+> *"you are again turning this into a one patient solution. It is not."* The
+> standing instruction that framing violates: *"this project while using data
+> from one patient must not be generalised to one patient but must recognize
+> patterns for millions as data and users grow. this is why we avoid hard
+> coded. Also hard capping to one disease is meaningless."* The wrong framing
+> is kept because it is the error worth not repeating.
+
+**What the literature actually says, measured rather than recalled.** Calcium
+alone, across conditions:
+
+| scope | figure | basis |
+|---|---|---|
+| healthy adult | 1,000-1,200 mg/d | dietary RDA |
+| CKD 3-4, no vitamin D analog | 800-1,000 mg/d | **total elemental, incl. calcium-based binders** (KDOQI 2020) |
+| CKD G5D (dialysis) | **no figure exists** | KDOQI says "adjust to avoid hypercalcemia"; KDIGO 2009/2017 state none at all |
+| CKD any stage (EU consensus) | 800 floor, **1,500 ceiling** | total elemental; authors call these "clinical practice points without high-level evidence" |
+| hungry bone, post-PTX | **6-16 g/d**; 3.2 g wk 1 → 2.4 g wk 6 | **a taper**, often IV initially |
+| chronic hypoparathyroidism | 2-3 g/d | **and <=500 mg PER INGESTION** (absorption saturates) |
+| calcium oxalate stones | 1,000 mg/d, **do NOT restrict** | low-calcium diets *raise* stone risk (CARI) |
+| sarcoidosis + hypercalcaemia | restrict Ca and vitamin D | contested; restriction may raise nephrolithiasis risk |
+
+One nutrient, ~0 to 16,000 mg/day, and three of those are not a daily dietary
+number at all: one counts a MEDICATION toward itself, one is a per-dose
+ceiling, one changes week by week. **No `float` called `goal` can express
+any of them**, which is why the fix was never a branch.
+
+**There is nothing to import.** EFSA's DRVs are 32 healthy-population
+opinions plus an interactive tool; ESPEN ships 14 disease guidelines as prose;
+the Academy's EAL has ~40 projects. What is machine-readable is research-grade
+and single-disease (a COPD ontology DSS, OnT2D-DSS). There is no LOINC or
+RxNorm for condition→nutrient quotas.
+
+**And combinations are the hard half, with numbers on it.** ESPEN's polymorbid
+guideline exists because "guidelines are largely created for individual
+diseases". Formalising 12 guidelines into symbolic logic and running a SAT
+solver found **90.6% of conflicts arise only at the intersection of
+comorbidities**, frontier LLMs failed to detect them, and a neuro-symbolic
+check reached F1 0.861 — *logical verification must precede retrieval*
+(Xie & Du, AAAI 2026). NutriOrion (330 multimorbid patients, agents, guideline
+grounding, FHIR R4 output) still reports a **12.1% drug-food interaction
+violation rate**. That is the honest ceiling for a pure-LLM resolver, and the
+reason the conflict check here is deterministic code rather than a prompt.
+
+Scale, from our own catalogs: **35,369 ICD-11 MMS codes x 116 catalog
+nutrients ~ 4.1M single-condition cells** before any combination; age, sex,
+weight and height are continuous.
+
+#### What was built
+
+`condition_nutrient_quotas` (migration **`ap001_nutrient_quotas`**, dev only):
+amount + unit + **basis** (`absolute` | `per_kg` | `per_1000_kcal` |
+`per_dose`) + **kind** (target | limit) + **includes_supplements** +
+**time_course** + scope, and **`source` / `cited_text` NOT NULL**. A quota
+with no citation is REFUSED, not downgraded — §3az's own history is a
+hardcoded potassium limit of 4,700 mg sitting looser than the patient's real
+2,200 mg cap.
+
+- `app/services/nutrient_quota_service.py` — `stored_quotas` (one SELECT, no
+  network), `resolve_for_patient` (pure: basis applied, scope filtered,
+  tensions detected), `quotas_for_conditions` (read path, **no**
+  `resolve_missing` flag to leave in the wrong position), `resolve_quota` (the
+  write path, refuses anything uncited/malformed, sharpens on re-resolution).
+- `compute_goals(quotas=...)` — the override lives in the `add()` closure, so
+  it reaches **all 13 nutrients and every one added later**, not just calcium.
+  Passing quotas IN rather than making the function async is deliberate: it is
+  synchronous with **18 call sites**, and going async would change every
+  nutrition surface at once.
+- Wired at **all five live call sites** (nutrition x2, wellness,
+  personalization, ai x2), with a static guard that fails the build if a
+  `compute_goals` call in those modules omits `quotas`.
+- Each goal now carries **`authority`** (None = the general ladder) so a
+  generic reference can never read as the patient's own figure (§3am).
+- Seeded with the seven calcium rows above, each with its own sentence.
+  **No G5D row is seeded** — the absence is the answer.
+
+**Two faults of mine, caught by the tests rather than shipped:** the AST guard
+flagged the resolver PROMPT (which names dialysis precisely to tell the model
+an absent recommendation is real) — classifying before acting changed the
+guard, not the prompt (§3ar); and the stones row was seeded with
+`scope_key="age_max=70"`, a key `scope_key_for()` can never produce, so a
+re-resolution would have computed `""`, missed the row and inserted beside it:
+§3ab's contradictory duplicate, created by the column added to prevent it.
+
+#### What is still open
+
+1. **There is no clock.** Nothing re-resolves, so `times_confirmed` stays 1
+   exactly as it does for all six stores in §"Every learning loop is frozen at
+   n=1". APScheduler is already imported in `main.py`. Until a job runs,
+   coverage is the seven seeded rows plus whatever a script resolves.
+2. **The drug axis is unmodelled, and its authority is gone.** NLM retired the
+   **RxNav Drug Interaction API on ~2 Jan 2024** with no replacement (ONCHigh
+   and DrugBank went with it); RxNorm/RxClass/RxTerms remain. Drug→nutrient
+   effects exist only as prose (PPIs: B12 down 12-18% over 12 months;
+   hypomagnesaemia at a median 5.5 years, reversing in 4 days off-drug), so
+   they need the same resolve-cite-store treatment. §3aa's third medication
+   source still contributes nothing to nutrient tracking either.
+3. **Cited AND schema-valid cannot be one provider call.** Per the API
+   contract, document citations are **incompatible with
+   `output_config.format` (400)**, so resolution has to be cited extraction
+   then structured normalisation. ⚠️ **Not verified on the wire** — §3al's
+   rule is that only the wire proves the system. And nothing is wired for it:
+   the adapters carry only `response_format: {"type": "json_object"}`
+   (`openai_adapter.py:116`, `openai_compat_adapter.py:175`), with no
+   structured outputs, no citations and no server-side search anywhere,
+   including `anthropic_adapter.py`. The 18 `openai_compat` providers cannot
+   do server-side search at all, so a cited resolver runs on the Anthropic
+   path specifically.
+4. **The figure reaches every client; the citation does not.** Web, iOS and
+   Android render `goal` and `goal_kind`, so the corrected calcium value and
+   its flip from target to limit show up with no client change. The new
+   `authority`, `quota.cited_text` and `quota.tension` fields are returned and
+   **nothing draws them yet** — so a patient sees the right number without
+   seeing which guideline set it, or that two of their conditions disagree.
+5. **Production is not migrated.** Dev is at `ap001_nutrient_quotas`; prod is
+   behind it. Ask `alembic heads`, never this line (§5).
+
+### 8b. The response serialises `Z` — ANSWERED 2026-10-05, not a defect
+
+**Resolved the same day it was raised.** The cause is
+`normalize_datetimes_middleware` (`app/main.py:114`): a global middleware that
+rewrites every `application/json` response body with
+`_NAIVE_ISO_DT.sub(rb'"\1Z"', body)`, declaring stored naive datetimes as UTC
+on the wire. Deliberate, app-wide, and documented in its own comment.
+
+Why it took three attempts to find, kept because the habit is the point: I
+grepped for the mechanisms I imagined (`json_encoders`, `isoformat`,
+`default=`, `ORJSONResponse`) rather than for the behaviour I had measured, and
+a byte-level regex matches none of them. Full detail and the three app-wide
+consequences are in CLAUDE.md §3bb. The original framing below is left intact.
+
+**Original entry, which was wrong to call this unexplained:**
+
+Measured both sides: the column is `timestamp without time zone` and holds a
+tz-**naive** value (`tzinfo is None`, exact instant), while the POST response
+renders `"2024-03-02T14:00:00Z"`. On pydantic 2.10.4 a naive datetime renders
+without a suffix and an aware one with `Z`, and **no** global JSON encoder or
+key strategy exists anywhere in the app. So something makes the value aware at
+serialisation time and I could not find it.
+
+Harmless — a `Z` declares UTC unambiguously — and the §3aa asyncpg DataError
+hazard is absent because storage is naive. Recorded rather than explained away.
+`tests/test_hospital_api.py` asserts on the COLUMN, not the response string;
+asserting the string was the wrong instrument and is what surfaced this.
+
+### 8c. Smaller, carried forward
+
+- **Migration `ao001` is applied to DEV ONLY.** Production remains on
+  `an001_vital_thresholds`. Ask `alembic heads`, never this line (§5).
+- **No import writes these tables yet except FHIR.** The PDF/document path and
+  the two Firestore importers do not, so a discharge summary still has to be
+  entered by hand. Wiring a bulk import to notify or to dedupe against
+  `external_ref` was not attempted.
+- **`procedures()` and `hospitalizations()` are unpaginated.** Correct at a
+  patient's real volume, and deliberately so after §3ad's truncation failure,
+  but it is an unbounded read if a record ever carries hundreds.
+- **The AI tool returns no facility or surgeon name** (§3al), so the assistant
+  cannot answer "which hospital was that?" even though the column holds it.
+  That is the privacy trade, not an oversight — revisit only deliberately.
