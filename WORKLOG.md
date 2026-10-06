@@ -2809,3 +2809,69 @@ searched for in entitlement.py when it lives on the model. An empty result from
 a wrong path proves nothing, and parallel Bash calls sharing one cwd caused two
 of the five.
 
+### A notice that claimed the record held no blood test
+
+Reported from the live screen with a screenshot: the Calcium row read *"…needs
+a recent blood test to confirm it. There isn't one…"* — and the last draw was
+**10/1**, with the same notice on 10/2, 10/3 and 10/4.
+
+`apply_effects_to_totals` took a single `measurement_fresh: bool` and its ONE
+production caller passed the literal **`False`**. The gate never consulted the
+record, so the sentence was emitted unconditionally, forever, for every gated
+in-favour effect. §3ar inverted: not a control that sets a flag nothing reads,
+but a flag nothing ever sets — defaulting to the pessimistic branch and then
+stating it to a patient as fact about their own chart.
+
+The call site defended itself in a comment: *"No serum draw exists in this
+system for the nutrients this layer covers."* True of the DATA STRUCTURE, false
+of the RECORD. `SerumLevels` has five hardcoded fields and `_SERUM_TESTS` is a
+hand-typed alias table of their spellings; the 10/1 panel carries Iron 42,
+Ferritin 197 and Iron Saturation 14, none of which it can represent. **376
+distinct analytes on this record, 411 in production, 5 representable.**
+
+Fixed by asking the record per analyte — `measured_dates_for` strips the unit
+suffix from a goal key and matches through `analyte_key()`, the §3ax vocabulary
+that already folds `ALP`/`Alk Phos` and `K+`/`Potassium`, with **no second
+alias table**. Measured on the real record: **7 of 15 goal keys resolve**
+(sodium, potassium, phosphorus, cholesterol, calcium, iron, magnesium), 8
+correctly do not — there is no blood test for fibre.
+
+**The deeper finding, specced not built (OPEN_ITEMS §10b).** Fixing the flag
+changes the sentence and NOT the number: `calibrated` is
+`provenance in ("clinician","measured")`, all 26 stored rows are `llm` or
+`literature_prior`, and **no code path anywhere sets either value** — so
+nothing in that layer can ever be counted. 21 of the 26 also have
+`magnitude = NULL`. The agent-effects layer is decoration until a calibration
+path exists.
+
+**Five mistakes of mine in one session, all the same shape — reasoning about a
+name instead of reading it:**
+
+- Assumed a `calibrated` COLUMN on `nutrient_effects`; it is derived, and the
+  table has `requires_measurement` instead.
+- Invented `AgentExposure(agent_kind=…, agent_label=…)` from the DATABASE
+  column names; the dataclass fields are `kind`/`key`/`label`. Four test
+  failures, and the existing `_session()` helper had shown the right shape all
+  along.
+- Wrote `measured_dates_for` using `timedelta` in a module with no `datetime`
+  import — a NameError on a request path, caught before running.
+- Declared `dict[str, Any]` where `Any` was not imported.
+- Ran a `grep -c 'measurement_fresh=False'` expecting 0, got 1, and nearly
+  reported an incomplete restore: the match was inside the COMMENT I had just
+  written quoting the old literal. A text expectation applied to a syntax
+  question; the AST walk settled it.
+
+Plus seven wrong-path greps across the session (`deploy.sh` at the repo root,
+DEPLOY.md under a drifted cwd, `scripts/import_elimination_history.py`,
+`app/core/subscription.py`, `is_entitled`, `app.models.lab`, and the i18n test
+mounted from the wrong root). Two of those were caused by parallel Bash calls
+sharing one cwd. An empty result from a wrong path proves nothing.
+
+Verified: backend **744 + 676 + 616** across three re-pinned chunks (145 files)
+plus **216 + 102** on two overlapping seam bands, **0 failures**; web **273 in
+42 files**; i18n catalogs **43**; `ruff --select F,E9` clean on everything
+authored (the 3 F401s in `nutrient_effects_day.py` pre-date this and are left
+per §3ap). The static guard was proven to FAIL against HEAD's `nutrition.py`,
+and the corrected notice was verified against the real record rather than a
+fixture.
+

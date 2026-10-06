@@ -49,7 +49,7 @@ from app.services.nutrient_goals_service import compute_goals
 from app.services import dialysis_context
 from app.services.dialysis_day_adjustment import apply_to_totals
 from app.services.nutrient_effects_day import apply_effects_to_totals
-from app.services.nutrient_effects_service import stored_effects
+from app.services.nutrient_effects_service import measured_dates_for, stored_effects
 from app.services.nutrient_exposures import agent_pairs, exposures_for_day, screen_doses
 from app.schemas.nutrition import (
     AgentEffectsDaySummary, AppliedEffectOut, GoalNutrientEffect,
@@ -569,14 +569,25 @@ async def get_goal_progress(
                 # actually multiplies by a dose, so the page does not pay an
                 # RxNorm lookup per medication (§3ae).
                 exposures = await screen_doses(db, exposures, effects)
+                # Which nutrients this patient actually has a recent blood
+                # result for, asked of `lab_results` per analyte.
+                #
+                # This used to be the literal `measurement_fresh=False`,
+                # defended by a comment claiming "no serum draw exists in this
+                # system for the nutrients this layer covers". That was true of
+                # the old five-field struct and false of the record: on the
+                # reference account a full panel drawn five days earlier held
+                # Calcium 8.9 and Iron 42, and the page said "there isn't one"
+                # on four consecutive days (§3aa — a confident sentence
+                # standing in for a question nobody asked).
+                measured_on = await measured_dates_for(
+                    db, current_user.id,
+                    [str(g.get("key") or "") for g in goal_dicts],
+                    target_date,
+                )
                 goal_dicts, effects_day = apply_effects_to_totals(
                     goal_dicts, exposures, effects,
-                    # No serum draw exists in this system for the nutrients this
-                    # layer covers, so claiming a fresh measurement would be
-                    # inventing one. The consequence is deliberate: an effect
-                    # that would REASSURE is reported with the reason it was not
-                    # counted, rather than silently credited.
-                    measurement_fresh=False,
+                    measured_on=measured_on,
                 )
                 effects_summary = AgentEffectsDaySummary(
                     agents=effects_day.agents,

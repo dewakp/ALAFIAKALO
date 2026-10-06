@@ -39,6 +39,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Any, Iterable
 
 from sqlalchemy import select
@@ -242,6 +243,83 @@ def _row_to_effect(row: NutrientEffect) -> Effect:
         calibrated=(row.provenance in ("clinician", "measured")),
         provenance=row.provenance or "llm",
     )
+
+
+#: Goal keys carry their unit ("calcium_mg", "vitamin_b9_folate_mcg"); the
+#: analyte does not. Stripping the suffix is what lets a nutrient be matched to
+#: a lab result WITHOUT a hand-typed table — the thing that made the old
+#: five-field `SerumLevels` unable to see iron at all, on a record whose panel
+#: carries Iron, Ferritin and Iron Saturation.
+_UNIT_SUFFIXES = ("_mcg", "_kcal", "_mg", "_iu", "_ug", "_g")
+
+
+def analyte_stem(nutrient_key: str) -> str:
+    """"calcium_mg" -> "calcium". Longest suffixes first, or "_mg" eats "_mcg"."""
+    for suffix in _UNIT_SUFFIXES:
+        if nutrient_key.endswith(suffix):
+            return nutrient_key[: -len(suffix)]
+    return nutrient_key
+
+
+async def measured_dates_for(
+    db: AsyncSession,
+    user_id: int,
+    nutrient_keys: Iterable[str],
+    on_or_before: date,
+) -> dict[str, date]:
+    """Most recent blood result backing each nutrient, within the stale window.
+
+    Replaces a boolean. `apply_effects_to_totals` used to take a single
+    `measurement_fresh` flag, and the one production caller passed the literal
+    `False` — so a page told a patient "there isn't one" on four consecutive
+    days while a panel drawn five days earlier sat in `lab_results` carrying
+    Calcium 8.9. A flag nobody sets is §3ar's dead control, and here it did not
+    merely do nothing: it asserted a falsehood about the patient's own chart.
+
+    Freshness is PER ANALYTE because that is what it is. One flag cannot say
+    "calcium is measured, zinc is not", so whoever set it had to choose the
+    pessimistic answer for everything.
+
+    Matching goes through `analyte_key()` — the §3ax vocabulary that already
+    folds "ALP"/"Alk Phos" and "K+"/"Potassium" — never a second alias table.
+    An unrecognised name still yields a usable key (`canonical_name` falls
+    through to the raw wording), so a lab this vocabulary has never seen is
+    matched on its own name rather than dropped.
+
+    Measured on the reference record: of the 15 goal keys `compute_goals`
+    emits, 7 resolve to a real analyte (sodium, potassium, phosphorus,
+    cholesterol, calcium, iron, magnesium) and 8 correctly do not — there is no
+    blood test for fibre. A key absent from the result is "no RECENT result for
+    this analyte", which is what the caller must say, rather than "no blood
+    test exists".
+    """
+    from app.models.labs import LabResult
+    from app.services.dialysis_day_adjustment import STALE_DAYS
+    from app.services.docparse.dictionaries import analyte_key
+
+    stems: dict[str, str] = {}
+    for key in nutrient_keys:
+        if key:
+            stems[analyte_stem(key)] = key
+    if not stems:
+        return {}
+
+    cutoff = on_or_before - timedelta(days=STALE_DAYS)
+    rows = (await db.execute(
+        select(LabResult.test_name, LabResult.test_date).where(
+            LabResult.user_id == user_id,
+            LabResult.test_date <= on_or_before,
+            LabResult.test_date >= cutoff,
+            LabResult.value.isnot(None),
+        )
+    )).all()
+
+    newest: dict[str, date] = {}
+    for test_name, test_date in rows:
+        key = stems.get(analyte_key(test_name or ""))
+        if key and (key not in newest or test_date > newest[key]):
+            newest[key] = test_date
+    return newest
 
 
 async def stored_effects(

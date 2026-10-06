@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import date
 
 from app.services.nutrient_effects_service import (
     ADDS, BINDS_DIETARY, BLOCKS_ABSORPTION, INCREASES_REQUIREMENT, PER_DOSE_UNIT,
@@ -196,15 +197,26 @@ def apply_effects_to_totals(
     effects: list[Effect],
     *,
     measurement_fresh: bool = False,
+    measured_on: dict[str, date] | None = None,
 ) -> tuple[list[dict], EffectsDay]:
     """Attach each agent's effects to the goals they touch. Goals are copied.
 
-    `measurement_fresh` is the caller's statement that a recent, relevant
-    measurement exists. It gates only the effects that would reassure — see
-    `gate_needed`. It is a single flag rather than per-nutrient serum because
-    the nutrients this layer covers (glucose, thiamine, folate, zinc) have no
-    serum draw in this system at all; pretending otherwise would be inventing a
-    measurement that was never taken.
+    `measured_on` maps a nutrient key to the date of the most recent blood
+    result backing it (`nutrient_effects_service.measured_dates_for`). Absent
+    from the mapping means "no RECENT result for THAT analyte" — not "no blood
+    test exists", which is the sentence this used to print.
+
+    It replaces `measurement_fresh`, a single flag whose one production caller
+    passed the literal `False`. The page then told a patient a blood test did
+    not exist on four consecutive days while a panel drawn five days earlier
+    sat in `lab_results`. The flag's own docstring defended itself on the
+    grounds that "glucose, thiamine, folate, zinc have no serum draw in this
+    system" — true of some nutrients and false of others, which is exactly why
+    one boolean could not carry it. Measured on the reference record, 7 of 15
+    goal keys resolve to a real analyte and 8 genuinely do not.
+
+    `measurement_fresh` is kept as the fallback for callers that supply no
+    mapping, so existing behaviour and tests are unchanged.
     """
     day = EffectsDay()
     adjusted = [dict(goal) for goal in goals]
@@ -362,8 +374,16 @@ def apply_effects_to_totals(
             delta = -converted
 
         gated = gate_needed(effect.direction, str(goal.get("kind") or "target"))
+        # Per-analyte when the caller supplied a mapping; the old all-or-nothing
+        # flag only when it did not.
+        if measured_on is None:
+            confirmed_on = None
+            confirmed = measurement_fresh
+        else:
+            confirmed_on = measured_on.get(effect.nutrient_key)
+            confirmed = confirmed_on is not None
         withheld = None
-        if gated and not measurement_fresh:
+        if gated and not confirmed:
             # "measurement" meant a BLOOD TEST, and not saying so left the
             # reader guessing what they were supposed to have measured. The
             # sibling gate in `dialysis_day_adjustment` already says it plainly
@@ -374,10 +394,15 @@ def apply_effects_to_totals(
             # (glucose, thiamine, folate, zinc) have no serum draw in this
             # system at all, so naming an age would invent a measurement that
             # was never taken.
+            # NAME THE ANALYTE. "There isn't one" was a claim about the whole
+            # record and it was false — this record had a full panel five days
+            # earlier. What is actually missing is a recent result for THIS
+            # nutrient, which is a different and checkable statement.
+            nutrient_label = str(goal.get("name") or effect.nutrient_key)
             withheld = (
                 f"{effect.agent_label} would count in your favour here, so it "
-                "needs a recent blood test to confirm it. There isn't one, so "
-                "it is shown and not counted."
+                f"needs a recent blood test for {nutrient_label}. There isn't a "
+                "recent one on record, so it is shown and not counted."
             )
         elif not effect.calibrated and effect.provenance == "llm":
             # A model-supplied MAGNITUDE is reported, never counted.

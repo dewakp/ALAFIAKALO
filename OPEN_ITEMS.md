@@ -1274,3 +1274,88 @@ finding" is unchanged for them, and `services/elimination_text.py` remains the
 only reader that sees it. The import filled the structured column for the rows
 it inserted, not for the 654 that were already there.
 
+---
+
+## 10. Nutrient effects are display-only by construction — 2026-10-06
+
+Reported from the live screen: the Calcium row said *"Calcium Carbonate would
+count in your favour here, so it needs a recent blood test to confirm it.
+There isn't one, so it is shown and not counted."* — on **10/1, 10/2, 10/3 and
+10/4**, while the record held a panel drawn 2026-10-01 carrying
+**Calcium 8.9 mg/dL**.
+
+### 10a. The notice was false — FIXED 2026-10-06
+
+`apply_effects_to_totals` took a single `measurement_fresh: bool`, and its one
+production caller (`api/nutrition.py`) passed the literal **`False`**. The gate
+never consulted the record at all, so the sentence was emitted unconditionally
+for every gated in-favour effect, for every patient, forever. §3ar's dead
+control inverted: not a flag nothing observes, but a flag nothing *sets* —
+defaulting to the pessimistic branch and then stating it as fact about a
+patient's own chart.
+
+The call site defended itself in a comment: *"No serum draw exists in this
+system for the nutrients this layer covers."* True of the **data structure**,
+false of the **record**. `SerumLevels` has five hardcoded fields — potassium,
+phosphorus, magnesium, calcium, glucose — and `_SERUM_TESTS` is a hand-typed
+alias table of their spellings. Iron, Ferritin and Iron Saturation are all on
+the same 10/1 panel and cannot be represented at all. **This record holds 376
+distinct analytes; production holds 411; that layer could see 5.**
+
+Fixed by asking the record per analyte:
+`nutrient_effects_service.measured_dates_for()` strips the unit suffix from a
+goal key (`calcium_mg` → `calcium`) and matches it against `analyte_key()` —
+the §3ax vocabulary that already folds `ALP`/`Alk Phos` and `K+`/`Potassium` —
+with **no second alias table**. Measured on the reference record: **7 of 15
+goal keys resolve** (sodium, potassium, phosphorus, cholesterol, calcium,
+iron, magnesium) and 8 correctly do not, because there is no blood test for
+fibre. The notice now names the nutrient it lacks a result for rather than
+claiming the record has no blood test.
+
+`measurement_fresh` is kept as the fallback for callers supplying no mapping,
+so the 24 existing tests are unchanged. A static guard fails the build if any
+caller passes it as a literal again.
+
+### 10b. Nothing in this layer can EVER be counted — NEEDS DECISION
+
+The deeper finding, and the reason 10a changes no number:
+
+    calibrated = (row.provenance in ("clinician", "measured"))
+                                     nutrient_effects_service.py:242
+
+Measured on the store: **all 26 rows are `llm` or `literature_prior`**, and
+**no code path anywhere sets `provenance` to `clinician` or `measured`** —
+the grep returns empty. The only writers are `resolve_nutrient_effects.py`
+(LLM) and `seed_nutrient_effects.py`. So `calibrated` is False for every row
+and can never become True, and the branch below the freshness gate withholds
+everything regardless:
+
+    elif not effect.calibrated and effect.provenance == "llm":
+
+**The entire agent-effects layer is therefore decoration.** Fixing the blood
+test changes the sentence; the number cannot move until a calibration path
+exists. Also measured: **21 of the 26 rows have `magnitude = NULL`**, so they
+cannot be counted even in principle — that is the honest "how much it changes
+has not been established" notice on Phosphorus, Iron and Magnesium.
+
+This is the same shape as §8a's quota store: the mechanism exists, the thing
+that would make it earn its place does not. What has to be decided, because
+none of it may be invented:
+
+1. **Where a measured coefficient comes from.** The §3ac discipline is the
+   precedent: fit per patient against their own serial labs, and adopt only
+   when it beats predict-the-previous-value on a **chronological** hold-out.
+   `dialysis_solute_coefficients` already has exactly that shape — 5 rows, one
+   user, one run, 2026-08-20 — and is itself frozen.
+2. **What a `clinician` provenance means operationally.** There is no surface
+   for a clinician to confirm a magnitude, so that value is currently
+   unreachable by any route.
+3. **Whether a literature prior should count.** `Hemodialysis → protein_g
+   9 g/session` is `literature_prior` with confidence 0.8 and is excluded by
+   the same test as an LLM guess. If a named guideline figure is good enough
+   to credit, `calibrated` is the wrong question and the gate should read
+   provenance ∈ (clinician, measured, literature_prior).
+
+Until one of those is answered, every effect in the store stays "shown, not
+counted", and the layer's only function is to explain itself.
+
