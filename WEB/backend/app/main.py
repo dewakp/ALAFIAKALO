@@ -310,6 +310,84 @@ async def _geocode_practices_job() -> None:
         logger.error("[scheduler] Practice geocode error: %s", exc)
 
 
+async def _quota_resolve_job() -> None:
+    """Resolve cited nutrient quotas for conditions that have none yet.
+
+    The clock `condition_nutrient_quotas` (ap001) was built without. The store
+    resolves a figure once, cites it, and sharpens `times_confirmed` on
+    re-resolution — but nothing ever called it again, so every learning store
+    in this codebase sits at n=1 (OPEN_ITEMS §8a).
+
+    Two things it deliberately does NOT do:
+
+    * It never queries `ChronicCondition` directly. §3aa fails the build on
+      that, and rightly: conditions live in two tables and reading one is how
+      "No active conditions" was shown to a physician treating a patient with
+      End-Stage Renal Disease. It iterates users and asks
+      `clinical_sources.conditions()`, which is the canonical reader — so this
+      needs no `ALLOWED` exemption.
+    * It never re-asks for a condition that already has a quota. Re-resolution
+      is for sharpening a figure deliberately, not something a timer should
+      spend a model call on every day.
+
+    The nutrient list is READ from `compute_goals` rather than typed here, so a
+    nutrient added to the ladder is asked about automatically and this job
+    cannot drift from the thing it feeds.
+    """
+    logger.info("[scheduler] Nutrient quota resolution started")
+    from sqlalchemy import select  # lazy imports: keep startup cheap
+
+    from app.models.user import User
+    from app.services import clinical_sources as sources
+    from app.services import nutrient_quota_service as nqs
+    from app.services.nutrient_goals_service import compute_goals
+
+    nutrient_keys = [
+        g["key"] for g in (compute_goals().get("goals") or []) if g.get("key")
+    ]
+    budget = max(1, settings.QUOTA_RESOLVE_MAX_PER_RUN)
+    resolved = already = failed = 0
+    try:
+        async with async_session() as db:
+            user_ids = list((await db.execute(
+                select(User.id).where(User.is_active.is_(True))
+            )).scalars().all())
+
+            seen: set[str] = set()
+            for uid in user_ids:
+                if resolved >= budget:
+                    break
+                for cond in await sources.conditions(db, uid, active_only=True):
+                    if resolved >= budget:
+                        break
+                    label = (cond.name or "").strip()
+                    key = nqs.normalize_condition(label)
+                    if not key or key in seen:
+                        continue
+                    seen.add(key)
+
+                    if await nqs.stored_quotas(db, [label]):
+                        already += 1
+                        continue
+
+                    rows = await nqs.resolve_quota(
+                        db, label, nutrient_keys=nutrient_keys)
+                    await db.commit()
+                    resolved += 1
+                    if not rows:
+                        # A condition no guideline gives a figure for is a real
+                        # and common answer — KDIGO states none for dialysis
+                        # calcium. Counted, not treated as an error.
+                        failed += 1
+        logger.info(
+            "[scheduler] Nutrient quota resolution complete — %d asked, "
+            "%d of those yielded no cited figure, %d conditions already had quotas",
+            resolved, failed, already,
+        )
+    except Exception as exc:
+        logger.error("[scheduler] Nutrient quota resolution error: %s", exc)
+
+
 @app.on_event("startup")
 async def startup_event():
     """Validate config & seed data on first boot."""
@@ -404,6 +482,31 @@ async def startup_event():
         logger.info("[scheduler] Practice geocode enabled — every %dh", hours)
     else:
         logger.info("[scheduler] Practice geocode disabled (set PRACTICE_GEOCODE_ENABLED=true)")
+
+    # The quota store's clock. Off by default — it makes real model calls, so
+    # enabling it is a cost decision per environment, not a deploy side effect.
+    # The first run is delayed 10 minutes so a restart loop cannot turn into a
+    # burst of provider traffic, and the job is bounded per run.
+    if settings.QUOTA_RESOLVE_ENABLED:
+        hours = max(1, settings.QUOTA_RESOLVE_INTERVAL_HOURS)
+        _scheduler.add_job(
+            _quota_resolve_job,
+            trigger="interval",
+            hours=hours,
+            id="quota_resolve",
+            replace_existing=True,
+            max_instances=1,   # never overlap a still-running resolution pass
+            coalesce=True,     # collapse missed runs into one catch-up
+            misfire_grace_time=3600,
+            next_run_time=datetime.now(timezone.utc) + timedelta(minutes=10),
+        )
+        logger.info(
+            "[scheduler] Nutrient quota resolution enabled — every %dh, "
+            "max %d conditions per run", hours, settings.QUOTA_RESOLVE_MAX_PER_RUN)
+    else:
+        logger.info(
+            "[scheduler] Nutrient quota resolution disabled "
+            "(set QUOTA_RESOLVE_ENABLED=true)")
 
     # Start the shared scheduler if any job was registered (and not already running).
     if _scheduler.get_jobs() and not _scheduler.running:

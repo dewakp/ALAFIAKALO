@@ -228,6 +228,22 @@ class Settings(BaseSettings):
     # still lacking precise coords). Disable in test/CI or when running >1 replica.
     PRACTICE_GEOCODE_ENABLED: bool = True
     PRACTICE_GEOCODE_INTERVAL_HOURS: int = 24  # daily
+
+    # ── Nutrient quota resolution (ap001) ────────────────────────────────
+    # The CLOCK the quota store never had. `condition_nutrient_quotas` holds
+    # cited per-condition figures, and nothing re-resolves — which is why
+    # `times_confirmed` sits at 1 for every store in this codebase that was
+    # designed to sharpen (OPEN_ITEMS §8a).
+    #
+    # Default OFF, like FIREBASE_SYNC_ENABLED: this job makes real model calls,
+    # so enabling it by default would start provider traffic on every deploy
+    # that nobody asked for. Turn it on deliberately, per environment.
+    QUOTA_RESOLVE_ENABLED: bool = False
+    QUOTA_RESOLVE_INTERVAL_HOURS: int = 24
+    #: Conditions resolved per run. Bounded because each one is an LLM call and
+    #: an unbounded first run over every condition on the platform is a cost
+    #: decision, not a default.
+    QUOTA_RESOLVE_MAX_PER_RUN: int = 5
     PRACTICE_GEOCODE_BATCH_LIMIT: int = 5000   # addresses per Census batch call
     PRACTICE_GEOCODE_MAX_BATCHES: int = 6      # cap passes per run (~30k/run)
 

@@ -4291,8 +4291,15 @@ Non-obvious points, each already the cause of a bug:
   `quota.cited_text` and `quota.tension` are returned and **nothing draws them
   yet** — a patient sees the right number without seeing which guideline set
   it, or that two of their conditions disagree.
-- ⚠️ **No clock.** Nothing re-resolves, so `times_confirmed` stays 1, exactly
-  as for all six stores in "every learning loop is frozen at n=1".
+- **The clock exists now** — `_quota_resolve_job`, off by default
+  (`QUOTA_RESOLVE_ENABLED=False`), because each pass makes real model calls and
+  a deploy must not start provider traffic nobody chose. It asks
+  `clinical_sources.conditions()` per user rather than querying
+  `ChronicCondition`, so it needs no §3aa exemption; it skips conditions that
+  already hold a quota; and it reads the nutrient list from `compute_goals` so
+  it cannot drift from the ladder it feeds. ⚠️ Still OFF everywhere, so
+  `times_confirmed` stays 1 until someone decides to spend on it — the
+  mechanism is no longer what is missing.
 - ⚠️ **The drug axis has lost its authority.** NLM retired the **RxNav Drug
   Interaction API on ~2 Jan 2024** with no replacement (ONCHigh and DrugBank
   went with it); RxNorm/RxClass/RxTerms remain. Drug→nutrient effects exist

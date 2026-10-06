@@ -1117,10 +1117,27 @@ re-resolution would have computed `""`, missed the row and inserted beside it:
 
 #### What is still open
 
-1. **There is no clock.** Nothing re-resolves, so `times_confirmed` stays 1
-   exactly as it does for all six stores in §"Every learning loop is frozen at
-   n=1". APScheduler is already imported in `main.py`. Until a job runs,
-   coverage is the seven seeded rows plus whatever a script resolves.
+1. ~~There is no clock.~~ **BUILT 2026-10-06 — `_quota_resolve_job` in
+   `main.py`**, gated on `QUOTA_RESOLVE_ENABLED` which defaults to **False**
+   because every pass makes real model calls, and a deploy must not start
+   provider traffic nobody chose (the `FIREBASE_SYNC_ENABLED` precedent).
+   Bounded by `QUOTA_RESOLVE_MAX_PER_RUN` (default 5), first run delayed 10
+   minutes so a restart loop cannot become a traffic burst, `max_instances=1`
+   and `coalesce=True`.
+
+   It iterates users and asks `clinical_sources.conditions()` rather than
+   touching `ChronicCondition` — so it needs **no** §3aa `ALLOWED` exemption,
+   confirmed by running that guard (7 passed). It skips any condition that
+   already has a quota, since re-resolution is for sharpening deliberately and
+   not something a timer should spend a model call on daily. The nutrient list
+   is read from `compute_goals` rather than typed, so a nutrient added to the
+   ladder is asked about automatically.
+
+   ⚠️ **It is still OFF in every environment**, so `times_confirmed` remains 1
+   until someone sets the flag. The mechanism now exists; the decision to spend
+   on it does not. `tests/test_quota_resolve_job.py` guards the default
+   precisely because flipping it is a cost regression no behavioural test
+   would notice.
 2. **The drug axis is unmodelled, and its authority is gone.** NLM retired the
    **RxNav Drug Interaction API on ~2 Jan 2024** with no replacement (ONCHigh
    and DrugBank went with it); RxNorm/RxClass/RxTerms remain. Drug→nutrient

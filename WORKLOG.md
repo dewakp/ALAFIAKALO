@@ -2758,3 +2758,54 @@ deliberately no `push_prod.sh`. Full detail: OPEN_ITEMS §9.
 `pull_prod.sh --yes` → **✅ PARITY OK**, 134 tables, byte-identical across
 `public` and `identity`.
 
+### Later the same day — the AI smoke test, and the clock
+
+Operator: *"run AI smoke test. push . all next steps"*.
+
+**The AI smoke test passes, with a token.** It had been skipped all session for
+want of one, and `smoke.sh` says so in its own words rather than printing
+green — the distinction that missed a 27-day outage. No token-minting helper
+exists anywhere, so one was minted against prod's `alafia-secret-key`:
+`{"sub": "62", "type": "access", "exp": …}`, HS512, 30 minutes. §3d's trap is
+real and was navigated by reading the secret through base64 — 88 base64 chars
+decode to **65 bytes**, so the trailing newline survived; shell substitution
+would have stripped it, signed with 64, and produced a well-formed token the
+service rejects.
+
+    planners/meal-suggestions         200 in 4s
+    personalization/recommendations   200 in 7s
+
+4s and 7s means the **hosted pool** answered, not a cold Ollama GPU (~250s) —
+production's documented order, working. Entitlement was checked first rather
+than discovered as a 402: user 62's only subscription row is `canceled`, and
+`_ENTITLING_STATUSES` includes CANCELED, so with a period end of 2026-10-28 it
+entitles. `smoke.sh` has no 402 arm, so a guess here would have read as an AI
+outage.
+
+**Pushed**: `aa57d49..c054aa6`. **Proof user re-seeded** after the re-pull
+wiped it — `make_proof_user.py` takes EMAIL and PASSWORD positionally, and the
+pair must match `prove_ui_contracts.py` (`uiproof@example.com` /
+`ProofPassw0rd!23`) or the prover cannot log into what the seeder made. Noted
+that re-seeding re-breaks parity by exactly one row; `medication_dose_logs`
+was untouched at 1,025 because that history is real prod data, not a fixture.
+
+**The quota store has a clock** — `_quota_resolve_job`, off by default. Detail
+in OPEN_ITEMS §8a, which previously said "there is no clock" and has been
+corrected rather than left to go stale.
+
+**Two bugs in my own tests, fixed from the traceback rather than a hunch:**
+`_one_active_user` hardcoded one email, so the "two patients, one condition"
+test hit `UniqueViolationError` on `ix_users_email` — which did not merely fail
+that assertion, it poisoned the session and the fixture teardown then raised
+PendingRollbackError on top, turning one clear failure into two confusing ones.
+And my `stored_quotas` stub was keyed on the repr of the list the job wraps a
+label in, so every condition looked unresolved. 9 passed after.
+
+**Also recorded: five wrong-path greps in one session** — `deploy.sh` at the
+repo root (it is `deploy/gcp/deploy.sh`), DEPLOY.md under a drifted cwd,
+`scripts/import_elimination_history.py` (it is under `WEB/backend/`),
+`app/core/subscription.py` (the file is `entitlement.py`), and `is_entitled`
+searched for in entitlement.py when it lives on the model. An empty result from
+a wrong path proves nothing, and parallel Bash calls sharing one cwd caused two
+of the five.
+
