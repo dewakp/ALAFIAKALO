@@ -45,6 +45,7 @@ const Medications = lazy(() => import('./pages/Medications'));
 const AIChat = lazy(() => import('./pages/AIChat'));
 const Profile = lazy(() => import('./pages/Profile'));
 const ChronicConditions = lazy(() => import('./pages/ChronicConditions'));
+const HospitalHistory = lazy(() => import('./pages/HospitalHistory'));
 const Capture = lazy(() => import('./pages/Capture'));
 const MentalHealth = lazy(() => import('./pages/MentalHealth'));
 const CommunityHealth = lazy(() => import('./pages/CommunityHealth'));
@@ -147,6 +148,7 @@ export default function App() {
           <Route path="capture" element={<Capture />} />
           <Route path="profile" element={<Profile />} />
           <Route path="chronic-conditions" element={<ChronicConditions />} />
+          <Route path="hospital-history" element={<HospitalHistory />} />
           <Route path="privacy-settings" element={<PrivacySettings />} />
           <Route path="mood" element={<Mood />} />
           <Route path="lifestyle" element={<Lifestyle />} />

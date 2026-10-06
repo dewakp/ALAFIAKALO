@@ -298,6 +298,7 @@ async def sync_connection(
     from app.models.vitals import VitalsLog
     from app.models.medications import Medication
     from app.models.chronic_conditions import ChronicCondition
+    from app.models.hospitalization import Hospitalization, SurgicalProcedure
 
     conn = (await db.execute(
         select(EHRConnection).where(
@@ -312,7 +313,8 @@ async def sync_connection(
 
     token = await _valid_access_token(conn, db)
     base, pid = conn.fhir_base_url, conn.patient_id
-    counts = {"labs": 0, "vitals": 0, "medications": 0, "conditions": 0}
+    counts = {"labs": 0, "vitals": 0, "medications": 0, "conditions": 0,
+              "hospitalizations": 0, "procedures": 0}
 
     async def existing_markers(model) -> set[str]:
         rows = (await db.execute(
@@ -368,6 +370,58 @@ async def sync_connection(
             db.add(ChronicCondition(user_id=current_user.id, **row))
             seen.add(row["notes"])
             counts["conditions"] += 1
+
+    # Hospital stays, then the procedures performed during them.
+    #
+    # `hospitalizations` and `surgical_procedures` carry a real `external_ref`,
+    # so the dedupe marker lives there instead of being parked in `notes` the
+    # way the four domains above have to.
+    async def existing_refs(model) -> set[str]:
+        rows = (await db.execute(
+            select(model.external_ref).where(
+                model.user_id == current_user.id,
+                model.external_ref.ilike("FHIR:%"))
+        )).scalars().all()
+        return set(rows)
+
+    encounters = await smart_fhir.fhir_search(base, token, "Encounter",
+                                              {"patient": pid, "_count": 100})
+    seen = await existing_refs(Hospitalization)
+    for enc in encounters:
+        row = smart_fhir.map_encounter(enc)
+        if row and row["external_ref"] not in seen:
+            db.add(Hospitalization(user_id=current_user.id, **row))
+            seen.add(row["external_ref"])
+            counts["hospitalizations"] += 1
+
+    # The stays must hold database ids before a procedure can point at one.
+    await db.flush()
+    # Keyed over EVERY stay this patient has, not just the ones added above: a
+    # procedure arriving in today's sync routinely belongs to an encounter
+    # imported weeks ago, and looking only at this run would orphan it.
+    stay_id_by_ref = dict((await db.execute(
+        select(Hospitalization.external_ref, Hospitalization.id).where(
+            Hospitalization.user_id == current_user.id,
+            Hospitalization.external_ref.ilike("FHIR:%"))
+    )).all())
+
+    fhir_procedures = await smart_fhir.fhir_search(base, token, "Procedure",
+                                                   {"patient": pid, "_count": 100})
+    seen = await existing_refs(SurgicalProcedure)
+    for p in fhir_procedures:
+        row = smart_fhir.map_procedure(p)
+        if not row or row["external_ref"] in seen:
+            continue
+        enc_id = row.pop("_encounter_fhir_id")
+        # An encounter the portal never returned leaves this UNATTACHED rather
+        # than dropping the procedure. A surgical history that silently omits
+        # every operation whose paperwork is missing is worse than one that
+        # records the operation without the stay.
+        row["hospitalization_id"] = (
+            stay_id_by_ref.get(f"FHIR:{enc_id}") if enc_id else None)
+        db.add(SurgicalProcedure(user_id=current_user.id, **row))
+        seen.add(row["external_ref"])
+        counts["procedures"] += 1
 
     conn.last_sync_at = datetime.now(timezone.utc)
     conn.status = "connected"

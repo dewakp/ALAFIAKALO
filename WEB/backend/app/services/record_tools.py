@@ -733,7 +733,101 @@ async def get_labs(db: AsyncSession, user_id: int, *,
 #: The tool surface, in Anthropic's schema. Descriptions are written for the
 #: MODEL to choose between them — they describe the data, never the phrasing of
 #: any question.
+async def get_surgical_history(db: AsyncSession, user_id: int, *,
+                               today: date | None = None) -> dict[str, Any]:
+    """Hospital stays, every operation, and what they STILL do to the patient.
+
+    This exists because a patient said they take calcium "after removal of
+    parathyroid glands" and the assistant had no way to know: the record could
+    not hold the fact, so no retrieval could find it and the answer fell back
+    to a generic bone-health figure. `lasting_effects` is reported separately
+    and first-class, because that is what a question about calcium, phosphate
+    or bone actually needs — the operation list alone does not explain it.
+
+    Not windowed. A parathyroidectomy from 2019 governs this patient's calcium
+    today, so a default recency window here would hide the whole point.
+
+    PRIVACY (§3al, and this module's contract): facility names and surgeon
+    names are deliberately NOT returned, and neither is the canonical reader's
+    `admission` label — that label embeds the hospital's name. Whether a
+    procedure happened during an inpatient stay is clinical; WHERE it happened
+    is identifying and no clinical question here needs it.
+    """
+    from app.services import clinical_sources
+
+    stays = await clinical_sources.hospitalizations(db, user_id)
+    procedures = await clinical_sources.procedures(db, user_id)
+    effects = await clinical_sources.lasting_surgical_effects(db, user_id)
+
+    def _procedure(p) -> dict[str, Any]:
+        out: dict[str, Any] = {"name": p.name,
+                               "during_hospital_stay": p.admission is not None}
+        if p.performed:
+            out["performed"] = p.performed
+        if p.code:
+            # The code travels WITH its system or it is unusable — ICD-10-PCS,
+            # CPT, SNOMED and ICHI are different vocabularies (§3ad).
+            out["code"] = p.code
+            out["code_system"] = p.code_system
+        if p.body_site:
+            out["body_site"] = p.body_site
+        if p.outcome:
+            out["outcome"] = p.outcome
+        if p.ongoing_effects:
+            out["ongoing_effects"] = p.ongoing_effects
+        return out
+
+    def _stay(s) -> dict[str, Any]:
+        out: dict[str, Any] = {"admitted": s.admitted}
+        if s.discharged:
+            out["discharged"] = s.discharged
+        # `nights` is None whenever EITHER end is unknown, so it is reported
+        # only when it exists and never turned into "still an inpatient" —
+        # `status` is what states that, and inferring it from a missing
+        # discharge date would invent a fact (§0).
+        if s.nights is not None:
+            out["nights"] = s.nights
+        if s.status:
+            out["status"] = s.status
+        if s.admission_type:
+            out["admission_type"] = s.admission_type
+        if s.reason:
+            out["reason"] = s.reason
+        if s.diagnosis:
+            out["diagnosis"] = s.diagnosis
+        if s.procedures:
+            out["procedures"] = [_procedure(p) for p in s.procedures]
+        return out
+
+    return {
+        "hospital_stays": [_stay(s) for s in stays][:_MAX_ROWS],
+        # EVERY procedure, including those with no admission. A caller walking
+        # stays→procedures loses the day-case and historical operations, which
+        # is the half that matters most here.
+        "procedures": [_procedure(p) for p in procedures][:_MAX_ROWS],
+        "lasting_effects": effects[:_MAX_ROWS],
+        "how_to_read": (
+            "`lasting_effects` is what past surgery still does to this patient "
+            "and is stated in the record, never inferred from a procedure name "
+            "— if an operation has a lasting consequence that is not listed "
+            "here, the record does not state one, so do not assume it. "
+            "`procedures` includes operations with no hospital stay attached. "
+            "Facility and surgeon names are not returned."),
+    }
+
+
 TOOL_SPECS: list[dict[str, Any]] = [
+    {
+        "name": "get_surgical_history",
+        "description": "Hospital admissions and surgical operations, plus "
+                       "what past surgery STILL does to the patient today. "
+                       "Call this for any question about an operation, a "
+                       "hospital stay, or a requirement it left behind — "
+                       "removed organs or glands change what a patient needs "
+                       "for the rest of their life, and a nutrient or "
+                       "medication question can be unanswerable without it.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
     {
         "name": "get_meals",
         "description": "Food the patient logged. Returns calories and the core "
@@ -1123,6 +1217,7 @@ async def log_medication(
 #: unknown key. `tests/test_ai_tool_use.py` pins both halves — every tool has a
 #: label, and no spec carries a field the wire does not expect.
 TOOL_LABELS = {
+    "get_surgical_history": "Checking your surgical history",
     "get_meals": "Checking your meals",
     "get_eliminations": "Checking your symptom log",
     "get_medications": "Checking your medications",
@@ -1139,6 +1234,7 @@ TOOL_LABELS = {
 WRITE_TOOLS = frozenset({"log_meal", "log_medication"})
 
 TOOLS = {
+    "get_surgical_history": get_surgical_history,
     "get_meals": get_meals,
     "get_eliminations": get_eliminations,
     "get_medications": get_medications,

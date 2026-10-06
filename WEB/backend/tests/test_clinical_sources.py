@@ -35,6 +35,15 @@ GUARDED = {
     # one place `_flowsheet_items`); this guard stops the NEXT reader from
     # going straight to the table and emitting both, which doubles every dose.
     "SessionDrug": "administrations live in BOTH drugs_administered and session_drugs",
+    # Hospital history arrives from THREE paths — a FHIR Encounter/Procedure
+    # import, a parsed discharge summary, and manual entry — and a procedure
+    # may exist with or without the admission it belonged to (day-case surgery
+    # and anything recorded years later have no encounter). A reader that takes
+    # `hospitalizations` alone misses standalone procedures; one that takes
+    # `surgical_procedures` alone misses the stay. Guarded BEFORE a second
+    # reader exists, rather than after one has already hidden half the history.
+    "Hospitalization": "stays and procedures are separate rows and either can stand alone",
+    "SurgicalProcedure": "a procedure may have no admission; an admission may have no procedure",
 }
 
 # Files allowed to touch them directly.
@@ -43,6 +52,12 @@ ALLOWED = {
     "models/",                        # model definitions and relationships
     "api/chronic_conditions.py",      # the WRITER for chronic_conditions
     "api/medications.py",             # the WRITER for medications + dose logs
+    # The WRITER for stays and procedures (create / update / delete, plus the
+    # ownership checks those need). Its one READ surface, `GET /history`, goes
+    # through clinical_sources like every other clinical read — a query here
+    # that started from `hospitalizations` would lose every procedure with no
+    # admission, which is the exact fact these models exist to hold.
+    "api/hospitalization.py",
     # The assistant's `log_medication` tool is also a WRITER of dose logs, and
     # the one read it does is an idempotency check scoped to the exact row it
     # is about to insert (same user, date, drug, dose) — not a clinical

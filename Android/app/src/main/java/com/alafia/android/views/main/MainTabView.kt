@@ -45,6 +45,7 @@ import com.alafia.android.views.medications.MedicationsScreen
 import com.alafia.android.views.lifestyle.LifestyleScreen
 import com.alafia.android.views.ai.AIChatScreen
 import com.alafia.android.views.chronic.ChronicConditionsScreen
+import com.alafia.android.views.hospital.HospitalHistoryScreen
 import com.alafia.android.views.privacy.PrivacySettingsScreen
 import com.alafia.android.views.insurance.InsuranceScreen
 import com.alafia.android.views.subscription.SubscriptionScreen
@@ -235,6 +236,10 @@ fun MainTabView(
 
             composable("chronic-conditions") {
                 ChronicConditionsScreen(navController = innerNavController)
+            }
+
+            composable("hospital-history") {
+                HospitalHistoryScreen(navController = innerNavController)
             }
 
             composable("privacy-settings") {
@@ -434,6 +439,7 @@ fun MoreScreen(
             MoreGridItem("My Profile", Icons.Default.Person, "profile"),
             MoreGridItem("Role", Icons.Default.Badge, "roles"),
             MoreGridItem("Conditions", Icons.Default.MonitorHeart, "chronic-conditions"),
+            MoreGridItem("Hospital", Icons.Default.LocalHospital, "hospital-history"),
             MoreGridItem("Directives", Icons.Default.Description, "advanced-directives"),
             MoreGridItem("Insurance", Icons.Default.Shield, "insurance"),
             MoreGridItem("Health Sync", Icons.Default.Sync, "health-sync"),

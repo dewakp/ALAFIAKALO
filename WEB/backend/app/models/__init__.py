@@ -150,6 +150,27 @@ from app.models.flagged_estimate import FlaggedEstimate
 from app.models.document_import import DocumentImport, DocumentImportItem
 from app.models.import_judgment import DocumentRowJudgment
 from app.models.dialysis_coefficients import DialysisSoluteCoefficient
+# `facilities` was the ONLY model module this package never imported — measured
+# 2026-10-05, every other module is here. SQLAlchemy resolves a string
+# ForeignKey against `Base.metadata`, and the test fixture builds its schema
+# with `Base.metadata.create_all` after importing exactly this package, so
+# `facilities` and `physician_facilities` were absent from every test database:
+#
+#   NoReferencedTableError: Foreign key associated with column
+#   'hospitalizations.facility_id' could not find table 'facilities'
+#
+# The app itself was unaffected because its routers import the module
+# transitively — which is why this survived unnoticed, and why any test
+# touching a facility path was running against a schema that had no such table
+# (§3aj: a suite that cannot reach the thing it tests is not evidence).
+from app.models.facilities import Facility, FacilityType, PhysicianFacility
+from app.models.hospitalization import (
+    Hospitalization,
+    SurgicalProcedure,
+    AdmissionType,
+    AdmissionStatus,
+    ProcedureOutcome,
+)
 from app.models.subscription import (
     Subscription,
     SubscriptionEvent,
@@ -298,6 +319,14 @@ __all__ = [
     "DocumentImport",
     "DocumentImportItem",
     "DialysisSoluteCoefficient",
+    "Facility",
+    "FacilityType",
+    "PhysicianFacility",
+    "Hospitalization",
+    "SurgicalProcedure",
+    "AdmissionType",
+    "AdmissionStatus",
+    "ProcedureOutcome",
     "LabeledFoodImage",
     "Subscription",
     "SubscriptionEvent",

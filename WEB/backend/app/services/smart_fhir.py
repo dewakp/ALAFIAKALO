@@ -33,6 +33,12 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Enum members, not strings: `SQLEnum` persists these by NAME, and handing the
+# writer a bare value string makes the mapping depend on a lookup that is not
+# obvious from here. Returning the member is unambiguous at every call site.
+from app.models.hospitalization import (AdmissionStatus, AdmissionType,
+                                        ProcedureOutcome)
+
 EPIC_DIRECTORY_URL = "https://open.epic.com/Endpoints/R4"
 
 # Patient-access scopes. Epic grants only what the app registration + the
@@ -457,4 +463,244 @@ def map_condition(cond: dict) -> dict | None:
             row["diagnosis_date"] = dt.astimezone(timezone.utc).replace(tzinfo=None)
         except ValueError:
             pass
+    return row
+
+
+# ── Encounters and procedures ────────────────────────────────────────────────
+#
+# `hospitalizations` and `surgical_procedures` carry a real `external_ref`
+# column, so unlike map_condition — which has to park `FHIR:{id}` in `notes`
+# because chronic_conditions has nowhere else to put it — the dedupe marker
+# goes in the field meant for it. Same convention, better home.
+
+def _fhir_dt(value: str | None) -> datetime | None:
+    """FHIR instant/dateTime → tz-naive UTC, or None.
+
+    Both target columns are `DateTime` without timezone. Storing the aware
+    value raises asyncpg DataError on comparison, which is the fault that once
+    rendered 730 dialysis sessions as "no sessions found" (§3aa).
+    """
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
+#: FHIR v3-ActCode `Encounter.class` → our admission type.
+#:
+#: Deliberately PARTIAL. `EMER` and `OBSENC` mean exactly what our enum means;
+#: `IMP` says inpatient (which is a setting, not a reason), `AMB` says
+#: ambulatory, and neither states whether the admission was elective, urgent or
+#: a day case. Mapping them to the nearest-looking member would put a clinical
+#: claim in the record that the source never made — §3ad's "never type a code
+#: from memory", applied to the other end of the same problem. Unmapped leaves
+#: `admission_type` NULL, which is honest and is what the column allows.
+_ENCOUNTER_CLASS = {
+    "EMER": AdmissionType.EMERGENCY,
+    "OBSENC": AdmissionType.OBSERVATION,
+}
+
+#: FHIR Encounter.status → our lifecycle. `entered-in-error` and `unknown` are
+#: deliberately absent: they are not states of a stay, and importing one as a
+#: stay would assert something happened.
+_ENCOUNTER_STATUS = {
+    "planned": AdmissionStatus.PLANNED,
+    "arrived": AdmissionStatus.IN_PROGRESS,
+    "triaged": AdmissionStatus.IN_PROGRESS,
+    "in-progress": AdmissionStatus.IN_PROGRESS,
+    "onleave": AdmissionStatus.IN_PROGRESS,
+    "finished": AdmissionStatus.DISCHARGED,
+    "cancelled": AdmissionStatus.CANCELLED,
+}
+
+#: SNOMED CT outcome codes used by FHIR Procedure.outcome.
+_PROCEDURE_OUTCOME_CODES = {
+    "385669000": ProcedureOutcome.SUCCESSFUL,
+    "385670004": ProcedureOutcome.PARTIALLY_SUCCESSFUL,
+    "385671000": ProcedureOutcome.UNSUCCESSFUL,
+}
+
+#: Coding system URI → the short label stored in `code_system`. The code itself
+#: is kept exactly as the source gave it; an unrecognised system is stored as
+#: its own URI rather than dropped, because losing which vocabulary a code
+#: belongs to makes the code unusable (and SNOMED/CPT licensing means we must
+#: never silently restate one as another).
+_CODE_SYSTEMS = {
+    "http://snomed.info/sct": "SNOMED",
+    "http://www.ama-assn.org/go/cpt": "CPT",
+    "http://www.cms.gov/medicare/coding/icd10": "ICD-10-PCS",
+    "http://hl7.org/fhir/sid/ex-icd-10-procedures": "ICD-10-PCS",
+    "http://id.who.int/icd/release/11/mms": "ICD-11",
+}
+
+
+def _first_coding(codeable: dict | None) -> tuple[str | None, str | None]:
+    """(code, code_system label) from the first coding that carries a code."""
+    for c in (codeable or {}).get("coding", []) or []:
+        code = c.get("code")
+        if not code:
+            continue
+        system = (c.get("system") or "").strip()
+        return code, _CODE_SYSTEMS.get(system.lower(), system or None)
+    return None, None
+
+
+def _reference_id(ref: dict | None) -> str | None:
+    """"Encounter/abc123" → "abc123"."""
+    value = (ref or {}).get("reference") or ""
+    return value.rsplit("/", 1)[-1] or None
+
+
+def map_encounter(enc: dict) -> dict | None:
+    """FHIR Encounter → `hospitalizations` row values.
+
+    Returns None when the stay has no start: `admitted_at` is the one required
+    clinical date, and a stay with no beginning is not a stay.
+
+    Also returns None with no resource `id`. A FHIR server always supplies one
+    for a searched resource, and without it the dedupe marker would be the
+    literal "FHIR:None" — so two such stays would dedupe AGAINST EACH OTHER
+    and the second real admission would be skipped as a duplicate and lost
+    silently. Refusing an un-dedupable row is the safer direction: §3ab's
+    contradictory-copy failure, except this version deletes rather than
+    duplicates, which is harder to notice.
+    """
+    if not enc.get("id"):
+        return None
+    period = enc.get("period") or {}
+    admitted = _fhir_dt(period.get("start"))
+    if not admitted:
+        return None
+
+    row: dict = {
+        "admitted_at": admitted,
+        "discharged_at": _fhir_dt(period.get("end")),
+        "source": "fhir",
+        "external_ref": f"FHIR:{enc.get('id')}",
+    }
+
+    status = _ENCOUNTER_STATUS.get((enc.get("status") or "").lower())
+    if status:
+        row["status"] = status
+    cls = ((enc.get("class") or {}).get("code") or "").upper()
+    admission_type = _ENCOUNTER_CLASS.get(cls)
+    if admission_type:
+        row["admission_type"] = admission_type
+
+    # The facility: the organisation that provided the service, else the first
+    # named location. Only the NAME — the directory link is resolved by the
+    # caller if it recognises the hospital at all.
+    provider = (enc.get("serviceProvider") or {}).get("display")
+    if not provider:
+        for loc in enc.get("location") or []:
+            provider = (loc.get("location") or {}).get("display")
+            if provider:
+                break
+    if provider:
+        row["facility_name"] = provider[:300]
+
+    reasons = [_code_text(r) for r in (enc.get("reasonCode") or [])]
+    reasons = [r for r in reasons if r]
+    if reasons:
+        row["reason"] = "; ".join(reasons)[:300]
+
+    for diag in enc.get("diagnosis") or []:
+        name = (diag.get("condition") or {}).get("display")
+        if name:
+            row["primary_diagnosis"] = name[:300]
+            break
+
+    disposition = _code_text((enc.get("hospitalization") or {}).get("dischargeDisposition"))
+    if disposition:
+        row["discharge_disposition"] = disposition[:120]
+
+    return row
+
+
+def map_procedure(proc: dict) -> dict | None:
+    """FHIR Procedure → `surgical_procedures` row values.
+
+    The returned dict carries one NON-column key, `_encounter_fhir_id`, naming
+    the Encounter this procedure belonged to (or None). The caller pops it to
+    resolve `hospitalization_id` against an already-imported stay — a procedure
+    whose encounter was not imported still lands, unattached, which is the case
+    the nullable FK exists for.
+
+    Returns None for a procedure that was never performed. `not-done` and
+    `entered-in-error` are statements that nothing happened; importing either
+    as a row in a surgical history would assert an operation the patient never
+    had.
+    """
+    # No resource id → no usable dedupe marker. See map_encounter.
+    if not proc.get("id"):
+        return None
+
+    status = (proc.get("status") or "").lower()
+    if status in ("not-done", "entered-in-error"):
+        return None
+
+    name = _code_text(proc.get("code"))
+    if not name:
+        return None
+
+    code, code_system = _first_coding(proc.get("code"))
+    performed = _fhir_dt(proc.get("performedDateTime"))
+    if not performed:
+        performed = _fhir_dt((proc.get("performedPeriod") or {}).get("start"))
+
+    row: dict = {
+        "name": name[:300],
+        "performed_at": performed,
+        "source": "fhir",
+        "external_ref": f"FHIR:{proc.get('id')}",
+        "_encounter_fhir_id": _reference_id(proc.get("encounter")),
+    }
+    if code:
+        row["code"] = code[:40]
+    if code_system and len(code_system) <= 40:
+        row["code_system"] = code_system
+    elif code_system:
+        # An unrecognised system URI too long for the column is kept WHOLE in
+        # notes rather than truncated into it. Half a URI is not a vocabulary
+        # name, it is a wrong one — and a code attributed to the wrong system
+        # is more dangerous than a code with no system at all, which is the
+        # entire reason `code` and `code_system` travel together.
+        row["notes"] = f"code system: {code_system}"
+
+    sites = [_code_text(s) for s in (proc.get("bodySite") or [])]
+    sites = [s for s in sites if s]
+    if sites:
+        row["body_site"] = "; ".join(sites)[:200]
+
+    for outcome in ([proc["outcome"]] if proc.get("outcome") else []):
+        mapped = next((_PROCEDURE_OUTCOME_CODES[c] for c in _coding_codes(outcome)
+                       if c in _PROCEDURE_OUTCOME_CODES), None)
+        if mapped:
+            row["outcome"] = mapped
+
+    for performer in proc.get("performer") or []:
+        who = (performer.get("actor") or {}).get("display")
+        if who:
+            row["surgeon"] = who[:200]
+            break
+
+    where = (proc.get("location") or {}).get("display")
+    if where:
+        row["facility_name"] = where[:300]
+
+    complications = [_code_text(c) for c in (proc.get("complication") or [])]
+    complications = [c for c in complications if c]
+    if complications:
+        row["complications"] = "; ".join(complications)
+
+    # `ongoing_effects` is deliberately NEVER set here. FHIR Procedure has no
+    # field for it, and deriving "parathyroid glands removed → calcium must be
+    # supplemented" from the procedure NAME would be the system inventing a
+    # clinical fact the source never stated (§0). It comes from a discharge
+    # summary, a clinician, or the patient — all of which say it in words.
     return row

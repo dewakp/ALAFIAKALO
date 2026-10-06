@@ -166,6 +166,12 @@ class User(Base):
     therapy_sessions = relationship("TherapySession", back_populates="user", foreign_keys="[TherapySession.user_id]", cascade="all, delete-orphan")
     condition_metrics = relationship("ConditionMetric", back_populates="user", cascade="all, delete-orphan")
 
+    # Hospital history. A parathyroidectomy is the fact that makes one dialysis
+    # patient's calcium reality different from another's, and until these models
+    # existed the record could not hold it at all.
+    hospitalizations = relationship("Hospitalization", back_populates="user", cascade="all, delete-orphan")
+    surgical_procedures = relationship("SurgicalProcedure", back_populates="user", cascade="all, delete-orphan")
+
     # EHR & Media
     ehr_connections = relationship("EHRConnection", back_populates="user", cascade="all, delete-orphan")
     media_assets = relationship("MediaAsset", back_populates="user", cascade="all, delete-orphan")

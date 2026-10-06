@@ -356,6 +356,48 @@ interface ApiService {
     @POST("privacy/delete-account")
     suspend fun requestAccountDeletion()
 
+    // Hospital & Surgery History
+    //
+    // `history` is the canonical read: it returns stays, EVERY procedure
+    // (including those with no admission), and the lasting effects. The two
+    // list endpoints below carry row ids and exist for editing, not display.
+    @GET("hospital/history")
+    suspend fun getHospitalHistory(
+        @Query("since") since: String? = null
+    ): HospitalHistoryResponse
+
+    @GET("hospital/stays")
+    suspend fun getHospitalStays(): List<HospitalizationRow>
+
+    @POST("hospital/stays")
+    suspend fun createHospitalStay(@Body stay: Map<String, Any?>): HospitalizationRow
+
+    @PATCH("hospital/stays/{id}")
+    suspend fun updateHospitalStay(
+        @Path("id") id: Int,
+        @Body stay: Map<String, Any?>
+    ): HospitalizationRow
+
+    @DELETE("hospital/stays/{id}")
+    suspend fun deleteHospitalStay(@Path("id") id: Int)
+
+    @GET("hospital/procedures")
+    suspend fun getSurgicalProcedures(): List<SurgicalProcedureRow>
+
+    @POST("hospital/procedures")
+    suspend fun createSurgicalProcedure(
+        @Body procedure: Map<String, Any?>
+    ): SurgicalProcedureRow
+
+    @PATCH("hospital/procedures/{id}")
+    suspend fun updateSurgicalProcedure(
+        @Path("id") id: Int,
+        @Body procedure: Map<String, Any?>
+    ): SurgicalProcedureRow
+
+    @DELETE("hospital/procedures/{id}")
+    suspend fun deleteSurgicalProcedure(@Path("id") id: Int)
+
     // Chronic Conditions Endpoints
     @GET("chronic/conditions")
     suspend fun getChronicConditions(

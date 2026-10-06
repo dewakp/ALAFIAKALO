@@ -41,6 +41,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.models.chronic_conditions import ChronicCondition, TherapySession
+from app.models.hospitalization import Hospitalization, SurgicalProcedure
 from app.models.session_drug import SessionDrug
 from app.services.flowsheet_drugs import (
     canonical_drug_name,
@@ -151,6 +152,180 @@ def conditions_sync(db: Session, user_id: int, active_only: bool = False
 
     out = [_chronic_view(c) for c in chronic] + [_legacy_view(h) for h in legacy]
     return [c for c in out if c.active] if active_only else out
+
+
+# ── Hospital history ─────────────────────────────────────────────────────
+#
+# TWO tables, and either row can stand alone. That is the §3aa shape again:
+# `hospitalizations` holds the stay, `surgical_procedures` holds what was done,
+# and a procedure's admission FK is nullable because day-case surgery and
+# anything recorded long after the fact never had an encounter. Reading one
+# table and calling it the hospital history silently drops the other half.
+#
+# Written because the record had nowhere to hold a parathyroidectomy — the one
+# fact that makes a patient's calcium handling unlike every other dialysis
+# patient's. Measured 2026-10-05: zero mentions anywhere in the database, while
+# the patient had stated it in conversation.
+
+
+@dataclass
+class ProcedureView:
+    """One procedure, with the stay it belonged to when there was one."""
+
+    name: str
+    performed: str | None
+    code: str | None
+    code_system: str | None
+    body_site: str | None
+    outcome: str | None
+    #: The lasting consequence. This is the field a nutrient target or an AI
+    #: answer actually needs: "parathyroid glands removed" explains a calcium
+    #: requirement that no guideline default can express.
+    ongoing_effects: str | None
+    facility: str | None
+    surgeon: str | None
+    admission: str | None       # "2024-03-02 — Montgomery General", or None
+    source: str | None
+
+
+@dataclass
+class HospitalizationView:
+    """One stay, with its procedures attached."""
+
+    admitted: str
+    discharged: str | None
+    facility: str | None
+    reason: str | None
+    diagnosis: str | None
+    admission_type: str | None
+    status: str | None
+    nights: int | None          # None while still an inpatient
+    procedures: list[ProcedureView]
+    source: str | None
+
+
+def _procedure_view(p: SurgicalProcedure, admission_label: str | None = None) -> ProcedureView:
+    return ProcedureView(
+        name=p.name,
+        performed=str(p.performed_at)[:10] if p.performed_at else None,
+        code=p.code,
+        code_system=p.code_system,
+        body_site=p.body_site,
+        outcome=_enum_str(p.outcome),
+        ongoing_effects=p.ongoing_effects,
+        facility=p.facility_name,
+        surgeon=p.surgeon,
+        admission=admission_label,
+        source=p.source,
+    )
+
+
+async def hospitalizations(db: AsyncSession, user_id: int, since: date | None = None
+                           ) -> list[HospitalizationView]:
+    """Every hospital stay, most recent first, with its procedures attached.
+
+    `nights` is computed only when BOTH ends are known. A stay still in
+    progress returns None rather than a length measured against today — §3at's
+    rule that a derived figure must not be presented as a recorded one.
+    """
+    stmt = select(Hospitalization).where(Hospitalization.user_id == user_id)
+    if since:
+        stmt = stmt.where(Hospitalization.admitted_at >= since)
+    rows = (await db.execute(
+        stmt.order_by(Hospitalization.admitted_at.desc())
+    )).scalars().all()
+    if not rows:
+        return []
+
+    by_stay: dict[int, list[SurgicalProcedure]] = {}
+    procs = (await db.execute(
+        select(SurgicalProcedure).where(
+            SurgicalProcedure.hospitalization_id.in_([r.id for r in rows]))
+    )).scalars().all()
+    for p in procs:
+        by_stay.setdefault(p.hospitalization_id, []).append(p)
+
+    out: list[HospitalizationView] = []
+    for r in rows:
+        nights = None
+        if r.admitted_at and r.discharged_at:
+            nights = max(0, (r.discharged_at.date() - r.admitted_at.date()).days)
+        label = str(r.admitted_at)[:10]
+        out.append(HospitalizationView(
+            admitted=label,
+            discharged=str(r.discharged_at)[:10] if r.discharged_at else None,
+            facility=r.facility_name,
+            reason=r.reason,
+            diagnosis=r.primary_diagnosis,
+            admission_type=_enum_str(r.admission_type),
+            status=_enum_str(r.status),
+            nights=nights,
+            procedures=[_procedure_view(p, label) for p in by_stay.get(r.id, [])],
+            source=r.source,
+        ))
+    return out
+
+
+async def procedures(db: AsyncSession, user_id: int, since: date | None = None
+                     ) -> list[ProcedureView]:
+    """EVERY procedure — including those with no admission attached.
+
+    This is the half a reader loses by starting from `hospitalizations`. A
+    parathyroidectomy recorded years later, a day-case endoscopy, or anything
+    read off a document that never named the stay all carry a NULL
+    `hospitalization_id` and would simply not appear.
+
+    Ordered most recent first, and a procedure with no date sorts last rather
+    than being dropped: an undated operation is still a fact about the patient.
+    """
+    stmt = select(SurgicalProcedure).where(SurgicalProcedure.user_id == user_id)
+    if since:
+        stmt = stmt.where(SurgicalProcedure.performed_at >= since)
+    rows = (await db.execute(
+        stmt.order_by(SurgicalProcedure.performed_at.desc().nullslast())
+    )).scalars().all()
+    if not rows:
+        return []
+
+    stay_label: dict[int, str] = {}
+    stay_ids = [r.hospitalization_id for r in rows if r.hospitalization_id]
+    if stay_ids:
+        for h in (await db.execute(
+            select(Hospitalization).where(Hospitalization.id.in_(stay_ids))
+        )).scalars().all():
+            label = str(h.admitted_at)[:10]
+            if h.facility_name:
+                label = f"{label} — {h.facility_name}"
+            stay_label[h.id] = label
+
+    return [_procedure_view(p, stay_label.get(p.hospitalization_id)) for p in rows]
+
+
+async def lasting_surgical_effects(db: AsyncSession, user_id: int) -> list[str]:
+    """What past surgery still does to this patient, today.
+
+    Separate from `procedures()` on purpose. A nutrient target or an AI answer
+    does not need the operation list — it needs the consequence, and only the
+    consequence persists. "Parathyroid glands removed" is why a calcium
+    requirement cannot be the bone-health RDA, and it stays true decades after
+    the admission is history.
+
+    Only rows that STATE an effect are returned. Inferring one from a procedure
+    name would be asserting a clinical fact the record never made (§0).
+    """
+    rows = (await db.execute(
+        select(SurgicalProcedure.name, SurgicalProcedure.ongoing_effects,
+               SurgicalProcedure.performed_at)
+        .where(SurgicalProcedure.user_id == user_id,
+               SurgicalProcedure.ongoing_effects.isnot(None),
+               SurgicalProcedure.ongoing_effects != "")
+        .order_by(SurgicalProcedure.performed_at.desc().nullslast())
+    )).all()
+    out: list[str] = []
+    for name, effect, when in rows:
+        stamp = f" ({str(when)[:10]})" if when else ""
+        out.append(f"{name}{stamp}: {effect}")
+    return out
 
 
 # ── Medications ──────────────────────────────────────────────────────────

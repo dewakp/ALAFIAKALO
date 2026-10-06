@@ -88,6 +88,10 @@ const navGroups = [
   // the clinician board and the AI coach), so they sit at the top level rather
   // than inside a collapsed group.
   { to: '/chronic-conditions', icon: Stethoscope, get label() { return t('Layout.conditions'); } },
+  // `Building` is already imported for the facility directory, so adding this
+  // entry needs no change to the icon list. A `get label()` getter, like every
+  // sibling: a label computed at import time never changes language (§3aw).
+  { to: '/hospital-history', icon: Building, get label() { return t('Layout.hospital_history'); } },
   { to: '/medications', icon: Pill, get label() { return t('Layout.medications'); } },
   {
     get label() { return t('Layout.activities_logs'); }, icon: Activity, children: [

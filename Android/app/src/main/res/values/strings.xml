@@ -1337,4 +1337,40 @@
     <string name="remove_from_records">Remove from my records</string>
     <string name="removing">Removing…</string>
     <string name="remove_import_hint">Removes only what this document added. You can upload it again afterwards.</string>
+
+    <!-- Hospital & Surgery history -->
+    <string name="hospital_history">Hospital &amp; Surgery</string>
+    <string name="hospital_stays">Hospital stays</string>
+    <string name="hospital_all_procedures">All operations</string>
+    <string name="hospital_all_procedures_note">Every operation on your record, including those with no hospital stay attached.</string>
+    <string name="hospital_no_stays">No hospital stays recorded yet.</string>
+    <string name="hospital_no_procedures">No operations recorded yet.</string>
+    <string name="hospital_lasting_effects">What past surgery still means for you</string>
+    <string name="hospital_lasting_effects_note">Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.</string>
+    <string name="hospital_could_not_load">Your hospital history could not be loaded</string>
+    <string name="hospital_nights_count">· %1$d nights</string>
+    <string name="hospital_during">During %1$s</string>
+    <string name="hospital_no_stay_recorded">No hospital stay recorded</string>
+    <string name="hospital_add_procedure">Add an operation</string>
+    <string name="hospital_add_stay">Add a hospital stay</string>
+    <string name="hospital_procedure_name">Operation</string>
+    <string name="hospital_performed">Date of operation (YYYY-MM-DD)</string>
+    <string name="hospital_admitted">Admitted (YYYY-MM-DD)</string>
+    <string name="hospital_discharged">Discharged (YYYY-MM-DD)</string>
+    <string name="hospital_facility">Hospital</string>
+    <string name="hospital_reason">Reason for admission</string>
+    <string name="hospital_code">Procedure code</string>
+    <string name="hospital_code_system">Coding system</string>
+    <string name="hospital_code_system_help">A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.</string>
+    <string name="hospital_body_site">Part of the body</string>
+    <string name="hospital_outcome">Outcome</string>
+    <string name="hospital_ongoing_effects">What this still means for you</string>
+    <string name="hospital_ongoing_effects_help">For example, an organ or gland removed, or something you have had to take ever since.</string>
+    <string name="hospital_procedure_no_stay_note">An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.</string>
+    <string name="hospital_during_stay">During which stay?</string>
+    <string name="hospital_no_stay">No hospital stay</string>
+    <string name="hospital_save">Save</string>
+    <string name="hospital_cancel">Cancel</string>
+    <string name="hospital_name_required">An operation needs a name.</string>
+    <string name="hospital_admitted_required">A hospital stay needs the date you were admitted.</string>
 </resources>

@@ -418,6 +418,13 @@ struct HealthHubView: View {
                     }
 
                     NavigationLink {
+                        HospitalHistoryView()
+                    } label: {
+                        Label("Hospital & Surgery", systemImage: "building.2")
+                            .foregroundStyle(.indigo)
+                    }
+
+                    NavigationLink {
                         AdvancedDirectivesView()
                     } label: {
                         Label("Advanced Directives", systemImage: "heart.text.square.fill")
