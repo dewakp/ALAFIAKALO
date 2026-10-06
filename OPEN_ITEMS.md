@@ -1190,3 +1190,70 @@ asserting the string was the wrong instrument and is what surfaced this.
 - **The AI tool returns no facility or surgeon name** (§3al), so the assistant
   cannot answer "which hospital was that?" even though the column holds it.
   That is the privacy trade, not an oversight — revisit only deliberately.
+
+---
+
+## 9. The elimination history was imported into PRODUCTION — 2026-10-06
+
+Recorded because a production data import with no audit trail is the §5b
+failure ("the comp that had no audit trail"), and because §1 says prod changes
+only through *migration + deploy* — this is the documented exception, taken
+deliberately by the operator.
+
+**Why.** `verify_parity.sh` reported drift in which **dev was AHEAD of prod**
+on `bowel_movements`: prod held 660 rows starting 2025-06-01 with
+`blood_present` true on **zero**, while dev held 2,431 from 2022-06-01 with
+**552** structured blood-positive findings. 1,777 of those rows — the entire
+2022-06-01 .. 2024-11-17 window, 417 blood-positive — existed **only in dev**,
+imported there and never shipped. Re-pulling would have deleted the only copy;
+pushing dev up is forbidden. The operator chose to put the history into prod
+first, then re-pull.
+
+**How.** `WEB/backend/scripts/import_elimination_history.py` (committed; reads
+the workbooks on the host and **writes no rows**, emitting SQL for a separate
+visible step). Source was `~/Developer/data/Records.xlsx` — the NEWEST of the
+five copies, 1,777 rows / 417 blood-positive; the path `import_food_bowel.py`
+hardcodes is the iCloud copy with 1,155 rows / 206 positive, which would have
+lost more than half the finding.
+
+    import SQL   sha256 d1678e2fdc2c8b804c3efa0a4d0224a7ae373b9d081af9cac8feeb67344be5ea
+    rollback     sha256 9ffda89bb1a9f03ba5c7fd377f901357c54b2cc174b0309e78df6f0b7305cc71
+
+**What made it safe, each verified rather than assumed:** one transaction with
+`ON_ERROR_STOP`; a `RAISE EXCEPTION` if the target email does not resolve, so
+it cannot silently write nothing; every insert guarded by
+`WHERE NOT EXISTS (same user, log_date, log_time)` so a re-run cannot
+duplicate; every update `COALESCE`-only, preserving the 13 existing
+pre-weights and 25 post-weights; **zero** literal user ids — all 2,386 writes
+resolve through a temp table keyed on `lower(email)`; and measured overlap of
+**zero** (prod held 0 rows before 2025-01-01).
+
+**Measured, before → after** (target user, resolved by email):
+
+| | before | after |
+|---|---|---|
+| `bowel_movements` | 654 | **2,431** |
+| pre-2025 rows | 0 | **1,777** |
+| `blood_present` set | 0 | **1,767** (417 true, 1,350 false, 10 not stated stay NULL) |
+| `vomiting_logs` with meal-gap | 0 | **568** |
+| `pre_event_weight_kg` set | 13 | **615** (+602, exactly what the importer reported) |
+| other 4 users | 6 rows | **6 rows** — untouched |
+
+Then `pull_prod.sh --yes`: **✅ PARITY OK**, 134 tables, dev byte-identical to
+prod across `public` and `identity`.
+
+> ⚠️ **The rollback is exact but SESSION-SCOPED.** The inverse is a scoped
+> `DELETE FROM bowel_movements WHERE user_id=<target> AND log_date <
+> '2025-01-01'` plus four id-scoped `UPDATE … = NULL` over the 1,992 / 1,979 /
+> 1,967 / 66 rows that were blank beforehand — the id sets matter because the
+> updates were COALESCE-only, so a blanket NULL would also erase the 13 and 25
+> weights that predate the import. Those id files lived in a scratchpad and are
+> gone. To rebuild the inverse, the pre-state is in the table above; the
+> `DELETE` half needs nothing but the date bound.
+
+**Still true after this:** prod's own 2025+ rows carry `blood_present` NULL
+with the finding in `notes` — §3ba's "a finding written in prose is still a
+finding" is unchanged for them, and `services/elimination_text.py` remains the
+only reader that sees it. The import filled the structured column for the rows
+it inserted, not for the 654 that were already there.
+

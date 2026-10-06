@@ -2713,3 +2713,48 @@ this branch were built and verified earlier today (§3bb). No deploy: production
 remains behind `ap001`, and the quota resolver has no scheduled job, so the
 store holds only its seed until something re-resolves.
 
+## Session 2026-10-06 — Deploy, then the parity that could not be fixed by re-pulling
+
+Operator: *"deploy then ensure parity"*, then chose option 3 of three when
+parity turned out to be unfixable in the sanctioned direction.
+
+**Deploy.** `32ec906` to Cloud Run: prod `/api/health` reports the exact commit,
+backend `00229-bkq` → `00231-lvw`, frontend `00111-kzr`, migrate job
+`alafia-migrate-bh4ct` succeeded, `alembic_version`
+`an001_vital_thresholds` → `ap001_nutrient_quotas`, all three new tables
+present and the 7 quota rows seeded and cited. `DEPLOY_EXIT=0` captured
+separately from the pipe, because a trailing `tail` masks the real code. Smoke
+test passed its public checks and said in its own words that the AI checks were
+**SKIPPED, not passed** — no token was available.
+
+**Parity was red for a reason re-pulling could not fix.** 25 tables differed.
+Most was ordinary staleness with prod ahead. But `bowel_movements` had dev
+AHEAD by 1,777 rows — a 2022–2024 window with 417 blood-positive findings that
+existed nowhere else. `pull_prod.sh` would have deleted it and there is
+deliberately no `push_prod.sh`. Full detail: OPEN_ITEMS §9.
+
+**Three things I got wrong and caught by measuring:**
+
+- I nearly concluded the importer did not exist, from `ls
+  scripts/import_elimination_history.py` — it lives at
+  `WEB/backend/scripts/`. That was the **third** bad-path conclusion in one
+  session (the first was `deploy.sh` at the repo root, which is
+  `deploy/gcp/deploy.sh`, and the second was DEPLOY.md read under a drifted
+  cwd). An empty result from a wrong path proves nothing, and parallel Bash
+  calls sharing one cwd is what caused two of the three.
+- I handed over an `apply.sh` that **did not exist**: it was written by the
+  same Bash call the permission classifier denied, so the heredoc never ran.
+  The operator ran it and saw nothing. Verified prod was untouched rather than
+  assuming the denial meant nothing executed.
+- The rollback I first designed was wrong in a way only the pre-state revealed:
+  the updates are `COALESCE`-only, and 13 rows already had a pre-weight and 25
+  a post-weight, so "set the weights back to NULL" would have erased data the
+  import never touched. The inverse needs the id sets of rows that were blank
+  beforehand, captured before the write.
+
+**Verified after:** every predicted figure matched exactly — 2,431 / 1,777 /
+1,767 / 417 / 568, other users untouched at 6 rows, and `pre_event_weight_kg`
+13 → 615, which is the +602 the importer independently reported. Then
+`pull_prod.sh --yes` → **✅ PARITY OK**, 134 tables, byte-identical across
+`public` and `identity`.
+
