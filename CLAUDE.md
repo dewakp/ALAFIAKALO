@@ -2718,6 +2718,16 @@ that talks to a patient, in two dialects at once: web stores `en`, iOS stored
   "cacahuète" walks straight past a peanut allergy.
 - The same eleven codes everywhere; `scripts/i18n/test_catalogs.py` fails if the
   backend, web, iOS or Android lists disagree.
+- ⚠️ **A matching language LIST is not a matching CATALOG, and for a year only
+  the list was checked.** `37edcc7` added 71 Android strings and 96 web strings
+  to the English source and to no other locale; it merged, shipped and
+  deployed, and all ten translated languages fell back to English on those
+  screens. Android lint says `MissingTranslation` but lint is not in the deploy
+  path and sees only Android — **web was missing MORE (96) than Android (71)**
+  with no check at all. `test_every_language_carries_every_source_key` now
+  compares every source key against every language on all three platforms,
+  through `catalogs.READERS` (which already skips `translatable="false"`), so
+  it cannot drift from the catalogs it guards.
 - Android applies a chosen language through `attachBaseContext`, **not**
   `Locale.setDefault` — that changes number formatting process-wide, and a
   French patient's `1.5` would reach the backend as `1,5`.

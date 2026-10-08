@@ -503,6 +503,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "also_on_your_flowsheet": {
+    "source": "also on your flowsheet",
+    "translation": "也在您的流程表上",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "also_written_as": {
+    "source": "also written as %1$s",
+    "translation": "也写作%1$s",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "alternate_agent": {
     "source": "Alternate Agent",
     "translation": "备用代理人",
@@ -748,6 +760,12 @@
     "translation": "BFR (mL/min)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "billed_annually_through_google_play": {
+    "source": "Billed yearly through Google Play. Cancel anytime in Play Store settings.",
+    "translation": "通过Google Play按年计费。可随时在Play Store设置中取消。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "billed_monthly_through_google_play": {
     "source": "Billed monthly through Google Play. Cancel anytime in Play Store settings.",
@@ -2699,6 +2717,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "given_during_treatment_already_recorded": {
+    "source": "Given during treatment — already on your record.",
+    "translation": "治疗期间给予——已在您的记录中。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "given_on_n_days": {
+    "source": "given on %1$d day(s)",
+    "translation": "在%1$d天内给予",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "global": {
     "source": "🌍 Global",
     "translation": "🌍 全球",
@@ -2879,6 +2909,30 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "hospital_add_procedure": {
+    "source": "Add an operation",
+    "translation": "添加手术",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_add_stay": {
+    "source": "Add a hospital stay",
+    "translation": "添加住院",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_admitted": {
+    "source": "Admitted (YYYY-MM-DD)",
+    "translation": "入院 (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_admitted_required": {
+    "source": "A hospital stay needs the date you were admitted.",
+    "translation": "住院需要您的入院日期。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "hospital_affiliations": {
     "source": "Hospital & Affiliations",
     "translation": "医院与关联机构",
@@ -2891,11 +2945,191 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "hospital_all_procedures": {
+    "source": "All operations",
+    "translation": "所有手术",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_all_procedures_note": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "您记录中的每项手术，包括没有住院的手术。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_body_site": {
+    "source": "Part of the body",
+    "translation": "身体部位",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_cancel": {
+    "source": "Cancel",
+    "translation": "取消",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code": {
+    "source": "Procedure code",
+    "translation": "手术代码",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code_system": {
+    "source": "Coding system",
+    "translation": "编码系统",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code_system_help": {
+    "source": "A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.",
+    "translation": "代码需要其发行系统 — ICD-10-PCS、CPT 和 SNOMED 是不同的系统。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_could_not_load": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "无法加载您的住院历史",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_discharged": {
+    "source": "Discharged (YYYY-MM-DD)",
+    "translation": "出院 (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_during": {
+    "source": "During %1$s",
+    "translation": "在 %1$s 期间",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_during_stay": {
+    "source": "During which stay?",
+    "translation": "在哪次住院期间？",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "hospital_er_since_last": {
     "source": "Hospital/ER Since Last",
     "translation": "上次以来住院/急诊",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "hospital_facility": {
+    "source": "Hospital",
+    "translation": "医院",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_history": {
+    "source": "Hospital & Surgery",
+    "translation": "住院和手术",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_lasting_effects": {
+    "source": "What past surgery still means for you",
+    "translation": "过去的手术对您现在的影响",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_lasting_effects_note": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "只列出与手术相关的记录效果。不根据手术名称猜测。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_name_required": {
+    "source": "An operation needs a name.",
+    "translation": "手术需要名称。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_nights_count": {
+    "source": "· %1$d nights",
+    "translation": "· %1$d 晚",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_procedures": {
+    "source": "No operations recorded yet.",
+    "translation": "还没有记录手术。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stay": {
+    "source": "No hospital stay",
+    "translation": "没有住院",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stay_recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "没有记录住院",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stays": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "还没有记录住院。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_ongoing_effects": {
+    "source": "What this still means for you",
+    "translation": "这对您现在的影响",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_ongoing_effects_help": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "例如，移除的器官或腺体，或您之后必须一直服用的东西。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_outcome": {
+    "source": "Outcome",
+    "translation": "结果",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_performed": {
+    "source": "Date of operation (YYYY-MM-DD)",
+    "translation": "手术日期 (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_procedure_name": {
+    "source": "Operation",
+    "translation": "手术",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_procedure_no_stay_note": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "手术不需要住院。日间手术和多年后记录的任何手术都可以单独添加。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_reason": {
+    "source": "Reason for admission",
+    "translation": "入院原因",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_save": {
+    "source": "Save",
+    "translation": "保存",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_stays": {
+    "source": "Hospital stays",
+    "translation": "住院记录",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "how_are_you_doing_today": {
     "source": "How are you doing today?",
@@ -3155,17 +3389,35 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "lab_abnormal": {
+    "source": "⚠️ Abnormal",
+    "translation": "⚠️ 异常",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "lab_charts": {
     "source": "Lab Charts",
     "translation": "实验室图表",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "lab_in_range": {
+    "source": "✅ In range",
+    "translation": "✅ 在正常范围内",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "lab_name": {
     "source": "Lab Name",
     "translation": "实验室名称",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "lab_not_assessed": {
+    "source": "— Not assessed",
+    "translation": "— 未评估",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "lab_results_will_appear_here_once": {
     "source": "Lab results will appear here once available",
@@ -3563,6 +3815,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "medication_record_footer": {
+    "source": "Every source together — what you were prescribed, what you logged, and what you were given at treatment.",
+    "translation": "所有来源汇总——您被处方的药物、您记录的药物和治疗中给予的药物。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "medications": {
     "source": "Medications",
     "translation": "药物",
@@ -3778,6 +4036,12 @@
     "translation": "针长 (mm)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "needs_attention": {
+    "source": "Needs attention",
+    "translation": "需要关注",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "new_chemo_session": {
     "source": "New Chemo Session",
@@ -4421,11 +4685,41 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "omega_critical": {
+    "source": "Critical",
+    "translation": "严重",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_good": {
+    "source": "Good",
+    "translation": "良好",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_moderate": {
+    "source": "Moderate",
+    "translation": "中等",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_reference": {
+    "source": "%1$s %2$s (reference %3$s)",
+    "translation": "%1$s %2$s（参考值%3$s）",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "on": {
     "source": "%1$s on %2$s",
     "translation": "%2$s 的 %1$s",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "on_your_flowsheet": {
+    "source": "On your flowsheet",
+    "translation": "在您的流程表上",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "one_way_sync": {
     "source": "One-way sync",
@@ -4726,6 +5020,18 @@
     "translation": "套餐：%1$s",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "plan_annual": {
+    "source": "Annual",
+    "translation": "按年",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "plan_monthly": {
+    "source": "Monthly",
+    "translation": "按月",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "plan_name": {
     "source": "Plan Name",
@@ -5519,6 +5825,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "remove_from_records": {
+    "source": "Remove from my records",
+    "translation": "从我的记录中删除",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "remove_import_hint": {
+    "source": "Removes only what this document added. You can upload it again afterwards.",
+    "translation": "仅删除此文件添加的内容。之后您可以重新上传。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "remove_photo": {
     "source": "Remove Photo",
     "translation": "移除照片",
@@ -5530,6 +5848,12 @@
     "translation": "已移除 (mL)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "removing": {
+    "source": "Removing…",
+    "translation": "删除中…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "replies": {
     "source": "Replies (%1$s)",
@@ -5837,11 +6161,65 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "score_dialysis": {
+    "source": "Dialysis",
+    "translation": "透析",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_elimination": {
+    "source": "Elimination",
+    "translation": "排泄",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_fitness": {
+    "source": "Fitness",
+    "translation": "健身",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_medication_adherence": {
+    "source": "Medication Adherence",
+    "translation": "用药依从性",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_mood": {
+    "source": "Mood",
+    "translation": "心情",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_nutrition": {
+    "source": "Nutrition",
+    "translation": "营养",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_sleep": {
+    "source": "Sleep",
+    "translation": "睡眠",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_symptoms": {
+    "source": "Symptoms",
+    "translation": "症状",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "score_this_from_what_i_wrote": {
     "source": "Score this from what I wrote",
     "translation": "根据我的记录评分",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "score_vitals": {
+    "source": "Vitals",
+    "translation": "生命体征",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "scores": {
     "source": "Scores",
@@ -6370,6 +6748,30 @@
     "translation": "SpO₂",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "src_administered": {
+    "source": "given at treatment",
+    "translation": "治疗中给予",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_imported": {
+    "source": "from your clinic",
+    "translation": "来自您的诊所",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_logged": {
+    "source": "you logged it",
+    "translation": "您记录的",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_prescribed": {
+    "source": "prescribed",
+    "translation": "处方",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "stand_dia": {
     "source": "Stand Dia",
@@ -7559,6 +7961,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "written_as_on_the_sheet": {
+    "source": "(written as %1$s)",
+    "translation": "（写作%1$s）",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "year": {
+    "source": " / year",
+    "translation": "/ 年",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "years_exp": {
     "source": "Years Exp",
     "translation": "从业年数",
@@ -7570,6 +7984,12 @@
     "translation": "✓ 是",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "you_did_not_log_anything_yourself": {
+    "source": "You did not log anything yourself for this date.",
+    "translation": "您在此日期没有自己记录任何内容。",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "you_have_uploaded_this_file_before": {
     "source": "You have uploaded this file before — showing what was read then.",
@@ -7612,6 +8032,12 @@
     "translation": "您的膳食计划",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "your_medication_record": {
+    "source": "Your medication record",
+    "translation": "您的用药记录",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "your_own_health_record_meals_and": {
     "source": "Your own health record, meals and tracking live in the patient view.",

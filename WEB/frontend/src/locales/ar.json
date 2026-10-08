@@ -123,8 +123,71 @@
     "your_session_expired_sign_in_again_to": "انتهت جلستك — سجل الدخول مجددًا للبحث في ICD-11.",
     "could_not_reach_the_icd_11_catalog_your": "تعذر الوصول إلى كتالوج ICD-11. قد تكون حالتك موجودة."
   },
+  "Hospital": {
+    "title": "سجل المستشفى والعمليات الجراحية",
+    "subtitle": "الدخول والعمليات والآثار المستمرة للعمليات السابقة عليك اليوم.",
+    "lasting_effects": "آثار العملية الجراحية السابقة عليك",
+    "lasting_effects_note": "يتم إدراج الآثار المسجلة فقط مع العملية. لا شيء هنا مستنتج من اسم العملية.",
+    "add_stay": "إضافة دخول مستشفى",
+    "add_procedure": "إضافة عملية جراحية",
+    "procedure_name": "عملية جراحية",
+    "procedure_no_stay_note": "العملية الجراحية لا تتطلب دخول مستشفى. الجراحة في العيادة الخارجية وأي شيء تسجله بعد سنوات يمكن إضافته بشكل منفصل.",
+    "stays": "فترات الدخول",
+    "manage_stays": "إدارة الفترات",
+    "all_procedures": "جميع العمليات الجراحية",
+    "all_procedures_note": "كل عملية جراحية في سجلك، بما فيها تلك بدون دخول مستشفى مرتبط بها.",
+    "no_stays": "لم يتم تسجيل فترات دخول بعد.",
+    "no_procedures": "لم يتم تسجيل عمليات جراحية بعد.",
+    "no_stay": "لا توجد فترة دخول",
+    "no_stay_recorded": "لم يتم تسجيل فترة دخول",
+    "during_stay": "خلال أي فترة دخول؟",
+    "during": "خلال",
+    "delete_keeps_procedures": "حذف فترة دخول يبقي عملياتها في سجلك. العملية التي حدثت هي جزء من تاريخك.",
+    "admitted": "تاريخ الدخول",
+    "discharged": "تاريخ الخروج",
+    "nights": "ليلة",
+    "facility": "المستشفى",
+    "admission_type": "نوع الدخول",
+    "status": "الحالة",
+    "reason": "سبب الدخول",
+    "diagnosis": "التشخيص",
+    "attending": "الطبيب المعالج",
+    "performed": "تاريخ العملية الجراحية",
+    "code": "رمز الإجراء",
+    "code_system": "نظام الترميز",
+    "body_site": "جزء من الجسم",
+    "outcome": "النتيجة",
+    "surgeon": "الجراح",
+    "ongoing_effects": "ما يعنيه هذا لك الآن",
+    "ongoing_effects_help": "على سبيل المثال، عضو أو غدة تمت إزالتها، أو شيء اضطررت لتناوله منذ ذلك الحين.",
+    "loading": "جاري تحميل سجل المستشفى…",
+    "could_not_load": "تعذر تحميل سجل المستشفى",
+    "load_failed": "تعذر تحميل سجل المستشفى.",
+    "save_failed": "تعذر الحفظ.",
+    "try_again": "حاول مرة أخرى",
+    "not_stated": "لم يتم التحديد",
+    "emergency": "طوارئ",
+    "elective": "مخطط",
+    "urgent": "عاجل",
+    "observation": "ملاحظة",
+    "day_case": "حالة يومية",
+    "maternity": "الولادة",
+    "rehabilitation": "إعادة تأهيل",
+    "other": "أخرى",
+    "planned": "مخطط",
+    "in_progress": "لا يزال في المستشفى",
+    "transferred": "تم التحويل",
+    "cancelled": "ملغى",
+    "successful": "ناجح",
+    "partially_successful": "نجح جزئيًا",
+    "unsuccessful": "غير ناجح",
+    "complicated": "معقد",
+    "abandoned": "تم التخلي عنه",
+    "unknown": "غير معروف"
+  },
   "Layout": {
     "open_menu": "فتح القائمة",
+    "hospital_history": "المستشفى والجراحة",
     "notifications": "الإشعارات",
     "logout": "تسجيل الخروج",
     "ask_alafia": "اسأل ALAFIA",
@@ -203,7 +266,7 @@
     "investors": "المستثمرون",
     "contact_us": "اتصل بنا",
     "privacy": "الخصوصية",
-    "text_2026_alafia_all_rights_reserved_built": "© 2026 6igma Health Inc. جميع الحقوق محفوظة. تم بناؤه بـ ❤️ لأجل الإنسانية."
+    "text_2026_alafia_all_rights_reserved_built": "© 2026 6igma Health Inc. جميع الحقوق محفوظة. تم بناؤه بـ ❤️ من أجل الإنسانية."
   },
   "MembershipNudge": {
     "your_complimentary_access_ends_in": "ينتهي وصولك المجاني في",
@@ -1343,7 +1406,11 @@
     "status_2": "الحالة",
     "delete": "حذف",
     "no_lab_results_yet": "لا توجد نتائج فحوصات حتى الآن",
-    "upload_lab_report_pdf": "تحميل تقرير المختبر (PDF)"
+    "upload_lab_report_pdf": "تحميل تقرير المختبر (PDF)",
+    "abnormal": "⚠️ غير طبيعي",
+    "in_range": "✅ ضمن النطاق",
+    "not_assessed": "— لم يتم التقييم",
+    "not_assessed_title": "لم يتم مقارنة هذه النتيجة مع نطاق مرجعي."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1400,7 +1467,22 @@
     "health_charts": "رسوم بيانية صحية",
     "beautiful_ai_powered_dashboards": "لوحات تحكم جميلة مدعومة بالذكاء الاصطناعي تصور كل جوانب صحتك عبر الوقت.",
     "community_safety": "المجتمع والسلامة",
-    "fda_recall_alerts_wellness_resources_and": "تنبيهات استدعاء FDA، موارد العافية، ومعرفة صحية مجتمعية قائمة على الأدلة."
+    "fda_recall_alerts_wellness_resources_and": "تنبيهات استدعاء FDA، موارد العافية، ومعرفة صحية مجتمعية قائمة على الأدلة.",
+    "get_it_in_beta": "احصل عليها في النسخة التجريبية.",
+    "beta_blurb": "إذا كنت قد اشتركت بالفعل عبر الويب لكنك تريد رؤية تطبيق iOS قيد التشغيل، فاطلب النسخة التجريبية اليوم وسنرسل لك رمز التفعيل.",
+    "your_name": "اسمك",
+    "email": "البريد الإلكتروني",
+    "notes_optional": "ملاحظات (اختياري)",
+    "beta_notes_hint": "أي شيء يساعدنا على مطابقتك — البريد الإلكتروني الذي اشتركت به، أو جهازك.",
+    "leave_this_field_empty": "اترك هذا الحقل فارغًا",
+    "sending": "جاري الإرسال…",
+    "request_beta": "طلب النسخة التجريبية ✦",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "beta_request_received": "تم استلام الطلب",
+    "beta_we_have_your_request": "لدينا طلبك. إذا كنت عضوًا بالفعل، فسنطابق عنوانك وسنرسل لك دعوة TestFlight.",
+    "your_reference_is": "مرجعك هو",
+    "beta_could_not_send": "لم نتمكن من إرسال طلبك. يرجى المحاولة مرة أخرى قريباً."
   },
   "Lifestyle": {
     "lifestyle": "نمط الحياة",
@@ -1444,7 +1526,8 @@
     "password_must_be_at_least_6_characters": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
     "login_failed": "فشل تسجيل الدخول",
     "enter_a_valid_phone_number_e_g": "أدخل رقم هاتف صحيح، مثل [phone]",
-    "sign_in_failed": "فشل تسجيل الدخول."
+    "sign_in_failed": "فشل تسجيل الدخول.",
+    "google_sign_in_unavailable": "خدمة Google sign-in غير متاحة في هذا المتصفح."
   },
   "MealPlanner": {
     "cal": "سعرة حرارية",
@@ -1504,7 +1587,9 @@
     "na": "الصوديوم",
     "vitd": "فيتامين د",
     "fol": "حمض الفوليك",
-    "chol": "الكوليسترول"
+    "chol": "الكوليسترول",
+    "from_agent": "{{sign}}{{delta}}{{unit}} من {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "الأدوية",
@@ -1800,7 +1885,9 @@
     "vitamin_c": "فيتامين ج",
     "vitamin_a": "فيتامين أ",
     "omega_3": "أوميغا-٣",
-    "your_personalized_targets_could_not_be": "تعذّر تحميل أهدافك المخصصة، لذا يتم عرض القيم المرجعية العامة أدناه بدلاً منها."
+    "your_personalized_targets_could_not_be": "تعذّر تحميل أهدافك المخصصة، لذا يتم عرض القيم المرجعية العامة أدناه بدلاً منها.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} من {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "التغذية",
@@ -1962,7 +2049,12 @@
     "generate_flowsheet": "إنشاء جدول البيانات",
     "already_recorded": "مسجل بالفعل",
     "differs_from_existing": "يختلف عن الموجود",
-    "the_pdf_could_not_be_downloaded": "تعذر تحميل ملف PDF."
+    "the_pdf_could_not_be_downloaded": "تعذر تحميل ملف PDF.",
+    "remove_from_records": "حذف من سجلاتي",
+    "remove_confirm": "حذف {{count}} السجل(ات) التي أضافتها هذه الوثيقة؟",
+    "removing": "جاري الحذف…",
+    "remove_hint": "يحذف فقط ما أضافته هذه الوثيقة — لا شيء مما أدخلته بنفسك. يمكنك تحميلها مرة أخرى لاحقاً.",
+    "keep": "الاحتفاظ بها"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "غسيل كلى بالصفاق",
@@ -2253,6 +2345,8 @@
     "privacy": "الخصوصية",
     "alafia_holds_some_of_the_most_sensitive": "يحتفظ ALAFIA ببعض أحساس المعلومات الشخصية. تشرح هذه الصفحة بوضوح ما نجمعه، ولماذا، ومن يمكنه رؤيته، وكيفية استرجاعه أو حذفه.",
     "last_updated": "آخر تحديث {{LAST_UPDATED}}.",
+    "who_operates_alafia": "من يشغّل ALAFIA",
+    "alafia_is_a_product_of_6igma_health": "ALAFIA هو منتج من 6igma Health Inc، التي تبنيه وتشغّله. 6igma Health Inc هي المسؤولة عن معلومات الصحة الموضحة في هذه الصفحة — الشركة التي تتعامل معها عند استخدام ALAFIA، والشركة المسؤولة عن حماية بيانات صحتك.",
     "what_we_collect": "ما نجمعه",
     "only_what_the_app_needs_to_work": "فقط ما تحتاجه التطبيق للعمل. كل ما يلي مرتبط بحسابك — لا يمكنك الحصول على سجل صحي بدون مكان لتخزينه.",
     "what_we_never_do": "ما لا نفعله أبداً",
@@ -2581,7 +2675,10 @@
     "we_could_not_start_your_signup": "لم نتمكن من بدء التسجيل.",
     "we_could_not_open_the_payment_page": "لم نتمكن من فتح صفحة الدفع.",
     "sent_check_your_inbox_and_your_spam": "تم الإرسال. تحقق من صندوق الوارد وملف البريد العشوائي.",
-    "we_could_not_resend_that_email": "لم نتمكن من إعادة إرسال البريد الإلكتروني."
+    "we_could_not_resend_that_email": "لم نتمكن من إعادة إرسال البريد الإلكتروني.",
+    "account_already_exists": "هذا العنوان لديه حساب بالفعل",
+    "signup_could_not_start_title": "لم نتمكن من بدء التسجيل",
+    "go_to_sign_in": "انتقل إلى تسجيل الدخول"
   },
   "Sleep": {
     "sleep": "النوم",
@@ -2906,7 +3003,7 @@
     "score_history_last_30_days": "سجل النقاط (آخر 30 يومًا)",
     "no_wellness_score_yet": "لا توجد درجة صحة حتى الآن",
     "hebcs_wellness_score": "درجة ALAFIA للعافية",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "تقييم سباعي المسارات شبه منحرف",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "آخر الفحوصات: {{value}}",
     "score_0_100": "الدرجة (0–100)",
     "data_coverage": "تغطية البيانات",
@@ -3032,5 +3129,8 @@
   },
   "LanguageSwitcher": {
     "language": "اللغة"
+  },
+  "AlertDialog": {
+    "dismiss": "إغلاق"
   }
 }

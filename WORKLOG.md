@@ -2875,3 +2875,55 @@ per §3ap). The static guard was proven to FAIL against HEAD's `nutrition.py`,
 and the corrected notice was verified against the real record rather than a
 fixture.
 
+### A matching language list is not a matching catalog
+
+A comprehensive four-platform test sweep turned up one failure: **Android lint,
+71 `MissingTranslation` errors**. Every one of the ten non-default locales was
+missing all 71 keys added by `37edcc7` — already merged, pushed and deployed,
+so Android users in ar, de, es, fr, ha, ig, pt, sw, yo and zh were reading
+English on the hospital, wellness and medication-record screens.
+
+**`test_catalogs.py` passed throughout.** Its
+`test_every_platform_offers_exactly_the_same_languages` checks the eleven
+language CODES agree across backend/web/iOS/Android. It never checked whether
+the catalogs behind those codes were populated. §3aw's "a new screen cannot
+ship English-only" had no enforcement.
+
+**The gap was twice what lint reported.** Measured through
+`catalogs.READERS` rather than by eye: web was missing **96** keys per language
+against Android's 71, and nothing in the stack checks web at all — Android lint
+only inspects Android. iOS was complete at 1491/1491. My first measurement of
+web said "missing 2" because I compared TOP-LEVEL json keys instead of using
+`catalogs.read_web`, which flattens; the real source count is 2,954, not 89.
+
+Guard written FIRST and proven against the broken tree: it failed naming both
+platforms, both counts and sample keys. Then `translate_catalogs.py` filled
+android (10x71) and web (10x98 — 96 missing plus 2 stale). Coverage is now
+**0 missing across 3 platforms x 10 languages**; catalogs 43 -> 44 passed;
+Android lint 71 errors -> 0.
+
+**The placeholder guard earned its place.** `android/sw` refused
+`given_on_n_days: added ['{{count}}']` — the model emitted a WEB-style
+`{{count}}` into an Android string whose source is `given on %1$d day(s)`. A
+retry produced `inayotolewa siku %1$d`. A string that would have crashed the
+formatter never reached the catalog.
+
+⚠️ **Nothing here is reviewed.** All 20 ledgers under `i18n/review/` are
+`status: machine`. Ten languages now carry machine output on a clinical
+surface, pending a speaker of each.
+
+**One failure of my own mid-sweep:** `./gradlew testDebugUnitTest clean
+assembleDebug` deadlocked with "Unable to make progress running work" — `clean`
+between two tasks. Not a compile or resource error, nothing to do with the
+translations; `clean` first, then build, then test, worked. Also corrected: a
+`GRADLE_EXIT=0` that was a PIPESTATUS artefact while the build had FAILED, an
+`assembleDebug` that reported success while producing no artefact (41
+up-to-date, 5 sources newer than the APK), and an iOS run whose `-quiet` exit
+code proved nothing about coverage — 52 only emerged on a re-run without it.
+
+Verified: backend **744 + 676 + 616** across 145 pinned files plus **216 + 102**
+on two seam bands, 0 failures; web unit **273/42**, e2e **48**; iOS **52 tests**
++ `BUILD SUCCEEDED`; Android **63 tests**, clean rebuild 49/49, APK 30,071,430
+-> 30,107,870 bytes (the +36 KB is the resources), lint **0 errors**; catalogs
+**44**; ruff clean on `scripts/i18n/`.
+

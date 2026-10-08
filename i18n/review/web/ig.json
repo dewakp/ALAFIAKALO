@@ -575,6 +575,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "AlertDialog.dismiss": {
+    "source": "Dismiss",
+    "translation": "Hapụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "App.loading": {
     "source": "Loading...",
     "translation": "Ịkwọ na-aloụ...",
@@ -5579,6 +5585,366 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Hospital.abandoned": {
+    "source": "Abandoned",
+    "translation": "Hapụrụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.add_procedure": {
+    "source": "Add an operation",
+    "translation": "Tinye ihe ọrụ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.add_stay": {
+    "source": "Add a hospital stay",
+    "translation": "Tinye ụbọchị n'ụlọ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.admission_type": {
+    "source": "Type of admission",
+    "translation": "Ụdị ịbanye",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.admitted": {
+    "source": "Admitted",
+    "translation": "Ịbanye",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.all_procedures": {
+    "source": "All operations",
+    "translation": "Ihe ọrụ ọgwụ niile",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.all_procedures_note": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "Ihe ọrụ ọgwụ niile na akwụkwọ gị, tinyere ndị na-enweghị ụbọchị n'ụlọ ọgwụ.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.attending": {
+    "source": "Attending doctor",
+    "translation": "Dọkịta na-elekọta",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.body_site": {
+    "source": "Part of the body",
+    "translation": "Akụkụ ahụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.cancelled": {
+    "source": "Cancelled",
+    "translation": "Kagbuo",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.code": {
+    "source": "Procedure code",
+    "translation": "Koodu ihe ọrụ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.code_system": {
+    "source": "Coding system",
+    "translation": "Usoro koodu",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.complicated": {
+    "source": "Complicated",
+    "translation": "Nwere nsogbu",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.could_not_load": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "Ọ nweghị ike ịbudata akwụkwọ ụlọ ọgwụ gị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.day_case": {
+    "source": "Day case",
+    "translation": "Ụbọchị ọrụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.delete_keeps_procedures": {
+    "source": "Deleting a stay keeps its operations on your record. An operation that happened is part of your history.",
+    "translation": "Ịhichapụ ụbọchị na-echekwa ihe ọrụ ọgwụ ya na akwụkwọ gị. Ihe ọrụ ọgwụ mere bụ akụkọ gị.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.diagnosis": {
+    "source": "Diagnosis",
+    "translation": "Ọrịa",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.discharged": {
+    "source": "Discharged",
+    "translation": "Ịpụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.during": {
+    "source": "During",
+    "translation": "N'ụbọchị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.during_stay": {
+    "source": "During which stay?",
+    "translation": "N'ụbọchị nke ọ bụla?",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.elective": {
+    "source": "Planned",
+    "translation": "Edoziri",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.emergency": {
+    "source": "Emergency",
+    "translation": "Ihe mberede",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.facility": {
+    "source": "Hospital",
+    "translation": "Ụlọ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.in_progress": {
+    "source": "Still in hospital",
+    "translation": "Ka nọ n'ụlọ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.lasting_effects": {
+    "source": "What past surgery still means for you",
+    "translation": "Ihe ọrụ ọgwụ gara aga na-enwe mma nye gị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.lasting_effects_note": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "Naanị mmetụta edekọrọ na ihe ọrụ ọgwụ ka a na-edepụta. Ọ dịghị ihe a na-atụ anya site na aha ihe ọrụ ọgwụ.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.load_failed": {
+    "source": "Could not load your hospital history.",
+    "translation": "Ọ nweghị ike ịbudata akwụkwọ ụlọ ọgwụ gị.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.loading": {
+    "source": "Loading your hospital history…",
+    "translation": "A na-ebudata akwụkwọ ụlọ ọgwụ gị…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.manage_stays": {
+    "source": "Manage stays",
+    "translation": "Jikwaa ụbọchị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.maternity": {
+    "source": "Maternity",
+    "translation": "Ịmụ nwa",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.nights": {
+    "source": "nights",
+    "translation": "abalị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.no_procedures": {
+    "source": "No operations recorded yet.",
+    "translation": "Ọ dịghị ihe ọrụ ọgwụ edekọrọ.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.no_stay": {
+    "source": "No hospital stay",
+    "translation": "Ọ dịghị ụbọchị n'ụlọ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.no_stay_recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "Ọ dịghị ụbọchị n'ụlọ ọgwụ edekọrọ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.no_stays": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "Ọ dịghị ụbọchị n'ụlọ ọgwụ edekọrọ.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.not_stated": {
+    "source": "Not stated",
+    "translation": "Akọwapụtaghị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.observation": {
+    "source": "Observation",
+    "translation": "Nleba anya",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.ongoing_effects": {
+    "source": "What this still means for you",
+    "translation": "Ihe a na-enwe mma nye gị taa",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.ongoing_effects_help": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "Dịka ọmụ ma ọ bụ ihe ọ bụla ị na-ewe kemgbe.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.other": {
+    "source": "Other",
+    "translation": "Ihe ọzọ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.outcome": {
+    "source": "Outcome",
+    "translation": "Nsonaazụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.partially_successful": {
+    "source": "Partly successful",
+    "translation": "Nke ọma nke ụfọdụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.performed": {
+    "source": "Date of operation",
+    "translation": "Ụbọchị ihe ọrụ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.planned": {
+    "source": "Planned",
+    "translation": "Edoziri",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.procedure_name": {
+    "source": "Operation",
+    "translation": "Ihe ọrụ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.procedure_no_stay_note": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "Ihe ọrụ ọgwụ adịghị achọ ụbọchị n'ụlọ ọgwụ. Ihe ọrụ ọgwụ n'ụbọchị, na ihe ọ bụla ị na-edekọ mgbe ọtụtụ afọ gachara, enwere ike ịtinye naanị ya.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.reason": {
+    "source": "Reason for admission",
+    "translation": "Ihe kpatara ịbanye",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.rehabilitation": {
+    "source": "Rehabilitation",
+    "translation": "Ịgbazi ike",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.save_failed": {
+    "source": "Could not save.",
+    "translation": "Ọ nweghị ike ịchekwa.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.status": {
+    "source": "Status",
+    "translation": "Ọnọdụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.stays": {
+    "source": "Hospital stays",
+    "translation": "Ụbọchị n'ụlọ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.subtitle": {
+    "source": "Admissions, operations, and what a past operation still means for you today.",
+    "translation": "Ịbanye n'ụlọ ọgwụ, ihe ọrụ ọgwụ, na ihe ọrụ ọgwụ gara aga na-enwe mma nye gị taa.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.successful": {
+    "source": "Successful",
+    "translation": "Nke ọma",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.surgeon": {
+    "source": "Surgeon",
+    "translation": "Onye ọrụ ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.title": {
+    "source": "Hospital & Surgery History",
+    "translation": "Akwụkwọ Ụlọ Ọgwụ & Ihe Ọrụ Ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.transferred": {
+    "source": "Transferred",
+    "translation": "Zọpụtara",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.try_again": {
+    "source": "Try again",
+    "translation": "Gbalịa ọzọ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.unknown": {
+    "source": "Not known",
+    "translation": "Amaghị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.unsuccessful": {
+    "source": "Unsuccessful",
+    "translation": "Nke ọjọọ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.urgent": {
+    "source": "Urgent",
+    "translation": "Ọsọ ọsọ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "ICD11Picker.could_not_reach_the_icd_11_catalog_your": {
     "source": "Could not reach the ICD-11 catalog. Your condition may still be there.",
     "translation": "Enweghị m ike ịnweta ICD-11 catalog. Ọrịa gị nwere ike ịnọ n'ebe ahụ.",
@@ -6443,6 +6809,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Labs.abnormal": {
+    "source": "⚠️ Abnormal",
+    "translation": "⚠️ Adịghị mma",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Labs.add_connection": {
     "source": "Add Connection",
     "translation": "Tinye Njikọ",
@@ -6491,6 +6863,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Labs.in_range": {
+    "source": "✅ In range",
+    "translation": "✅ N'ụzọ ziri ezi",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Labs.labs_ehr": {
     "source": "Labs / EHR",
     "translation": "Ule / EHR",
@@ -6514,6 +6892,18 @@
     "translation": "Enwebeghị nsonaazụ ule ka",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Labs.not_assessed": {
+    "source": "— Not assessed",
+    "translation": "— Achọpụtaghị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Labs.not_assessed_title": {
+    "source": "This result was never checked against a reference range.",
+    "translation": "A naghị atụle nsonaazụ a n'ụzọ ọ kwesịrị ekwesị.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Labs.notes": {
     "source": "Notes",
@@ -6671,6 +7061,48 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.beta_blurb": {
+    "source": "If you already subscribed via web but want to see the iOS app in action, request beta today and we will send you an activation code.",
+    "translation": "Ọ bụrụ na ị edebanye aha na web mana chọrọ ịhụ iOS app na-arụ ọrụ, rịọ beta taa na ị ga-enweta koodu mmalite.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.beta_could_not_send": {
+    "source": "We could not send your request. Please try again shortly.",
+    "translation": "Anyị enweghị ike iziga arịrịọ gị. Biko zaa mgbe obere oge.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.beta_notes_hint": {
+    "source": "Anything that helps us match you — the email you subscribed with, or your device.",
+    "translation": "Ihe ọ bụla na-enyere aka ịchọta gị — ozi-e-mail ị debanye aha na ya, ma ọ bụ ngwa gị.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.beta_request_received": {
+    "source": "Request received",
+    "translation": "Enwetara arịrịọ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.beta_we_have_your_request": {
+    "source": "We have your request. If you are already a member, we will match your address and send a TestFlight invitation.",
+    "translation": "Enwetara m arịrịọ gị. Ọ bụrụ na ị bụ onye otu na-arụ ọrụ, ị ga-etụtụ adreesị gị ma ziga oku TestFlight.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.cancel": {
+    "source": "Cancel",
+    "translation": "Kagbuo",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.close": {
+    "source": "Close",
+    "translation": "Mechie",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.coming_to_app_store": {
     "source": "Coming to App Store",
     "translation": "Na-abịa na App Store",
@@ -6701,6 +7133,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.email": {
+    "source": "Email",
+    "translation": "Ozi-e-mail",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.everything_your_health_deserves": {
     "source": "Everything Your Health Deserves",
     "translation": "Ihe Niile Ike Gị Kwesịrị",
@@ -6724,6 +7162,12 @@
     "translation": "Dashboard na ihe niile dị na ya nwere ike ịnweta site na ihe ọ bụla na-agagharị nke ọ bụla.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Landing.get_it_in_beta": {
+    "source": "Get it in Beta.",
+    "translation": "Nweta ya na Beta.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Landing.heal_smarter": {
     "source": "Heal Smarter.",
@@ -6803,6 +7247,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.leave_this_field_empty": {
+    "source": "Leave this field empty",
+    "translation": "Hapụ oghere a",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.live_infinitely": {
     "source": "Live Infinitely.",
     "translation": "Ndu Ebighi Ebi.",
@@ -6851,6 +7301,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.notes_optional": {
+    "source": "Notes (optional)",
+    "translation": "Nkọwa (nhọpụta)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.nutrition_pantry": {
     "source": "Nutrition & Pantry",
     "translation": "Nri & Ụlọ Ihe Oriri",
@@ -6881,11 +7337,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.request_beta": {
+    "source": "Request beta ✦",
+    "translation": "Rịọ beta ✦",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.seamlessly_experience_alafia_across_all": {
     "source": "Seamlessly experience ALAFIA across all your devices.",
     "translation": "Nwee ALAFIA n'ụzọ dị mfe na ngwa gị niile.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Landing.sending": {
+    "source": "Sending…",
+    "translation": "Na-eziga…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Landing.sign_in": {
     "source": "Sign In",
@@ -6946,6 +7414,18 @@
     "translation": "Ike Gị, Ebe Ọ Bụla",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Landing.your_name": {
+    "source": "Your name",
+    "translation": "Aha gị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.your_reference_is": {
+    "source": "Your reference is",
+    "translation": "Nkomọ gị bụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "LanguageSwitcher.language": {
     "source": "Language",
@@ -7102,6 +7582,12 @@
     "translation": "Enyemaka",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Layout.hospital_history": {
+    "source": "Hospital & Surgery",
+    "translation": "Ụlọ ọgwụ & Ọgwụ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Layout.image_ai": {
     "source": "Image AI",
@@ -7499,6 +7985,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Login.google_sign_in_unavailable": {
+    "source": "Google sign-in isn't available in this browser.",
+    "translation": "Google sign-in adịghị mma na ihe nchọgharị a.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Login.login_failed": {
     "source": "Login failed",
     "translation": "Ịbanye adịghị arụ ọrụ",
@@ -7650,10 +8142,10 @@
     "translated_on": "2026-09-15"
   },
   "MarketingChrome.text_2026_alafia_all_rights_reserved_built": {
-    "source": "© 2026 ALAFIA. All rights reserved. Built with ❤️ for humanity.",
-    "translation": "© 2026 ALAFIA. Ụlọ niile dị mma. E wuru ya n'obi maka mmadụ.",
+    "source": "© 2026 6igma Health Inc. All rights reserved. Built with ❤️ for humanity.",
+    "translation": "© 2026 6igma Health Inc. Nchekwa niile. Ewepụtara n'obi ❤️ maka mmadụ.",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-08"
   },
   "MarketingChrome.vision": {
     "source": "Vision",
@@ -7865,6 +8357,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.effect_mechanism": {
+    "source": "· {{mechanism}}",
+    "translation": "· {{mechanism}}",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "MealsDiary.est": {
     "source": "· est.",
     "translation": "· ihe a na-atụ anya.",
@@ -7888,6 +8386,12 @@
     "translation": "Fol",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "MealsDiary.from_agent": {
+    "source": "{{sign}}{{delta}}{{unit}} from {{agent}}",
+    "translation": "{{sign}}{{delta}}{{unit}} site na {{agent}}",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "MealsDiary.from_dialysis": {
     "source": "+{{delta}}{{unit}} from dialysis",
@@ -9587,6 +10091,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "NutrientTracking.effect_mechanism": {
+    "source": "· {{mechanism}}",
+    "translation": "· {{mechanism}}",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "NutrientTracking.estimated": {
     "source": "· estimated",
     "translation": "· atụmatụ",
@@ -9610,6 +10120,12 @@
     "translation": "{{meal_count}} nri edekọla.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "NutrientTracking.from_agent": {
+    "source": "{{sign}}{{delta}}{{unit}} from {{agent}}",
+    "translation": "{{sign}}{{delta}}{{unit}} site na {{agent}}",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "NutrientTracking.from_dialysis": {
     "source": "+{{delta}}{{unit}} from dialysis",
@@ -10601,6 +11117,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "PdfTools.keep": {
+    "source": "Keep them",
+    "translation": "Jide ha",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "PdfTools.lab": {
     "source": "Lab:",
     "translation": "Ụlọ ọrụ ọgwụ:",
@@ -10666,6 +11188,30 @@
     "translation": "Ntụkọ",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "PdfTools.remove_confirm": {
+    "source": "Remove the {{count}} record(s) this document added?",
+    "translation": "Wepụ {{count}} ndekọ nke akwụkwọ a tinyere?",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "PdfTools.remove_from_records": {
+    "source": "Remove from my records",
+    "translation": "Wepụ site na ndekọ m",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "PdfTools.remove_hint": {
+    "source": "Removes only what this document added — nothing you entered yourself. You can upload it again afterwards.",
+    "translation": "Ọ na-ewepụ naanị ihe akwụkwọ a tinyere — ọ bụghị ihe ị deere gị. Ị nwere ike ịtinyegharị ya mgbe e mesịa.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "PdfTools.removing": {
+    "source": "Removing…",
+    "translation": "N'ịwepụ…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "PdfTools.select_all": {
     "source": "Select all",
@@ -12461,6 +13007,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Privacy.alafia_is_a_product_of_6igma_health": {
+    "source": "ALAFIA is a product of 6igma Health Inc, which builds and operates it. 6igma Health Inc is the data controller for the health information described on this page — the company you are dealing with when you use ALAFIA, and the company responsible for looking after your data.",
+    "translation": "ALAFIA bụ ngwaahịa nke 6igma Health Inc, nke na-ewu na na-eme ya. 6igma Health Inc bụ onye na-achịkwa ozi ahụike akọwapụtara na ibe a — ụlọ ọrụ ị na-arụkọ ọrụ ya mgbe ị na-eji ALAFIA, na ụlọ ọrụ na-ahụ maka ịchọ mma nke data gị.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Privacy.alafia_runs_on_google_cloud_in_the": {
     "source": "ALAFIA runs on Google Cloud in the United States, and your records are stored in an encrypted database there. Data travels over encrypted connections (HTTPS/TLS).",
     "translation": "ALAFIA na-agba ọsọ na Google Cloud na United States, ọ na-echekwa ndekọ gị n'ụlọ ihe nketa nke enye mgbochi. Ozi na-agagharị n'elu njikọ enye mgbochi (HTTPS/TLS).",
@@ -12778,6 +13330,12 @@
     "translation": ", nke pụtaghị ihe n'èzí ALAFIA ọ na-enweghị ike ijikọ azụ na gị site na onye na-emepụta.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Privacy.who_operates_alafia": {
+    "source": "Who operates ALAFIA",
+    "translation": "Onye na-eme ALAFIA",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Privacy.withdraw_consent": {
     "source": "Withdraw consent",
@@ -14183,6 +14741,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "SignupFlow.account_already_exists": {
+    "source": "That address already has an account",
+    "translation": "Adreesị ahụ nwere akụntụ na-adị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "SignupFlow.already_have_an_account": {
     "source": "Already have an account?",
     "translation": "Ị nwere akụntụ na?",
@@ -14230,6 +14794,12 @@
     "translation": "Aha mbụ ga-adị mma karịa mkpụrụ okwu atọ",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "SignupFlow.go_to_sign_in": {
+    "source": "Go to sign in",
+    "translation": "Gaa na sign in",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "SignupFlow.last_name": {
     "source": "Last Name",
@@ -14314,6 +14884,12 @@
     "translation": "Banye",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "SignupFlow.signup_could_not_start_title": {
+    "source": "We could not start your signup",
+    "translation": "Anyị enweghị ike ibudata ịmepụta akụntụ gị",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "SignupFlow.signup_progress": {
     "source": "Signup progress",
@@ -16728,10 +17304,10 @@
     "translated_on": "2026-09-15"
   },
   "Wellness.text_7_pathway_trapezoidal_scoring_j_bhi_2026": {
-    "source": "7-pathway trapezoidal scoring (J-BHI 2026)",
-    "translation": "7-pathway trapezoidal scoring (J-BHI 2026)",
+    "source": "7-pathway trapezoidal scoring",
+    "translation": "7-pathway trapezoidal scoring",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-08"
   },
   "Wellness.track_your_overall_health_and_wellness": {
     "source": "Track your overall health and wellness journey",

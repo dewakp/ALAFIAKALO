@@ -123,8 +123,71 @@
     "your_session_expired_sign_in_again_to": "Votre session a expiré — connectez-vous à nouveau pour rechercher dans ICD-11.",
     "could_not_reach_the_icd_11_catalog_your": "Impossible d'accéder au catalogue ICD-11. Votre condition s'y trouve peut-être."
   },
+  "Hospital": {
+    "title": "Historique hospitalier et chirurgical",
+    "subtitle": "Admissions, interventions, et ce qu'une intervention passée signifie encore pour vous aujourd'hui.",
+    "lasting_effects": "Ce qu'une intervention passée signifie encore pour vous",
+    "lasting_effects_note": "Seuls les effets enregistrés avec l'intervention sont listés. Rien ici n'est deviné à partir du nom de l'intervention.",
+    "add_stay": "Ajouter un séjour hospitalier",
+    "add_procedure": "Ajouter une intervention",
+    "procedure_name": "Intervention",
+    "procedure_no_stay_note": "Une intervention ne nécessite pas un séjour hospitalier. La chirurgie ambulatoire, et tout ce que vous enregistrez des années plus tard, peut être ajouté seul.",
+    "stays": "Séjours hospitaliers",
+    "manage_stays": "Gérer les séjours",
+    "all_procedures": "Toutes les interventions",
+    "all_procedures_note": "Chaque intervention de votre dossier, y compris celles sans séjour hospitalier associé.",
+    "no_stays": "Aucun séjour hospitalier enregistré pour le moment.",
+    "no_procedures": "Aucune intervention enregistrée pour le moment.",
+    "no_stay": "Aucun séjour hospitalier",
+    "no_stay_recorded": "Aucun séjour hospitalier enregistré",
+    "during_stay": "Pendant quel séjour ?",
+    "during": "Pendant",
+    "delete_keeps_procedures": "Supprimer un séjour conserve ses interventions dans votre dossier. Une intervention qui a eu lieu fait partie de votre historique.",
+    "admitted": "Admission",
+    "discharged": "Sortie",
+    "nights": "nuits",
+    "facility": "Hôpital",
+    "admission_type": "Type d'admission",
+    "status": "Statut",
+    "reason": "Motif d'admission",
+    "diagnosis": "Diagnostic",
+    "attending": "Médecin traitant",
+    "performed": "Date de l'intervention",
+    "code": "Code de procédure",
+    "code_system": "Système de codage",
+    "body_site": "Partie du corps",
+    "outcome": "Résultat",
+    "surgeon": "Chirurgien",
+    "ongoing_effects": "Ce que cela signifie encore pour vous",
+    "ongoing_effects_help": "Par exemple, un organe ou une glande enlevé, ou quelque chose que vous devez prendre depuis.",
+    "loading": "Chargement de votre historique hospitalier…",
+    "could_not_load": "Votre historique hospitalier n'a pas pu être chargé",
+    "load_failed": "Impossible de charger votre historique hospitalier.",
+    "save_failed": "Impossible d'enregistrer.",
+    "try_again": "Réessayer",
+    "not_stated": "Non indiqué",
+    "emergency": "Urgence",
+    "elective": "Planifié",
+    "urgent": "Urgent",
+    "observation": "Observation",
+    "day_case": "Ambulatoire",
+    "maternity": "Maternité",
+    "rehabilitation": "Réadaptation",
+    "other": "Autre",
+    "planned": "Planifié",
+    "in_progress": "Toujours hospitalisé",
+    "transferred": "Transféré",
+    "cancelled": "Annulé",
+    "successful": "Réussi",
+    "partially_successful": "Partiellement réussi",
+    "unsuccessful": "Non réussi",
+    "complicated": "Compliqué",
+    "abandoned": "Abandonné",
+    "unknown": "Inconnu"
+  },
   "Layout": {
     "open_menu": "Ouvrir le menu",
+    "hospital_history": "Hôpital & Chirurgie",
     "notifications": "Notifications",
     "logout": "Déconnexion",
     "ask_alafia": "Demander à ALAFIA",
@@ -1343,7 +1406,11 @@
     "status_2": "Statut",
     "delete": "Supprimer",
     "no_lab_results_yet": "Aucun résultat de laboratoire pour le moment",
-    "upload_lab_report_pdf": "Télécharger rapport de laboratoire (PDF)"
+    "upload_lab_report_pdf": "Télécharger rapport de laboratoire (PDF)",
+    "abnormal": "⚠️ Anormal",
+    "in_range": "✅ Dans la norme",
+    "not_assessed": "— Non évalué",
+    "not_assessed_title": "Ce résultat n'a jamais été comparé à une plage de référence."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1400,7 +1467,22 @@
     "health_charts": "Graphiques de santé",
     "beautiful_ai_powered_dashboards": "Tableaux de bord élégants alimentés par IA visualisant chaque aspect de votre santé dans le temps.",
     "community_safety": "Communauté et sécurité",
-    "fda_recall_alerts_wellness_resources_and": "Alertes de rappel FDA, ressources bien-être et connaissances communautaires fondées sur des preuves."
+    "fda_recall_alerts_wellness_resources_and": "Alertes de rappel FDA, ressources bien-être et connaissances communautaires fondées sur des preuves.",
+    "get_it_in_beta": "Accédez à la version bêta.",
+    "beta_blurb": "Si vous vous êtes déjà abonné via le web mais souhaitez voir l'application iOS en action, demandez l'accès bêta dès aujourd'hui et nous vous enverrons un code d'activation.",
+    "your_name": "Votre nom",
+    "email": "Courriel",
+    "notes_optional": "Notes (facultatif)",
+    "beta_notes_hint": "Tout ce qui nous aide à vous identifier — le courriel avec lequel vous vous êtes abonné, ou votre appareil.",
+    "leave_this_field_empty": "Laissez ce champ vide",
+    "sending": "Envoi en cours…",
+    "request_beta": "Demander l'accès bêta ✦",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "beta_request_received": "Demande reçue",
+    "beta_we_have_your_request": "Nous avons reçu votre demande. Si vous êtes déjà membre, nous vérifierons votre adresse et vous enverrons une invitation TestFlight.",
+    "your_reference_is": "Votre référence est",
+    "beta_could_not_send": "Nous n'avons pas pu envoyer votre demande. Veuillez réessayer dans quelques instants."
   },
   "Lifestyle": {
     "lifestyle": "Mode de vie",
@@ -1444,7 +1526,8 @@
     "password_must_be_at_least_6_characters": "Le mot de passe doit contenir au moins 6 caractères",
     "login_failed": "Échec de la connexion",
     "enter_a_valid_phone_number_e_g": "Entrez un numéro de téléphone valide, p. ex. [phone]",
-    "sign_in_failed": "Échec de la connexion."
+    "sign_in_failed": "Échec de la connexion.",
+    "google_sign_in_unavailable": "La connexion Google n'est pas disponible dans ce navigateur."
   },
   "MealPlanner": {
     "cal": "cal",
@@ -1504,7 +1587,9 @@
     "na": "Na",
     "vitd": "VitD",
     "fol": "Fol",
-    "chol": "Chol"
+    "chol": "Chol",
+    "from_agent": "{{sign}}{{delta}}{{unit}} de {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "Médicaments",
@@ -1800,7 +1885,9 @@
     "vitamin_c": "Vitamine C",
     "vitamin_a": "Vitamine A",
     "omega_3": "Oméga-3",
-    "your_personalized_targets_could_not_be": "Vos objectifs personnalisés n'ont pas pu être chargés. Les valeurs de référence génériques ci-dessous sont affichées à la place."
+    "your_personalized_targets_could_not_be": "Vos objectifs personnalisés n'ont pas pu être chargés. Les valeurs de référence génériques ci-dessous sont affichées à la place.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} de {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "Nutrition",
@@ -1962,7 +2049,12 @@
     "generate_flowsheet": "Générer un feuillet",
     "already_recorded": "Déjà enregistré",
     "differs_from_existing": "Diffère de l'existant",
-    "the_pdf_could_not_be_downloaded": "Le PDF n'a pas pu être téléchargé."
+    "the_pdf_could_not_be_downloaded": "Le PDF n'a pas pu être téléchargé.",
+    "remove_from_records": "Supprimer de mes dossiers",
+    "remove_confirm": "Supprimer le(s) {{count}} dossier(s) que ce document a ajouté(s) ?",
+    "removing": "Suppression en cours…",
+    "remove_hint": "Supprime uniquement ce que ce document a ajouté — rien de ce que vous avez entré vous-même. Vous pouvez le télécharger à nouveau par la suite.",
+    "keep": "Les conserver"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Dialyse péritonéale",
@@ -2253,6 +2345,8 @@
     "privacy": "Confidentialité",
     "alafia_holds_some_of_the_most_sensitive": "ALAFIA contient certaines des informations les plus sensibles qu'une personne possède. Cette page explique clairement ce que nous collectons, pourquoi, qui peut le voir, et comment l'obtenir ou le supprimer.",
     "last_updated": "Dernière mise à jour {{LAST_UPDATED}}.",
+    "who_operates_alafia": "Qui exploite ALAFIA",
+    "alafia_is_a_product_of_6igma_health": "ALAFIA est un produit de 6igma Health Inc, qui le développe et l'exploite. 6igma Health Inc est le responsable du traitement des informations de santé décrites sur cette page — l'entreprise avec laquelle vous travaillez lorsque vous utilisez ALAFIA, et l'entreprise responsable de la protection de vos données.",
     "what_we_collect": "Ce que nous collectons",
     "only_what_the_app_needs_to_work": "Seulement ce dont l'application a besoin pour fonctionner. Tout ci-dessous est lié à votre compte — vous ne pouvez pas avoir un dossier de santé sans endroit où le stocker.",
     "what_we_never_do": "Ce que nous ne faisons jamais",
@@ -2581,7 +2675,10 @@
     "we_could_not_start_your_signup": "Nous n'avons pas pu commencer votre inscription.",
     "we_could_not_open_the_payment_page": "Nous n'avons pas pu ouvrir la page de paiement.",
     "sent_check_your_inbox_and_your_spam": "Envoyé. Vérifiez votre boîte de réception et votre dossier spam.",
-    "we_could_not_resend_that_email": "Nous n'avons pas pu renvoyer cet e-mail."
+    "we_could_not_resend_that_email": "Nous n'avons pas pu renvoyer cet e-mail.",
+    "account_already_exists": "Cette adresse a déjà un compte",
+    "signup_could_not_start_title": "Nous n'avons pas pu commencer votre inscription",
+    "go_to_sign_in": "Aller à la connexion"
   },
   "Sleep": {
     "sleep": "Sommeil",
@@ -2906,7 +3003,7 @@
     "score_history_last_30_days": "Historique des scores (30 derniers jours)",
     "no_wellness_score_yet": "Aucun score de bien-être pour le moment",
     "hebcs_wellness_score": "Score de bien-être HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Notation trapézoïdale 7 voies",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "Derniers résultats : {{value}}",
     "score_0_100": "Score (0–100)",
     "data_coverage": "Couverture des données",
@@ -3032,5 +3129,8 @@
   },
   "LanguageSwitcher": {
     "language": "Langue"
+  },
+  "AlertDialog": {
+    "dismiss": "Fermer"
   }
 }

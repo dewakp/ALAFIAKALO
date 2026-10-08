@@ -123,8 +123,71 @@
     "your_session_expired_sign_in_again_to": "Sua sessão expirou — faça login novamente para pesquisar ICD-11.",
     "could_not_reach_the_icd_11_catalog_your": "Não foi possível acessar o catálogo ICD-11. Sua condição pode estar lá mesmo assim."
   },
+  "Hospital": {
+    "title": "Histórico de Hospital e Cirurgia",
+    "subtitle": "Internações, operações e o que uma cirurgia passada ainda significa para você hoje.",
+    "lasting_effects": "O que uma cirurgia passada ainda significa para você",
+    "lasting_effects_note": "Apenas os efeitos registados com a operação são listados. Nada aqui é adivinhado pelo nome da operação.",
+    "add_stay": "Adicionar uma internação",
+    "add_procedure": "Adicionar uma operação",
+    "procedure_name": "Operação",
+    "procedure_no_stay_note": "Uma operação não precisa de internação. Cirurgia de dia e qualquer coisa que registar anos depois pode ser adicionada sozinha.",
+    "stays": "Internações",
+    "manage_stays": "Gerir internações",
+    "all_procedures": "Todas as operações",
+    "all_procedures_note": "Todas as operações no seu registo, incluindo as sem internação associada.",
+    "no_stays": "Nenhuma internação registada ainda.",
+    "no_procedures": "Nenhuma operação registada ainda.",
+    "no_stay": "Sem internação",
+    "no_stay_recorded": "Nenhuma internação registada",
+    "during_stay": "Durante qual internação?",
+    "during": "Durante",
+    "delete_keeps_procedures": "Eliminar uma internação mantém as suas operações no seu registo. Uma operação que aconteceu faz parte do seu histórico.",
+    "admitted": "Internado",
+    "discharged": "Dado alta",
+    "nights": "noites",
+    "facility": "Hospital",
+    "admission_type": "Tipo de internação",
+    "status": "Estado",
+    "reason": "Motivo da internação",
+    "diagnosis": "Diagnóstico",
+    "attending": "Médico assistente",
+    "performed": "Data da operação",
+    "code": "Código do procedimento",
+    "code_system": "Sistema de codificação",
+    "body_site": "Parte do corpo",
+    "outcome": "Resultado",
+    "surgeon": "Cirurgião",
+    "ongoing_effects": "O que isto ainda significa para você",
+    "ongoing_effects_help": "Por exemplo, um órgão ou glândula removida, ou algo que tem de tomar desde então.",
+    "loading": "A carregar o seu histórico de hospital…",
+    "could_not_load": "O seu histórico de hospital não pôde ser carregado",
+    "load_failed": "Não foi possível carregar o seu histórico de hospital.",
+    "save_failed": "Não foi possível guardar.",
+    "try_again": "Tentar novamente",
+    "not_stated": "Não informado",
+    "emergency": "Emergência",
+    "elective": "Planeado",
+    "urgent": "Urgente",
+    "observation": "Observação",
+    "day_case": "Ambulatório",
+    "maternity": "Maternidade",
+    "rehabilitation": "Reabilitação",
+    "other": "Outro",
+    "planned": "Planeado",
+    "in_progress": "Ainda internado",
+    "transferred": "Transferido",
+    "cancelled": "Cancelado",
+    "successful": "Bem-sucedido",
+    "partially_successful": "Parcialmente bem-sucedido",
+    "unsuccessful": "Sem sucesso",
+    "complicated": "Complicado",
+    "abandoned": "Abandonado",
+    "unknown": "Desconhecido"
+  },
   "Layout": {
     "open_menu": "Abrir menu",
+    "hospital_history": "Hospital & Cirurgia",
     "notifications": "Notificações",
     "logout": "Sair",
     "ask_alafia": "Pergunte ao ALAFIA",
@@ -1343,7 +1406,11 @@
     "status_2": "Status",
     "delete": "Deletar",
     "no_lab_results_yet": "Nenhum resultado de laboratório ainda",
-    "upload_lab_report_pdf": "Carregar relatório de laboratório (PDF)"
+    "upload_lab_report_pdf": "Carregar relatório de laboratório (PDF)",
+    "abnormal": "⚠️ Anormal",
+    "in_range": "✅ Dentro do intervalo",
+    "not_assessed": "— Não avaliado",
+    "not_assessed_title": "Este resultado nunca foi verificado em relação a um intervalo de referência."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1400,7 +1467,22 @@
     "health_charts": "Gráficos de Saúde",
     "beautiful_ai_powered_dashboards": "Painéis bonitos com IA visualizando cada dimensão da sua saúde ao longo do tempo.",
     "community_safety": "Comunidade e Segurança",
-    "fda_recall_alerts_wellness_resources_and": "Alertas de recall da FDA, recursos de bem-estar e conhecimento comunitário baseado em evidências."
+    "fda_recall_alerts_wellness_resources_and": "Alertas de recall da FDA, recursos de bem-estar e conhecimento comunitário baseado em evidências.",
+    "get_it_in_beta": "Obtenha em Beta.",
+    "beta_blurb": "Se já se subscreveu via web mas quer ver a app iOS em ação, solicite beta hoje e enviaremos um código de ativação.",
+    "your_name": "Seu nome",
+    "email": "Email",
+    "notes_optional": "Notas (opcional)",
+    "beta_notes_hint": "Qualquer coisa que nos ajude a identificá-lo — o email com que se subscreveu, ou seu dispositivo.",
+    "leave_this_field_empty": "Deixe este campo vazio",
+    "sending": "Enviando…",
+    "request_beta": "Solicitar beta ✦",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "beta_request_received": "Solicitação recebida",
+    "beta_we_have_your_request": "Recebemos sua solicitação. Se já é membro, faremos a correspondência do seu endereço e enviaremos um convite TestFlight.",
+    "your_reference_is": "Sua referência é",
+    "beta_could_not_send": "Não conseguimos enviar seu pedido. Tente novamente em breve."
   },
   "Lifestyle": {
     "lifestyle": "Estilo de Vida",
@@ -1444,7 +1526,8 @@
     "password_must_be_at_least_6_characters": "A palavra-passe deve ter pelo menos 6 caracteres",
     "login_failed": "Falha ao iniciar sessão",
     "enter_a_valid_phone_number_e_g": "Introduza um número de telefone válido, p. ex. [phone]",
-    "sign_in_failed": "Falha ao iniciar sessão."
+    "sign_in_failed": "Falha ao iniciar sessão.",
+    "google_sign_in_unavailable": "O login do Google não está disponível neste navegador."
   },
   "MealPlanner": {
     "cal": "cal",
@@ -1504,7 +1587,9 @@
     "na": "Na",
     "vitd": "VitD",
     "fol": "Fol",
-    "chol": "Col"
+    "chol": "Col",
+    "from_agent": "{{sign}}{{delta}}{{unit}} de {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "Medicamentos",
@@ -1800,7 +1885,9 @@
     "vitamin_c": "Vitamina C",
     "vitamin_a": "Vitamina A",
     "omega_3": "Ômega-3",
-    "your_personalized_targets_could_not_be": "Seus objetivos personalizados não puderam ser carregados, então os valores de referência genéricos abaixo são mostrados."
+    "your_personalized_targets_could_not_be": "Seus objetivos personalizados não puderam ser carregados, então os valores de referência genéricos abaixo são mostrados.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} de {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "Nutrição",
@@ -1962,7 +2049,12 @@
     "generate_flowsheet": "Gerar Planilha",
     "already_recorded": "Já registrado",
     "differs_from_existing": "Diferente do existente",
-    "the_pdf_could_not_be_downloaded": "Não foi possível baixar o PDF."
+    "the_pdf_could_not_be_downloaded": "Não foi possível baixar o PDF.",
+    "remove_from_records": "Remover dos meus registros",
+    "remove_confirm": "Remover o(s) {{count}} registro(s) que este documento adicionou?",
+    "removing": "Removendo…",
+    "remove_hint": "Remove apenas o que este documento adicionou — nada que você inseriu. Você pode enviá-lo novamente depois.",
+    "keep": "Manter"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Diálise Peritoneal",
@@ -2253,6 +2345,8 @@
     "privacy": "Privacidade",
     "alafia_holds_some_of_the_most_sensitive": "ALAFIA contém algumas das informações mais sensíveis que uma pessoa pode ter. Esta página explica claramente o que coletamos, por quê, quem pode ver e como recuperar ou deletar.",
     "last_updated": "Última atualização {{LAST_UPDATED}}.",
+    "who_operates_alafia": "Quem opera o ALAFIA",
+    "alafia_is_a_product_of_6igma_health": "ALAFIA é um produto da 6igma Health Inc, que o constrói e opera. A 6igma Health Inc é a controladora de dados das informações de saúde descritas nesta página — a empresa com a qual você está lidando ao usar o ALAFIA e a empresa responsável por cuidar dos seus dados.",
     "what_we_collect": "O que coletamos",
     "only_what_the_app_needs_to_work": "Apenas o necessário para o app funcionar. Tudo abaixo está vinculado à sua conta — você não pode ter um registro de saúde sem um lugar para armazená-lo.",
     "what_we_never_do": "O que nunca fazemos",
@@ -2581,7 +2675,10 @@
     "we_could_not_start_your_signup": "Não conseguimos iniciar seu cadastro.",
     "we_could_not_open_the_payment_page": "Não conseguimos abrir a página de pagamento.",
     "sent_check_your_inbox_and_your_spam": "Enviado. Verifique sua caixa de entrada e a pasta de spam.",
-    "we_could_not_resend_that_email": "Não conseguimos reenviar esse email."
+    "we_could_not_resend_that_email": "Não conseguimos reenviar esse email.",
+    "account_already_exists": "Esse endereço já tem uma conta",
+    "signup_could_not_start_title": "Não conseguimos iniciar seu cadastro",
+    "go_to_sign_in": "Ir para login"
   },
   "Sleep": {
     "sleep": "Sono",
@@ -2906,7 +3003,7 @@
     "score_history_last_30_days": "Histórico de Pontuação (Últimos 30 Dias)",
     "no_wellness_score_yet": "Nenhuma pontuação de bem-estar ainda",
     "hebcs_wellness_score": "Pontuação de Bem-estar HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Pontuação trapezoidal de 7 vias",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "Últimos exames: {{value}}",
     "score_0_100": "Pontuação (0–100)",
     "data_coverage": "Cobertura de dados",
@@ -3032,5 +3129,8 @@
   },
   "LanguageSwitcher": {
     "language": "Idioma"
+  },
+  "AlertDialog": {
+    "dismiss": "Descartar"
   }
 }

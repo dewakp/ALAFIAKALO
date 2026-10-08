@@ -503,6 +503,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "also_on_your_flowsheet": {
+    "source": "also on your flowsheet",
+    "translation": "موجود أيضاً في ورقة المتابعة الخاصة بك",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "also_written_as": {
+    "source": "also written as %1$s",
+    "translation": "يُكتب أيضاً باسم %1$s",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "alternate_agent": {
     "source": "Alternate Agent",
     "translation": "الوكيل البديل",
@@ -748,6 +760,12 @@
     "translation": "BFR (mL/min)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "billed_annually_through_google_play": {
+    "source": "Billed yearly through Google Play. Cancel anytime in Play Store settings.",
+    "translation": "يتم الفوترة سنوياً عبر Google Play. يمكنك الإلغاء في أي وقت من إعدادات Play Store.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "billed_monthly_through_google_play": {
     "source": "Billed monthly through Google Play. Cancel anytime in Play Store settings.",
@@ -2699,6 +2717,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "given_during_treatment_already_recorded": {
+    "source": "Given during treatment — already on your record.",
+    "translation": "أعطي أثناء العلاج — موجود بالفعل في سجلك.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "given_on_n_days": {
+    "source": "given on %1$d day(s)",
+    "translation": "أعطي في %1$d يوم",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "global": {
     "source": "🌍 Global",
     "translation": "🌍 عالمي",
@@ -2879,6 +2909,30 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "hospital_add_procedure": {
+    "source": "Add an operation",
+    "translation": "إضافة عملية",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_add_stay": {
+    "source": "Add a hospital stay",
+    "translation": "إضافة إقامة في المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_admitted": {
+    "source": "Admitted (YYYY-MM-DD)",
+    "translation": "تاريخ الدخول (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_admitted_required": {
+    "source": "A hospital stay needs the date you were admitted.",
+    "translation": "الإقامة في المستشفى تحتاج إلى تاريخ دخولك.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "hospital_affiliations": {
     "source": "Hospital & Affiliations",
     "translation": "المستشفى والانتماءات",
@@ -2891,11 +2945,191 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "hospital_all_procedures": {
+    "source": "All operations",
+    "translation": "جميع العمليات الجراحية",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_all_procedures_note": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "كل عملية في سجلك، بما فيها تلك التي لم يكن معها إقامة في المستشفى.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_body_site": {
+    "source": "Part of the body",
+    "translation": "جزء من الجسم",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_cancel": {
+    "source": "Cancel",
+    "translation": "إلغاء",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code": {
+    "source": "Procedure code",
+    "translation": "رمز الإجراء",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code_system": {
+    "source": "Coding system",
+    "translation": "نظام الترميز",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code_system_help": {
+    "source": "A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.",
+    "translation": "الرمز يحتاج إلى النظام الذي أصدره — ICD-10-PCS و CPT و SNOMED أنظمة مختلفة.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_could_not_load": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "تعذّر تحميل سجل المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_discharged": {
+    "source": "Discharged (YYYY-MM-DD)",
+    "translation": "تاريخ الخروج (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_during": {
+    "source": "During %1$s",
+    "translation": "خلال %1$s",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_during_stay": {
+    "source": "During which stay?",
+    "translation": "خلال أي إقامة؟",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "hospital_er_since_last": {
     "source": "Hospital/ER Since Last",
     "translation": "دخول المستشفى / غرفة الطوارئ منذ آخر مرة",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "hospital_facility": {
+    "source": "Hospital",
+    "translation": "المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_history": {
+    "source": "Hospital & Surgery",
+    "translation": "المستشفى والجراحة",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_lasting_effects": {
+    "source": "What past surgery still means for you",
+    "translation": "ما تعنيه العملية الجراحية السابقة لك الآن",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_lasting_effects_note": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "تُدرَج هنا فقط الآثار المسجَّلة مع العملية. لا شيء هنا مستنتج من اسم العملية.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_name_required": {
+    "source": "An operation needs a name.",
+    "translation": "العملية تحتاج إلى اسم.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_nights_count": {
+    "source": "· %1$d nights",
+    "translation": "· %1$d ليلة",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_procedures": {
+    "source": "No operations recorded yet.",
+    "translation": "لم تُسجَّل عمليات حتى الآن.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stay": {
+    "source": "No hospital stay",
+    "translation": "بدون إقامة في المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stay_recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "لم تُسجَّل إقامة في المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stays": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "لم تُسجَّل إقامات في المستشفى حتى الآن.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_ongoing_effects": {
+    "source": "What this still means for you",
+    "translation": "ما تعنيه لك الآن",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_ongoing_effects_help": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "على سبيل المثال، عضو أو غدة تمت إزالتها، أو شيء اضطررت لتناوله منذ ذلك الحين.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_outcome": {
+    "source": "Outcome",
+    "translation": "النتيجة",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_performed": {
+    "source": "Date of operation (YYYY-MM-DD)",
+    "translation": "تاريخ العملية (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_procedure_name": {
+    "source": "Operation",
+    "translation": "عملية",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_procedure_no_stay_note": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "العملية لا تحتاج إلى إقامة في المستشفى. يمكن إضافة الجراحة اليومية وأي شيء تسجله بعد سنوات بمفردها.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_reason": {
+    "source": "Reason for admission",
+    "translation": "سبب الدخول",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_save": {
+    "source": "Save",
+    "translation": "حفظ",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_stays": {
+    "source": "Hospital stays",
+    "translation": "فترات الاستشفاء",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "how_are_you_doing_today": {
     "source": "How are you doing today?",
@@ -3155,17 +3389,35 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "lab_abnormal": {
+    "source": "⚠️ Abnormal",
+    "translation": "⚠️ غير طبيعي",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "lab_charts": {
     "source": "Lab Charts",
     "translation": "رسوم الاختبارات",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "lab_in_range": {
+    "source": "✅ In range",
+    "translation": "✅ ضمن النطاق",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "lab_name": {
     "source": "Lab Name",
     "translation": "اسم المختبر",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "lab_not_assessed": {
+    "source": "— Not assessed",
+    "translation": "— لم يتم التقييم",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "lab_results_will_appear_here_once": {
     "source": "Lab results will appear here once available",
@@ -3563,6 +3815,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "medication_record_footer": {
+    "source": "Every source together — what you were prescribed, what you logged, and what you were given at treatment.",
+    "translation": "جميع المصادر معاً — الأدوية الموصوفة لك، والأدوية التي سجلتها بنفسك، والأدوية التي أعطيت لك أثناء العلاج.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "medications": {
     "source": "Medications",
     "translation": "الأدوية",
@@ -3778,6 +4036,12 @@
     "translation": "طول الإبرة (mm)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "needs_attention": {
+    "source": "Needs attention",
+    "translation": "يحتاج إلى اهتمام",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "new_chemo_session": {
     "source": "New Chemo Session",
@@ -4421,11 +4685,41 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "omega_critical": {
+    "source": "Critical",
+    "translation": "حرج",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_good": {
+    "source": "Good",
+    "translation": "جيد",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_moderate": {
+    "source": "Moderate",
+    "translation": "متوسط",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_reference": {
+    "source": "%1$s %2$s (reference %3$s)",
+    "translation": "%1$s %2$s (المرجع %3$s)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "on": {
     "source": "%1$s on %2$s",
     "translation": "%1$s في %2$s",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "on_your_flowsheet": {
+    "source": "On your flowsheet",
+    "translation": "في ورقة المتابعة الخاصة بك",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "one_way_sync": {
     "source": "One-way sync",
@@ -4726,6 +5020,18 @@
     "translation": "الخطة: %1$s",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "plan_annual": {
+    "source": "Annual",
+    "translation": "سنوي",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "plan_monthly": {
+    "source": "Monthly",
+    "translation": "شهري",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "plan_name": {
     "source": "Plan Name",
@@ -5519,6 +5825,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "remove_from_records": {
+    "source": "Remove from my records",
+    "translation": "حذف من سجلاتي",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "remove_import_hint": {
+    "source": "Removes only what this document added. You can upload it again afterwards.",
+    "translation": "يحذف فقط ما أضافته هذه الوثيقة. يمكنك تحميلها مرة أخرى لاحقاً.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "remove_photo": {
     "source": "Remove Photo",
     "translation": "إزالة الصورة",
@@ -5530,6 +5848,12 @@
     "translation": "تمت إزالته (mL)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "removing": {
+    "source": "Removing…",
+    "translation": "جاري الحذف…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "replies": {
     "source": "Replies (%1$s)",
@@ -5837,11 +6161,65 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "score_dialysis": {
+    "source": "Dialysis",
+    "translation": "غسيل الكلى",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_elimination": {
+    "source": "Elimination",
+    "translation": "الإفراز",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_fitness": {
+    "source": "Fitness",
+    "translation": "اللياقة البدنية",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_medication_adherence": {
+    "source": "Medication Adherence",
+    "translation": "الالتزام بالأدوية",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_mood": {
+    "source": "Mood",
+    "translation": "المزاج",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_nutrition": {
+    "source": "Nutrition",
+    "translation": "التغذية",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_sleep": {
+    "source": "Sleep",
+    "translation": "النوم",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_symptoms": {
+    "source": "Symptoms",
+    "translation": "الأعراض",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "score_this_from_what_i_wrote": {
     "source": "Score this from what I wrote",
     "translation": "قيّم هذا مما كتبته",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "score_vitals": {
+    "source": "Vitals",
+    "translation": "العلامات الحيوية",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "scores": {
     "source": "Scores",
@@ -6370,6 +6748,30 @@
     "translation": "SpO₂",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "src_administered": {
+    "source": "given at treatment",
+    "translation": "أعطي أثناء العلاج",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_imported": {
+    "source": "from your clinic",
+    "translation": "من عيادتك",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_logged": {
+    "source": "you logged it",
+    "translation": "سجلته بنفسك",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_prescribed": {
+    "source": "prescribed",
+    "translation": "موصوف",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "stand_dia": {
     "source": "Stand Dia",
@@ -7559,6 +7961,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "written_as_on_the_sheet": {
+    "source": "(written as %1$s)",
+    "translation": "(مكتوب باسم %1$s)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "year": {
+    "source": " / year",
+    "translation": "/ سنة",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "years_exp": {
     "source": "Years Exp",
     "translation": "سنوات الخبرة",
@@ -7570,6 +7984,12 @@
     "translation": "✓ نعم",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "you_did_not_log_anything_yourself": {
+    "source": "You did not log anything yourself for this date.",
+    "translation": "لم تسجل أي شيء بنفسك في هذا التاريخ.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "you_have_uploaded_this_file_before": {
     "source": "You have uploaded this file before — showing what was read then.",
@@ -7612,6 +8032,12 @@
     "translation": "خطط الوجبات الخاصة بك",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "your_medication_record": {
+    "source": "Your medication record",
+    "translation": "سجل الأدوية الخاص بك",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "your_own_health_record_meals_and": {
     "source": "Your own health record, meals and tracking live in the patient view.",

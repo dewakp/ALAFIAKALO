@@ -197,6 +197,47 @@ def test_every_platform_offers_exactly_the_same_languages():
     assert set(re.findall(r'"([a-z]{2})"', android_codes)) == expected, "Android AppLanguage.CODES"
 
 
+def test_every_language_carries_every_source_key():
+    """A language list that agrees is not a catalog that agrees.
+
+    `test_every_platform_offers_exactly_the_same_languages` checks the ROSTER —
+    that all four clients offer the same eleven codes. It says nothing about
+    whether the catalogs behind those codes are populated, and that hole is the
+    shape of a real bug: commit 37edcc7 added 71 Android strings and 96 web
+    strings to the English source and to no other locale, shipped, merged and
+    deployed. Every one of the ten translated languages fell back to English on
+    those screens.
+
+    Nothing caught it. Android lint reports `MissingTranslation`, but lint is
+    not in the deploy path and inspects only Android — web was missing MORE
+    keys (96) than Android (71) with no check of any kind. §3aw's rule is that
+    a new screen cannot ship English-only; this is that rule, enforced.
+
+    Reads through `catalogs.READERS`, which already skips Android strings
+    marked `translatable="false"` — so an intentionally untranslated string is
+    not reported here.
+    """
+    gaps: list[str] = []
+    for platform in catalogs.PLATFORMS:
+        source = catalogs.READERS[platform](catalogs.SOURCE_LANGUAGE)
+        assert source, f"{platform}: no source catalog to compare against"
+        for lang in catalogs.LANGUAGES:
+            if lang == catalogs.SOURCE_LANGUAGE:
+                continue
+            target = catalogs.READERS[platform](lang)
+            missing = [key for key in source if key not in target]
+            if missing:
+                sample = ", ".join(sorted(missing)[:5])
+                gaps.append(
+                    f"{platform}/{lang}: {len(missing)} of {len(source)} missing ({sample}…)"
+                )
+
+    assert not gaps, (
+        "these languages fall back to English for keys the source defines:\n  "
+        + "\n  ".join(gaps)
+    )
+
+
 # ── iOS: a worded literal must reach a LocalizedStringKey ────────────────────
 
 def _skip_string(src: str, i: int) -> int:

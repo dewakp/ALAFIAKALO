@@ -503,6 +503,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "also_on_your_flowsheet": {
+    "source": "also on your flowsheet",
+    "translation": "auch auf Ihrem Flowsheet",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "also_written_as": {
+    "source": "also written as %1$s",
+    "translation": "auch geschrieben als %1$s",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "alternate_agent": {
     "source": "Alternate Agent",
     "translation": "Stellvertretender Bevollmächtigter",
@@ -748,6 +760,12 @@
     "translation": "BFR (mL/min)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "billed_annually_through_google_play": {
+    "source": "Billed yearly through Google Play. Cancel anytime in Play Store settings.",
+    "translation": "Wird jährlich über Google Play abgerechnet. Sie können jederzeit in den Play Store-Einstellungen kündigen.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "billed_monthly_through_google_play": {
     "source": "Billed monthly through Google Play. Cancel anytime in Play Store settings.",
@@ -2699,6 +2717,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "given_during_treatment_already_recorded": {
+    "source": "Given during treatment — already on your record.",
+    "translation": "Während der Behandlung erhalten — bereits in Ihren Unterlagen.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "given_on_n_days": {
+    "source": "given on %1$d day(s)",
+    "translation": "an %1$d Tag(en) erhalten",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "global": {
     "source": "🌍 Global",
     "translation": "🌍 Global",
@@ -2879,6 +2909,30 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "hospital_add_procedure": {
+    "source": "Add an operation",
+    "translation": "Operation hinzufügen",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_add_stay": {
+    "source": "Add a hospital stay",
+    "translation": "Krankenhausaufenthalt hinzufügen",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_admitted": {
+    "source": "Admitted (YYYY-MM-DD)",
+    "translation": "Aufnahme (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_admitted_required": {
+    "source": "A hospital stay needs the date you were admitted.",
+    "translation": "Ein Krankenhausaufenthalt benötigt das Aufnahmedatum.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "hospital_affiliations": {
     "source": "Hospital & Affiliations",
     "translation": "Krankenhaus & Zugehörigkeiten",
@@ -2891,11 +2945,191 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "hospital_all_procedures": {
+    "source": "All operations",
+    "translation": "Alle Operationen",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_all_procedures_note": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "Alle Einträge zu Ihrer Krankengeschichte, auch ohne Krankenhausaufenthalt.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_body_site": {
+    "source": "Part of the body",
+    "translation": "Körperteil",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_cancel": {
+    "source": "Cancel",
+    "translation": "Abbrechen",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code": {
+    "source": "Procedure code",
+    "translation": "Prozedurcode",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code_system": {
+    "source": "Coding system",
+    "translation": "Codesystem",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_code_system_help": {
+    "source": "A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.",
+    "translation": "Ein Code benötigt das System, das ihn ausgegeben hat — ICD-10-PCS, CPT und SNOMED sind unterschiedliche Systeme.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_could_not_load": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "Ihre Krankengeschichte konnte nicht geladen werden",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_discharged": {
+    "source": "Discharged (YYYY-MM-DD)",
+    "translation": "Entlassung (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_during": {
+    "source": "During %1$s",
+    "translation": "Während %1$s",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_during_stay": {
+    "source": "During which stay?",
+    "translation": "Während welchen Aufenthalts?",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "hospital_er_since_last": {
     "source": "Hospital/ER Since Last",
     "translation": "Krankenhaus/Notfall seit letztem Mal",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "hospital_facility": {
+    "source": "Hospital",
+    "translation": "Krankenhaus",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_history": {
+    "source": "Hospital & Surgery",
+    "translation": "Krankenhaus & Operationen",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_lasting_effects": {
+    "source": "What past surgery still means for you",
+    "translation": "Was frühere Operationen für Sie heute bedeuten",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_lasting_effects_note": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "Nur Folgen, die mit der Operation erfasst wurden, werden angezeigt. Nichts wird vom Namen der Operation abgeleitet.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_name_required": {
+    "source": "An operation needs a name.",
+    "translation": "Eine Operation benötigt einen Namen.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_nights_count": {
+    "source": "· %1$d nights",
+    "translation": "· %1$d Nächte",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_procedures": {
+    "source": "No operations recorded yet.",
+    "translation": "Noch keine Operationen erfasst.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stay": {
+    "source": "No hospital stay",
+    "translation": "Kein Krankenhausaufenthalt",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stay_recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "Kein Krankenhausaufenthalt erfasst",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_no_stays": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "Noch keine Krankenhausaufenthalte erfasst.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_ongoing_effects": {
+    "source": "What this still means for you",
+    "translation": "Was dies für Sie heute bedeutet",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_ongoing_effects_help": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "Zum Beispiel ein entferntes Organ oder eine Drüse, oder etwas, das Sie seitdem nehmen müssen.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_outcome": {
+    "source": "Outcome",
+    "translation": "Ergebnis",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_performed": {
+    "source": "Date of operation (YYYY-MM-DD)",
+    "translation": "Operationsdatum (YYYY-MM-DD)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_procedure_name": {
+    "source": "Operation",
+    "translation": "Operation",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_procedure_no_stay_note": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "Eine Operation benötigt keinen Krankenhausaufenthalt. Ambulante Eingriffe und alles, das Sie Jahre später erfassen, können einzeln hinzugefügt werden.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_reason": {
+    "source": "Reason for admission",
+    "translation": "Grund der Aufnahme",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_save": {
+    "source": "Save",
+    "translation": "Speichern",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "hospital_stays": {
+    "source": "Hospital stays",
+    "translation": "Krankenhausaufenthalte",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "how_are_you_doing_today": {
     "source": "How are you doing today?",
@@ -3155,17 +3389,35 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "lab_abnormal": {
+    "source": "⚠️ Abnormal",
+    "translation": "⚠️ Abnormal",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "lab_charts": {
     "source": "Lab Charts",
     "translation": "Laborwerte",
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "lab_in_range": {
+    "source": "✅ In range",
+    "translation": "✅ Im Normalbereich",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "lab_name": {
     "source": "Lab Name",
     "translation": "Laborname",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "lab_not_assessed": {
+    "source": "— Not assessed",
+    "translation": "— Nicht bewertet",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "lab_results_will_appear_here_once": {
     "source": "Lab results will appear here once available",
@@ -3563,6 +3815,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "medication_record_footer": {
+    "source": "Every source together — what you were prescribed, what you logged, and what you were given at treatment.",
+    "translation": "Alle Quellen zusammen — was Ihnen verschrieben wurde, was Sie eingetragen haben und was Sie bei der Behandlung erhalten haben.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "medications": {
     "source": "Medications",
     "translation": "Medikamente",
@@ -3778,6 +4036,12 @@
     "translation": "Nadellänge (mm)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "needs_attention": {
+    "source": "Needs attention",
+    "translation": "Erfordert Aufmerksamkeit",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "new_chemo_session": {
     "source": "New Chemo Session",
@@ -4421,11 +4685,41 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "omega_critical": {
+    "source": "Critical",
+    "translation": "Kritisch",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_good": {
+    "source": "Good",
+    "translation": "Gut",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_moderate": {
+    "source": "Moderate",
+    "translation": "Moderat",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "omega_reference": {
+    "source": "%1$s %2$s (reference %3$s)",
+    "translation": "%1$s %2$s (Referenz %3$s)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "on": {
     "source": "%1$s on %2$s",
     "translation": "%1$s am %2$s",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "on_your_flowsheet": {
+    "source": "On your flowsheet",
+    "translation": "Auf Ihrem Flowsheet",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "one_way_sync": {
     "source": "One-way sync",
@@ -4726,6 +5020,18 @@
     "translation": "Plan: %1$s",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "plan_annual": {
+    "source": "Annual",
+    "translation": "Jährlich",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "plan_monthly": {
+    "source": "Monthly",
+    "translation": "Monatlich",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "plan_name": {
     "source": "Plan Name",
@@ -5519,6 +5825,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "remove_from_records": {
+    "source": "Remove from my records",
+    "translation": "Aus meinen Unterlagen entfernen",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "remove_import_hint": {
+    "source": "Removes only what this document added. You can upload it again afterwards.",
+    "translation": "Entfernt nur das, was dieses Dokument hinzugefügt hat. Sie können es danach erneut hochladen.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "remove_photo": {
     "source": "Remove Photo",
     "translation": "Foto entfernen",
@@ -5530,6 +5848,12 @@
     "translation": "Entfernt (mL)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "removing": {
+    "source": "Removing…",
+    "translation": "Wird entfernt…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "replies": {
     "source": "Replies (%1$s)",
@@ -5837,11 +6161,65 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "score_dialysis": {
+    "source": "Dialysis",
+    "translation": "Dialyse",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_elimination": {
+    "source": "Elimination",
+    "translation": "Ausscheidung",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_fitness": {
+    "source": "Fitness",
+    "translation": "Fitness",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_medication_adherence": {
+    "source": "Medication Adherence",
+    "translation": "Medikamententreue",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_mood": {
+    "source": "Mood",
+    "translation": "Stimmung",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_nutrition": {
+    "source": "Nutrition",
+    "translation": "Ernährung",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_sleep": {
+    "source": "Sleep",
+    "translation": "Schlaf",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "score_symptoms": {
+    "source": "Symptoms",
+    "translation": "Symptome",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "score_this_from_what_i_wrote": {
     "source": "Score this from what I wrote",
     "translation": "Bewerte das aus meinem Eintrag",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "score_vitals": {
+    "source": "Vitals",
+    "translation": "Vitalwerte",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "scores": {
     "source": "Scores",
@@ -6370,6 +6748,30 @@
     "translation": "SpO₂",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "src_administered": {
+    "source": "given at treatment",
+    "translation": "bei der Behandlung erhalten",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_imported": {
+    "source": "from your clinic",
+    "translation": "von Ihrer Klinik",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_logged": {
+    "source": "you logged it",
+    "translation": "Sie haben es eingetragen",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "src_prescribed": {
+    "source": "prescribed",
+    "translation": "verschrieben",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "stand_dia": {
     "source": "Stand Dia",
@@ -7559,6 +7961,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "written_as_on_the_sheet": {
+    "source": "(written as %1$s)",
+    "translation": "(geschrieben als %1$s)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "year": {
+    "source": " / year",
+    "translation": "/ Jahr",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "years_exp": {
     "source": "Years Exp",
     "translation": "Berufserfahrung (Jahre)",
@@ -7570,6 +7984,12 @@
     "translation": "✓ Ja",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "you_did_not_log_anything_yourself": {
+    "source": "You did not log anything yourself for this date.",
+    "translation": "Sie haben für dieses Datum nichts selbst eingetragen.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "you_have_uploaded_this_file_before": {
     "source": "You have uploaded this file before — showing what was read then.",
@@ -7612,6 +8032,12 @@
     "translation": "Ihre Mahlzeitenpläne",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "your_medication_record": {
+    "source": "Your medication record",
+    "translation": "Ihre Medikamentenübersicht",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "your_own_health_record_meals_and": {
     "source": "Your own health record, meals and tracking live in the patient view.",

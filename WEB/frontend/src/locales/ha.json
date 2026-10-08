@@ -123,8 +123,71 @@
     "your_session_expired_sign_in_again_to": "Lokacin ɗin ka ƙare — shiga sake don nema ICD-11.",
     "could_not_reach_the_icd_11_catalog_your": "Ba a iya isa ICD-11 ba. Cutarwa ɗin kila ta kasance akantarwa."
   },
+  "Hospital": {
+    "title": "Tarihin Asibiti & Tiyata",
+    "subtitle": "Shigowar asibiti, ayyukan tiyata, da abin da tiyata na jiya ke nufin a yau.",
+    "lasting_effects": "Abin da tiyata na jiya ke nufin a yau",
+    "lasting_effects_note": "Sakamakon da aka rubuta tare da aiki ne kawai aka jera. Babu wani abu da aka zata daga sunan aiki.",
+    "add_stay": "Ƙara jiya a asibiti",
+    "add_procedure": "Ƙara aiki na tiyata",
+    "procedure_name": "Aiki na tiyata",
+    "procedure_no_stay_note": "Aiki na tiyata ba ya buƙatar jiya a asibiti. Tiyata ta rana, da duk abin da kake rubuta shekaru da suka wuce, za a iya ƙara shi kanta.",
+    "stays": "Jiyoyin asibiti",
+    "manage_stays": "Sarrafa jiyoyi",
+    "all_procedures": "Duk ayyukan tiyata",
+    "all_procedures_note": "Kowane aiki na tiyata a rikodin ka, har da waɗanda babu jiya a asibiti.",
+    "no_stays": "Babu jiya a asibiti da aka rubuta a yanzu.",
+    "no_procedures": "Babu aiki na tiyata da aka rubuta a yanzu.",
+    "no_stay": "Babu jiya a asibiti",
+    "no_stay_recorded": "Babu jiya a asibiti da aka rubuta",
+    "during_stay": "A wane jiya?",
+    "during": "A lokacin",
+    "delete_keeps_procedures": "Gogewa jiya yana ajiye ayyukan tiyata a rikodin ka. Aiki da ya faru shine bangare na tarihin ka.",
+    "admitted": "Shigowar",
+    "discharged": "Fita",
+    "nights": "dare",
+    "facility": "Asibiti",
+    "admission_type": "Nau'in shigowar",
+    "status": "Yanayin",
+    "reason": "Dalilin shigowar",
+    "diagnosis": "Ciwon",
+    "attending": "Likita mai kula",
+    "performed": "Ranar aiki na tiyata",
+    "code": "Lambar aiki",
+    "code_system": "Tsarin lambar",
+    "body_site": "Waje na jiki",
+    "outcome": "Sakamakon",
+    "surgeon": "Likita mai aiki",
+    "ongoing_effects": "Abin da wannan ke nufin a yau",
+    "ongoing_effects_help": "Misali, waje ko gida da aka cire, ko wani abu da ka buƙata a ɗauke jiya.",
+    "loading": "Ake loda tarihin asibiti ka…",
+    "could_not_load": "Ba a iya loda tarihin asibiti ka",
+    "load_failed": "Ba a iya loda tarihin asibiti ka.",
+    "save_failed": "Ba a iya ajiye.",
+    "try_again": "Gwada",
+    "not_stated": "Ba a bayyana ba",
+    "emergency": "Gaggawa",
+    "elective": "An shirya",
+    "urgent": "Gaggawa sosai",
+    "observation": "Lura",
+    "day_case": "Ranar aiki",
+    "maternity": "Jiya",
+    "rehabilitation": "Gyarawa",
+    "other": "Wani",
+    "planned": "An shirya",
+    "in_progress": "Har yanzu a asibiti",
+    "transferred": "An canja",
+    "cancelled": "An soke",
+    "successful": "Nasara",
+    "partially_successful": "Wani nasara",
+    "unsuccessful": "Rashin nasara",
+    "complicated": "Yana da matsala",
+    "abandoned": "An bar",
+    "unknown": "Ba a sani ba"
+  },
   "Layout": {
     "open_menu": "Buɗe menu",
+    "hospital_history": "Asibiti & Tiyata",
     "notifications": "Sanarwa",
     "logout": "Fita",
     "ask_alafia": "Tambaya ALAFIA",
@@ -1343,7 +1406,11 @@
     "status_2": "Yanayin",
     "delete": "Gida",
     "no_lab_results_yet": "Babu sakamakon gwaji har yanzu",
-    "upload_lab_report_pdf": "Loda rahoton gwaje (PDF)"
+    "upload_lab_report_pdf": "Loda rahoton gwaje (PDF)",
+    "abnormal": "⚠️ Ba daidai ba",
+    "in_range": "✅ A cikin jiya",
+    "not_assessed": "— Ba a tantance ba",
+    "not_assessed_title": "Ba a duba wannan sakamakon a cikin jiya ba."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1400,7 +1467,22 @@
     "health_charts": "Zane-zane Lafiya",
     "beautiful_ai_powered_dashboards": "Zane-zane na AI masu kyau da ke nuna kowane bangare na lafiyarka a lokaci.",
     "community_safety": "Jama'a & Aminci",
-    "fda_recall_alerts_wellness_resources_and": "Gargaɗi FDA, albarkatun jiya, da ilimin jama'a na gida."
+    "fda_recall_alerts_wellness_resources_and": "Gargaɗi FDA, albarkatun jiya, da ilimin jama'a na gida.",
+    "get_it_in_beta": "Samu shi a Beta.",
+    "beta_blurb": "Idan kun riga kun shiga hanyar gida amma kuna so mu nuna muku aikin app na iOS, nema beta jiya kuma za mu aika muku lambar kunna.",
+    "your_name": "Sunanka",
+    "email": "Imel",
+    "notes_optional": "Bayanai (ba dole ba)",
+    "beta_notes_hint": "Wani abu da zai taimake muna daidaita ka — imel da kuka shiga da shi, ko na'urar ka.",
+    "leave_this_field_empty": "Bar wannan filin wofi",
+    "sending": "Yana aika…",
+    "request_beta": "Nema beta ✦",
+    "cancel": "Soke",
+    "close": "Rufe",
+    "beta_request_received": "An karɓi buƙatun",
+    "beta_we_have_your_request": "Mun karɓi buƙatunka. Idan kuna ɗan mamaki, za mu daidaita adiresinka kuma mu aika muku gayyatar TestFlight.",
+    "your_reference_is": "Nassararka shine",
+    "beta_could_not_send": "Ba mu iya aika da bukatarku ba. Da fatan za a sake gwadawa nan gida."
   },
   "Lifestyle": {
     "lifestyle": "Rayuwa",
@@ -1444,7 +1526,8 @@
     "password_must_be_at_least_6_characters": "Kalmar sirri dole ta kasua alamomi 6 ko fiye",
     "login_failed": "Shiga ya kasa",
     "enter_a_valid_phone_number_e_g": "Shigar da lambar waya mai inganci, misali [phone]",
-    "sign_in_failed": "Shiga ya kasa."
+    "sign_in_failed": "Shiga ya kasa.",
+    "google_sign_in_unavailable": "Google sign-in ba ya samuwa a wannan browser ba."
   },
   "MealPlanner": {
     "cal": "cal",
@@ -1504,7 +1587,9 @@
     "na": "Na",
     "vitd": "VitD",
     "fol": "Fol",
-    "chol": "Chol"
+    "chol": "Chol",
+    "from_agent": "{{sign}}{{delta}}{{unit}} daga {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "Magungunan",
@@ -1800,7 +1885,9 @@
     "vitamin_c": "Vitamin C",
     "vitamin_a": "Vitamin A",
     "omega_3": "Omega-3",
-    "your_personalized_targets_could_not_be": "Ba a iya lodata abubuwan da aka tsara maka, saboda haka ana nuna ƙimar gida a ƙasa."
+    "your_personalized_targets_could_not_be": "Ba a iya lodata abubuwan da aka tsara maka, saboda haka ana nuna ƙimar gida a ƙasa.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} daga {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "Abinci",
@@ -1962,7 +2049,12 @@
     "generate_flowsheet": "Ƙera Flowsheet",
     "already_recorded": "An riga an ƙidaya",
     "differs_from_existing": "Ya bambanta da wanda ake da shi",
-    "the_pdf_could_not_be_downloaded": "Ba a iya saukar PDF ba."
+    "the_pdf_could_not_be_downloaded": "Ba a iya saukar PDF ba.",
+    "remove_from_records": "Cire daga bayyanar ni",
+    "remove_confirm": "Cire {{count}} bayyanar(ren) da wannan takarda ta ƙara?",
+    "removing": "Yana cirewa…",
+    "remove_hint": "Yana cire kawai abin da wannan takarda ta ƙara — babu abin da ka shigar da kanka. Za ka iya sake loda shi bayan.",
+    "keep": "Ajiye su"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",
@@ -2253,6 +2345,8 @@
     "privacy": "Sirri",
     "alafia_holds_some_of_the_most_sensitive": "ALAFIA tana riƙe da wasu mafi siri albarkatun mutum. Wannan shafi yana bayyana a sarari abin da muke tara, me yasa, wane zai iya gani, da kuma yadda za ka samu shi ko cire shi.",
     "last_updated": "An sabunta a {{LAST_UPDATED}}.",
+    "who_operates_alafia": "Wane ya aiki ALAFIA",
+    "alafia_is_a_product_of_6igma_health": "ALAFIA samfurin 6igma Health Inc ne, wacce ta gina shi kuma tana aiki da shi. 6igma Health Inc ita ce mai sarrafawa na bayyanar lafiya da aka bayyana a wannan shafi — kamfanin da kake hulda da shi lokacin da kake amfani da ALAFIA, da kamfanin da ke alhakin kula da bayyanarku.",
     "what_we_collect": "Abin da muke tara",
     "only_what_the_app_needs_to_work": "Kawai abin da app ake buƙata don aiki. Komai a ƙasa an ƙaita shi ga akauntinki — ba za ka iya samun bayanan lafiya ba tare da wuri don saka shi ba.",
     "what_we_never_do": "Abin da ba za mu yi ba",
@@ -2581,7 +2675,10 @@
     "we_could_not_start_your_signup": "Ba mu iya fara rajistawa ba.",
     "we_could_not_open_the_payment_page": "Ba mu iya buɗe shafin kuɗi ba.",
     "sent_check_your_inbox_and_your_spam": "An aika. Duba akwatin imel, da kuma spam folder.",
-    "we_could_not_resend_that_email": "Ba mu iya sake aika imel ba."
+    "we_could_not_resend_that_email": "Ba mu iya sake aika imel ba.",
+    "account_already_exists": "Wannan adireshin yana da asusun jiya",
+    "signup_could_not_start_title": "Ba mu iya fara rajistara ku ba",
+    "go_to_sign_in": "Je zuwa shiga"
   },
   "Sleep": {
     "sleep": "Barci",
@@ -2906,7 +3003,7 @@
     "score_history_last_30_days": "Tarihin Score (Jiya 30)",
     "no_wellness_score_yet": "Babu wellness score har yanzu",
     "hebcs_wellness_score": "Jiyya HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Ƙididdiga hanya 7",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "Ƙarshen gwaje: {{value}}",
     "score_0_100": "Ƙididdiga (0–100)",
     "data_coverage": "Ɗimbin bayani",
@@ -3032,5 +3129,8 @@
   },
   "LanguageSwitcher": {
     "language": "Harshe"
+  },
+  "AlertDialog": {
+    "dismiss": "Sallame"
   }
 }

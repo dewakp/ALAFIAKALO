@@ -123,8 +123,71 @@
     "your_session_expired_sign_in_again_to": "Kikao chako kimekoma — ingia tena ili utafute ICD-11.",
     "could_not_reach_the_icd_11_catalog_your": "Haiwezi kufikia katalogi ya ICD-11. Hali yako inaweza bado kuwepo."
   },
+  "Hospital": {
+    "title": "Historia ya Hospitali & Upasuaji",
+    "subtitle": "Kukamatia, upasuaji, na jinsi upasuaji wa zamani unavyokusumbuua leo.",
+    "lasting_effects": "Jinsi upasuaji wa zamani unavyokukumbuka",
+    "lasting_effects_note": "Athari zilizorekodiwa tu na upasuaji zimeandikwa. Hakuna kitu hapa kinachodhaniwa kutoka jina la upasuaji.",
+    "add_stay": "Ongeza kukaa hospitalini",
+    "add_procedure": "Ongeza upasuaji",
+    "procedure_name": "Upasuaji",
+    "procedure_no_stay_note": "Upasuaji hauhitaji kukaa hospitalini. Upasuaji wa siku moja, na kitu chochote unachorekodia miaka baadaye, kinaweza kuongezwa peke yake.",
+    "stays": "Kukaa hospitalini",
+    "manage_stays": "Dhibiti kukaa",
+    "all_procedures": "Upasuaji wote",
+    "all_procedures_note": "Kila upasuaji kwenye rekodi yako, ikiwa ni pamoja na zile bila kukaa hospitalini.",
+    "no_stays": "Hakuna kukaa hospitalini kurekodiwa bado.",
+    "no_procedures": "Hakuna upasuaji kurekodiwa bado.",
+    "no_stay": "Hakuna kukaa hospitalini",
+    "no_stay_recorded": "Hakuna kukaa hospitalini kurekodiwa",
+    "during_stay": "Wakati wa kukaa gani?",
+    "during": "Wakati wa",
+    "delete_keeps_procedures": "Kufuta kukaa kunabaki upasuaji kwenye rekodi yako. Upasuaji uliotokea ni sehemu ya historia yako.",
+    "admitted": "Kukamatia",
+    "discharged": "Kutolewa",
+    "nights": "usiku",
+    "facility": "Hospitali",
+    "admission_type": "Aina ya kukamatia",
+    "status": "Hali",
+    "reason": "Sababu ya kukamatia",
+    "diagnosis": "Chafya",
+    "attending": "Daktari anayeshughulikia",
+    "performed": "Tarehe ya upasuaji",
+    "code": "Nambari ya utaratibu",
+    "code_system": "Mfumo wa nambari",
+    "body_site": "Sehemu ya mwili",
+    "outcome": "Matokeo",
+    "surgeon": "Mganga anayefanya upasuaji",
+    "ongoing_effects": "Jinsi hii inavyokukumbuka leo",
+    "ongoing_effects_help": "Kwa mfano, kitu kilichoondolewa, au kitu ulichokuwa na haja ya kuchukua tangu hapo.",
+    "loading": "Inapakia historia yako ya hospitali…",
+    "could_not_load": "Historia yako ya hospitali haikuweza kupakiwa",
+    "load_failed": "Haikuweza kupakia historia yako ya hospitali.",
+    "save_failed": "Haikuweza kuhifadhi.",
+    "try_again": "Jaribu tena",
+    "not_stated": "Haijasemwa",
+    "emergency": "Dharura",
+    "elective": "Iliyopangwa",
+    "urgent": "Haraka",
+    "observation": "Uchunguzi",
+    "day_case": "Kesi ya siku",
+    "maternity": "Uhamiaji",
+    "rehabilitation": "Urejeshaji",
+    "other": "Nyingine",
+    "planned": "Iliyopangwa",
+    "in_progress": "Bado hospitalini",
+    "transferred": "Kuhamishwa",
+    "cancelled": "Kufutwa",
+    "successful": "Lenye mafanikio",
+    "partially_successful": "Mafanikio ya sehemu",
+    "unsuccessful": "Bila mafanikio",
+    "complicated": "Yenye matatizo",
+    "abandoned": "Kuachwa",
+    "unknown": "Haijulikani"
+  },
   "Layout": {
     "open_menu": "Fungua menyu",
+    "hospital_history": "Hospitali & Upasuaji",
     "notifications": "Arifa",
     "logout": "Toka",
     "ask_alafia": "Uliza ALAFIA",
@@ -1343,7 +1406,11 @@
     "status_2": "Hali",
     "delete": "Futa",
     "no_lab_results_yet": "Hakuna matokeo ya maabara bado",
-    "upload_lab_report_pdf": "Pakia ripoti ya maabara (PDF)"
+    "upload_lab_report_pdf": "Pakia ripoti ya maabara (PDF)",
+    "abnormal": "⚠️ Sio kawaida",
+    "in_range": "✅ Ndani ya kiwango",
+    "not_assessed": "— Haijatathmini",
+    "not_assessed_title": "Matokeo haya hayakupitiwa kwa kiwango cha kumbukumbu."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1400,7 +1467,22 @@
     "health_charts": "Chati za Afya",
     "beautiful_ai_powered_dashboards": "Dashibodi nzuri zinazotumia AI zinazoonyesha kila upande wa afya yako kwa wakati.",
     "community_safety": "Jamii & Usalama",
-    "fda_recall_alerts_wellness_resources_and": "Onyo za FDA, rasilimali za ustawi, na maarifa ya afya ya jamii yanayotegemea ushahidi."
+    "fda_recall_alerts_wellness_resources_and": "Onyo za FDA, rasilimali za ustawi, na maarifa ya afya ya jamii yanayotegemea ushahidi.",
+    "get_it_in_beta": "Ipate katika Beta.",
+    "beta_blurb": "Ikiwa tayari umejisajili kupitia wavuti lakini unataka kuona programu ya iOS inayofanya kazi, omba beta leo na tutakupadisha msimbo wa kuwezesha.",
+    "your_name": "Jina lako",
+    "email": "Barua pepe",
+    "notes_optional": "Maelezo (hiari)",
+    "beta_notes_hint": "Kitu chochote kinachokusaidia kulingana — barua pepe uliyojisajili nayo, au kifaa chako.",
+    "leave_this_field_empty": "Acha sehemu hii tupu",
+    "sending": "Inatumwa…",
+    "request_beta": "Omba beta ✦",
+    "cancel": "Ghairi",
+    "close": "Funga",
+    "beta_request_received": "Ombi limepokewa",
+    "beta_we_have_your_request": "Tuna ombi lako. Ikiwa tayari wewe ni mwanachama, tutaambatana na anwani yako na tutakutumia kakamatia ya TestFlight.",
+    "your_reference_is": "Kumbukumbu yako ni",
+    "beta_could_not_send": "Hatukuweza kutuma ombi lako. Tafadhali jaribu tena baadaye."
   },
   "Lifestyle": {
     "lifestyle": "Mtindo wa Maisha",
@@ -1444,7 +1526,8 @@
     "password_must_be_at_least_6_characters": "Neno la siri lazima liwe na angalau herufi 6",
     "login_failed": "Kuingia kulikosa",
     "enter_a_valid_phone_number_e_g": "Ingiza namba halali ya simu, mfano [phone]",
-    "sign_in_failed": "Kuingia kulikosa."
+    "sign_in_failed": "Kuingia kulikosa.",
+    "google_sign_in_unavailable": "Kuingia kwa Google hakuna katika kivinjari hiki."
   },
   "MealPlanner": {
     "cal": "cal",
@@ -1504,7 +1587,9 @@
     "na": "Na",
     "vitd": "VitD",
     "fol": "Fol",
-    "chol": "Chol"
+    "chol": "Chol",
+    "from_agent": "{{sign}}{{delta}}{{unit}} kutoka {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "Dawa",
@@ -1800,7 +1885,9 @@
     "vitamin_c": "Vitamin C",
     "vitamin_a": "Vitamin A",
     "omega_3": "Omega-3",
-    "your_personalized_targets_could_not_be": "Lengo lako la kibinafsi haliwezi kupakiwa, kwa hiyo maadili ya kumbukumbu ya jumla yanaonyeshwa badala yake."
+    "your_personalized_targets_could_not_be": "Lengo lako la kibinafsi haliwezi kupakiwa, kwa hiyo maadili ya kumbukumbu ya jumla yanaonyeshwa badala yake.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} kutoka {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "Uzamili",
@@ -1962,7 +2049,12 @@
     "generate_flowsheet": "Zalisha Karatasi ya Mtiririko",
     "already_recorded": "Tayari ilirekodiwa",
     "differs_from_existing": "Inatofautiana na iliyopo",
-    "the_pdf_could_not_be_downloaded": "PDF haikuweza kupakuliwa."
+    "the_pdf_could_not_be_downloaded": "PDF haikuweza kupakuliwa.",
+    "remove_from_records": "Ondoa kutoka kwa rekodi zangu",
+    "remove_confirm": "Ondoa rekodi {{count}} ambayo hati hii iliongeza?",
+    "removing": "Inaondolewa…",
+    "remove_hint": "Inaondoa tu kile hati hii iliongeza — si kitu chochote ulichoingiza mwenyewe. Unaweza kuipakia tena baadaye.",
+    "keep": "Ziweke"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",
@@ -2253,6 +2345,8 @@
     "privacy": "Faragha",
     "alafia_holds_some_of_the_most_sensitive": "ALAFIA ina taarifa nyingi sana za siri. Ukurasa huu unaeleza wazi nini tunakusanya, kwa nini, nani anaweza kuiona, na jinsi ya kuirudisha au kuifuta.",
     "last_updated": "Ilisasishwa mwisho {{LAST_UPDATED}}.",
+    "who_operates_alafia": "Nani anayengeneza ALAFIA",
+    "alafia_is_a_product_of_6igma_health": "ALAFIA ni bidhaa ya 6igma Health Inc, ambayo inaibuild na kuiendesha. 6igma Health Inc ndio mtawala wa data kwa taarifa za afya zilizoelezwa kwenye ukurasa huu — kampuni unayoshughulika nayo unapotumia ALAFIA, na kampuni inayosimamia data yako.",
     "what_we_collect": "Tunakusanya nini",
     "only_what_the_app_needs_to_work": "Tu kile kinachohitajika kwa programu kufanya kazi. Kila kitu hapa kimeunganishwa na akaunti yako — haiwezi kuwa na rekodi ya afya bila mahali pa kuiweka.",
     "what_we_never_do": "Kile hatuwezi kufanya",
@@ -2581,7 +2675,10 @@
     "we_could_not_start_your_signup": "Hatuwezi kuanza usajili wako.",
     "we_could_not_open_the_payment_page": "Hatuwezi kufungua ukurasa wa malipo.",
     "sent_check_your_inbox_and_your_spam": "Imetumwa. Angalia sanduku lako la barua, na folda ya spam.",
-    "we_could_not_resend_that_email": "Hatuwezi kutuma tena barua hiyo."
+    "we_could_not_resend_that_email": "Hatuwezi kutuma tena barua hiyo.",
+    "account_already_exists": "Anwani hiyo tayari ina akaunti",
+    "signup_could_not_start_title": "Hatukuweza kuanza usajili wako",
+    "go_to_sign_in": "Nenda kwa kuingia"
   },
   "Sleep": {
     "sleep": "Usingizi",
@@ -2906,7 +3003,7 @@
     "score_history_last_30_days": "Historia ya Alama (Siku 30 za Mwisho)",
     "no_wellness_score_yet": "Hakuna alama ya afya bado",
     "hebcs_wellness_score": "Alama ya Afya HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Alama ya njia saba ya trapezoidal",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "Majaribio ya hivi karibuni: {{value}}",
     "score_0_100": "Alama (0–100)",
     "data_coverage": "Kufunika kwa data",
@@ -3032,5 +3129,8 @@
   },
   "LanguageSwitcher": {
     "language": "Lugha"
+  },
+  "AlertDialog": {
+    "dismiss": "Ondoa"
   }
 }

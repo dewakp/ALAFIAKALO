@@ -123,8 +123,71 @@
     "your_session_expired_sign_in_again_to": "Ihre Sitzung ist abgelaufen – melden Sie sich erneut an, um ICD-11 zu durchsuchen.",
     "could_not_reach_the_icd_11_catalog_your": "ICD-11-Katalog konnte nicht erreicht werden. Ihre Erkrankung könnte trotzdem dort sein."
   },
+  "Hospital": {
+    "title": "Krankenhaus- & Operationsverlauf",
+    "subtitle": "Aufenthalte, Operationen und deren Auswirkungen auf Sie heute.",
+    "lasting_effects": "Welche Auswirkungen eine frühere Operation noch heute hat",
+    "lasting_effects_note": "Nur Folgen, die mit der Operation dokumentiert wurden, werden angezeigt. Nichts wird vom Namen der Operation abgeleitet.",
+    "add_stay": "Krankenhaus-Aufenthalt hinzufügen",
+    "add_procedure": "Operation hinzufügen",
+    "procedure_name": "Operation",
+    "procedure_no_stay_note": "Eine Operation erfordert keinen Krankenhaus-Aufenthalt. Ambulante Eingriffe und später dokumentierte Operationen können einzeln hinzugefügt werden.",
+    "stays": "Krankenhaus-Aufenthalte",
+    "manage_stays": "Aufenthalte verwalten",
+    "all_procedures": "Alle Operationen",
+    "all_procedures_note": "Jede Operation in Ihrer Akte, auch ohne zugehörigen Krankenhaus-Aufenthalt.",
+    "no_stays": "Noch keine Krankenhaus-Aufenthalte dokumentiert.",
+    "no_procedures": "Noch keine Operationen dokumentiert.",
+    "no_stay": "Kein Krankenhaus-Aufenthalt",
+    "no_stay_recorded": "Kein Krankenhaus-Aufenthalt dokumentiert",
+    "during_stay": "Während welchen Aufenthalts?",
+    "during": "Während",
+    "delete_keeps_procedures": "Das Löschen eines Aufenthalts behält seine Operationen in Ihrer Akte. Eine durchgeführte Operation ist Teil Ihrer Krankengeschichte.",
+    "admitted": "Aufnahme",
+    "discharged": "Entlassung",
+    "nights": "Nächte",
+    "facility": "Krankenhaus",
+    "admission_type": "Art der Aufnahme",
+    "status": "Status",
+    "reason": "Grund für Aufnahme",
+    "diagnosis": "Diagnose",
+    "attending": "Behandelnder Arzt",
+    "performed": "Operationsdatum",
+    "code": "Prozedur-Code",
+    "code_system": "Kodierungssystem",
+    "body_site": "Körperteil",
+    "outcome": "Ergebnis",
+    "surgeon": "Chirurg",
+    "ongoing_effects": "Welche Auswirkungen dies noch heute für Sie hat",
+    "ongoing_effects_help": "Zum Beispiel ein entferntes Organ oder eine Drüse, oder etwas, das Sie seitdem nehmen müssen.",
+    "loading": "Ihr Krankenhaus-Verlauf wird geladen…",
+    "could_not_load": "Ihr Krankenhaus-Verlauf konnte nicht geladen werden",
+    "load_failed": "Ihr Krankenhaus-Verlauf konnte nicht geladen werden.",
+    "save_failed": "Speichern nicht möglich.",
+    "try_again": "Erneut versuchen",
+    "not_stated": "Nicht angegeben",
+    "emergency": "Notfall",
+    "elective": "Geplant",
+    "urgent": "Dringend",
+    "observation": "Beobachtung",
+    "day_case": "Tagesklinik",
+    "maternity": "Geburtshilfe",
+    "rehabilitation": "Rehabilitation",
+    "other": "Sonstiges",
+    "planned": "Geplant",
+    "in_progress": "Noch im Krankenhaus",
+    "transferred": "Verlegt",
+    "cancelled": "Abgebrochen",
+    "successful": "Erfolgreich",
+    "partially_successful": "Teilweise erfolgreich",
+    "unsuccessful": "Nicht erfolgreich",
+    "complicated": "Kompliziert",
+    "abandoned": "Abgebrochen",
+    "unknown": "Unbekannt"
+  },
   "Layout": {
     "open_menu": "Menü öffnen",
+    "hospital_history": "Krankenhaus & Chirurgie",
     "notifications": "Benachrichtigungen",
     "logout": "Abmelden",
     "ask_alafia": "ALAFIA fragen",
@@ -1343,7 +1406,11 @@
     "status_2": "Status",
     "delete": "Löschen",
     "no_lab_results_yet": "Noch keine Laborergebnisse",
-    "upload_lab_report_pdf": "Laborbericht hochladen (PDF)"
+    "upload_lab_report_pdf": "Laborbericht hochladen (PDF)",
+    "abnormal": "⚠️ Abnormal",
+    "in_range": "✅ Im Normalbereich",
+    "not_assessed": "— Nicht bewertet",
+    "not_assessed_title": "Dieses Ergebnis wurde nie mit einem Referenzbereich verglichen."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1400,7 +1467,22 @@
     "health_charts": "Gesundheitsdiagramme",
     "beautiful_ai_powered_dashboards": "Schöne KI-gestützte Dashboards, die jede Dimension Ihrer Gesundheit im Zeitverlauf visualisieren.",
     "community_safety": "Gemeinschaft & Sicherheit",
-    "fda_recall_alerts_wellness_resources_and": "FDA-Rückrufalerts, Wellness-Ressourcen und evidenzbasiertes Wissen zur Gesundheit der Gemeinschaft."
+    "fda_recall_alerts_wellness_resources_and": "FDA-Rückrufalerts, Wellness-Ressourcen und evidenzbasiertes Wissen zur Gesundheit der Gemeinschaft.",
+    "get_it_in_beta": "Jetzt in Beta verfügbar.",
+    "beta_blurb": "Wenn Sie sich bereits über das Web angemeldet haben und die iOS-App in Aktion sehen möchten, fordern Sie heute Beta an und wir senden Ihnen einen Aktivierungscode.",
+    "your_name": "Ihr Name",
+    "email": "E-Mail",
+    "notes_optional": "Notizen (optional)",
+    "beta_notes_hint": "Alles, das uns hilft, Sie zuzuordnen — die E-Mail, mit der Sie sich angemeldet haben, oder Ihr Gerät.",
+    "leave_this_field_empty": "Dieses Feld leer lassen",
+    "sending": "Wird gesendet…",
+    "request_beta": "Beta anfordern ✦",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "beta_request_received": "Anfrage erhalten",
+    "beta_we_have_your_request": "Wir haben Ihre Anfrage erhalten. Wenn Sie bereits Mitglied sind, gleichen wir Ihre Adresse ab und senden Ihnen eine TestFlight-Einladung.",
+    "your_reference_is": "Ihre Referenznummer",
+    "beta_could_not_send": "Wir konnten Ihre Anfrage nicht senden. Bitte versuchen Sie es in Kürze erneut."
   },
   "Lifestyle": {
     "lifestyle": "Lebensstil",
@@ -1444,7 +1526,8 @@
     "password_must_be_at_least_6_characters": "Passwort muss mindestens 6 Zeichen lang sein",
     "login_failed": "Anmeldung fehlgeschlagen",
     "enter_a_valid_phone_number_e_g": "Geben Sie eine gültige Telefonnummer ein, z. B. [phone]",
-    "sign_in_failed": "Anmeldung fehlgeschlagen."
+    "sign_in_failed": "Anmeldung fehlgeschlagen.",
+    "google_sign_in_unavailable": "Google-Anmeldung ist in diesem Browser nicht verfügbar."
   },
   "MealPlanner": {
     "cal": "kcal",
@@ -1504,7 +1587,9 @@
     "na": "Na",
     "vitd": "VitD",
     "fol": "Fol",
-    "chol": "Chol"
+    "chol": "Chol",
+    "from_agent": "{{sign}}{{delta}}{{unit}} von {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "Medikamente",
@@ -1800,7 +1885,9 @@
     "vitamin_c": "Vitamin C",
     "vitamin_a": "Vitamin A",
     "omega_3": "Omega-3",
-    "your_personalized_targets_could_not_be": "Ihre personalisierten Zielwerte konnten nicht geladen werden. Die generischen Referenzwerte unten werden stattdessen angezeigt."
+    "your_personalized_targets_could_not_be": "Ihre personalisierten Zielwerte konnten nicht geladen werden. Die generischen Referenzwerte unten werden stattdessen angezeigt.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} von {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "Ernährung",
@@ -1962,7 +2049,12 @@
     "generate_flowsheet": "Flowsheet generieren",
     "already_recorded": "Bereits erfasst",
     "differs_from_existing": "Weicht von vorhandenem ab",
-    "the_pdf_could_not_be_downloaded": "Das PDF konnte nicht heruntergeladen werden."
+    "the_pdf_could_not_be_downloaded": "Das PDF konnte nicht heruntergeladen werden.",
+    "remove_from_records": "Aus meinen Unterlagen entfernen",
+    "remove_confirm": "Die {{count}} Datensatz/Datensätze aus diesem Dokument entfernen?",
+    "removing": "Wird entfernt…",
+    "remove_hint": "Entfernt nur, was dieses Dokument hinzugefügt hat – nichts, das Sie selbst eingegeben haben. Sie können es danach erneut hochladen.",
+    "keep": "Behalten"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritonealdialyse",
@@ -2253,6 +2345,8 @@
     "privacy": "Datenschutz",
     "alafia_holds_some_of_the_most_sensitive": "ALAFIA enthält sehr sensible persönliche Informationen. Diese Seite erklärt verständlich, was wir erfassen, warum, wer es sehen kann und wie Sie es abrufen oder löschen.",
     "last_updated": "Zuletzt aktualisiert {{LAST_UPDATED}}.",
+    "who_operates_alafia": "Wer betreibt ALAFIA",
+    "alafia_is_a_product_of_6igma_health": "ALAFIA ist ein Produkt von 6igma Health Inc, das Unternehmen, das es entwickelt und betreibt. 6igma Health Inc ist der Verantwortliche für die auf dieser Seite beschriebenen Gesundheitsinformationen – das Unternehmen, mit dem Sie bei der Nutzung von ALAFIA zusammenarbeiten, und das Unternehmen, das für den Schutz Ihrer Daten verantwortlich ist.",
     "what_we_collect": "Was wir erfassen",
     "only_what_the_app_needs_to_work": "Nur das, was die App benötigt. Alles Folgende ist an Ihr Konto gebunden — ohne einen Speicherort können Sie keine Krankenakte haben.",
     "what_we_never_do": "Was wir nie tun",
@@ -2581,7 +2675,10 @@
     "we_could_not_start_your_signup": "Wir konnten Ihre Registrierung nicht starten.",
     "we_could_not_open_the_payment_page": "Wir konnten die Zahlungsseite nicht öffnen.",
     "sent_check_your_inbox_and_your_spam": "Gesendet. Überprüfen Sie Ihren Posteingang und Ihren Spam-Ordner.",
-    "we_could_not_resend_that_email": "Wir konnten diese E-Mail nicht erneut senden."
+    "we_could_not_resend_that_email": "Wir konnten diese E-Mail nicht erneut senden.",
+    "account_already_exists": "Diese Adresse hat bereits ein Konto",
+    "signup_could_not_start_title": "Wir konnten Ihre Registrierung nicht starten",
+    "go_to_sign_in": "Zur Anmeldung"
   },
   "Sleep": {
     "sleep": "Schlaf",
@@ -2906,7 +3003,7 @@
     "score_history_last_30_days": "Score-Verlauf (letzte 30 Tage)",
     "no_wellness_score_yet": "Noch kein Wellness-Score",
     "hebcs_wellness_score": "HEBCS Wellness Score",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-Pathway-Trapezoidal-Scoring",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "Aktuelle Labore: {{value}}",
     "score_0_100": "Score (0–100)",
     "data_coverage": "Datenverfügbarkeit",
@@ -3032,5 +3129,8 @@
   },
   "LanguageSwitcher": {
     "language": "Sprache"
+  },
+  "AlertDialog": {
+    "dismiss": "Schließen"
   }
 }

@@ -575,6 +575,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "AlertDialog.dismiss": {
+    "source": "Dismiss",
+    "translation": "Sallame",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "App.loading": {
     "source": "Loading...",
     "translation": "Ana jira...",
@@ -5579,6 +5585,366 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Hospital.abandoned": {
+    "source": "Abandoned",
+    "translation": "An bar",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.add_procedure": {
+    "source": "Add an operation",
+    "translation": "Ƙara aiki na tiyata",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.add_stay": {
+    "source": "Add a hospital stay",
+    "translation": "Ƙara jiya a asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.admission_type": {
+    "source": "Type of admission",
+    "translation": "Nau'in shigowar",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.admitted": {
+    "source": "Admitted",
+    "translation": "Shigowar",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.all_procedures": {
+    "source": "All operations",
+    "translation": "Duk ayyukan tiyata",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.all_procedures_note": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "Kowane aiki na tiyata a rikodin ka, har da waɗanda babu jiya a asibiti.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.attending": {
+    "source": "Attending doctor",
+    "translation": "Likita mai kula",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.body_site": {
+    "source": "Part of the body",
+    "translation": "Waje na jiki",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.cancelled": {
+    "source": "Cancelled",
+    "translation": "An soke",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.code": {
+    "source": "Procedure code",
+    "translation": "Lambar aiki",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.code_system": {
+    "source": "Coding system",
+    "translation": "Tsarin lambar",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.complicated": {
+    "source": "Complicated",
+    "translation": "Yana da matsala",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.could_not_load": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "Ba a iya loda tarihin asibiti ka",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.day_case": {
+    "source": "Day case",
+    "translation": "Ranar aiki",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.delete_keeps_procedures": {
+    "source": "Deleting a stay keeps its operations on your record. An operation that happened is part of your history.",
+    "translation": "Gogewa jiya yana ajiye ayyukan tiyata a rikodin ka. Aiki da ya faru shine bangare na tarihin ka.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.diagnosis": {
+    "source": "Diagnosis",
+    "translation": "Ciwon",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.discharged": {
+    "source": "Discharged",
+    "translation": "Fita",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.during": {
+    "source": "During",
+    "translation": "A lokacin",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.during_stay": {
+    "source": "During which stay?",
+    "translation": "A wane jiya?",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.elective": {
+    "source": "Planned",
+    "translation": "An shirya",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.emergency": {
+    "source": "Emergency",
+    "translation": "Gaggawa",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.facility": {
+    "source": "Hospital",
+    "translation": "Asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.in_progress": {
+    "source": "Still in hospital",
+    "translation": "Har yanzu a asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.lasting_effects": {
+    "source": "What past surgery still means for you",
+    "translation": "Abin da tiyata na jiya ke nufin a yau",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.lasting_effects_note": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "Sakamakon da aka rubuta tare da aiki ne kawai aka jera. Babu wani abu da aka zata daga sunan aiki.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.load_failed": {
+    "source": "Could not load your hospital history.",
+    "translation": "Ba a iya loda tarihin asibiti ka.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.loading": {
+    "source": "Loading your hospital history…",
+    "translation": "Ake loda tarihin asibiti ka…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.manage_stays": {
+    "source": "Manage stays",
+    "translation": "Sarrafa jiyoyi",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.maternity": {
+    "source": "Maternity",
+    "translation": "Jiya",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.nights": {
+    "source": "nights",
+    "translation": "dare",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.no_procedures": {
+    "source": "No operations recorded yet.",
+    "translation": "Babu aiki na tiyata da aka rubuta a yanzu.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.no_stay": {
+    "source": "No hospital stay",
+    "translation": "Babu jiya a asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.no_stay_recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "Babu jiya a asibiti da aka rubuta",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.no_stays": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "Babu jiya a asibiti da aka rubuta a yanzu.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.not_stated": {
+    "source": "Not stated",
+    "translation": "Ba a bayyana ba",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.observation": {
+    "source": "Observation",
+    "translation": "Lura",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.ongoing_effects": {
+    "source": "What this still means for you",
+    "translation": "Abin da wannan ke nufin a yau",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.ongoing_effects_help": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "Misali, waje ko gida da aka cire, ko wani abu da ka buƙata a ɗauke jiya.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.other": {
+    "source": "Other",
+    "translation": "Wani",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.outcome": {
+    "source": "Outcome",
+    "translation": "Sakamakon",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.partially_successful": {
+    "source": "Partly successful",
+    "translation": "Wani nasara",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.performed": {
+    "source": "Date of operation",
+    "translation": "Ranar aiki na tiyata",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.planned": {
+    "source": "Planned",
+    "translation": "An shirya",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.procedure_name": {
+    "source": "Operation",
+    "translation": "Aiki na tiyata",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.procedure_no_stay_note": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "Aiki na tiyata ba ya buƙatar jiya a asibiti. Tiyata ta rana, da duk abin da kake rubuta shekaru da suka wuce, za a iya ƙara shi kanta.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.reason": {
+    "source": "Reason for admission",
+    "translation": "Dalilin shigowar",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.rehabilitation": {
+    "source": "Rehabilitation",
+    "translation": "Gyarawa",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.save_failed": {
+    "source": "Could not save.",
+    "translation": "Ba a iya ajiye.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.status": {
+    "source": "Status",
+    "translation": "Yanayin",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.stays": {
+    "source": "Hospital stays",
+    "translation": "Jiyoyin asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.subtitle": {
+    "source": "Admissions, operations, and what a past operation still means for you today.",
+    "translation": "Shigowar asibiti, ayyukan tiyata, da abin da tiyata na jiya ke nufin a yau.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.successful": {
+    "source": "Successful",
+    "translation": "Nasara",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.surgeon": {
+    "source": "Surgeon",
+    "translation": "Likita mai aiki",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.title": {
+    "source": "Hospital & Surgery History",
+    "translation": "Tarihin Asibiti & Tiyata",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.transferred": {
+    "source": "Transferred",
+    "translation": "An canja",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.try_again": {
+    "source": "Try again",
+    "translation": "Gwada",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.unknown": {
+    "source": "Not known",
+    "translation": "Ba a sani ba",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.unsuccessful": {
+    "source": "Unsuccessful",
+    "translation": "Rashin nasara",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Hospital.urgent": {
+    "source": "Urgent",
+    "translation": "Gaggawa sosai",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "ICD11Picker.could_not_reach_the_icd_11_catalog_your": {
     "source": "Could not reach the ICD-11 catalog. Your condition may still be there.",
     "translation": "Ba a iya isa ICD-11 ba. Cutarwa ɗin kila ta kasance akantarwa.",
@@ -6443,6 +6809,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Labs.abnormal": {
+    "source": "⚠️ Abnormal",
+    "translation": "⚠️ Ba daidai ba",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Labs.add_connection": {
     "source": "Add Connection",
     "translation": "Ƙara Haɗi",
@@ -6491,6 +6863,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Labs.in_range": {
+    "source": "✅ In range",
+    "translation": "✅ A cikin jiya",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Labs.labs_ehr": {
     "source": "Labs / EHR",
     "translation": "Gwaje / EHR",
@@ -6514,6 +6892,18 @@
     "translation": "Babu sakamakon gwaji har yanzu",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Labs.not_assessed": {
+    "source": "— Not assessed",
+    "translation": "— Ba a tantance ba",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Labs.not_assessed_title": {
+    "source": "This result was never checked against a reference range.",
+    "translation": "Ba a duba wannan sakamakon a cikin jiya ba.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Labs.notes": {
     "source": "Notes",
@@ -6671,6 +7061,48 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.beta_blurb": {
+    "source": "If you already subscribed via web but want to see the iOS app in action, request beta today and we will send you an activation code.",
+    "translation": "Idan kun riga kun shiga hanyar gida amma kuna so mu nuna muku aikin app na iOS, nema beta jiya kuma za mu aika muku lambar kunna.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.beta_could_not_send": {
+    "source": "We could not send your request. Please try again shortly.",
+    "translation": "Ba mu iya aika da bukatarku ba. Da fatan za a sake gwadawa nan gida.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.beta_notes_hint": {
+    "source": "Anything that helps us match you — the email you subscribed with, or your device.",
+    "translation": "Wani abu da zai taimake muna daidaita ka — imel da kuka shiga da shi, ko na'urar ka.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.beta_request_received": {
+    "source": "Request received",
+    "translation": "An karɓi buƙatun",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.beta_we_have_your_request": {
+    "source": "We have your request. If you are already a member, we will match your address and send a TestFlight invitation.",
+    "translation": "Mun karɓi buƙatunka. Idan kuna ɗan mamaki, za mu daidaita adiresinka kuma mu aika muku gayyatar TestFlight.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.cancel": {
+    "source": "Cancel",
+    "translation": "Soke",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.close": {
+    "source": "Close",
+    "translation": "Rufe",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.coming_to_app_store": {
     "source": "Coming to App Store",
     "translation": "Zai zo App Store",
@@ -6701,6 +7133,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.email": {
+    "source": "Email",
+    "translation": "Imel",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.everything_your_health_deserves": {
     "source": "Everything Your Health Deserves",
     "translation": "Duk Abin da Kaluwar Ku ke Karɓa",
@@ -6724,6 +7162,12 @@
     "translation": "Cikakken dashboard da za ka iya samun daga kowane browser.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Landing.get_it_in_beta": {
+    "source": "Get it in Beta.",
+    "translation": "Samu shi a Beta.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Landing.heal_smarter": {
     "source": "Heal Smarter.",
@@ -6803,6 +7247,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.leave_this_field_empty": {
+    "source": "Leave this field empty",
+    "translation": "Bar wannan filin wofi",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.live_infinitely": {
     "source": "Live Infinitely.",
     "translation": "Rayuwa Har Abada.",
@@ -6851,6 +7301,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.notes_optional": {
+    "source": "Notes (optional)",
+    "translation": "Bayanai (ba dole ba)",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.nutrition_pantry": {
     "source": "Nutrition & Pantry",
     "translation": "Abinci & Ajiya",
@@ -6881,11 +7337,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Landing.request_beta": {
+    "source": "Request beta ✦",
+    "translation": "Nema beta ✦",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Landing.seamlessly_experience_alafia_across_all": {
     "source": "Seamlessly experience ALAFIA across all your devices.",
     "translation": "Sami ALAFIA a duk na'urorin ka cikin sauƙi.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Landing.sending": {
+    "source": "Sending…",
+    "translation": "Yana aika…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Landing.sign_in": {
     "source": "Sign In",
@@ -6946,6 +7414,18 @@
     "translation": "Lafiyarka, A Duk Waje",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Landing.your_name": {
+    "source": "Your name",
+    "translation": "Sunanka",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "Landing.your_reference_is": {
+    "source": "Your reference is",
+    "translation": "Nassararka shine",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "LanguageSwitcher.language": {
     "source": "Language",
@@ -7102,6 +7582,12 @@
     "translation": "Taimako",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Layout.hospital_history": {
+    "source": "Hospital & Surgery",
+    "translation": "Asibiti & Tiyata",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Layout.image_ai": {
     "source": "Image AI",
@@ -7499,6 +7985,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Login.google_sign_in_unavailable": {
+    "source": "Google sign-in isn't available in this browser.",
+    "translation": "Google sign-in ba ya samuwa a wannan browser ba.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Login.login_failed": {
     "source": "Login failed",
     "translation": "Shiga ya kasa",
@@ -7650,10 +8142,10 @@
     "translated_on": "2026-09-15"
   },
   "MarketingChrome.text_2026_alafia_all_rights_reserved_built": {
-    "source": "© 2026 ALAFIA. All rights reserved. Built with ❤️ for humanity.",
-    "translation": "© 2026 ALAFIA. Duk haƙƙi an ajiye. An gina da ❤️ don jama'a.",
+    "source": "© 2026 6igma Health Inc. All rights reserved. Built with ❤️ for humanity.",
+    "translation": "© 2026 6igma Health Inc. Duk haƙƙi an ajiye. An gina da ❤️ don jama'a.",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-08"
   },
   "MarketingChrome.vision": {
     "source": "Vision",
@@ -7865,6 +8357,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.effect_mechanism": {
+    "source": "· {{mechanism}}",
+    "translation": "· {{mechanism}}",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "MealsDiary.est": {
     "source": "· est.",
     "translation": "· kira.",
@@ -7888,6 +8386,12 @@
     "translation": "Fol",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "MealsDiary.from_agent": {
+    "source": "{{sign}}{{delta}}{{unit}} from {{agent}}",
+    "translation": "{{sign}}{{delta}}{{unit}} daga {{agent}}",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "MealsDiary.from_dialysis": {
     "source": "+{{delta}}{{unit}} from dialysis",
@@ -9587,6 +10091,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "NutrientTracking.effect_mechanism": {
+    "source": "· {{mechanism}}",
+    "translation": "· {{mechanism}}",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "NutrientTracking.estimated": {
     "source": "· estimated",
     "translation": "· ƙididdige",
@@ -9610,6 +10120,12 @@
     "translation": "{{meal_count}} shigar da abinci an haɗa.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "NutrientTracking.from_agent": {
+    "source": "{{sign}}{{delta}}{{unit}} from {{agent}}",
+    "translation": "{{sign}}{{delta}}{{unit}} daga {{agent}}",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "NutrientTracking.from_dialysis": {
     "source": "+{{delta}}{{unit}} from dialysis",
@@ -10601,6 +11117,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "PdfTools.keep": {
+    "source": "Keep them",
+    "translation": "Ajiye su",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "PdfTools.lab": {
     "source": "Lab:",
     "translation": "Gwaje:",
@@ -10666,6 +11188,30 @@
     "translation": "Tunani",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "PdfTools.remove_confirm": {
+    "source": "Remove the {{count}} record(s) this document added?",
+    "translation": "Cire {{count}} bayyanar(ren) da wannan takarda ta ƙara?",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "PdfTools.remove_from_records": {
+    "source": "Remove from my records",
+    "translation": "Cire daga bayyanar ni",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "PdfTools.remove_hint": {
+    "source": "Removes only what this document added — nothing you entered yourself. You can upload it again afterwards.",
+    "translation": "Yana cire kawai abin da wannan takarda ta ƙara — babu abin da ka shigar da kanka. Za ka iya sake loda shi bayan.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
+  "PdfTools.removing": {
+    "source": "Removing…",
+    "translation": "Yana cirewa…",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "PdfTools.select_all": {
     "source": "Select all",
@@ -12461,6 +13007,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Privacy.alafia_is_a_product_of_6igma_health": {
+    "source": "ALAFIA is a product of 6igma Health Inc, which builds and operates it. 6igma Health Inc is the data controller for the health information described on this page — the company you are dealing with when you use ALAFIA, and the company responsible for looking after your data.",
+    "translation": "ALAFIA samfurin 6igma Health Inc ne, wacce ta gina shi kuma tana aiki da shi. 6igma Health Inc ita ce mai sarrafawa na bayyanar lafiya da aka bayyana a wannan shafi — kamfanin da kake hulda da shi lokacin da kake amfani da ALAFIA, da kamfanin da ke alhakin kula da bayyanarku.",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "Privacy.alafia_runs_on_google_cloud_in_the": {
     "source": "ALAFIA runs on Google Cloud in the United States, and your records are stored in an encrypted database there. Data travels over encrypted connections (HTTPS/TLS).",
     "translation": "ALAFIA tana aiki akan Google Cloud a Amurka, kuma bayananki an ajiye su a cikakken gida a can. Bayani yana tafiya ta hanyoyin cikakke (HTTPS/TLS).",
@@ -12778,6 +13330,12 @@
     "translation": ", wanda ba shi nufin komai a waje da ALAFIA kuma ba za a iya haɗa shi da kai ta mai ba.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Privacy.who_operates_alafia": {
+    "source": "Who operates ALAFIA",
+    "translation": "Wane ya aiki ALAFIA",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "Privacy.withdraw_consent": {
     "source": "Withdraw consent",
@@ -14183,6 +14741,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "SignupFlow.account_already_exists": {
+    "source": "That address already has an account",
+    "translation": "Wannan adireshin yana da asusun jiya",
+    "status": "machine",
+    "translated_on": "2026-10-08"
+  },
   "SignupFlow.already_have_an_account": {
     "source": "Already have an account?",
     "translation": "Kina da akaunt a jiya?",
@@ -14230,6 +14794,12 @@
     "translation": "Sunan farko dole ne ya kasance aƙalla haruffa 3",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "SignupFlow.go_to_sign_in": {
+    "source": "Go to sign in",
+    "translation": "Je zuwa shiga",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "SignupFlow.last_name": {
     "source": "Last Name",
@@ -14314,6 +14884,12 @@
     "translation": "Shiga",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "SignupFlow.signup_could_not_start_title": {
+    "source": "We could not start your signup",
+    "translation": "Ba mu iya fara rajistara ku ba",
+    "status": "machine",
+    "translated_on": "2026-10-08"
   },
   "SignupFlow.signup_progress": {
     "source": "Signup progress",
@@ -16728,10 +17304,10 @@
     "translated_on": "2026-09-15"
   },
   "Wellness.text_7_pathway_trapezoidal_scoring_j_bhi_2026": {
-    "source": "7-pathway trapezoidal scoring (J-BHI 2026)",
-    "translation": "Ƙididdiga hanya 7 (J-BHI 2026)",
+    "source": "7-pathway trapezoidal scoring",
+    "translation": "7-pathway trapezoidal scoring",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-08"
   },
   "Wellness.track_your_overall_health_and_wellness": {
     "source": "Track your overall health and wellness journey",

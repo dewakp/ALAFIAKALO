@@ -123,8 +123,71 @@
     "your_session_expired_sign_in_again_to": "Oge gị rụchara — banye ọzọ ka ị chọọ ICD-11.",
     "could_not_reach_the_icd_11_catalog_your": "Enweghị m ike ịnweta ICD-11 catalog. Ọrịa gị nwere ike ịnọ n'ebe ahụ."
   },
+  "Hospital": {
+    "title": "Akwụkwọ Ụlọ Ọgwụ & Ihe Ọrụ Ọgwụ",
+    "subtitle": "Ịbanye n'ụlọ ọgwụ, ihe ọrụ ọgwụ, na ihe ọrụ ọgwụ gara aga na-enwe mma nye gị taa.",
+    "lasting_effects": "Ihe ọrụ ọgwụ gara aga na-enwe mma nye gị",
+    "lasting_effects_note": "Naanị mmetụta edekọrọ na ihe ọrụ ọgwụ ka a na-edepụta. Ọ dịghị ihe a na-atụ anya site na aha ihe ọrụ ọgwụ.",
+    "add_stay": "Tinye ụbọchị n'ụlọ ọgwụ",
+    "add_procedure": "Tinye ihe ọrụ ọgwụ",
+    "procedure_name": "Ihe ọrụ ọgwụ",
+    "procedure_no_stay_note": "Ihe ọrụ ọgwụ adịghị achọ ụbọchị n'ụlọ ọgwụ. Ihe ọrụ ọgwụ n'ụbọchị, na ihe ọ bụla ị na-edekọ mgbe ọtụtụ afọ gachara, enwere ike ịtinye naanị ya.",
+    "stays": "Ụbọchị n'ụlọ ọgwụ",
+    "manage_stays": "Jikwaa ụbọchị",
+    "all_procedures": "Ihe ọrụ ọgwụ niile",
+    "all_procedures_note": "Ihe ọrụ ọgwụ niile na akwụkwọ gị, tinyere ndị na-enweghị ụbọchị n'ụlọ ọgwụ.",
+    "no_stays": "Ọ dịghị ụbọchị n'ụlọ ọgwụ edekọrọ.",
+    "no_procedures": "Ọ dịghị ihe ọrụ ọgwụ edekọrọ.",
+    "no_stay": "Ọ dịghị ụbọchị n'ụlọ ọgwụ",
+    "no_stay_recorded": "Ọ dịghị ụbọchị n'ụlọ ọgwụ edekọrọ",
+    "during_stay": "N'ụbọchị nke ọ bụla?",
+    "during": "N'ụbọchị",
+    "delete_keeps_procedures": "Ịhichapụ ụbọchị na-echekwa ihe ọrụ ọgwụ ya na akwụkwọ gị. Ihe ọrụ ọgwụ mere bụ akụkọ gị.",
+    "admitted": "Ịbanye",
+    "discharged": "Ịpụ",
+    "nights": "abalị",
+    "facility": "Ụlọ ọgwụ",
+    "admission_type": "Ụdị ịbanye",
+    "status": "Ọnọdụ",
+    "reason": "Ihe kpatara ịbanye",
+    "diagnosis": "Ọrịa",
+    "attending": "Dọkịta na-elekọta",
+    "performed": "Ụbọchị ihe ọrụ ọgwụ",
+    "code": "Koodu ihe ọrụ ọgwụ",
+    "code_system": "Usoro koodu",
+    "body_site": "Akụkụ ahụ",
+    "outcome": "Nsonaazụ",
+    "surgeon": "Onye ọrụ ọgwụ",
+    "ongoing_effects": "Ihe a na-enwe mma nye gị taa",
+    "ongoing_effects_help": "Dịka ọmụ ma ọ bụ ihe ọ bụla ị na-ewe kemgbe.",
+    "loading": "A na-ebudata akwụkwọ ụlọ ọgwụ gị…",
+    "could_not_load": "Ọ nweghị ike ịbudata akwụkwọ ụlọ ọgwụ gị",
+    "load_failed": "Ọ nweghị ike ịbudata akwụkwọ ụlọ ọgwụ gị.",
+    "save_failed": "Ọ nweghị ike ịchekwa.",
+    "try_again": "Gbalịa ọzọ",
+    "not_stated": "Akọwapụtaghị",
+    "emergency": "Ihe mberede",
+    "elective": "Edoziri",
+    "urgent": "Ọsọ ọsọ",
+    "observation": "Nleba anya",
+    "day_case": "Ụbọchị ọrụ",
+    "maternity": "Ịmụ nwa",
+    "rehabilitation": "Ịgbazi ike",
+    "other": "Ihe ọzọ",
+    "planned": "Edoziri",
+    "in_progress": "Ka nọ n'ụlọ ọgwụ",
+    "transferred": "Zọpụtara",
+    "cancelled": "Kagbuo",
+    "successful": "Nke ọma",
+    "partially_successful": "Nke ọma nke ụfọdụ",
+    "unsuccessful": "Nke ọjọọ",
+    "complicated": "Nwere nsogbu",
+    "abandoned": "Hapụrụ",
+    "unknown": "Amaghị"
+  },
   "Layout": {
     "open_menu": "Meghee menu",
+    "hospital_history": "Ụlọ ọgwụ & Ọgwụ",
     "notifications": "Ọkwa Ozi",
     "logout": "Pụta",
     "ask_alafia": "Jụọ ALAFIA",
@@ -203,7 +266,7 @@
     "investors": "Ndị Ọtụtụ Ego",
     "contact_us": "Kpọtụrụ Anyị",
     "privacy": "Nzuzo",
-    "text_2026_alafia_all_rights_reserved_built": "© 2026 6igma Health Inc. Ụlọ niile dị mma. E wuru ya n'obi maka mmadụ."
+    "text_2026_alafia_all_rights_reserved_built": "© 2026 6igma Health Inc. Nchekwa niile. Ewepụtara n'obi ❤️ maka mmadụ."
   },
   "MembershipNudge": {
     "your_complimentary_access_ends_in": "Ịnwụ gị na-enweghị ụgwọ na-aga na",
@@ -1343,7 +1406,11 @@
     "status_2": "Ọnọdụ",
     "delete": "Hichapụ",
     "no_lab_results_yet": "Enwebeghị nsonaazụ ule ka",
-    "upload_lab_report_pdf": "Tinye akụkọ ọrụ ụlọ (PDF)"
+    "upload_lab_report_pdf": "Tinye akụkọ ọrụ ụlọ (PDF)",
+    "abnormal": "⚠️ Adịghị mma",
+    "in_range": "✅ N'ụzọ ziri ezi",
+    "not_assessed": "— Achọpụtaghị",
+    "not_assessed_title": "A naghị atụle nsonaazụ a n'ụzọ ọ kwesịrị ekwesị."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1400,7 +1467,22 @@
     "health_charts": "Eserese Ike",
     "beautiful_ai_powered_dashboards": "Eserese AI mara mma na-egosi akụkụ ike gị niile.",
     "community_safety": "Obodo & Nchekwa",
-    "fda_recall_alerts_wellness_resources_and": "Ịdọ aka ná ntị FDA, ihe ike, na ihe ọmụma obodo ike."
+    "fda_recall_alerts_wellness_resources_and": "Ịdọ aka ná ntị FDA, ihe ike, na ihe ọmụma obodo ike.",
+    "get_it_in_beta": "Nweta ya na Beta.",
+    "beta_blurb": "Ọ bụrụ na ị edebanye aha na web mana chọrọ ịhụ iOS app na-arụ ọrụ, rịọ beta taa na ị ga-enweta koodu mmalite.",
+    "your_name": "Aha gị",
+    "email": "Ozi-e-mail",
+    "notes_optional": "Nkọwa (nhọpụta)",
+    "beta_notes_hint": "Ihe ọ bụla na-enyere aka ịchọta gị — ozi-e-mail ị debanye aha na ya, ma ọ bụ ngwa gị.",
+    "leave_this_field_empty": "Hapụ oghere a",
+    "sending": "Na-eziga…",
+    "request_beta": "Rịọ beta ✦",
+    "cancel": "Kagbuo",
+    "close": "Mechie",
+    "beta_request_received": "Enwetara arịrịọ",
+    "beta_we_have_your_request": "Enwetara m arịrịọ gị. Ọ bụrụ na ị bụ onye otu na-arụ ọrụ, ị ga-etụtụ adreesị gị ma ziga oku TestFlight.",
+    "your_reference_is": "Nkomọ gị bụ",
+    "beta_could_not_send": "Anyị enweghị ike iziga arịrịọ gị. Biko zaa mgbe obere oge."
   },
   "Lifestyle": {
     "lifestyle": "Ụzọ Ndụ",
@@ -1444,7 +1526,8 @@
     "password_must_be_at_least_6_characters": "Okwu Ọzọ ga-abụ opekata 6 mkpụrụ okwu",
     "login_failed": "Ịbanye adịghị arụ ọrụ",
     "enter_a_valid_phone_number_e_g": "Tinye nọmba ekwentị dị mma, dịka [phone]",
-    "sign_in_failed": "Ịbanye adịghị arụ ọrụ."
+    "sign_in_failed": "Ịbanye adịghị arụ ọrụ.",
+    "google_sign_in_unavailable": "Google sign-in adịghị mma na ihe nchọgharị a."
   },
   "MealPlanner": {
     "cal": "cal",
@@ -1504,7 +1587,9 @@
     "na": "Na",
     "vitd": "VitD",
     "fol": "Fol",
-    "chol": "Chol"
+    "chol": "Chol",
+    "from_agent": "{{sign}}{{delta}}{{unit}} site na {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "Ọgụ",
@@ -1800,7 +1885,9 @@
     "vitamin_c": "Vitamin C",
     "vitamin_a": "Vitamin A",
     "omega_3": "Omega-3",
-    "your_personalized_targets_could_not_be": "Enweghi ike ịkọ ụkọ gị nke ọma, n'ihi ya a na-egosi ụkọ mgbagha izugbe n'okpuru."
+    "your_personalized_targets_could_not_be": "Enweghi ike ịkọ ụkọ gị nke ọma, n'ihi ya a na-egosi ụkọ mgbagha izugbe n'okpuru.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} site na {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "Nri",
@@ -1962,7 +2049,12 @@
     "generate_flowsheet": "Emepụta Flowsheet",
     "already_recorded": "Edebere na",
     "differs_from_existing": "Dị iche na nke dị",
-    "the_pdf_could_not_be_downloaded": "Enweghị ike ịbudata PDF ahụ."
+    "the_pdf_could_not_be_downloaded": "Enweghị ike ịbudata PDF ahụ.",
+    "remove_from_records": "Wepụ site na ndekọ m",
+    "remove_confirm": "Wepụ {{count}} ndekọ nke akwụkwọ a tinyere?",
+    "removing": "N'ịwepụ…",
+    "remove_hint": "Ọ na-ewepụ naanị ihe akwụkwọ a tinyere — ọ bụghị ihe ị deere gị. Ị nwere ike ịtinyegharị ya mgbe e mesịa.",
+    "keep": "Jide ha"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",
@@ -2253,6 +2345,8 @@
     "privacy": "Nzuzo",
     "alafia_holds_some_of_the_most_sensitive": "ALAFIA nwere ụfọdụ n'ime ozi nke ọma karị na mmadụ nwere. Isiokwu a na-akọwa n'ụzọ doro anya ihe anyị na-anakọta, ihe kpatara ya, onye nwere ike ịhụ ya, na otu esi enweta ya ma ọ bụ hichapụ ya.",
     "last_updated": "Emegharịrị ikpeazụ {{LAST_UPDATED}}.",
+    "who_operates_alafia": "Onye na-eme ALAFIA",
+    "alafia_is_a_product_of_6igma_health": "ALAFIA bụ ngwaahịa nke 6igma Health Inc, nke na-ewu na na-eme ya. 6igma Health Inc bụ onye na-achịkwa ozi ahụike akọwapụtara na ibe a — ụlọ ọrụ ị na-arụkọ ọrụ ya mgbe ị na-eji ALAFIA, na ụlọ ọrụ na-ahụ maka ịchọ mma nke data gị.",
     "what_we_collect": "Ihe anyị na-anakọta",
     "only_what_the_app_needs_to_work": "Naanị ihe app kwesịrị ịkọ. Ihe niile n'okpuru a jikọtara na akaụntụ gị — ị nweghị ike inwe ndekọ ahụike n'adịghị ebe ịtụnye ya.",
     "what_we_never_do": "Ihe anyị na-adịghị eme",
@@ -2581,7 +2675,10 @@
     "we_could_not_start_your_signup": "Anyị enweghị ike ibido signup gị.",
     "we_could_not_open_the_payment_page": "Anyị enweghị ike imeghe peeji nnakụ.",
     "sent_check_your_inbox_and_your_spam": "Ezitere. Lelee inbox gị, na folder spam gị.",
-    "we_could_not_resend_that_email": "Anyị enweghị ike izigara imeyl ahụ."
+    "we_could_not_resend_that_email": "Anyị enweghị ike izigara imeyl ahụ.",
+    "account_already_exists": "Adreesị ahụ nwere akụntụ na-adị",
+    "signup_could_not_start_title": "Anyị enweghị ike ibudata ịmepụta akụntụ gị",
+    "go_to_sign_in": "Gaa na sign in"
   },
   "Sleep": {
     "sleep": "Ụra",
@@ -3032,5 +3129,8 @@
   },
   "LanguageSwitcher": {
     "language": "Asụsụ"
+  },
+  "AlertDialog": {
+    "dismiss": "Hapụ"
   }
 }

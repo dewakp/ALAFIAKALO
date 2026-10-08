@@ -123,8 +123,71 @@
     "your_session_expired_sign_in_again_to": "Àkókò rẹ wọ́ — wọ inú àkọsílẹ̀ lẹ́ẹ̀kan síi láti ṣàwárí ICD-11.",
     "could_not_reach_the_icd_11_catalog_your": "A kò lè dé ICD-11 catalog. Ìṣòro rẹ máa ṣeé ṣe níbẹ̀."
   },
+  "Hospital": {
+    "title": "Itan Ile-Iwosan & Iṣẹ Ẹkọ",
+    "subtitle": "Wiwọ si ile-iwosan, iṣẹ ẹkọ, ati ohun ti iṣẹ ẹkọ ti o ti ṣe fun yin loni.",
+    "lasting_effects": "Ohun ti iṣẹ ẹkọ ti o ti ṣe fun yin",
+    "lasting_effects_note": "Awọn ipa ti a ti gbasilẹ pẹlu iṣẹ ẹkọ nikan ni a fi sile. Ohunkohun nibi kii ṣe iṣiro lati oran iṣẹ ẹkọ.",
+    "add_stay": "Fi wiwọ si ile-iwosan kun",
+    "add_procedure": "Fi iṣẹ ẹkọ kun",
+    "procedure_name": "Iṣẹ Ẹkọ",
+    "procedure_no_stay_note": "Iṣẹ ẹkọ ko nilo wiwọ si ile-iwosan. Iṣẹ ẹkọ ojo kan, ati ohunkohun ti o ba ti gbasilẹ ọdun kan sẹyin, le ṣe kun nipa ara rẹ.",
+    "stays": "Awọn wiwọ si ile-iwosan",
+    "manage_stays": "Ṣakoso awọn wiwọ",
+    "all_procedures": "Gbogbo awọn iṣẹ ẹkọ",
+    "all_procedures_note": "Gbogbo iṣẹ ẹkọ ti o wa lori iwe yin, pẹlu awọn ti ko ni wiwọ si ile-iwosan.",
+    "no_stays": "Ko si wiwọ si ile-iwosan ti a gbasilẹ sibẹsibẹ.",
+    "no_procedures": "Ko si iṣẹ ẹkọ ti a gbasilẹ sibẹsibẹ.",
+    "no_stay": "Ko si wiwọ si ile-iwosan",
+    "no_stay_recorded": "Ko si wiwọ si ile-iwosan ti a gbasilẹ",
+    "during_stay": "Ni ẹ̀yin wiwọ wo?",
+    "during": "Ni ẹ̀yin",
+    "delete_keeps_procedures": "Ṣiṣẹ wiwọ kan gbẹ awọn iṣẹ ẹkọ rẹ lori iwe yin. Iṣẹ ẹkọ ti o ti ṣẹlẹ jẹ apá ti itan yin.",
+    "admitted": "Wọ ile-iwosan",
+    "discharged": "Jade ninu ile-iwosan",
+    "nights": "awọn ọ̀ṣu",
+    "facility": "Ile-Iwosan",
+    "admission_type": "Iru wiwọ",
+    "status": "Ipo",
+    "reason": "Idi wiwọ",
+    "diagnosis": "Ọ̀ṣọ̀",
+    "attending": "Dokita ti o ṣakoso",
+    "performed": "Ọjọ iṣẹ ẹkọ",
+    "code": "Koodu iṣẹ ẹkọ",
+    "code_system": "Eto koodu",
+    "body_site": "Apá ara",
+    "outcome": "Ìpari",
+    "surgeon": "Dokita ẹkọ",
+    "ongoing_effects": "Ohun ti o tun ṣe fun yin",
+    "ongoing_effects_help": "Fún àpẹẹrẹ, ara tabi ìlú ti a yọ kuro, tabi ohun ti o ti ni lati gba lati igba yẹn.",
+    "loading": "A n lo itan ile-iwosan yin…",
+    "could_not_load": "A ko le lo itan ile-iwosan yin",
+    "load_failed": "A ko le lo itan ile-iwosan yin.",
+    "save_failed": "A ko le fi pamọ.",
+    "try_again": "Gbìyànjú lẹ́ẹ̀kan",
+    "not_stated": "A kò sọ",
+    "emergency": "Ìjọ́ba",
+    "elective": "A ti ṣètò",
+    "urgent": "Ìjọ́ba",
+    "observation": "Ìmọ̀ràn",
+    "day_case": "Ọjọ́ kan",
+    "maternity": "Ìbímọ",
+    "rehabilitation": "Atúnṣe",
+    "other": "Omiiran",
+    "planned": "A ti ṣètò",
+    "in_progress": "Ó ṣì wà nínú ile ìlera",
+    "transferred": "A gbé lọ",
+    "cancelled": "A fagile",
+    "successful": "Ó ṣe àrà rẹ̀",
+    "partially_successful": "Ó ṣe àrà rẹ̀ nipa apá",
+    "unsuccessful": "Kò ṣe àrà rẹ̀",
+    "complicated": "Ó ní àwọn ìṣòro",
+    "abandoned": "A dá sílẹ̀",
+    "unknown": "A kò mọ"
+  },
   "Layout": {
     "open_menu": "Ṣí ìmẹ̀nú",
+    "hospital_history": "Ile ìlera & Ìṣẹ̀",
     "notifications": "Àkiyèsi",
     "logout": "Lọ kúrò",
     "ask_alafia": "Béèrè ALAFIA",
@@ -203,7 +266,7 @@
     "investors": "Awọn Olupese",
     "contact_us": "Kan wa",
     "privacy": "Aladipọ",
-    "text_2026_alafia_all_rights_reserved_built": "© 2026 6igma Health Inc. Gbogbo ẹtọ gbe. A kọ pẹlu ❤️ fun eniyan."
+    "text_2026_alafia_all_rights_reserved_built": "© 2026 6igma Health Inc. Gbogbo ẹ̀tọ́ gba. A kọ́ pẹ̀lú ❤️ fún ènìyàn."
   },
   "MembershipNudge": {
     "your_complimentary_access_ends_in": "Iwọ ọfẹ rẹ pari ni",
@@ -1343,7 +1406,11 @@
     "status_2": "Ipo",
     "delete": "Paá",
     "no_lab_results_yet": "Àìsí àbájáde ìdánwò fún ìsinilẹ̀",
-    "upload_lab_report_pdf": "Gbé ìjìmọ̀ ọ̀fọ̀ (PDF)"
+    "upload_lab_report_pdf": "Gbé ìjìmọ̀ ọ̀fọ̀ (PDF)",
+    "abnormal": "⚠️ Àìtọ́",
+    "in_range": "✅ Nínú ìlà",
+    "not_assessed": "— A kò ṣe àyẹ̀wò",
+    "not_assessed_title": "A kò tún ṣe àyẹ̀wò èsì yìí pẹ̀lú ìlà ìtọ́kèji."
   },
   "Landing": {
     "agentic_health_intelligence_est_2026": "✦ Agentic Health Intelligence · Est. 2026 ✦",
@@ -1400,7 +1467,22 @@
     "health_charts": "Àwọn Tábìlì Ìlera",
     "beautiful_ai_powered_dashboards": "Àwọn ìpilẹ̀ tó ní AI tó ṣe àwòrán gbogbo ìyàtọ̀ ìlera rẹ ní àkókò.",
     "community_safety": "Àgbègbè & Ìdáàbò",
-    "fda_recall_alerts_wellness_resources_and": "Àkìyèsí ìdánilẹ̀kọ̀ FDA, àwọn ìmọ̀ ìwà dáradára, àti ìmọ̀ ìlera àgbègbè tó ní ìdánilẹ̀kọ̀."
+    "fda_recall_alerts_wellness_resources_and": "Àkìyèsí ìdánilẹ̀kọ̀ FDA, àwọn ìmọ̀ ìwà dáradára, àti ìmọ̀ ìlera àgbègbè tó ní ìdánilẹ̀kọ̀.",
+    "get_it_in_beta": "Gba á nínú Beta.",
+    "beta_blurb": "Tí o bá ti ṣe àgbéjáde nípa wẹ́ẹ̀bù ṣùgbọ́n o fẹ́ rí àpò iOS nínú iṣẹ́, béèrè beta lónìí àti a ó rán ọ́ nípa koodu ìmúlò.",
+    "your_name": "Orúkọ rẹ",
+    "email": "Imeèlì",
+    "notes_optional": "Àwọn àkiyèsi (àìlọ́wọ́)",
+    "beta_notes_hint": "Ohun tí ó ṣe ìrànwọ́ fún wa láti ṣe àpejọ́ ọ — imeèlì tí o ṣe àgbéjáde pẹ̀lú, tàbí ẹ̀rọ rẹ.",
+    "leave_this_field_empty": "Jẹ́ kí àgbà yìí ṣofo",
+    "sending": "Ń rán…",
+    "request_beta": "Béèrè beta ✦",
+    "cancel": "Fagile",
+    "close": "Tì",
+    "beta_request_received": "A gba béèrè rẹ",
+    "beta_we_have_your_request": "A ní béèrè rẹ. Tí o bá jẹ́ ọ̀kan nínú àwọn ọmọ́ ìṣọ́pọ̀, a ó ṣe àpejọ́ àdírẹ̀sì rẹ àti rán ọ́ nípa àbẹ́ TestFlight.",
+    "your_reference_is": "Àmì ìtọ́kèji rẹ ni",
+    "beta_could_not_send": "A ko le fi ibeere re ranṣẹ. Jọwọ gbiyanju lẹẹkansi."
   },
   "Lifestyle": {
     "lifestyle": "Ìgbé Ayé",
@@ -1444,7 +1526,8 @@
     "password_must_be_at_least_6_characters": "Ọ̀rọ̀ ìdáramọ̀ gbọ́dọ̀ jẹ́ àti ìsalẹ̀ 6 àmì",
     "login_failed": "Ìwọlé kùnà",
     "enter_a_valid_phone_number_e_g": "Tẹ nọ́mbà ẹ̀kọ́ tó dára, àpẹẹrẹ [phone]",
-    "sign_in_failed": "Ìwọlé kùnà."
+    "sign_in_failed": "Ìwọlé kùnà.",
+    "google_sign_in_unavailable": "Google sign-in ko si ni app yii."
   },
   "MealPlanner": {
     "cal": "cal",
@@ -1504,7 +1587,9 @@
     "na": "Na",
     "vitd": "VitD",
     "fol": "Fol",
-    "chol": "Chol"
+    "chol": "Chol",
+    "from_agent": "{{sign}}{{delta}}{{unit}} lati {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Medications": {
     "medications": "Àwọn oogun",
@@ -1800,7 +1885,9 @@
     "vitamin_c": "Vitamin C",
     "vitamin_a": "Vitamin A",
     "omega_3": "Omega-3",
-    "your_personalized_targets_could_not_be": "A ko ṣe ṣe lati gbe awọn ibi-afara ti o jẹ fun ọ, nitorinaa a fi awọn iye-ifihan ti gbogbo eniyan han."
+    "your_personalized_targets_could_not_be": "A ko ṣe ṣe lati gbe awọn ibi-afara ti o jẹ fun ọ, nitorinaa a fi awọn iye-ifihan ti gbogbo eniyan han.",
+    "from_agent": "{{sign}}{{delta}}{{unit}} lati {{agent}}",
+    "effect_mechanism": "· {{mechanism}}"
   },
   "Nutrition": {
     "nutrition": "Ounjẹ",
@@ -1962,7 +2049,12 @@
     "generate_flowsheet": "Ṣẹ̀dá Flowsheet",
     "already_recorded": "Ṣẹ̀ẹ́ tẹ̀lẹ̀",
     "differs_from_existing": "Iyatọ̀ fún ti ìṣẹ́ṣẹ tó wà",
-    "the_pdf_could_not_be_downloaded": "Àkọsílẹ̀ PDF náà kò lè gba."
+    "the_pdf_could_not_be_downloaded": "Àkọsílẹ̀ PDF náà kò lè gba.",
+    "remove_from_records": "Yọ kuro ninu iwe mi",
+    "remove_confirm": "Yọ {{count}} iwe(ẹ) ti ọkunrin yii fi kun?",
+    "removing": "N yọ…",
+    "remove_hint": "O yọ nkan ti ọkunrin yii fi kun nikan — ohun ti o fi ara e kun ko yọ. O le gbe e sile lẹẹkansi.",
+    "keep": "Pa won"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",
@@ -2253,6 +2345,8 @@
     "privacy": "Ìdáhùn",
     "alafia_holds_some_of_the_most_sensitive": "ALAFIA ní àwọn ìmọ̀ràn tó jẹ́ ìdáhùn jù lọ tí ènìyàn lè ní. Ojú ìwé yìí ṣàlàyé nípa ohun tí a ṣe àkójọ, ìdí rẹ̀, ẹni tó lè rí i, àti bí o ṣe lè gba á padà tàbí pa á.",
     "last_updated": "A tún ṣe ní {{LAST_UPDATED}}.",
+    "who_operates_alafia": "Ta ni o ṣiṣẹ ALAFIA",
+    "alafia_is_a_product_of_6igma_health": "ALAFIA jẹ ọja ti 6igma Health Inc, ti o kọ ati ṣiṣẹ rẹ. 6igma Health Inc ni olumulo data fun alaye ilera ti a sọ ni oju opo yii — ile-iṣẹ ti o ba nlo ALAFIA, ati ile-iṣẹ ti o ni iṣẹ lati tọju data re.",
     "what_we_collect": "Ohun tí a ṣe àkójọ",
     "only_what_the_app_needs_to_work": "Nǹkan tó nílò àpò ìlò náà nìkan. Ohun gbogbo níbẹ̀ ni àsopọ̀ sí àkáùnt rẹ — o ò lè ní ìwé ìlera láìsí ibílẹ̀ tó dúró fún un.",
     "what_we_never_do": "Ohun tí a kò ní ṣe",
@@ -2581,7 +2675,10 @@
     "we_could_not_start_your_signup": "A kò lè bẹ̀rẹ̀ àforúkọsílẹ̀ rẹ.",
     "we_could_not_open_the_payment_page": "A kò lè ṣí ojú ìsanwó.",
     "sent_check_your_inbox_and_your_spam": "Rán. Ṣàyẹ̀wò àpò imeèlì rẹ àti àpò spam.",
-    "we_could_not_resend_that_email": "A kò lè tún rán imeèlì náà."
+    "we_could_not_resend_that_email": "A kò lè tún rán imeèlì náà.",
+    "account_already_exists": "Adirẹsi yii ni akọọ tẹlẹ",
+    "signup_could_not_start_title": "A ko le bẹrẹ iforukọsilẹ re",
+    "go_to_sign_in": "Lọ si sign in"
   },
   "Sleep": {
     "sleep": "Ìsùn",
@@ -2906,7 +3003,7 @@
     "score_history_last_30_days": "Ìtàn Ìgbésẹ̀ (Ọjọ́ 30 Sẹ́yìn)",
     "no_wellness_score_yet": "Àìsí wellness score lọ́wọ́",
     "hebcs_wellness_score": "Ìsọ̀rọ̀ Àlàáfíà HEBCS",
-    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "Ìsọ̀rọ̀ trapezoidal ọ̀nà méje",
+    "text_7_pathway_trapezoidal_scoring_j_bhi_2026": "7-pathway trapezoidal scoring",
     "latest_labs": "Àwọn ìdánwọ̀ tuntun: {{value}}",
     "score_0_100": "Ìsọ̀rọ̀ (0–100)",
     "data_coverage": "Ìbámu dátà",
@@ -3032,5 +3129,8 @@
   },
   "LanguageSwitcher": {
     "language": "Èdè"
+  },
+  "AlertDialog": {
+    "dismiss": "Ṣe iyalẹnu"
   }
 }
