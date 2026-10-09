@@ -308,7 +308,8 @@
     "change": "Alterar",
     "change_agent": "Alterar agente",
     "assistant": "Assistente",
-    "your_personal_health_guide": "Seu guia de saúde pessoal."
+    "your_personal_health_guide": "Seu guia de saúde pessoal.",
+    "stream_timed_out": "O assistente parou de responder. Sua pergunta não foi respondida — tente novamente."
   },
   "Admin": {
     "close": "Fechar",

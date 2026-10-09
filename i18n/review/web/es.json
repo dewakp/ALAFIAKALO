@@ -71,6 +71,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "AIChat.stream_timed_out": {
+    "source": "The assistant stopped responding. Your question was not answered — please try again.",
+    "translation": "El asistente dejó de responder. Tu pregunta no fue respondida — por favor intenta de nuevo.",
+    "status": "machine",
+    "translated_on": "2026-10-09"
+  },
   "AIChat.your_personal_health_guide": {
     "source": "Your personal health guide.",
     "translation": "Tu guía personal de salud.",

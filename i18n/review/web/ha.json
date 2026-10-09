@@ -71,6 +71,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "AIChat.stream_timed_out": {
+    "source": "The assistant stopped responding. Your question was not answered — please try again.",
+    "translation": "Matashi ya daina amsa. Tambayarku ba a amsa ta — da fatan za a sake gwadawa.",
+    "status": "machine",
+    "translated_on": "2026-10-09"
+  },
   "AIChat.your_personal_health_guide": {
     "source": "Your personal health guide.",
     "translation": "Jagoran lafiyarka na sirri.",

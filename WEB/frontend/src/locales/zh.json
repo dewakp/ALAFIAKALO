@@ -308,7 +308,8 @@
     "change": "更改",
     "change_agent": "更改助手",
     "assistant": "助手",
-    "your_personal_health_guide": "您的个人健康指南。"
+    "your_personal_health_guide": "您的个人健康指南。",
+    "stream_timed_out": "助手停止响应。您的问题未得到回答——请重试。"
   },
   "Admin": {
     "close": "关闭",

@@ -308,7 +308,8 @@
     "change": "Gbanwee",
     "change_agent": "Gbanwee onye inyom",
     "assistant": "Onye Inyom",
-    "your_personal_health_guide": "Onye ndu mma gị nwere."
+    "your_personal_health_guide": "Onye ndu mma gị nwere.",
+    "stream_timed_out": "Onye inyom kwụsịrị ịzaghachi. Ajụjụ gị adịghị aza — biko zaa ọzọ."
   },
   "Admin": {
     "close": "Mechie",

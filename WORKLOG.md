@@ -2927,3 +2927,61 @@ on two seam bands, 0 failures; web unit **273/42**, e2e **48**; iOS **52 tests**
 -> 30,107,870 bytes (the +36 KB is the resources), lint **0 errors**; catalogs
 **44**; ruff clean on `scripts/i18n/`.
 
+### The chat stream had no timeout at all
+
+OPEN_ITEMS §3 read "AI chat has no client timeout — OPEN, small". It was not
+stale. `AIChat.jsx` called `fetch('/api/v1/ai/chat/stream')` with no
+`AbortController` and no timeout, so §3ae's ladder — client 285s <
+OLLAMA_TIMEOUT 290s < Cloud Run 300s — applied nowhere on the one AI surface
+patients actually use. A stalled stream hung forever behind an empty assistant
+bubble: nothing to retry, no way to know it had failed. The comment at the
+fetch even said *"This fetch bypasses the axios interceptor, so it sets the
+header itself"* — someone noticed the bypass for headers and not for the
+timeout.
+
+**IDLE, not total, and that is the whole design.** iOS
+`URLRequest.timeoutInterval` and Android's OkHttp `readTimeout` are both idle
+timers at this same 285s, and the tool loop goes deliberately quiet between
+rounds (§3am measured the final round silent for over two minutes). A
+wall-clock cap would cut off an answer the server was still writing —
+reproducing §3ae's failure rather than preventing it — and it would pass a
+naive "it aborts eventually" test. `test('a chunk RESETS the clock, so a slow
+answer is not cut off')` is the assertion that separates the two.
+
+**An AbortError's own message is "The user aborted a request"** — wrong,
+because the user did not, and useless either way. `AIChat.stream_timed_out`
+says what happened and that retrying is the way forward (§3aa).
+
+**That new key turned my own guard red, which is the point of it.** Adding
+`AIChat.stream_timed_out` took the web source to 2,955 keys and left all ten
+locales one short, so `test_every_language_carries_every_source_key` — added
+two commits ago — failed on its author within the same session. Translating
+the ten put it back to 44 passed.
+
+Also corrects a stale line in §8c claiming production was on
+`an001_vital_thresholds`; it has been on `ap001_nutrient_quotas` since the
+2026-10-06 deploy. That is the stale revision number §5a records as having
+halted a good release three separate times.
+
+**Three of my own measurements were wrong before they were right:**
+
+- Twice I concluded "the test harness is broken" when `frontend-test` reported
+  `Cannot find package 'vitest'`. Reading the compose service explained it:
+  `/app/node_modules` is an ANONYMOUS volume and the `command` is one `sh -c`
+  that runs `npm ci` into it before calling vitest. Overriding the command
+  skipped the install, leaving node_modules empty. Nothing to do with the test.
+- I reported e2e as proving nothing because the preview was serving a stale
+  `dist` — asset hash unchanged, `index.html` dated the day before. In fact my
+  wait-loop polled for a file's EXISTENCE and so read `dist` mid-rebuild,
+  capturing the old bundle. The container was serving `index-DwRP4Lv3.js` from
+  today, containing the new string. Playwright waits on the healthcheck, which
+  is green only after `npm run build` finishes — the race was mine alone.
+- I first reported the six new tests as a 273 -> 279 count delta. A delta says
+  six tests ran, not which six or what they asserted; they are named
+  individually now.
+
+Verified: backend **744 + 676 + 616** across 145 pinned files plus **216 + 102**
+on two overlapping seam bands, 0 failures; web unit **279 / 43 files** (was
+273 / 42), e2e **48** against a bundle confirmed to contain the new string;
+catalogs **44**. iOS and Android untouched — no mobile file changed.
+

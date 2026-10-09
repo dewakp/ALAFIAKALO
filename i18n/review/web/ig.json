@@ -71,6 +71,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "AIChat.stream_timed_out": {
+    "source": "The assistant stopped responding. Your question was not answered — please try again.",
+    "translation": "Onye inyom kwụsịrị ịzaghachi. Ajụjụ gị adịghị aza — biko zaa ọzọ.",
+    "status": "machine",
+    "translated_on": "2026-10-09"
+  },
   "AIChat.your_personal_health_guide": {
     "source": "Your personal health guide.",
     "translation": "Onye ndu mma gị nwere.",

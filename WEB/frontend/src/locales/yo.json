@@ -308,7 +308,8 @@
     "change": "Yí padà",
     "change_agent": "Yí agent padà",
     "assistant": "Assistant",
-    "your_personal_health_guide": "Ọ̀nà ìlera ara ẹ."
+    "your_personal_health_guide": "Ọ̀nà ìlera ara ẹ.",
+    "stream_timed_out": "Olùtọ́jú àwọn ìbéèrè dúró. Ìbéèrè rẹ kò ni ìdáhùn — jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi."
   },
   "Admin": {
     "close": "Pàdé",

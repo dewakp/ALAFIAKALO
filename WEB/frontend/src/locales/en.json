@@ -308,7 +308,8 @@
     "change": "Change",
     "change_agent": "Change agent",
     "assistant": "Assistant",
-    "your_personal_health_guide": "Your personal health guide."
+    "your_personal_health_guide": "Your personal health guide.",
+    "stream_timed_out": "The assistant stopped responding. Your question was not answered — please try again."
   },
   "Admin": {
     "close": "Close",

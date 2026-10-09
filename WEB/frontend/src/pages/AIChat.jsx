@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import api, { ensureCsrfToken, refreshAccessToken } from '../services/api';
+import api, { AI_TIMEOUT_MS, ensureCsrfToken, refreshAccessToken } from '../services/api';
 import i18n, { t as translate } from '../i18n';
 import { apiErrorMessage } from '../utils/apiError';
 import { Send, RefreshCw, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
@@ -229,9 +229,31 @@ export default function AIChat() {
       persona: persona.key,
     });
 
+    // §3ae's ladder is client 285s < OLLAMA_TIMEOUT 290s < Cloud Run 300s, and
+    // this fetch bypassed all of it: no AbortController, no timeout. A stalled
+    // stream hung forever behind an empty assistant bubble with nothing to
+    // retry and no way to know it had failed.
+    //
+    // IDLE, not total. iOS `URLRequest.timeoutInterval` and Android's OkHttp
+    // `readTimeout` are both idle timers at this same 285s, and the tool loop
+    // deliberately goes quiet between rounds — a wall-clock cap would cut off
+    // an answer the server was still writing, which is the §3ae failure this
+    // is meant to prevent rather than reproduce.
+    const controller = new AbortController();
+    let idleTimer = null;
+    let timedOut = false;
+    const resetIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, AI_TIMEOUT_MS);
+    };
+
     async function sendStreamRequest(accessToken) {
       const csrfToken = await ensureCsrfToken();
       return fetch('/api/v1/ai/chat/stream', {
+        signal: controller.signal,
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -261,6 +283,7 @@ export default function AIChat() {
     }
 
     try {
+      resetIdleTimer();
       let token = localStorage.getItem('token');
       let res = await sendStreamRequest(token);
 
@@ -278,6 +301,9 @@ export default function AIChat() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        // Progress frames and answer chunks both count as the server still
+        // working, so each one restarts the clock.
+        resetIdleTimer();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop();
@@ -343,12 +369,19 @@ export default function AIChat() {
         }
       }
     } catch (error) {
+      // An AbortError's own message is "The user aborted a request", which is
+      // both wrong (the user did not) and useless. Say what happened and that
+      // retrying is the way forward — §3aa, an error is not an empty state.
+      const message = timedOut
+        ? translate('AIChat.stream_timed_out')
+        : error.message || 'Sorry, something went wrong. Please try again.';
       setMessages((prev) => {
         const next = [...prev];
-        next[next.length - 1] = { role: 'assistant', content: error.message || 'Sorry, something went wrong. Please try again.' };
+        next[next.length - 1] = { role: 'assistant', content: `⚠️ ${message}` };
         return next;
       });
     } finally {
+      if (idleTimer) clearTimeout(idleTimer);
       setLoading(false);
       setStatus(null);
     }

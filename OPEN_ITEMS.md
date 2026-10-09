@@ -1195,8 +1195,12 @@ asserting the string was the wrong instrument and is what surfaced this.
 
 ### 8c. Smaller, carried forward
 
-- **Migration `ao001` is applied to DEV ONLY.** Production remains on
-  `an001_vital_thresholds`. Ask `alembic heads`, never this line (§5).
+- ~~Migration `ao001` is applied to DEV ONLY.~~ **Shipped 2026-10-06.**
+  Production is on `ap001_nutrient_quotas` (verified against the database, not
+  this file). The line above sat here claiming prod was on
+  `an001_vital_thresholds` for three days after it wasn't — which is the stale
+  revision number §5a records as having halted a good release three separate
+  times. Ask `alembic heads`, never this line (§5).
 - **No import writes these tables yet except FHIR.** The PDF/document path and
   the two Firestore importers do not, so a discharge summary still has to be
   entered by hand. Wiring a bulk import to notify or to dedupe against

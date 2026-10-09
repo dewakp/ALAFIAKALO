@@ -308,7 +308,8 @@
     "change": "Badilisha",
     "change_agent": "Badilisha wakili",
     "assistant": "Msaada",
-    "your_personal_health_guide": "Mwongozi wako wa afya binafsi."
+    "your_personal_health_guide": "Mwongozi wako wa afya binafsi.",
+    "stream_timed_out": "Msaidizi alisimama kujibu. Swali lako halikusulubiwa — tafadhali jaribu tena."
   },
   "Admin": {
     "close": "Funga",

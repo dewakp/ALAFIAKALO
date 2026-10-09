@@ -308,7 +308,8 @@
     "change": "تغيير",
     "change_agent": "تغيير الوكيل",
     "assistant": "المساعد",
-    "your_personal_health_guide": "دليلك الصحي الشخصي."
+    "your_personal_health_guide": "دليلك الصحي الشخصي.",
+    "stream_timed_out": "توقف المساعد عن الرد. لم تتم الإجابة على سؤالك — يرجى المحاولة مرة أخرى."
   },
   "Admin": {
     "close": "إغلاق",
