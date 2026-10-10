@@ -6,6 +6,15 @@
 Read this before touching anything. It exists because context was being
 re-derived from scratch each session, and each re-derivation drifted.
 
+**The three living documents, and which is which** — put a thing in the wrong
+one and the next session will not find it:
+
+| | |
+|---|---|
+| `WORKLOG.md` | what was DONE, and what it cost to learn |
+| `OPEN_ITEMS.md` | what is BROKEN or undecided, with the measurement behind it |
+| `TASKS.md` | what is AGREED but not started — queued work and future direction |
+
 ---
 
 ## 0. NEVER GUESS

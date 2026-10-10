@@ -237,3 +237,142 @@ Notes:
   null-post-weight case.
 - `docker compose --profile test run --rm backend-test` / `frontend-test` / `e2e`
 - `xcodebuild -scheme ALAFIA` and `./gradlew :app:assembleDebug`
+
+---
+
+# Future work — agreed direction, not yet started
+
+Eight items, recorded 2026-10-10. None is greenfield: each already has surface
+in the codebase, and each has at least one constraint this canon has already
+paid for. The anchors below are measured, not assumed — so the next person
+starts from what exists rather than rediscovering it.
+
+## 1. Restaurant integration
+
+Log a meal eaten out, with nutrients, without the patient typing a recipe.
+
+**What exists:** `services/meal_parser.py`, `services/nutrient_estimator.py`,
+and the resolve-once-remember-after caches `learned_food_nutrients` /
+`food_nutrient_cache` (§3c).
+
+**The trap is already written down.** §3c: *"do not add aliases"* — a branded
+match answered **80 kcal / 1.6 g protein** for a goat curry because
+`vindaloo` hit *Vindaloo Simmer Sauce*, and the same meal logged twice returned
+108 kcal and 520 kcal. A restaurant menu is a catalogue of branded items
+pointed straight at that failure. Relevance must stay two-directional
+(Jaccard, not `overlap / query_tokens`) and an all-zero row must keep counting
+as a MISS.
+
+**Open questions:** which menu source is authoritative and under what licence;
+whether a chain's published nutrition is per-item or per-serving; and how a
+restaurant dish reaches the §3an condition guard, whose allergen matching is
+deliberately English-only (§3aw — a translated "cacahuète" walks past a peanut
+allergy).
+
+## 2. Meal kit integration
+
+Turn a generated plan into something orderable.
+
+**What exists:** `api/planners.py` already produces a 7-day plan AND a
+`SHOPPING_LISTS` shopping list per pattern; `models/pantry.py` tracks what the
+patient has.
+
+**Constraint:** the renal template exists because a general one is unsafe
+here — swapping in a vendor's catalogue must not quietly reintroduce
+potassium and phosphorus a dialysis patient cannot clear (§3ac, §3an). A kit
+substitution is a clinical change, not a shopping one, and needs the same
+avoid/favour guidance the planner already consults.
+
+## 3. Enhanced UI, generated from an AI prompt
+
+Let the model compose the surface rather than shipping a fixed screen per task.
+
+**What exists:** the provider router (`alafia_chat` / `alafia_infer`), the tool
+loop in `services/ai_conversation.py`, and `TOOL_SPECS` / `TOOL_LABELS`.
+
+⚠️ **The hard rule this collides with is §0 and §3am: a model handed a record
+invents plausible rows.** The tool loop exists *because* of that — asked which
+food drove today's sugar, a model on the old prose path named a food from the
+previous day and reported **15.0 g, a number in no row of the record**. A
+generated UI must render values the tools RETURNED, never values the model
+composed, and the provenance has to survive into the rendered component. A
+chart with a fabricated axis is worse than no chart.
+
+**Also:** every generated string still has to reach the catalogs (§3aw) or the
+feature ships English-only by construction, which is the gap
+`test_every_language_carries_every_source_key` now fails the build on.
+
+## 4. Voice enhancement
+
+**What exists:** `ML/src/alafia_model/adapters/whisper_adapter.py` and
+`IOS/ALAFIA/Core/SpeechRecognizer.swift`.
+
+⚠️ **Do not expand this before closing the privacy hole §3al already names.**
+`whisper_adapter._post` uploads the recording to `api.openai.com` **with no
+guard at all** — `scrub_payload` redacts a message only when its `content` is
+a string, so audio bypasses it entirely, and a local server is used only when
+`WHISPER_BASE_URL` is set, which production does not set. **A patient saying
+their own name is on that file.** Redaction is a text instrument; whether a
+recording may reach a third party at all is a product decision, not something
+`scrub_pii` can make safe. Any voice work widens this surface, so it is the
+first thing to settle, not the last.
+
+## 5. Full-feature telemedicine consult
+
+**What exists:** `models/telehealth.py`, `schemas/telehealth.py`,
+`api/telehealth.py`, `api/ws_telehealth.py` — so the data model and the socket
+are already there.
+
+**Constraints:** §3e — finding a clinician is deliberately not browsing a
+directory (a complete identifier resolves anyone; a partial name resolves only
+a shared contact), and a consult feature must not become the directory that
+rule exists to prevent. `is_user_entitled` already gates the sockets, which
+were once open to unpaid accounts with a valid token.
+
+## 6. Physician subscription
+
+**What exists:** `models/subscription.py`, `models/physicians.py`,
+`services/subscription_service.py`, `SubscriptionRail.md`.
+
+**Constraints:** Stripe is the ONLY web rail — PayPal was advertised and
+unbuyable for weeks and was withdrawn 2026-08-23 (§3ah), and
+`CheckoutRequest.provider` is now `Literal["stripe"]` so an unsupported rail is
+refused at the boundary. A physician tier needs its own entitlement question:
+`_ENTITLING_STATUSES` currently includes CANCELED-with-a-future-period-end, and
+whatever a physician's lapse should mean has to be decided rather than
+inherited.
+
+## 7. Paid telemedicine consult
+
+**The question to settle first is not technical.** §3au: Apple and Google
+require *digital* subscriptions to go through their IAP, which is why the
+mobile price is $14 against web's $12 — the differential IS the commission. A
+real-time consult with a human clinician is plausibly a *physical-world
+service*, which store policy treats differently and which may be billed
+directly. Getting that wrong means either a rejected build or a needless 30%.
+
+**Then:** a consult is a one-off charge, and every billing path here so far has
+been a recurring subscription. §3ah's lesson applies directly —
+`client_reference_id` does not survive a declined card, so a one-off must stamp
+its own identifier on the object that survives failure, or a paid consult with
+no attributable user is the next `user_id NULL` audit row.
+
+## 8. Global food and medicine recall
+
+**What exists:** `api/fda_recalls.py` and `IOS/ALAFIA/Views/FDARecalls/` — and
+it is **US-only today**, measured: it queries `api.fda.gov/food/enforcement.json`
+and `api.fda.gov/drug/enforcement.json`, and parses coverage against a
+hardcoded `_US_STATES` table. "Global" is precisely the part that does not
+exist.
+
+**Verify the authority before building** (§3ad, and the RxNorm/SNOMED/LOINC
+probe that saved `_ROUTES` from deletion): every regulator publishes
+differently — EU RASFF, UK FSA, Health Canada, Nigeria's NAFDAC — with
+different formats, licences and update cadences, and some with no machine
+-readable feed at all. Measure coverage per source before promising the word
+"global". ⚠️ And note the NLM precedent: **the RxNav Drug Interaction API was
+retired on ~2 Jan 2024 with no replacement.** A feed that exists today is not a
+feed that will exist; whatever is built needs to notice when a source goes
+quiet rather than silently reporting no recalls, which is §3aa's *an error is
+not an empty state* on a safety surface.
+
