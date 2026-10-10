@@ -376,3 +376,99 @@ feed that will exist; whatever is built needs to notice when a source goes
 quiet rather than silently reporting no recalls, which is §3aa's *an error is
 not an empty state* on a safety surface.
 
+## 9-13. Recipes
+
+Added 2026-10-10. ⚠️ **Two of these five are already built** — measured before
+writing, because documenting shipped work as "future" is the drift this canon
+exists to stop.
+
+### 9. Recipe analyzer — LARGELY EXISTS
+
+`POST /nutrition/recipe-analyze` (`api/nutrition.py:988`) parses a recipe,
+prices its ingredient list through the believability-guarded estimator, and
+returns `RecipeAnalyzeResponse`. Covered by `tests/test_recipe_ingest.py`.
+
+**What is NOT there** is analysis against THIS patient: a recipe is priced for
+nutrients but never checked against their conditions. The machinery for that
+exists and is unused here — `food_safety.build_guidance`, the
+`condition_nutrition_facts` avoid/favour store (§3an), the declared allergies
+with their RxNorm-resolved aliases (§3az), and now the cited per-condition
+quotas in `condition_nutrient_quotas` (§3bd). A recipe analyzer that cannot
+say "this has 980 mg of potassium and your limit is 2,200" is a calculator,
+not an advisor.
+
+### 10. Recipe from URL — EXISTS
+
+`services/recipe_ingest.py`. It reads **schema.org/Recipe JSON-LD only** — no
+HTML scraping heuristics, deliberately — with an SSRF guard
+(`_assert_public_http`, pinned by `test_ssrf_guard_blocks_private`), and when
+the page publishes its own nutrition it converts that per-serving figure to
+per-100 g and records it in `learned_food_nutrients` with `source="recipe"`,
+so later *descriptions* of the same dish price correctly.
+
+**Its real limit, already pinned by a test:** a page with no JSON-LD yields
+nothing (`test_parse_non_recipe_page`). Most blogs and many restaurant pages
+are that. Widening it means either a second extraction path or accepting the
+gap — and §3ab's lesson applies if a parser is added: measure what it ADDS as
+well as what it recovers, because a recall-only metric scored boilerplate as a
+lab result for five dates.
+
+### 11. Recipe from video — NOT BUILT
+
+**Anchors:** `alafia_infer("vision", …)` with `OLLAMA_VISION_MODEL=llava`
+(**not** moondream — it is a grounding model and answers the food schema with
+bounding boxes, so every photo fails, §3a), and `whisper_adapter.py` for
+narration.
+
+⚠️ **Two privacy facts have to be settled first, and §3al already states
+both.** Images are NOT redacted — `scrub_payload` returns a dict untouched, so
+`VisionCapability.infer` never passes through it — and audio has **no guard at
+all**: `whisper_adapter._post` uploads to `api.openai.com`, with a local server
+used only when `WHISPER_BASE_URL` is set, which production does not set. A
+kitchen video carries faces, a home, and a voice. Redaction is a text
+instrument; whether this may reach a third party at all is a product decision.
+
+**And the cost shape is different from a photo:** a video is many frames. Which
+frames are read, and whether anything is retained, needs the §3a consent answer
+(`allow_collective_insights`, default false, absent row = no consent).
+
+### 12. Recipe recall — ⚠️ NEEDS A DEFINITION BEFORE IT CAN BE BUILT
+
+Two readings, and they are different features:
+
+1. **Recall a recipe the patient used before** — retrieval over their own
+   history. Today `nutrition_logs.recipe_url` holds the link, so the data is
+   there and nothing surfaces it.
+2. **A recipe is recalled because an INGREDIENT is** — the safety reading,
+   which joins straight onto item 8. If an ingredient appears in a recall feed,
+   every stored recipe containing it should raise a notification.
+
+Reading 2 is a safety feature and would use `services/active_response.py`,
+which already turns a new row into a notification and already states that
+nothing retroactive fires. Reading 1 is a convenience. **Confirm which is
+meant** — building the wrong one is a wasted cycle, and building 2 without
+saying so would put a clinical alert behind a convenience label.
+
+### 13. Five or more recipes in one meal
+
+**The concrete gap is measured:** `NutritionLog.recipe_url` is a single
+nullable column (`models/nutrition.py:90`), and the request schemas carry one
+`recipe_url` each. A meal already holds `components: list[MealComponentResult]`
+with `aggregate_nutrients`, so the *component* side is plural already; the
+*recipe* side is not.
+
+⚠️ **This collides with §3c head on.** Multi-item meals MUST go through
+`estimate_meal_nutrients()`, never `estimate_nutrients()`: the single-food path
+merges matches by SUMMING per-100 g densities, which for a list yields
+**1978 kcal/100 g — above pure fat** — which the plausibility band then
+rejects, sending the request to the slow AI fallback. Nesting five recipes
+multiplies the component count and points straight at that path.
+
+⚠️ **And §3am's writer bug is the one that actually reaches the patient:**
+`estimate_meal_nutrients` had ALREADY judged a 3,892 kcal / 394 g-fat meal
+`believable = False`, and `nutrient_enrichment.py` stored it anyway because it
+never read the flag. Five recipes is five chances to produce an impossible
+aggregate. Whatever is built must honour `believable`/`warnings`, and the
+per-recipe provenance has to survive into the aggregate — otherwise an
+implausible total cannot be traced to which recipe caused it.
+
