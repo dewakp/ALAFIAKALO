@@ -3,6 +3,8 @@
 
 package com.alafia.android.views.nutrition
 
+import com.alafia.android.LocaleDecimal
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -966,7 +968,7 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                             try {
                                                 val payload = visionEdits
                                                     .filter { it.first.isNotBlank() }
-                                                    .map { VisionFeedbackItem(it.first.trim(), it.second.toDoubleOrNull()) }
+                                                    .map { VisionFeedbackItem(it.first.trim(), LocaleDecimal.parse(it.second)) }
                                                 val res = ApiClient.getApiService()
                                                     .submitVisionFeedback(VisionFeedbackRequest(sid, payload))
                                                 teachState = when (res.correctionKind) {
@@ -1190,8 +1192,8 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                     notes = notes.ifBlank { null },
                                     startTime = startTime.ifBlank { null },
                                     endTime = endTime.ifBlank { null },
-                                    preMealWeightKg = preMealWeight.toFloatOrNull(),
-                                    postMealWeightKg = postMealWeight.toFloatOrNull(),
+                                    preMealWeightKg = LocaleDecimal.parseFloat(preMealWeight),
+                                    postMealWeightKg = LocaleDecimal.parseFloat(postMealWeight),
                                     recipeUrl = recipeUrl.ifBlank { null },
                                     // Keep the photo with the meal it produced.
                                     foodImageUris = visionImageUrl,

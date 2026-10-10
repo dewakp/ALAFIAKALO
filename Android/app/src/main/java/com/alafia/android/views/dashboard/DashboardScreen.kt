@@ -2,6 +2,8 @@
 // All rights reserved. ALAFIA — proprietary and confidential.
 
 package com.alafia.android.views.dashboard
+
+import com.alafia.android.LocaleDecimal
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
@@ -296,11 +298,11 @@ private fun ProfileEditDialog(user: UserSchema?, onDismiss: () -> Unit, onSave: 
                 onSave(UserUpdateRequest(
                     full_name = fullName.ifBlank { null },
                     blood_type = bloodType.ifBlank { null },
-                    height_cm = heightCm.toDoubleOrNull(),
-                    current_weight_kg = weightKg.toDoubleOrNull(),
+                    height_cm = LocaleDecimal.parse(heightCm),
+                    current_weight_kg = LocaleDecimal.parse(weightKg),
                     // Say which unit the numbers above are in; the backend converts.
-                    height_unit = heightCm.toDoubleOrNull()?.let { heightUnit },
-                    weight_unit = weightKg.toDoubleOrNull()?.let { weightUnit },
+                    height_unit = LocaleDecimal.parse(heightCm)?.let { heightUnit },
+                    weight_unit = LocaleDecimal.parse(weightKg)?.let { weightUnit },
                     allergies = allergies.ifBlank { null },
                     activity_level = activityLevel.ifBlank { null }
                 ))

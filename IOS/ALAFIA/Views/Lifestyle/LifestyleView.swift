@@ -202,7 +202,7 @@ struct AddLifestyleSheet: View {
         saving = true
         let entry = LifestyleEntryCreate(
             entryDate: .todayISO(),
-            weightKg: Double(weightKg),
+            weightKg: LocaleDecimal.parse(weightKg),
             bloodPressureSystolic: Int(systolic),
             bloodPressureDiastolic: Int(diastolic),
             restingHeartRate: Int(heartRate),

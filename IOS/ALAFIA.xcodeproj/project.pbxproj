@@ -118,6 +118,7 @@
 		EE0000000000000000000109 /* EliminationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000009 /* EliminationModels.swift */; };
 		EE000000000000000000010A /* PromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000A /* PromptView.swift */; };
 		EE000000000000000000010B /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000B /* SpeechRecognizer.swift */; };
+		BB0000000000000000000607 /* LocaleDecimal.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000606 /* LocaleDecimal.swift */; };
 		EE20000000000000000000C2 /* MedicalSourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C1 /* MedicalSourcesView.swift */; };
 		EE20000000000000000000C4 /* AIAndDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C3 /* AIAndDataView.swift */; };
 		EE20000000000000000000C6 /* AIConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C5 /* AIConsentView.swift */; };
@@ -251,6 +252,7 @@
 		EE0000000000000000000009 /* EliminationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EliminationModels.swift; sourceTree = "<group>"; };
 		EE000000000000000000000A /* PromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptView.swift; sourceTree = "<group>"; };
 		EE000000000000000000000B /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
+		BB0000000000000000000606 /* LocaleDecimal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocaleDecimal.swift; sourceTree = "<group>"; };
 		EE0000000000000000000011 /* EntitlementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementManager.swift; sourceTree = "<group>"; };
 		EE20000000000000000000C1 /* MedicalSourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalSourcesView.swift; sourceTree = "<group>"; };
 		EE20000000000000000000C3 /* AIAndDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAndDataView.swift; sourceTree = "<group>"; };
@@ -351,6 +353,7 @@
 				4A00000000000000000000E5 /* Sync */,
 				EE00000000000000000000D5 /* Notifications */,
 				EE000000000000000000000B /* SpeechRecognizer.swift */,
+				BB0000000000000000000606 /* LocaleDecimal.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -1057,6 +1060,7 @@
 				EE0000000000000000000109 /* EliminationModels.swift in Sources */,
 				EE000000000000000000010A /* PromptView.swift in Sources */,
 				EE000000000000000000010B /* SpeechRecognizer.swift in Sources */,
+				BB0000000000000000000607 /* LocaleDecimal.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

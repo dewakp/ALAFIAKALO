@@ -4,6 +4,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.alafia.android.views.hd
+
+import com.alafia.android.LocaleDecimal
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
@@ -842,7 +844,7 @@ private fun HDFormSheet(editing: TherapySession?, onDismiss: () -> Unit, onSaved
                                 "dialysis_access_type" to accessType,
                             )
                             fun s(k: String, v: String) { if (v.isNotEmpty()) body[k] = v }
-                            fun d(k: String, v: String) { v.toDoubleOrNull()?.let { body[k] = it } }
+                            fun d(k: String, v: String) { LocaleDecimal.parse(v)?.let { body[k] = it } }
                             fun i(k: String, v: String) { v.toIntOrNull()?.let { body[k] = it } }
                             fun b(k: String, v: Boolean) { body[k] = v }
 

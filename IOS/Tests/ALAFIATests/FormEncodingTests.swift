@@ -77,3 +77,80 @@ final class FormEncodingTests: XCTestCase {
         XCTAssertEqual(parsed["password"], password)
     }
 }
+
+/// A dose typed as `0,5` must not be lost on the way to the server.
+///
+/// The same shape as the truncated password above, on a clinical field:
+/// `Double("0,5")` is **nil**, so `MedicationsView.saveDose`'s
+/// `guard let value = Double(amount)` simply refused to save, and the weights
+/// in `HemodialysisView` went to nil and were dropped without a word. Five of
+/// ALAFIA's eleven languages use a non-dot decimal separator — fr, de, es, pt
+/// use `,` and ar uses `٫` (U+066B) — and the keyboard follows the DEVICE
+/// locale, so it applies however the patient set the in-app language.
+///
+/// These assertions are duplicated almost verbatim in Android's
+/// `LocaleDecimalTest`. That is deliberate: §3av's rule is that when the two
+/// mobile clients disagree the matching pair is the specification, and a
+/// parser is only useful here if both read a typed number the same way.
+final class LocaleDecimalTests: XCTestCase {
+
+    func testCommaDecimalIsTheNumberThePatientMeant() {
+        XCTAssertEqual(LocaleDecimal.parse("0,5"), 0.5)
+        XCTAssertEqual(LocaleDecimal.parse("72,5"), 72.5)
+        XCTAssertEqual(LocaleDecimal.parse("37,2"), 37.2)
+    }
+
+    func testTheDoseThatUsedToBeRefused() {
+        XCTAssertNil(Double("0,5"), "the old behaviour — a half tablet would not save")
+        XCTAssertEqual(LocaleDecimal.parse("0,5"), 0.5)
+    }
+
+    func testArabicSeparatorAndDigits() {
+        XCTAssertEqual(LocaleDecimal.parse("0\u{066B}5"), 0.5)
+        XCTAssertEqual(LocaleDecimal.parse("\u{0661}\u{0662}\u{0663}\u{066B}\u{0665}"), 123.5)
+    }
+
+    func testDotDecimalIsUnchanged() {
+        XCTAssertEqual(LocaleDecimal.parse("0.5"), 0.5)
+        XCTAssertEqual(LocaleDecimal.parse("1000"), 1000)
+        XCTAssertEqual(LocaleDecimal.parse("  0.5  "), 0.5)
+        XCTAssertEqual(LocaleDecimal.parse("-1.5"), -1.5)
+    }
+
+    func testLoneCommaIsDecimalBecauseTheKeypadHasNoGroupingKey() {
+        XCTAssertEqual(LocaleDecimal.parse("1,234"), 1.234)
+    }
+
+    func testRepeatedSeparatorsAreGrouping() {
+        XCTAssertEqual(LocaleDecimal.parse("1.234.567"), 1234567)
+        XCTAssertEqual(LocaleDecimal.parse("1,234,567"), 1234567)
+    }
+
+    func testBothSeparatorsMeansTheLastOneIsTheDecimalPoint() {
+        XCTAssertEqual(LocaleDecimal.parse("1.234,56"), 1234.56)   // de
+        XCTAssertEqual(LocaleDecimal.parse("1,234.56"), 1234.56)   // en
+    }
+
+    func testFrenchGroupingSpaceIsNotPartOfTheNumber() {
+        XCTAssertEqual(LocaleDecimal.parse("1\u{00A0}234,5"), 1234.5)
+        XCTAssertEqual(LocaleDecimal.parse("1 234,5"), 1234.5)
+    }
+
+    func testNonsenseIsRefusedRatherThanHalfParsed() {
+        XCTAssertNil(LocaleDecimal.parse("1.2.3"))    // not groups of three
+        XCTAssertNil(LocaleDecimal.parse("abc"))
+        XCTAssertNil(LocaleDecimal.parse("12kg"))
+        XCTAssertNil(LocaleDecimal.parse(""))
+        XCTAssertNil(LocaleDecimal.parse("   "))
+        XCTAssertNil(LocaleDecimal.parse(nil))
+        XCTAssertNil(LocaleDecimal.parse("."))
+        XCTAssertNil(LocaleDecimal.parse(","))
+    }
+
+    func testNormalisationIsPinnedSeparatelyFromParsing() {
+        XCTAssertEqual(LocaleDecimal.normalise("0,5"), "0.5")
+        XCTAssertEqual(LocaleDecimal.normalise("1.234,56"), "1234.56")
+        XCTAssertEqual(LocaleDecimal.normalise("1,234,567"), "1234567")
+        XCTAssertNil(LocaleDecimal.normalise("1.2.3"))
+    }
+}

@@ -264,10 +264,10 @@ struct AddLabSheet: View {
             testDate: .todayISO(),
             testName: testName,
             loincCode: loincCode.isEmpty ? nil : loincCode,
-            value: Double(value) ?? 0,
+            value: LocaleDecimal.parse(value) ?? 0,
             unit: unit.isEmpty ? nil : unit,
-            referenceRangeLow: Double(refMin),
-            referenceRangeHigh: Double(refMax),
+            referenceRangeLow: LocaleDecimal.parse(refMin),
+            referenceRangeHigh: LocaleDecimal.parse(refMax),
             notes: notes.isEmpty ? nil : notes
         )
         Task {

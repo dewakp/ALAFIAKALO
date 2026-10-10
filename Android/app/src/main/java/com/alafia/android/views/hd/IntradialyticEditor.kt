@@ -3,6 +3,8 @@
 
 package com.alafia.android.views.hd
 
+import com.alafia.android.LocaleDecimal
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -121,7 +123,7 @@ data class EditableReading(
         if (sessionId != null) body["session_id"] = sessionId
         normalisedTime?.let { body["reading_time"] = it }
         fun i(k: String, v: String) { v.trim().toIntOrNull()?.let { body[k] = it } }
-        fun d(k: String, v: String) { v.trim().toDoubleOrNull()?.let { body[k] = it } }
+        fun d(k: String, v: String) { LocaleDecimal.parse(v.trim())?.let { body[k] = it } }
         fun s(k: String, v: String) { if (v.isNotBlank()) body[k] = v.trim() }
         i("systolic_bp", systolicBp); i("diastolic_bp", diastolicBp); i("pulse", pulse)
         d("mean_arterial_pressure", meanArterialPressure)

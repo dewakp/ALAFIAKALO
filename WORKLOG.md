@@ -2985,3 +2985,57 @@ on two overlapping seam bands, 0 failures; web unit **279 / 43 files** (was
 273 / 42), e2e **48** against a bundle confirmed to contain the new string;
 catalogs **44**. iOS and Android untouched — no mobile file changed.
 
+### A dose typed as `0,5` was recorded as `0.0`
+
+Asked to keep going on translation. The catalogs turned out to be complete —
+0 missing and 0 stale on all three platforms, iOS permission prompts 9/9 x 11
+languages, the hard-coded-text guards green, Android lint 0 errors. So the
+remaining work was not translation at all.
+
+It came out of the 296 lint warnings, by checking them instead of dismissing
+them. `DefaultLocale x54` is display-only — all inside `Text(...)`, no
+formatted string reaches a payload, and `Locale.setDefault` appears only in a
+comment saying it is deliberately avoided — so changing those would have been
+churn (§3ap). The real bug was the mirror image, which lint does not flag:
+INPUT parsing.
+
+Measured in a throwaway JUnit probe rather than recalled:
+
+    "0,5".toDoubleOrNull()        -> null
+    "0,5".toDoubleOrNull() ?: 0.0 -> 0.0        <- the dose field
+    separators: fr [,] de [,] es [,] pt [,] ar [٫]  sw [.] en [.]
+
+Five of eleven languages, and the keyboard follows the DEVICE locale. Android
+25 sites, iOS 50, web none — its numeric entry is all `type="number"`, which
+the browser normalises, though its own parsing is the worst of the three
+(`parseFloat("0,5")` is 0, silently).
+
+Detail in CLAUDE.md §3bd. `tests/test_typed_decimal_parsing.py` was proven to
+FAIL against the pre-change tree on 3 of its 4 tests before being kept.
+
+**Four mistakes of mine, all caught by measuring:**
+
+- I corrupted `project.pbxproj` and Xcode reported the project as damaged. The
+  cause: I wrote `{{isa = ...}}` — `str.format` escaping — and then used
+  `.replace()`, so literal double braces went into the file. HEAD's copy passed
+  `plutil -lint` and mine did not, which is what identified it as mine.
+- **My restore trap destroyed three files' work.** Proving the guard fails
+  against old code, I reverted three files with `trap restore EXIT` AND a
+  manual `git checkout` + `stash pop`; the trap then fired on exit and undid
+  the recovery. MedicationsScreen.kt (5 rewrites), HemodialysisView.swift (19)
+  and the pbxproj registration all went back to HEAD. Caught only because the
+  verification printed 0 where it should have printed 5, 19 and 4. A safety net
+  that fires after the recovery is not a safety net.
+- The pbxproj guard failed against a CORRECT registration: I asserted
+  `count("LocaleDecimal.swift") == 4` from a `grep -c`, which counts LINES,
+  while the string occurs 6 times — the PBXBuildFile and PBXFileReference lines
+  each name the file twice. Now asserted structurally, per entry.
+- My first iOS scan found 18 sites and missed 32, because it only matched
+  `@State`; the hemodialysis and PD screens hold their fields as `@Published`
+  in a view model. Widening it found all 50.
+
+Verified: Android clean build + **74 tests**, 0 failures, APK 30,107,870 bytes;
+iOS **62 tests**, 0 failures, `BUILD SUCCEEDED`, and the new Core file proven
+to be IN the build by forcing a recompile (§3bb); web **279 / 43**; the new
+guard **4 passed**.
+

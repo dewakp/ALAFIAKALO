@@ -4330,6 +4330,70 @@ Non-obvious points, each already the cause of a bug:
 
 ---
 
+## 3bd. A number the patient TYPED needs their decimal separator
+
+`"0,5".toDoubleOrNull()` is **null** and `Double("0,5")` is **nil** — both are
+locale-independent and accept only a dot. Measured, with the separator each of
+ALAFIA's eleven languages actually uses:
+
+    "0.5"  -> 0.5        fr [,]  de [,]  es [,]  pt [,]  ar [٫ U+066B]
+    "0,5"  -> null       sw [.]  en [.]  zh [.]  yo [.]  ig [.]  ha [.]
+
+**Five of eleven languages do not use a dot**, and the keyboard follows the
+DEVICE locale — so this applied however the patient set the in-app language.
+The damage was silent and landed hardest on the most dangerous field there is:
+
+    Android   dose_amount = amount.toDoubleOrNull() ?: 0.0    ->  0.0 mg
+    iOS       guard let value = Double(amount)                ->  would not save
+
+A patient in France, Germany, Spain, Portugal or Egypt typing a half tablet as
+`0,5` recorded **zero milligrams**. Weights, temperatures, dialysate volumes,
+blood-flow rates and sleep hours went to null and were dropped without a word.
+
+- **`LocaleDecimal` on both clients, kept deliberately identical** —
+  `com.alafia.android.LocaleDecimal` (25 call sites) and
+  `IOS/ALAFIA/Core/LocaleDecimal.swift` (50). §3av: when one platform handles a
+  typed number and the other does not, the matching pair is the specification.
+- **A lone comma is a DECIMAL separator, not grouping.** These fields are
+  `KeyboardType.Decimal` / a decimal keypad, which offer no grouping key — the
+  patient *cannot* type a thousands separator, so `1,234` is 1.234. Refusing it
+  as "ambiguous" (the first design) would have rejected the only thing that
+  keyboard can produce. Repeated separators (`1.234.567`) ARE grouping, but only
+  when every group after the first is three digits; `1.2.3` is refused rather
+  than quietly becoming 123.
+- **Arabic needs more than a comma swap**: `٫` U+066B is its decimal separator
+  and `٬` U+066C its thousands one, and an Arabic keypad can produce
+  Arabic-Indic digits `٠`-`٩`. Assuming "the comma case" would have fixed four
+  languages of five.
+- **NOT `NumberFormat`/`NumberFormatter` keyed to the current locale.** §3aw
+  records that the app's language is an `attachBaseContext` / SwiftUI `\.locale`
+  choice and deliberately NOT `Locale.setDefault`, so the process locale is not
+  the app's: a formatter keyed to either would disagree with the keyboard for
+  anyone whose phone and app languages differ. This reads what was typed.
+- ⚠️ **One Android reader keeps a bare parse on purpose.**
+  `TherapyReportScreen.kt`'s `is String -> v.toDoubleOrNull()` converts a value
+  that came back from the API. Accepting a comma there would mean accepting a
+  malformed server payload.
+- **Web was never exposed**, and for a reason worth knowing: all numeric entry
+  is `<input type="number">` (160 of them, zero `type="text"` numeric fields),
+  and the browser normalises `.value` to a dot per the HTML spec. Its parsing is
+  the WORST of the three — `parseFloat("0,5")` is **`0`**, silently, not NaN —
+  so the input type is the only thing standing between it and the same bug.
+
+`tests/test_typed_decimal_parsing.py` fails the build on a bare
+`.toDoubleOrNull()` in an Android view or a `Double(<String>)` in an iOS one,
+and on the iOS parser going missing from `project.pbxproj`. It skips where the
+mobile trees are not mounted and says so (§3bb), so run it from a repo-root
+mount, not inside `backend-test`.
+
+> **Found by pulling on a lint warning rather than dismissing it.** Android
+> lint's `DefaultLocale ×54` turned out to be display-only — every one inside
+> `Text(...)`, no formatted string reaching a payload — so changing them would
+> have been churn. The bug was the mirror image: not output formatting, but
+> input parsing, which lint does not flag at all.
+
+---
+
 ## 6. Reporting
 
 State what was actually run and what wasn't. "Builds" ≠ "works". If a suite

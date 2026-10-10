@@ -2,6 +2,8 @@
 // All rights reserved. ALAFIA — proprietary and confidential.
 
 package com.alafia.android.views.mood
+
+import com.alafia.android.LocaleDecimal
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
@@ -349,7 +351,7 @@ fun AddMoodDialog(onDismiss: () -> Unit, onSave: () -> Unit) {
                                     stressLevel = stressLevel,
                                     anxietyLevel = anxietyLevel,
                                     sleepQuality = sleepQuality,
-                                    sleepHours = sleepHours.toDoubleOrNull(),
+                                    sleepHours = LocaleDecimal.parse(sleepHours),
                                     emotions = emotions.ifBlank { null },
                                     triggers = triggers.ifBlank { null },
                                     copingStrategies = copingStrategies.ifBlank { null },

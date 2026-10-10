@@ -2,6 +2,8 @@
 // All rights reserved. ALAFIA — proprietary and confidential.
 
 package com.alafia.android.views.profile
+
+import com.alafia.android.LocaleDecimal
 import com.alafia.android.util.ErrorUtil
 
 import androidx.compose.foundation.layout.*
@@ -380,9 +382,9 @@ fun ProfileScreen(navController: NavHostController) {
                             insurance_id = insuranceId.ifBlank { null },
                             insurance_provider = insuranceProvider.ifBlank { null },
                             insurance_country = insuranceCountry.ifBlank { null },
-                            height_cm = heightCm.toDoubleOrNull(),
-                            current_weight_kg = currentWeightKg.toDoubleOrNull(),
-                            target_weight_kg = targetWeightKg.toDoubleOrNull(),
+                            height_cm = LocaleDecimal.parse(heightCm),
+                            current_weight_kg = LocaleDecimal.parse(currentWeightKg),
+                            target_weight_kg = LocaleDecimal.parse(targetWeightKg),
                             country = country.ifBlank { null },
                             timezone = tz.ifBlank { null },
                             preferred_language = preferredLanguage.ifBlank { null },

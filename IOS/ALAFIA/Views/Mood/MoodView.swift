@@ -282,7 +282,7 @@ struct AddMoodSheet: View {
             stressLevel: Int(stressLevel),
             anxietyLevel: Int(anxietyLevel),
             sleepQuality: Int(sleepQuality),
-            sleepHours: Double(sleepHours),
+            sleepHours: LocaleDecimal.parse(sleepHours),
             emotions: emotions.isEmpty ? nil : emotions,
             triggers: triggers.isEmpty ? nil : triggers,
             copingStrategies: copingStrategies.isEmpty ? nil : copingStrategies,

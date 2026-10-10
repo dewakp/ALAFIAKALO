@@ -431,29 +431,29 @@ final class HemodialysisViewModel {
         if !facilityName.isEmpty { body.facilityName = facilityName }
         if !attendingPhysician.isEmpty { body.attendingPhysician = attendingPhysician }
         if !rnReviewer.isEmpty { body.rnReviewer = rnReviewer }
-        body.dryWeightKg = Double(dryWeightKg)
-        body.previousPostWeightKg = Double(previousPostWeightKg)
-        body.preDialysisWeightKg = Double(preDialysisWeightKg)
-        body.postDialysisWeightKg = Double(postDialysisWeightKg)
-        body.fluidRemovedMl = Double(fluidRemovedMl)
-        body.fluidToRemoveKg = Double(fluidToRemoveKg)
-        body.bloodFlowRate = Double(bloodFlowRate)
-        body.dialysateFlowRate = Double(dialysateFlowRate)
+        body.dryWeightKg = LocaleDecimal.parse(dryWeightKg)
+        body.previousPostWeightKg = LocaleDecimal.parse(previousPostWeightKg)
+        body.preDialysisWeightKg = LocaleDecimal.parse(preDialysisWeightKg)
+        body.postDialysisWeightKg = LocaleDecimal.parse(postDialysisWeightKg)
+        body.fluidRemovedMl = LocaleDecimal.parse(fluidRemovedMl)
+        body.fluidToRemoveKg = LocaleDecimal.parse(fluidToRemoveKg)
+        body.bloodFlowRate = LocaleDecimal.parse(bloodFlowRate)
+        body.dialysateFlowRate = LocaleDecimal.parse(dialysateFlowRate)
         body.durationMinutes = Int(durationMinutes)
         let day = df.string(from: scheduledDate).prefix(10)
         body.actualStartTime = Self.iso(day: String(day), clock: startClock)
         body.actualEndTime = Self.iso(day: String(day), clock: endClock)
-        body.dialysateVolumeLiters = Double(dialysateVolumeLiters)
-        body.dialysateLactateMeq = Double(dialysateLactateMeq)
-        body.dialysatePotassiumMeq = Double(dialysatePotassiumMeq)
+        body.dialysateVolumeLiters = LocaleDecimal.parse(dialysateVolumeLiters)
+        body.dialysateLactateMeq = LocaleDecimal.parse(dialysateLactateMeq)
+        body.dialysatePotassiumMeq = LocaleDecimal.parse(dialysatePotassiumMeq)
         body.sakNumber = Int(sakNumber)
         if !needleGauge.isEmpty { body.needleGauge = needleGauge }
-        body.needleLength = Double(needleLength)
+        body.needleLength = LocaleDecimal.parse(needleLength)
         body.buttonholeTechnique = buttonholeTechnique
         body.preSystolicBp = Int(preSystolicBp); body.preDiastolicBp = Int(preDiastolicBp)
-        body.preHeartRate = Int(preHeartRate); body.preTemperature = Double(preTemperature)
+        body.preHeartRate = Int(preHeartRate); body.preTemperature = LocaleDecimal.parse(preTemperature)
         body.postSystolicBp = Int(postSystolicBp); body.postDiastolicBp = Int(postDiastolicBp)
-        body.postHeartRate = Int(postHeartRate); body.postTemperature = Double(postTemperature)
+        body.postHeartRate = Int(postHeartRate); body.postTemperature = LocaleDecimal.parse(postTemperature)
         body.oxygenSaturation = Int(oxygenSaturation)
         body.preStandingSystolicBp = Int(preStandingSystolicBp)
         body.preStandingDiastolicBp = Int(preStandingDiastolicBp)
@@ -466,16 +466,16 @@ final class HemodialysisViewModel {
         body.preDigestionProblems = preDigestionProblems
         body.preHospErSinceLast = preHospErSinceLast
         body.accessThrillBruit = accessThrillBruit
-        body.salineAddedMl = Double(salineAddedMl)
+        body.salineAddedMl = LocaleDecimal.parse(salineAddedMl)
         body.machineTotalTimeMinutes = MachineTime.parse(machineTotalTimeMinutes)
         body.accessRednessDrainage = accessRednessDrainage
         if !cartridgeLot.isEmpty { body.cartridgeLot = cartridgeLot }
         if !sakLot.isEmpty { body.sakLot = sakLot }
         if !cyclerNumber.isEmpty { body.cyclerNumber = cyclerNumber }
         if !warmerSerial.isEmpty { body.warmerSerial = warmerSerial }
-        body.totalDialysateLiters = Double(totalDialysateLiters)
-        body.totalUfLiters = Double(totalUfLiters)
-        body.totalBloodVolumeProcessed = Double(totalBloodVolumeProcessed)
+        body.totalDialysateLiters = LocaleDecimal.parse(totalDialysateLiters)
+        body.totalUfLiters = LocaleDecimal.parse(totalUfLiters)
+        body.totalBloodVolumeProcessed = LocaleDecimal.parse(totalBloodVolumeProcessed)
         if !dialyzerAppearance.isEmpty { body.dialyzerAppearance = dialyzerAppearance }
         if !postBleedingStopTime.isEmpty { body.postBleedingStopTime = postBleedingStopTime }
         body.postBruising = postBruising; body.postInfiltration = postInfiltration
@@ -486,7 +486,7 @@ final class HemodialysisViewModel {
         body.airFilterCleaned = airFilterCleaned
         body.wasteLineBleachDisinfection = wasteLineBleachDisinfection
         body.alarmTestCompleted = alarmTestCompleted
-        body.sakUseNumber = Int(sakUseNumber); body.totalChloramineLevel = Double(totalChloramineLevel)
+        body.sakUseNumber = Int(sakUseNumber); body.totalChloramineLevel = LocaleDecimal.parse(totalChloramineLevel)
         if !labTubesDrawn.isEmpty { body.labTubesDrawn = labTubesDrawn }
         if !sideEffects.isEmpty { body.sideEffects = sideEffects }
         if !drugsAdministered.isEmpty { body.drugsAdministered = drugsAdministered }

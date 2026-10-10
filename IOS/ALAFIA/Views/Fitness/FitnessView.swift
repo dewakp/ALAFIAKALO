@@ -184,7 +184,7 @@ struct AddFitnessSheet: View {
             logDate: .todayISO(),
             activityType: activityType,
             durationMinutes: Int(durationMinutes),
-            caloriesBurned: Double(caloriesBurned),
+            caloriesBurned: LocaleDecimal.parse(caloriesBurned),
             notes: notes.isEmpty ? nil : notes
         )
         Task {

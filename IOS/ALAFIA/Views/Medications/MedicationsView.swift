@@ -915,7 +915,7 @@ struct MedicationDoseSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Log") { save() }
-                        .disabled(Double(amount) == nil || resolvedName.isEmpty || saving)
+                        .disabled(LocaleDecimal.parse(amount) == nil || resolvedName.isEmpty || saving)
                         .fontWeight(.semibold)
                 }
             }
@@ -939,7 +939,7 @@ struct MedicationDoseSheet: View {
     }
 
     private func save(acknowledgeUnusual: Bool = false) {
-        guard let value = Double(amount), !resolvedName.isEmpty else { return }
+        guard let value = LocaleDecimal.parse(amount), !resolvedName.isEmpty else { return }
         saving = true
         errorText = nil
         if !acknowledgeUnusual { refusal = nil }
@@ -960,7 +960,7 @@ struct MedicationDoseSheet: View {
             preSystolicBp: Int(systolic),
             preDiastolicBp: Int(diastolic),
             preHeartRate: Int(heartRate),
-            preTemperatureC: Double(tempF).map(TempConvert.toCelsius),
+            preTemperatureC: LocaleDecimal.parse(tempF).map(TempConvert.toCelsius),
             notes: notes.isEmpty ? nil : notes,
             acknowledgeUnusual: acknowledgeUnusual
         )

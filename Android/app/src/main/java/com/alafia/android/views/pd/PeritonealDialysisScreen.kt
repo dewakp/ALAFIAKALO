@@ -4,6 +4,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.alafia.android.views.pd
+
+import com.alafia.android.LocaleDecimal
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
@@ -468,13 +470,13 @@ private fun AddPDSessionSheet(onDismiss: () -> Unit, onSave: (PDSessionCreate) -
                     val request = PDSessionCreate(
                         sessionDate = sessionDate.ifBlank { "2026-02-16" },
                         modality = modality,
-                        preWeightKg = preWeight.toDoubleOrNull(),
-                        postWeightKg = postWeight.toDoubleOrNull(),
+                        preWeightKg = LocaleDecimal.parse(preWeight),
+                        postWeightKg = LocaleDecimal.parse(postWeight),
                         preBpSystolic = preBpSys.toIntOrNull(),
                         preBpDiastolic = preBpDia.toIntOrNull(),
                         postBpSystolic = postBpSys.toIntOrNull(),
                         postBpDiastolic = postBpDia.toIntOrNull(),
-                        temperatureC = temperature.toDoubleOrNull(),
+                        temperatureC = LocaleDecimal.parse(temperature),
                         exitSiteStatus = exitSiteStatus,
                         notes = notes.ifBlank { null },
                         exchanges = exchanges.map { it.toPDExchange() }.ifEmpty { null }

@@ -2,6 +2,8 @@
 // All rights reserved. ALAFIA — proprietary and confidential.
 
 package com.alafia.android.views.medications
+
+import com.alafia.android.LocaleDecimal
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import com.alafia.android.util.ErrorUtil
@@ -624,14 +626,14 @@ private fun LogDoseDialog(
     fun buildDoseRequest(acknowledgeUnusual: Boolean) = MedicationDoseLogRequest(
         medication_name = resolvedName,
         log_date = defaultDate.format(DateTimeFormatter.ISO_DATE),
-        dose_amount = amount.toDoubleOrNull() ?: 0.0,
+        dose_amount = LocaleDecimal.parse(amount) ?: 0.0,
         dose_unit = unit.ifBlank { "unit" },
         log_time = time.ifBlank { null },
         medication_id = medication?.id,
         pre_systolic_bp = systolic.toIntOrNull(),
         pre_diastolic_bp = diastolic.toIntOrNull(),
         pre_heart_rate = heartRate.toIntOrNull(),
-        pre_temperature_c = tempF.toDoubleOrNull()?.let { (it - 32) * 5 / 9 },
+        pre_temperature_c = LocaleDecimal.parse(tempF)?.let { (it - 32) * 5 / 9 },
         notes = notes.ifBlank { null },
         acknowledge_unusual = acknowledgeUnusual,
     )
@@ -652,7 +654,7 @@ private fun LogDoseDialog(
                             onClearRefusal()
                         },
                         onAcknowledge = {
-                            val value = amount.toDoubleOrNull()
+                            val value = LocaleDecimal.parse(amount)
                             if (value != null) onSave(buildDoseRequest(true))
                         },
                     )
@@ -703,10 +705,10 @@ private fun LogDoseDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (amount.toDoubleOrNull() == null) return@TextButton
+                    if (LocaleDecimal.parse(amount) == null) return@TextButton
                     onSave(buildDoseRequest(false))
                 },
-                enabled = amount.toDoubleOrNull() != null && unit.isNotBlank() && resolvedName.isNotBlank()
+                enabled = LocaleDecimal.parse(amount) != null && unit.isNotBlank() && resolvedName.isNotBlank()
             ) { Text(stringResource(R.string.log)) }
         },
         dismissButton = {

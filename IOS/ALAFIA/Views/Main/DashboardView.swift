@@ -519,9 +519,9 @@ struct ProfileSheet: View {
                 payload.insuranceId = insuranceId.isEmpty ? nil : insuranceId
                 payload.insuranceProvider = insuranceProvider.isEmpty ? nil : insuranceProvider
                 payload.insuranceCountry = insuranceCountry.isEmpty ? nil : insuranceCountry
-                payload.heightCm = Double(heightCm)
-                payload.currentWeightKg = Double(currentWeightKg)
-                payload.targetWeightKg = Double(targetWeightKg)
+                payload.heightCm = LocaleDecimal.parse(heightCm)
+                payload.currentWeightKg = LocaleDecimal.parse(currentWeightKg)
+                payload.targetWeightKg = LocaleDecimal.parse(targetWeightKg)
                 // Name the unit the numbers are in; the backend converts.
                 payload.heightUnit = payload.heightCm == nil ? nil : heightUnit
                 payload.weightUnit =

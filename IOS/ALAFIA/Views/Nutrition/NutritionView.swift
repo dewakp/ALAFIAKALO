@@ -1332,16 +1332,16 @@ struct AddNutritionSheet: View {
             foodName: foodName,
             servingSize: servingSize.isEmpty ? nil : servingSize,
             fdcId: fdcId,
-            calories: fdcId != nil ? nil : Double(calories),
-            proteinG: fdcId != nil ? nil : Double(proteinG),
-            carbsG: fdcId != nil ? nil : Double(carbsG),
-            fatG: fdcId != nil ? nil : Double(fatG),
+            calories: fdcId != nil ? nil : LocaleDecimal.parse(calories),
+            proteinG: fdcId != nil ? nil : LocaleDecimal.parse(proteinG),
+            carbsG: fdcId != nil ? nil : LocaleDecimal.parse(carbsG),
+            fatG: fdcId != nil ? nil : LocaleDecimal.parse(fatG),
             notes: notes.isEmpty ? nil : notes
         )
         log.startTime = startTime.isEmpty ? nil : startTime
         log.endTime = endTime.isEmpty ? nil : endTime
-        log.preMealWeightKg = Double(preMealWeightKg)
-        log.postMealWeightKg = Double(postMealWeightKg)
+        log.preMealWeightKg = LocaleDecimal.parse(preMealWeightKg)
+        log.postMealWeightKg = LocaleDecimal.parse(postMealWeightKg)
         log.recipeUrl = recipeUrl.isEmpty ? nil : recipeUrl
         log.foodImageUris = visionImageUrl
         // …and a thumbnail ON the row, so the list shows the meal without

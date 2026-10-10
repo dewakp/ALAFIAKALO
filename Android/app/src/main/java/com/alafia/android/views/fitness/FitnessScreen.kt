@@ -4,6 +4,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.alafia.android.views.fitness
+
+import com.alafia.android.LocaleDecimal
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
@@ -261,8 +263,8 @@ private fun AddFitnessDialog(onDismiss: () -> Unit, onSave: (FitnessLogRequest) 
                     log_date = LocalDate.now().format(DateTimeFormatter.ISO_DATE),
                     activity_type = activityType,
                     duration_minutes = duration.toIntOrNull(),
-                    distance_km = distance.toFloatOrNull(),
-                    calories_burned = calories.toFloatOrNull(),
+                    distance_km = LocaleDecimal.parseFloat(distance),
+                    calories_burned = LocaleDecimal.parseFloat(calories),
                     heart_rate_avg = heartRate.toIntOrNull(),
                     heart_rate_max = null,
                     steps = steps.toIntOrNull(),

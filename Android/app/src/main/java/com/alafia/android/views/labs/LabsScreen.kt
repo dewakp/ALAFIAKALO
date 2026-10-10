@@ -4,6 +4,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.alafia.android.views.labs
+
+import com.alafia.android.LocaleDecimal
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
@@ -269,7 +271,7 @@ private fun AddLabResultDialog(onDismiss: () -> Unit, onSave: (LabResultRequest)
                         onSave(LabResultRequest(
                             test_date = LocalDate.now().format(DateTimeFormatter.ISO_DATE),
                             test_name = testName,
-                            value = value.toFloatOrNull() ?: 0f,
+                            value = LocaleDecimal.parseFloat(value) ?: 0f,
                             unit = unit,
                             reference_range_low = null,
                             reference_range_high = null,

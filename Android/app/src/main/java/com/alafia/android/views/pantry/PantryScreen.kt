@@ -4,6 +4,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.alafia.android.views.pantry
+
+import com.alafia.android.LocaleDecimal
 import com.alafia.android.util.ErrorUtil
 
 import android.widget.Toast
@@ -377,7 +379,7 @@ private fun AddPantryItemDialog(onDismiss: () -> Unit, onSave: (PantryItemCreate
                         onSave(PantryItemCreate(
                             name = name,
                             category = category,
-                            quantity = quantity.toFloatOrNull() ?: 1f,
+                            quantity = LocaleDecimal.parseFloat(quantity) ?: 1f,
                             unit = unit,
                             location = location,
                             expirationDate = expirationDate.ifBlank { null },
