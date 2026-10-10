@@ -3039,3 +3039,39 @@ iOS **62 tests**, 0 failures, `BUILD SUCCEEDED`, and the new Core file proven
 to be IN the build by forcing a recompile (§3bb); web **279 / 43**; the new
 guard **4 passed**.
 
+### "Today" belongs to the patient — the rest of the call sites
+
+§3am fixed the AI and tool path and left a note: "about a dozen mean 'today'
+exactly and carry the identical defect". Re-measured rather than trusted: 55
+sites across 23 files, not the 51/22 recorded.
+
+Classified one by one (§3ap) instead of rewritten in bulk — 11 already take a
+`today` parameter, 24 are window cutoffs, and of the remainder only six were
+genuinely patient-facing. Two of those are clinical writes: `score_date` on the
+stored `WellnessScoreModel` row, and `log_date` on a `SymptomLog`. The others
+are the daily recommendations' date and day 1 of the meal and exercise plans —
+on UTC, a plan generated on a Tuesday evening in the Americas started on
+Wednesday, so the patient's first day was gone before they read it.
+
+**The guard caught an error in my own classification.** I had called every
+`today - timedelta(days=N)` harmless. True of a 30-day cutoff; false of the
+one-day window in the recommendations endpoint, where shifting it turns "today
+and yesterday" into "today only" — a whole day dropped from the check that
+decides whether to tell a patient they have not logged anything. Two more sites
+changed as a result.
+
+Left alone deliberately, with reasons recorded so nobody redoes the analysis:
+age arithmetic (a day moves an age by at most a day, and only on a birthday),
+the FDA query range, and `patient_board._stale_note` — a clinician-facing
+string where "whose today?" is a genuine question and reaching it would mean
+threading a date through every summary function in that service.
+
+`tests/test_patient_today_endpoints.py` was proven to FAIL against the
+pre-change tree — 10 of its 12 tests — before being kept.
+
+**And I did not repeat yesterday's mistake.** Proving that required reverting
+three files to HEAD; last time a `trap restore EXIT` fired after my manual
+recovery and destroyed the work. This time: explicit copies to the scratchpad,
+no trap, and a per-file verification afterwards (3 / 3 / 2 `patient_today`
+references, 3 / 3 / 2 headers) before running anything else.
+

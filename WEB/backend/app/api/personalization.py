@@ -10,6 +10,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 
+from app.core.patient_time import TIMEZONE_HEADER, patient_today
 from app.services.prompt_language import LANGUAGE_HEADER, patient_language
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -280,17 +281,19 @@ def _split_symptoms(text: str) -> list[str]:
     return [raw[:200]]
 
 
-def _record_symptom_analysis(db, user, description: str, analysis: dict) -> dict:
+def _record_symptom_analysis(db, user, description: str, analysis: dict,
+                             today) -> dict:
     """Write the symptoms to symptom tracking and keep the analysis.
 
     Returns the ids the response needs so the patient can save this answer.
-    """
-    from datetime import date as _date
 
+    `today` is passed IN rather than taken from the clock here: these rows are
+    clinical data, and the containers run UTC, so `date.today()` filed a
+    symptom described on Tuesday evening in the Americas under Wednesday
+    (§3am). A helper handed no date cannot know the patient's one.
+    """
     from app.models.ai_memory import AIInteraction
     from app.models.conditions import SymptomLog
-
-    today = _date.today()
     names = _split_symptoms(description)
     for name in names:
         db.add(SymptomLog(
@@ -327,6 +330,7 @@ async def analyze_symptoms(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_sync_db),
     client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
+    client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
 ):
     """
     Analyze symptoms with user's health context.
@@ -360,7 +364,8 @@ async def analyze_symptoms(
         recorded = {}
         try:
             recorded = _record_symptom_analysis(
-                db, current_user, request.symptoms_description, analysis)
+                db, current_user, request.symptoms_description, analysis,
+                patient_today(client_timezone, getattr(current_user, "timezone", None)))
         except Exception:  # noqa: BLE001
             logger.warning("could not record symptom analysis", exc_info=True)
             db.rollback()

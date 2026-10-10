@@ -6,7 +6,9 @@ import logging
 
 import json
 from datetime import date, datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
+
+from app.core.patient_time import TIMEZONE_HEADER, patient_today
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.database import get_db
@@ -557,10 +559,16 @@ async def get_hebcs_omega_score(
 async def get_wellness_score(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
 ):
     """Calculate and return current wellness score (0-100)."""
     data = await _compute_wellness_score(current_user.id, db)
-    today = date.today()
+    # `today` becomes this row's `score_date` and the key the upsert dedupes
+    # on. The containers run UTC, so from early evening in the Americas
+    # `date.today()` is already TOMORROW for the patient — the score for their
+    # Tuesday was filed under Wednesday, and opening the page on the real
+    # Wednesday then found a row and did not recompute (§3am).
+    today = patient_today(client_timezone, getattr(current_user, "timezone", None))
 
     # `confidence`, `components_unknown` and `detail` are computed per request
     # and have no column — the stored row is the history series. Splitting on
@@ -710,9 +718,19 @@ async def get_health_trends(
 async def get_daily_recommendations(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
 ):
     """Personalized daily recommendations across 7 categories."""
-    today_str = str(date.today())
+    # "Today's" recommendations have to be the patient's today: on the server's
+    # UTC date these would advise an evening in the Americas about tomorrow.
+    #
+    # The windows below are computed from the SAME date, and for the one-day
+    # one that is not a nicety. A 30-day cutoff shrugs off a day's shift; a
+    # window of `today - 1` becomes "today only" instead of "today and
+    # yesterday" — a whole day of the patient's record dropped out of a check
+    # that decides whether to tell them they have not logged anything.
+    today = patient_today(client_timezone, getattr(current_user, "timezone", None))
+    today_str = str(today)
     recs: dict[str, list[RecommendationItem]] = {
         "nutrition": [], "fitness": [], "sleep": [], "medication": [],
         "mood": [], "hydration": [], "general": [],
@@ -722,7 +740,7 @@ async def get_daily_recommendations(
     result = await db.execute(
         select(func.count(NutritionLog.id)).where(
             NutritionLog.user_id == current_user.id,
-            NutritionLog.log_date >= (date.today() - timedelta(days=1)),
+            NutritionLog.log_date >= (today - timedelta(days=1)),
         )
     )
     yesterday_meals = result.scalar() or 0
@@ -742,7 +760,7 @@ async def get_daily_recommendations(
     result = await db.execute(
         select(func.count(FitnessLog.id)).where(
             FitnessLog.user_id == current_user.id,
-            FitnessLog.log_date >= (date.today() - timedelta(days=7)),
+            FitnessLog.log_date >= (today - timedelta(days=7)),
         )
     )
     weekly_workouts = result.scalar() or 0

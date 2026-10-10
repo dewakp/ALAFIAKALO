@@ -24,6 +24,7 @@ from app.models.pantry import PantryItem
 # alafia_model_service imports nothing from app, so there is no cycle.
 from app.services.alafia_model_service import ALAFIAModelError
 from app.services import food_safety
+from app.core.patient_time import TIMEZONE_HEADER, patient_today
 from app.services.prompt_language import LANGUAGE_HEADER, patient_language, structured_instruction
 from app.schemas.wellness import (
     MealPlanRequest, MealPlanResponse, MealItem, DayMeals,
@@ -947,6 +948,7 @@ async def generate_meal_plan(
     request: MealPlanRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
 ):
     """Generate a personalized 7-day meal plan via AI with deterministic template fallback."""
     ctx = await _gather_planner_context(current_user.id, db)
@@ -984,7 +986,10 @@ async def generate_meal_plan(
         if d.breakfast and d.lunch and d.dinner
     ) / max(len(weekly_plan), 1)
 
-    start = date.today()
+    # Day 1 of the plan is the patient's today, not the server's. On UTC a plan
+    # generated on a Tuesday evening in the Americas started on Wednesday, so
+    # the patient's first day was already gone when they read it.
+    start = patient_today(client_timezone, getattr(current_user, "timezone", None))
     end = start + timedelta(days=request.days - 1)
     plan_name = f"{'AI-Personalized' if used_ai else pattern.replace('_', ' ').title()} Meal Plan"
 
@@ -1063,6 +1068,7 @@ async def generate_exercise_plan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
+    client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
 ):
     """Generate a personalized 7-day exercise plan via AI with deterministic template fallback."""
     ctx = await _gather_planner_context(current_user.id, db)
@@ -1086,7 +1092,8 @@ async def generate_exercise_plan(
         weekly_plan = EXERCISE_TEMPLATES.get(level, EXERCISE_TEMPLATES["moderate"])
 
     total_mins = sum(d.total_minutes or 0 for d in weekly_plan)
-    start = date.today()
+    # Day 1 is the patient's today, as for the meal plan above.
+    start = patient_today(client_timezone, getattr(current_user, "timezone", None))
     end = start + timedelta(days=request.days - 1)
     plan_name = f"{'AI-Personalized' if used_ai else level.title()} Exercise Plan"
 

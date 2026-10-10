@@ -1359,10 +1359,35 @@ rows (§3aa, in a new disguise).
 > framing must agree on what day it is; correcting one of them just moves the
 > contradiction somewhere harder to see.
 
-⚠️ **Still outstanding.** 51 `date.today()` call sites across 22 files. The AI
-and tool path is fixed. 23 of the rest are window cutoffs where a day's shift is
-harmless, but about a dozen mean "today" exactly — `wellness.py`, `insights.py`,
-`mental_health.py`, `api/users.py` — and carry the identical defect.
+✅ **The patient-facing ones are fixed (2026-10-10).** Re-measured: 55
+`date.today()` sites across 23 files — 11 already take a `today` parameter, 24
+are window cutoffs, and the rest were classified one by one rather than
+rewritten in bulk (§3ap). Six carried the real defect and now take
+`patient_today(client_timezone, user.timezone)`:
+
+    wellness.py         score_date on the STORED WellnessScoreModel row
+    wellness.py         the daily recommendations' own date, and its windows
+    planners.py         day 1 of a meal plan
+    planners.py         day 1 of an exercise plan
+    personalization.py  log_date on a SymptomLog — a clinical write
+
+> ⚠️ **A short window IS day-sensitive, and that nearly got missed.** I had
+> classified every `today - timedelta(days=N)` as harmless, which is true of a
+> 30-day cutoff and false of a one-day one: `log_date >= today - 1` shifted by
+> UTC becomes "today only" instead of "today and yesterday", dropping a whole
+> day out of the check that decides whether to tell a patient they have logged
+> nothing. The guard caught it, not the classification.
+
+**Deliberately NOT changed**, so the next reader does not redo the analysis:
+age arithmetic in `age_policy`/`users`/`ai` (a day moves an age by at most a
+day, only on a birthday); `fda_recalls` (the end of an FDA query range, not a
+patient's day); and `patient_board._stale_note`, which renders "Logged today"
+vs "last logged 1 day ago" for a CLINICIAN reading about a patient — whose
+"today" that should be is a real question, and reaching it means threading a
+date through every summary function in that service.
+
+`tests/test_patient_today_endpoints.py` fails the build if one of those six
+endpoints drops the timezone header or reads the server's clock again.
 
 ### Every nutrient is reachable, and the question decides which
 
