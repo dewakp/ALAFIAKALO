@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Header, Query
 
 from app.core.patient_time import TIMEZONE_HEADER, patient_today
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import func, or_, select
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
@@ -194,6 +194,26 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
         "age_days": (today - vitals.log_date).days if vitals else None,
     }
 
+    # When was the pressure last measured BY ANY MEANS?
+    #
+    # Without this the staleness note said "the most recent was 15 days ago
+    # (2026-09-26)" — true of `vitals_logs` and FALSE of the patient's blood
+    # pressure, which was measured on 2026-10-09. The same card then said "35
+    # of 37 treatments dropped below 90 mmHg systolic during dialysis", so it
+    # contradicted itself two sentences apart. §3aa: reading one source and
+    # speaking as though it were the whole is the fault this canon exists for,
+    # and here it reached a sentence telling a patient their pressure had not
+    # been checked in a fortnight.
+    _last_treatment_bp = (await db.execute(
+        select(func.max(func.date(TherapySession.scheduled_date)))
+        .where(TherapySession.user_id == user_id)
+        .where(or_(TherapySession.pre_systolic_bp.isnot(None),
+                   TherapySession.post_systolic_bp.isnot(None),
+                   TherapySession.id.in_(
+                       select(IntradialyticReading.session_id)
+                       .where(IntradialyticReading.systolic_bp.isnot(None)))))
+    )).scalar()
+
     # ── Medication adherence vs the prescription ─────────────────────────
     # Through clinical_sources, never the models directly: prescribed and taken
     # live in different tables and reading one alone is how a physician saw two
@@ -338,6 +358,7 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
             sample_size=len(self_recorded["systolic"]),
             latest_on=self_recorded["latest_on"],
             age_days=self_recorded["age_days"],
+            pressure_measured_on=_last_treatment_bp,
             post_dialysis_systolics=post_systolics,
             on_dialysis=on_dialysis,
         ),

@@ -1882,3 +1882,33 @@ because one unusually low reading is no longer standing in for the window.
   number chosen here — §3an forbids inventing a second recency window.
 - **The 30-day window is kept, not widened.** It holds two readings on this
   record, which is precisely why the count now travels with the figure.
+
+---
+
+## 20. "how could the most recent day be 9/26?" — it could not — FIXED 2026-10-11
+
+The staleness note I added in item 19 said *"the most recent was 15 days ago
+(2026-09-26), so this may not be current"*. Measured:
+
+    self-recorded (vitals_logs)        2026-09-26
+    treatment pre/post                 2026-10-09
+    during treatment (intradialytic)   2026-10-09
+
+**The patient's blood pressure was last measured two days before the card
+claimed a fortnight's silence** — and the SAME card said "35 of 37 treatments
+(95%) dropped below 90 mmHg systolic during dialysis". It contradicted itself
+two sentences apart.
+
+§3aa in a single sentence: I scoped the measurement to `vitals_logs` correctly
+and then WORDED it as though it covered blood pressure. Fixed by passing the
+most recent pressure from ANY source into the component:
+
+> Self-recorded systolic 86 mmHg (across 2 self-recorded readings) is below the
+> 90-120 mmHg reference band — last self-recorded 15 days ago (2026-09-26),
+> though pressure was measured at treatment on 2026-10-09.
+
+> **Three rounds, three versions of one sentence, each wrong differently** —
+> "Resting systolic 81" (one stale row, called resting), then "most recent was
+> 15 days ago" (true of one table, false of the patient). The facts under it
+> were right every time; the PROSE was what kept being wrong, which is the
+> argument for item 21 below.

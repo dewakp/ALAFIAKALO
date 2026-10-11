@@ -289,6 +289,7 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
                      sample_size: int = 0,
                      latest_on=None,
                      age_days: int | None = None,
+                     pressure_measured_on=None,
                      post_dialysis_systolics: list[float] | None = None,
                      on_dialysis: bool = False) -> Component:
     """Blood pressure, pulse, and what the treatment itself did to them.
@@ -372,8 +373,24 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
             if age_days is not None and age_days > FRESH_DAYS:
                 # §3an: a value nobody has checked recently is reported as
                 # stale, never offered as the current one.
-                note += (f" — but the most recent was {age_days} days ago"
-                         f" ({latest_on}), so this may not be current")
+                #
+                # ⚠️ But the staleness is about SELF-RECORDING, not about the
+                # patient's blood pressure, and saying "the most recent was 15
+                # days ago" asserted the second. Measured: their pressure was
+                # last taken 2026-10-09, at treatment — two days before the
+                # card claimed a fortnight's silence, and the SAME card then
+                # said "35 of 37 treatments dropped below 90 during dialysis".
+                # It contradicted itself two sentences apart, which is §3aa in
+                # a sentence: one source read and spoken of as the whole.
+                note += (f" — last self-recorded {age_days} days ago "
+                         f"({latest_on})")
+                if (pressure_measured_on is not None
+                        and latest_on is not None
+                        and pressure_measured_on > latest_on):
+                    note += (f", though pressure was measured at treatment on "
+                             f"{pressure_measured_on}")
+                else:
+                    note += ", so this may not be current"
             elif latest_on is not None:
                 note += f" (most recent {latest_on})"
             critical.append(note + ".")
