@@ -3326,3 +3326,49 @@ The other aggregators are still partial — `chart_dashboard.py` (the TRENDS
 surface) reads 2 of 9 domains, and **hospitalisation reaches no aggregate at
 all**. Full per-aggregator scan and the recommendation that they consume
 `collect_signals` rather than grow their own queries: TASKS 15.
+
+### 2026-10-11 (later still) — "recent tasked not reflected in dev"
+
+**Instruction:** *"recent tasked not reflected in dev."*
+
+**Work done:** `/wellness/trends` rebuilt onto `collect_signals`; direction
+claims allow-listed; `get_health_trends` added to the §3am timezone guard; the
+3-week-old `frontend` container rebuilt. 69 passed across the affected guard
+suites, ruff clean.
+
+| surface | before | after |
+|---|---|---|
+| `/insights/*` | already fixed | 120 signals, 8 domains |
+| `/wellness/trends` | **3 streams**, Weight 9 points | **110 streams, 8 domains** |
+| `:8080` bundle | baked 3 weeks ago | rebuilt, `BC8Coh0T` → `DwRP4Lv3` |
+
+### What it cost to learn
+
+**Three of the four suspects were innocent, and I nearly fixed the wrong one.**
+The dev backend was not stale — it bind-mounts `/app` with `--reload` and the
+logs show `WatchFiles detected changes in 'app/services/health_signals.py'.
+Reloading...` on every edit. I had a plausible theory (§4: macOS bind mounts
+deliver no inotify events, which is why vite needs `VITE_POLL=1`) and it was
+simply wrong. Reading the logs took less time than the theory did.
+
+**`/insights/*` was already correct on dev** — verified over real HTTP with a
+dev token, 200 and 120 signals. So the complaint was true and my previous
+report was also true; they were about different endpoints.
+
+**The real cause was my own scope.** OPEN_ITEMS 14 fixed the SUBSTRATE and I
+said so, queuing the rest as TASKS 15 — but `/wellness/trends` hand-wrote four
+queries of its own and never read the substrate, so the trends page was
+untouched. "I fixed the aggregator layer" and "the trends page changed" were not
+the same statement, and only one of them was true.
+
+**The fix asserted three clinical claims it could not support, on first run.**
+Defaulting to "rising is improving" produced **"Carbs improving"**, **"Fat
+improving"** and **"Bowel movements improving"** against the real record. §3az
+again: a judgement with no authority behind it is worse than none, because it
+reads as one. Direction is now allow-listed per signal and claimed on 4 of 110;
+nutrients claim nothing until they are judged against `compute_goals`, which is
+a target rather than a slope.
+
+**A stale container is proven by the served asset, never the build log.** §4,
+and the rebuild was confirmed by the bundle hash changing rather than by
+`docker compose ps` saying `Up`.

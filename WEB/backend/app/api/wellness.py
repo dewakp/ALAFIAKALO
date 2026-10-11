@@ -28,6 +28,11 @@ from app.schemas.wellness import (
     DailyRecommendationsResponse, RecommendationItem, HealthImprovementsResponse,
     HEBCSScoreResponse, WhatIfRequest, WhatIfResponse, WhatIfPathwayDelta,
 )
+from app.services.health_signals import (
+    collect_signals,
+    signal_domain,
+    signal_label,
+)
 from app.services.hebcs_engine import compute_hebcs
 
 logger = logging.getLogger(__name__)
@@ -628,90 +633,135 @@ async def get_health_trends(
     days: int = Query(90, ge=7, le=365),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
 ):
-    """Multi-dimensional health trend analysis across data streams."""
-    cutoff = date.today() - timedelta(days=days)
-    streams = []
+    """Multi-dimensional health trend analysis across EVERY logged domain.
 
-    # Nutrition trend (daily calories)
-    result = await db.execute(
-        select(
-            NutritionLog.log_date.label("d"),
-            func.sum(NutritionLog.calories),
-        )
-        .where(NutritionLog.user_id == current_user.id, NutritionLog.log_date >= cutoff)
-        .group_by(NutritionLog.log_date).order_by(NutritionLog.log_date)
-    )
-    nutr_data = result.all()
-    if nutr_data:
-        vals = [r[1] or 0 for r in nutr_data]
-        trend = "improving" if len(vals) > 1 and vals[-1] <= vals[0] else "stable"
+    Streams come from `health_signals.collect_signals`, the same substrate the
+    insight surface uses, rather than from one hand-written query per stream.
+
+    Until 2026-10-11 this endpoint enumerated four: daily calories, mood,
+    weekly workouts and weight-from-`vitals_logs`. Measured on the reference
+    record, that produced *"Analyzing 3 health data streams over the past 90
+    days"* with **Weight (kg) = 9 points** — on a patient holding 2,035
+    dialysis sessions, 2,436 bowel movements, 1,029 dose logs and 5,221 recorded
+    weights. Operator, 2026-10-11: *"All data must be visible and used by the
+    various anaytytes, aggregators and AI queries. This cannot be compromised."*
+
+    One substrate means a domain can only be forgotten in ONE place, and
+    `tests/test_signals_cover_every_domain.py` already fails the build when a
+    named domain has no signal. A new signal appears here with no change to
+    this endpoint — which is the opposite of the four queries it replaces.
+    """
+    today = patient_today(client_timezone, getattr(current_user, "timezone", None))
+    cutoff = today - timedelta(days=days)
+
+    signals = await collect_signals(db, current_user.id, cutoff, today)
+
+    # Most-populated first: a reader scrolling a trend page wants the series
+    # that actually has shape, and the lab domain alone contributes ~84 keys.
+    ordered = sorted(signals.items(), key=lambda kv: -len(kv[1]))
+
+    streams: list[TrendStream] = []
+    for key, series in ordered:
+        if len(series) < 2:
+            # A single point is not a trend. It is still visible through
+            # /insights/signals, which reports sample counts rather than shape.
+            continue
+        points = [TrendDataPoint(date=str(d), value=float(v))
+                  for d, v in sorted(series.items())]
         streams.append(TrendStream(
-            name="Daily Calories",
-            data=[TrendDataPoint(date=str(r[0])[:10], value=float(r[1] or 0)) for r in nutr_data],
-            trend=trend,
+            name=signal_label(key),
+            data=points,
+            trend=_direction(key, [p.value for p in points]),
         ))
 
-    # Mood trend
-    result = await db.execute(
-        select(MoodEntry.entry_date, MoodEntry.mood_score)
-        .where(MoodEntry.user_id == current_user.id, MoodEntry.entry_date >= cutoff)
-        .order_by(MoodEntry.entry_date)
+    domains = {signal_domain(k) for k, v in ordered if len(v) >= 2}
+    summary = (
+        f"Analyzing {len(streams)} health data streams across "
+        f"{len(domains)} domains ({', '.join(sorted(domains))}) over the past "
+        f"{days} days."
+    ) if streams else (
+        f"No stream has two or more days of data in the past {days} days."
     )
-    mood_data = result.all()
-    if mood_data:
-        vals = [r[1] for r in mood_data if r[1]]
-        trend = "improving" if len(vals) > 1 and vals[-1] > vals[0] else "stable"
-        streams.append(TrendStream(
-            name="Mood Score",
-            data=[TrendDataPoint(date=str(r[0])[:10], value=float(r[1])) for r in mood_data if r[1]],
-            trend=trend,
-        ))
 
-    # Fitness trend (weekly workout count)
-    result = await db.execute(
-        select(
-            func.date_trunc("week", FitnessLog.log_date).label("w"),
-            func.count(FitnessLog.id),
-        )
-        .where(FitnessLog.user_id == current_user.id, FitnessLog.log_date >= cutoff)
-        .group_by("w").order_by("w")
-    )
-    fit_data = result.all()
-    if fit_data:
-        streams.append(TrendStream(
-            name="Weekly Workouts",
-            data=[TrendDataPoint(date=str(r[0])[:10], value=float(r[1])) for r in fit_data],
-            trend="stable",
-        ))
-
-    # Lab trends (weight if available)
-    result = await db.execute(
-        select(VitalsLog.log_date, VitalsLog.weight_kg)
-        .where(VitalsLog.user_id == current_user.id, VitalsLog.weight_kg.isnot(None), VitalsLog.log_date >= cutoff)
-        .order_by(VitalsLog.log_date)
-    )
-    weight_data = result.all()
-    if weight_data:
-        streams.append(TrendStream(
-            name="Weight (kg)",
-            data=[TrendDataPoint(date=str(r[0])[:10], value=float(r[1])) for r in weight_data],
-            trend="stable",
-        ))
-
-    # Summary
-    total_streams = len(streams)
-    summary = f"Analyzing {total_streams} health data streams over the past {days} days."
-    correlations = []
-    suggestions = []
+    correlations: list[str] = []
+    suggestions = ["Continue monitoring your health metrics regularly."]
     if any(s.trend == "improving" for s in streams):
         correlations.append("Positive trends detected in multiple health areas.")
-    suggestions.append("Continue monitoring your health metrics regularly.")
 
     return HealthTrendResponse(
         overall_summary=summary, streams=streams,
         correlations=correlations, suggestions=suggestions,
     )
+
+
+#: Signals where the BETTER direction is clinically unambiguous, with `False`
+#: meaning lower is better. A direction is ALLOW-LISTED, never defaulted.
+#:
+#: The first version of this defaulted to "rising is improving" for anything
+#: unlisted, and the real record immediately produced **"Carbs improving"**,
+#: **"Fat improving"** and **"Bowel movements improving"** — three clinical
+#: claims nobody can support. More carbohydrate is not an improvement, and
+#: whether more bowel movements is better depends entirely on why.
+#:
+#: §3az is the precedent and it is exact: that surface's thresholds were
+#: population constants LOOSER than the patient's own limits — potassium 4,700
+#: against this patient's 2,200 — so the alert could not fire at any intake
+#: that endangered them. A judgement with no authority behind it is worse than
+#: none, because it reads as one.
+#:
+#: ⚠️ Nutrient directions are deliberately NOT here. Whether a patient's sodium
+#: should fall depends on `compute_goals`, which gives THIS patient 2,000 mg and
+#: a renal potassium cap of 2,200 — a target, not a slope. Judging a nutrient
+#: against its own last fortnight says nothing about whether it is safe. Wiring
+#: these to the quota is queued rather than guessed (TASKS 15).
+_BETTER_WHEN_RISING: dict[str, bool] = {
+    "mood.score": True,
+    "mood.energy": True,
+    "sleep.quality": True,
+    "sleep.hours": True,
+    "activity.duration_min": True,
+    "activity.steps": True,
+    "medication.doses": True,          # adherence
+    "mood.stress": False,
+    "social.work_stress": False,
+    "social.financial_stress": False,
+    "symptom.count": False,
+    "symptom.severity_max": False,
+    "sleep.awakenings": False,
+    "dialysis.readings_under_90": False,
+    "elimination.blood_episodes": False,
+    "elimination.vomiting": False,
+}
+
+
+def _direction(key: str, values: list[float]) -> str:
+    """"stable" is the answer whenever no direction can be justified.
+
+    Compares the first and last THIRD, not the first and last point: two
+    endpoints make a direction out of noise, and on a patient whose pressure
+    swings 40 mmHg inside one treatment whichever day happens to sit at each
+    end would decide the label.
+
+    A nadir is NOT judged this way either — §3am: it is read against a
+    threshold (below 90 systolic is intradialytic hypotension), not against
+    last fortnight. `dialysis.readings_under_90` carries that instead, where
+    fewer is unambiguously better.
+    """
+    better_when_rising = _BETTER_WHEN_RISING.get(key)
+    if better_when_rising is None or len(values) < 6:
+        return "stable"
+    third = max(len(values) // 3, 1)
+    head = sum(values[:third]) / third
+    tail = sum(values[-third:]) / third
+    if head == 0:
+        return "stable"
+    change = (tail - head) / abs(head)
+    if abs(change) < 0.05:          # under 5% is drift, not a trend
+        return "stable"
+    improving = (change > 0) == better_when_rising
+    return "improving" if improving else "declining"
 
 
 @router.get("/recommendations", response_model=DailyRecommendationsResponse)

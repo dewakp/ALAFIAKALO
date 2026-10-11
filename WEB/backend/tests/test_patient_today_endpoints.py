@@ -48,6 +48,11 @@ API = Path(__file__).resolve().parent.parent / "app" / "api"
 _MUST_BE_PATIENT_DATED = {
     "get_wellness_score": "wellness.py",
     "get_daily_recommendations": "wellness.py",
+    # Added 2026-10-11 when /wellness/trends moved onto `collect_signals`: its
+    # window is anchored on the patient's today, so on the server's UTC date an
+    # evening in the Americas would ask for a window ending tomorrow and lose
+    # the day just logged from the near end of every stream.
+    "get_health_trends": "wellness.py",
     "generate_meal_plan": "planners.py",
     "generate_exercise_plan": "planners.py",
     "analyze_symptoms": "personalization.py",

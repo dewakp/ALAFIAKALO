@@ -1608,3 +1608,54 @@ which this change inherits rather than introduces.
 **14c. `dialysis.post_diastolic` has a stored minimum of 5 mmHg.** `OPEN` — not
 introduced here; §3at records that implausible stored rows exist and that a
 response model states shape, never plausibility. Worth a repair pass.
+
+---
+
+## 15. The TRENDS surface showed 3 streams on a 2,035-session record — FIXED 2026-10-11
+
+Operator: *"recent tasked not reflected in dev."* Correct, and the diagnosis
+matters more than the fix because three of the four suspects were innocent.
+
+**Measured, in order:**
+
+- **The dev backend was NOT stale.** `WEB/backend` is bind-mounted to `/app`
+  with `--reload`, and the logs show `WatchFiles detected changes in
+  'app/services/health_signals.py'. Reloading...` on every edit. A plausible
+  theory — §4 records that macOS bind mounts deliver no inotify events, which
+  is why vite needs `VITE_POLL=1` — and it was wrong here. §0.
+- **`/insights/*` WAS already live on dev.** Over real HTTP with a dev token:
+  `200`, **120 signals**, domains `dialysis 12 · diet 9 · elimination 3 ·
+  lab 84 · medication 2 · mood 3 · symptom 2 · vital 5`.
+- **`/wellness/trends` was the stale surface, and not because of a container.**
+  It returned *"Analyzing 3 health data streams over the past 90 days"* —
+  Daily Calories 83 points, Mood 6, **Weight (kg) 9** — on a patient holding
+  2,035 dialysis sessions, 2,436 bowel movements, 1,029 dose logs and 5,221
+  recorded weights. OPEN_ITEMS 14 fixed the SUBSTRATE; this endpoint never read
+  it, because it hand-wrote one query per stream: calories, mood, weekly
+  workouts, weight-from-`vitals_logs`. Four, enumerated.
+- **The `frontend` container WAS 3 weeks old**, serving an nginx `dist/` baked
+  then — §4's documented trap. Rebuilt, and verified the way §4 requires: the
+  served asset went `index-BC8Coh0T.js` → `index-DwRP4Lv3.js`. It was not
+  hiding this work (no frontend file changed in the last 10 commits) but it was
+  genuinely stale.
+
+**Fixed:** `/wellness/trends` now builds its streams from
+`health_signals.collect_signals` — **110 streams across 8 domains**, including
+*Lowest systolic during treatment* (36 points), pre/post/dry weight, treatments,
+doses taken and bowel movements. A new signal appears with no change to the
+endpoint, which is the point.
+
+> ⚠️ **The first version asserted three clinical claims it could not support.**
+> Defaulting to "rising is improving" for anything unlisted, the real record
+> immediately produced **"Carbs improving"**, **"Fat improving"** and
+> **"Bowel movements improving"**. §3az is the precedent: that surface's
+> thresholds were population constants LOOSER than the patient's own limits, so
+> a judgement with no authority behind it is worse than none because it reads as
+> one. Direction is now ALLOW-LISTED per signal and claimed on **4 of 110**.
+
+**Nutrient directions are deliberately absent**, and that is the remaining gap:
+whether this patient's sodium should fall depends on `compute_goals` (2,000 mg
+for them, potassium capped at 2,200), which is a TARGET, not a slope. Judging a
+nutrient against its own last fortnight says nothing about whether it is safe.
+Wiring the nutrient streams to the quota is queued in TASKS 15 rather than
+guessed at here.

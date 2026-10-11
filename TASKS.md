@@ -640,7 +640,8 @@ Measured per aggregator, 2026-10-11 — domains read of the nine named:
 
 | aggregator | covered | missing |
 |---|---|---|
-| `api/wellness.py` (score, trends) | 7 | hospitalisation, conditions |
+| ~~`api/wellness.py` (trends)~~ | **9** | DONE 2026-10-11 — now consumes `collect_signals`: 3 streams → **110 across 8 domains** |
+| `api/wellness.py` (score) | 7 | hospitalisation, conditions |
 | `api/chart_dashboard.py` | **2** | nutrition, medication, eliminations, vitals, lifestyle, hospitalisation, conditions |
 | `services/diagnostics_engine.py` | 4 | flowsheets, nutrition, eliminations, lifestyle |
 | `services/ai_engine.py` | 4 | flowsheets, eliminations, labs, hospitalisation |
