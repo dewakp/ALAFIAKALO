@@ -188,6 +188,48 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
     cutoff_90 = today - timedelta(days=90)
     cutoff_365 = today - timedelta(days=365)
 
+    # ── How OFTEN a treatment runs the pressure down ─────────────────────
+    #
+    # Per SESSION, because the burden is the finding: on this record 30 of 38
+    # treatments in 90 days had a nadir below the floor (79%) and 14 below the
+    # critical bound (37%), while the dialysis score read 94 on attendance
+    # alone. Operator: "still measuring frequency of log".
+    #
+    # The nadir of a session is the lowest of its intradialytic readings AND
+    # its post-treatment pressure — §3am, the nadir is the finding and a mean
+    # hides it. Both thresholds come from the `Post-Dialysis Systolic BP` band
+    # (`opt_low` and `crit_low`), the same band `vitals_component` reads.
+    _post_band = bands.get("Post-Dialysis Systolic BP")
+    tolerance: dict = {
+        "sessions_with_pressure": 0, "below_floor": 0, "severely_below": 0,
+        "lowest_nadir": None,
+        "floor": _post_band[1] if _post_band else None,
+        "severe_floor": _post_band[0] if _post_band else None,
+    }
+    if _post_band:
+        _nadirs = (await db.execute(
+            select(
+                TherapySession.id,
+                func.least(
+                    func.min(IntradialyticReading.systolic_bp),
+                    func.min(TherapySession.post_systolic_bp),
+                ).label("nadir"),
+            )
+            .outerjoin(IntradialyticReading,
+                       IntradialyticReading.session_id == TherapySession.id)
+            .where(TherapySession.user_id == user_id,
+                   TherapySession.scheduled_date >= cutoff_90)
+            .group_by(TherapySession.id)
+        )).all()
+        _vals = [float(n) for _, n in _nadirs if n is not None]
+        if _vals:
+            tolerance["sessions_with_pressure"] = len(_vals)
+            tolerance["below_floor"] = sum(1 for v in _vals if v < _post_band[1])
+            tolerance["lowest_nadir"] = min(_vals)
+            if _post_band[0] is not None:
+                tolerance["severely_below"] = sum(
+                    1 for v in _vals if v < _post_band[0])
+
     # ── What the treatment did to the pressure ───────────────────────────
     post_systolics = [
         float(v) for v in (await db.execute(
@@ -269,6 +311,12 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
             baseline_per_week=baseline_per_week,
             latest_ktv=float(ktv_row) if ktv_row is not None else None,
             ktv_band=bands.get("KtV (Dialysis Adequacy)"),
+            sessions_with_pressure=tolerance["sessions_with_pressure"],
+            sessions_below_floor=tolerance["below_floor"],
+            sessions_severely_below=tolerance["severely_below"],
+            lowest_nadir=tolerance["lowest_nadir"],
+            hypotension_floor=tolerance["floor"],
+            severe_floor=tolerance["severe_floor"],
         ) if (sessions_365 or on_dialysis) else hs.Component(
             "dialysis", None, hs.DEFAULT_WEIGHTS["dialysis"],
             {"reason": "not on dialysis"}),

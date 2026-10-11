@@ -1659,3 +1659,64 @@ for them, potassium capped at 2,200), which is a TARGET, not a slope. Judging a
 nutrient against its own last fortnight says nothing about whether it is safe.
 Wiring the nutrient streams to the quota is queued in TASKS 15 rather than
 guessed at here.
+
+---
+
+## 16. The dialysis score said 94 beside "26 of 33 treatments ended below 90" — FIXED 2026-10-11
+
+Operator, from the running dev app: *"(still mesuring frequency of log) nothing
+has changed"*, against a Wellness page showing **Dialysis 94** in the same view
+as *"26 of 33 treatments ended below 90 mmHg systolic (lowest 54)"*.
+
+`dialysis_component` scored exactly two things: **attendance** against the
+patient's own baseline rate, and Kt/V. Nothing about how the treatments WENT. So
+a patient who turns up reliably scores 94 no matter what happens once they are
+on the machine. That is an event count presented as a clinical state — the
+operator's phrase exactly, and OPEN_ITEMS §5 ("Health score measured diligence,
+not health") returning in a domain that did not exist when it was written.
+
+**Measured over 90 days on the reference record — 38 sessions:**
+
+    ended below 90 systolic                26  (68%)
+    intradialytic nadir below 90           30  (79%)
+    nadir below 70                         14  (37%)
+    lowest nadir                           39
+
+**Fixed:** a third input, *tolerance* — the FRACTION of treatments whose nadir
+fell below the floor — at weight 0.4, with attendance dropping 0.5 → 0.3 and
+Kt/V 0.5 → 0.3. **Dialysis 94 → 58.6; overall 49 → 44.4.** The dialysis domain
+now carries its own finding: *"35 of 37 treatments (95%) dropped below 90 mmHg
+systolic during dialysis (lowest 39); 16 fell below 70."*
+
+- **Not double-counting `vitals_component`.** That scores the nadir VALUE — how
+  low it got once across the window. This scores the BURDEN — in what fraction
+  of treatments it happened. One dip to 39 and four-in-five treatments going
+  low are different clinical pictures and one number cannot hold both.
+- **Both thresholds come from the `Post-Dialysis Systolic BP` band** —
+  `opt_low` 90 and `crit_low` 70 — the same band `vitals_component` reads, so
+  the two cannot disagree. ⚠️ I first wrote `below 70` as a literal, two
+  paragraphs under a docstring citing §3az for that exact mistake.
+- **Session nadir is the least of the intradialytic readings AND the post
+  pressure.** Reading post alone gives 26 of 33; including the readings gives
+  35 of 37, because a treatment can run the pressure down and partly recover
+  before the final measurement.
+
+### STILL OPEN from the same report
+
+**16a. Chart Dashboard still draws `Systolic BP` from `vitals_logs` alone.**
+`OPEN` — the screenshot shows **Points: 9** over 90 days. `chart_dashboard.py`'s
+`DATASETS` is a hand-typed catalogue of one-model/one-column entries, and
+`bp_systolic` names `VitalsLog`. A `weight_all` VIRTUAL dataset already proves
+the multi-source pattern works; pressure never got one. The fix is to generate
+datasets from `SIGNAL_META` and serve them through `collect_signals`, as
+`/wellness/trends` now does — TASKS 15.
+
+**16b. Health Insights is thin to the point of unhelpful.** `OPEN` — operator:
+*"the health insight is meaningless"*. The page shows ONE relationship —
+*"Target dry weight ↔ Fluid intake, 1-day offset, r=-0.70, n=27"* — and a
+forecast of **Calories**. Both are artefacts of ranking rather than clinical
+judgement: the forecast picks the most data-rich signal, which is whatever the
+patient logs most, and dry weight is a PRESCRIPTION set by the unit rather than
+anything the patient does, so correlating it with intake is not a finding. With
+120 signals now on the timeline the candidate set is far larger, so the ranking
+is what needs work, not the inputs.

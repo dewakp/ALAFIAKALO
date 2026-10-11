@@ -485,8 +485,39 @@ def dialysis_component(*, sessions_in_window: int,
                        baseline_per_week: float | None,
                        latest_ktv: float | None = None,
                        ktv_band: tuple[float | None, float, float, float | None] | None = None,
+                       sessions_with_pressure: int = 0,
+                       sessions_below_floor: int = 0,
+                       sessions_severely_below: int = 0,
+                       lowest_nadir: float | None = None,
+                       hypotension_floor: float | None = None,
+                       severe_floor: float | None = None,
                        ) -> Component:
-    """Is the treatment happening, and is it clearing enough?
+    """Is the treatment happening, is it clearing enough, and is it TOLERATED?
+
+    ⚠️ **The third question was missing, and its absence made this score say the
+    opposite of the truth.** Until 2026-10-11 this measured attendance and Kt/V
+    only, so on the reference record it returned **94** while the same page
+    printed *"26 of 33 treatments ended below 90 mmHg systolic (lowest 54)"*.
+    Operator: *"still measuring frequency of log"* — exactly right. Showing up
+    is an event count, not a clinical state, and a score built from event counts
+    reports a patient as well because they are diligent.
+
+    Measured over 90 days on that record: **38 sessions, 30 with an
+    intradialytic nadir below 90 (79%), 14 below 70 (37%), lowest 39.**
+    Attendance was perfect throughout. A treatment attended and survived badly
+    is not a treatment going well.
+
+    **This is not double-counting `vitals_component`.** That scores the nadir
+    VALUE — how low it got, once, across the window. This scores the BURDEN —
+    in what FRACTION of treatments it happened. A patient who dipped to 39 on
+    one occasion and a patient who drops below 90 in four treatments out of five
+    are different clinical pictures, and a single number cannot hold both.
+
+    The floor is the `Post-Dialysis Systolic BP` band's own lower bound, passed
+    in by the caller — the SAME band `vitals_component` reads, so the two
+    surfaces cannot disagree about what counts as low, and no threshold is
+    invented here (§3az: hardcoded thresholds that were LOOSER than the
+    patient's real limits are why that canon exists).
 
     A patient on dialysis who misses treatment cannot be well, and until now
     nothing in this score could express that: `wellness_scores` had no dialysis
@@ -524,7 +555,10 @@ def dialysis_component(*, sessions_in_window: int,
         # Attending at or above their own established rate is full marks;
         # falling away from it scales down. Above baseline is not extra credit.
         ratio = min(rate / baseline_per_week, 1.0)
-        parts.append((ratio * 100.0, 0.5))
+        # Attendance drops from half the score to 0.3. It is a real input — a
+        # patient who misses treatment cannot be well — but it must not be able
+        # to carry the domain on its own, which is precisely how 94 happened.
+        parts.append((ratio * 100.0, 0.3))
         if ratio < 0.8:
             missed = (baseline_per_week - rate) * weeks
             critical.append(
@@ -536,13 +570,45 @@ def dialysis_component(*, sessions_in_window: int,
                               "is not scored")
 
     if latest_ktv is not None and ktv_band:
-        parts.append((band_score(latest_ktv, ktv_band), 0.5))
+        parts.append((band_score(latest_ktv, ktv_band), 0.3))
         detail["ktv"] = round(float(latest_ktv), 2)
         detail["ktv_target"] = ktv_band[1]
         if latest_ktv < ktv_band[1]:
             critical.append(
                 f"Delivered Kt/V {latest_ktv:.2f} is below the {ktv_band[1]:g} "
                 "adequacy target.")
+
+    # ── How the treatments GO, which is the half that was missing ────────
+    if sessions_with_pressure and hypotension_floor is not None:
+        burden = sessions_below_floor / sessions_with_pressure
+        # Carries the largest single weight, because on a patient who attends
+        # reliably it is the only thing that can distinguish a treatment course
+        # that is working from one that is not.
+        parts.append((max(0.0, 100.0 * (1.0 - burden)), 0.4))
+        detail["sessions_with_pressure"] = sessions_with_pressure
+        detail["sessions_below_floor"] = sessions_below_floor
+        detail["hypotension_floor"] = hypotension_floor
+        detail["hypotension_burden_pct"] = round(burden * 100, 1)
+        if lowest_nadir is not None:
+            detail["lowest_nadir"] = round(float(lowest_nadir))
+        if sessions_below_floor:
+            note = (
+                f"{sessions_below_floor} of {sessions_with_pressure} treatments "
+                f"({burden * 100:.0f}%) dropped below {hypotension_floor:g} mmHg "
+                "systolic during dialysis")
+            if lowest_nadir is not None:
+                note += f" (lowest {round(float(lowest_nadir))})"
+            # Stated separately because it is a different severity, not a
+            # louder version of the same one. The severe bound is the band's
+            # own CRITICAL low (`band[0]`), never a number chosen here — I had
+            # written `below 70` literally, two paragraphs under a docstring
+            # citing §3az for exactly that mistake.
+            if sessions_severely_below and severe_floor is not None:
+                detail["sessions_severely_below"] = sessions_severely_below
+                detail["severe_floor"] = severe_floor
+                note += (f"; {sessions_severely_below} fell below "
+                         f"{severe_floor:g}")
+            critical.append(note + ".")
 
     if not parts:
         return Component("dialysis", None, DEFAULT_WEIGHTS["dialysis"],
