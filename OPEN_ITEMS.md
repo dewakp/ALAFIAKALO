@@ -1519,3 +1519,92 @@ its extractor exists. The unblock is one real treatment-report PDF, or OCR.
 >   the previous colon made `MPI`'s span start at the date, which truncated
 >   `DOB`'s value to empty — and BOTH fields were lost. Caught only by
 >   re-measuring the corpus after the change, not by the suite.
+
+---
+
+## 14. Every domain must reach the aggregates — FIXED for insight 2026-10-11, PARTIAL elsewhere
+
+Operator, 2026-10-11: *"Contibutor to weight, vitals data are from flowsheets,
+nutrition, medication, eliminations, vitals, labs, lifestyle, hospitalization
+records and events, therapies. But right now they are not included in the
+aggregates (overview, trends and insight). They MUST! This is canon and have
+been repeated multiple times. This is not a set of isolated data points but a
+collection of data for integrated viewing, advising and decisioning. All data
+must be visible and used by the various anaytytes, aggregators and AI queries.
+This cannot be compromised."*
+
+**They were right, and this was the THIRD surface with the same fault.** §3am
+found it in the AI tool (`get_vitals` read `vitals_logs` alone — 41 rows on a
+patient with 16,236 intradialytic readings); §3ba found it in the wellness score
+("read one row of `vitals_logs` and never opened `therapy_sessions`").
+
+### What was measured on the reference record, before any change
+
+`health_signals.collect_signals` is the single substrate under
+`/insights/signals`, `/insights/relationships` and `/insights/forecast`. It read
+nine sources — nutrition, vitals, lifestyle, fitness, mood, sleep, symptoms,
+env/social, labs — and queried none of the rest:
+
+    weight     read 41 (vitals_logs)   ignored 5,221 (pre 2,003 / post 1,798
+                                       / dry 1,420)            -> 0.8% seen
+    systolic   read 43                 ignored 18,526 (intradialytic 15,016
+                                       / pre 1,860 / post 1,650) -> 0.23% seen
+
+    never queried at all: bowel_movements 2,436 · therapy_sessions 2,035
+                          vomiting_logs 1,993 · medication_dose_logs 1,029
+                          hospitalizations · surgical_procedures
+
+So `vital.weight_kg` was forecast from 41 points while 5,221 existed, and no
+relationship could involve dialysis, medication or eliminations — they were not
+on the timeline at all.
+
+### FIXED — 17 new signals, measured after
+
+One year of user 63: **6,705 daily points across 120 signals**.
+
+| | before | after |
+|---|---|---|
+| weight | 16 days | 172 pre · 168 post · 169 dry (+16 self-recorded) |
+| systolic | 18 days | 161 nadir · 148 pre · 146 post (+18 self-recorded) |
+
+Four design points that are canon rather than preference:
+
+- **The BP sources stay SEPARATE signals.** §3am: post runs well below pre by
+  design, so averaging them manufactures a number no instrument read.
+- **The nadir is reduced with MIN**, and `MIN`/`MAX` are now declared
+  aggregations. A treatment reading 150 then 59 has a mean of 104 — ordinary —
+  and a nadir of 59, which is intradialytic hypotension. ⚠️ The reducer
+  previously hardcoded `if signal == "symptom.severity_max": reducer = max`,
+  so a new MIN signal would have been silently MEANED.
+- **There is NO duration signal.** §3av: `duration_minutes` is the wall clock
+  from the app and the machine's time from the 2026-06-04 import, with no way
+  to tell which from the row. `machine_total_time_minutes` is used instead.
+- **Guarded models go through `clinical_sources`** — dose counts and
+  administration days (the THIRD medication source: Epogene ×1,962,
+  Venofer ×1,248, none of it in dose logs), stays and procedures.
+
+### STILL OPEN
+
+**14a. The other aggregators are not all covered.** `OPEN` — scanned
+2026-10-11, by domain:
+
+    wellness.py          7 of 9   missing hospitalisation, conditions
+    chart_dashboard.py   2 of 9   flowsheets + labs only
+    diagnostics_engine   4 of 9   missing flowsheets, nutrition, eliminations, lifestyle
+    ai_engine.py         4 of 9   missing flowsheets, eliminations, labs
+    patient_board.py     7 of 9   missing hospitalisation, conditions
+
+Hospitalisation reaches **no aggregate at all** — `clinical_sources` is its only
+reader. §3bb built those tables on 2026-10-05 and nothing aggregates them.
+
+**14b. Five lab signals are all WEIGHT.** `OPEN` — surfaced by this work:
+`lab.weight (kg)`, `lab.weight - pre`, `lab.weight - pre day`,
+`lab.weight - pre day 1`, `lab.weight - post day 1`. These are the §3ab
+name-overflow variants and the dialysis machine parameters no lab vocabulary
+covers, so `analyte_key()` has no entry and each spelling is its own series.
+Same class as §3ax's remaining `Cl`/`Chloride` and `TRIG`/`Triglycerides` split,
+which this change inherits rather than introduces.
+
+**14c. `dialysis.post_diastolic` has a stored minimum of 5 mmHg.** `OPEN` — not
+introduced here; §3at records that implausible stored rows exist and that a
+response model states shape, never plausibility. Worth a repair pass.

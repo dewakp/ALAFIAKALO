@@ -3251,3 +3251,78 @@ The extractor exists; **the documents it was built for still cannot be tested.**
 treatment report exists only as photographs and there is no OCR path, so the
 no-colon form-field case is unproven and TASKS 14b stays blocked in practice.
 The unblock is one real treatment-report PDF, or 14e. Recorded as OPEN_ITEMS 13.
+
+### 2026-10-11 (later still) — Every domain reaches the insight timeline
+
+**Instruction:** *"Contibutor to weight, vitals data are from flowsheets,
+nutrition, medication, eliminations, vitals, labs, lifestyle, hospitalization
+records and events, therapies. But right now they are not included in the
+aggregates (overview, trends and insight). They MUST! This is canon and have
+been repeated multiple times … This cannot be compromised."*
+
+**They were right, and it was the THIRD surface with the same fault.** §3am
+found it in the AI tool, §3ba in the wellness score, and `health_signals.py` —
+the single substrate under `/insights/signals`, `/relationships` and
+`/forecast` — had it untouched.
+
+**Measured before changing anything:**
+
+    weight    read 41 (vitals_logs)  ignored 5,221 in therapy_sessions  0.8%
+    systolic  read 43                ignored 18,526 in the flowsheets   0.23%
+    never queried: bowel_movements 2,436 · therapy_sessions 2,035 ·
+                   vomiting_logs 1,993 · medication_dose_logs 1,029 ·
+                   hospitalizations · surgical_procedures
+
+So `vital.weight_kg` was forecast from 41 points while 5,221 existed, and no
+relationship could involve dialysis, medication or eliminations at all.
+
+**Work done:** 17 new signals across four domains (dialysis, medication,
+elimination, event), `MIN`/`MAX` as declared aggregations, lab signals keyed on
+`analyte_key()`, and `tests/test_signals_cover_every_domain.py` (11 tests).
+One year of user 63 now yields **6,705 daily points across 120 signals**:
+weight 16 days → 172/168/169, systolic 18 days → 161 nadir / 148 pre / 146 post.
+45 passed across the insights and guard suites; ruff clean.
+
+### What it cost to learn
+
+**A hardcoded special case in the reducer would have silently destroyed the one
+signal that mattered most.** `if signal == "symptom.severity_max": reducer = max`
+was correct for that signal and unreachable for any other, so
+`dialysis.nadir_systolic` — the whole point of §3am — would have been MEANED. A
+treatment reading 150 then 59 has a mean of 104, which is unremarkable, and a
+nadir of 59, which is intradialytic hypotension. `MIN`/`MAX` are declarations
+now, and a test fails the build on an `agg` the reducer does not know, because
+an unknown one falls back to MEAN in silence.
+
+**And removing that branch nearly broke an existing signal.**
+`symptom.severity_max` was DECLARED `agg: MEAN` and corrected by the branch, so
+the declaration and the behaviour disagreed. Deleting the branch without fixing
+the declaration would have turned the worst severity of a day into its average —
+a regression introduced by a refactor that looked like pure cleanup.
+
+**`getattr` with a fallback is a guess wearing a safety net.** The hospital
+event collector was first written
+`getattr(stay, "admitted_on", None) or getattr(stay, "admission_date", None)`.
+Both names are wrong — `HospitalizationView` carries `admitted` as a STRING —
+and because `getattr` cannot fail, every admission would have been dropped in
+silence. §3am paid for this exact shape twice already with
+`getattr(row, name, None)`. Read the dataclass.
+
+**The test could not reach the database, for the reason already in memory.**
+Four tests opened `async_session()` directly and failed with
+`Connect call failed ('127.0.0.1', 5435)` — `backend-test`'s `DATABASE_URL`
+points at localhost inside a container with nothing listening. The `db` fixture
+is the only session that reaches the test database.
+
+**Two findings fell out of the work rather than being looked for:** five
+separate lab signals that are all WEIGHT (`lab.weight - pre day 1` and friends,
+the §3ab name-overflow variants `analyte_key` has no entry for), and a stored
+`post_diastolic` minimum of 5 mmHg. Both recorded as OPEN_ITEMS 14b/14c rather
+than fixed here.
+
+### Queued
+
+The other aggregators are still partial — `chart_dashboard.py` (the TRENDS
+surface) reads 2 of 9 domains, and **hospitalisation reaches no aggregate at
+all**. Full per-aggregator scan and the recommendation that they consume
+`collect_signals` rather than grow their own queries: TASKS 15.

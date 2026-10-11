@@ -626,3 +626,37 @@ prose about aged samples).
 - **Three of the five declared types have never met a real document.**
   `medication_list`, `discharge_summary` and `imaging_report` are untested
   against anything real — the corpus is 13 lab reports, exactly as §3ab warns.
+
+---
+
+## 15. Every aggregator must see every domain
+
+Landed for the INSIGHT surface 2026-10-11 (OPEN_ITEMS 14). The same scan says
+the other aggregators are still partial, and the operator's instruction covers
+all of them: *"All data must be visible and used by the various anaytytes,
+aggregators and AI queries. This cannot be compromised."*
+
+Measured per aggregator, 2026-10-11 — domains read of the nine named:
+
+| aggregator | covered | missing |
+|---|---|---|
+| `api/wellness.py` (score, trends) | 7 | hospitalisation, conditions |
+| `api/chart_dashboard.py` | **2** | nutrition, medication, eliminations, vitals, lifestyle, hospitalisation, conditions |
+| `services/diagnostics_engine.py` | 4 | flowsheets, nutrition, eliminations, lifestyle |
+| `services/ai_engine.py` | 4 | flowsheets, eliminations, labs, hospitalisation |
+| `services/patient_board.py` | 7 | hospitalisation, conditions |
+
+`chart_dashboard.py` is the worst and is the "trends" surface — flowsheets and
+labs only, so a chart of this patient's weight or pressure draws the 0.8% /
+0.23% slice measured in OPEN_ITEMS 14.
+
+**Hospitalisation reaches NO aggregate.** `clinical_sources` is its only reader;
+§3bb built `hospitalizations` + `surgical_procedures` on 2026-10-05 and nothing
+has aggregated them since. An admission is the event a relationship engine most
+needs on the timeline, because what changed around it is the clinical question.
+
+The cheapest route is for these to consume `health_signals.collect_signals`
+rather than each growing its own queries — one substrate, one place where a
+domain can be forgotten, and the guard in
+`tests/test_signals_cover_every_domain.py` already fails the build when a named
+domain has no signal.
