@@ -1703,8 +1703,7 @@ systolic during dialysis (lowest 39); 16 fell below 70."*
 
 ### STILL OPEN from the same report
 
-**16a. Chart Dashboard still draws `Systolic BP` from `vitals_logs` alone.**
-`OPEN` — the screenshot shows **Points: 9** over 90 days. `chart_dashboard.py`'s
+**16a. Chart Dashboard drew `Systolic BP` from `vitals_logs` alone.** `FIXED 2026-10-11` — the screenshot shows **Points: 9** over 90 days. `chart_dashboard.py`'s
 `DATASETS` is a hand-typed catalogue of one-model/one-column entries, and
 `bp_systolic` names `VitalsLog`. A `weight_all` VIRTUAL dataset already proves
 the multi-source pattern works; pressure never got one. The fix is to generate
@@ -1720,3 +1719,59 @@ patient logs most, and dry weight is a PRESCRIPTION set by the unit rather than
 anything the patient does, so correlating it with intake is not a finding. With
 120 signals now on the timeline the candidate set is far larger, so the ranking
 is what needs work, not the inputs.
+
+---
+
+## 17. "some data on dev still stopped on 9/24" — it had not — FIXED 2026-10-11
+
+The report was right about the symptom and wrong about the cause, and the cause
+is the interesting part.
+
+**Dev was not stale.** Measured against production the same minute: dev trailed
+by FOUR rows, every one of them that day's logging since the morning's
+`pull_prod` (bowel_movements 2436/2437, nutrition_logs 1046/1047,
+medication_dose_logs 1029/1030, vomiting_logs 1993/1994). Nothing anywhere ended
+on 9/24 — the "Sep 24" in the screenshot is the chart's hover cursor.
+
+**`vitals_logs` ends 2026-09-26, and it ends there in PRODUCTION too.** That is
+not staleness, it is the record: the patient stopped self-recording vitals. What
+makes it look like data loss is which source the charts read:
+
+    vitals_logs — what the chart drew          last 2026-09-26        43 systolic
+    therapy_sessions pre/post — not drawn      last 2026-10-09     3,510 systolic
+    intradialytic_readings — not drawn         last 2026-10-09    15,016 systolic
+
+    measured SINCE vitals_logs stopped: 6 more days, 20 readings, lowest 59
+
+So the pressure never stopped being measured. The line ended in September
+because the chart was reading the one source holding 43 readings instead of the
+two holding 18,526 — OPEN_ITEMS 16a, seen from the user's side.
+
+**Fixed:** `chart_dashboard.py` gains `SIGNAL_DATASETS`, generated from
+`SIGNAL_META` and served through `collect_signals`, alongside the hand-typed
+`DATASETS` and the existing `weight_all` virtual pair. Wired into `/datasets`,
+`/data` and `/summary`. The picker now offers, with real day counts:
+
+    bp_systolic               Systolic BP                        43
+    dialysis.pre_systolic     Pre-dialysis systolic             148
+    dialysis.post_systolic    Post-dialysis systolic            146
+    dialysis.nadir_systolic   Lowest systolic during treatment  161
+
+and charting the last of those gives 36 points ending **2026-10-09** against
+`bp_systolic`'s 9 ending 2026-09-26.
+
+- **Signals are NOT re-aggregated here.** `collect_signals` has already reduced
+  each day per its declared aggregation — MIN for a nadir — and averaging it
+  again would destroy exactly what that declaration protects (§3am).
+- **`min`/`max` come back NULL for signal datasets**, because the day is already
+  one figure and inventing a spread would be fabricating one.
+- **Only signals that HOLD data are offered.** A picker listing 120 empty
+  metrics is worse than one listing the dozen a patient has.
+- **The `/summary` trend splits the series by POSITION, not by date.** These
+  series are irregular — a treatment series has no points on non-treatment days
+  — so a midpoint DATE puts wildly different counts either side.
+
+> **A surface that reads one source of a measurement will always look like the
+> data stopped.** Three screens have now shown this on the same record — the AI
+> tool (§3am), the wellness score (§3ba) and the chart. The fix each time was
+> the sources, never the window.

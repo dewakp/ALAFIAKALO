@@ -22,6 +22,12 @@ from app.models.mood import MoodEntry
 from app.models.lifestyle import LifestyleEntry
 from app.models.peritoneal_dialysis import PDSession
 from app.models.vitals import VitalsLog
+from app.services.health_signals import (
+    SIGNAL_META,
+    collect_signals,
+    signal_domain,
+    signal_label,
+)
 
 router = APIRouter()
 
@@ -108,6 +114,49 @@ VIRTUAL_DATASETS = {
     "weight_all":    {"label": "Weight (All Sources)", "unit": "kg", "domain": "weight"},
     "weight_all_7d": {"label": "Weight 7-Day Rolling Avg", "unit": "kg", "domain": "weight"},
 }
+
+# ── Signal-backed datasets ──────────────────────────────────────────────────
+#
+# `DATASETS` above is a hand-typed catalogue of one-model/one-column entries, so
+# `bp_systolic` names `VitalsLog` and nothing else. Measured on the reference
+# record, that is what the chart was drawing:
+#
+#     vitals_logs (what the chart drew)        last 2026-09-26      43 readings
+#     therapy_sessions pre/post (not drawn)    last 2026-10-09   3,510 readings
+#     intradialytic_readings (not drawn)       last 2026-10-09  15,016 readings
+#
+# Operator: *"some data on dev still stopped on 9/24"*. It had not. The PRESSURE
+# ran to 10/09 — six more days and twenty more readings after `vitals_logs`
+# stopped, the lowest of them 59 — and the chart showed a line ending in
+# September because it was reading the one source with 43 readings instead of
+# the two with 18,526. Dev was 4 rows behind production, all of them that day's
+# logging; `vitals_logs` ends 2026-09-26 in PRODUCTION too.
+#
+# These are generated from `SIGNAL_META`, so every domain on the insight
+# timeline is selectable here with no second catalogue to keep in step — the
+# same move `/wellness/trends` made. Keys stay dotted (`dialysis.nadir_systolic`)
+# and therefore cannot collide with the flat keys above.
+SIGNAL_DATASETS = {
+    key: {"label": meta["label"], "unit": meta.get("unit", ""),
+          "domain": signal_domain(key)}
+    for key, meta in SIGNAL_META.items()
+}
+
+
+async def _signal_points(db: AsyncSession, user_id: int, keys: list[str],
+                         cutoff: date, today: date) -> dict[str, list[tuple]]:
+    """(date, value) pairs for signal-backed datasets, in one sweep.
+
+    `collect_signals` already reduces each day per the signal's declared
+    aggregation — MIN for a nadir, SUM for a count — so re-aggregating here
+    would destroy exactly what that declaration protects (§3am: a mean hides
+    the session that ended at 54).
+    """
+    wanted = [k for k in keys if k in SIGNAL_DATASETS]
+    if not wanted:
+        return {}
+    signals = await collect_signals(db, user_id, cutoff, today)
+    return {k: sorted(signals.get(k, {}).items()) for k in wanted}
 
 
 async def _collect_weight_observations(user_id: int, db: AsyncSession, cutoff: date) -> list[tuple]:
@@ -337,6 +386,26 @@ async def list_datasets(
             "unit": ds["unit"],
             "count": len(weight_obs),
         })
+
+    # Signal-backed datasets, with their real day counts so the picker can show
+    # that `dialysis.pre_systolic` has 148 days where `bp_systolic` has 18.
+    # Offered ONLY where they hold data: a picker listing 120 empty metrics is
+    # worse than one listing the dozen a patient actually has.
+    today = date.today()
+    signals = await collect_signals(db, current_user.id,
+                                    today - timedelta(days=365), today)
+    for key, series in signals.items():
+        meta = SIGNAL_DATASETS.get(key)
+        if not series:
+            continue
+        label = meta["label"] if meta else signal_label(key)
+        by_domain.setdefault(
+            meta["domain"] if meta else signal_domain(key), []).append({
+                "key": key,
+                "label": label,
+                "unit": meta["unit"] if meta else "",
+                "count": len(series),
+            })
     return by_domain
 
 
@@ -352,12 +421,30 @@ async def get_chart_data(
     keys = [k.strip() for k in datasets.split(",") if k.strip()]
     if not keys:
         raise HTTPException(400, "At least one dataset key is required")
-    invalid = [k for k in keys if k not in DATASETS and k not in VIRTUAL_DATASETS]
+    invalid = [k for k in keys
+               if k not in DATASETS and k not in VIRTUAL_DATASETS
+               and k not in SIGNAL_DATASETS]
     if invalid:
         raise HTTPException(400, f"Unknown dataset keys: {', '.join(invalid)}")
 
-    cutoff = date.today() - timedelta(days=days)
+    today = date.today()
+    cutoff = today - timedelta(days=days)
     result = {}
+
+    # Signal-backed datasets: every domain on the insight timeline.
+    for key, pairs in (await _signal_points(
+            db, current_user.id, keys, cutoff, today)).items():
+        meta = SIGNAL_DATASETS[key]
+        result[key] = {
+            "label": meta["label"], "unit": meta["unit"],
+            "domain": meta["domain"],
+            # `value` only: `collect_signals` has already reduced the day to a
+            # single figure per its declared aggregation, so there is no spread
+            # left to report and inventing min/max here would be fabricating one.
+            "points": [{"date": str(d), "value": round(float(v), 2),
+                        "min": None, "max": None, "count": 1}
+                       for d, v in pairs],
+        }
 
     # Composite weight datasets share one observation sweep.
     virtual_keys = [k for k in keys if k in VIRTUAL_DATASETS]
@@ -384,7 +471,7 @@ async def get_chart_data(
             }
 
     for key in keys:
-        if key in VIRTUAL_DATASETS:
+        if key in VIRTUAL_DATASETS or key in SIGNAL_DATASETS:
             continue
         ds = DATASETS[key]
         model = ds["model"]
@@ -518,7 +605,8 @@ async def dataset_summary(
     db: AsyncSession = Depends(get_db),
 ):
     """Return statistical summary for a dataset (avg, min, max, count, stddev, trend)."""
-    if dataset not in DATASETS and dataset not in VIRTUAL_DATASETS:
+    if (dataset not in DATASETS and dataset not in VIRTUAL_DATASETS
+            and dataset not in SIGNAL_DATASETS):
         raise HTTPException(400, f"Unknown dataset key: {dataset}")
 
     if dataset in VIRTUAL_DATASETS:
@@ -534,6 +622,37 @@ async def dataset_summary(
         s.update(await _weight_references(current_user.id, db))
         vds = VIRTUAL_DATASETS[dataset]
         return {"key": dataset, "label": vds["label"], "unit": vds["unit"], "days": days, **s}
+
+    if dataset in SIGNAL_DATASETS:
+        today = date.today()
+        cutoff = today - timedelta(days=days)
+        pairs = (await _signal_points(
+            db, current_user.id, [dataset], cutoff, today)).get(dataset, [])
+        meta = SIGNAL_DATASETS[dataset]
+        values = [float(v) for _, v in pairs]
+        if not values:
+            return {"key": dataset, "label": meta["label"], "unit": meta["unit"],
+                    "days": days, "avg": None, "min": None, "max": None,
+                    "count": 0, "stddev": None, "trend": "stable"}
+        mean = sum(values) / len(values)
+        var = sum((v - mean) ** 2 for v in values) / len(values) if len(values) > 1 else 0.0
+        # Halves by POSITION, not by date: these series are irregular (a
+        # treatment series has no weekend points), so splitting on the midpoint
+        # date puts wildly different counts either side.
+        half = len(values) // 2
+        trend = "stable"
+        if half:
+            a = sum(values[:half]) / half
+            b = sum(values[half:]) / (len(values) - half)
+            if a:
+                pct = (b - a) / abs(a) * 100
+                trend = "increasing" if pct > 5 else "decreasing" if pct < -5 else "stable"
+        return {
+            "key": dataset, "label": meta["label"], "unit": meta["unit"],
+            "days": days, "avg": round(mean, 2), "min": round(min(values), 2),
+            "max": round(max(values), 2), "count": len(values),
+            "stddev": round(var ** 0.5, 2), "trend": trend,
+        }
 
     ds = DATASETS[dataset]
     model = ds["model"]
