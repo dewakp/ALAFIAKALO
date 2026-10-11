@@ -1832,3 +1832,53 @@ Frontend rebuilt and verified by the served asset — `DwRP4Lv3` → `Dd8_iRhX`
 > the chart's default selection. Each time the evidence that it was fixed came
 > from curling the API, which was true and did not answer the question the
 > operator was asking.
+
+---
+
+## 19. "81 mmHg? how?" — one fifteen-day-old reading, called "resting" — FIXED 2026-10-11
+
+Operator, on *"Resting systolic 81 mmHg is below the 90-120 mmHg reference
+band"*: **"81 mmHg? how?"**
+
+The VALUE was real and everything around it was wrong. Measured:
+
+    2026-09-26 07:00   81/62  HR 96   "Just woke up after an 8 hr sleep"
+    2026-09-15 10:55   91/58  HR 104  "Just after poop"
+    2026-09-09 04:30   79/60  HR 99
+
+    44 rows total · 43 with a systolic · range 55-136 · mean 97
+
+`wellness.py` took `.order_by(VitalsLog.log_date.desc()).limit(1)` — ONE row —
+and the self-recorded half of the vitals domain was scored on it. Three faults
+in one sentence:
+
+- **n=1.** §3an says "windows, not lifetimes"; a single reading is the same
+  error from the other end. This patient's 43 readings average 97, so 81 is the
+  low end of their own distribution reported as their blood pressure.
+- **Fifteen days old, with no date shown.** §3an: lab recency is already
+  defined and "a 147-day-old draw is reported as ABSENT, not as latest".
+- **Called "resting" with nothing to support it.** Nothing in `vitals_logs`
+  records posture or activity. The row that produced the 81 happens to say
+  "Just woke up"; the one before it says "Just after poop". Asserting a
+  condition the record does not state is §0 in a sentence a clinician reads.
+
+**Fixed:** the component takes the 30-day window's MEDIAN with its sample size
+and age. The finding now reads:
+
+> Self-recorded systolic 86 mmHg (across 2 self-recorded readings) is below the
+> 90-120 mmHg reference band — but the most recent was 15 days ago
+> (2026-09-26), so this may not be current.
+
+Vitals 54 → 63, overall 44.4 → 45.8 — not because anything improved, but
+because one unusually low reading is no longer standing in for the window.
+
+- **MEDIAN, not mean**, for self-recorded vitals: these are a handful of
+  readings taken in whatever circumstances the patient was in, so one unusual
+  value must not drag the figure the domain is scored on. §3am argues the
+  opposite for intradialytic readings — there the NADIR is the finding and a
+  mean hides it. Which statistic is honest depends on what the series is, and
+  neither is a default.
+- **The staleness bound is `dialysis_day_adjustment.FRESH_DAYS` (14)**, not a
+  number chosen here — §3an forbids inventing a second recency window.
+- **The 30-day window is kept, not widened.** It holds two readings on this
+  record, which is precisely why the count now travels with the figure.

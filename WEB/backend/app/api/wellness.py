@@ -157,12 +157,42 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
     avg_energy = float(mood_row[1]) if mood_row and mood_row[1] is not None else None
     avg_stress = float(mood_row[2]) if mood_row and mood_row[2] is not None else None
 
-    # ── Vitals: the reading, not the fact that one exists ────────────────
-    vitals = (await db.execute(
+    # ── Vitals: a WINDOW of self-recorded readings, not the newest row ───
+    #
+    # This took `.order_by(log_date.desc()).limit(1)` — ONE row — and the whole
+    # self-recorded half of the vitals domain was scored on it. Asked "81 mmHg?
+    # how?", the answer was: the single most recent `vitals_logs` row,
+    # 2026-09-26 07:00, 81/62, noted "Just woke up after an 8 hr sleep" — a
+    # real reading, FIFTEEN DAYS OLD, presented with no date as though it were
+    # today's, and labelled "Resting" when the row before it reads "Just after
+    # poop" and nothing records posture at all.
+    #
+    # §3an already settles both halves of this: "Windows, not lifetimes" (an
+    # all-time mean is not an observation — and n=1 is the same error from the
+    # other end: this patient's 43 readings average 97, so one reading of 81
+    # is the low end of their own distribution stated as their blood pressure),
+    # and "Lab recency is ALREADY DEFINED — do not invent a second window",
+    # which is why the staleness bound below is `dialysis_day_adjustment`'s
+    # FRESH_DAYS/STALE_DAYS rather than a number chosen here.
+    # The 30-day window (`cutoff`) — one of §3an's stated windows, kept rather
+    # than widened. On this record it holds TWO readings, which is exactly why
+    # the count travels with the figure instead of being hidden behind it.
+    vitals_rows = (await db.execute(
         select(VitalsLog).where(
             VitalsLog.user_id == user_id, VitalsLog.log_date >= cutoff)
-        .order_by(VitalsLog.log_date.desc()).limit(1)
-    )).scalar_one_or_none()
+        .order_by(VitalsLog.log_date.desc())
+    )).scalars().all()
+    vitals = vitals_rows[0] if vitals_rows else None
+    self_recorded = {
+        "systolic": [r.blood_pressure_systolic for r in vitals_rows
+                     if r.blood_pressure_systolic is not None],
+        "diastolic": [r.blood_pressure_diastolic for r in vitals_rows
+                      if r.blood_pressure_diastolic is not None],
+        "heart_rate": [r.heart_rate_bpm for r in vitals_rows
+                       if r.heart_rate_bpm is not None],
+        "latest_on": vitals.log_date if vitals else None,
+        "age_days": (today - vitals.log_date).days if vitals else None,
+    }
 
     # ── Medication adherence vs the prescription ─────────────────────────
     # Through clinical_sources, never the models directly: prescribed and taken
@@ -300,9 +330,14 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
         hs.vitals_component(
             bands=bands,
             bmi=getattr(vitals, "bmi", None) if vitals else None,
-            systolic=getattr(vitals, "blood_pressure_systolic", None) if vitals else None,
-            diastolic=getattr(vitals, "blood_pressure_diastolic", None) if vitals else None,
-            heart_rate=getattr(vitals, "heart_rate_bpm", None) if vitals else None,
+            systolic=hs.median(self_recorded["systolic"]),
+            diastolic=hs.median(self_recorded["diastolic"]),
+            heart_rate=hs.median(self_recorded["heart_rate"]),
+            # So the finding can SAY how many readings and how old, instead of
+            # stating one number as if it were taken this morning.
+            sample_size=len(self_recorded["systolic"]),
+            latest_on=self_recorded["latest_on"],
+            age_days=self_recorded["age_days"],
             post_dialysis_systolics=post_systolics,
             on_dialysis=on_dialysis,
         ),

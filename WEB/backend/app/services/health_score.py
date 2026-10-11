@@ -37,6 +37,28 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.services.dialysis_day_adjustment import FRESH_DAYS
+
+
+def median(values: list) -> float | None:
+    """The middle value, or None when there is nothing to take one of.
+
+    MEDIAN rather than mean for self-recorded vitals: these are a handful of
+    readings taken in whatever circumstances the patient happened to be in —
+    one is noted "Just after poop", another "Dizzy" — so a single unusual
+    reading must not drag the figure the whole domain is scored on. §3am makes
+    the same argument for intradialytic readings from the other direction,
+    where the NADIR is the finding and a mean hides it: which statistic is
+    honest depends on what the series is, and neither is a default.
+    """
+    numbers = sorted(float(v) for v in values if v is not None)
+    if not numbers:
+        return None
+    middle = len(numbers) // 2
+    if len(numbers) % 2:
+        return numbers[middle]
+    return (numbers[middle - 1] + numbers[middle]) / 2.0
+
 
 #: Relative importance of each domain. Applied only over the domains that have
 #: data — see `overall_score`.
@@ -264,9 +286,31 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
                      systolic: float | None = None,
                      diastolic: float | None = None,
                      heart_rate: float | None = None,
+                     sample_size: int = 0,
+                     latest_on=None,
+                     age_days: int | None = None,
                      post_dialysis_systolics: list[float] | None = None,
                      on_dialysis: bool = False) -> Component:
     """Blood pressure, pulse, and what the treatment itself did to them.
+
+    ⚠️ **`systolic` is a WINDOW's median, not the newest reading, and the
+    difference was a real complaint.** This scored the single most recent
+    `vitals_logs` row and the finding read *"Resting systolic 81 mmHg is below
+    the 90-120 mmHg reference band"* — a true reading from 2026-09-26 07:00,
+    **fifteen days old**, stated with no date as though it were this morning's,
+    on a patient whose 43 self-recorded readings average 97. Asked "81 mmHg?
+    how?", there was no good answer: n=1 is the same error as an all-time mean,
+    from the other end (§3an, "windows, not lifetimes").
+
+    It is also no longer called **resting**. Nothing in `vitals_logs` records
+    posture or activity — the row that produced the 81 happens to be noted
+    "Just woke up after an 8 hr sleep", and the one before it reads "Just after
+    poop". Asserting a condition the record does not state is §0 in a sentence
+    a clinician reads.
+
+    `age_days` is judged against `dialysis_day_adjustment.FRESH_DAYS` /
+    `STALE_DAYS` (14/30) — §3an is explicit that lab recency is already defined
+    and a second window must not be invented for it.
 
     **The band this used to carry was one-sided and written into the source:**
 
@@ -310,10 +354,29 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
         parts.append((s, 0.35))
         detail["systolic"] = round(float(systolic))
         detail["systolic_band"] = [sys_band[1], sys_band[2]]
+        detail["self_recorded_readings"] = sample_size
+        if latest_on is not None:
+            detail["latest_self_recorded"] = str(latest_on)
         if systolic < sys_band[1]:
-            critical.append(
-                f"Resting systolic {round(float(systolic))} mmHg is below the "
-                f"{sys_band[1]:g}-{sys_band[2]:g} mmHg reference band.")
+            # Says WHAT it is (a median of self-recorded readings), HOW MANY,
+            # and WHEN the most recent was — the three things missing when a
+            # single fifteen-day-old row was reported as "Resting systolic 81".
+            provenance = (
+                f"across {sample_size} self-recorded readings"
+                if sample_size > 1 else "from a single self-recorded reading"
+            )
+            note = (
+                f"Self-recorded systolic {round(float(systolic))} mmHg "
+                f"({provenance}) is below the "
+                f"{sys_band[1]:g}-{sys_band[2]:g} mmHg reference band")
+            if age_days is not None and age_days > FRESH_DAYS:
+                # §3an: a value nobody has checked recently is reported as
+                # stale, never offered as the current one.
+                note += (f" — but the most recent was {age_days} days ago"
+                         f" ({latest_on}), so this may not be current")
+            elif latest_on is not None:
+                note += f" (most recent {latest_on})"
+            critical.append(note + ".")
     if diastolic is not None and dia_band:
         parts.append((band_score(diastolic, dia_band), 0.15))
         detail["diastolic"] = round(float(diastolic))
