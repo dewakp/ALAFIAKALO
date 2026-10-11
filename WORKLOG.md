@@ -3075,3 +3075,103 @@ recovery and destroyed the work. This time: explicit copies to the scratchpad,
 no trap, and a per-file verification afterwards (3 / 3 / 2 `patient_today`
 references, 3 / 3 / 2 headers) before running anything else.
 
+
+---
+
+## Session 2026-10-11 — A document is routed by what it CONTAINS, not by one label
+
+**Instruction:** *"the pdf importer must be able to recognize, parse, categorize
+and allow import of varied pdf documents and formats"* → *"5 types is grounding
+tens or even hundreds of variations in 5 hard-coded type. what coul go wrong
+there. everything. so we are not hard-coding but being flexible."* → *"PDF
+documents may be disparate, what they show are often same data: lab, medication,
+visit summary, recipe, food list, pantry list, imaging, flowsheets data etc. We
+must recognize data type from the upload and route to the correct db table or
+tables."*
+
+Preceded by importing the 10/09 DaVita Treatment Details Report for user 63 by
+hand (production session **2776** + six intradialytic readings), because nothing
+in the pipeline could read it. That import is the whole argument for this work.
+
+**Work done:**
+
+- `app/services/docparse/claims.py` (new) — `classify_table` /
+  `kinds_in_document` report every kind of data a document holds with the
+  evidence for each, mapped onto real tables by `TARGET_FOR_KIND`, plus
+  `NO_TARGET_YET` for kinds this schema recognises and cannot file.
+- `document_import_service.stage()` — the `if/elif` on one `doc_type` replaced
+  by per-claim routing. `TARGET_FOR_DOC_TYPE` → `LEGACY_TARGET_FOR_DOC_TYPE`,
+  kept as a record of the wrong axis rather than deleted.
+- `_stage_labs` — a result the lab reported as `Error`/`N/A` now stages UNTICKED
+  with its reason (OPEN_ITEMS 12).
+- `api/pdf_tools._primary_target` — `target_table` read off the staged items
+  instead of the document label.
+- `tests/test_claim_routing.py` (new) — 38 tests including a corpus precision
+  guard.
+
+**Verified:** `228 passed` across all eleven docparse/import suites with the
+corpus mounted; `ruff --select F,E9` clean on all four changed files.
+
+| measured on the 13-document corpus | before | after |
+|---|---|---|
+| false medications | 1115 | **0** |
+| false conditions | 1115 | **0** |
+| `Error`/`N/A` staged as results | 120 | **0** (unticked, with reasons) |
+| matrix document recognised | 0 | **75** |
+
+### What it cost to learn
+
+**The architecture was already 80% there, and one dispatcher was not.**
+`document_import_items.target_table` is a per-item indexed column, `confirm()`
+already dispatches on it, and `_MODEL_FOR_TABLE` already drives discard
+generically — so several tables per document needed **no migration**. A day could
+have been lost redesigning the staging layer; the fix was one `if/elif`.
+
+**"Route on the data" naively means "run every extractor", and that is
+catastrophic.** Measured before writing the router: 1115 false medications and
+1115 false conditions against 1014 true lab rows — more false claims than true
+ones, with `ALB` staged as a drug with no dose and `AGE` as a diagnosis "filed as
+other, severity moderate". `records_from_medication_table` and
+`records_from_condition_table` append a record for every named row; they are
+correct GIVEN that the caller settled the type and have no guard of their own.
+**Measuring the failure first is what produced the guard**, and the number is now
+pinned by a test (§3ay).
+
+**The discriminator had to be measured, not reasoned.** A unit with a
+denominator is a concentration (`mg/dL` 130, `g/dL` 63, `Cells/uL` 60, `mEq/L`
+54, `U/L` 39); a bare mass unit is a dose. That rule is only safe because **zero
+of 1014 real lab records carry a bare mass unit** — and the 20.2% of rows with
+neither unit nor range are carried by the lab's own test code, which is on 92.6%
+of them.
+
+**A tables-only detector would have silently destroyed 75 real results.**
+`September labs AA.pdf` parses through `layout_matrix` and yields **zero
+tables**, so gating the lab stager on table evidence alone drops all 75 of its
+records. Caught by measuring per document rather than in aggregate — the §3aa
+failure this module exists to prevent, nearly introduced by the fix for it.
+
+**`NEG` is the reason the sentinel list is two items and not a rule about
+digits.** §3ab had already paid for "a real row has a number in its value
+column" deleting 49 of 106 rows including `WBC = NONE SEEN`. Measuring the full
+non-numeric vocabulary first (`N/A` 60, `Error` 60, `NEG` 11) is what kept a real
+finding out of the sentinel set.
+
+### Two things I asserted before measuring, both wrong
+
+- **"LOINC is blocked on you downloading a zip."** `app/data/loinc_core.tsv.gz`
+  has been on disk since 2026-09-30 — LOINC 2.83, 62,148 terms, Regenstrief
+  notice emitted. Nothing was blocked. Corrected to the operator in the same
+  session.
+- **"The parser drops the test code."** It is **captured** on 939 of 1014
+  records at `normalize.py:450` and dropped LATER, by the import service, which
+  never reads `LabRecord.code`. The sink, not the parser — §3ay's shape.
+
+Both were argued from reading code rather than running it, which is §0 exactly,
+in the session whose whole subject was not hard-coding assumptions.
+
+### Queued, not done
+
+Treatment-report import still needs a **field extractor** (label→value by
+coordinate): the report is a FORM, and `classify_table` reads TABLES, so it sees
+almost nothing — the same 1-point-out-of-41 blindness one layer down. Full queue
+in TASKS 14a–14g; open items and their measurements in OPEN_ITEMS 11–12.

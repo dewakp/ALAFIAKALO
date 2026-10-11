@@ -159,6 +159,31 @@ async def parse_document(
     return _response_for(record, parsed)
 
 
+def _primary_target(record: DocumentImport) -> str | None:
+    """Which table this import mostly feeds, read off the STAGED ITEMS.
+
+    It used to be `TARGET_FOR_DOC_TYPE[doc_type]` — a lookup on the document
+    LABEL. Routing is per-claim since 2026-10-11, so the label is no longer the
+    destination and reading it here would report a table the import may not
+    touch. `document_import_items.target_table` is the fact.
+
+    ⚠️ This reports the LARGEST target, and a document can now legitimately feed
+    several (a visit summary → conditions AND medications AND measurements).
+    `target_table` is a single string on the wire and web, iOS and Android all
+    decode it as one, so widening it to a list is a client change rather than a
+    backend one — the per-item `target_table` is already in `items`, so nothing
+    is hidden from a caller that looks. Named `_primary_target` so the next
+    reader is not misled into treating it as the whole answer.
+    """
+    counts: dict[str, int] = {}
+    for item in record.items or []:
+        if item.target_table:
+            counts[item.target_table] = counts.get(item.target_table, 0) + 1
+    if not counts:
+        return None
+    return max(counts.items(), key=lambda kv: (kv[1], kv[0]))[0]
+
+
 def _response_for(
     record: DocumentImport, parsed: pipeline.ParseResult, already_imported: bool = False
 ) -> LabReportParseResponse:
@@ -174,7 +199,7 @@ def _response_for(
         doc_type=record.doc_type,
         doc_type_confidence=record.doc_type_confidence,
         confidence=record.parse_confidence,
-        target_table=importer.TARGET_FOR_DOC_TYPE.get(record.doc_type or ""),
+        target_table=_primary_target(record),
         page_count=record.page_count,
         error=record.error_detail,
         already_imported=already_imported,
@@ -208,7 +233,7 @@ async def get_import(
         **_summary(record),
         patient_name=record.patient_name,
         ordering_provider=record.ordering_provider,
-        target_table=importer.TARGET_FOR_DOC_TYPE.get(record.doc_type or ""),
+        target_table=_primary_target(record),
         layout_kind=record.layout_kind,
         extraction_method=record.extraction_method,
         notes=list(record.notes or []),

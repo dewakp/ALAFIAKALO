@@ -1363,3 +1363,118 @@ none of it may be invented:
 Until one of those is answered, every effect in the store stays "shown, not
 counted", and the layer's only function is to explain itself.
 
+
+---
+
+## 11. The PDF importer routed on a label, not on the data — PARTLY FIXED 2026-10-11
+
+Raised by the operator after a real document had to be imported by hand:
+*"the pdf importer must be able to recognize, parse, categorize and allow import
+of varied pdf documents and formats"*, then *"5 types is grounding tens or even
+hundreds of variations in 5 hard-coded type. what coul go wrong there.
+everything."*
+
+The trigger was concrete. On 2026-10-10 a DaVita Treatment Details Report
+(10/09, Frederick Dialysis) was imported as **hand-written SQL** — production
+session 2776 plus six intradialytic readings — because nothing in the pipeline
+could read it.
+
+### What was wrong, and it was the AXIS not the coverage
+
+`TARGET_FOR_DOC_TYPE` mapped one `doc_type` to **one** destination table. Real
+documents are not one thing: that treatment report carries a session, six timed
+BP/UF readings, pre/post vitals, a dialyser prescription and a close reason —
+five kinds of clinical fact in one PDF. **No value of `doc_type` could ever have
+imported it.** A visit summary is the same shape (conditions AND medications AND
+measurements). `DIALYSIS_FLOWSHEET: TABLE_LABS` is the line that proves it: a
+flowsheet is not a lab report, and the mapping was only harmless because both
+entries pointed at the same table.
+
+### FIXED — claim-based routing
+
+`app/services/docparse/claims.py` reports every kind of data a document holds
+with the evidence for each; `stage()` runs the stager for each kind present.
+`doc_type` is still stored and shown to a reviewer, and routes nothing. Verified
+on the real corpus: **0 false medications, 0 false conditions** where a naive
+"run every extractor" router stages **1115 of each** against 1014 true lab rows.
+`228 passed` across all eleven docparse/import suites. Detail in WORKLOG.
+
+### STILL OPEN — the measurements, so these are not re-derived
+
+**11a. Recognition is blind to FORM documents.** `OPEN` — `classify_table` reads
+tables. The treatment report is mostly labelled values scattered across a page
+and scores **1 point out of 41** against the signature table. Needs label→value
+extraction by coordinate. This is what still blocks treatment-report import; see
+TASKS 14a/14b.
+
+**11b. LOINC cannot be resolved from names, and the stated unblock does not
+exist.** `OPEN` — over 411 production names: 143 resolve, **68 by a rank
+tiebreak between tests LOINC itself separates**, **5 determinate (1.2%)**.
+`Platelet` → mean platelet VOLUME, `Platelets` → the count. The removal comment
+in `document_import_service.py` names "a specimen read off the report" as what
+would make it safe; measured, **these reports print no specimen** — the only
+`blood` is the dialysis BLOOD FLOW parameter and the only `sample` is prose about
+aged samples. The route forward is the lab's own test code (TASKS 14f), not a
+better resolver.
+
+> ⚠️ **Two of my own statements in this round were wrong and are corrected
+> here.** I said LOINC was blocked on the operator downloading a zip:
+> `app/data/loinc_core.tsv.gz` has been on disk since 2026-09-30 — LOINC 2.83,
+> 62,148 terms — so nothing was blocked. And I said the test code was being
+> dropped by the parser; it is **captured** on 939 of 1014 records and dropped
+> later, by the import service, which never reads `LabRecord.code`. Both were
+> asserted before measuring (§0).
+
+**11c. Imaging findings and recipes have nowhere to go.** `NEEDS DECISION` —
+measured: no imaging table and no recipes table exist in the 130-table schema
+(`facilities.imaging` is a facility TYPE enum; `recipe_url` is a meal-plan
+column). Named in `claims.NO_TARGET_YET` so they are reported as unfileable
+rather than misfiled. A target means a model plus a hand-written migration.
+
+**11d. No OCR, so a photographed document cannot be imported at all.**
+`NEEDS DECISION` — `extract.py` takes a PDF with a text layer or plain text; a
+scan returns `needs_ocr` and `usable` is False. The operator has been sending
+photos (the 10/09 report arrived as six). The decision is egress, not
+technology: local OCR versus a hosted vision model that §3al records as an
+unredacted path carrying the patient's printed name. See TASKS 14e.
+
+**11e. The classifier resolves ties by dict order.** `OPEN` — a discharge
+summary quoting an imaging study scores `discharge_summary=20,
+imaging_report=20`, and the winner is whichever is declared first in
+`SIGNATURES`. Adding a type reclassifies existing documents.
+
+**11f. Three of five declared types have never met a real document.** `OPEN` —
+`medication_list`, `discharge_summary`, `imaging_report`. The corpus is 13 lab
+reports, which is §3ab's "the corpus cannot see what it does not contain" still
+true a fortnight later.
+
+---
+
+## 12. 120 lab rows imported the word "Error" as a result — FIXED 2026-10-11
+
+Found while building the claim detector, not reported. Measured over the 13
+corpus documents — the COMPLETE vocabulary of result texts carrying no digit:
+
+    'N/A'     60    the lab states no result exists
+    'Error'   60    the assay failed
+    'NEG'     11    NEGATIVE — a real qualitative finding
+
+Every one of the 120 `Error`/`N/A` rows had `has_result` true, confidence
+**0.75**, `is_abnormal` NULL and an **empty `notes`** — so a reviewer saw rows
+claiming Albumin, ALP, AST/SGOT, BUN and Calcium were resulted on that date with
+"Error" as the value, and nothing said otherwise. `is_abnormal` NULL puts them in
+§3ab's 9,417 not-assessed rows.
+
+Worse than cosmetic: dedupe is keyed `(test_date, lower(test_name))` and §3ab
+records that `existing_row_id` is **never read back**, so when the lab re-issues
+a corrected panel the real Albumin lands BESIDE the Error row and the patient
+holds two contradictory results for one date.
+
+`review_lab_value` could never have caught it — it is handed the numeric value
+and never sees `value_text`.
+
+Fixed in `_stage_labs`: such a row stages **UNTICKED with its reason**, never
+deleted (§3ab). **`NEG` is an explicit exclusion**, recorded as data in
+`claims.NOT_A_FAILURE_EXAMPLES` — §3ab measured "a real row has a number in its
+value column" deleting 49 of 106 rows on a Quest report, including
+`WBC = NONE SEEN` and `RBC = 0-2`. Negative is a result; "Error" is not.

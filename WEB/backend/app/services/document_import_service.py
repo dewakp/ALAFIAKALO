@@ -48,7 +48,9 @@ from app.models.document_import import (
 from app.models.labs import LabResult
 from app.models.medications import Medication
 from app.services import clinical_sources as sources
+from app.services.docparse import claims
 from app.services.docparse import classify as doc_types
+from app.services.docparse.claims import result_is_reported_failure
 from app.services.docparse.dictionaries import analyte_key
 from app.services.docparse.pipeline import ParseResult
 from app.services.docparse.records_clinical import (
@@ -71,8 +73,15 @@ TABLE_LABS = "lab_results"
 TABLE_MEDICATIONS = "medications"
 TABLE_CONDITIONS = "chronic_conditions"
 
-#: Which clinical table each document type feeds.
-TARGET_FOR_DOC_TYPE = {
+#: ⚠️ NO LONGER A ROUTER (2026-10-11). Kept because it records which table each
+#: document type was ASSUMED to feed, and because `doc_type` is still stored and
+#: shown to the reviewer as a hint. Routing is now per-claim — see `stage()`.
+#:
+#: Reading this as the destination is what made a treatment report importable
+#: only as "lab results", and `DIALYSIS_FLOWSHEET: TABLE_LABS` is the line that
+#: proves the axis was wrong: a dialysis flowsheet is not a lab report, and the
+#: mapping was only harmless because both pointed at the same table.
+LEGACY_TARGET_FOR_DOC_TYPE = {
     doc_types.LAB_REPORT: TABLE_LABS,
     doc_types.DIALYSIS_FLOWSHEET: TABLE_LABS,
     doc_types.MEDICATION_LIST: TABLE_MEDICATIONS,
@@ -132,21 +141,56 @@ async def stage(db: AsyncSession, user_id: int, parsed: ParseResult) -> Document
     db.add(record)
     await db.flush()
 
-    target = TARGET_FOR_DOC_TYPE.get(parsed.doc_type)
-    if target == TABLE_LABS:
-        items = await _stage_labs(db, user_id, parsed)
-    elif target == TABLE_MEDICATIONS:
-        items = await _stage_medications(db, user_id, parsed)
-    elif target == TABLE_CONDITIONS:
-        items = await _stage_conditions(db, user_id, parsed)
-    else:
-        items = []
-        if parsed.ok:
-            record.error_detail = (
-                f"This looks like a {parsed.doc_type.replace('_', ' ')}, which can be "
-                "read but cannot be imported yet. The values below are shown for "
-                "reference only."
-            )
+    # Route on WHAT THE DATA IS, not on one label.
+    #
+    # `TARGET_FOR_DOC_TYPE` allowed exactly ONE destination per document. Real
+    # documents are not one thing: the 10/09 DaVita Treatment Details Report
+    # carries a session, six timed readings, pre/post vitals, a prescription and
+    # a close reason in one PDF, so no value of `doc_type` could import it — it
+    # was written by hand as production session 2776 on 2026-10-10. A visit
+    # summary is the same shape: conditions AND medications AND measurements.
+    #
+    # `document_import_items.target_table` is already a per-item indexed column,
+    # `confirm()` already dispatches on it and `_MODEL_FOR_TABLE` already drives
+    # discard generically — so several targets per document needs NO migration.
+    # This if/elif was the only thing collapsing it to one.
+    #
+    # The label is KEPT as metadata (it is stored on `record.doc_type` above and
+    # shown to the reviewer) and is no longer a switch. That also defuses a live
+    # trap: `September labs AA.pdf` classifies as `dialysis_flowsheet` while
+    # yielding 75 LAB rows, so anything routing on that label would have broken
+    # a working import.
+    #
+    # Each stager is gated on EVIDENCE, never run unconditionally. Measured over
+    # the lab corpus 2026-10-11, calling every extractor stages 1115 false
+    # medications and 1115 false conditions beside 1014 true lab rows — more
+    # false claims than true ones, because `records_from_medication_table` and
+    # `records_from_condition_table` append a record for every named row and were
+    # written assuming the caller had already settled the type.
+    kinds = claims.kinds_in_document(
+        parsed.tables,
+        layout_kind=parsed.layout_kind,
+        record_count=len(parsed.records),
+    )
+
+    items: list[DocumentImportItem] = []
+    if claims.MEASUREMENT in kinds:
+        items.extend(await _stage_labs(db, user_id, parsed))
+    if claims.MEDICATION in kinds:
+        items.extend(await _stage_medications(db, user_id, parsed))
+    if claims.CONDITION in kinds:
+        items.extend(await _stage_conditions(db, user_id, parsed))
+
+    if not items and parsed.ok:
+        # Read, and deliberately not filed. §3aa — an error is not an empty
+        # state, and this is not a guess either: say what was recognised and
+        # that it has nowhere to go, rather than filing it somewhere plausible.
+        unplaceable = ", ".join(sorted(kinds)) or "no recognisable clinical data"
+        record.error_detail = (
+            f"This document was read, but what it contains ({unplaceable}) "
+            "cannot be imported yet. The values below are shown for reference "
+            "only."
+        )
 
     for item in items:
         item.import_id = record.id
@@ -265,6 +309,29 @@ async def _stage_labs(db: AsyncSession, user_id: int, parsed: ParseResult) -> li
         if not test_date:
             problems.insert(0, "No date could be determined for this result.")
 
+        # The lab said it could not produce a result, and that was being stored
+        # AS one. Measured on the corpus 2026-10-11: 60 rows read `Error` and 60
+        # read `N/A`, every one with `has_result` true, confidence 0.75,
+        # `is_abnormal` NULL and an empty `notes` — so a reviewer saw 120 rows
+        # claiming Albumin, ALP, AST/SGOT, BUN and Calcium were resulted on that
+        # date with "Error" as the value, and nothing said otherwise.
+        #
+        # Worse than cosmetic: dedupe is keyed `(test_date, lower(test_name))`
+        # and §3ab records that `existing_row_id` is never read back, so when the
+        # lab re-issues a corrected panel the real Albumin lands BESIDE the
+        # Error row and the patient holds two contradictory results for one date.
+        #
+        # `review_lab_value` cannot catch this — it is handed the numeric value
+        # and never sees `value_text`. NEG is deliberately NOT a failure: it is a
+        # finding, exactly like §3ab's `NONE SEEN`.
+        reported_failure = result_is_reported_failure(record.value_text)
+        if reported_failure:
+            problems.insert(0, (
+                f"The report printed “{record.value_text}” here rather than a "
+                "result, so nothing was measured for this analyte. Tick it only "
+                "if you want that recorded."
+            ))
+
         # What did previous reviewers make of a row shaped like this one?
         #
         # Advisory only: it unticks and explains. It cannot delete, and it does
@@ -309,7 +376,8 @@ async def _stage_labs(db: AsyncSession, user_id: int, parsed: ParseResult) -> li
             # reader the case was handled. §3ar, inside the feature built to
             # act on what reviewers decided.
             accepted=((dedupe != DEDUPE_DUPLICATE) and bool(test_date)
-                      and believable and judged is None),
+                      and believable and judged is None
+                      and not reported_failure),
             error="; ".join(problems) or None,
         ))
     return items

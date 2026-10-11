@@ -472,3 +472,141 @@ aggregate. Whatever is built must honour `believable`/`warnings`, and the
 per-recipe provenance has to survive into the aggregate — otherwise an
 implausible total cannot be traced to which recipe caused it.
 
+
+---
+
+## 14. The PDF importer must recognise and route ANY document
+
+Operator, 2026-10-11: *"PDF documents may be disparate, what they show are often
+same data: lab, medication, visit summary, recipe, food list, pantry list,
+imaging, flowsheets data etc. We must recognize data type from the upload and
+route to the correct db table or tables. That is the flexibility"* — and, on the
+five hand-typed document types: *"5 types is grounding tens or even hundreds of
+variations in 5 hard-coded type. what coul go wrong there. everything. so we are
+not hard-coding but being flexible."*
+
+Landed 2026-10-11 (see WORKLOG): claim-based routing replaces
+`TARGET_FOR_DOC_TYPE`, so one document may now feed several tables, and
+`doc_type` is a stored hint rather than a switch. What is QUEUED is below.
+
+### 14a. A field extractor — the thing blocking treatment reports
+
+`claims.classify_table` reads TABLES: rows with column roles. The DaVita
+Treatment Details Report is mostly a **form** — labelled values scattered across
+a page (`Ordered Target Weight 50.0 kg`, `BFR 300 mL/min`, `Close Treatment
+Reason …`) plus ONE table of timed readings. Measured: that report scores **1
+point out of a possible 41** against the signature table, and `classify_table`
+sees almost none of its fields.
+
+So this needs label→value extraction BY COORDINATE, the way `layout.py` already
+finds columns — not another row classifier. Until it exists, those reports are
+imported by hand: production session 2776 was written as SQL on 2026-10-10.
+
+### 14b. The treatment stager (`therapy_sessions` + `intradialytic_readings`)
+
+Straightforward once 14a exists, and the mechanics are already verified:
+
+- `_build_row` returns `TherapySession(..., intradialytic_readings=[...])` and
+  the relationship cascade inserts parent and children on one `db.add`.
+  `confirm()` needs NO change; discard cascades at the FK.
+- `TherapySession` is **not** in `test_clinical_sources.GUARDED`, so no §3aa
+  exemption is needed. ⚠️ But `SessionDrug` IS, and `session_drug_sync` fires on
+  the API save path only — a session created through `_build_row` would carry
+  `drugs_administered` text with no structured rows, which is exactly the
+  ten-month staleness §3av records.
+- `_naive_session_payload`'s overnight rollover is also on the API path, not
+  `_build_row`. A treatment crossing midnight imported this way would store the
+  end before the start — the bug §3av measured on 4 production rows.
+
+### 14c. `pantry_items` and `nutrition_logs` stagers — the easy wins
+
+Both are list-shaped and fit the detector as it stands. `pantry_items` already
+stores name / category / quantity / unit / location / expiration_date, so a
+photographed pantry list or grocery receipt maps on almost directly, and
+`PANTRY_ITEM` detection (a counted quantity in `cans`, `lbs`, `cups`…) is
+already written and tested.
+
+### 14d. Imaging and recipes have NO destination table
+
+Measured 2026-10-11: `facilities.imaging` is a facility TYPE enum value and
+`recipe_url` is a column on a meal plan. There is no imaging table and no
+recipes table anywhere in the 130-table schema. Both are named in
+`claims.NO_TARGET_YET` so a reviewer is told "read, cannot be filed" instead of
+the rows landing somewhere plausible — but giving either a real target means a
+model plus a HAND-WRITTEN migration (§3ao: `--autogenerate` would propose
+dropping live tables).
+
+Recipes overlap items 9-13 above; whatever is built should serve both.
+
+### 14e. OCR / image input — NEEDS A DECISION
+
+`extract.py` accepts a PDF with a text layer, or plain text. A scan returns
+`needs_ocr`, `usable` is False, and the import stops. **There is no OCR path at
+all** — so a photographed document cannot be imported in any form, and the
+operator has been sending document PHOTOS (the 10/09 treatment report arrived as
+six).
+
+The decision is not technical, it is egress: local OCR (tesseract/PaddleOCR in
+the image — no third party, weaker on phone photos) versus a hosted vision model
+(far better on photos, but §3al records that the vision path is NOT redacted and
+a lab-report photo carries the patient's printed name and record number). Do not
+send document images to a vendor without that call being made.
+
+### 14f. Persist the lab's own test code, and hang LOINC off it
+
+Measured 2026-10-11 over the 13-document corpus:
+
+    records carrying a numeric test code     939 of 1014  (92.6%)
+    1 name -> MANY codes                       0 of 142
+    1 code -> MANY names                      56 of  83
+
+The code UNITES the spellings §3ax still lists as unresolved — `1001` = ALK PHOS
++ ALP, `1007` = CHLORIDE + CL, `1010` = CREATININE + CRE, `1016` = POTASSIUM +
+K+, `2244` = HEMOGLOBIN + HGB — while correctly keeping `1004` BUN SEPARATE from
+`1023` BUN-POST (§3ac's post-dialysis BUN). §3ax says each of those splits "is a
+clinical identity claim, so add them deliberately"; the lab has been stating
+them on every row.
+
+`LabRecord.code` is already populated (`normalize.py:450`) and
+`document_import_service` **never reads it** — §3ay's never-plugged-in sink, on
+the best identity signal in the document. Queued:
+
+1. an additive column for the source test code (no dedupe change — §3ab: a fix
+   that changes the NAME makes a re-import land BESIDE the wrong row);
+2. identity anchored on `(lab, code)` ALONGSIDE the verbatim printed name, which
+   §3ax requires stay exactly as the document printed it;
+3. LOINC attached per code **under review** (§3ab's two-reviewer shape), never
+   per name, and `loinc_code` left NULL rather than defaulted — the column is
+   shared with real codes from the FHIR import.
+
+⚠️ **Resolving LOINC from NAMES is a dead end and the audit says so.** Over 411
+production names: 143 resolve, **68 decided by a rank tiebreak between tests
+LOINC itself separates**, and only **5 determinate (1.2%)**. `Platelet` resolves
+to mean platelet VOLUME while `Platelets` resolves to the count. The unblock
+named in `document_import_service.py`'s removal comment — "a specimen read off
+the report" — **is not available**: measured, these reports print no specimen at
+all (the only `blood` is the dialysis BLOOD FLOW parameter, the only `sample` is
+prose about aged samples).
+
+### 14g. Smaller, measured, carried forward
+
+- **The classifier breaks ties on dict order.** `discharge_summary=20,
+  imaging_report=20` is resolved by declaration order in `SIGNATURES`, so adding
+  a type silently reclassifies existing documents.
+- **`target_table` is a single string on the wire** and web, iOS and Android all
+  decode it as one. `_primary_target` now reports the LARGEST target, which
+  under-reports a genuinely multi-target document. Widening it is a client
+  change across three platforms (§3).
+- **The medication and condition extractors still have no shape guard of their
+  own.** `records_from_medication_table` and `records_from_condition_table`
+  append a record for every named row; unguarded they stage **1115 false
+  medications and 1115 false conditions** against 1014 true lab rows.
+  `claims.py` gates them from outside — correct today, and a trap for anyone who
+  calls those functions directly.
+- **Claim detection is per DOCUMENT, not per row.** 928 of 1014 records are
+  claimed as measurements; the gate decides only WHETHER `_stage_labs` runs, so
+  nothing is dropped. Per-row claiming would let one PDF route row-by-row, which
+  is what a true mixed document (a visit summary) actually needs.
+- **Three of the five declared types have never met a real document.**
+  `medication_list`, `discharge_summary` and `imaging_report` are untested
+  against anything real — the corpus is 13 lab reports, exactly as §3ab warns.
