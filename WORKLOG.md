@@ -3175,3 +3175,79 @@ Treatment-report import still needs a **field extractor** (label→value by
 coordinate): the report is a FORM, and `classify_table` reads TABLES, so it sees
 almost nothing — the same 1-point-out-of-41 blindness one layer down. Full queue
 in TASKS 14a–14g; open items and their measurements in OPEN_ITEMS 11–12.
+
+### 2026-10-11 (later) — TASKS 14a: a field extractor with no vocabulary of labels
+
+**Instruction:** *"commit then proceed to 14a"*, under the standing rule *"as we
+proceed, add every suggestion to a task list … Always document."*
+
+**Work done:** `app/services/docparse/fields.py` + `tests/test_field_discovery.py`
+(13 tests). `metadata.py` is untouched and became the oracle.
+
+`metadata.py` already did label→value extraction by coordinate — for six fields
+via ~40 typed literals across `_COLLECTION_LABELS`, `_PROVIDER_LABELS`,
+`_LAB_LABELS` and the rest. Its three primitives were the right ones; what
+changed is that the labels are now DISCOVERED. Results on the 13-document
+corpus:
+
+| | |
+|---|---|
+| fields discovered | **165**, ~12.7 per document (hand-typed ceiling: 6) |
+| collection date / lab / provider recovered | **12/12 · 12/12 · 13/13** |
+| labels polluted by a previous field's value | **0** (was 13) |
+| tests | 51 with claims routing; 166 across the docparse + import suites |
+
+### What it cost to learn
+
+**Both real bugs were found by measuring the corpus; the unit tests passed
+through both.** That is the headline, and it happened twice in one module.
+
+- **A colon is also a clock.** A naive label regex returns
+  `DaVita Inc. 01/12/2026 14` seven times and `EDT 23` twenty-four — footer
+  timestamps, matched right up to the colon in `14:23`. Of 47 candidate
+  "labels" in the corpus, about six were real. §3av's `parseInt("7:27") == 7`,
+  in a different reader.
+- **Geometry cannot say which label a value belongs to.**
+  `DOB: 03/15/1974  MPI: 1934716` sits in ONE cell with 3pt word gaps, so a
+  geometric backward walk swallowed the date and produced the label
+  `03/15/1974 | MPI` on **all 13 documents** — while every unit test passed,
+  because the fixtures had placed those fields in separate cells. The date is
+  equidistant from the label before it and the label after it. Only TOKEN SHAPE
+  separates them, which is what `metadata._NEXT_LABEL` had assumed all along by
+  matching letters and nothing numeric.
+
+**My first fix was worse than the bug.** Flooring the backward walk at the
+previous colon made `MPI`'s span begin at the date, which truncated `DOB`'s
+value to empty — and both fields were then lost, not one mislabelled. Caught
+only by re-measuring after the change. §3ap: classify a finding before acting,
+and re-measure after acting.
+
+**Seven tests failed against correct code because the FIXTURE was wrong.** The
+first helper placed every word 60pt from the last, which makes each WORD its own
+cell, so `Ordered Target Weight:` arrived as three cells and the label came back
+as `Weight`. The corpus oracle test passed throughout, which is what identified
+the fixture rather than the implementation. A fixture has geometry too, and an
+unrealistic one tests nothing — `layout.py` measures a word space at ~2pt and a
+column gap at ~29pt on this family, and the fixtures now sit either side of that.
+
+**One test's EXPECTATION was wrong, not its subject.** `03/15/1974 MPI: 1934716`
+was asserted to yield nothing, on the theory that a date-initial label should be
+rejected wholesale. With the token walk the label is simply `MPI` and the field
+reads correctly — discarding it would have lost a real field to guard against a
+bug that no longer existed. The assertion was corrected rather than the code.
+
+**The bounds are asymmetric, and both sides were measured.** A label may not
+reach backwards across a cell gap; a value is the remainder of the label's own
+cell, or — when the colon ends that cell — exactly ONE cell further. Geometry
+cannot distinguish `MPI: 1934716 | Printed 14:23` from
+`Ordered Target Weight: | 50.0 kg`: both are `label:`, a gap, then more text.
+Letting a value run to the next label swallows the footer; bounding it to its
+own cell loses the value in the second, which on a form is most of them.
+
+### Queued, and honest about the blocker
+
+The extractor exists; **the documents it was built for still cannot be tested.**
+304 PDFs on this machine, 13 clinical, all table-shaped lab reports. The
+treatment report exists only as photographs and there is no OCR path, so the
+no-colon form-field case is unproven and TASKS 14b stays blocked in practice.
+The unblock is one real treatment-report PDF, or 14e. Recorded as OPEN_ITEMS 13.

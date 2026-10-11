@@ -489,7 +489,7 @@ Landed 2026-10-11 (see WORKLOG): claim-based routing replaces
 `TARGET_FOR_DOC_TYPE`, so one document may now feed several tables, and
 `doc_type` is a stored hint rather than a switch. What is QUEUED is below.
 
-### 14a. A field extractor — the thing blocking treatment reports
+### 14a. ~~A field extractor~~ — BUILT 2026-10-11, but see the scope limit
 
 `claims.classify_table` reads TABLES: rows with column roles. The DaVita
 Treatment Details Report is mostly a **form** — labelled values scattered across
@@ -498,9 +498,25 @@ Reason …`) plus ONE table of timed readings. Measured: that report scores **1
 point out of a possible 41** against the signature table, and `classify_table`
 sees almost none of its fields.
 
-So this needs label→value extraction BY COORDINATE, the way `layout.py` already
-finds columns — not another row classifier. Until it exists, those reports are
-imported by hand: production session 2776 was written as SQL on 2026-10-10.
+`app/services/docparse/fields.py` does label→value extraction by coordinate,
+with NO vocabulary of labels — replacing the ~40 hand-typed literals in
+`metadata.py`'s six tuples as the mechanism (that reader is unchanged and is now
+the oracle). Measured over the 13-document corpus: **165 fields discovered,
+~12.7 per document against a ceiling of 6**, and it recovers every labelled
+field the tuned reader finds — collection date 12/12, lab 12/12, ordering
+provider 13/13.
+
+⚠️ **STILL UNVALIDATED on an actual form.** There is no form-shaped clinical PDF
+on this machine — 304 PDFs, 13 clinical, all table-shaped lab reports — so the
+geometry is proven only against those reports' header block. A real treatment
+report would exercise the no-colon case, and it cannot be obtained without 14e
+(no OCR, and the reports arrive as photographs). So 14b remains blocked in
+practice even though its extractor now exists.
+
+⚠️ **`patient_name` is deliberately NOT discoverable.** These reports print the
+name with no label at all, so it stays with `metadata._guess_patient_name`'s
+name-shape regex. A form extractor cannot find an unlabelled field, and
+stretching it to try would be the wrong fix.
 
 ### 14b. The treatment stager (`therapy_sessions` + `intradialytic_readings`)
 

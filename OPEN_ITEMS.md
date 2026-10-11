@@ -1478,3 +1478,44 @@ deleted (§3ab). **`NEG` is an explicit exclusion**, recorded as data in
 `claims.NOT_A_FAILURE_EXAMPLES` — §3ab measured "a real row has a number in its
 value column" deleting 49 of 106 rows on a Quest report, including
 `WBC = NONE SEEN` and `RBC = 0-2`. Negative is a result; "Error" is not.
+
+---
+
+## 13. Field discovery is validated against lab headers, not against a form — OPEN 2026-10-11
+
+`docparse/fields.py` (TASKS 14a) discovers label→value pairs by coordinate with
+no vocabulary, and recovers everything `metadata.py`'s hand-typed reader finds:
+collection date 12/12, lab 12/12, ordering provider 13/13, 165 fields across the
+corpus against a hand-typed ceiling of 6.
+
+**But the documents it was built FOR cannot be tested.** Measured: 304 PDFs on
+this machine, 13 clinical, and all 13 are table-shaped lab reports. The DaVita
+treatment report — the document that motivated the whole change — exists only as
+photographs, and there is no OCR path (item 11d), so it cannot be parsed at all.
+
+So the header-grid and inline-colon forms are proven on real geometry and the
+**no-colon form field** case (`Ordered Target Weight   50.0 kg`, with no colon
+and the value in a neighbouring cell) is **unproven**. A synthetic fixture would
+only prove the fixture — §3ab, and this round has already paid for that twice,
+below.
+
+Consequence: TASKS 14b (the treatment stager) is blocked in practice even though
+its extractor exists. The unblock is one real treatment-report PDF, or OCR.
+
+> **Both bugs in this module were found by MEASURING, and the unit tests passed
+> through both.** They are recorded because the shape recurs:
+>
+> - **A colon is also a clock.** A naive `([A-Z]…)\s*:` returns
+>   `DaVita Inc. 01/12/2026 14` (7×) and `EDT 23` (24×) — footer timestamps
+>   matched up to the colon in `14:23`. §3av's `parseInt("7:27") == 7`.
+> - **Geometry cannot say which label a value belongs to.**
+>   `DOB: 03/15/1974  MPI: 1934716` packs the date 3pt from `MPI:` — one cell —
+>   so a purely geometric backward walk produced the label `03/15/1974 | MPI` on
+>   **all 13 documents**, while every unit test passed because the fixtures had
+>   put those fields in separate cells. The date is equidistant from the label
+>   it follows and the label it precedes; only TOKEN SHAPE separates them, which
+>   is what `metadata._NEXT_LABEL` already assumed by matching letters only.
+> - ⚠️ **The first fix was worse than the bug.** Flooring the backward walk at
+>   the previous colon made `MPI`'s span start at the date, which truncated
+>   `DOB`'s value to empty — and BOTH fields were lost. Caught only by
+>   re-measuring the corpus after the change, not by the suite.
