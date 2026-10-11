@@ -362,10 +362,22 @@ async def list_datasets(
     for key, ds in DATASETS.items():
         by_model.setdefault(ds["model"], []).append(key)
 
+    # Counted over the SAME 365-day window the signal datasets use below.
+    #
+    # These were all-time row counts while the signal counts are days-with-data
+    # in the last year, and the picker ranks on this number — so a dataset with
+    # 1,046 rows since 2018 outranked one with 161 days in the last twelve
+    # months, and the auto-selection chose on a comparison that meant nothing.
+    today = date.today()
+    year_ago = today - timedelta(days=365)
+
     counts: dict[str, int] = {}
     for model, keys in by_model.items():
         cols = [func.count(getattr(model, DATASETS[k]["value_col"])).label(k) for k in keys]
-        row = (await db.execute(select(*cols).where(model.user_id == current_user.id))).one()
+        row = (await db.execute(select(*cols).where(
+            model.user_id == current_user.id,
+            getattr(model, DATASETS[keys[0]]["date_col"]) >= year_ago,
+        ))).one()
         counts.update({k: getattr(row, k) or 0 for k in keys})
 
     by_domain: dict[str, list] = {}
@@ -377,8 +389,10 @@ async def list_datasets(
             "count": counts.get(key, 0),
         })
 
-    # Composite weight datasets — count is the total observations across sources.
-    weight_obs = await _collect_weight_observations(current_user.id, db, date(1900, 1, 1))
+    # Composite weight datasets — counted over the SAME window as everything
+    # else. All-time, this reported 7,235 observations against a nutrition
+    # series' 736 days, and ranked first on a comparison of different units.
+    weight_obs = await _collect_weight_observations(current_user.id, db, year_ago)
     for key, ds in VIRTUAL_DATASETS.items():
         by_domain.setdefault(ds["domain"], []).append({
             "key": key,
@@ -391,14 +405,24 @@ async def list_datasets(
     # that `dialysis.pre_systolic` has 148 days where `bp_systolic` has 18.
     # Offered ONLY where they hold data: a picker listing 120 empty metrics is
     # worse than one listing the dozen a patient actually has.
-    today = date.today()
-    signals = await collect_signals(db, current_user.id,
-                                    today - timedelta(days=365), today)
+    # A signal whose LABEL a hand-typed dataset already shows is NOT offered
+    # again. `diet.calories` and `calories` are the same measurement from the
+    # same table, and listing both put "Calories" twice in the picker — the
+    # auto-selection then chose both and charted one series as two. Deduping on
+    # the label rather than on a key mapping keeps this honest: if two entries
+    # would present the same words to the patient, showing both is the bug,
+    # wherever they came from.
+    already = {d["label"].strip().lower() for d in DATASETS.values()}
+    already |= {d["label"].strip().lower() for d in VIRTUAL_DATASETS.values()}
+
+    signals = await collect_signals(db, current_user.id, year_ago, today)
     for key, series in signals.items():
         meta = SIGNAL_DATASETS.get(key)
         if not series:
             continue
         label = meta["label"] if meta else signal_label(key)
+        if label.strip().lower() in already:
+            continue
         by_domain.setdefault(
             meta["domain"] if meta else signal_domain(key), []).append({
                 "key": key,

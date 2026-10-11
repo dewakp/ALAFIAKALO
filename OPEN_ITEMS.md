@@ -1775,3 +1775,60 @@ and charting the last of those gives 36 points ending **2026-10-09** against
 > data stopped.** Three screens have now shown this on the same record — the AI
 > tool (§3am), the wellness score (§3ba) and the chart. The fix each time was
 > the sources, never the window.
+
+---
+
+## 18. The API offered the data and the PAGE never asked for it — FIXED 2026-10-11
+
+Operator, after a hard reset: three screenshots, *"all these after a hard reset
+so it's not browser data."* Correct, and the reset proved the opposite of what
+it looked like — **Wellness had moved 49 → 44 and Dialysis 94 → 59**, and the
+narrative carried the new finding, so the backend was reaching the browser
+perfectly. The Chart Dashboard still showed `Systolic BP · Points: 9` because
+**the page was still asking for `bp_systolic`.**
+
+OPEN_ITEMS 16a added the datasets to `/chart-dashboard/datasets` and changed
+nothing about what the frontend requests. §3ar in its purest form: a capability
+nothing reaches.
+
+**`ChartDashboard.jsx` auto-selected the best dataset of each of the FIRST
+THREE DOMAINS in the response**, in whatever order the backend serialised them
+— nutrition, fitness, mood, vitals — and stopped. That is how a page opens on a
+series with 43 readings ending 2026-09-26 while one with 161 days ending
+2026-10-09 sits unlisted below the fold.
+
+**Fixed:** rank across ALL domains by count, then take one per domain. The page
+now opens on **Weight (All Sources) 1600 · Calories 736 · Drugs given at the
+unit 348**, with **132 selectable datasets** including all twelve dialysis
+series.
+
+**Two flaws in what 16a shipped, found by looking at the ranking it produced:**
+
+- **The counts were not comparable.** Hand-typed datasets counted ALL-TIME
+  rows; signal datasets counted DAYS IN THE LAST 365; `weight_all` counted
+  all-time observations across sources and reported **7,235**, ranking first
+  on a comparison of three different units. All three now use the same
+  365-day window.
+- **`calories` and `diet.calories` are the same measurement from the same
+  table**, so the picker listed "Calories" twice and the auto-selection chose
+  both — one series charted as two. A signal whose LABEL a hand-typed dataset
+  already shows is no longer offered. Deduping on the label rather than a key
+  mapping keeps it honest: if two entries present the same words to the
+  patient, showing both is the bug wherever they came from.
+
+**`Dashboard.jsx`'s "Historical Vitals Trend" had the same fault** — `GET
+/vitals/` then `.slice(-7)`, which is `vitals_logs` alone, 43 readings ending
+2026-09-26. It now draws self-recorded systolic/diastolic/HR **plus**
+pre-dialysis, post-dialysis and lowest-during-treatment as SEPARATE lines over
+14 days. Separate, not merged: §3am, post runs well below pre by design, so one
+averaged line shows a pressure no instrument read.
+
+Frontend rebuilt and verified by the served asset — `DwRP4Lv3` → `Dd8_iRhX`
+(§4: ask the asset, never the build log). 279 frontend tests, 59 backend.
+
+> **Shipping an API capability is not shipping a feature.** This is the third
+> time in two days the backend was correct and the surface was not — the trends
+> endpoint reading its own four queries, the chart's dataset catalogue, and now
+> the chart's default selection. Each time the evidence that it was fixed came
+> from curling the API, which was true and did not answer the question the
+> operator was asking.

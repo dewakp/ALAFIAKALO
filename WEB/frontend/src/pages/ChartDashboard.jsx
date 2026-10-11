@@ -106,14 +106,30 @@ export default function ChartDashboard() {
   useEffect(() => {
     api.get('/chart-dashboard/datasets').then(r => {
       setDatasets(r.data);
-      // Auto-select up to 3 populated datasets (one per domain) so the page
-      // starts with a live chart instead of an empty canvas.
+      // Auto-select the three RICHEST datasets, from three different domains.
+      //
+      // This used to take the best of each of the FIRST THREE domains in the
+      // response, in whatever order the backend happened to serialise them —
+      // nutrition, fitness, mood, vitals… — and stop. On the reference record
+      // that chose `bp_systolic`, which holds 43 readings ending 2026-09-26,
+      // while `dialysis.nadir_systolic` holds 161 days ending 2026-10-09. The
+      // page opened on a line that appeared to stop three weeks ago, and the
+      // patient reasonably read that as missing data.
+      //
+      // Ranking across ALL domains and then taking one per domain keeps the
+      // chart varied without letting serialisation order decide what a patient
+      // sees first.
       setSelected(prev => {
         if (prev.length) return prev;
+        const all = Object.entries(r.data).flatMap(([domain, items]) =>
+          items.filter(d => (d.count ?? 0) > 0).map(d => ({ ...d, domain })));
+        all.sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
         const picks = [];
-        for (const items of Object.values(r.data)) {
-          const best = [...items].filter(d => (d.count ?? 0) > 0).sort((a, b) => b.count - a.count)[0];
-          if (best) picks.push(best.key);
+        const seen = new Set();
+        for (const d of all) {
+          if (seen.has(d.domain)) continue;
+          seen.add(d.domain);
+          picks.push(d.key);
           if (picks.length >= 3) break;
         }
         return picks;

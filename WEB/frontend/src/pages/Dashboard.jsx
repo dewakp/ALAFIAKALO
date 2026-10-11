@@ -265,23 +265,54 @@ function LatestLabsCard() {
 function VitalsTrendCard() {
   const [vitals, setVitals] = useState(null);
 
+  // Blood pressure comes from more than `vitals_logs`, and reading that table
+  // alone is why this card appeared to stop. Measured on the reference record:
+  // 43 systolic readings there, last on 2026-09-26, against 3,510 in
+  // `therapy_sessions` and 15,016 intradialytic — the last of them 2026-10-09.
+  // Six more days of pressure existed after this card's line ended.
+  //
+  // The dialysis series are kept SEPARATE from the self-recorded ones rather
+  // than merged: §3am, post-dialysis runs well below pre BY DESIGN, so a
+  // single averaged line would show a pressure no instrument ever read.
   useEffect(() => {
-    api.get('/vitals/')
-      .then(({ data }) => setVitals(data))
-      .catch(() => setVitals([]));
+    let cancelled = false;
+    const keys = [
+      'bp_systolic', 'bp_diastolic', 'heart_rate',
+      'dialysis.pre_systolic', 'dialysis.post_systolic',
+      'dialysis.nadir_systolic',
+    ].join(',');
+    api.get(`/chart-dashboard/data?datasets=${encodeURIComponent(keys)}&days=120`)
+      .then(({ data }) => { if (!cancelled) setVitals(data || {}); })
+      .catch(() => { if (!cancelled) setVitals({}); });
+    return () => { cancelled = true; };
   }, []);
 
   const chartData = useMemo(() => {
-    if (!vitals?.length) return [];
-    return vitals
-      .filter(v => v.blood_pressure_systolic != null || v.heart_rate_bpm != null)
-      .sort((a, b) => (a.log_date > b.log_date ? 1 : -1))
-      .slice(-7)
-      .map(v => ({
-        date: new Date(v.log_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        systolic: v.blood_pressure_systolic,
-        diastolic: v.blood_pressure_diastolic,
-        heartRate: v.heart_rate_bpm,
+    if (!vitals) return [];
+    // One row per DAY across every series, so a day with only a treatment
+    // reading is still a point on the line.
+    const byDay = new Map();
+    const put = (key, field) => {
+      for (const p of vitals[key]?.points || []) {
+        if (p.value == null) continue;
+        const row = byDay.get(p.date) || { date: p.date };
+        row[field] = p.value;
+        byDay.set(p.date, row);
+      }
+    };
+    put('bp_systolic', 'systolic');
+    put('bp_diastolic', 'diastolic');
+    put('heart_rate', 'heartRate');
+    put('dialysis.pre_systolic', 'preSystolic');
+    put('dialysis.post_systolic', 'postSystolic');
+    put('dialysis.nadir_systolic', 'nadirSystolic');
+
+    return [...byDay.values()]
+      .sort((a, b) => (a.date > b.date ? 1 : -1))
+      .slice(-14)
+      .map(r => ({
+        ...r,
+        date: new Date(r.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       }));
   }, [vitals]);
 
@@ -312,9 +343,16 @@ function VitalsTrendCard() {
                 label={{ value: 'HR (bpm)', angle: 90, position: 'insideRight', fontSize: 11 }}/>
               <Tooltip contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8 }}/>
               <Legend/>
-              <Area yAxisId="bp" type="monotone" dataKey="systolic" name="Systolic" stroke="#2dd4bf" fill="#2dd4bf" fillOpacity={0.25}/>
-              <Area yAxisId="bp" type="monotone" dataKey="diastolic" name="Diastolic" stroke="#eab308" fill="#eab308" fillOpacity={0.2}/>
-              <Line yAxisId="hr" type="monotone" dataKey="heartRate" name="Heart Rate" stroke="var(--color-primary)" strokeWidth={2} dot={false}/>
+              <Area yAxisId="bp" type="monotone" dataKey="systolic" name="Systolic (self)" stroke="#2dd4bf" fill="#2dd4bf" fillOpacity={0.25} connectNulls/>
+              <Area yAxisId="bp" type="monotone" dataKey="diastolic" name="Diastolic (self)" stroke="#eab308" fill="#eab308" fillOpacity={0.2} connectNulls/>
+              {/* Treatment pressures, drawn SEPARATELY — §3am: post runs well
+                  below pre by design, so one merged line would show a figure
+                  no instrument read. The nadir is dashed because it is the
+                  lowest point of a session rather than a reading at a time. */}
+              <Line yAxisId="bp" type="monotone" dataKey="preSystolic" name="Pre-dialysis systolic" stroke="#0ea5e9" strokeWidth={2} dot={false} connectNulls/>
+              <Line yAxisId="bp" type="monotone" dataKey="postSystolic" name="Post-dialysis systolic" stroke="#8b5cf6" strokeWidth={2} dot={false} connectNulls/>
+              <Line yAxisId="bp" type="monotone" dataKey="nadirSystolic" name="Lowest during treatment" stroke="#ef4444" strokeWidth={2} strokeDasharray="4 3" dot={false} connectNulls/>
+              <Line yAxisId="hr" type="monotone" dataKey="heartRate" name="Heart Rate" stroke="var(--color-primary)" strokeWidth={2} dot={false} connectNulls/>
             </ComposedChart>
           </ResponsiveContainer>
         </div>
