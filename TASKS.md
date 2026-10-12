@@ -696,3 +696,34 @@ immediately; fill in afterwards with the worker's OWN session.*
 and the render stays `local_only=True` regardless of where it runs (§3al).
 ⚠️ A facts hash is required, not optional: without it a changed measurement
 would be described by yesterday's sentence, which is worse than a plain one.
+
+---
+
+## 17. Nothing stops an analysis being written into a clinical field
+
+OPEN_ITEMS 26 repaired one row by hand. The shape that produced it is intact.
+
+- **17a. A guard on what may enter `patient_notes` and its siblings.** The
+  tell-tales are mechanical and were all present: a column name
+  (`fluid_removed_ml`, `duration_minutes`), the product's own name describing
+  its database ("ALAFIA held no record"), an imperative to the reader ("Raise
+  with the care team"), and shouting caps. A staging-time check that REFUSES
+  those — or at minimum separates them into an import log — costs nothing and
+  cannot be forgotten the way a habit can. §3ab's staged-review path is where
+  it belongs for documents; a manual write needs the same door.
+- **17b. There is no provenance field on `therapy_sessions`.** `clinical_notes`
+  is the wrong home — it requires an `author_id` referencing a user, so an
+  import note filed there is attributed to a person and reads as a clinician's
+  observation. Which document a row came from, and which of its values could
+  not be read, is real metadata with nowhere to live. Decide: a column, a
+  side table, or `document_imports` linkage for manual imports too.
+- **17c. The prose duplicated rows that already existed.** Six
+  `intradialytic_readings` were re-typed as a sentence. Before writing a
+  narrative, check whether the fact already has a column — a value in prose is
+  a value no query reaches, and the two copies drift.
+- **17d. Sweep the rest of the corpus.** This was found by eye on one screen.
+  Nothing has looked at the other 2,000+ `patient_notes` for the same pattern,
+  or at `complications` / `side_effects`.
+- **17e. The finding only examines the LATEST dry weight.** An excursion that
+  has since been corrected is in the record and reported nowhere. Whether a
+  historical outlier deserves a surface of its own is open.

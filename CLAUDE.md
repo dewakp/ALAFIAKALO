@@ -468,6 +468,52 @@ the table, so it takes `--zip` like `build_icd11_catalog.py`'s offline path.
   filed under keys nothing looks up and the loop presents as "it never fires" —
   §3ay's never-plugged-in sink, one layer subtler.
 
+### A clinical field holds the DOCUMENT. The analysis goes where it is derived
+
+Found 2026-10-12 by the operator reading session 2776 on screen: *"this is not
+patient notes but your own debate. You combined the clinical notes and your
+debates into one extra long statement when reading from the PDF."*
+
+`patient_notes` was **2,103 characters**, about half of it ALAFIA's: what our
+database held before the import, a prose re-typing of six
+`intradialytic_readings` rows that were already stored, a derived dry-weight
+comparison with an instruction to raise it with the care team, and a paragraph
+reasoning about which columns had been left NULL — naming `fluid_removed_ml`
+and `duration_minutes` in a field a clinician reads.
+
+- **If the fact has a column, it does not go in the prose.** Every structured
+  value in that paragraph already had one (`blood_flow_rate` 300,
+  `dialysate_flow_rate` 500, `dialysate_potassium_meq` 2,
+  `dialyzer_appearance` Streaked, both pressure pairs, six readings as rows).
+  §3ai's "two computations of one quantity must not disagree", in a text field —
+  except here one copy cannot be queried at all.
+- **Nothing separated the facility's words from ours.** A clinician reading
+  *"Raise with the care team"* attributes it to DaVita. Our own conclusions in
+  an unlabelled clinical field are an impersonation, not a convenience.
+- ⚠️ **The typed arithmetic was wrong, and nothing could check it.** It read
+  *"3.3-4.4 kg below"* while citing the range it was measured against:
+  53.2-54.8 against 50.0 is **3.2 and 4.8** — wrong at both ends, for months,
+  in a chart. **A number a reader cannot recompute is a number nobody can
+  correct.** This is the whole argument for deriving a finding instead of
+  writing one down: `_dry_weight_disagreement` in `health_score.py` reports the
+  same discrepancy from the rows on every read, and got 3.2 right.
+- **An ABSENCE still needs one sentence.** Four values the unit recorded were
+  unreadable in the copy received. §3at defines a printed "—" as NOT RECORDED,
+  so blanks alone tell a clinician the unit never measured them — §3aa's "an
+  error is not an empty state" pointing at the chart. State which values and
+  that the source holds them; do not name a column or justify a decision.
+- **`clinical_notes` is NOT the home for import provenance.** It requires an
+  `author_id` referencing a user, so a note filed there is attributed to a
+  person and reads as a clinician's observation. There is no provenance column
+  on `therapy_sessions` at all (TASKS 17b).
+
+> **No threshold was invented for the replacement finding** (§3az). The ordered
+> figure must fall outside the full range of every other dry weight in the
+> window AND be further out than that range's own width — both measured from
+> this patient, so a deliberate taper moving in steps inside its historical
+> spread stays silent. It reports and does not SCORE: a prescription
+> disagreeing with a record says nothing about how well the patient is.
+
 ## 3ac. Dialysis changes the day's totals, not the limits
 
 A session clears potassium and phosphorus in gram quantities and *adds* calcium

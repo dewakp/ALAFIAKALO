@@ -3372,3 +3372,65 @@ a target rather than a slope.
 **A stale container is proven by the served asset, never the build log.** §4,
 and the rebuild was confirmed by the bundle hash changing rather than by
 `docker compose ps` saying `Up`.
+
+---
+
+## Session 2026-10-12 — "this is not patient notes but your own debate"
+
+**Instruction:** with the Hemodialysis screen open on session 2776 — *"this is
+not patient notes but your own debate. You combined the clinical notes and your
+debates into one extra long statement when reading from the PDF."*
+
+Correct, and it was not the PDF importer: that session was imported by hand on
+2026-10-10 and the note was typed, not parsed.
+
+**What the field held.** 2,103 characters, of which roughly half was ALAFIA's
+own: what our database contained before the import ("ALAFIA held no record of
+this session; the preceding stored treatment is 10/06"), a prose re-typing of
+six `intradialytic_readings` rows already stored with their times and the
+nurse's own remarks, a derived dry-weight comparison ending *"Raise with the
+care team rather than treating either figure as settled"*, and a closing
+paragraph reasoning about column choices — `fluid_removed_ml`,
+`duration_minutes` — in a field a clinician reads.
+
+Every structured value in the prose already had a column: `blood_flow_rate`
+300, `dialysate_flow_rate` 500, `dialysate_potassium_meq` 2,
+`dialyzer_appearance` Streaked, both pressure pairs, and all six readings as
+rows. The narrative was a second, unqueryable copy.
+
+⚠️ **And its arithmetic was wrong.** *"3.3-4.4 kg below"* against a range the
+same sentence cited as 53.2-54.8, with the order at 50.0 — the real figures are
+3.2 and 4.8. Wrong at both ends, in a chart, uncheckable. That is the argument
+for deriving a finding rather than writing one down, and it is §3av ("run the
+scan, never the arithmetic") committed inside a clinical record.
+
+**Repaired.** The note is 933 characters and holds only what the report states
+and has no column of its own: close reason as printed, dialyser model, bath
+composition, bicarbonate, base sodium, dialysate temperature, max UF rate,
+access history, the verbatim 14:25 nursing note, mobility. Applied to PROD
+first and then dev, `md5` identical in both (`b940dedb…`). One sentence about
+the four values the unit recorded and the copy could not show stays — §3at
+defines a blank as NOT RECORDED, so silence there says the unit never measured
+them.
+
+**The safety signal moved rather than disappearing.**
+`_dry_weight_disagreement` (`health_score.py`) reports an ordered dry weight the
+rest of the record disagrees with, from the rows, on every read. Live on user
+63: *"The dry weight ordered on 2026-10-09 is 50 kg, 3.2 kg below the lowest of
+the 33 recorded over the last 90 days (53.2-54.8 kg)"*, and ALAFIA renders it
+locally in 51 s cold with every number preserved. No threshold invented: the
+figure must sit outside the whole range of the others by more than that range's
+own width, both measured from this patient, so a deliberate taper is silent. It
+does not move the score — a prescription disagreeing with a record says nothing
+about how well the patient is. `critical_findings` already reaches web, iOS and
+Android, verified by reading the three call sites, so no client change.
+
+**Verified:** 11 new tests in `test_dry_weight_disagreement.py`; 52 passed
+across `test_health_score.py`, `test_finding_text.py` and
+`test_no_hardcoded_thresholds.py`; `ruff --select F,E9` clean on all three
+changed files; the finding confirmed on the wire from `_compute_wellness_score`
+against the dev copy of production.
+
+**Not done:** nothing stops the next import writing commentary into a clinical
+field, and the other 2,000+ `patient_notes` have never been looked at for the
+same pattern (TASKS 17).

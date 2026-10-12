@@ -296,6 +296,20 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
         )).scalars().all() if v is not None
     ]
 
+    # ── The ordered dry weight, with the ones before it to judge it by ───
+    # The figure the machine's ultrafiltration is computed from. Read as a
+    # SERIES, not as the latest row: a target weight is only wrong relative to
+    # what this patient's own record establishes (health_score §dry_weights).
+    dry_weights = [
+        (d, float(w)) for d, w in (await db.execute(
+            select(TherapySession.scheduled_date, TherapySession.dry_weight_kg)
+            .where(TherapySession.user_id == user_id,
+                   TherapySession.scheduled_date >= cutoff_90,
+                   TherapySession.dry_weight_kg.isnot(None))
+            .order_by(TherapySession.scheduled_date)
+        )).all() if w is not None
+    ]
+
     # ── Attendance, against this patient's OWN established rate ──────────
     sessions_90 = (await db.execute(
         select(func.count(TherapySession.id)).where(
@@ -387,6 +401,7 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
                 if tolerance["floor"] is not None and v < tolerance["floor"]),
             sessions_with_post_reading=len(post_systolics),
             lowest_post=min(post_systolics) if post_systolics else None,
+            dry_weights=dry_weights,
         ) if (sessions_365 or on_dialysis) else hs.Component(
             "dialysis", None, hs.DEFAULT_WEIGHTS["dialysis"],
             {"reason": "not on dialysis"}),

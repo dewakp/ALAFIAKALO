@@ -641,6 +641,76 @@ def medication_adherence(prescribed_names: list[str],
                       "not_logged": missing})
 
 
+#: How many EARLIER treatments must carry a dry weight before their spread is
+#: treated as this patient's established variation. A sample-size floor, not a
+#: clinical threshold — two points have a spread by arithmetic and not by
+#: observation, and the finding states the count so the reader can judge it.
+MIN_DRY_WEIGHTS_TO_COMPARE = 5
+
+
+def _dry_weight_disagreement(
+        dry_weights: list[tuple[Any, float]] | None,
+        window_days: int) -> tuple[Finding, dict[str, Any]] | None:
+    """The dry weight ordered most recently, against every one before it.
+
+    Returns None unless the latest figure sits outside the whole range of the
+    others by more than that range's own width — see `dialysis_component`.
+
+    **Only the LATEST order is examined.** It is the one the next treatment's
+    ultrafiltration will be computed from. A figure that was off once and has
+    since been corrected is in the record and does not need to keep shouting.
+    """
+    entries = [(d, float(v)) for d, v in (dry_weights or []) if v is not None]
+    if len(entries) < MIN_DRY_WEIGHTS_TO_COMPARE + 1:
+        return None
+
+    entries.sort(key=lambda row: (row[0] is None, row[0]))
+    ordered_on, ordered = entries[-1]
+    others = [v for _, v in entries[:-1]]
+    lo, hi = min(others), max(others)
+    # Rounded before comparing so float noise cannot decide a borderline case.
+    spread = round(hi - lo, 2)
+    if ordered < lo:
+        direction, gap, bound = "below", round(lo - ordered, 2), "usual_lowest"
+    elif ordered > hi:
+        direction, gap, bound = "above", round(ordered - hi, 2), "usual_highest"
+    else:
+        return None
+    if gap <= spread:
+        return None
+
+    facts = {
+        "measure": "ordered dry weight",
+        "ordered_dry_weight": round(ordered, 1),
+        "unit": "kg",
+        "direction": direction,
+        "difference": gap,
+        "usual_lowest": round(lo, 1),
+        "usual_highest": round(hi, 1),
+        "treatments_compared": len(others),
+        "window_days": window_days,
+    }
+    if ordered_on is not None:
+        facts["ordered_on"] = str(ordered_on)[:10]
+    when = f" on {facts['ordered_on']}" if ordered_on is not None else ""
+    return (
+        Finding(
+            kind="dry_weight_disagrees_with_record", domain="dialysis",
+            facts=facts,
+            fallback=(
+                f"The dry weight ordered{when} is {ordered:g} kg, {gap:g} kg "
+                f"{direction} the {'lowest' if direction == 'below' else 'highest'} "
+                f"of the {len(others)} recorded over the last {window_days} days "
+                f"({lo:g}-{hi:g} kg)."),
+            # Both are needed or the sentence states no disagreement: the
+            # figure ordered, and the bound of what the record holds.
+            essential=("ordered_dry_weight", bound)),
+        {"ordered": round(ordered, 1), "usual_range": [round(lo, 1), round(hi, 1)],
+         "treatments_compared": len(others), "difference": gap,
+         "direction": direction},
+    )
+
+
 def dialysis_component(*, sessions_in_window: int,
                        window_days: int,
                        baseline_per_week: float | None,
@@ -655,6 +725,7 @@ def dialysis_component(*, sessions_in_window: int,
                        lowest_nadir: float | None = None,
                        hypotension_floor: float | None = None,
                        severe_floor: float | None = None,
+                       dry_weights: list[tuple[Any, float]] | None = None,
                        ) -> Component:
     """Is the treatment happening, is it clearing enough, and is it TOLERATED?
 
@@ -703,6 +774,27 @@ def dialysis_component(*, sessions_in_window: int,
 
     Adequacy uses the band from `clinical_thresholds` (KDOQI Kt/V >= 1.4), the
     same row `hebcs_engine` scores against, so the two cannot disagree.
+
+    **`dry_weights` reports a prescription that disagrees with the record**, and
+    it is here because the alternative was found in a patient's chart. Session
+    2776 arrived from a DaVita report ordering a target weight of **50.0 kg**
+    while the 38 treatments before it recorded 53.2-54.8 — and the discrepancy
+    was preserved by typing a paragraph about it into `patient_notes`, together
+    with an instruction to raise it with the care team. Operator: *"this is not
+    patient notes but your own debate."* Correct: the chart holds what the
+    document said, and an ANALYSIS of the chart belongs here, where it is
+    re-derived from the rows on every read instead of ageing in a text field
+    that no query can reach.
+
+    The target weight is what the machine's UF volume is computed from, so an
+    order 3.3 kg low asks the treatment to remove three extra litres.
+
+    **No threshold is invented for it** (§3az). The comparison is against this
+    patient's own record and nothing else: the figure must sit outside the full
+    range of every other dry weight in the window, and sit outside it by more
+    than that range's own width. A dry weight being tapered deliberately moves
+    in steps well inside its historical spread and is silent; a single order
+    further out than the figure has ever travelled is not.
     """
     parts: list[tuple[float, float]] = []
     detail: dict[str, Any] = {}
@@ -830,6 +922,13 @@ def dialysis_component(*, sessions_in_window: int,
                 essential=("treatments_below_floor",
                            "treatments_with_a_reading", "floor",
                            "lowest", "treatments_below_severe_floor")))
+
+    # ── An ordered dry weight the rest of the record disagrees with ──────
+    dw_finding = _dry_weight_disagreement(dry_weights, window_days)
+    if dw_finding is not None:
+        finding, dw_detail = dw_finding
+        detail["dry_weight"] = dw_detail
+        critical.append(finding)
 
     if not parts:
         return Component("dialysis", None, DEFAULT_WEIGHTS["dialysis"],

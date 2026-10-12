@@ -2125,3 +2125,76 @@ tweak.
 > test got a cache HIT and never exercised the timeout. §3aj's shape — a suite
 > that passes without reaching the thing it checks. An autouse fixture clears
 > it now.
+
+---
+
+## 26. An analysis was typed into the patient's chart — FIXED 2026-10-12
+
+Operator, with the Hemodialysis screen open on session 2776: *"this is not
+patient notes but your own debate. You combined the clinical notes and your
+debates into one extra long statement when reading from the PDF."*
+
+`therapy_sessions.patient_notes` held **2,103 characters**, of which roughly
+half was not the document and not the patient:
+
+| In the field | What it actually was |
+|---|---|
+| "ALAFIA held no record of this session; the preceding stored treatment is 10/06" | our own bookkeeping, about our database |
+| "Course: 99/65 at 14:34, 89/59 at 14:53 …" | a prose re-typing of six `intradialytic_readings` rows that were already stored with their times and the nurse's own remarks |
+| "ORDERED TARGET WEIGHT 50.0 kg, RECORDED AS THE DOCUMENT STATES IT AND NOT RECONCILED … Raise with the care team rather than treating either figure as settled." | a derived comparison plus an instruction, written in the voice of the unit's report |
+| "NOT RECORDED, because … `fluid_removed_ml` is left NULL rather than derived … `duration_minutes` is the report's own stated 2h 17m" | the importer reasoning about its own column choices, naming columns, in a clinical field |
+
+**Three things are wrong with that, and only the first is about tidiness.**
+
+- **A chart field cannot be queried.** Every structured value in the prose
+  already had a column — `blood_flow_rate` 300, `dialysate_flow_rate` 500,
+  `dialysate_potassium_meq` 2, `dialyzer_appearance` Streaked, the pre/post
+  pressures, and all six readings as rows. Two copies of one fact is §3ai's
+  "two computations of one quantity must not disagree", in a text field.
+- **It reads as the unit's words.** Nothing separated what DaVita printed from
+  what ALAFIA concluded. A clinician reading "raise with the care team" would
+  attribute it to the facility.
+- ⚠️ **The arithmetic in it was WRONG, and nothing could check it.** It said
+  *"3.3-4.4 kg below"* while citing the range it was measured against —
+  53.2-54.8 against 50.0, which is **3.2 and 4.8**. Both ends. A figure nobody
+  can recompute is a figure nobody can correct (§3av: run the scan, never the
+  arithmetic).
+
+**The note is now 933 characters**, holding only what the report states and has
+no column of its own: the close reason as printed, the prescription detail with
+no column (dialyser model, bath composition, bicarbonate, base sodium,
+temperature, max UF rate), the access history, the verbatim 14:25 nursing note,
+and mobility. Applied to PROD first and then dev; `md5` identical in both
+(`b940dedb…`).
+
+> **One sentence about absence stays, and it is not bookkeeping.** Four values
+> the unit DID record are blank here because they could not be read from the
+> source. §3at records that a printed "—" means NOT RECORDED, so leaving them
+> silent tells a clinician the unit never measured them. The line says which
+> four and that the unit recorded them; it does not name a column or explain a
+> decision.
+
+**The safety signal moved to where it is re-derived, not retyped.**
+`_dry_weight_disagreement` in `health_score.py` reports an ordered dry weight
+the rest of the record disagrees with, from the rows, on every read. Measured
+live on user 63: *"The dry weight ordered on 2026-10-09 is 50 kg, 3.2 kg below
+the lowest of the 33 recorded over the last 90 days (53.2-54.8 kg)."* ALAFIA
+renders it locally — *"Ordered dry weight 50.0 kg on 2026-10-09 is below the
+usual lowest of 53.2 kg by 3.2 kg"*, every number preserved.
+
+- **No threshold is invented** (§3az). The figure must fall outside the full
+  range of every other dry weight in the window AND be further out than that
+  range's own width — both measured from this patient. A deliberate taper moves
+  in steps well inside its historical spread and stays silent; pinned by
+  `test_a_DELIBERATE_TAPER_is_silent`.
+- **It does not move the score.** A prescription disagreeing with a record says
+  nothing about how well the patient is. `critical_findings` already reaches
+  web, iOS and Android, so no client change was needed — verified by reading
+  the three call sites.
+- **Only the LATEST order is examined**: it is what the next treatment's
+  ultrafiltration is computed from, and a figure since corrected does not need
+  to keep shouting.
+
+> ⚠️ **Not generalised.** This repaired one row and added one finding. Nothing
+> stops the next manual or automated import writing commentary into
+> `patient_notes` again — see TASKS 17.
