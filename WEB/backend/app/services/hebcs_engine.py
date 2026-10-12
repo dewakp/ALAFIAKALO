@@ -83,6 +83,15 @@ class Biomarker:
     #: Which guideline states `target_band`. Required alongside it — an uncited
     #: target is a number someone typed (§3az, §3bc).
     authority: str = ""
+    #: Condition hints that make this marker EXPECTED. Empty means everyone is
+    #: expected to have it — a basic chemistry or blood count.
+    #:
+    #: A marker present is ALWAYS scored. This governs only whether its
+    #: ABSENCE counts against coverage. PTH, ferritin, TSAT and nPCR are renal
+    #: monitoring tests: a well person has no reason to have them drawn, and
+    #: counting their absence as missing evidence reported a healthy record as
+    #: incomplete — "measured as if they have conditions".
+    indicated_by: tuple = ()
     #: Which score this marker can appear in.
     #:
     #:   "health"      a well person has one of these and it says how they are
@@ -268,8 +277,45 @@ def scoring_marker(b: Biomarker, band: str) -> Optional[Biomarker]:
 
 # ── Overall Ω — weighted geometric mean ─────────────────────────────────────
 
+#: Below this fraction of a pathway's own biomarkers, its score is EVIDENCE,
+#: not a measurement, and it carries weight in proportion to what was actually
+#: measured rather than its full share.
+#:
+#: Measured 2026-10-12 on two production accounts, both with ZERO conditions:
+#:
+#:   user 60    46 labs, coverage 0.276   Omega 27.38%
+#:              Hematologic 0.001 off ONE of nine markers, carrying the full
+#:              0.15 — four other pathways scored 1.000 and were buried.
+#:   user 158    5 labs, coverage 0.069   Omega 99.90%
+#:              Metabolic alone, on 2 of 5 markers, reported as near-perfect
+#:              health: "you will live forever", from five numbers.
+#:
+#: The two failures are opposite and have one cause: **coverage was computed,
+#: reported, and never used.** A score built on 7% of its evidence was
+#: presented identically to one built on all of it (§3aa — unmeasured and good
+#: are not the same fact).
+_FULL_EVIDENCE = 0.5
+
+
+def evidence_weight(pathway: Pathway, measured: int) -> float:
+    """A pathway's share of Omega, scaled by how much of it was measured.
+
+    At or above `_FULL_EVIDENCE` of its markers a pathway carries its declared
+    weight. Below that it carries proportionally less, so one lonely marker
+    cannot speak for a pathway of nine — in either direction.
+    """
+    expected = len(pathway.biomarkers)
+    if not expected:
+        return pathway.weight
+    fraction = measured / expected
+    if fraction >= _FULL_EVIDENCE:
+        return pathway.weight
+    return pathway.weight * (fraction / _FULL_EVIDENCE)
+
+
 def omega_score(pathway_scores: dict[str, Optional[float]],
-                pathways: list[Pathway]) -> Optional[float]:
+                pathways: list[Pathway],
+                measured_counts: dict[str, int] | None = None) -> Optional[float]:
     """Weighted geometric mean of available pathway scores, or None.
 
     Ω = exp( Σ w_k·ln(s_k) / Σ w_k )   for pathways with scores.
@@ -295,10 +341,32 @@ def omega_score(pathway_scores: dict[str, Optional[float]],
         s = pathway_scores.get(p.name)
         if s is None:
             continue
-        log_sum += p.weight * math.log(max(s, _SCORE_FLOOR))
-        w_sum += p.weight
+        w = (evidence_weight(p, measured_counts[p.name])
+             if measured_counts and p.name in measured_counts else p.weight)
+        if w <= 0:
+            continue
+        log_sum += w * math.log(max(s, _SCORE_FLOOR))
+        w_sum += w
     if w_sum == 0:
         return None
+
+    # ── A majority of the construct must be evidenced ────────────────────
+    #
+    # Scaling every weight by its evidence does NOT make Omega honest on its
+    # own: the mean renormalises by `w_sum`, so a uniform reduction cancels
+    # out. Measured 2026-10-12 — user 158, five labs, two markers, coverage
+    # 0.069, reported **Omega 99.9%**. "You will live forever", from five
+    # numbers.
+    #
+    # The quorum is not a tuned threshold (§3az): it is "more than half of the
+    # declared construct", expressed in the framework's own weights. Below it
+    # Omega is a claim about a minority of the patient and is WITHHELD — the
+    # same decision already taken for a patient with no labs at all, where
+    # returning 0.5 described nobody.
+    declared = sum(p.weight for p in pathways)
+    if declared > 0 and w_sum / declared <= 0.5:
+        return None
+
     raw = math.exp(log_sum / w_sum)
     return max(0.001, min(0.999, raw))
 
@@ -378,11 +446,11 @@ ESRD_PATHWAYS: list[Pathway] = [
         # prints 11-307, under which a ferritin of 57 — iron deficiency on
         # dialysis — scored 1.000.
         Biomarker("Ferritin",            crit_low=5,   opt_low=24,   opt_high=336,  crit_high=1000, weight=0.15,
-                  scope="both", target_band=(10, 200, 800, 2000),
+                  indicated_by=("renal",), scope="both", target_band=(10, 200, 800, 2000),
                   authority="KDOQI 2006 Anemia, CPR 3.2"),
         # TSAT target for HD: 20-50%
         Biomarker("Iron Saturation (TSAT)", crit_low=5, opt_low=20, opt_high=50, crit_high=80, weight=0.20,
-                  scope="both", target_band=(5, 20, 50, 80),
+                  indicated_by=("renal",), scope="both", target_band=(5, 20, 50, 80),
                   authority="KDOQI 2006 Anemia, CPR 3.2 (TSAT >20% on HD)"),
         Biomarker("WBC",                 crit_low=2.0, opt_low=4.5, opt_high=11.0, crit_high=30,   weight=0.10),
         Biomarker("LDH",                 crit_low=None,opt_low=0,   opt_high=280,  crit_high=600,  weight=0.10),
@@ -398,7 +466,7 @@ ESRD_PATHWAYS: list[Pathway] = [
         # assay ceiling to drive bone turnover against skeletal resistance. The
         # two bands barely overlap, which is why one number could not carry it.
         Biomarker("PTH (Intact)",  crit_low=5,    opt_low=15,   opt_high=65,   crit_high=200,  weight=0.40,
-                  scope="both", target_band=(15, 150, 600, 3000),
+                  indicated_by=("renal",), scope="both", target_band=(15, 150, 600, 3000),
                   authority="KDIGO 2017 CKD-MBD, 4.2.1"),
         # Phosphorus KDIGO target: 3.5–5.5 mg/dL (ESRD relaxed)
         Biomarker("Phosphorus",    crit_low=1.5,  opt_low=2.5,  opt_high=4.5,  crit_high=9.0,  weight=0.30,
@@ -407,7 +475,8 @@ ESRD_PATHWAYS: list[Pathway] = [
         # Calcium
         Biomarker("Calcium",       crit_low=6.5,  opt_low=8.5,  opt_high=10.0, crit_high=12.0, weight=0.20),
         # CaxP product target: <55 mg²/dL²
-        Biomarker("CaxP Product",  crit_low=None, opt_low=0,    opt_high=55.0, crit_high=80.0, weight=0.10),
+        Biomarker("CaxP Product",  crit_low=None, opt_low=0,    opt_high=55.0, crit_high=80.0, weight=0.10,
+                   indicated_by=("renal",)),
     ]),
 
     Pathway(name="Cardiovascular", weight=0.15, biomarkers=[
@@ -420,7 +489,8 @@ ESRD_PATHWAYS: list[Pathway] = [
 
     Pathway(name="Nutritional", weight=0.15, biomarkers=[
         Biomarker("Albumin",       crit_low=1.5,  opt_low=4.0,  opt_high=5.0,  crit_high=None, weight=0.40),
-        Biomarker("nPCR (Protein Catabolic Rate)", crit_low=0.5, opt_low=1.0, opt_high=1.4, crit_high=2.0, weight=0.40),
+        Biomarker("nPCR (Protein Catabolic Rate)", crit_low=0.5, opt_low=1.0, opt_high=1.4, crit_high=2.0, weight=0.40,
+                  indicated_by=("renal",)),
         # BUN is a TOXICITY marker. Above 21 mg/dL urea is considered toxic, so
         # that is the top of the optimal window — not the lab's reference
         # ceiling of 23, and emphatically not 80.
@@ -615,6 +685,64 @@ def resolve_biomarkers(raw: dict[str, float],
     return resolved
 
 
+#: Analytes whose NAME is the same in blood and in urine. §3ab names the
+#: authority — LOINC `SYSTEM` *"separates serum from urine glucose (two rows
+#: both named 'Glucose' today)"* — and it is not available: `loinc_code` is
+#: populated on **34 of 9,871** rows, `category` on 1,018 and holds panel names
+#: rather than specimens. So the panel itself is the evidence.
+AMBIGUOUS_SPECIMEN = {"rbc", "wbc", "glucose", "protein", "ph", "bilirubin",
+                      "ketones", "nitrite", "creatinine"}
+
+#: Names that appear ONLY on a urinalysis. Two or more of these on one draw
+#: identify the panel, and an ambiguous analyte drawn with them is a urine
+#: finding — not a blood count.
+_URINALYSIS_MARKERS = {
+    "specificgravity", "leukocyteesterase", "nitrite", "urobilinogen",
+    "amorphoussediment", "hyalinecast", "granularcast", "crystals",
+    "calciumoxalatecrystals", "triplephosphatecrystals", "uricacidcrystals",
+    "renalepithelialcells", "squamousepithelialcells",
+    "transitionalepithelialcells", "bacteria", "occultblood", "appearance",
+    "color", "mucus", "yeast",
+}
+
+#: How many urinalysis-only markers on one draw identify the panel. Two, not
+#: one: a lone "BACTERIA" or "COLOR" could be a stray row, and mis-identifying
+#: a blood panel as urine would DISCARD a real haemoglobin.
+_URINALYSIS_QUORUM = 2
+
+
+def urinalysis_draws(rows) -> set:
+    """The draw dates whose panel is a urinalysis.
+
+    Found 2026-10-12 on a production account holding **46 labs and zero
+    conditions**, scored at **Ω 27.38%**:
+
+        RBC = 0   no reference range, drawn beside AMORPHOUS SEDIMENT,
+                  BACTERIA, GRANULAR CAST, NITRITE, SPECIFIC GRAVITY,
+                  LEUKOCYTE ESTERASE, SQUAMOUS EPITHELIAL CELLS …
+
+    That is **zero red blood cells per high-power field in the URINE** — the
+    ideal urinalysis result. It resolved to the Hematologic `RBC` biomarker
+    (blood count, band 4.6-6.2) and scored **0.000**: no red blood cells in the
+    body. Being the only Hematologic value present it carried the pathway alone
+    to 0.001, and a healthy person's normal urine test reported them at 27%
+    wellness.
+
+    Operator, 2026-10-12: *"omega must be responsive to patient and not force
+    people without conditions to be measured as if they have conditions."* This
+    is that, in its sharpest form — a well person's best possible result read as
+    a catastrophic one.
+    """
+    by_draw: dict = {}
+    for name, _value, test_date, *_rest in rows:
+        key = test_date.date() if hasattr(test_date, "date") else test_date
+        by_draw.setdefault(key, set()).add(_norm(name))
+    return {
+        draw for draw, names in by_draw.items()
+        if len(names & _URINALYSIS_MARKERS) >= _URINALYSIS_QUORUM
+    }
+
+
 #: Where two stored spellings resolve to one biomarker, these win OUTRIGHT —
 #: ahead of recency, not after it. For BUN that decides whether the score sees
 #: the PRE-dialysis draw (uraemia, 53 on this record) or the POST one (14, the
@@ -642,9 +770,16 @@ def select_latest_per_analyte(
         day, and the post draw is the one that matters. Fixing recency alone
         silently broke this, which is how the rule got written down.
     """
+    urine = urinalysis_draws(rows)
+
     best: dict[str, tuple] = {}
     for name, value, test_date, ref_low, ref_high in rows:
         if value is None:
+            continue
+        draw = test_date.date() if hasattr(test_date, "date") else test_date
+        if draw in urine and _norm(name) in AMBIGUOUS_SPECIMEN:
+            # A urine finding under a blood analyte's name. Skipped, never
+            # scored as the blood one — see `urinalysis_draws`.
             continue
         analyte = canonical_name(name, pathways)
         wins = _norm(name) in PREFERRED_SPELLINGS
@@ -706,6 +841,55 @@ def apply_reference_range(b: Biomarker,
 
     return replace(b, crit_low=crit_low, opt_low=float(low),
                    opt_high=float(high), crit_high=crit_high)
+
+
+#: Condition words that indicate the renal monitoring panel. Matched
+#: case-folded against the patient's own condition names; it only ever makes a
+#: marker EXPECTED, never changes how one is scored.
+RENAL = ("renal", "kidney", "dialysis", "esrd", "ckd", "nephro")
+
+
+def pathways_for(conditions=None,
+                 pathways: list[Pathway] | None = None) -> list[Pathway]:
+    """The decomposition THIS patient should be measured against.
+
+    Operator, 2026-10-12: *"Also omega must be responsive to patient and not
+    force people without conditions to be measured as if they have conditions.
+    This is the wheelhouse of adaptive, intelligent mathematical modeling."*
+
+    **The pathway set and the WEIGHTS deliberately do not vary.** Ω is an
+    absolute scale and the operator fixed both its ends — *"perfect … will score
+    100% (meaning they will live forever). A dead person scores 0."* Two people
+    with identical biology must receive the same Ω, so a decomposition that
+    re-weighted itself per diagnosis would make the number incomparable between
+    two patients and between one patient and their own past. Weighting by
+    disease is what Α is for.
+
+    What adapts is which markers are **expected**. A well person has no reason
+    to have PTH, ferritin, TSAT or nPCR drawn, and counting their absence as
+    missing evidence both reported a healthy record as incomplete and — now
+    that coverage bounds Ω — would withhold their score for not holding tests
+    nobody should have ordered.
+
+    A marker present is always scored. This governs absence only.
+    """
+    if pathways is None:
+        pathways = ESRD_PATHWAYS
+
+    text = " ".join(
+        f" {(getattr(c, 'name', '') or '').lower()} "
+        f"{(getattr(c, 'icd11_title', '') or '').lower()} "
+        for c in (conditions or [])
+    )
+    indications = {"renal"} if any(h in text for h in RENAL) else set()
+
+    return [
+        replace(p, biomarkers=[
+            b for b in p.biomarkers
+            if not b.indicated_by or (set(b.indicated_by) & indications)
+        ])
+        for p in pathways
+    ]
 
 
 def compute_alpha(biomarker_values: dict[str, float],
@@ -935,9 +1119,14 @@ def compute_hebcs(biomarker_values: dict[str, float],
             "biomarkers": biomarker_detail,
         }
 
+    # Evidence-weighted: a pathway scored on a fraction of its markers carries
+    # a fraction of its weight. `measured` counts REPORTED values only, so a
+    # derived estimate cannot buy a pathway its full share of Omega.
     omega = omega_score(
         {k: v["score"] for k, v in pathway_results.items()},
         pathways,
+        measured_counts={k: v["measured"] + v["derived"]
+                         for k, v in pathway_results.items()},
     )
 
     # Name the pathways that contributed NOTHING. Omega is a weighted geometric

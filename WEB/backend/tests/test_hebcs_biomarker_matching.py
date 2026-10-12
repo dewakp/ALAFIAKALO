@@ -281,5 +281,17 @@ def test_a_patient_with_no_labs_gets_no_score_rather_than_fifty():
     assert len(empty["unscored_pathways"]) == 6
 
     # …and a patient who does have results still scores.
-    scored = compute_hebcs({"Albumin": 4.1, "BUN": 17.0})
+    #
+    # The panel is a real one rather than two markers: since 2026-10-12 Omega
+    # is withheld when a MAJORITY of the construct is unmeasured, because
+    # "Albumin 4.1, BUN 17" used to report 99.9% — a whole-person claim from
+    # two numbers. Two labs is not a wellness score; this test is about a
+    # patient with results scoring at all.
+    scored = compute_hebcs({
+        "Albumin": 4.1, "BUN": 17.0, "Creatinine": 0.9, "Glucose": 92.0,
+        "Sodium": 140.0, "Potassium": 4.2, "CO2 (Bicarbonate)": 26.0,
+        "Hemoglobin": 14.5, "Hematocrit": 43.0, "RBC": 5.0, "MCV": 88.0,
+        "RDW": 13.0, "WBC": 6.0, "LDH": 180.0, "Calcium": 9.4,
+        "Phosphorus": 3.5, "Iron (Serum)": 95.0,
+    })
     assert scored["omega_pct"] is not None

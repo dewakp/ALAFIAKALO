@@ -2513,3 +2513,101 @@ frontend tests pass; ruff F,E9 clean.**
 - **28e. The Ω explanation paragraph is still hardcoded** and still says "how
   well that is being managed" — the conflation, in the sentence the patient
   reads (OPEN_ITEMS 27 §4a).
+
+---
+
+## 29. "Ω must be responsive to patient" — FIXED 2026-10-12 (step 1 of 3)
+
+Operator: *"Also omega must be responsive to patient and not force people
+without conditions to be measured as if they have conditions. This is the
+wheelhouse of adaptive, intelligent mathematical modeling."*
+
+Measured first (§0). Three production accounts, before anything changed:
+
+    user 63    9,820 labs, 4 conditions, coverage 1.000   Ω 42.14%
+    user 60       46 labs, 0 conditions, coverage 0.276   Ω 27.38%
+    user 158       5 labs, 0 conditions, coverage 0.069   Ω 99.90%
+
+The two condition-free accounts fail in **opposite directions**, and neither
+failure was the pathway set.
+
+### ⚠️ A healthy person's best possible urine result scored as a fatal one
+
+User 60's `RBC = 0`, no reference range, drawn beside AMORPHOUS SEDIMENT,
+BACTERIA, GRANULAR CAST, NITRITE, SPECIFIC GRAVITY, LEUKOCYTE ESTERASE and
+SQUAMOUS EPITHELIAL CELLS. **It is a urinalysis.** Zero red cells per
+high-power field in urine is the ideal finding.
+
+It resolved to the Hematologic `RBC` biomarker — a blood count, band 4.6-6.2 —
+and scored **0.000**: no red blood cells in the body. Being the only
+Hematologic value present it carried the whole pathway to 0.001, and **a well
+person's normal urine test reported them at 27% wellness** while four other
+pathways sat at 1.000.
+
+§3ab names the authority and it is not available: LOINC `SYSTEM` *"separates
+serum from urine glucose"*, and `loinc_code` is populated on **34 of 9,871**
+rows (0.3%), `category` on 1,018 and holding panel names rather than specimens.
+So the **panel is the evidence**: two or more urinalysis-only markers on one
+draw (specific gravity, nitrite, leukocyte esterase, casts, crystals, epithelial
+cells) identify it, and an ambiguous analyte drawn with them is not scored as
+the blood one. The quorum is two, not one — a lone "BACTERIA" could be a stray
+row, and mis-identifying a blood panel would DISCARD a real haemoglobin.
+
+### Coverage was computed, reported, and never used
+
+User 158: **Ω 99.9% from five labs and two markers.** "You will live forever",
+on 6.9% coverage. A score built on a fourteenth of its evidence was presented
+identically to one built on all of it (§3aa).
+
+- **`evidence_weight`** scales a pathway's share by how much of it was measured,
+  so one marker cannot speak for a pathway of nine — user 60's Hematologic
+  carried the full 0.15 off 1 of 9.
+- ⚠️ **That is not sufficient on its own, and nearly shipped as though it
+  were.** The geometric mean renormalises by `w_sum`, so scaling every weight
+  by the same factor **cancels out**: user 158 still read 99.9% after it. Ω is
+  now **WITHHELD** when the evidenced weight is not a MAJORITY of the declared
+  construct — the same decision already taken for a patient with no labs, where
+  returning 0.5 described nobody. Not a tuned threshold (§3az): "more than
+  half", expressed in the framework's own weights. Exactly half is withheld
+  too, and pinned — at a dead heat, whether the unknown half would change the
+  answer is a coin flip.
+
+### `pathways_for(conditions)` — what adapts, and what deliberately does not
+
+- **The pathway set and the weights do NOT vary.** Ω is an absolute scale and
+  the operator fixed both ends — *"perfect … will score 100% (meaning they will
+  live forever). A dead person scores 0."* Two people with identical biology
+  must score the same, so a decomposition that re-weighted itself per diagnosis
+  would make Ω incomparable between two patients and between one patient and
+  their own past. Weighting by disease is what Α is for. Pinned by
+  `test_the_WEIGHTS_do_not_vary_by_condition`.
+- **What adapts is which markers are EXPECTED.** PTH, ferritin, TSAT, nPCR and
+  Ca×P are renal monitoring tests carrying `indicated_by=("renal",)`. A patient
+  with no renal condition has no reason to have them drawn, and counting their
+  absence as missing evidence reported a healthy record as incomplete — and,
+  once coverage began bounding Ω, would have withheld their score for not
+  holding tests nobody should have ordered.
+- **A marker present is ALWAYS scored.** `indicated_by` governs absence only.
+
+### After
+
+    user 63    coverage 1.000   Ω 42.68%   unscored []
+    user 60    coverage 0.208   Ω 99.90%   unscored [Hematologic, Inflammatory]
+    user 158   coverage 0.083   Ω None     — withheld, a minority of the construct
+
+**105 passed across the slice**, 9 new guards, ruff F,E9 clean.
+
+> Three existing tests failed and **none was a regression** — each asserted the
+> old behaviour: that two labs produce a score, and that half a construct is
+> enough. Updated with the reason recorded in each, not silently widened.
+
+### STILL OPEN — steps 2 and 3 of the operator's queue
+
+- **29a.** Α is still gated by a boolean the endpoint does not pass, and
+  `compute_alpha` has no caller (OPEN_ITEMS 28a, 28c).
+- **29b.** Mobile does not filter on `/users/me/surfaces` (28d).
+- **29c.** The specimen guard covers the urinalysis panel only. Other
+  same-name-different-specimen pairs — serum vs urine protein, serum vs urine
+  creatinine on a 24-hour collection — are not identified, and the real fix is
+  the LOINC catalog §3ab already specifies and gates on a free-account
+  download.

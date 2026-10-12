@@ -37,6 +37,7 @@ from app.services.health_signals import (
 from app.services.hebcs_engine import (
     ESRD_PATHWAYS,
     compute_hebcs,
+    pathways_for,
     select_latest_per_analyte,
 )
 from app.services.prompt_language import (
@@ -625,7 +626,25 @@ async def get_hebcs_omega_score(
     resolved_ranges = await refs.resolve(db, current_user.id)
     resolved_ranges.update(lab_ranges)      # the latest row for this patient wins
 
-    result_data = compute_hebcs(biomarker_values, derived_values=derived,
+    # `clinical_sources` is imported inside `_compute_wellness_score`, not at
+    # module scope, so this function never had it — captured from the real call
+    # as `NameError: name 'sources' is not defined` rather than reasoned about.
+    # Conditions go through the canonical reader because they live in TWO
+    # tables and reading one alone reports "no active conditions" for a patient
+    # with four (§3aa).
+    from app.services import clinical_sources as sources
+
+    conditions_now = await sources.conditions(db, current_user.id, active_only=True)
+
+    # Ω is measured against the decomposition THIS patient warrants. The set and
+    # the weights do not vary — Ω is an absolute scale, so two people with
+    # identical biology must score the same — but the renal monitoring markers
+    # (PTH, ferritin, TSAT, nPCR, Ca×P) are only EXPECTED of someone whose
+    # record carries a renal condition. A well person was being scored as though
+    # tests nobody should have ordered were missing from their chart.
+    patient_pathways = pathways_for(conditions_now)
+    result_data = compute_hebcs(biomarker_values, pathways=patient_pathways,
+                                derived_values=derived,
                                 reference_ranges=resolved_ranges)
     omega = result_data["omega"]
 
@@ -639,15 +658,6 @@ async def get_hebcs_omega_score(
     # "relatively well-managed health given your ESRD diagnosis" for a patient
     # whose glucose scored 0.000 and whose transferrin saturation scored 0.048.
     # A reassuring adjective in front of that is worse than no sentence.
-    # `clinical_sources` is imported inside `_compute_wellness_score`, not at
-    # module scope, so this function never had it — captured from the real call
-    # as `NameError: name 'sources' is not defined` rather than reasoned about.
-    # Conditions go through the canonical reader because they live in TWO
-    # tables and reading one alone reports "no active conditions" for a patient
-    # with four (§3aa).
-    from app.services import clinical_sources as sources
-
-    conditions_now = await sources.conditions(db, current_user.id, active_only=True)
     # Names are stripped for joining only. The stored wording is never
     # rewritten — one of these rows reads "G6PD Deficitency", and correcting a
     # patient's own clinical record to tidy a sentence invents a fact about

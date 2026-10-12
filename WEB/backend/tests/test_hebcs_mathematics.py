@@ -145,10 +145,14 @@ def test_a_pathway_scoring_zero_is_not_SKIPPED_by_omega():
 
     Unmeasured and catastrophic are opposite facts and must not share a branch.
     """
-    paths = [Pathway("X", [], weight=0.5), Pathway("Y", [], weight=0.5)]
-    both_fine = omega_score({"X": 1.0, "Y": 1.0}, paths)
-    one_dead = omega_score({"X": 1.0, "Y": 0.0}, paths)
-    one_absent = omega_score({"X": 1.0, "Y": None}, paths)
+    # THREE pathways, so dropping one still leaves a majority of the construct
+    # evidenced and the evidence quorum does not withhold the score — which is
+    # the behaviour under test here, not the quorum.
+    paths = [Pathway("X", [], weight=0.4), Pathway("Y", [], weight=0.3),
+             Pathway("Z", [], weight=0.3)]
+    both_fine = omega_score({"X": 1.0, "Y": 1.0, "Z": 1.0}, paths)
+    one_dead = omega_score({"X": 1.0, "Y": 0.0, "Z": 1.0}, paths)
+    one_absent = omega_score({"X": 1.0, "Y": None, "Z": 1.0}, paths)
     assert one_dead < both_fine, "a dead pathway must lower the score"
     assert one_dead < one_absent, "catastrophic must not read as unmeasured"
     assert one_absent == pytest.approx(both_fine)
@@ -200,10 +204,17 @@ def test_a_marker_with_no_margin_to_mirror_is_left_open():
 
 # ── Ω is health, Α is management, and they are not the same question ────────
 
+# Enough of the construct to clear the evidence quorum — a thin panel is now
+# answered with None rather than a number, which these tests are not about.
 _PANEL = {"Hemoglobin": 11.3, "Ferritin": 197.0, "Iron Saturation (TSAT)": 14.0,
           "PTH (Intact)": 17.0, "Phosphorus": 3.6, "Calcium": 8.9,
           "Creatinine": 8.23, "KtV (Dialysis Adequacy)": 1.47,
-          "URR (Urea Reduction Ratio)": 74.0}
+          "URR (Urea Reduction Ratio)": 74.0,
+          "Glucose": 95.0, "Sodium": 140.0, "Potassium": 4.2,
+          "CO2 (Bicarbonate)": 26.0, "Hematocrit": 38.3, "RBC": 4.67,
+          "MCV": 88.0, "RDW": 13.0, "WBC": 6.0, "LDH": 180.0,
+          "CaxP Product": 32.0, "Iron (Serum)": 90.0, "Albumin": 4.2,
+          "BUN": 14.0, "nPCR (Protein Catabolic Rate)": 1.1}
 
 
 def test_a_MANAGEMENT_pathway_is_not_in_the_health_score():
@@ -259,3 +270,128 @@ def test_the_two_scores_answer_differently_on_one_panel():
     assert omega is not None and alpha is not None
     # Kt/V and URR are perfect; creatinine is zero. They must not coincide.
     assert abs(omega - alpha) > 0.01
+
+
+# ── Ω must be responsive to the patient, not a constant ESRD decomposition ──
+#
+# Operator, 2026-10-12: *"Also omega must be responsive to patient and not force
+# people without conditions to be measured as if they have conditions. This is
+# the wheelhouse of adaptive, intelligent mathematical modeling."*
+
+def test_a_urine_RBC_is_not_a_blood_count():
+    """The sharpest form of the complaint, found on a production account with
+    **46 labs and zero conditions, scored at Ω 27.38%**.
+
+    `RBC = 0` drawn beside AMORPHOUS SEDIMENT, BACTERIA, GRANULAR CAST,
+    NITRITE, SPECIFIC GRAVITY and LEUKOCYTE ESTERASE is **zero red cells per
+    high-power field in the urine** — the ideal result. It resolved to the
+    Hematologic blood count and scored 0.000: no red blood cells in the body.
+    Being the only Hematologic value present it carried the pathway alone, and
+    a healthy person's best possible urine test reported them at 27% wellness.
+    """
+    from app.services.hebcs_engine import urinalysis_draws
+
+    draw = datetime(2022, 1, 11)
+    panel = [
+        ("RBC", 0.0, draw, None, None),
+        ("SPECIFIC GRAVITY", 1.013, draw, 1.001, 1.035),
+        ("NITRITE", 1.0, draw, None, None),
+        ("LEUKOCYTE ESTERASE", 1.0, draw, None, None),
+    ]
+    assert draw.date() in urinalysis_draws(panel)
+    picked = select_latest_per_analyte(panel)
+    assert "RBC" not in picked, "a urine microscopy count is not a blood count"
+
+
+def test_a_BLOOD_panel_still_scores_its_RBC():
+    """The guard must not eat a real blood count. Mis-identifying a blood panel
+    as urine would discard a genuine haemoglobin — far worse than the bug."""
+    draw = datetime(2026, 10, 1)
+    panel = [("RBC", 4.67, draw, 4.6, 6.2),
+             ("Hemoglobin", 11.3, draw, 14, 18)]
+    picked = select_latest_per_analyte(panel)
+    assert picked["RBC"][1] == 4.67
+
+
+def test_ONE_urinalysis_marker_is_not_enough_to_condemn_a_panel():
+    """A lone "BACTERIA" or "COLOR" row could be a stray. The quorum is two."""
+    from app.services.hebcs_engine import urinalysis_draws
+
+    draw = datetime(2026, 10, 1)
+    assert draw.date() not in urinalysis_draws(
+        [("RBC", 4.67, draw, 4.6, 6.2), ("COLOR", 1.0, draw, None, None)])
+
+
+def test_omega_is_WITHHELD_when_most_of_the_construct_is_unmeasured():
+    """Measured: user 158, five labs, two markers, coverage 0.069, reported
+    **Ω 99.9%** — "you will live forever", from five numbers.
+
+    `None` is the same answer already given for a patient with no labs at all,
+    where returning 0.5 described nobody. Scaling weights alone could not fix
+    this: the mean renormalises, so a uniform reduction cancels out.
+    """
+    paths = [Pathway("A", [_marker(f"a{i}") for i in range(5)], weight=0.5),
+             Pathway("B", [_marker(f"b{i}") for i in range(5)], weight=0.5)]
+    # Only one pathway, on 2 of its 5 markers → a minority of the construct.
+    thin = omega_score({"A": 1.0, "B": None}, paths, measured_counts={"A": 2})
+    assert thin is None
+
+    # The same pathways, fully measured, still score.
+    full = omega_score({"A": 1.0, "B": 1.0}, paths,
+                       measured_counts={"A": 5, "B": 5})
+    assert full is not None and full > 0.9
+
+
+def test_a_pathway_on_one_marker_of_nine_does_not_speak_for_all_nine():
+    """User 60: Hematologic 0.001 off ONE of nine markers, carrying the full
+    0.15 while four other pathways scored 1.000 and were buried."""
+    from app.services.hebcs_engine import evidence_weight
+
+    nine = Pathway("H", [_marker(f"m{i}") for i in range(9)], weight=0.15)
+    assert evidence_weight(nine, 1) < 0.15
+    assert evidence_weight(nine, 9) == 0.15
+
+
+def test_a_well_person_is_not_EXPECTED_to_hold_renal_monitoring_tests():
+    """PTH, ferritin, TSAT, nPCR and Ca×P are renal monitoring markers. A
+    patient with no renal condition has no reason to have them drawn, and
+    counting their absence as missing evidence reported a healthy record as
+    incomplete — and, once coverage began bounding Ω, would withhold their
+    score for not holding tests nobody should have ordered."""
+    from app.services.hebcs_engine import pathways_for
+
+    class _C:
+        def __init__(self, name): self.name = name; self.icd11_title = ""
+
+    well = {b.name for p in pathways_for([]) for b in p.biomarkers}
+    renal = {b.name for p in pathways_for([_C("End-Stage Renal Disease")])
+             for b in p.biomarkers}
+    assert "PTH (Intact)" in renal and "PTH (Intact)" not in well
+    assert "Ferritin" in renal and "Ferritin" not in well
+    # …and the universal markers are expected of everybody.
+    for common in ("Hemoglobin", "Creatinine", "Sodium", "Albumin"):
+        assert common in well and common in renal
+
+
+def test_the_WEIGHTS_do_not_vary_by_condition():
+    """Ω is an absolute scale — the operator fixed both ends: perfect health is
+    100, a dead person is 0. Two people with identical biology must therefore
+    score the same, so a decomposition that re-weighted itself per diagnosis
+    would make Ω incomparable between patients and against a patient's own
+    past. Weighting by disease is what Α is for."""
+    from app.services.hebcs_engine import pathways_for
+
+    class _C:
+        def __init__(self, name): self.name = name; self.icd11_title = ""
+
+    well = {p.name: p.weight for p in pathways_for([])}
+    renal = {p.name: p.weight for p in pathways_for([_C("ESRD")])}
+    assert well == renal
+
+
+def test_exactly_half_the_construct_is_NOT_a_majority():
+    """The quorum is "more than half", so a dead heat is withheld. At exactly
+    half, whether the unmeasured half would change the answer is a coin flip,
+    and a score that could go either way is not a measurement."""
+    paths = [Pathway("X", [], weight=0.5), Pathway("Y", [], weight=0.5)]
+    assert omega_score({"X": 1.0, "Y": None}, paths) is None
