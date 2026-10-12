@@ -503,7 +503,39 @@ function HEBCSTab() {
               <div style={{ fontSize: 22, fontWeight: 800, color: covPct >= 60 ? '#10b981' : '#f59e0b' }}>{covPct}%</div>
               <div style={{ fontSize: 11, color: '#9ca3af' }}>{t('Wellness.data_coverage')}</div>
             </div>
+            {/* Α — how well the CONDITIONS are being managed, which is a
+                different question from how well the patient IS. They routinely
+                disagree: haemoglobin 11.3 is anaemia on a health band and
+                on-target under KDIGO. Shown beside Ω because the pair is the
+                only thing a clinician can act on; collapsing them into one
+                number was the core failure (OPEN_ITEMS 28).
+
+                A patient with no condition carrying a guideline target has no
+                Α at all, and that is NOT a zero — the reason is printed in its
+                place so the gap cannot read as a bad score (§3aa). */}
+            {omega.alpha_pct != null ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#8b5cf6' }}>{Math.round(omega.alpha_pct)}%</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>{t('Wellness.alpha_management')}</div>
+              </div>
+            ) : omega.alpha_reason ? (
+              <div style={{ textAlign: 'center', maxWidth: 190 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#9ca3af' }}>—</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>{omega.alpha_reason}</div>
+              </div>
+            ) : null}
           </div>
+          {(omega.alpha_off_target || []).length > 0 && (
+            <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}>
+              {(omega.alpha_off_target || []).slice(0, 3).map((r, i) => (
+                <div key={i} style={{ marginTop: 4 }}>
+                  <strong>{r.name}</strong> {r.value} — {t('Wellness.alpha_target_range', {
+                    low: r.target_range?.[0], high: r.target_range?.[1] })}
+                  {r.authority ? ` · ${r.authority}` : ''}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

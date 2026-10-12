@@ -3051,7 +3051,9 @@
     "symptoms": "Symptoms",
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
-    "reference": "{{name}}: {{value}} (reference {{value2}})"
+    "reference": "{{name}}: {{value}} (reference {{value2}})",
+    "alpha_management": "إدارة الحالة الصحية",
+    "alpha_target_range": "الهدف {{low}}-{{high}}"
   },
   "CategoryDetail": {
     "category": "الفئة",

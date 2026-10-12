@@ -3051,7 +3051,9 @@
     "symptoms": "Symptoms",
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
-    "reference": "{{name}}: {{value}} (reference {{value2}})"
+    "reference": "{{name}}: {{value}} (reference {{value2}})",
+    "alpha_management": "Gestão de condições",
+    "alpha_target_range": "meta {{low}}-{{high}}"
   },
   "CategoryDetail": {
     "category": "Categoria",

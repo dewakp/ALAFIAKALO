@@ -3051,7 +3051,9 @@
     "symptoms": "Symptoms",
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
-    "reference": "{{name}}: {{value}} (reference {{value2}})"
+    "reference": "{{name}}: {{value}} (reference {{value2}})",
+    "alpha_management": "Erkrankungsverwaltung",
+    "alpha_target_range": "Ziel {{low}}-{{high}}"
   },
   "CategoryDetail": {
     "category": "Kategorie",

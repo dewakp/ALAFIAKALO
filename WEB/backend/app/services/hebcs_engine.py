@@ -83,6 +83,15 @@ class Biomarker:
     #: Which guideline states `target_band`. Required alongside it — an uncited
     #: target is a number someone typed (§3az, §3bc).
     authority: str = ""
+    #: Which disease the target is FOR. A guideline is written for a
+    #: population, and applying it to someone outside that population is the
+    #: §3am error that gave a renal patient potassium's 4,700 mg adult RDA,
+    #: pointed the other way.
+    #:
+    #: Every target here today is a renal guideline — KDIGO Anemia in CKD,
+    #: KDIGO CKD-MBD, KDOQI Hemodialysis Adequacy — so a patient with no renal
+    #: condition has no Α at all, which is the correct answer and not a zero.
+    target_for: tuple = ()
     #: Condition hints that make this marker EXPECTED. Empty means everyone is
     #: expected to have it — a basic chemistry or blood count.
     #:
@@ -433,7 +442,7 @@ ESRD_PATHWAYS: list[Pathway] = [
         # (treated to target). Both true; only the first is about health.
         Biomarker("Hemoglobin",          crit_low=7.0, opt_low=13.5, opt_high=17.5, crit_high=22.0, weight=0.30,
                   scope="both", target_band=(7.0, 10.0, 12.0, 17.5),
-                  authority="KDIGO 2012 Anemia in CKD, 3.4.3"),
+                  target_for=("renal",), authority="KDIGO 2012 Anemia in CKD, 3.4.3"),
         Biomarker("Hematocrit",          crit_low=21,  opt_low=30,   opt_high=36,   crit_high=52,   weight=0.20),
         Biomarker("RBC",                 crit_low=2.0, opt_low=3.0,  opt_high=4.5,  crit_high=6.0,  weight=0.15),
         Biomarker("MCV",                 crit_low=60,  opt_low=80,   opt_high=96,   crit_high=115,  weight=0.10),
@@ -447,11 +456,11 @@ ESRD_PATHWAYS: list[Pathway] = [
         # dialysis — scored 1.000.
         Biomarker("Ferritin",            crit_low=5,   opt_low=24,   opt_high=336,  crit_high=1000, weight=0.15,
                   indicated_by=("renal",), scope="both", target_band=(10, 200, 800, 2000),
-                  authority="KDOQI 2006 Anemia, CPR 3.2"),
+                  target_for=("renal",), authority="KDOQI 2006 Anemia, CPR 3.2"),
         # TSAT target for HD: 20-50%
         Biomarker("Iron Saturation (TSAT)", crit_low=5, opt_low=20, opt_high=50, crit_high=80, weight=0.20,
                   indicated_by=("renal",), scope="both", target_band=(5, 20, 50, 80),
-                  authority="KDOQI 2006 Anemia, CPR 3.2 (TSAT >20% on HD)"),
+                  target_for=("renal",), authority="KDOQI 2006 Anemia, CPR 3.2 (TSAT >20% on HD)"),
         Biomarker("WBC",                 crit_low=2.0, opt_low=4.5, opt_high=11.0, crit_high=30,   weight=0.10),
         Biomarker("LDH",                 crit_low=None,opt_low=0,   opt_high=280,  crit_high=600,  weight=0.10),
     ]),
@@ -467,11 +476,11 @@ ESRD_PATHWAYS: list[Pathway] = [
         # two bands barely overlap, which is why one number could not carry it.
         Biomarker("PTH (Intact)",  crit_low=5,    opt_low=15,   opt_high=65,   crit_high=200,  weight=0.40,
                   indicated_by=("renal",), scope="both", target_band=(15, 150, 600, 3000),
-                  authority="KDIGO 2017 CKD-MBD, 4.2.1"),
+                  target_for=("renal",), authority="KDIGO 2017 CKD-MBD, 4.2.1"),
         # Phosphorus KDIGO target: 3.5–5.5 mg/dL (ESRD relaxed)
         Biomarker("Phosphorus",    crit_low=1.5,  opt_low=2.5,  opt_high=4.5,  crit_high=9.0,  weight=0.30,
                   scope="both", target_band=(1.5, 3.5, 5.5, 9.0),
-                  authority="KDIGO 2017 CKD-MBD, 4.1.1"),
+                  target_for=("renal",), authority="KDIGO 2017 CKD-MBD, 4.1.1"),
         # Calcium
         Biomarker("Calcium",       crit_low=6.5,  opt_low=8.5,  opt_high=10.0, crit_high=12.0, weight=0.20),
         # CaxP product target: <55 mg²/dL²
@@ -532,11 +541,11 @@ ESRD_PATHWAYS: list[Pathway] = [
         # KtV target ≥ 1.4 (NKF-KDOQI): optimal 1.4–1.8
         Biomarker("KtV (Dialysis Adequacy)", crit_low=0.8, opt_low=1.4, opt_high=1.8, crit_high=None, weight=0.50,
                   scope="management", target_band=(0.8, 1.4, 1.8, None),
-                  authority="KDOQI 2015 Hemodialysis Adequacy, spKt/V >=1.4"),
+                  target_for=("renal",), authority="KDOQI 2015 Hemodialysis Adequacy, spKt/V >=1.4"),
         # URR target ≥ 65%
         Biomarker("URR (Urea Reduction Ratio)", crit_low=40, opt_low=65, opt_high=80, crit_high=None, weight=0.30,
                   scope="management", target_band=(40, 65, 80, None),
-                  authority="KDOQI 2015 Hemodialysis Adequacy, URR >=65%"),
+                  target_for=("renal",), authority="KDOQI 2015 Hemodialysis Adequacy, URR >=65%"),
         # nPCR secondary role in dialysis adequacy
         Biomarker("nPCR (Protein Catabolic Rate)", crit_low=0.5, opt_low=1.0, opt_high=1.4, crit_high=2.0, weight=0.20),
     ]),
@@ -848,6 +857,31 @@ def apply_reference_range(b: Biomarker,
 #: marker EXPECTED, never changes how one is scored.
 RENAL = ("renal", "kidney", "dialysis", "esrd", "ckd", "nephro")
 
+#: Hints per indication. Adding a disease means adding a key here and tagging
+#: its markers — not a branch anywhere that scores.
+_INDICATION_HINTS = {"renal": RENAL}
+
+
+def indications_for(conditions=None) -> set[str]:
+    """Which disease axes this patient's own conditions put them on.
+
+    One rule serves both scores: it decides which markers Ω EXPECTS, and which
+    guideline targets Α is entitled to apply. Two rules would drift, and the
+    drift would be a patient scored against a guideline for a disease they do
+    not have.
+
+    Matched case-folded against the patient's own condition wording. The stored
+    text is never rewritten — one row on the reference record reads "G6PD
+    Deficitency" (§3aj).
+    """
+    text = " ".join(
+        f" {(getattr(c, 'name', '') or '').lower()} "
+        f"{(getattr(c, 'icd11_title', '') or '').lower()} "
+        for c in (conditions or [])
+    )
+    return {axis for axis, hints in _INDICATION_HINTS.items()
+            if any(h in text for h in hints)}
+
 
 def pathways_for(conditions=None,
                  pathways: list[Pathway] | None = None) -> list[Pathway]:
@@ -876,12 +910,7 @@ def pathways_for(conditions=None,
     if pathways is None:
         pathways = ESRD_PATHWAYS
 
-    text = " ".join(
-        f" {(getattr(c, 'name', '') or '').lower()} "
-        f"{(getattr(c, 'icd11_title', '') or '').lower()} "
-        for c in (conditions or [])
-    )
-    indications = {"renal"} if any(h in text for h in RENAL) else set()
+    indications = indications_for(conditions)
 
     return [
         replace(p, biomarkers=[
@@ -895,7 +924,7 @@ def pathways_for(conditions=None,
 def compute_alpha(biomarker_values: dict[str, float],
                   pathways: list[Pathway] | None = None,
                   derived_values: dict[str, float] | None = None,
-                  has_managed_condition: bool = True) -> dict:
+                  conditions=None) -> dict:
     """Α — how well the CONDITIONS are being managed. Not a health score.
 
     Operator, 2026-10-12, naming the core failure:
@@ -925,22 +954,37 @@ def compute_alpha(biomarker_values: dict[str, float],
     correct, and is NOT a zero: `None` means there is nothing to manage, the
     §3aa distinction between unmeasured and bad.
     """
-    if not has_managed_condition:
-        # Operator, 2026-10-12: *"A healthy person with zero conditions and
-        # demonstrated health records need no management score. A cancer
-        # patient or someone with luekamia require management score."*
-        #
-        # Without this gate Α scored ANYONE holding a haemoglobin, because the
-        # targets hang off the biomarkers rather than off the patient — which
-        # is the same error as Ω measuring a well person against an ESRD
-        # decomposition. **No condition, no Α.** This is `None`, never 0: there
-        # is nothing to manage, which is not bad management (§3aa).
-        return {"alpha": None, "alpha_pct": None, "pathways": {},
-                "off_target": [],
-                "reason": "no condition on record requires management"}
-
     if pathways is None:
         pathways = ESRD_PATHWAYS
+
+    # Operator, 2026-10-12: *"A healthy person with zero conditions and
+    # demonstrated health records need no management score. A cancer patient or
+    # someone with luekamia require management score."*
+    #
+    # A guideline is written FOR a population. Applying KDIGO's dialysis targets
+    # to someone without renal disease is §3am's error — a generic figure handed
+    # over as this patient's — pointed the other way. Α therefore scores only
+    # the targets whose `target_for` matches a condition the patient actually
+    # has, rather than every target that happens to hang off a biomarker.
+    #
+    # ⚠️ The first version of this gate was a BOOLEAN defaulting to True, which
+    # meant Α scored anyone holding a haemoglobin and the endpoint had only to
+    # forget one argument for a well person to be measured against ESRD
+    # guidelines. A default that is wrong when forgotten is the §3ar shape.
+    indications = indications_for(conditions)
+    pathways = [
+        replace(p, biomarkers=[
+            b for b in p.biomarkers
+            if b.target_band is not None and (set(b.target_for) & indications)
+        ])
+        for p in pathways
+    ]
+    if not any(p.biomarkers for p in pathways):
+        # None, never 0 — there is nothing to manage, which is not bad
+        # management (§3aa: unmeasured and bad are different facts).
+        return {"alpha": None, "alpha_pct": None, "pathways": {},
+                "off_target": [],
+                "reason": "no condition on record has a guideline target"}
 
     values = resolve_biomarkers(biomarker_values, pathways)
     for name, value in resolve_biomarkers(
@@ -954,7 +998,7 @@ def compute_alpha(biomarker_values: dict[str, float],
     scored_any = False
 
     for p in pathways:
-        managed = [b for b in p.biomarkers if b.target_band is not None]
+        managed = list(p.biomarkers)
         if not managed:
             continue
         score = _pathway_score(values, p, band="management")

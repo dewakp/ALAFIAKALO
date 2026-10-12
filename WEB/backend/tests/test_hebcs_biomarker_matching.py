@@ -70,7 +70,14 @@ def test_inadequate_dialysis_is_actually_scored():
     """
     from app.services.hebcs_engine import compute_alpha
 
-    result = compute_alpha({"spKt/V": 0.9, "URR%": 81.0})
+    # A guideline applies to the population it was written for, so Α needs the
+    # condition: KDOQI's adequacy targets are for a dialysis patient, and
+    # calling without one now correctly yields no score at all.
+    class _C:
+        name = "End-Stage Renal Disease"
+        icd11_title = ""
+
+    result = compute_alpha({"spKt/V": 0.9, "URR%": 81.0}, conditions=[_C()])
     adequacy = result["pathways"]["Dialysis_Adequacy"]
 
     assert adequacy["score"] is not None, "the pathway must not vanish"

@@ -17027,6 +17027,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Wellness.alpha_management": {
+    "source": "Condition management",
+    "translation": "Gestión de condiciones",
+    "status": "machine",
+    "translated_on": "2026-10-12"
+  },
+  "Wellness.alpha_target_range": {
+    "source": "target {{low}}-{{high}}",
+    "translation": "objetivo {{low}}-{{high}}",
+    "status": "machine",
+    "translated_on": "2026-10-12"
+  },
   "Wellness.analysis": {
     "source": "Analysis",
     "translation": "Análisis",

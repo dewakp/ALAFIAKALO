@@ -36,6 +36,7 @@ from app.services.health_signals import (
 )
 from app.services.hebcs_engine import (
     ESRD_PATHWAYS,
+    compute_alpha,
     compute_hebcs,
     pathways_for,
     select_latest_per_analyte,
@@ -648,6 +649,14 @@ async def get_hebcs_omega_score(
                                 reference_ranges=resolved_ranges)
     omega = result_data["omega"]
 
+    # Α travels with Ω. They answer different questions and routinely disagree —
+    # haemoglobin 11.3 is anaemia on a health band and on-target under KDIGO —
+    # so a clinician needs the pair, and `compute_alpha` existed with no caller
+    # at all until now (§3ar). Conditions, not a boolean: a guideline applies to
+    # the population it was written for.
+    alpha_data = compute_alpha(biomarker_values, derived_values=derived,
+                               conditions=conditions_now)
+
     # ── What Ω is, said before what it is worth ──────────────────────────
     #
     # Ω scores BIOLOGICAL STATE from laboratory values. It carries no vital
@@ -738,6 +747,11 @@ async def get_hebcs_omega_score(
         computed_at=datetime.now(timezone.utc),
         lab_date_used=latest_date,
         oldest_lab_date_used=oldest_scored_date,
+        alpha=alpha_data["alpha"],
+        alpha_pct=alpha_data["alpha_pct"],
+        alpha_pathways=alpha_data["pathways"],
+        alpha_off_target=alpha_data["off_target"],
+        alpha_reason=alpha_data.get("reason"),
         omega=result_data["omega"],
         omega_pct=result_data["omega_pct"],
         data_coverage=result_data["data_coverage"],

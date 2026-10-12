@@ -226,7 +226,8 @@ def test_a_MANAGEMENT_pathway_is_not_in_the_health_score():
     """
     omega = compute_hebcs(dict(_PANEL))
     assert "Dialysis_Adequacy" not in omega["pathways"]
-    alpha = compute_alpha(dict(_PANEL))
+    alpha = compute_alpha(dict(_PANEL),
+                          conditions=[_Condition("ESRD")])
     assert alpha["pathways"]["Dialysis_Adequacy"]["score"] == 1.0
 
 
@@ -251,22 +252,65 @@ def test_CREATININE_is_scored_and_is_the_largest_health_deficit():
     assert scoring_marker(cr, "management") is None, "nobody treats TO a creatinine"
 
 
+class _Condition:
+    def __init__(self, name): self.name = name; self.icd11_title = ""
+
+
 def test_a_patient_with_NO_condition_has_no_management_score():
     """Operator: *"A healthy person with zero conditions and demonstrated health
-    records need no management score."*
+    records need no management score. A cancer patient or someone with luekamia
+    require management score."*
 
     `None`, never 0 — there is nothing to manage, which is not bad management.
     """
-    out = compute_alpha(dict(_PANEL), has_managed_condition=False)
+    out = compute_alpha(dict(_PANEL), conditions=[])
     assert out["alpha"] is None and out["alpha_pct"] is None
     assert out["reason"]
+
+
+def test_a_guideline_only_applies_to_the_disease_it_was_written_for():
+    """KDIGO's dialysis targets are for renal patients. Applying them to
+    someone with an unrelated diagnosis is §3am's error — a figure computed for
+    one population handed over as this patient's — pointed the other way."""
+    renal = compute_alpha(dict(_PANEL),
+                          conditions=[_Condition("End-Stage Renal Disease")])
+    unrelated = compute_alpha(dict(_PANEL),
+                              conditions=[_Condition("Seasonal allergy")])
+    assert renal["alpha"] is not None
+    assert unrelated["alpha"] is None, (
+        "a renal guideline must not score a non-renal patient")
+
+
+def test_the_gate_is_CONDITIONS_not_a_boolean_that_defaults_to_true():
+    """The first version took `has_managed_condition: bool = True`, so Α scored
+    anyone holding a haemoglobin and the endpoint had only to forget one
+    argument for a well person to be measured against ESRD guidelines. A
+    default that is wrong when forgotten is the §3ar shape."""
+    import inspect
+
+    params = inspect.signature(compute_alpha).parameters
+    assert "conditions" in params
+    assert "has_managed_condition" not in params
+    # …and calling it with nothing at all yields no score rather than a wrong one.
+    assert compute_alpha(dict(_PANEL))["alpha"] is None
+
+
+def test_every_target_names_the_disease_it_is_for():
+    """A `target_band` with no `target_for` can never be applied, and one with
+    no `authority` is a number someone typed (§3bc)."""
+    for p in ESRD_PATHWAYS:
+        for b in p.biomarkers:
+            if b.target_band is not None:
+                assert b.target_for, f"{b.name} has a target for nobody"
+                assert b.authority, f"{b.name} has an uncited target"
 
 
 def test_the_two_scores_answer_differently_on_one_panel():
     """The pair is the finding: gravely ill AND impeccably managed is a real
     and common state, and one number could report neither."""
     omega = compute_hebcs(dict(_PANEL))["omega"]
-    alpha = compute_alpha(dict(_PANEL))["alpha"]
+    alpha = compute_alpha(dict(_PANEL),
+                          conditions=[_Condition("ESRD")])["alpha"]
     assert omega is not None and alpha is not None
     # Kt/V and URR are perfect; creatinine is zero. They must not coincide.
     assert abs(omega - alpha) > 0.01

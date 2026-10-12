@@ -3051,7 +3051,9 @@
     "symptoms": "Symptoms",
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
-    "reference": "{{name}}: {{value}} (reference {{value2}})"
+    "reference": "{{name}}: {{value}} (reference {{value2}})",
+    "alpha_management": "病情管理",
+    "alpha_target_range": "目标 {{low}}-{{high}}"
   },
   "CategoryDetail": {
     "category": "类别",

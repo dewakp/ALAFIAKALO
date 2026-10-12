@@ -66,6 +66,23 @@ class HEBCSScoreResponse(BaseModel):
     #: from a number presented as whole-patient. Naming them is the difference
     #: between a score and a claim.
     unscored_pathways: list[str] = []
+    #: Α — how well the patient's CONDITIONS are being managed, against the
+    #: guidelines written for them. `None` when no condition on record carries
+    #: a guideline target, which is the correct answer for a well person and is
+    #: NEVER a zero (§3aa).
+    #:
+    #: Ω and Α are returned together because they are meant to be read as a
+    #: pair: a patient can be gravely ill AND impeccably managed, and that pair
+    #: is the only thing a clinician can act on. Collapsing them into one number
+    #: was the core failure (OPEN_ITEMS 28).
+    alpha: float | None = None
+    alpha_pct: float | None = None
+    alpha_pathways: dict[str, dict] = {}
+    #: Markers sitting at or past the bottom of their own guideline target,
+    #: each with the authority that set it.
+    alpha_off_target: list[dict] = []
+    #: Why Α is absent, when it is.
+    alpha_reason: str | None = None
     #: Biomarkers sitting at or below the bottom of their own band. A pathway
     #: score is a weighted ARITHMETIC mean, so a marker at zero is averaged up
     #: by its neighbours: on the reference record Glucose 273 scores 0.000 and

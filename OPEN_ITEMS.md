@@ -2611,3 +2611,74 @@ identically to one built on all of it (§3aa).
   creatinine on a 24-hour collection — are not identified, and the real fix is
   the LOINC catalog §3ab already specifies and gates on a free-account
   download.
+
+---
+
+## 30. Α had no caller and its gate was a boolean — FIXED 2026-10-12 (step 2 of 3)
+
+`compute_alpha` shipped in OPEN_ITEMS 28 and **nothing called it** — §3ay's
+never-plugged-in sink, in the same session that cited it. Its gate was
+`has_managed_condition: bool = True`, so Α scored anyone holding a haemoglobin
+and the endpoint had only to forget one argument for a well person to be
+measured against ESRD guidelines. **A default that is wrong when forgotten is
+the §3ar shape.**
+
+### A guideline applies to the population it was written for
+
+`Biomarker.target_for` now names the disease each target belongs to. All seven
+present targets are renal — KDIGO Anemia in CKD, KDIGO CKD-MBD, KDOQI
+Hemodialysis Adequacy — so a patient with no renal condition has **no Α at
+all**, which is the correct answer and never a zero.
+
+Applying KDIGO's dialysis targets to someone without renal disease is §3am's
+error pointed the other way: there, a renal patient was handed potassium's
+4,700 mg general adult RDA.
+
+`indications_for(conditions)` is now **one rule serving both scores** — it
+decides which markers Ω EXPECTS and which targets Α may apply. Two rules would
+drift, and the drift would be a patient scored against a guideline for a
+disease they do not have.
+
+### Measured live
+
+    user 63  (ESRD)          Ω 42.68%   Α 38.18%
+                             Hematologic 0.851 · Bone_Mineral 0.090 ·
+                             Dialysis_Adequacy 1.000
+                             OFF TARGET: PTH 17 -> 0.015, target 150-600
+                                         (KDIGO 2017 CKD-MBD, 4.2.1)
+    user 60  (0 conditions)  Ω 99.90%   Α None — "no condition on record has a
+                                                  guideline target"
+    user 158 (0 conditions)  Ω None     Α None
+
+Ω and Α travel on one payload because they are meant to be read as a pair, and
+the web card now draws both — with the REASON printed in Α's place when it is
+absent, so a gap cannot read as a bad score (§3aa).
+
+> ⚠️ **Two mistakes of my own, caught by guards rather than by me.**
+>
+> 1. I added the two new UI strings to `en.json` as **flat** keys
+>    (`"Wellness.alpha_management"`) while every locale file is **nested**
+>    (`{"Wellness": {"alpha_management": …}}`). `translate_catalogs.py` then
+>    wrote the other ten languages correctly nested — so French, Yoruba and
+>    Arabic would have rendered the label while **English showed the raw key**.
+>    Found by spot-checking the written file rather than trusting the
+>    translator's "2 translated" report (§0).
+> 2. `test_every_language_carries_every_source_key` failed the moment English
+>    gained a key the others lacked — §3aw's guard doing exactly its job, on the
+>    exact mistake §3aw was written about (`37edcc7`, 96 web keys English-only).
+
+**133 passed across the slice, 279 frontend, 44 i18n catalog tests, ruff clean.**
+
+Two existing tests failed and neither was a regression: both called
+`compute_alpha` with no conditions, which now correctly returns no score.
+
+### STILL OPEN — step 3
+
+- **30a.** Mobile does not filter on `/users/me/surfaces`, and iOS/Android do
+  not render Α (28d).
+- **30b.** `RENAL` is the only indication axis. A leukaemia or cancer patient
+  gets no Α, because no oncology target exists yet — the mechanism is there and
+  the guidelines are not.
+- **30c.** The Ω explanation paragraph is still a hardcoded f-string and still
+  says "how well that is being managed" — now provably the wrong sentence, as
+  that is Α's job (27 §4a).
