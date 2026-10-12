@@ -3659,10 +3659,57 @@ It is a memoryless function of 23 scalars.
 > same panels and are never read.
 
 Keep the trapezoid for what it is good at — a transparent, auditable rubric a
-clinician can check by hand — and do not mistake it for a physiology. What
-closing the gap needs, and the trap to avoid (§3av: the 12 risk classifiers
-report AUC 1.000 because each restates a threshold on its own input, so there is
-no non-tautological outcome to fit against yet): **TASKS 18**.
+clinician can check by hand — and do not mistake it for a physiology.
+
+### The PAPER is not the authority, and it is one of the things being corrected
+
+Operator, 2026-10-12: *"the paper can be erronous"*, *"we are attempting to
+correct much of the fallacies in the paper"*, *"the paper was reductive but the
+human sysytem is broader in scope"*, and on the representation: *"omega cannot
+be derived from scalars. it is a multi-dimensional vector (tensor)"* … *"every
+pathway constitute amulti-dimensional pathway and the human sysytem is a tensor
+of pathways so we are dealing with tensor of tensors of tensors"*.
+
+So `docs/HEBCS_medRxiv_draft.md` is **evidence, not specification**. Conforming
+the engine to it is not automatically the fix — three of its own statements are
+defects. Measured, with the fallacy list and the tensor design in **TASKS 18**:
+
+- ⚠️ **AUC = 1.000 is label leakage, published as validation.** §3.7 reports 8
+  of 10 classifiers at ≥0.999 and R² = 1.000, and §2.7.2's own table defines
+  every one of those targets as a same-day threshold on a feature inside the
+  input (`Low hemoglobin = Hemoglobin < 10`). **The paper carries its own
+  control**: the one target not definable from an input feature — post-session
+  vomiting, 12 hours later — scores **0.842**. The gap between 0.842 and 0.999
+  is the leak. Never fit a shape or a weight here without a non-tautological
+  outcome; this is what happens without one, in print.
+- **§2.5's motivating example is unreachable under §2.5's own formula.** The
+  product aggregation is justified by *"uncontrolled hyperkalemia
+  (Metabolic = 0)"*, but Metabolic is a 10-biomarker arithmetic mean, so a
+  potassium scoring 0 moves Ω by about **2%**. The engine's geometric
+  within-pathway mean is a CORRECTION of that, not a deviation to apologise for.
+- **§2.4 specifies the open-sided trapezoid** — *"reduces to a right-
+  trapezoidal or monotonically decreasing form"* — which returns 1.0 for the
+  whole low side. That is the RDW defect, in the publication.
+- **§3.1 contradicts the scalar.** PCA needs 4 components for 90% of variance
+  and H1 is rejected — *"at least four independent health dimensions exist"* —
+  after which one number is reported as the construct.
+- **§3.8's cross-platform r = 1.0000** validates reimplementation fidelity.
+  Two implementations of one formula agreeing says nothing about the formula.
+
+**And the implementation is not the paper either.** The paper defines 7 pathways
+over **48** biomarkers; the engine scores **23**, and four published pathways —
+Endocrinology, Digestive, Immunological, Neurological, carrying **0.48 of the
+weight** — do not exist in it at all, replaced by four that appear nowhere in
+the paper. Operator: *"Bone mineral is not just PTH but also calcium,
+phosphorous and vitamin D."* Vitamin D is in TWO published pathways and ZERO
+implemented ones. **All 28 missing analytes are already in the database** —
+nothing is blocked on collection.
+
+> ⚠️ **Do not restore them into the scalar engine as a first move.** Four more
+> pathways of independently-scored scalars collapsed by a weighted mean is more
+> of the thing being corrected. The reduction happens too early: once Ca is 1.0
+> and PTH 0.067, Ca×PTH is unrecoverable, and no aggregation chosen afterwards
+> puts it back. Settle the representation (TASKS 18h) first.
 
 ## 3b. Admin console
 

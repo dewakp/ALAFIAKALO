@@ -852,3 +852,176 @@ things is what the operator is pointing at.
 - **18f. Admit the other modalities** — BP/pulse series, symptom burden,
   functional status — or stop describing Ω as whole-person. Today's text already
   says it measures biological state only; the name does not.
+
+
+### 18g. The implementation is not the published framework — measured 2026-10-12
+
+Operator: *"Bone mineral is not just PTH but also calcium, phosphorous and
+vitamin D."* Correct, and it is in their own Table 3: **Vitamin D appears in TWO
+published pathways and in ZERO implemented ones.** So do ALP and Magnesium.
+
+`docs/HEBCS_medRxiv_draft.md` §2.3 defines **7 pathways over 48 biomarkers**.
+The engine scores **23**, and four published pathways do not exist in it at all:
+
+| published pathway | w | n | in the engine |
+|---|---|---|---|
+| Metabolic | 0.20 | 10 | 4 of 10 (no Creatinine, Chloride) |
+| **Endocrinology** | **0.15** | 6 | **absent** |
+| **Digestive** | **0.12** | 10 | **absent** |
+| **Immunological** | **0.11** | 7 | **absent** |
+| Hemolytical | **0.22** | 13 | as `Hematologic` at **0.15**, 9 of 13 |
+| Bone Formation | 0.10 | 7 | as `Bone_Mineral` at **0.15**, 4 of 7 |
+| **Neurological** | **0.10** | 6 | **absent** |
+
+The four absent pathways carry **0.48 of the published weight — nearly half the
+construct.** The engine instead invents `Cardiovascular`, `Nutritional`,
+`Dialysis_Adequacy` and `Inflammatory`, which appear nowhere in the paper, and
+gives the heaviest published pathway (Hemolytical 0.22) the third-largest weight.
+
+**All 28 missing analytes are ALREADY IN THE DATABASE** — nothing is blocked on
+collection:
+
+    Creatinine, Chloride, Vitamin D, HbA1c, Total Protein, Cholesterol, HDL,
+    LDL, Triglycerides, ALT, AST, B12, Folate, Neutrophils, Lymphocytes,
+    Monocytes, Eosinophils, Basophils, Platelets, MCH, MCHC, TIBC,
+    Reticulocyte, Vitamin D (again), ALP, Magnesium, Magnesium (again), B12
+
+The four Hemolytical gaps — **MCH, MCHC, TIBC, Reticulocyte** — are exactly the
+markers §18's iron worked-example needed and could not reach.
+
+> ⚠️ **Do NOT restore these into the scalar engine as a first move.** Four more
+> pathways of independently-scored scalars collapsed by a weighted mean is more
+> of the thing 18a-18f says is wrong. Settle the representation first.
+
+### 18h. "tensor of tensors of tensors" — the representation, in the operator's words
+
+> *"omega cannot be derived from scalars. it is a multi-dimensional vector
+> (tensor)"*
+
+> *"every pathway constitute amulti-dimensional pathway and the human sysytem is
+> a tensor of pathways so we are dealing with tensor of tensors of tensors"*
+
+**The published paper's own results support this and measure the loss.** §3.1:
+PCA on the 7-pathway score matrix needed **4 components for 90% of variance**
+(PC1 only 42.2%), and H1 (Decomposability) was REJECTED — *"at least four
+independent health dimensions exist."* So Ω, one number, is a projection of a
+≥4-dimensional object, and the paper quantifies how much it cannot carry. §3.1
+also measured **Bone Formation ↔ Endocrinology r = 0.85** — the coupling through
+shared Ca, PO₄, PTH and Vitamin D — and the implementation deleted Endocrinology,
+so the strongest measured coupling in the framework is not even observable.
+
+What each level actually holds, against what the engine keeps:
+
+| level | the object | what `trapezoidal_score`/`pathway_score` keeps |
+|---|---|---|
+| **0 · marker** | value, unit, band, provenance (pre/post/fasting), assay, Δ since last, time since last, uncertainty | one float in [0,1] |
+| **1 · pathway** | markers × time × their regulatory relations — 25(OH)D → 1,25(OH)₂D → Ca absorption → PTH suppression → PO₄ handling is a directed graph with lags, not a bag of seven numbers | one weighted mean |
+| **2 · system** | pathways × their measured coupling (|r| = 0.122 mean, 0.85 Bone↔Endocrine) ≥ 4 independent dimensions | one scalar Ω |
+| **— · drive** | exposure E[drug, dose, time], nutrition, dialysis and elimination losses | nothing at all |
+
+**The reduction happens too early, and that is the core defect.** Once Ca is 1.0
+and PTH is 0.067 the Ca×PTH relationship is unrecoverable; no aggregation chosen
+afterwards can put it back. A tensor formulation keeps the axes and contracts
+LAST, reporting Ω as one projection beside the structure rather than instead of
+it.
+
+### 18i. The within-pathway change is a CORRECTION, not a deviation
+
+Operator, 2026-10-12: *"the paper can be erronous"* / *"we are attempting to
+correct much of the fallacies in the paper"* / *"the paper was reductive but the
+human sysytem is broader in scope"*. **The paper is therefore not the
+authority — it is one of the things being corrected.** This section was first
+written as "a deviation I introduced, for the operator to rule on"; that framing
+was wrong and is kept visible rather than silently replaced.
+
+OPEN_ITEMS 27 changed the within-pathway aggregation from arithmetic to
+geometric. The published §2.5 specifies a weighted ARITHMETIC mean
+(`O_p = Σ w_b·O_b / Σ w_b`), so it departs from the paper — and it departs from
+it because **the paper's stated justification for the between-pathway product is
+unreachable under the paper's own within-pathway formula.**
+§2.5 argues for the product because *"a near-zero score in any single pathway
+drives the overall score toward zero … uncontrolled hyperkalemia (Metabolic = 0)
+poses immediate mortality risk irrespective of excellent bone health."* But
+Metabolic holds 10 biomarkers, so with equal within-pathway weights a potassium
+scoring 0 moves Metabolic to 0.9 and Ω by 0.9^0.20 ≈ **0.979 — about 2% for a
+lethal potassium.** `Metabolic = 0` cannot occur.
+
+So the change serves the paper's stated INTENT by correcting its stated
+FORMULA. The engine and the paper now disagree, deliberately; §18j is the list
+of what else needs correcting.
+
+Also deviating, and pre-existing: the paper's aggregation is the weighted
+PRODUCT `∏ O_p^{w_p}`; the engine computes the weighted GEOMETRIC MEAN
+`exp(Σ w ln s / Σ w)`. These coincide when all seven pathways score (Σw = 1.00)
+and diverge whenever one is missing — the geometric mean renormalises over what
+remains and so **inflates** Ω, which with four pathways absent is doing
+substantial work.
+
+
+### 18j. Fallacies in the published paper, measured
+
+Operator: *"the paper can be erronous"*, *"we are attempting to correct much of
+the fallacies in the paper"*, *"the paper was reductive but the human sysytem is
+broader in scope"*. Each item below is evidenced from the paper's own text or
+from the record — not asserted.
+
+**F1 — AUC = 1.000 is label leakage, and the paper reports it as validation.**
+§3.7 publishes **8 of 10 classifiers at AUC ≥ 0.999** and glucose regression at
+**R² = 1.000**. Every one of those targets is, by §2.7.2's own definition
+table, a **same-day threshold on a feature that is inside the 141-feature
+input**:
+
+    Low hemoglobin       Hemoglobin < 10        AUC 1.000
+    Hypokalemia          post-dialysis K < 3.5  AUC 1.000
+    Low calcium          Calcium < 8.5          AUC 1.000
+    Calcification risk   Ca×P > 55              AUC 1.000
+    High PTH             PTH > 600              AUC 0.999
+    Hypotension          post-systolic < 90     AUC 1.000
+    Glucose level        (the glucose value)    R²  1.000
+
+The models restate their input. They carry **no lead time at all**, so nothing
+built on them can answer a question about cause or about what comes next. §3.7's
+own SHAP paragraph corroborates the leak without naming it — *"intradialytic
+blood pressure statistics … among the top predictors"* for a target defined by
+intradialytic blood pressure.
+
+> **The paper contains its own control.** The one target that is NOT definable
+> from an input feature — post-session vomiting, an event 12 hours later —
+> scores **0.842**. That is what a real model looks like here. The gap between
+> 0.842 and 0.999 is the leak, measured by the paper itself.
+
+(§3av recorded this independently from the notebooks in 2026-10-02; this is the
+same finding in the publication.)
+
+**F2 — the motivating example cannot occur under the formula it motivates.**
+See §18i. `Metabolic = 0` for uncontrolled hyperkalemia is unreachable when
+Metabolic is a 10-biomarker arithmetic mean; the real move in Ω is about 2%.
+
+**F3 — §2.4 sanctions a function that asserts perfect health.** *"For
+biomarkers with only an upper limit … the function reduces to a right-
+trapezoidal or monotonically decreasing form."* Under the published piecewise
+`O_b(x)`, that returns **1.0 for the entire low side**. Operator: *"high or low
+rdw are not sign of health. one suggests hemolysis or worse."* Measured on the
+record: RDW 0.1 scored 1.000. Fixed in the engine (`closed_band`); the paper
+still specifies the defect.
+
+**F4 — the paper's own §3.1 contradicts the sufficiency of a scalar Ω.** PCA on
+the 7-pathway matrix needs **4 components for 90% of variance** (PC1 42.2%), and
+H1 is REJECTED: *"at least four independent health dimensions exist."* A single
+number is then reported as the construct. The paper measures the loss and does
+not account for it.
+
+**F5 — reductive scope.** 48 laboratory analytes, one timepoint each. No
+exposure (drug, dose, timing), no nutrition, no elimination, no derivative — and
+"electro-" and "neuro-" appear in the construct's own definition with nothing
+measuring them. The strongest coupling the paper found (Bone↔Endocrine
+r = 0.85) is left as a correlation rather than modelled.
+
+**F6 — cross-platform agreement is not correctness.** §3.8 reports MATLAB and
+Python agreeing at r = 1.0000. That validates reimplementation fidelity. Two
+implementations of the same formula agreeing perfectly says nothing about
+whether the formula is right, and it is cited in the Discussion as if it did.
+
+> ⚠️ **F1 is the one that must not be repeated in the product.** §18e already
+> says fitting shapes or weights needs a non-tautological outcome. The paper
+> demonstrates exactly what happens without one, at AUC 1.000, in print.
