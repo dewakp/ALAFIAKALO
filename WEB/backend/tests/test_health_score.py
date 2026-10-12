@@ -1,6 +1,16 @@
 # Copyright © 2026 Wole Akpose / 6igma Health Inc.
 # All rights reserved. ALAFIA — proprietary and confidential.
 
+"""Findings are `Finding` objects now, not strings.
+
+`Component.critical` carries FACTS plus a deterministic `fallback` sentence
+since 2026-10-11, because ALAFIA writes the prose at read time and the facts
+are what must be verifiable (`finding_text.render`). These assertions check
+`.fallback` — the deterministic wording — so they keep testing exactly what
+they tested before: that the component SAYS the thing, in its own words,
+without depending on a model being up.
+"""
+
 """The health score measured diligence, not health.
 
 Four faults, each of which changed the number a patient was shown:
@@ -199,7 +209,7 @@ def test_LOW_blood_pressure_lowers_vitals_too():
     low = hs.vitals_component(bands=_BANDS, systolic=81, diastolic=62, on_dialysis=True)
     assert low.score < good.score
     assert low.score < 80, "hypotension must not read as near-perfect"
-    assert any("below" in c for c in low.critical), low.critical
+    assert any("below" in c.fallback for c in low.critical), low.critical
 
 
 def test_a_fast_pulse_is_read_at_all():
@@ -224,7 +234,7 @@ def test_the_treatment_nadir_is_the_finding_not_the_mean():
                             on_dialysis=True)
     assert c.detail["post_dialysis_nadir"] == 54
     assert c.detail["post_dialysis_below_floor"] == 1
-    assert any("lowest 54" in x for x in c.critical), c.critical
+    assert any("lowest 54" in x.fallback for x in c.critical), c.critical
 
 
 def test_a_band_that_does_not_exist_leaves_the_input_unscored():
@@ -253,14 +263,14 @@ def test_falling_behind_your_own_treatment_rate_is_scored():
     falling_away = hs.dialysis_component(sessions_in_window=18, window_days=90,
                                          baseline_per_week=3.0)
     assert falling_away.score < keeping_up.score
-    assert any("fallen" in c for c in falling_away.critical), falling_away.critical
+    assert any("fallen" in c.fallback for c in falling_away.critical), falling_away.critical
 
 
 def test_inadequate_clearance_is_named():
     c = hs.dialysis_component(sessions_in_window=39, window_days=90,
                               baseline_per_week=3.0, latest_ktv=1.18,
                               ktv_band=(0.8, 1.4, 1.8, None))
-    assert any("1.18" in x for x in c.critical), c.critical
+    assert any("1.18" in x.fallback for x in c.critical), c.critical
 
 
 def test_the_worst_symptom_decides_not_the_average():
@@ -277,7 +287,7 @@ def test_blood_in_stool_is_a_finding_whatever_the_score():
     c = hs.elimination_component(bowel_blood=134, bowel_total=648,
                                  vomit_in_window=0, window_days=90)
     assert c.score is not None and c.score < 100
-    assert any("134 of 648" in x for x in c.critical), c.critical
+    assert any("134 of 648" in x.fallback for x in c.critical), c.critical
 
 
 def test_nothing_logged_in_elimination_is_unknown_not_perfect():

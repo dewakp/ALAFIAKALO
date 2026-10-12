@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.services.dialysis_day_adjustment import FRESH_DAYS
+from app.services.finding_text import Finding
 
 
 def median(values: list) -> float | None:
@@ -366,6 +367,24 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
                 f"across {sample_size} self-recorded readings"
                 if sample_size > 1 else "from a single self-recorded reading"
             )
+            facts = {
+                "measure": "self-recorded systolic blood pressure",
+                "statistic": "median",
+                "value": round(float(systolic)),
+                "unit": "mmHg",
+                "reference_band_low": sys_band[1],
+                "reference_band_high": sys_band[2],
+                "below_band": True,
+                "readings_in_window": sample_size,
+                "window_days": 30,
+            }
+            if latest_on is not None:
+                facts["last_self_recorded_on"] = str(latest_on)
+            if age_days is not None:
+                facts["days_since_self_recorded"] = age_days
+            if pressure_measured_on is not None:
+                facts["pressure_last_measured_at_treatment_on"] = str(
+                    pressure_measured_on)
             note = (
                 f"Self-recorded systolic {round(float(systolic))} mmHg "
                 f"({provenance}) is below the "
@@ -393,7 +412,9 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
                     note += ", so this may not be current"
             elif latest_on is not None:
                 note += f" (most recent {latest_on})"
-            critical.append(note + ".")
+            critical.append(Finding(
+                kind="systolic_below_band", domain="vitals",
+                facts=facts, fallback=note + "."))
     if diastolic is not None and dia_band:
         parts.append((band_score(diastolic, dia_band), 0.15))
         detail["diastolic"] = round(float(diastolic))
@@ -405,9 +426,14 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
         parts.append((band_score(heart_rate, hr_band), 0.20))
         detail["heart_rate"] = round(float(heart_rate))
         if heart_rate > hr_band[2]:
-            critical.append(
-                f"Resting pulse {round(float(heart_rate))} bpm is above the "
-                f"{hr_band[1]:g}-{hr_band[2]:g} bpm reference band.")
+            critical.append(Finding(
+                kind="pulse_above_band", domain="vitals",
+                facts={"measure": "resting pulse",
+                       "value": round(float(heart_rate)), "unit": "bpm",
+                       "reference_band_low": hr_band[1],
+                       "reference_band_high": hr_band[2], "above_band": True},
+                fallback=(f"Resting pulse {round(float(heart_rate))} bpm is above the "
+                          f"{hr_band[1]:g}-{hr_band[2]:g} bpm reference band.")))
 
     # ── What the treatment did, judged on its own band ───────────────────
     # A resting systolic of 95 is unremarkable; the same figure at the end of a
@@ -426,9 +452,15 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
         detail["post_dialysis_nadir"] = round(nadir)
         detail["post_dialysis_below_floor"] = len(below)
         if below:
-            critical.append(
-                f"{len(below)} of {len(readings)} treatments ended below "
-                f"{floor:g} mmHg systolic (lowest {round(nadir)}).")
+            critical.append(Finding(
+                kind="treatments_ended_below_floor", domain="vitals",
+                facts={"measure": "post-treatment systolic blood pressure",
+                       "treatments_below_floor": len(below),
+                       "treatments_with_a_reading": len(readings),
+                       "floor": floor, "unit": "mmHg",
+                       "lowest": round(nadir)},
+                fallback=(f"{len(below)} of {len(readings)} treatments ended below "
+                          f"{floor:g} mmHg systolic (lowest {round(nadir)}).")))
 
     if bmi is not None and not on_dialysis:
         if 18.5 <= bmi < 25:
@@ -641,10 +673,16 @@ def dialysis_component(*, sessions_in_window: int,
         parts.append((ratio * 100.0, 0.3))
         if ratio < 0.8:
             missed = (baseline_per_week - rate) * weeks
-            critical.append(
-                f"Treatment has fallen to {rate:.1f} sessions a week against "
-                f"their usual {baseline_per_week:.1f} — about {missed:.0f} "
-                f"fewer than expected over {window_days} days.")
+            critical.append(Finding(
+                kind="attendance_below_baseline", domain="dialysis",
+                facts={"measure": "dialysis attendance",
+                       "sessions_per_week": round(rate, 1),
+                       "usual_sessions_per_week": round(baseline_per_week, 1),
+                       "sessions_fewer_than_expected": round(missed),
+                       "window_days": window_days},
+                fallback=(f"Treatment has fallen to {rate:.1f} sessions a week against "
+                          f"their usual {baseline_per_week:.1f} — about {missed:.0f} "
+                          f"fewer than expected over {window_days} days.")))
     else:
         detail["baseline"] = ("no established treatment rate yet, so attendance "
                               "is not scored")
@@ -654,9 +692,13 @@ def dialysis_component(*, sessions_in_window: int,
         detail["ktv"] = round(float(latest_ktv), 2)
         detail["ktv_target"] = ktv_band[1]
         if latest_ktv < ktv_band[1]:
-            critical.append(
-                f"Delivered Kt/V {latest_ktv:.2f} is below the {ktv_band[1]:g} "
-                "adequacy target.")
+            critical.append(Finding(
+                kind="ktv_below_target", domain="dialysis",
+                facts={"measure": "delivered Kt/V",
+                       "value": round(float(latest_ktv), 2),
+                       "adequacy_target": ktv_band[1], "below_target": True},
+                fallback=(f"Delivered Kt/V {latest_ktv:.2f} is below the "
+                          f"{ktv_band[1]:g} adequacy target.")))
 
     # ── How the treatments GO, which is the half that was missing ────────
     if sessions_with_pressure and hypotension_floor is not None:
@@ -688,7 +730,21 @@ def dialysis_component(*, sessions_in_window: int,
                 detail["severe_floor"] = severe_floor
                 note += (f"; {sessions_severely_below} fell below "
                          f"{severe_floor:g}")
-            critical.append(note + ".")
+            tolerance_facts = {
+                "measure": "systolic blood pressure during dialysis",
+                "treatments_below_floor": sessions_below_floor,
+                "treatments_with_a_reading": sessions_with_pressure,
+                "percent_of_treatments": round(burden * 100),
+                "floor": hypotension_floor, "unit": "mmHg",
+            }
+            if lowest_nadir is not None:
+                tolerance_facts["lowest"] = round(float(lowest_nadir))
+            if sessions_severely_below and severe_floor is not None:
+                tolerance_facts["treatments_below_severe_floor"] = sessions_severely_below
+                tolerance_facts["severe_floor"] = severe_floor
+            critical.append(Finding(
+                kind="intradialytic_hypotension_burden", domain="dialysis",
+                facts=tolerance_facts, fallback=note + "."))
 
     if not parts:
         return Component("dialysis", None, DEFAULT_WEIGHTS["dialysis"],
@@ -725,11 +781,20 @@ def symptom_component(symptoms: list[dict[str, Any]]) -> Component:
     # A symptom the patient rated in the top third of their own scale, or one
     # they said stops them functioning, is a finding rather than a data point.
     if severity >= 7 or worst.get("affects_function"):
-        critical.append(
-            f"{worst.get('symptom_name') or 'A symptom'} rated "
-            f"{severity:g}/10"
-            + (" and reported as affecting daily function" if worst.get("affects_function") else "")
-            + ".")
+        symptom_facts = {
+            "measure": "worst symptom reported",
+            "symptom": worst.get("symptom_name") or "unnamed symptom",
+            "severity": severity, "severity_scale_max": 10,
+        }
+        if worst.get("affects_function"):
+            symptom_facts["affects_daily_function"] = True
+        critical.append(Finding(
+            kind="severe_symptom", domain="symptoms", facts=symptom_facts,
+            fallback=(f"{worst.get('symptom_name') or 'A symptom'} rated "
+                      f"{severity:g}/10"
+                      + (" and reported as affecting daily function"
+                         if worst.get("affects_function") else "")
+                      + ".")))
 
     return Component("symptoms", round(score, 1), DEFAULT_WEIGHTS["symptoms"],
                      {"logged": len(symptoms),
@@ -781,9 +846,13 @@ def elimination_component(*, bowel_blood: int, bowel_total: int,
         # same as one bleeding daily — but neither reads as healthy.
         if bowel_blood:
             bowel_score = max(0.0, 50.0 - fraction * 50.0)
-            critical.append(
-                f"Blood recorded in {bowel_blood} of {bowel_total} bowel "
-                f"movements ({fraction * 100:.0f}%).")
+            critical.append(Finding(
+                kind="blood_in_stool", domain="elimination",
+                facts={"measure": "bowel movements with blood recorded",
+                       "with_blood": bowel_blood, "total": bowel_total,
+                       "percent": round(fraction * 100)},
+                fallback=(f"Blood recorded in {bowel_blood} of {bowel_total} bowel "
+                          f"movements ({fraction * 100:.0f}%).")))
         else:
             bowel_score = 100.0
         parts.append((bowel_score, 0.7))
@@ -801,9 +870,13 @@ def elimination_component(*, bowel_blood: int, bowel_total: int,
             ratio = rate / vomit_baseline_per_week
             parts.append((max(0.0, 100.0 - max(0.0, ratio - 1.0) * 100.0), 0.3))
             if ratio > 1.5:
-                critical.append(
-                    f"Vomiting {rate:.1f} times a week against their usual "
-                    f"{vomit_baseline_per_week:.1f}.")
+                critical.append(Finding(
+                    kind="vomiting_above_baseline", domain="elimination",
+                    facts={"measure": "vomiting episodes",
+                           "per_week": round(rate, 1),
+                           "usual_per_week": round(vomit_baseline_per_week, 1)},
+                    fallback=(f"Vomiting {rate:.1f} times a week against their "
+                              f"usual {vomit_baseline_per_week:.1f}.")))
 
     if not parts:
         return Component("elimination", None, DEFAULT_WEIGHTS["elimination"],

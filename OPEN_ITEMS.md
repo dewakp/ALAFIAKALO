@@ -1912,3 +1912,90 @@ most recent pressure from ANY source into the component:
 > 15 days ago" (true of one table, false of the patient). The facts under it
 > were right every time; the PROSE was what kept being wrong, which is the
 > argument for item 21 below.
+
+---
+
+## 21. Three shipped features fail as "Unknown LLM task" — OPEN 2026-10-11
+
+Found while wiring `finding_text`: my own `task="finding_text"` returned
+`ALAFIAModelError` and I first read that as a provider outage. It was not —
+`llm.py:183` answers `Unknown LLM task` for any name it does not dispatch, and
+that arrives at the caller looking exactly like the model being down.
+
+Swept every `task=` passed to the LLM capability against the ones it handles
+(`health_chat`, `nutrition_guidance`, `chat`/`raw_chat`/`health_coaching`,
+`complete`, and the two declared unimplemented):
+
+| passed | handled? | consequence |
+|---|---|---|
+| `doc_classify` | **NO** | `classify.classify_with_model` has NEVER run — §3ab's model fallback for an ambiguous document returns the deterministic answer every time |
+| `nutrient_quota_resolution` | **NO** | §3bc's quota resolver cannot resolve anything, even once `QUOTA_RESOLVE_ENABLED` is turned on |
+| `mood_score` | **NO** | silently falls back |
+| `health_chat` | yes | |
+| `vision` ×4 | n/a | different modality (`alafia_infer("vision", …)`) |
+
+Every one is caught by a broad `except` and logged at INFO or not at all, so
+each reads as "the model was unavailable" rather than "this task name was never
+registered". §3ar's dead control, three times, inside the dispatcher — and §3ae's
+exact lesson: *a setting that is configured, documented and ignored is worse
+than one never offered.*
+
+**Not fixed here, deliberately.** Pointing them at `chat` would start real
+provider traffic on document upload and on quota resolution, which is a cost
+decision and the operator's call (§3ae: warming a model is a standing cost
+decision, not a code change). The one-line fix per site is known; what is
+needed is the decision. ⚠️ `nutrient_quota_resolution` must additionally go
+`local_only` or not at all — it resolves clinical quotas from patient
+conditions.
+
+**The durable fix is a guard**, not three edits: the capability should REFUSE
+an unknown task loudly at import or the service should validate the name
+against the dispatch set, so a new caller cannot invent a task and get silence.
+
+---
+
+## 22. Findings are written by ALAFIA now, and only by a LOCAL model — 2026-10-11
+
+Operator: *"do not hard code messages, let our own LLM model do write messages
+that reflect the actual observation"*, then *"message must be written by LOCAL
+LLM not third party providers like Anthropic. This ensures PII do not bleed
+out."*
+
+The argument is items 19 and 20: **one sentence about this patient's blood
+pressure was wrong three times running while the numbers under it were right
+every time.** Each fix edited an f-string, and each new f-string was a fresh
+chance to assert something the data did not support — "resting" from nothing,
+then a staleness claim true of one table and false of the patient.
+
+**The split** (§3am's, pointing the other way — there the model extracts the
+drug name and the backend resolves the dose):
+
+    deterministic   the metric, value, band, counts, dates, provenance, and
+                    WHETHER it is a finding at all
+    the model       the sentence
+
+`Component.critical` is now `list[Finding]` — facts plus a REQUIRED
+deterministic `fallback`. `finding_text.render` asks ALAFIA to word them at
+read time.
+
+**What makes it safe, each from something already in this canon:**
+
+- **Every number in the facts must survive into the sentence, and none may be
+  invented.** Verified per finding; a sentence that fails is discarded for its
+  fallback. §3am: handed a dump, a model once reported **15.0 g — a number in
+  no row of the record**.
+- **LOCAL ONLY** (`local_only=True`) — §3al's hard guarantee, no hosted
+  fallback. ⚠️ The service wrapper never exposed `local_only` at all, though
+  the capability has always honoured `payload["local_only"]`, so §3al's one
+  guarantee for text that must not leave was **unreachable from the backend**.
+  Now exposed and asserted by a test.
+- **Never on the write path.** Rendering happens on READ; a model timeout
+  delays prose, never a saved row.
+- **Language follows the patient** (§3aw) — the English f-strings could never
+  do this, so a patient who chose Yoruba read their findings in a language
+  they did not pick.
+
+⚠️ **With no local runtime, every finding reads as its deterministic fallback**
+— which is what should happen, and is what dev shows today because Ollama is
+not running. Prose degrades; nothing leaves. To see ALAFIA's own wording:
+`OLLAMA_HOST=0.0.0.0:11434 ollama serve` (§4).

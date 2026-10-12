@@ -248,8 +248,15 @@ async def alafia_chat_detailed(
     model: str | None = None,
     context: dict[str, Any] | None = None,
     tools: list[dict[str, Any]] | None = None,
+    local_only: bool = False,
 ) -> dict[str, Any]:
     """Same as `alafia_chat`, but returns the accounting alongside the text.
+
+    `local_only=True` forces ALAFIA-operated inference with NO hosted fallback
+    (§3al). The capability has always honoured `payload["local_only"]`; this
+    wrapper never offered it, so the one guarantee §3al describes for text that
+    must not leave was unreachable from the backend — a control that exists and
+    cannot be used is §3ar with a privacy boundary attached.
 
     `alafia_chat` returns only a string, which is why per-user token usage was
     never recorded — the count reached telemetry and was then thrown away. Use
@@ -272,6 +279,9 @@ async def alafia_chat_detailed(
             # accepted `tools`, never forwarded them, and the model answered
             # "I don't have access to your food data" while holding five tools.
             "tools": tools or None,
+            # §3al's hard guarantee: ALAFIA-operated inference only, no hosted
+            # fallback, for text that must not reach a third party at all.
+            "local_only": local_only,
         },
     )
     if not result.get("success"):

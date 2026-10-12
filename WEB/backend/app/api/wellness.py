@@ -34,13 +34,19 @@ from app.services.health_signals import (
     signal_label,
 )
 from app.services.hebcs_engine import compute_hebcs
+from app.services.prompt_language import (
+    LANGUAGE_HEADER,
+    language_name,
+    patient_language,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
+async def _compute_wellness_score(user_id: int, db: AsyncSession,
+                                  language: str | None = None) -> dict:
     """Wellness score from measured values, not from how often the user logged.
 
     What this replaces, component by component — every one of them counted
@@ -412,7 +418,14 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession) -> dict:
     # A finding outranks the summary and is stated before it. "Blood recorded
     # in 134 of 648 bowel movements" must not sit below "Intake is within your
     # targets" — §3aa, applied to the order of sentences.
-    findings = result.get("critical_findings") or []
+    # ALAFIA writes these; the backend decided WHAT they are. Verified against
+    # the facts, so a number cannot be altered or dropped — see
+    # `finding_text.render`. Falls back to the deterministic wording per
+    # finding, so a model outage costs phrasing and never a finding.
+    from app.services import finding_text
+    findings = await finding_text.render(
+        result.get("critical_findings") or [],
+        language=language_name(language) if language else None)
     if findings:
         parts = list(findings) + parts
 
@@ -669,9 +682,16 @@ async def get_wellness_score(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     client_timezone: str | None = Header(None, alias=TIMEZONE_HEADER),
+    client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
 ):
     """Calculate and return current wellness score (0-100)."""
-    data = await _compute_wellness_score(current_user.id, db)
+    # §3aw: prose follows the patient. The findings were hand-written English
+    # f-strings, so a patient who chose Yoruba read their own observations in
+    # a language they did not pick — a gap the hardcoded sentences could not
+    # close at all.
+    data = await _compute_wellness_score(
+        current_user.id, db,
+        language=patient_language(current_user, client_language))
     # `today` becomes this row's `score_date` and the key the upsert dedupes
     # on. The containers run UTC, so from early evening in the Americas
     # `date.today()` is already TOMORROW for the patient — the score for their
