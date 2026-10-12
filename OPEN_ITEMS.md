@@ -1999,3 +1999,49 @@ read time.
 — which is what should happen, and is what dev shows today because Ollama is
 not running. Prose degrades; nothing leaves. To see ALAFIA's own wording:
 `OLLAMA_HOST=0.0.0.0:11434 ollama serve` (§4).
+
+---
+
+## 23. The findings card: three faults in one sentence — FIXED 2026-10-12
+
+Operator, on *"Self-recorded systolic 86 mmHg (across 2 self-recorded
+readings)…"*: **"systolic and dystolic are different readings. what is
+self-recorded? this all reek of hard-coded messages not LLM crafted"**
+
+All three correct.
+
+**1. Half a measurement.** 86 is not a blood pressure; 86/60 is. §3an already
+says *"print a blood pressure as a blood pressure"* — and the diastolic was
+already SCORED (weight 0.15) and simply never stated. The facts now carry the
+pair and both bands, and name which side breached.
+
+**2. "Self-recorded" is our schema, not the patient's language.** It is the
+distinction between `vitals_logs` and the flowsheet, and it reached the screen
+raw. The facts now say *"readings the patient took and logged themselves"*.
+
+**3. It WAS hardcoded** — the fallback, because no local model was running.
+Ollama was installed with `gpt-oss:20b` pulled and simply not started.
+
+Started it (§4: `OLLAMA_HOST=0.0.0.0:11434`, never the default bind, or
+`host.docker.internal` cannot reach it) and ALAFIA now writes them:
+
+> Blood pressure reading of 86/60 mmHg, taken by the patient themselves, shows
+> systolic below the reference low of 90.
+
+### Two faults in the guard itself, found by running it
+
+- **Requiring EVERY fact number made the guard self-defeating.** Once a finding
+  carried systolic, diastolic, two bands, a count, a window and two dates, no
+  readable sentence could contain all eleven — so every finding failed
+  verification and fell back. A guard strict enough to disable the feature it
+  guards. Split: **invention absolute, omission bounded** to keys a finding
+  names `essential`.
+- **The model did ARITHMETIC and the guard caught it.** It wrote *"below the
+  reference low of 90 by 4 mmHg"* — 4 is 90 − 86, derived, not given. Correctly
+  rejected. §3av's *"run the scan, never the arithmetic"*, now aimed at a model:
+  the instruction forbids computing differences, percentages or sums outright,
+  rather than leaving the guard to catch each one.
+
+⚠️ **Still falls back on the real card** — five findings exceed any bound a
+30 s client allows. The fix is the §3c background render, queued as TASKS 16
+rather than half-built here.

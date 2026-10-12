@@ -58,11 +58,14 @@ fallback — which is exactly what should happen.
 
 WHAT MAKES THIS SAFE
 --------------------
-* **Every numeric token in the facts must survive into the sentence.**
-  `_numbers_preserved` compares the two sets. A sentence that loses "39" or
-  invents "72" is discarded and the deterministic fallback is used. This is
-  the whole guard: the model cannot change a clinical number, because a
-  changed number does not pass.
+* **No number may be invented, and the ESSENTIAL ones may not be dropped.**
+  The two directions are deliberately not symmetrical. Invention is absolute —
+  every figure in the sentence must come from the facts. Omission is bounded
+  to the keys a finding names `essential`, because requiring all of them meant
+  a finding carrying a systolic, a diastolic, two reference bands, a count, a
+  window and two dates could not be stated in any readable sentence, so every
+  one failed and fell back: a guard so strict it turned off the thing it
+  guarded.
 * **Every finding carries a deterministic `fallback`.** The model is an
   improvement on the wording, never a dependency for having any. §3ae: where a
   template fallback exists, returning None is correct — but LOG why, or a
@@ -76,6 +79,7 @@ WHAT MAKES THIS SAFE
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
@@ -104,12 +108,34 @@ class Finding:
     fallback: str
     #: Which domain raised it, so the renderer can group sensibly.
     domain: str = ""
+    #: Fact keys whose numbers MUST appear in the sentence. Everything else is
+    #: context the model may leave out for readability.
+    #:
+    #: The first version required every number in the facts, which sounds
+    #: safer and is not: once a finding carried the systolic, the diastolic,
+    #: both reference bands, a reading count, a window length and two dates,
+    #: no readable English sentence could contain all eleven, so every finding
+    #: failed verification and fell back — a guard so strict it turned the
+    #: feature off. Invention stays absolutely forbidden; omission is allowed
+    #: except for the numbers that ARE the finding.
+    essential: tuple[str, ...] = ()
     notes: list[str] = field(default_factory=list)
 
     def numbers(self) -> set[str]:
         """Every numeric token in the facts, normalised for comparison."""
+        return self._numbers_in(self.facts.values())
+
+    def essential_numbers(self) -> set[str]:
+        """The numbers the sentence may not omit."""
+        keys = self.essential or tuple(self.facts)
+        return self._numbers_in(self.facts.get(k) for k in keys)
+
+    @staticmethod
+    def _numbers_in(values) -> set[str]:
         found: set[str] = set()
-        for value in self.facts.values():
+        for value in values:
+            if value is None or isinstance(value, bool):
+                continue
             for token in _NUMBER.findall(str(value)):
                 found.add(_norm_number(token))
         return found
@@ -128,32 +154,65 @@ def _norm_number(token: str) -> str:
 
 
 def _numbers_preserved(finding: Finding, sentence: str) -> bool:
-    """Did every number in the facts survive, with none invented?
+    """No number invented, and none of the ESSENTIAL ones dropped.
 
-    Both directions matter. A DROPPED number is a finding that understates
-    itself — "treatments dropped below 90" without the 95% or the 39. An
-    INVENTED one is §3am's fabricated 15.0 g, in a sentence presented as
-    measured.
+    The two directions are not symmetrical, and treating them as though they
+    were is what made the first version unusable:
+
+    * **Invention is absolute.** Every number in the sentence must come from
+      the facts. §3am: handed a dump, a model reported **15.0 g — a number in
+      no row of the record** — inside an answer presented as measured.
+    * **Omission is bounded.** Only `essential` keys must survive. A finding
+      may carry eleven numbers as context; a sentence containing all eleven is
+      not a sentence. Requiring them all meant every finding failed and fell
+      back, which is a guard that silently disables the thing it guards.
     """
-    wanted = finding.numbers()
     present = {_norm_number(t) for t in _NUMBER.findall(sentence)}
-    return wanted.issubset(present) and present.issubset(wanted)
+    if not present.issubset(finding.numbers()):
+        return False                      # invented a figure
+    return finding.essential_numbers().issubset(present)
 
 
 _INSTRUCTION = (
-    "You write one short clinical observation per finding, for the patient it "
-    "is about.\n"
+    "You write ONE short observation per finding, for the patient it is "
+    "about. Aim for 25 words.\n"
     "RULES, all absolute:\n"
     "1. Use ONLY the facts given. Never add a number, a date, a drug, a "
-    "diagnosis or a cause.\n"
-    "2. Every number in the facts must appear in your sentence, unchanged.\n"
-    "3. State what was measured. Do not advise, reassure, alarm, or explain "
-    "WHY — you are not told why and must not guess.\n"
-    "4. Name the SOURCE when the facts give one, because a self-recorded "
-    "reading and a reading taken during treatment are different facts.\n"
-    "5. One sentence per finding. Plain words. No bullet characters.\n"
+    "diagnosis or a cause. A number not in the facts is a fabrication.\n"
+    "2. Never change a number, and never CALCULATE one. No differences, no "
+    "percentages, no sums, no averages — if the facts say 86 and 90, you may "
+    "not write 'below by 4'. Report a blood pressure as systolic/diastolic "
+    "together, never the systolic alone.\n"
+    "3. Say what is OUT of range and by what bound. Do NOT recite bounds a "
+    "value is comfortably inside — 'below the reference high of 120' is not "
+    "an observation, it is noise.\n"
+    "4. State what was measured and WHERE IT CAME FROM, in the facts' own "
+    "plain words — a reading the patient took and one taken during treatment "
+    "are different facts and must not be blurred.\n"
+    "5. Do not advise, reassure, alarm, or explain WHY. You are not told why "
+    "and must not guess.\n"
+    "6. Plain words a patient reads without a glossary. No jargon, no bullet "
+    "characters, no markdown.\n"
     "Reply as JSON: {\"findings\": [{\"id\": <id>, \"text\": \"...\"}]}"
 )
+
+#: How long rendering may take before the deterministic wording is used.
+#:
+#: Measured 2026-10-12: the dev local model (`gpt-oss:20b`) took **65 s** for
+#: one finding on a cold load, and §3am records ~57 s for a comparable call —
+#: that is a property of a 20B reasoning model on a laptop, not of this code.
+#: WARM it is **17.1 s** — the 65 s was mostly loading 13 GB of weights.
+#: `/wellness/score` is ordinary CRUD on the client and carries the 30 s axios
+#: default (§3ae), so an unbounded render does not produce better prose, it
+#: produces a page that fails to load. 20 s clears the warm case and stays
+#: under the client. Prose is the thing that may be late; the finding is not.
+#:
+#: ⚠️ This is a bound, not the fix. 17 s on a page load is poor, and a COLD
+#: model still falls back. The right shape is §3c's: return the deterministic
+#: wording immediately, render in the background with its own session, and
+#: store it on the daily score row so the next read serves ALAFIA's words.
+#: Queued rather than half-built here (TASKS 16).
+RENDER_TIMEOUT_SECONDS = 20.0
 
 
 async def render(findings: list[Finding], *, language: str | None = None
@@ -181,7 +240,7 @@ async def render(findings: list[Finding], *, language: str | None = None
     prompt += f"\n\nFINDINGS:\n{payload}"
 
     try:
-        result = await alafia_chat_detailed(
+        result = await asyncio.wait_for(alafia_chat_detailed(
             [{"role": "user", "content": prompt}],
             temperature=0.0,
             json_mode=True,
@@ -208,7 +267,7 @@ async def render(findings: list[Finding], *, language: str | None = None
             # NO hosted fallback, so the deterministic wording is used. Prose
             # degrades; nothing leaves.
             local_only=True,
-        )
+        ), timeout=RENDER_TIMEOUT_SECONDS)
         import json
 
         written = json.loads(result.get("text") or "{}").get("findings") or []
@@ -217,8 +276,14 @@ async def render(findings: list[Finding], *, language: str | None = None
     except Exception as exc:  # noqa: BLE001 - prose must never fail a score
         # §3ae: a template fallback is correct, but SAY why — otherwise a
         # month-long outage is indistinguishable from the template being fine.
-        logger.info("finding text unavailable (%s); using deterministic "
-                    "wording for %d findings", type(exc).__name__, len(findings))
+        # §3ae: distinguish "slower than the client" from "not there". Those
+        # looked like one outage three separate times in one day.
+        logger.info(
+            "finding text unavailable (%s%s); using deterministic wording "
+            "for %d findings", type(exc).__name__,
+            f", over {RENDER_TIMEOUT_SECONDS:g}s" if isinstance(
+                exc, asyncio.TimeoutError) else "",
+            len(findings))
         return fallbacks
 
     out: list[str] = []

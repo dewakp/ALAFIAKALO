@@ -170,3 +170,53 @@ def test_the_task_name_is_one_the_capability_HANDLES():
     assert 'task="chat"' in source, (
         "use a task the LLM capability dispatches; a descriptive name silently "
         "fails as 'Unknown LLM task'")
+
+
+# ── Essential vs context numbers ────────────────────────────────────────────
+
+def test_only_ESSENTIAL_numbers_must_survive():
+    """A finding may carry eleven numbers as context. Requiring all of them
+    meant no readable sentence could pass, so every finding fell back — a
+    guard strict enough to disable the feature it guards."""
+    f = Finding(
+        kind="bp", domain="vitals",
+        facts={"systolic": 86, "diastolic": 62, "systolic_reference_low": 90,
+               "systolic_reference_high": 120, "readings_in_window": 2,
+               "window_days": 30, "days_since": 16},
+        fallback="FALLBACK.", essential=("systolic", "systolic_reference_low"))
+    assert _numbers_preserved(f, "Blood pressure 86/62 mmHg, systolic under 90.")
+
+
+def test_dropping_an_ESSENTIAL_number_still_fails():
+    f = Finding(kind="bp", domain="vitals",
+                facts={"systolic": 86, "systolic_reference_low": 90},
+                fallback="FALLBACK.", essential=("systolic",))
+    assert not _numbers_preserved(f, "Blood pressure is on the low side.")
+
+
+def test_invention_is_absolute_even_for_non_essential_facts():
+    """Omission is bounded; fabrication never is."""
+    f = Finding(kind="bp", domain="vitals",
+                facts={"systolic": 86, "systolic_reference_low": 90},
+                fallback="FALLBACK.", essential=("systolic",))
+    assert not _numbers_preserved(f, "Systolic 86, down from 110.")
+
+
+@pytest.mark.asyncio
+async def test_a_SLOW_model_falls_back_rather_than_hanging_the_page(monkeypatch):
+    """Measured 2026-10-12: the dev local model took 65 s for one finding.
+    `/wellness/score` carries the 30 s axios default (§3ae), so an unbounded
+    render does not give better prose — it gives a page that fails to load."""
+    import asyncio as _asyncio
+
+    import app.services.alafia_model_service as svc
+    import app.services.finding_text as ft
+
+    async def _slow(*_a, **_k):
+        await _asyncio.sleep(5)
+        return {"text": "{}"}
+
+    monkeypatch.setattr(svc, "alafia_chat_detailed", _slow)
+    monkeypatch.setattr(ft, "RENDER_TIMEOUT_SECONDS", 0.05)
+    out = await render([_finding(value=86)])
+    assert out == ["FALLBACK."]

@@ -661,3 +661,38 @@ rather than each growing its own queries — one substrate, one place where a
 domain can be forgotten, and the guard in
 `tests/test_signals_cover_every_domain.py` already fails the build when a named
 domain has no signal.
+
+---
+
+## 16. Render findings in the BACKGROUND, not on the read
+
+`finding_text.render` works and is proven — ALAFIA wrote this, locally,
+verified against the facts:
+
+> Blood pressure reading of 86/60 mmHg, taken by the patient themselves, shows
+> systolic below the reference low of 90.
+
+But measured 2026-10-12 on `gpt-oss:20b`:
+
+    cold (13 GB model load)   65 s
+    warm, ONE finding       14-17 s
+    warm, FIVE findings       > 20 s   (the real card)
+
+`/wellness/score` carries the client's 30 s axios default (§3ae), so **no
+synchronous bound can work**: 20 s clears one finding and not a card, and the
+cold path clears nothing. Today every finding on the real card falls back.
+
+The shape is §3c's, already proven on nutrition: *persist and return
+immediately; fill in afterwards with the worker's OWN session.*
+
+1. compute the score, store it, return the deterministic wording **now**;
+2. render in the background, keyed by a hash of the findings' facts so the
+   same observation is never re-rendered;
+3. store the sentences on the daily `wellness_scores` row (it already carries
+   `explanation` and `recommendations`, and is already one row per day);
+4. serve the stored sentences when the facts hash matches.
+
+⚠️ The worker must never raise and must never block a clinical write (§3c),
+and the render stays `local_only=True` regardless of where it runs (§3al).
+⚠️ A facts hash is required, not optional: without it a changed measurement
+would be described by yesterday's sentence, which is worse than a plain one.

@@ -363,21 +363,40 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
             # Says WHAT it is (a median of self-recorded readings), HOW MANY,
             # and WHEN the most recent was — the three things missing when a
             # single fifteen-day-old row was reported as "Resting systolic 81".
+            # "Self-recorded" named one of OUR tables, not anything the
+            # patient would recognise. Operator: "what is self-recorded?"
             provenance = (
-                f"across {sample_size} self-recorded readings"
-                if sample_size > 1 else "from a single self-recorded reading"
+                f"median of {sample_size} readings they took themselves"
+                if sample_size > 1 else "a single reading they took themselves"
             )
+            # §3an: "Print a blood pressure as a blood pressure." Reporting
+            # the systolic alone left the finding stating half a measurement —
+            # 86 is not a blood pressure, 86/62 is. The diastolic was already
+            # SCORED (weight 0.15) and simply never said.
+            #
+            # And the source is described in plain words rather than named by
+            # our table. "Self-recorded" is a distinction between `vitals_logs`
+            # and the flowsheet — ours, not the patient's — and it reached the
+            # screen raw.
             facts = {
-                "measure": "self-recorded systolic blood pressure",
-                "statistic": "median",
-                "value": round(float(systolic)),
+                "measure": "blood pressure",
+                "source": "readings the patient took and logged themselves",
+                "statistic": "median of the window",
+                "systolic": round(float(systolic)),
                 "unit": "mmHg",
-                "reference_band_low": sys_band[1],
-                "reference_band_high": sys_band[2],
-                "below_band": True,
+                "systolic_reference_low": sys_band[1],
+                "systolic_reference_high": sys_band[2],
+                "systolic_below_reference": True,
                 "readings_in_window": sample_size,
                 "window_days": 30,
             }
+            if diastolic is not None:
+                facts["diastolic"] = round(float(diastolic))
+                if dia_band:
+                    facts["diastolic_reference_low"] = dia_band[1]
+                    facts["diastolic_reference_high"] = dia_band[2]
+                    facts["diastolic_below_reference"] = (
+                        float(diastolic) < dia_band[1])
             if latest_on is not None:
                 facts["last_self_recorded_on"] = str(latest_on)
             if age_days is not None:
@@ -385,10 +404,13 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
             if pressure_measured_on is not None:
                 facts["pressure_last_measured_at_treatment_on"] = str(
                     pressure_measured_on)
+            reading = (f"{round(float(systolic))}/{round(float(diastolic))}"
+                       if diastolic is not None else
+                       f"{round(float(systolic))}")
             note = (
-                f"Self-recorded systolic {round(float(systolic))} mmHg "
-                f"({provenance}) is below the "
-                f"{sys_band[1]:g}-{sys_band[2]:g} mmHg reference band")
+                f"Blood pressure {reading} mmHg ({provenance}) has a systolic "
+                f"below the {sys_band[1]:g}-{sys_band[2]:g} mmHg reference "
+                f"band")
             if age_days is not None and age_days > FRESH_DAYS:
                 # §3an: a value nobody has checked recently is reported as
                 # stale, never offered as the current one.
@@ -401,7 +423,7 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
                 # said "35 of 37 treatments dropped below 90 during dialysis".
                 # It contradicted itself two sentences apart, which is §3aa in
                 # a sentence: one source read and spoken of as the whole.
-                note += (f" — last self-recorded {age_days} days ago "
+                note += (f" — last taken by the patient {age_days} days ago "
                          f"({latest_on})")
                 if (pressure_measured_on is not None
                         and latest_on is not None
@@ -413,8 +435,12 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
             elif latest_on is not None:
                 note += f" (most recent {latest_on})"
             critical.append(Finding(
-                kind="systolic_below_band", domain="vitals",
-                facts=facts, fallback=note + "."))
+                kind="blood_pressure_below_reference", domain="vitals",
+                facts=facts, fallback=note + ".",
+                # The reading and the bound it breaches ARE the finding;
+                # counts, dates and the window are context the sentence may
+                # leave out.
+                essential=("systolic", "systolic_reference_low")))
     if diastolic is not None and dia_band:
         parts.append((band_score(diastolic, dia_band), 0.15))
         detail["diastolic"] = round(float(diastolic))
