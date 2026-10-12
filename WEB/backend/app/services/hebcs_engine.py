@@ -10,8 +10,34 @@ End-Stage Renal Disease" (7-pathway, 9.8-year longitudinal ESRD dataset).
 
 Algorithm:
   1. Per-biomarker: trapezoidal membership function  → score ∈ [0, 1]
-  2. Per-pathway:   weighted arithmetic mean          → s_k ∈ [0, 1]
-  3. Overall Ω:     weighted geometric mean           → Ω ∈ (0, 1)
+  2. Per-pathway:   weighted GEOMETRIC mean          → s_k ∈ (0, 1]
+  3. Overall Ω:     weighted geometric mean          → Ω ∈ (0, 1)
+
+Step 2 was an ARITHMETIC mean until 2026-10-12, which contradicted step 3's
+whole justification one level down — see `pathway_score`.
+
+⚠️ **What this engine is, and what it is not.** It is a transparent scoring
+RUBRIC: every number is traceable to a published band and a clinician can check
+it by hand. It is **not a model of a coupled physiological system**, and four
+of its assumptions are false of one:
+
+  * **Separability.** `trapezoidal_score(x, b)` is a function of ONE variable,
+    so no interaction can be expressed. Ferritin 197 scores 1.0 while the same
+    draw's TSAT of 14% says the iron is not available — functional iron
+    deficiency is the PAIR, and neither value alone carries it.
+  * **Indifference inside the band.** Every value in [opt_low, opt_high] scores
+    exactly 1.0, so a patient moving 12.0 → 10.1 shows no change at all and
+    then falls off a cliff.
+  * **Linear ramps.** Mortality against potassium is U-shaped and steep; a
+    straight line from 5.5 to 6.5 is a convenience, not a physiology.
+  * **No time.** There is no derivative term. Ferritin fell 1,033 → 24 across
+    this record, and a score reading only the latest value cannot tell 197
+    rising from 197 falling.
+
+Weights (0.30 glucose, 0.20 metabolic …) are hand-assigned, not fitted to an
+outcome. Replacing them with fitted ones needs a non-tautological target, which
+is exactly what the 12 risk classifiers do not have (§3av: every one restates a
+threshold on its own input and reports AUC 1.000). See OPEN_ITEMS 27.
 """
 
 from __future__ import annotations
@@ -34,7 +60,22 @@ class Biomarker:
     #: must be anchored to the reporting lab's reference range rather than left
     #: open. Without this a marker declared `crit_low=None, opt_low=0` scores
     #: any value up to `opt_high` as perfect — including zero.
+    #:
+    #: ⚠️ Until 2026-10-12 this was declared, set on BUN, and **read nowhere** —
+    #: §3ar's dead control, on the one field written to prevent this exact bug.
+    #: `closed_band()` is its first reader.
     low_is_deficiency: bool = False
+    #: The same statement about the upper side, for a marker where ABOVE the
+    #: band is a finding and `crit_high` was left open.
+    high_is_excess: bool = False
+    #: True when (opt_low, opt_high) is a TREATMENT TARGET for this disease
+    #: rather than a population reference interval, so `apply_reference_range`
+    #: must not replace it with the reporting lab's healthy-adult band.
+    is_treatment_target: bool = False
+    #: Which guideline states that target. Required alongside
+    #: `is_treatment_target` — an uncited target is a number someone typed
+    #: (§3az, §3bc).
+    authority: str = ""
 
 
 @dataclass
@@ -46,6 +87,41 @@ class Pathway:
 
 # ── Trapezoidal membership function ────────────────────────────────────────
 
+def closed_band(b: Biomarker) -> tuple[float | None, float, float, float | None]:
+    """The band actually scored, with a flagged open side given a bound.
+
+    **`None` on a side means "no penalty", and `trapezoidal_score` answers 1.0
+    for the whole of it.** That is correct for a marker where one direction
+    genuinely carries no finding — a low LDH is unremarkable — and it is an
+    assertion of perfect health where it is not. Measured 2026-10-12, with the
+    reporting lab's own interval already applied:
+
+        RDW   0.1 -> 1.000     band (None, 11.0, 15.0, 20.7)
+        RDW   5.0 -> 1.000
+        RDW  21.3 -> 0.000
+
+    Operator: *"high or low rdw are not sign of health. one suggests hemolysis
+    or worse."* Exactly §3ba's one-sided band — `if systolic < 130 and
+    diastolic < 80: bp_score = 100.0`, which could only penalise high pressure
+    and scored 54/30 as perfect — alive inside HEBCS on five markers.
+
+    **The replacement bound is the band's OWN declared margin, mirrored**, not a
+    number chosen here: a band saying `crit_high / opt_high = 20.0 / 14.5` has
+    stated how far outside itself it tolerates, and that ratio is applied to the
+    other side. `apply_reference_range` already re-anchors by exactly this
+    reasoning, so the rule is the one this module uses, not a new one. A marker
+    with no margin on either side cannot be closed and is left open.
+    """
+    a, lo, hi, d = b.crit_low, b.opt_low, b.opt_high, b.crit_high
+    if b.low_is_deficiency and a is None and d is not None and hi:
+        margin = d / hi                       # how far above the band it allows
+        a = lo / margin if margin > 0 else None
+    if b.high_is_excess and d is None and a is not None and lo:
+        margin = lo / a if a > 0 else None     # how far below the band it allows
+        d = hi / margin if margin else None
+    return a, lo, hi, d
+
+
 def trapezoidal_score(x: float, b: Biomarker) -> float:
     """Map raw biomarker value to [0, 1] via trapezoidal membership.
 
@@ -56,7 +132,7 @@ def trapezoidal_score(x: float, b: Biomarker) -> float:
     Returns:
         Score in [0.0, 1.0].  1.0 = optimal, 0.0 = critical.
     """
-    a, lo, hi, d = b.crit_low, b.opt_low, b.opt_high, b.crit_high
+    a, lo, hi, d = closed_band(b)
 
     # Below optimal range
     if x <= lo:
@@ -80,23 +156,46 @@ def trapezoidal_score(x: float, b: Biomarker) -> float:
 
 # ── Pathway scoring ─────────────────────────────────────────────────────────
 
+#: Open-interval floor, the same one `omega_score` applies to Ω. A biomarker at
+#: 0 would otherwise annihilate its pathway outright; clipped, it dominates the
+#: product without erasing what else the pathway measured.
+_SCORE_FLOOR = 0.001
+
+
 def pathway_score(values: dict[str, float], pathway: Pathway) -> Optional[float]:
-    """Weighted average of biomarker scores within a pathway.
+    """Weighted GEOMETRIC mean of biomarker scores within a pathway.
 
     Missing biomarkers are excluded gracefully (HEBCS partial-data policy).
     Returns None if no biomarkers have observed values.
+
+    ⚠️ **This was an arithmetic mean until 2026-10-12, and that contradicted the
+    framework one level up.** `omega_score` is geometric for one stated reason —
+    `ln(0) = -∞`, so *failure in any single pathway cannot be masked*. Inside a
+    pathway the arithmetic mean masked it freely. Measured on the reference
+    record, whose Glucose scores **0.000** at weight 0.30:
+
+        arithmetic  0.30(0) + 0.25(.750) + 0.25(.784) + 0.20(1)  = 0.584
+        geometric   exp(0.30·ln(.001) + 0.25·ln(.750) + …)       = 0.110
+
+    A marker at the bottom of its own trapezoid — the band's own definition of
+    critical — moved Metabolic from 0.11 to 0.58, and the UI said so out loud:
+    *"A pathway score is an average, so these do not show in it."* Printing the
+    defect beside the number is not the same as not having it.
+
+    The argument for geometric aggregation does not change with the level it is
+    applied at, so it is applied at both.
     """
+    log_sum = 0.0
     total_w = 0.0
-    total_s = 0.0
     for b in pathway.biomarkers:
         if b.name not in values or values[b.name] is None:
             continue
         s = trapezoidal_score(values[b.name], b)
-        total_s += b.weight * s
+        log_sum += b.weight * math.log(max(s, _SCORE_FLOOR))
         total_w += b.weight
     if total_w == 0:
         return None
-    return total_s / total_w
+    return math.exp(log_sum / total_w)
 
 
 # ── Overall Ω — weighted geometric mean ─────────────────────────────────────
@@ -112,14 +211,23 @@ def omega_score(pathway_scores: dict[str, Optional[float]],
     patient with no labs at all was shown a wellness score of 50% — a number
     that describes nobody, sitting where a clinician reads a measurement. Found
     on the deployed service, against an account holding zero results.
+
+    ⚠️ **A pathway that scored ZERO used to be SKIPPED**, through the same
+    `s is None or s <= 0` clause that drops an unmeasured one. Total failure of
+    an organ system therefore RAISED Ω, by removing the worst term from the
+    mean. Nothing reached 0 while `pathway_score` was an arithmetic mean, so it
+    never fired — making the geometric fix one level down the thing that would
+    have activated it. **Unmeasured and catastrophic are opposite facts and must
+    never share a branch** (§3aa). Only `None` is skipped now; a real 0 is
+    scored at the open-interval floor.
     """
     log_sum = 0.0
     w_sum = 0.0
     for p in pathways:
         s = pathway_scores.get(p.name)
-        if s is None or s <= 0:
+        if s is None:
             continue
-        log_sum += p.weight * math.log(max(s, 1e-6))
+        log_sum += p.weight * math.log(max(s, _SCORE_FLOOR))
         w_sum += p.weight
     if w_sum == 0:
         return None
@@ -167,14 +275,28 @@ ESRD_PATHWAYS: list[Pathway] = [
     ]),
 
     Pathway(name="Hematologic", weight=0.15, biomarkers=[
-        Biomarker("Hemoglobin",          crit_low=7.0, opt_low=10.0, opt_high=12.0, crit_high=17.5, weight=0.30),
+        # TARGET, not a reference interval: KDIGO 2012 anaemia-in-CKD holds
+        # haemoglobin at 10-12 g/dL on ESA. The lab prints the healthy-adult
+        # 14-18, and chasing that is what the TREAT and CHOIR trials showed
+        # raises mortality — so the lab band is the DANGEROUS one here.
+        Biomarker("Hemoglobin",          crit_low=7.0, opt_low=10.0, opt_high=12.0, crit_high=17.5, weight=0.30,
+                  is_treatment_target=True, authority="KDIGO 2012 Anemia in CKD, 3.4.3"),
         Biomarker("Hematocrit",          crit_low=21,  opt_low=30,   opt_high=36,   crit_high=52,   weight=0.20),
         Biomarker("RBC",                 crit_low=2.0, opt_low=3.0,  opt_high=4.5,  crit_high=6.0,  weight=0.15),
         Biomarker("MCV",                 crit_low=60,  opt_low=80,   opt_high=96,   crit_high=115,  weight=0.10),
-        Biomarker("RDW",                 crit_low=None,opt_low=0,    opt_high=14.5, crit_high=20,   weight=0.10),
-        Biomarker("Ferritin",            crit_low=10,  opt_low=200,  opt_high=800,  crit_high=2000, weight=0.15),
+        # Operator, 2026-10-12: "high or low rdw are not sign of health. one
+        # suggests hemolysis or worse." Left open-low this scored RDW 0.1 as
+        # perfect. `closed_band` mirrors the band's own 20/14.5 margin.
+        Biomarker("RDW",                 crit_low=None,opt_low=0,    opt_high=14.5, crit_high=20,   weight=0.10,
+                  low_is_deficiency=True),
+        # TARGET: KDOQI holds ferritin >200 ng/mL on haemodialysis. The lab
+        # prints 11-307, under which a ferritin of 57 — iron deficiency on
+        # dialysis — scored 1.000.
+        Biomarker("Ferritin",            crit_low=10,  opt_low=200,  opt_high=800,  crit_high=2000, weight=0.15,
+                  is_treatment_target=True, authority="KDOQI 2006 Anemia, CPR 3.2"),
         # TSAT target for HD: 20-50%
-        Biomarker("Iron Saturation (TSAT)", crit_low=5, opt_low=20, opt_high=50, crit_high=80, weight=0.20),
+        Biomarker("Iron Saturation (TSAT)", crit_low=5, opt_low=20, opt_high=50, crit_high=80, weight=0.20,
+                  is_treatment_target=True, authority="KDOQI 2006 Anemia, CPR 3.2 (TSAT >20% on HD)"),
         Biomarker("WBC",                 crit_low=2.0, opt_low=4.5, opt_high=11.0, crit_high=30,   weight=0.10),
         Biomarker("LDH",                 crit_low=None,opt_low=0,   opt_high=280,  crit_high=600,  weight=0.10),
     ]),
@@ -182,9 +304,14 @@ ESRD_PATHWAYS: list[Pathway] = [
     Pathway(name="Bone_Mineral", weight=0.15, biomarkers=[
         # PTH target for ESRD stage 5D: 150–600 pg/mL (KDIGO).
         # crit_low=15: PTH < 15 → adynamic bone disease (score 0); 15–150 → linear ramp.
-        Biomarker("PTH (Intact)",  crit_low=15,   opt_low=150,  opt_high=600,  crit_high=3000, weight=0.40),
+        # TARGET: KDIGO CKD-MBD holds iPTH at 2-9x the assay upper limit on
+        # stage 5D. Overridden by the lab's healthy-adult 18-80, a PTH of 24 —
+        # adynamic bone disease — scored 1.000 and Bone Mineral read 100%.
+        Biomarker("PTH (Intact)",  crit_low=15,   opt_low=150,  opt_high=600,  crit_high=3000, weight=0.40,
+                  is_treatment_target=True, authority="KDIGO 2017 CKD-MBD, 4.2.1"),
         # Phosphorus KDIGO target: 3.5–5.5 mg/dL (ESRD relaxed)
-        Biomarker("Phosphorus",    crit_low=1.5,  opt_low=3.5,  opt_high=5.5,  crit_high=9.0,  weight=0.30),
+        Biomarker("Phosphorus",    crit_low=1.5,  opt_low=3.5,  opt_high=5.5,  crit_high=9.0,  weight=0.30,
+                  is_treatment_target=True, authority="KDIGO 2017 CKD-MBD, 4.1.1"),
         # Calcium
         Biomarker("Calcium",       crit_low=6.5,  opt_low=8.5,  opt_high=10.0, crit_high=12.0, weight=0.20),
         # CaxP product target: <55 mg²/dL²
@@ -241,9 +368,11 @@ ESRD_PATHWAYS: list[Pathway] = [
 
     Pathway(name="Dialysis_Adequacy", weight=0.10, biomarkers=[
         # KtV target ≥ 1.4 (NKF-KDOQI): optimal 1.4–1.8
-        Biomarker("KtV (Dialysis Adequacy)", crit_low=0.8, opt_low=1.4, opt_high=1.8, crit_high=None, weight=0.50),
+        Biomarker("KtV (Dialysis Adequacy)", crit_low=0.8, opt_low=1.4, opt_high=1.8, crit_high=None, weight=0.50,
+                  is_treatment_target=True, authority="KDOQI 2015 Hemodialysis Adequacy, spKt/V >=1.4"),
         # URR target ≥ 65%
-        Biomarker("URR (Urea Reduction Ratio)", crit_low=40, opt_low=65, opt_high=80, crit_high=None, weight=0.30),
+        Biomarker("URR (Urea Reduction Ratio)", crit_low=40, opt_low=65, opt_high=80, crit_high=None, weight=0.30,
+                  is_treatment_target=True, authority="KDOQI 2015 Hemodialysis Adequacy, URR >=65%"),
         # nPCR secondary role in dialysis adequacy
         Biomarker("nPCR (Protein Catabolic Rate)", crit_low=0.5, opt_low=1.0, opt_high=1.4, crit_high=2.0, weight=0.20),
     ]),
@@ -252,7 +381,8 @@ ESRD_PATHWAYS: list[Pathway] = [
         # No CRP in current dataset; use LDH + WBC as proxies for inflammation/hemolysis
         Biomarker("WBC",   crit_low=2.0, opt_low=4.5, opt_high=9.0, crit_high=20.0, weight=0.50),
         Biomarker("LDH",   crit_low=None,opt_low=0,   opt_high=280, crit_high=500,  weight=0.30),
-        Biomarker("RDW",   crit_low=None,opt_low=0,   opt_high=15,  crit_high=20,   weight=0.20),
+        Biomarker("RDW",   crit_low=None,opt_low=0,   opt_high=15,  crit_high=20,   weight=0.20,
+                  low_is_deficiency=True),
     ]),
 ]
 
@@ -319,18 +449,33 @@ def _norm(name: str) -> str:
     return "".join(ch for ch in str(name).lower() if ch.isalnum())
 
 
-def resolve_biomarkers(raw: dict[str, float],
-                       pathways: list[Pathway] | None = None) -> dict[str, float]:
-    """Map stored lab names onto canonical biomarker names.
+def canonical_name(stored_name: str,
+                   pathways: list[Pathway] | None = None) -> str:
+    """The biomarker a stored `test_name` belongs to, or the name unchanged.
 
-    An unrecognised name is passed through unchanged rather than dropped, so a
-    caller that already speaks canonical names is unaffected. Where several
-    stored names resolve to one biomarker the first is kept — callers hand us
-    the most recent value per analyte already.
+    Exposed because the CALLER has to dedupe by analyte, and could not.
+    `resolve_biomarkers`' docstring says "callers hand us the most recent value
+    per analyte already" — which was false. `/wellness/omega` kept one row per
+    raw `test_name`, so `FERRITIN` and `Ferritin` were two analytes and the
+    stale spelling won whichever way the dict happened to iterate. Measured on
+    the reference record 2026-10-12, under a card reading "Latest labs:
+    9/30/2026":
+
+        Ferritin   scored  57  from 2026-02-09   (245d)   latest 197
+        PTH        scored  24  from 2025-09-03   (404d)   latest  17
+        BUN        scored  20  from 2025-09-03   (404d)   latest  53
+        URR        scored  81  from 2025-07-17   (452d)   latest  74
+
+    **13 of the 23 scored biomarkers were not the patient's current values.**
+    §3ax, in the wellness score.
     """
+    return _resolution_index(pathways).get(_norm(stored_name), stored_name)
+
+
+def _resolution_index(pathways: list[Pathway] | None = None) -> dict[str, str]:
+    """Normalised stored spelling → canonical biomarker name."""
     if pathways is None:
         pathways = ESRD_PATHWAYS
-
     index: dict[str, str] = {}
     for p in pathways:
         for b in p.biomarkers:
@@ -345,12 +490,21 @@ def resolve_biomarkers(raw: dict[str, float],
                     index.setdefault(k, b.name)
     for alias, canonical in _SYNONYMS.items():
         index.setdefault(alias, canonical)
+    return index
 
-    #: Where two stored names resolve to one biomarker, these win. Order in the
-    #: caller's dict is arbitrary, so `setdefault` alone would pick whichever
-    #: happened to come first — and for BUN that decides whether the score sees
-    #: 71.6 (pre-dialysis uraemia) or 20.4 (post, inside the reference range).
-    preferred = {"bunpost", "bunp"}
+
+def resolve_biomarkers(raw: dict[str, float],
+                       pathways: list[Pathway] | None = None) -> dict[str, float]:
+    """Map stored lab names onto canonical biomarker names.
+
+    An unrecognised name is passed through unchanged rather than dropped, so a
+    caller that already speaks canonical names is unaffected. Where several
+    stored names resolve to one biomarker the first is kept — callers hand us
+    the most recent value per analyte already.
+    """
+    index = _resolution_index(pathways)
+
+    preferred = PREFERRED_SPELLINGS   # see its definition for why it exists
 
     resolved: dict[str, float] = {}
     claimed_by_preferred: set[str] = set()
@@ -367,6 +521,51 @@ def resolve_biomarkers(raw: dict[str, float],
     return resolved
 
 
+#: Where two stored spellings resolve to one biomarker, these win OUTRIGHT —
+#: ahead of recency, not after it. For BUN that decides whether the score sees
+#: the PRE-dialysis draw (uraemia, 53 on this record) or the POST one (14, the
+#: residual the patient actually lives with between sessions). Both are drawn
+#: the same day, so a newest-wins rule alone picks whichever the dict iterates
+#: first — which is exactly the arbitrariness this module already had.
+PREFERRED_SPELLINGS = {"bunpost", "bunp"}
+
+
+def select_latest_per_analyte(
+        rows, pathways: list[Pathway] | None = None) -> dict[str, tuple]:
+    """One row per ANALYTE from `(name, value, date, ref_low, ref_high)` rows.
+
+    Returns `{canonical_name: (date, value, ref_low, ref_high)}`.
+
+    Deduplication has to happen HERE because two of its rules disagree and only
+    one module knows both:
+
+      * **Recency.** The caller used to keep one row per raw `test_name`, so
+        `FERRITIN` and `Ferritin` survived as two analytes and
+        `resolve_biomarkers`' `setdefault` then picked by dict order. 13 of the
+        23 scored biomarkers carried a stale value — Ferritin 57 from February
+        over 197 from October, PTH 24 from 404 days earlier over 17.
+      * **Provenance beats recency.** `BUN Post` and `BUN` are drawn the same
+        day, and the post draw is the one that matters. Fixing recency alone
+        silently broke this, which is how the rule got written down.
+    """
+    best: dict[str, tuple] = {}
+    for name, value, test_date, ref_low, ref_high in rows:
+        if value is None:
+            continue
+        analyte = canonical_name(name, pathways)
+        wins = _norm(name) in PREFERRED_SPELLINGS
+        prior = best.get(analyte)
+        if prior is None:
+            best[analyte] = (test_date, value, ref_low, ref_high, wins)
+            continue
+        prior_wins = prior[4]
+        if wins and not prior_wins:
+            best[analyte] = (test_date, value, ref_low, ref_high, wins)
+        elif wins == prior_wins and test_date > prior[0]:
+            best[analyte] = (test_date, value, ref_low, ref_high, wins)
+    return {k: v[:4] for k, v in best.items()}
+
+
 def apply_reference_range(b: Biomarker,
                           ref: tuple[float | None, float | None]) -> Biomarker:
     """Re-anchor a biomarker's optimal window to a REPORTED reference range.
@@ -380,7 +579,28 @@ def apply_reference_range(b: Biomarker,
     So the lab's own range becomes the optimal window, and the critical bounds
     scale with it, preserving the margins the static band expressed. A biomarker
     with no reported range keeps its published definition.
+
+    ⚠️ **A TREATMENT TARGET is refused, and that exception is the whole point.**
+    A reference interval describes where 95% of healthy people fall; a target
+    says where THIS patient should be held. On ESRD the two diverge sharply and
+    in both directions, which is what proves the override was the wrong
+    mechanism rather than the wrong numbers:
+
+        PTH    KDIGO 5D target 150-600   lab's healthy adult 18-80
+               -> PTH 24 scored 1.000 instead of 0.067, and 24 pg/mL in a
+                  dialysis patient is adynamic bone disease. Bone Mineral
+                  read 100%.
+        Hgb    KDIGO anaemia target 10-12 (above 13 raises mortality)
+               lab's healthy adult male 14-18
+               -> Hgb 12.0 scored 0.524 instead of 1.000.
+
+    §3am already states this for nutrients — *a generic RDA must never be handed
+    over as the patient's target*, potassium 4,700 against a renal patient's
+    2,800 — and §3az for the thresholds that were looser than the patient's own
+    limits. This is the same error in the biological score.
     """
+    if b.is_treatment_target:
+        return b
     low, high = ref
     if low is None or high is None or low <= 0 or high <= low:
         return b

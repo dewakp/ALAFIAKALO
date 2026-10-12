@@ -2198,3 +2198,182 @@ usual lowest of 53.2 kg by 3.2 kg"*, every number preserved.
 > ⚠️ **Not generalised.** This repaired one row and added one finding. Nothing
 > stops the next manual or automated import writing commentary into
 > `patient_notes` again — see TASKS 17.
+
+---
+
+## 27. "HEBCS (a wellness score) is 78%?" — four arithmetic faults, FIXED 2026-10-12; the modelling question is OPEN
+
+Operator, with the HEBCS Ω card open on user 63, verbatim:
+
+> *"The patient is terminally ill, the blood results show severe anemia and
+> nutrition is hardly ever adequate and HEBCS (a wellness score) is 78%? What
+> happens to someone in perfect health? The underlying HEBCS ML model is
+> fundamentally wrong. Frequency of logging data is completely irrelevant to
+> wellness. Wellness (HEBCS) is impacted by the actual data. We must surface and
+> fix the underlying mathematics. HEBCS is human biologics that measures
+> (analyzes) the electro-biochemical-neurophysical composition of a person using
+> all known pathways degenerated into mathematical construct."*
+
+Then, on being shown the first analysis: *"show me the maths"*.
+
+### What the screen said
+
+    Ω 0.781   "Critical"      78% Score (0-100)      100% Data coverage
+    Metabolic 58%  Hematologic 70%  Bone Mineral 100%  Cardiovascular 92%
+    Nutritional 94%  Dialysis Adequacy 97%  Inflammatory 55%
+    Latest labs: 9/30/2026
+
+    "3 marker(s) sit at or below the bottom of their own reference band:
+     Glucose 273, RDW 21.3, RDW 21.3. A pathway score is an average, so these
+     do not show in it."
+
+All three named markers are above the **top** of their band, not below the
+bottom; RDW is printed twice because it sits in two pathways; and that whole
+paragraph is a hardcoded f-string (see item 4 below, still open).
+
+### The three levels, and where the contradiction was
+
+    1. biomarker -> score   trapezoid on (a, b, c, d)
+                            0 at x<=a or x>=d; 1 for b<=x<=c; linear ramps
+    2. pathway   s_p = Σ wᵢ·sᵢ / Σ wᵢ            <- ARITHMETIC mean
+    3. overall   Ω = exp( Σ w_k·ln(s_k) / Σ w_k ) <- GEOMETRIC mean
+
+Level 3 is geometric for one published reason: `ln(0) = -∞`, so **failure in
+any single pathway cannot be masked**. Level 2 was arithmetic, so inside a
+pathway it was masked freely.
+
+**Metabolic, worked:**
+
+    Glucose   273   band  74-106   score 0.000   w 0.30
+    Sodium    132   band 136-145   score 0.750   w 0.25
+    Potassium 5.3   band 3.5-5.1   score 0.784   w 0.25
+    CO2        27   band  22-28    score 1.000   w 0.20
+
+    arithmetic  0.30(0) + 0.25(.750) + 0.25(.784) + 0.20(1)  = 0.584
+    geometric   exp(0.30·ln(.001) + 0.25·ln(.750) + …)       = 0.110
+
+### FAULT 1 — the values were not the patient's
+
+`/wellness/omega` deduplicated on the raw `test_name`, so `FERRITIN` and
+`Ferritin` were two analytes (§3ax) and `resolve_biomarkers`' `setdefault` then
+picked by dict order. Its docstring claimed *"callers hand us the most recent
+value per analyte already"* — false of the only caller.
+
+| scored | from | age | actual latest (2026-10-01) |
+|---|---|---|---|
+| Glucose 273 | 2026-02-09 | 245d | 230 |
+| Potassium 5.3 | 2026-02-09 | 245d | 4.3 |
+| Haemoglobin 12.0 | 2026-02-09 | 245d | 11.3 |
+| Haematocrit 38.6 | 2026-02-09 | 245d | 38.3 |
+| Ferritin 57 | 2026-02-09 | 245d | **197** |
+| Iron 50 | 2026-02-09 | 245d | 42 |
+| Phosphorus 5.1 · Calcium 9.5 · Albumin 4.1 | 2026-02-09 | 245d | 3.6 · 8.9 · 4.2 |
+| **PTH 24** | 2025-09-03 | **404d** | **17** |
+| **BUN 20** | 2025-09-03 | **404d** | **53** pre / 14 post |
+| **Kt/V 1.65** | 2025-09-03 | **404d** | **1.47** |
+| **URR 81** | 2025-07-17 | **452d** | **74** |
+
+**13 of the 23 scored biomarkers.** `lab_date_used` was the maximum over EVERY
+row the patient holds, so the date printed belonged to no part of the
+computation. It now names the newest draw actually scored, and
+`oldest_lab_date_used` travels beside it.
+
+> ⚠️ **Fixing recency alone broke the pre/post rule, and that is why both live
+> in `select_latest_per_analyte` now.** `BUN` 53 and `BUN Post` 14 are drawn the
+> same day and mean different things — uraemia before the session versus the
+> residual the patient lives with between them. A newest-wins rule has no
+> opinion between two same-day rows, took the pre draw, and crashed Nutritional
+> to 0.237 for the wrong reason. **Provenance beats recency**; recency breaks
+> ties among equals.
+
+### FAULT 2 — a population reference interval replaced a treatment target
+
+`apply_reference_range` overwrote every band with the reporting lab's interval,
+unconditionally. A reference interval describes where 95% of **healthy people**
+fall; a treatment target says where **this patient** should be held. On ESRD
+they diverge sharply — **and in both directions**, which is what proves the
+mechanism was wrong rather than the numbers:
+
+    PTH   KDIGO 2017 CKD-MBD, stage 5D:  150-600     lab's healthy adult: 18-80
+          band becomes (1.8, 18, 80, 400)
+          PTH 24 -> 1.000      KDIGO -> (24-15)/(150-15) = 0.067
+          24 pg/mL on dialysis is ADYNAMIC BONE DISEASE. Bone Mineral read 100%.
+
+    Hgb   KDIGO 2012 anaemia:  10-12      lab's healthy adult male: 14-18
+          Hgb 12.0 -> 0.524 instead of 1.000, and chasing 14-18 on ESA is what
+          TREAT and CHOIR showed raises mortality — the lab band is the
+          DANGEROUS one here.
+
+Seven bands are now declared `is_treatment_target=True` with their guideline in
+`authority`: PTH, haemoglobin, ferritin, TSAT, phosphorus, Kt/V, URR. Everything
+else still takes the lab's own interval, which remains the better evidence —
+there is no single optimal sodium. §3am's *"a generic RDA must never be handed
+over as the patient's target"*, in the biological score.
+
+### FAULT 3 — a zeroed pathway was SKIPPED by Ω
+
+    if s is None or s <= 0: continue
+
+Unmeasured and catastrophic shared a branch, so total failure of an organ system
+**raised** Ω by removing the worst term from the mean. It never fired because
+nothing reached 0 while level 2 was arithmetic — making the level-2 fix the
+thing that would have activated it. Only `None` is skipped now.
+
+### FAULT 4 — bands open on one side asserted health nobody measured
+
+Operator: *"high or low rdw are not sign of health. one suggests hemolysis or
+worse."*
+
+`crit_low=None, opt_low=0` makes `trapezoidal_score` return **1.0 for the entire
+low side**. Measured 2026-10-12 with the lab's own 11-15 already applied:
+
+    RDW   0.1 -> 1.000        RDW  5.0 -> 1.000        RDW 21.3 -> 0.000
+    Albumin 9.0 -> 1.000      Kt/V 9.0 -> 1.000        LDH 0 -> 1.000
+
+Five markers across six pathway slots. This is **§3ba's one-sided band**, which
+that section measured on blood pressure — *"it can only penalise HIGH pressure
+… 54/30 would also have scored 100"* — alive inside HEBCS the whole time.
+
+`low_is_deficiency` was declared on `Biomarker`, set on BUN, and **read
+nowhere** (§3ar) — a dead control on the one field written to prevent this exact
+bug. `closed_band()` is its first reader. **The replacement bound is the band's
+own declared margin, mirrored** (`crit_high/opt_high = 20/14.5` → the same ratio
+below), not a number chosen here; a marker with no margin to mirror is left
+open, and a marker not flagged keeps its open side, because a low LDH really is
+unremarkable.
+
+### Result
+
+| | Ω | |
+|---|---|---|
+| before | **0.781** | 78% |
+| + latest values only | 0.800 | 80% |
+| + targets not overridden | 0.767 | 77% |
+| + geometric within pathway | **0.489** | **49%** |
+
+    pathway            before   after
+    Metabolic           0.584   0.474
+    Hematologic         0.695   0.519
+    Bone_Mineral        1.000   0.186     <- PTH 17 vs KDIGO 150-600
+    Cardiovascular      0.917   0.847
+    Nutritional         0.944   0.941
+    Dialysis_Adequacy   0.972   0.970
+    Inflammatory        0.550   0.170
+
+**15 new guards** in `tests/test_hebcs_mathematics.py`; 91 passed across the
+surrounding slice; `ruff --select F,E9` clean.
+
+### STILL OPEN
+
+- **4a. The Ω explanation paragraph is hardcoded and factually wrong.** It says
+  three markers *"sit at or below the bottom of their own reference band"* for
+  three values above the top, and prints RDW twice. It must be ALAFIA-written
+  from facts through `finding_text`, like the wellness findings (OPEN_ITEMS 22,
+  25). Not done.
+- **4b. Stored Ω history is now non-comparable.** Every `wellness_scores` row
+  written before today was computed the old way. Nothing has been re-based and
+  the charts do not say so.
+- **4c. `data_coverage` still reports 1.0** while two pathways show
+  `measured 2/3`. The headline uses `coverage_with_derived`; the two numbers
+  disagree on screen.
+- **4d. The modelling question is untouched** — see TASKS 18.

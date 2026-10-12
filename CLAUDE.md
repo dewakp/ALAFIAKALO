@@ -3576,6 +3576,94 @@ falls through to the words.
 `scripts/import_elimination_history.py` writes no rows: it reports, emits SQL,
 and applying is a separate visible step.
 
+## 3be. Ω read 78% on a patient in critical condition — four arithmetic faults
+
+Operator, 2026-10-12: *"The patient is terminally ill, the blood results show
+severe anemia and nutrition is hardly ever adequate and HEBCS (a wellness score)
+is 78%? … The underlying HEBCS ML model is fundamentally wrong. … We must
+surface and fix the underlying mathematics."* Full measurement, the worked
+arithmetic and what is still open: **`OPEN_ITEMS.md` §27**.
+
+Ω **0.781 → 0.489** on the reference record. Four independent faults, each
+sufficient alone, and three of them are rules this canon already states
+elsewhere.
+
+- **The values were not the patient's.** `/wellness/omega` deduplicated on the
+  raw `test_name`, so `FERRITIN` and `Ferritin` were two analytes (§3ax) and
+  dict order decided. **13 of 23 scored biomarkers were stale** — Ferritin 57
+  from February over 197 from October, PTH 24 from 404 days earlier over 17 —
+  under a card reading "Latest labs: 9/30/2026", because `lab_date_used` was the
+  maximum over EVERY row rather than over the values used.
+
+  > ⚠️ **Fixing recency alone broke the pre/post rule.** `BUN` 53 and `BUN Post`
+  > 14 are drawn the same day; newest-wins has no opinion between them, took the
+  > pre-dialysis uraemic draw, and crashed Nutritional for the wrong reason.
+  > **Provenance beats recency, and recency breaks ties among equals** — both
+  > rules now live in `select_latest_per_analyte`, because a caller that knows
+  > only one of them gets it wrong silently.
+
+- **A population reference interval is NOT a treatment target.** The lab prints
+  where 95% of healthy people fall; KDIGO says where a dialysis patient should
+  be held, and on ESRD the two diverge **in both directions** — which is what
+  proves the mechanism wrong rather than the numbers. PTH 24 scored **1.000**
+  against the lab's 18-80 instead of 0.067 against KDIGO's 150-600, so adynamic
+  bone disease read as Bone Mineral **100%**; haemoglobin 12.0 scored 0.524
+  against the healthy-adult 14-18 when 10-12 is the target and chasing 14-18 on
+  ESA is what raises mortality. A band that is a target now says so and carries
+  its guideline; everything else still takes the lab's own interval, which is
+  better evidence. §3am's *"a generic RDA must never be handed over as the
+  patient's target"*, in the biological score.
+
+- **An arithmetic mean inside each pathway, under a geometric mean between
+  them.** Level 3 is geometric for one published reason — `ln(0) = -∞`, so
+  failure in any pathway cannot be masked. Level 2 masked it freely: glucose
+  scored **0.000** at weight 0.30 and Metabolic still read 0.584 (geometric:
+  0.110). **The argument for geometric aggregation does not change with the
+  level it is applied at.** The UI printed the defect beside the number —
+  *"A pathway score is an average, so these do not show in it"* — and saying so
+  is not the same as not having it.
+
+- **A band open on one side asserts health nobody measured.** `crit_low=None,
+  opt_low=0` made `trapezoidal_score` return 1.0 for the whole low side:
+  **RDW 0.1 scored 1.000**, as did albumin 9.0 and Kt/V 9.0. This is §3ba's
+  one-sided blood-pressure band — *"54/30 would also have scored 100"* — alive
+  on five markers. Operator: *"high or low rdw are not sign of health. one
+  suggests hemolysis or worse."* `low_is_deficiency` was declared, set on BUN,
+  and **read nowhere** (§3ar), on the one field written to stop this.
+  `closed_band()` mirrors the band's OWN declared margin rather than inventing
+  a bound, leaves an unflagged marker open (a low LDH really is unremarkable),
+  and leaves a marker with no margin to mirror open.
+
+- **`if s is None or s <= 0: continue`** dropped a zeroed pathway from Ω, so
+  total organ-system failure RAISED the score. Latent only because nothing
+  reached 0 while level 2 was arithmetic — the level-2 fix would have activated
+  it. §3aa: **unmeasured and catastrophic are opposite facts and must never
+  share a branch.**
+
+### The rubric is not a model, and the gap is the real work
+
+Operator: *"is trapezoidal (mean) the appropriate arithmetic for modeling the
+multi-modal, multi-disciplinary construct of the human system? I'm not
+convinced."* Measured answer: `/wellness/omega` reads **three tables**
+(`LabResult`, plus `TherapySession`/`IntradialyticReading` for urea kinetics
+alone) — no medications, no nutrition, no elimination, no timing, no derivative.
+It is a memoryless function of 23 scalars.
+
+> **The engine penalises this patient for recovering, and the record proves
+> it.** 600 mg Venofer + 15,000 units Epogene across 2026-09-15 → 09-25; between
+> the draws either side, ferritin 24 → 197, TSAT 6 → 14, Hgb 9.0 → 11.3, MCV
+> 78 → 82.1, TIBC 331 → 302. **RDW 15.4 → 21.3 is the reticulocyte response** —
+> new cells widening the distribution — and Ω scores it **0.000 in two
+> pathways** and names it twice as critical. One scalar, one band, no exposure,
+> no lag, no neighbour. TIBC, UIBC, MCH, MCHC, retics, B12 and folate sit on the
+> same panels and are never read.
+
+Keep the trapezoid for what it is good at — a transparent, auditable rubric a
+clinician can check by hand — and do not mistake it for a physiology. What
+closing the gap needs, and the trap to avoid (§3av: the 12 risk classifiers
+report AUC 1.000 because each restates a threshold on its own input, so there is
+no non-tautological outcome to fit against yet): **TASKS 18**.
+
 ## 3b. Admin console
 
 Single-operator console for dew@6igma.com at **`/minister`** on the app host

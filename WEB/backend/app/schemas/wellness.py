@@ -45,7 +45,16 @@ class HEBCSPathwayResult(BaseModel):
 class HEBCSScoreResponse(BaseModel):
     """HEBCS Ω score — trapezoidal biomarker scoring across 7 ESRD pathways."""
     computed_at: datetime
+    #: The NEWEST draw among the values actually scored. This used to be the
+    #: maximum over every row the patient holds, so it named a date that
+    #: contributed nothing: the card read "Latest labs: 9/30/2026" over a score
+    #: built from February 2026 and September 2025 (§3ax — the same analyte
+    #: under two spellings deduped as two analytes).
     lab_date_used: date | None = None
+    #: The OLDEST draw among them. A composite assembled from readings months
+    #: apart is not a snapshot, and only the pair says so (§3an: windows, not
+    #: lifetimes).
+    oldest_lab_date_used: date | None = None
     #: None when NO pathway scored. A patient with no labs must not be handed a
     #: number; 0.5 used to be returned, which reads as "50% well".
     omega: float | None = None                # ∈ (0, 1)

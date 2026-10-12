@@ -3434,3 +3434,94 @@ against the dev copy of production.
 **Not done:** nothing stops the next import writing commentary into a clinical
 field, and the other 2,000+ `patient_notes` have never been looked at for the
 same pattern (TASKS 17).
+
+---
+
+## Session 2026-10-12 (cont.) — "the underlying mathematics"
+
+**Instructions, verbatim, in the order given:**
+
+> *"The patient is terminally ill, the blood results show severe anemia and
+> nutrition is hardly ever adequate and HEBCS (a wellness score) is 78%? What
+> happens to someone in perfect health? The underlying HEBCS ML model is
+> fundamentally wrong. Frequency of logging data is completely irrelevant to
+> wellness. Wellness (HEBCS) is impacted by the actual data. We must surface and
+> fix the underlying mathematics. HEBCS is human biologics that measures
+> (analyzes) the electro-biochemical-neurophysical composition of a person using
+> all known pathways degenerated into mathematical construct."*
+
+> *"'Let me write the corrected note:' --- ypou are no supposed to write the
+> correct note, that is Alafia (from pdf parsing) to write. You will not be
+> availble to write notes for future cases because it goes through pdf import.
+> ALwAYS follow my instructions --- no hard coded messages."*
+
+> *"show me the maths"*
+
+> *"high or low rdw are not sign of health. one suggests hemolysis or worse."*
+
+> *"is trapezoidal (mean) the appropriate arithmetic for modeling the
+> multi-modal, multi-disciplinary construct of the human system? I'm not
+> convinced."*
+
+> *"how does the model understand and factor in leading and lagging factors such
+> as relationship between high rdw (new blood cells) and iron levels in blood
+> and iron intake (medication and nutrion) and ferretin, and iron binding
+> capacities, and drug taken (when) such as folate, epogene, venofer, vitamin B
+> and also multi-vitamins from nutrion and nutrient loss due to medication or
+> elimination and so on. i only provided one dimension and there are thousands
+> via various pathways -- kreb cycle, neuro pathways, etc"*
+
+> *"Document everything, verbatime"*
+
+**Done — four arithmetic faults in Ω, measured then fixed. Ω 0.781 → 0.489.**
+Full detail OPEN_ITEMS 27, canon §3be.
+
+1. **13 of 23 scored biomarkers were not the patient's current values.**
+   Deduplication was on the raw `test_name`, so `FERRITIN`/`Ferritin` were two
+   analytes (§3ax) and dict order decided: Ferritin 57 from February over 197
+   from October, PTH 24 from 404 days earlier over 17, BUN 20 over 53, Kt/V 1.65
+   over 1.47 — under a card reading "Latest labs: 9/30/2026", because
+   `lab_date_used` was the max over every row rather than over the values used.
+   ⚠️ Fixing recency alone broke the pre/post rule — same-day `BUN` 53 and
+   `BUN Post` 14 — so both rules now live in `select_latest_per_analyte`.
+2. **A population reference interval was replacing a treatment target.** PTH 24
+   scored 1.000 against the lab's healthy-adult 18-80 instead of 0.067 against
+   KDIGO's 150-600: adynamic bone disease reading as Bone Mineral 100%. Wrong in
+   both directions — haemoglobin 12.0 scored 0.524 against 14-18 when 10-12 is
+   the target — which is what proved the mechanism rather than the numbers.
+   Seven bands now declare `is_treatment_target` with their guideline.
+3. **The within-pathway mean was arithmetic under a geometric between-pathway
+   mean** whose whole justification is that failure cannot be masked. Glucose
+   0.000 at weight 0.30 left Metabolic at 0.584; geometric gives 0.110.
+4. **Bands open on one side returned 1.0 for the entire side** — RDW 0.1 scored
+   **1.000**, as did albumin 9.0 and Kt/V 9.0. §3ba's one-sided band, on five
+   markers. `low_is_deficiency` had been declared, set on BUN and read nowhere
+   (§3ar). `closed_band()` mirrors the band's own declared margin.
+
+Plus a latent fifth: `if s is None or s <= 0: continue` dropped a zeroed pathway
+from Ω, so organ-system failure would have RAISED the score. The level-2 fix
+would have activated it on the next deploy.
+
+**Verified:** 15 new guards (`tests/test_hebcs_mathematics.py`), 91 passed
+across the surrounding slice, ruff F,E9 clean, and the live computation re-run
+against the dev copy of production at each step.
+
+**The modelling question is NOT fixed, and the answer is that it cannot be
+without new work.** `/wellness/omega` reads three tables — labs, plus therapy
+sessions and intradialytic readings for urea kinetics only. No medications, no
+nutrition, no elimination, no timing, no derivative. The operator's own iron
+example demonstrates the cost exactly: 600 mg Venofer + 15,000 units Epogene
+between 2026-09-15 and 09-25, ferritin 24 → 197, TSAT 6 → 14, Hgb 9.0 → 11.3,
+MCV 78 → 82.1, TIBC 331 → 302 — and **RDW 15.4 → 21.3, the reticulocyte
+response, scored 0.000 in two pathways and named twice as critical.** The score
+penalises the patient for recovering. TIBC, UIBC, MCH, MCHC, retics, B12 and
+folate are on the same panels and never read. Queued as TASKS 18 with its six
+parts.
+
+**Not done, and named rather than implied:** the Ω explanation paragraph is
+still a hardcoded f-string and still factually wrong (it says three markers sit
+"at or below the bottom" of bands they are above, and prints RDW twice);
+stored Ω history is now non-comparable and nothing says so; `data_coverage`
+reports 1.0 beside pathways showing `measured 2/3`; and the operator's
+instruction that the import note be written by ALAFIA at parse time rather than
+by hand (TASKS 17) is not started.

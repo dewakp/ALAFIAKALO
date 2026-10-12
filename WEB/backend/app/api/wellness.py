@@ -5,6 +5,7 @@ import logging
 """Wellness endpoints — score, trends, daily recs, health improvements."""
 
 import json
+from typing import Any
 from datetime import date, datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, Query
 
@@ -33,7 +34,11 @@ from app.services.health_signals import (
     signal_domain,
     signal_label,
 )
-from app.services.hebcs_engine import compute_hebcs
+from app.services.hebcs_engine import (
+    ESRD_PATHWAYS,
+    compute_hebcs,
+    select_latest_per_analyte,
+)
 from app.services.prompt_language import (
     LANGUAGE_HEADER,
     language_name,
@@ -507,19 +512,42 @@ async def get_hebcs_omega_score(
     )
     rows = result.all()
 
-    # Keep only the most recent value per analyte
+    # Keep only the most recent value per ANALYTE — not per stored spelling.
+    #
+    # ⚠️ This deduplicated on the raw `test_name` until 2026-10-12, and the
+    # record holds the same analyte under several spellings (§3ax). `FERRITIN`
+    # and `Ferritin` were therefore two analytes, both survived into
+    # `biomarker_values`, `resolve_biomarkers` collapsed them with `setdefault`,
+    # and whichever the dict happened to iterate first won. Measured on the
+    # reference record: **13 of the 23 scored biomarkers carried a value that
+    # was not the patient's latest** — Ferritin 57 from February over 197 from
+    # October, PTH 24 from 404 days earlier over 17, BUN 20 over 53, Kt/V 1.65
+    # over 1.47 — under a card reading "Latest labs: 9/30/2026".
+    #
+    # `latest_date` was the maximum over EVERY row rather than over the values
+    # used, so the date shown belonged to no part of the computation. It is now
+    # the newest draw the score actually read, and `oldest_value_date` travels
+    # with it: a score assembled from draws months apart must say so (§3an —
+    # windows, not lifetimes).
+    best: dict[str, tuple[Any, float, Any, Any]] = select_latest_per_analyte(rows)
+
     biomarker_values: dict[str, float] = {}
     lab_ranges: dict[str, tuple[float | None, float | None]] = {}
-    latest_date: date | None = None
-    seen: set[str] = set()
-    for test_name, value, test_date, ref_low, ref_high in rows:
-        if test_name not in seen:
-            biomarker_values[test_name] = value
-            if ref_low is not None and ref_high is not None:
-                lab_ranges[test_name] = (ref_low, ref_high)
-            seen.add(test_name)
-            if latest_date is None or test_date > latest_date:
-                latest_date = test_date
+    value_dates: list[date] = []
+    for analyte, (test_date, value, ref_low, ref_high) in best.items():
+        biomarker_values[analyte] = value
+        if ref_low is not None and ref_high is not None:
+            lab_ranges[analyte] = (ref_low, ref_high)
+        value_dates.append(
+            test_date.date() if hasattr(test_date, "date") else test_date)
+
+    scored_names = {
+        b.name for p in ESRD_PATHWAYS for b in p.biomarkers}
+    scored_dates = [
+        (d.date() if hasattr(d, "date") else d)
+        for a, (d, *_rest) in best.items() if a in scored_names]
+    latest_date: date | None = max(scored_dates) if scored_dates else None
+    oldest_scored_date: date | None = min(scored_dates) if scored_dates else None
 
     # nPCR carries 40% of the Nutritional pathway and this lab reports it as
     # N/A on every date, so the pathway has always scored on albumin and BUN
@@ -699,6 +727,7 @@ async def get_hebcs_omega_score(
     return HEBCSScoreResponse(
         computed_at=datetime.now(timezone.utc),
         lab_date_used=latest_date,
+        oldest_lab_date_used=oldest_scored_date,
         omega=result_data["omega"],
         omega_pct=result_data["omega_pct"],
         data_coverage=result_data["data_coverage"],
