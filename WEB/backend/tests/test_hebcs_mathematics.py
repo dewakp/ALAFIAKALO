@@ -41,8 +41,11 @@ from app.services.hebcs_engine import (
     Pathway,
     apply_reference_range,
     closed_band,
+    compute_alpha,
+    compute_hebcs,
     omega_score,
     pathway_score,
+    scoring_marker,
     select_latest_per_analyte,
     trapezoidal_score,
 )
@@ -97,39 +100,24 @@ def test_a_PREFERRED_spelling_beats_recency_not_the_other_way_round():
 
 # ── 2. A treatment target is not a reference interval ───────────────────────
 
-def test_a_TREATMENT_TARGET_refuses_the_labs_healthy_adult_band():
-    pth = next(b for p in ESRD_PATHWAYS if p.name == "Bone_Mineral"
-               for b in p.biomarkers if b.name == "PTH (Intact)")
-    assert pth.is_treatment_target and pth.authority
-    assert apply_reference_range(pth, (18, 80)) is pth
-
-
-def test_PTH_24_on_dialysis_is_not_perfect_health():
-    """24 pg/mL in a stage-5D patient is adynamic bone disease. Under the lab's
-    18-80 it scored 1.000, and Bone Mineral reported 100%."""
-    pth = next(b for p in ESRD_PATHWAYS if p.name == "Bone_Mineral"
-               for b in p.biomarkers if b.name == "PTH (Intact)")
-    assert trapezoidal_score(24.0, apply_reference_range(pth, (18, 80))) < 0.1
-
-
-def test_the_override_was_wrong_in_BOTH_directions():
-    """Which is what makes it the mechanism's fault, not the numbers'.
-
-    Haemoglobin 12.0 is AT the KDIGO 10-12 target; against the lab's
-    healthy-adult 14-18 it scored 0.524, and chasing 14-18 on ESA is what the
-    TREAT and CHOIR trials showed raises mortality.
-    """
+def test_a_marker_carries_BOTH_bands_and_they_disagree():
+    """The conflation, in one row. Haemoglobin 11.3 is anaemia on a health
+    band and on-target under KDIGO. Ω must say the first, Α the second."""
     hgb = next(b for p in ESRD_PATHWAYS if p.name == "Hematologic"
                for b in p.biomarkers if b.name == "Hemoglobin")
-    assert trapezoidal_score(12.0, apply_reference_range(hgb, (14, 18))) == 1.0
+    assert hgb.target_band is not None and hgb.authority
+    health = trapezoidal_score(11.3, scoring_marker(hgb, "health"))
+    mgmt = trapezoidal_score(11.3, scoring_marker(hgb, "management"))
+    assert health < 0.8, "a well adult's haemoglobin is not 11.3"
+    assert mgmt == 1.0, "KDIGO holds ESRD at 10-12 and 11.3 is on target"
 
 
 def test_an_ordinary_analyte_still_takes_the_labs_own_range():
-    """The exception must stay narrow. There is no single optimal sodium, and
-    the reporting lab's interval is better evidence than a constant."""
+    """There is no single optimal sodium, and the reporting lab's interval is
+    better evidence than a constant."""
     na = next(b for p in ESRD_PATHWAYS if p.name == "Metabolic"
               for b in p.biomarkers if b.name == "Sodium")
-    assert not na.is_treatment_target
+    assert na.target_band is None
     assert apply_reference_range(na, (134, 148)).opt_high == 148.0
 
 
@@ -138,7 +126,7 @@ def test_every_declared_target_cites_its_guideline():
     number someone typed."""
     for p in ESRD_PATHWAYS:
         for b in p.biomarkers:
-            if b.is_treatment_target:
+            if b.target_band is not None:
                 assert b.authority, f"{b.name} claims a target with no source"
 
 
@@ -208,3 +196,66 @@ def test_a_marker_with_no_margin_to_mirror_is_left_open():
     b = _marker("R", crit_low=None, opt_low=10.0, opt_high=20.0, crit_high=None,
                 low_is_deficiency=True)
     assert closed_band(b)[0] is None
+
+
+# ── Ω is health, Α is management, and they are not the same question ────────
+
+_PANEL = {"Hemoglobin": 11.3, "Ferritin": 197.0, "Iron Saturation (TSAT)": 14.0,
+          "PTH (Intact)": 17.0, "Phosphorus": 3.6, "Calcium": 8.9,
+          "Creatinine": 8.23, "KtV (Dialysis Adequacy)": 1.47,
+          "URR (Urea Reduction Ratio)": 74.0}
+
+
+def test_a_MANAGEMENT_pathway_is_not_in_the_health_score():
+    """Operator: *"wellness is about the state of health."*
+
+    A well person has no Kt/V — they have kidneys. `Dialysis_Adequacy` scored
+    **97%** inside Ω, so "needs dialysis six days a week" read as near-perfect
+    wellness.
+    """
+    omega = compute_hebcs(dict(_PANEL))
+    assert "Dialysis_Adequacy" not in omega["pathways"]
+    alpha = compute_alpha(dict(_PANEL))
+    assert alpha["pathways"]["Dialysis_Adequacy"]["score"] == 1.0
+
+
+def test_rebuilding_a_pathway_must_not_lose_its_scope():
+    """`compute_hebcs` reconstructs every Pathway when a lab range is supplied,
+    which is every real call. Dropping `scope=` there silently readmitted
+    Dialysis_Adequacy to Ω — a field set in one place and reset in another."""
+    omega = compute_hebcs(dict(_PANEL),
+                          reference_ranges={"Hemoglobin": (14, 18)})
+    assert "Dialysis_Adequacy" not in omega["pathways"]
+
+
+def test_CREATININE_is_scored_and_is_the_largest_health_deficit():
+    """It was absent from the engine entirely, though the published Table 3
+    lists it and the record holds it on every panel. 8.23 against a well
+    adult's 0.6-1.3 is zero renal function."""
+    names = {b.name for p in ESRD_PATHWAYS for b in p.biomarkers}
+    assert "Creatinine" in names
+    cr = next(b for p in ESRD_PATHWAYS for b in p.biomarkers
+              if b.name == "Creatinine")
+    assert trapezoidal_score(8.23, scoring_marker(cr, "health")) == 0.0
+    assert scoring_marker(cr, "management") is None, "nobody treats TO a creatinine"
+
+
+def test_a_patient_with_NO_condition_has_no_management_score():
+    """Operator: *"A healthy person with zero conditions and demonstrated health
+    records need no management score."*
+
+    `None`, never 0 — there is nothing to manage, which is not bad management.
+    """
+    out = compute_alpha(dict(_PANEL), has_managed_condition=False)
+    assert out["alpha"] is None and out["alpha_pct"] is None
+    assert out["reason"]
+
+
+def test_the_two_scores_answer_differently_on_one_panel():
+    """The pair is the finding: gravely ill AND impeccably managed is a real
+    and common state, and one number could report neither."""
+    omega = compute_hebcs(dict(_PANEL))["omega"]
+    alpha = compute_alpha(dict(_PANEL))["alpha"]
+    assert omega is not None and alpha is not None
+    # Kt/V and URR are perfect; creatinine is zero. They must not coincide.
+    assert abs(omega - alpha) > 0.01

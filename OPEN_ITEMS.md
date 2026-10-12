@@ -2377,3 +2377,139 @@ surrounding slice; `ruff --select F,E9` clean.
   `measured 2/3`. The headline uses `coverage_with_derived`; the two numbers
   disagree on screen.
 - **4d. The modelling question is untouched** — see TASKS 18.
+
+---
+
+## 28. Ω and Α were ONE number — the core failure — PARTLY FIXED 2026-10-12
+
+Operator, verbatim:
+
+> *"The HEBCS and wellness score MUST not be how well a condition is being
+> managed. Management can have it's own measurement, but wellness is about the
+> state of health. Someone with perfect overall conditions, perfect genetics,
+> nutrition, blood test results, urine results, bowel state and currently on
+> zero medication or therapy etc will score 100% (meaning they will live
+> forever). A dead person scores 0 (they are dead). So we need a different
+> measure for how well condition is managed (say Alpha) from Overall
+> wellness/health (Omega). So far this work has been conflating both. That is
+> the core failure."*
+
+> *"A healthy person with zero conditions and demonstrated health records need
+> no management score. A cancer patient or someone with luekamia require
+> management score. Primary goal == patient specific surfacing. for example
+> someone who has listed no condition need not see therapies. they still do
+> despite my repeated request. HD patient need not see PD in navigation. Also
+> omega must be responsive to patient and not force people without conditions to
+> be measured as if they have conditions. This is the wheelhouse of adaptive,
+> intelligent mathematical modeling"*
+
+### The conflation was stated outright, in the product's own words
+
+`wellness.py:680` shipped this sentence to the patient:
+
+> *"A good score here describes how well that is being managed, not its
+> absence."*
+
+and the comment above it argued FOR the blend — *"a number that mixed 'managed
+well' with 'has a terminal illness' could answer neither question"*. Right
+observation, wrong conclusion: the answer is **two numbers**, not one with a
+caption.
+
+> ⚠️ **OPEN_ITEMS 27 made it worse.** It moved seven bands from population
+> reference intervals onto KDIGO/KDOQI **treatment targets** so Ω would stop
+> calling adynamic bone disease normal. Those are MANAGEMENT bands. The effect
+> was that Ω — a score called *wellness* — started answering the management
+> question on seven markers. A fix aimed at one half of a conflated pair
+> deepens the conflation unless the pair is split first.
+
+### The same panel, two questions
+
+| marker | Ω — health band | Α — guideline target |
+|---|---|---|
+| Haemoglobin 11.3 | **0.614** anaemic | **1.000** on KDIGO's 10-12 |
+| PTH 17 | 0.923 | **0.015** vs 150-600 |
+| Kt/V 1.47 | **no band exists** | 1.000 |
+| URR 74 | **no band exists** | 1.000 |
+| **Creatinine 8.23** | **0.000** | not a target |
+
+A patient can be gravely ill AND impeccably managed. That pair is the only
+thing a clinician can act on, and one number reported neither.
+
+**Measured on the reference record: Ω 42.14% health · Α 38.18% management.**
+
+### What was fixed
+
+- **`Biomarker.target_band` + `authority`** hold the guideline band; the
+  primary band is the HEALTH band again, lab-anchored.
+- **`Biomarker.scope` / `Pathway.scope`** — `health`, `management`, `both`.
+  Kt/V and URR are management-only: a well person has no Kt/V, they have
+  kidneys. `Dialysis_Adequacy` is a management PATHWAY and left Ω entirely —
+  it had been contributing **97%** to "wellness" for a patient on dialysis six
+  days a week, and still scored 0.86 off nPCR alone until the pathway itself
+  was scoped.
+- **`scoring_marker(b, band)`** is the whole separation in one function.
+- **`compute_alpha()`** scores Α only where a guideline states a target, and
+  returns `None` — never 0 — when there is nothing to manage.
+- **CREATININE is scored at last.** It is in the published Table 3, on every
+  panel in the record, and was absent from the engine. 8.23 against a well
+  adult's 0.6-1.3 is **0.000** — the largest health fact about this patient,
+  and Ω had no term for it while the treatment for it scored 97%.
+
+> ⚠️ **A bug introduced and caught in the same session:** `compute_hebcs`
+> rebuilds every `Pathway` when a lab range is supplied — which is every real
+> call — and the rebuild dropped `scope=`, silently resetting it to "health".
+> `Dialysis_Adequacy` would have walked straight back into Ω. §3ar one layer
+> down: a field set in one place and reset in another. Pinned by
+> `test_rebuilding_a_pathway_must_not_lose_its_scope`.
+
+### Patient-specific surfacing — the repeated request, now honoured
+
+`app/services/patient_surfaces.py` + `GET /users/me/surfaces`. The web sidebar
+was a **static 62-entry list**, so every account saw HD Flowsheet, PD Report and
+Therapy History whatever their record held. Measured on production 2026-10-12:
+
+    2,035 therapy sessions — every one HEMODIALYSIS, one user
+    ZERO peritoneal sessions for any account on the platform
+
+So "PD Report" had never been a live screen for anybody, and sat one row under
+the screen the single dialysis patient uses daily.
+
+Verified: user 63 → 20 surfaces, `hemodialysis` offered (2,035 sessions),
+**`peritoneal_dialysis` not offered**. Users 168/158/53 (no conditions, no
+therapy) → 16 core surfaces, **therapies hidden entirely**.
+
+- **The backend decides, the clients render** (§3). A surface rule is a
+  clinical statement; three clients each applying their own would drift.
+- **Data beats the absence of a diagnosis.** A surface holding the patient's own
+  records is never hidden, whatever their conditions say (§3aa).
+- **A therapy the map does not name still opens the group** — chemotherapy,
+  infusion, phototherapy — so a cancer patient's sessions cannot be dropped by
+  an incomplete lookup.
+- **`CORE` is never gated**: you cannot hide the screen where a condition would
+  be added.
+- **`null` ≠ "offer nothing" on the client.** Until the answer arrives every
+  entry shows, so a slow or failed request can never strand a patient in a
+  sidebar missing their own records.
+
+**7 new surfacing guards, 18 HEBCS guards, 122 passed across the slice; 279
+frontend tests pass; ruff F,E9 clean.**
+
+### STILL OPEN
+
+- **28a. Α is gated by a BOOLEAN, not by the patient's actual conditions.**
+  `has_managed_condition` defaults True and the endpoint does not yet pass it,
+  so Α is still computed from ESRD pathways for everyone. Mapping
+  condition → which pathways Α should score is the adaptive modelling in
+  TASKS 18, not a flag.
+- **28b. Ω still measures everyone against an ESRD decomposition.**
+  *"omega must be responsive to patient and not force people without conditions
+  to be measured as if they have conditions."* Not done. `ESRD_PATHWAYS` is a
+  module constant applied to every account.
+- **28c. Α is not exposed by any endpoint or client.** `compute_alpha` exists
+  and nothing calls it. §3ar, deliberately recorded rather than left to be
+  discovered.
+- **28d. Mobile surfacing is NOT done.** The endpoint serves all three clients;
+  only web filters on it. iOS and Android still show every entry.
+- **28e. The Ω explanation paragraph is still hardcoded** and still says "how
+  well that is being managed" — the conflation, in the sentence the patient
+  reads (OPEN_ITEMS 27 §4a).

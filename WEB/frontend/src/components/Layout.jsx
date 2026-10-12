@@ -115,10 +115,16 @@ const navGroups = [
   // Labs & Records, where nobody could find it.
   { to: '/data-sharing', icon: Share2, get label() { return t('Layout.share_records'); } },
   {
+    surface: 'therapies',
     get label() { return t('Layout.therapies'); }, icon: Cross, children: [
-      { to: '/hemodialysis', icon: Activity, get label() { return t('Layout.hd_flowsheet'); } },
-      { to: '/peritoneal-dialysis', icon: Droplets, get label() { return t('Layout.pd_report'); } },
-      { to: '/therapy-history', icon: History, get label() { return t('Layout.therapy_history'); } },
+      // `surface` names what the RECORD must justify for this entry to appear.
+      // Measured on production 2026-10-12: 2,035 therapy sessions, every one
+      // HEMODIALYSIS, one user — so "PD Report" has never been live for anybody
+      // and sat one row under the screen the dialysis patient actually uses.
+      // The backend decides (GET /users/me/surfaces); this only renders.
+      { to: '/hemodialysis', surface: 'hemodialysis', icon: Activity, get label() { return t('Layout.hd_flowsheet'); } },
+      { to: '/peritoneal-dialysis', surface: 'peritoneal_dialysis', icon: Droplets, get label() { return t('Layout.pd_report'); } },
+      { to: '/therapy-history', surface: 'therapy_history', icon: History, get label() { return t('Layout.therapy_history'); } },
     ],
   },
   {
@@ -267,7 +273,49 @@ export default function Layout() {
   const { clinicianMode } = useClinicianMode();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
-  const nav = clinicianMode ? clinicianNavGroups : navGroups;
+
+  /* Patient-specific surfacing.
+     Operator, 2026-10-12: "someone who has listed no condition need not see
+     therapies. they still do despite my repeated request. HD patient need not
+     see PD in navigation."
+
+     `null` means NOT YET KNOWN, and it is deliberately not the same as "offer
+     nothing": until the answer arrives every entry is shown, so a slow or
+     failed request can never strand a patient in a sidebar missing the screen
+     holding their own records (§3aa — an error is not an empty state). The
+     backend owns the rule; this only renders it. */
+  const [surfaces, setSurfaces] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get('/users/me/surfaces');
+        if (!cancelled) setSurfaces(new Set(data?.offered || []));
+      } catch {
+        if (!cancelled) setSurfaces(null);   // show everything rather than hide
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  /* An entry with no `surface` is unconditional. An entry that names one is
+     shown only when the record justifies it — and a GROUP disappears once its
+     children have, so no empty "Therapies" heading is left behind. */
+  const permitted = (item) => {
+    if (surfaces === null) return true;
+    if (item.surface && !surfaces.has(item.surface)) return false;
+    return true;
+  };
+  const filterNav = (groups) => groups.reduce((keep, item) => {
+    if (!permitted(item)) return keep;
+    if (!item.children) { keep.push(item); return keep; }
+    const children = item.children.filter(permitted);
+    if (children.length) keep.push({ ...item, children });
+    return keep;
+  }, []);
+
+  const nav = filterNav(clinicianMode ? clinicianNavGroups : navGroups);
 
   useEffect(() => {
     let cancelled = false;

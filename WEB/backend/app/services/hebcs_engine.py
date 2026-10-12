@@ -68,14 +68,30 @@ class Biomarker:
     #: The same statement about the upper side, for a marker where ABOVE the
     #: band is a finding and `crit_high` was left open.
     high_is_excess: bool = False
-    #: True when (opt_low, opt_high) is a TREATMENT TARGET for this disease
-    #: rather than a population reference interval, so `apply_reference_range`
-    #: must not replace it with the reporting lab's healthy-adult band.
-    is_treatment_target: bool = False
-    #: Which guideline states that target. Required alongside
-    #: `is_treatment_target` — an uncited target is a number someone typed
-    #: (§3az, §3bc).
+    #: Where a GUIDELINE says to hold a patient WITH THIS DISEASE, as
+    #: (crit_low, opt_low, opt_high, crit_high). This is a MANAGEMENT band and
+    #: it scores Α, never Ω.
+    #:
+    #: ⚠️ **On 2026-10-12 these numbers were put in the band above**, under
+    #: `is_treatment_target`, so Ω scored the patient against KDIGO's targets.
+    #: That made the conflation worse, not better: haemoglobin 11.3 scores
+    #: **1.000** against the ESRD target of 10-12 and **0.614** against a well
+    #: adult's 14-18. The first says the anaemia is well managed; the second
+    #: says the patient is anaemic. Both are true, and only the second is a
+    #: statement about health. See `compute_alpha`.
+    target_band: Optional[tuple] = None
+    #: Which guideline states `target_band`. Required alongside it — an uncited
+    #: target is a number someone typed (§3az, §3bc).
     authority: str = ""
+    #: Which score this marker can appear in.
+    #:
+    #:   "health"      a well person has one of these and it says how they are
+    #:   "management"  a well person has NO value at all — Kt/V, URR. These
+    #:                 measure the TREATMENT, so they are Α-only; scoring them
+    #:                 in Ω is how "needs dialysis six days a week" came to
+    #:                 contribute 97% to a wellness score.
+    #:   "both"        carries a health meaning AND a disease target
+    scope: str = "health"
 
 
 @dataclass
@@ -83,6 +99,15 @@ class Pathway:
     name: str
     biomarkers: list[Biomarker]
     weight: float = 1.0   # global pathway weight for weighted geometric mean
+    #: "health" | "management" | "both" — see `Biomarker.scope`.
+    #:
+    #: `Dialysis_Adequacy` is **management**: it measures the TREATMENT, not the
+    #: patient. A well person has no Kt/V because they have kidneys. Scored in
+    #: Ω it reported 97%, so "needs dialysis six days a week" read as near-perfect
+    #: wellness — and once Kt/V and URR were moved to Α it still scored 0.86 off
+    #: nPCR alone, which `Nutritional` already counts. A pathway that measures a
+    #: therapy belongs to Α whole.
+    scope: str = "health"
 
 
 # ── Trapezoidal membership function ────────────────────────────────────────
@@ -185,17 +210,60 @@ def pathway_score(values: dict[str, float], pathway: Pathway) -> Optional[float]
     The argument for geometric aggregation does not change with the level it is
     applied at, so it is applied at both.
     """
+    return _pathway_score(values, pathway, band="health")
+
+
+def _pathway_score(values: dict[str, float], pathway: Pathway,
+                   band: str) -> Optional[float]:
+    """`band="health"` scores Ω, `band="management"` scores Α.
+
+    A marker is skipped when it has nothing to say about the band being
+    scored: Kt/V has no health meaning (a well person has no Kt/V), and
+    creatinine has no management target (nobody treats a dialysis patient TO a
+    creatinine).
+    """
     log_sum = 0.0
     total_w = 0.0
     for b in pathway.biomarkers:
         if b.name not in values or values[b.name] is None:
             continue
-        s = trapezoidal_score(values[b.name], b)
+        scored = scoring_marker(b, band)
+        if scored is None:
+            continue
+        s = trapezoidal_score(values[b.name], scored)
         log_sum += b.weight * math.log(max(s, _SCORE_FLOOR))
         total_w += b.weight
     if total_w == 0:
         return None
     return math.exp(log_sum / total_w)
+
+
+def scoring_marker(b: Biomarker, band: str) -> Optional[Biomarker]:
+    """The biomarker as it should be scored for `band`, or None if it does not
+    belong to that score at all.
+
+    This is the whole Ω/Α separation in one function. Operator, 2026-10-12:
+
+      *"The HEBCS and wellness score MUST not be how well a condition is being
+      managed. Management can have it's own measurement, but wellness is about
+      the state of health. Someone with perfect overall conditions, perfect
+      genetics, nutrition, blood test results, urine results, bowel state and
+      currently on zero medication or therapy etc will score 100% (meaning they
+      will live forever). A dead person scores 0 (they are dead). So we need a
+      different measure for how well condition is managed (say Alpha) from
+      Overall wellness/health (Omega). So far this work has been conflating
+      both. That is the core failure."*
+    """
+    if band == "health":
+        if b.scope == "management":
+            return None            # no health analogue exists for this marker
+        return b                   # the primary band IS the health band
+    if band == "management":
+        if b.target_band is None:
+            return None            # nothing is being treated TO here
+        a, lo, hi, d = b.target_band
+        return replace(b, crit_low=a, opt_low=lo, opt_high=hi, crit_high=d)
+    raise ValueError(f"unknown band {band!r}")
 
 
 # ── Overall Ω — weighted geometric mean ─────────────────────────────────────
@@ -267,6 +335,19 @@ def omega_score(pathway_scores: dict[str, Optional[float]],
 ESRD_PATHWAYS: list[Pathway] = [
 
     Pathway(name="Metabolic", weight=0.20, biomarkers=[
+        # ⚠️ CREATININE was absent from this engine until 2026-10-12, though the
+        # published Table 3 lists it in Metabolic and the record holds it on
+        # every panel. It is the single largest health fact about a dialysis
+        # patient — 8.23 mg/dL against a well adult's 0.6-1.3 scores **0.000** —
+        # and Ω had no term for it at all, while `Dialysis_Adequacy` scored the
+        # TREATMENT for it at 97%. Operator, 2026-10-12: *"wellness is about the
+        # state of health"*. Needing dialysis six days a week is not 97%
+        # wellness; it is near-zero renal function, and now it scores as such.
+        #
+        # Health-only: there is no guideline target for a dialysis patient's
+        # creatinine. It is not something anyone treats TO.
+        Biomarker("Creatinine", crit_low=0.3, opt_low=0.6, opt_high=1.3, crit_high=3.0,
+                  weight=0.30, scope="health"),
         Biomarker("Glucose",    crit_low=40,  opt_low=70,  opt_high=130, crit_high=300,  weight=0.30),
         Biomarker("Sodium",     crit_low=120, opt_low=136, opt_high=145, crit_high=160,  weight=0.25),
         Biomarker("Potassium",  crit_low=2.5, opt_low=3.5, opt_high=5.5, crit_high=6.5, weight=0.25),
@@ -279,8 +360,12 @@ ESRD_PATHWAYS: list[Pathway] = [
         # haemoglobin at 10-12 g/dL on ESA. The lab prints the healthy-adult
         # 14-18, and chasing that is what the TREAT and CHOIR trials showed
         # raises mortality — so the lab band is the DANGEROUS one here.
-        Biomarker("Hemoglobin",          crit_low=7.0, opt_low=10.0, opt_high=12.0, crit_high=17.5, weight=0.30,
-                  is_treatment_target=True, authority="KDIGO 2012 Anemia in CKD, 3.4.3"),
+        # HEALTH band is a well adult's haemoglobin; the ESRD target lives in
+        # `target_band` and scores Α. 11.3 -> Ω 0.614 (anaemic), Α 1.000
+        # (treated to target). Both true; only the first is about health.
+        Biomarker("Hemoglobin",          crit_low=7.0, opt_low=13.5, opt_high=17.5, crit_high=22.0, weight=0.30,
+                  scope="both", target_band=(7.0, 10.0, 12.0, 17.5),
+                  authority="KDIGO 2012 Anemia in CKD, 3.4.3"),
         Biomarker("Hematocrit",          crit_low=21,  opt_low=30,   opt_high=36,   crit_high=52,   weight=0.20),
         Biomarker("RBC",                 crit_low=2.0, opt_low=3.0,  opt_high=4.5,  crit_high=6.0,  weight=0.15),
         Biomarker("MCV",                 crit_low=60,  opt_low=80,   opt_high=96,   crit_high=115,  weight=0.10),
@@ -292,11 +377,13 @@ ESRD_PATHWAYS: list[Pathway] = [
         # TARGET: KDOQI holds ferritin >200 ng/mL on haemodialysis. The lab
         # prints 11-307, under which a ferritin of 57 — iron deficiency on
         # dialysis — scored 1.000.
-        Biomarker("Ferritin",            crit_low=10,  opt_low=200,  opt_high=800,  crit_high=2000, weight=0.15,
-                  is_treatment_target=True, authority="KDOQI 2006 Anemia, CPR 3.2"),
+        Biomarker("Ferritin",            crit_low=5,   opt_low=24,   opt_high=336,  crit_high=1000, weight=0.15,
+                  scope="both", target_band=(10, 200, 800, 2000),
+                  authority="KDOQI 2006 Anemia, CPR 3.2"),
         # TSAT target for HD: 20-50%
         Biomarker("Iron Saturation (TSAT)", crit_low=5, opt_low=20, opt_high=50, crit_high=80, weight=0.20,
-                  is_treatment_target=True, authority="KDOQI 2006 Anemia, CPR 3.2 (TSAT >20% on HD)"),
+                  scope="both", target_band=(5, 20, 50, 80),
+                  authority="KDOQI 2006 Anemia, CPR 3.2 (TSAT >20% on HD)"),
         Biomarker("WBC",                 crit_low=2.0, opt_low=4.5, opt_high=11.0, crit_high=30,   weight=0.10),
         Biomarker("LDH",                 crit_low=None,opt_low=0,   opt_high=280,  crit_high=600,  weight=0.10),
     ]),
@@ -307,11 +394,16 @@ ESRD_PATHWAYS: list[Pathway] = [
         # TARGET: KDIGO CKD-MBD holds iPTH at 2-9x the assay upper limit on
         # stage 5D. Overridden by the lab's healthy-adult 18-80, a PTH of 24 —
         # adynamic bone disease — scored 1.000 and Bone Mineral read 100%.
-        Biomarker("PTH (Intact)",  crit_low=15,   opt_low=150,  opt_high=600,  crit_high=3000, weight=0.40,
-                  is_treatment_target=True, authority="KDIGO 2017 CKD-MBD, 4.2.1"),
+        # A well person's PTH is 15-65; a dialysis patient is HELD at 2-9x the
+        # assay ceiling to drive bone turnover against skeletal resistance. The
+        # two bands barely overlap, which is why one number could not carry it.
+        Biomarker("PTH (Intact)",  crit_low=5,    opt_low=15,   opt_high=65,   crit_high=200,  weight=0.40,
+                  scope="both", target_band=(15, 150, 600, 3000),
+                  authority="KDIGO 2017 CKD-MBD, 4.2.1"),
         # Phosphorus KDIGO target: 3.5–5.5 mg/dL (ESRD relaxed)
-        Biomarker("Phosphorus",    crit_low=1.5,  opt_low=3.5,  opt_high=5.5,  crit_high=9.0,  weight=0.30,
-                  is_treatment_target=True, authority="KDIGO 2017 CKD-MBD, 4.1.1"),
+        Biomarker("Phosphorus",    crit_low=1.5,  opt_low=2.5,  opt_high=4.5,  crit_high=9.0,  weight=0.30,
+                  scope="both", target_band=(1.5, 3.5, 5.5, 9.0),
+                  authority="KDIGO 2017 CKD-MBD, 4.1.1"),
         # Calcium
         Biomarker("Calcium",       crit_low=6.5,  opt_low=8.5,  opt_high=10.0, crit_high=12.0, weight=0.20),
         # CaxP product target: <55 mg²/dL²
@@ -366,13 +458,15 @@ ESRD_PATHWAYS: list[Pathway] = [
                   weight=0.20, low_is_deficiency=True),
     ]),
 
-    Pathway(name="Dialysis_Adequacy", weight=0.10, biomarkers=[
+    Pathway(name="Dialysis_Adequacy", weight=0.10, scope="management", biomarkers=[
         # KtV target ≥ 1.4 (NKF-KDOQI): optimal 1.4–1.8
         Biomarker("KtV (Dialysis Adequacy)", crit_low=0.8, opt_low=1.4, opt_high=1.8, crit_high=None, weight=0.50,
-                  is_treatment_target=True, authority="KDOQI 2015 Hemodialysis Adequacy, spKt/V >=1.4"),
+                  scope="management", target_band=(0.8, 1.4, 1.8, None),
+                  authority="KDOQI 2015 Hemodialysis Adequacy, spKt/V >=1.4"),
         # URR target ≥ 65%
         Biomarker("URR (Urea Reduction Ratio)", crit_low=40, opt_low=65, opt_high=80, crit_high=None, weight=0.30,
-                  is_treatment_target=True, authority="KDOQI 2015 Hemodialysis Adequacy, URR >=65%"),
+                  scope="management", target_band=(40, 65, 80, None),
+                  authority="KDOQI 2015 Hemodialysis Adequacy, URR >=65%"),
         # nPCR secondary role in dialysis adequacy
         Biomarker("nPCR (Protein Catabolic Rate)", crit_low=0.5, opt_low=1.0, opt_high=1.4, crit_high=2.0, weight=0.20),
     ]),
@@ -599,8 +693,6 @@ def apply_reference_range(b: Biomarker,
     2,800 — and §3az for the thresholds that were looser than the patient's own
     limits. This is the same error in the biological score.
     """
-    if b.is_treatment_target:
-        return b
     low, high = ref
     if low is None or high is None or low <= 0 or high <= low:
         return b
@@ -614,6 +706,110 @@ def apply_reference_range(b: Biomarker,
 
     return replace(b, crit_low=crit_low, opt_low=float(low),
                    opt_high=float(high), crit_high=crit_high)
+
+
+def compute_alpha(biomarker_values: dict[str, float],
+                  pathways: list[Pathway] | None = None,
+                  derived_values: dict[str, float] | None = None,
+                  has_managed_condition: bool = True) -> dict:
+    """Α — how well the CONDITIONS are being managed. Not a health score.
+
+    Operator, 2026-10-12, naming the core failure:
+
+      *"The HEBCS and wellness score MUST not be how well a condition is being
+      managed. Management can have it's own measurement, but wellness is about
+      the state of health. … So we need a different measure for how well
+      condition is managed (say Alpha) from Overall wellness/health (Omega). So
+      far this work has been conflating both. That is the core failure."*
+
+    Ω and Α answer different questions and routinely disagree. On the reference
+    record, from one panel:
+
+        Haemoglobin 11.3   Ω 0.614 against a well adult's 13.5-17.5
+                           Α 1.000 against KDIGO's 10-12 for ESRD on ESA
+        Kt/V 1.47          Ω   n/a — a well person has no Kt/V
+                           Α 1.000
+        Creatinine 8.23    Ω 0.000 against 0.6-1.3
+                           Α   n/a — nobody treats a patient TO a creatinine
+
+    A patient can be gravely ill AND impeccably managed. Collapsing that into
+    one number loses the only pair a clinician can act on, and the number it
+    produced was the managed one wearing the word "wellness".
+
+    **Α is scored ONLY where a guideline states a target** (`target_band` with
+    its `authority`). A patient with no managed condition has no Α — which is
+    correct, and is NOT a zero: `None` means there is nothing to manage, the
+    §3aa distinction between unmeasured and bad.
+    """
+    if not has_managed_condition:
+        # Operator, 2026-10-12: *"A healthy person with zero conditions and
+        # demonstrated health records need no management score. A cancer
+        # patient or someone with luekamia require management score."*
+        #
+        # Without this gate Α scored ANYONE holding a haemoglobin, because the
+        # targets hang off the biomarkers rather than off the patient — which
+        # is the same error as Ω measuring a well person against an ESRD
+        # decomposition. **No condition, no Α.** This is `None`, never 0: there
+        # is nothing to manage, which is not bad management (§3aa).
+        return {"alpha": None, "alpha_pct": None, "pathways": {},
+                "off_target": [],
+                "reason": "no condition on record requires management"}
+
+    if pathways is None:
+        pathways = ESRD_PATHWAYS
+
+    values = resolve_biomarkers(biomarker_values, pathways)
+    for name, value in resolve_biomarkers(
+            {k: v for k, v in (derived_values or {}).items() if v is not None},
+            pathways).items():
+        values.setdefault(name, value)
+
+    pathway_results: dict[str, dict] = {}
+    scores: dict[str, float | None] = {}
+    off_target: list[dict] = []
+    scored_any = False
+
+    for p in pathways:
+        managed = [b for b in p.biomarkers if b.target_band is not None]
+        if not managed:
+            continue
+        score = _pathway_score(values, p, band="management")
+        scores[p.name] = score
+        if score is None:
+            continue
+        scored_any = True
+        rows = []
+        for b in managed:
+            if b.name not in values:
+                continue
+            m = scoring_marker(b, "management")
+            bs = trapezoidal_score(values[b.name], m)
+            rows.append({"name": b.name, "value": values[b.name],
+                         "score": round(bs, 4), "weight": b.weight,
+                         "target_range": [m.opt_low, m.opt_high],
+                         "authority": b.authority})
+            if bs <= _CRITICAL_SCORE:
+                off_target.append({"name": b.name, "pathway": p.name,
+                                   "value": values[b.name],
+                                   "score": round(bs, 4),
+                                   "target_range": [m.opt_low, m.opt_high],
+                                   "authority": b.authority})
+        pathway_results[p.name] = {
+            "score": round(score, 4), "weight": p.weight, "biomarkers": rows}
+
+    if not scored_any:
+        return {"alpha": None, "alpha_pct": None, "pathways": {},
+                "off_target": [],
+                "reason": "no managed condition has a guideline target on file"}
+
+    alpha = omega_score(scores, [p for p in pathways if p.name in scores])
+    off_target.sort(key=lambda r: r["score"])
+    return {
+        "alpha": round(alpha, 4) if alpha is not None else None,
+        "alpha_pct": round(alpha * 100, 2) if alpha is not None else None,
+        "pathways": pathway_results,
+        "off_target": off_target,
+    }
 
 
 def compute_hebcs(biomarker_values: dict[str, float],
@@ -672,12 +868,20 @@ def compute_hebcs(biomarker_values: dict[str, float],
     ) if reference_ranges else {}
     if ranges:
         pathways = [
-            Pathway(name=p.name, weight=p.weight, biomarkers=[
+            # `scope=` is NOT optional here. Rebuilding a Pathway without it
+            # silently resets it to "health", so `Dialysis_Adequacy` would have
+            # come back into Ω the moment a lab range was passed — which is
+            # every real call. A field set in one place and dropped in another
+            # is §3ar with the dead control one layer down.
+            Pathway(name=p.name, weight=p.weight, scope=p.scope, biomarkers=[
                 apply_reference_range(b, ranges[b.name]) if b.name in ranges else b
                 for b in p.biomarkers
             ])
             for p in pathways
         ]
+
+    # Ω is HEALTH. A pathway that measures a therapy belongs to Α whole.
+    pathways = [p for p in pathways if p.scope != "management"]
 
     pathway_results = {}
     for p in pathways:

@@ -59,14 +59,27 @@ def test_other_ktv_scales_are_not_conflated():
 
 
 def test_inadequate_dialysis_is_actually_scored():
-    """The regression: this pathway used to contribute nothing at all."""
-    result = compute_hebcs({"spKt/V": 0.9, "URR%": 81.0})
+    """The original regression — this pathway used to contribute nothing at
+    all — now asserted against **Α**, where adequacy belongs.
+
+    Moved 2026-10-12. Kt/V measures the TREATMENT, not the patient: a well
+    person has no Kt/V because they have kidneys. Scored inside Ω it reported
+    97%, so "needs dialysis six days a week" read as near-perfect wellness.
+    The guard is unchanged in substance — inadequate dialysis must still score
+    low and must not vanish — only in which score it belongs to.
+    """
+    from app.services.hebcs_engine import compute_alpha
+
+    result = compute_alpha({"spKt/V": 0.9, "URR%": 81.0})
     adequacy = result["pathways"]["Dialysis_Adequacy"]
 
     assert adequacy["score"] is not None, "the pathway must not vanish"
     # 0.9 sits between crit_low 0.8 and opt_low 1.4 — a low score, not a blank.
     assert adequacy["score"] < 0.6
-    assert "Dialysis_Adequacy" not in result["unscored_pathways"]
+
+    # …and it is NOT in the health score, which is the point of the move.
+    assert "Dialysis_Adequacy" not in compute_hebcs(
+        {"spKt/V": 0.9, "URR%": 81.0})["pathways"]
 
 
 def test_a_pathway_reports_how_much_of_it_was_measured():
@@ -91,11 +104,20 @@ def test_a_pathway_reports_how_much_of_it_was_measured():
 
 
 def test_an_unmeasured_pathway_is_named_not_silently_dropped():
-    """Omega is a geometric mean over what scored; blanks must be visible."""
+    """Omega is a geometric mean over what scored; blanks must be visible.
+
+    `Metabolic` replaces `Dialysis_Adequacy` as the example here: adequacy is
+    now an Α pathway and is absent from Ω by design, which is a different fact
+    from being unmeasured and must not be asserted through the same key.
+    """
     result = compute_hebcs({"Albumin": 4.1})
-    assert "Dialysis_Adequacy" in result["unscored_pathways"]
-    assert result["pathways"]["Dialysis_Adequacy"]["score"] is None
-    assert result["pathways"]["Dialysis_Adequacy"]["coverage"] == 0.0
+    assert "Metabolic" in result["unscored_pathways"]
+    assert result["pathways"]["Metabolic"]["score"] is None
+    assert result["pathways"]["Metabolic"]["coverage"] == 0.0
+    # Absent-by-design is not the same as unmeasured, and must not be reported
+    # as though a health pathway had gone missing.
+    assert "Dialysis_Adequacy" not in result["unscored_pathways"]
+    assert "Dialysis_Adequacy" not in result["pathways"]
 
 
 def test_caxp_is_derived_from_its_factors():
@@ -255,7 +277,8 @@ def test_a_patient_with_no_labs_gets_no_score_rather_than_fifty():
     empty = compute_hebcs({})
     assert empty["omega"] is None
     assert empty["omega_pct"] is None
-    assert len(empty["unscored_pathways"]) == 7
+    # Six HEALTH pathways. `Dialysis_Adequacy` is the seventh and scores Α.
+    assert len(empty["unscored_pathways"]) == 6
 
     # …and a patient who does have results still scores.
     scored = compute_hebcs({"Albumin": 4.1, "BUN": 17.0})

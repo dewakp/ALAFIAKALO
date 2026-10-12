@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.services import patient_surfaces
 from app.core.units import units_for_locale
 from app.core import units
 import logging
@@ -31,6 +32,28 @@ def _enrich_user_response(user: User, assignments: list) -> dict:
     data["active_roles"] = active_roles
     data["is_healthcare_professional"] = is_pro
     return data
+
+
+@router.get("/me/surfaces")
+async def get_surfaces(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Which screens this patient's record justifies.
+
+    Operator, 2026-10-12: *"someone who has listed no condition need not see
+    therapies. they still do despite my repeated request. HD patient need not
+    see PD in navigation."*
+
+    The rule lives HERE and not in three clients, because what a patient has is
+    a clinical statement and three copies of it drift (§3). Each surface comes
+    back with the reason it was offered, so a client can explain itself and the
+    decision is auditable. `app/services/patient_surfaces.py` holds the rules —
+    including the one that keeps this safe: **a surface holding the patient's
+    own data is never hidden, whatever their conditions say.**
+    """
+    surfaces = await patient_surfaces.for_user(db, current_user.id)
+    return surfaces.as_payload()
 
 
 @router.get("/me", response_model=UserResponse)
