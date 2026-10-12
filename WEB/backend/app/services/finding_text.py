@@ -80,6 +80,8 @@ WHAT MAKES THIS SAFE
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import logging
 import re
 from dataclasses import dataclass, field
@@ -215,6 +217,36 @@ _INSTRUCTION = (
 RENDER_TIMEOUT_SECONDS = 20.0
 
 
+#: Sentences ALAFIA has already written, keyed by the EXACT facts they
+#: describe. Bounded, and dropped oldest-first.
+#:
+#: Why a cache at all: the local model needs 14-17 s warm for ONE finding and
+#: over 20 s for a card, while `/wellness/score` has 30 s. Rendering
+#: synchronously therefore ALWAYS fell back, which meant the sentences on
+#: screen were the hand-written fallbacks — every time. An architecture where
+#: the model writes the prose, and a screen that never shows a word of it, is
+#: not the same thing, and only the first was true.
+#:
+#: Keyed by the facts, never by user or date: if a measurement changes, the
+#: key changes, so a stale sentence can never describe a new number. That is
+#: the property that makes serving a cached clinical sentence safe at all.
+_CACHE: dict[str, str] = {}
+_CACHE_MAX = 512
+
+
+def _facts_key(finding: Finding, language: str | None) -> str:
+    blob = json.dumps({"k": finding.kind, "f": finding.facts, "l": language},
+                      sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode()).hexdigest()
+
+
+def _remember(key: str, sentence: str) -> None:
+    if len(_CACHE) >= _CACHE_MAX:
+        for old in list(_CACHE)[: _CACHE_MAX // 4]:
+            _CACHE.pop(old, None)
+    _CACHE[key] = sentence
+
+
 async def render(findings: list[Finding], *, language: str | None = None
                  ) -> list[str]:
     """Findings as sentences — written by ALAFIA, verified against the facts.
@@ -227,6 +259,11 @@ async def render(findings: list[Finding], *, language: str | None = None
         return []
 
     fallbacks = [f.fallback for f in findings]
+    keys = [_facts_key(f, language) for f in findings]
+
+    # Already written for these exact facts — serve them and ask nothing.
+    if all(k in _CACHE for k in keys):
+        return [_CACHE[k] for k in keys]
     try:
         from app.services.alafia_model_service import alafia_chat_detailed
     except ImportError:  # pragma: no cover - app-only dependency
@@ -291,6 +328,7 @@ async def render(findings: list[Finding], *, language: str | None = None
     for index, finding in enumerate(findings):
         sentence = by_id.get(index, "")
         if sentence and _numbers_preserved(finding, sentence):
+            _remember(keys[index], sentence)
             out.append(sentence)
         else:
             rejected += 1
@@ -299,3 +337,41 @@ async def render(findings: list[Finding], *, language: str | None = None
         logger.info("%d of %d findings failed number verification and used "
                     "their deterministic wording", rejected, len(findings))
     return out
+
+
+async def warm(findings: list[Finding], *, language: str | None = None) -> None:
+    """Render in the background so the NEXT read shows ALAFIA's words.
+
+    §3c's shape, which this product already relies on for nutrition: return
+    what you have immediately, fill in afterwards. The read path stays fast
+    and bounded; this one may take the 65 s a cold local model needs, because
+    nobody is waiting on it.
+
+    Deliberately fire-and-forget and deliberately silent on failure: a prose
+    renderer that can delay a score, or raise into a request that already
+    returned, is worse than one that occasionally produces nothing.
+    """
+    keys = [_facts_key(f, language) for f in findings]
+    if not findings or all(k in _CACHE for k in keys):
+        return
+    try:
+        await asyncio.wait_for(
+            _render_uncached(findings, language), timeout=WARM_TIMEOUT_SECONDS)
+    except Exception as exc:  # noqa: BLE001 - background prose, never a failure
+        logger.info("background finding render did not finish (%s)",
+                    type(exc).__name__)
+
+
+#: The background pass may take as long as a cold local model needs — measured
+#: 65 s on `gpt-oss:20b` including the 13 GB load. Nobody is waiting on it.
+WARM_TIMEOUT_SECONDS = 180.0
+
+
+async def _render_uncached(findings: list[Finding], language: str | None) -> None:
+    """Populate the cache. Shares `render`'s verification by calling it."""
+    previous = RENDER_TIMEOUT_SECONDS
+    try:
+        globals()["RENDER_TIMEOUT_SECONDS"] = WARM_TIMEOUT_SECONDS
+        await render(findings, language=language)
+    finally:
+        globals()["RENDER_TIMEOUT_SECONDS"] = previous

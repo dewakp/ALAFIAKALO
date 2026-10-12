@@ -105,12 +105,19 @@ class Component:
     score: float | None
     weight: float
     detail: dict[str, Any] = field(default_factory=dict)
-    #: Findings that are dangerous on their own terms, each a finished sentence
-    #: naming the value and what it was judged against. A score is a summary and
-    #: a summary can be read past; "25 of 37 treatments ended below 90 mmHg"
+    #: Findings that are dangerous on their own terms. A score is a summary and
+    #: a summary can be read past; "35 of 37 treatments dropped below 90 mmHg"
     #: cannot. These travel beside the number so the number is never the whole
     #: message — the same reason `nutrition` names its shortfalls.
-    critical: list[str] = field(default_factory=list)
+    #:
+    #: `Finding` objects since 2026-10-11, NOT strings: facts plus a required
+    #: deterministic fallback, with ALAFIA writing the sentence at read time
+    #: (`finding_text.render`, local-only, verified against the facts).
+    #:
+    #: ⚠️ This annotation said `list[str]` for a while after the change —
+    #: Python does not enforce it, the tests passed, and the only symptom was
+    #: that the next reader would be told the wrong thing.
+    critical: list[Finding] = field(default_factory=list)
 
 
 def _limit_score(intake: float, limit: float) -> float:
@@ -365,9 +372,15 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
             # single fifteen-day-old row was reported as "Resting systolic 81".
             # "Self-recorded" named one of OUR tables, not anything the
             # patient would recognise. Operator: "what is self-recorded?"
+            # "readings they took themselves" invited the obvious question —
+            # who else would take it? The distinction that matters is not WHO
+            # holds the cuff, it is WHERE and WHEN: a pressure away from
+            # dialysis is a different measurement from one taken mid-treatment
+            # with fluid coming off, which is exactly why §3am forbids
+            # averaging the sources together.
             provenance = (
-                f"median of {sample_size} readings they took themselves"
-                if sample_size > 1 else "a single reading they took themselves"
+                f"median of {sample_size} readings taken away from dialysis"
+                if sample_size > 1 else "one reading taken away from dialysis"
             )
             # §3an: "Print a blood pressure as a blood pressure." Reporting
             # the systolic alone left the finding stating half a measurement —
@@ -380,7 +393,7 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
             # screen raw.
             facts = {
                 "measure": "blood pressure",
-                "source": "readings the patient took and logged themselves",
+                "source": "readings taken away from dialysis, logged by the patient",
                 "statistic": "median of the window",
                 "systolic": round(float(systolic)),
                 "unit": "mmHg",
@@ -423,7 +436,7 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
                 # said "35 of 37 treatments dropped below 90 during dialysis".
                 # It contradicted itself two sentences apart, which is §3aa in
                 # a sentence: one source read and spoken of as the whole.
-                note += (f" — last taken by the patient {age_days} days ago "
+                note += (f" — last such reading {age_days} days ago "
                          f"({latest_on})")
                 if (pressure_measured_on is not None
                         and latest_on is not None
@@ -440,7 +453,12 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
                 # The reading and the bound it breaches ARE the finding;
                 # counts, dates and the window are context the sentence may
                 # leave out.
-                essential=("systolic", "systolic_reference_low")))
+                # The DIASTOLIC is essential, not context. Left optional, the
+                # model wrote "Median systolic blood pressure 86 mmHg" and
+                # dropped the 60 — reintroducing the half-a-measurement the
+                # operator objected to in the first place.
+                essential=("systolic", "diastolic",
+                           "systolic_reference_low")))
     if diastolic is not None and dia_band:
         parts.append((band_score(diastolic, dia_band), 0.15))
         detail["diastolic"] = round(float(diastolic))
@@ -477,16 +495,21 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
         detail["post_dialysis_sessions"] = len(readings)
         detail["post_dialysis_nadir"] = round(nadir)
         detail["post_dialysis_below_floor"] = len(below)
-        if below:
-            critical.append(Finding(
-                kind="treatments_ended_below_floor", domain="vitals",
-                facts={"measure": "post-treatment systolic blood pressure",
-                       "treatments_below_floor": len(below),
-                       "treatments_with_a_reading": len(readings),
-                       "floor": floor, "unit": "mmHg",
-                       "lowest": round(nadir)},
-                fallback=(f"{len(below)} of {len(readings)} treatments ended below "
-                          f"{floor:g} mmHg systolic (lowest {round(nadir)}).")))
+        # DELIBERATELY NO FINDING HERE — the score above stays, the sentence
+        # moves to `dialysis_component`. Beside that component's own
+        # hypotension finding
+            # this produced two bullets that read as a contradiction:
+            #
+            #   "26 of 33 treatments ended below 90 mmHg systolic (lowest 54)."
+            #   "35 of 37 treatments (95%) dropped below 90 mmHg systolic
+            #    during dialysis (lowest 39); 16 fell below 70."
+            #
+            # Both true, measuring different things over different
+            # denominators — 33 sessions carry a POST reading, 37 carry any
+            # pressure at all (the other 4 have intradialytic readings and no
+            # post value) — and worded so alike that the only reasonable
+            # reading was that one of them was wrong. One clinical story gets
+            # one sentence, and it is told where the treatment is scored.
 
     if bmi is not None and not on_dialysis:
         if 18.5 <= bmi < 25:
@@ -626,6 +649,9 @@ def dialysis_component(*, sessions_in_window: int,
                        sessions_with_pressure: int = 0,
                        sessions_below_floor: int = 0,
                        sessions_severely_below: int = 0,
+                       sessions_ended_below_floor: int = 0,
+                       sessions_with_post_reading: int = 0,
+                       lowest_post: float | None = None,
                        lowest_nadir: float | None = None,
                        hypotension_floor: float | None = None,
                        severe_floor: float | None = None,
@@ -741,9 +767,10 @@ def dialysis_component(*, sessions_in_window: int,
             detail["lowest_nadir"] = round(float(lowest_nadir))
         if sessions_below_floor:
             note = (
-                f"{sessions_below_floor} of {sessions_with_pressure} treatments "
-                f"({burden * 100:.0f}%) dropped below {hypotension_floor:g} mmHg "
-                "systolic during dialysis")
+                f"In the last {window_days} days, {sessions_below_floor} of "
+                f"{sessions_with_pressure} treatments ({burden * 100:.0f}%) "
+                f"dropped below {hypotension_floor:g} mmHg systolic during "
+                "dialysis")
             if lowest_nadir is not None:
                 note += f" (lowest {round(float(lowest_nadir))})"
             # Stated separately because it is a different severity, not a
@@ -762,15 +789,47 @@ def dialysis_component(*, sessions_in_window: int,
                 "treatments_with_a_reading": sessions_with_pressure,
                 "percent_of_treatments": round(burden * 100),
                 "floor": hypotension_floor, "unit": "mmHg",
+                # A count with no period is not a finding. "26 of 33
+                # treatments" could be a week or a year, and the reader
+                # cannot tell which — the same fault as a blood pressure
+                # printed without its date.
+                "window_days": window_days,
             }
+            # The post-treatment count travels WITH the during-treatment one,
+            # so the two denominators are read together instead of as rival
+            # claims. "Still below when the treatment ended" is a different
+            # fact from "went below at some point" — one is about going home.
+            if sessions_with_post_reading:
+                tolerance_facts["treatments_still_below_at_the_end"] = (
+                    sessions_ended_below_floor)
+                tolerance_facts["treatments_with_an_end_of_treatment_reading"] = (
+                    sessions_with_post_reading)
+                if lowest_post is not None:
+                    tolerance_facts["lowest_at_end_of_treatment"] = round(
+                        float(lowest_post))
             if lowest_nadir is not None:
                 tolerance_facts["lowest"] = round(float(lowest_nadir))
             if sessions_severely_below and severe_floor is not None:
                 tolerance_facts["treatments_below_severe_floor"] = sessions_severely_below
                 tolerance_facts["severe_floor"] = severe_floor
+            if sessions_with_post_reading:
+                note += (
+                    f"; of the {sessions_with_post_reading} with an "
+                    f"end-of-treatment reading, {sessions_ended_below_floor} "
+                    f"were still below when the treatment finished")
+                if lowest_post is not None:
+                    note += f" (lowest {round(float(lowest_post))})"
             critical.append(Finding(
                 kind="intradialytic_hypotension_burden", domain="dialysis",
-                facts=tolerance_facts, fallback=note + "."))
+                facts=tolerance_facts, fallback=note + ".",
+                # The lowest value and the count below the CRITICAL bound are
+                # findings in their own right, not colour. Left optional, the
+                # model reported "35 of 37 treatments ... 95% of sessions" and
+                # dropped both the 39 and the 16 — §3am's whole point is that
+                # the nadir is the finding.
+                essential=("treatments_below_floor",
+                           "treatments_with_a_reading", "floor",
+                           "lowest", "treatments_below_severe_floor")))
 
     if not parts:
         return Component("dialysis", None, DEFAULT_WEIGHTS["dialysis"],
@@ -876,9 +935,12 @@ def elimination_component(*, bowel_blood: int, bowel_total: int,
                 kind="blood_in_stool", domain="elimination",
                 facts={"measure": "bowel movements with blood recorded",
                        "with_blood": bowel_blood, "total": bowel_total,
-                       "percent": round(fraction * 100)},
-                fallback=(f"Blood recorded in {bowel_blood} of {bowel_total} bowel "
-                          f"movements ({fraction * 100:.0f}%).")))
+                       "percent": round(fraction * 100),
+                       "window_days": window_days},
+                essential=("with_blood", "total"),
+                fallback=(f"Blood recorded in {bowel_blood} of {bowel_total} "
+                          f"bowel movements ({fraction * 100:.0f}%) over the "
+                          f"last {window_days} days.")))
         else:
             bowel_score = 100.0
         parts.append((bowel_score, 0.7))

@@ -234,7 +234,13 @@ def test_the_treatment_nadir_is_the_finding_not_the_mean():
                             on_dialysis=True)
     assert c.detail["post_dialysis_nadir"] == 54
     assert c.detail["post_dialysis_below_floor"] == 1
-    assert any("lowest 54" in x.fallback for x in c.critical), c.critical
+    # The SENTENCE moved to `dialysis_component` on 2026-10-12 — beside that
+    # component's own hypotension finding, two near-identically worded bullets
+    # with DIFFERENT denominators ("26 of 33 ended below" vs "35 of 37 dropped
+    # below") read as a contradiction. vitals still SCORES the post nadir,
+    # which the two assertions above check; it no longer narrates it.
+    assert not c.critical, (
+        "the post-treatment sentence belongs to dialysis_component now")
 
 
 def test_a_band_that_does_not_exist_leaves_the_input_unscored():

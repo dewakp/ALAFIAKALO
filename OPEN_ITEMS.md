@@ -2045,3 +2045,83 @@ Started it (§4: `OLLAMA_HOST=0.0.0.0:11434`, never the default bind, or
 ⚠️ **Still falls back on the real card** — five findings exceed any bound a
 30 s client allows. The fix is the §3c background render, queued as TASKS 16
 rather than half-built here.
+
+---
+
+## 24. Two findings that read as a contradiction — FIXED 2026-10-12
+
+Operator: *"26 of 33 treatments ended below 90 mmHg systolic (lowest 54). / 35
+of 37 treatments (95%) dropped below 90 mmHg systolic during dialysis (lowest
+39); 16 fell below 70. — these two statements are contradictory. likely reading
+from different sources?"*
+
+Different MEASUREMENTS over different denominators, worded so alike that the
+only reasonable reading was that one was wrong. Verified in raw SQL:
+
+    sessions with a post-treatment reading   33     of which below 90:  26
+    sessions with ANY pressure               37     of which below 90:  35
+    the other 4 have intradialytic readings and no post value
+
+`vitals_component` narrated the first and `dialysis_component` the second. The
+score stays where it was; the SENTENCE moved, so one clinical story gets one
+statement carrying both denominators.
+
+**And neither said its WINDOW.** Operator: *"what dates are these numbers
+referencing? 30 days? 2 days?"* Both are 90 days (`cutoff_90`), as are the
+symptom, bowel-movement and vomiting findings — and none of them said so. A
+count with no period is not a finding: "26 of 33 treatments" could be a week or
+a year. The window now travels in the facts and in the wording.
+
+**"readings they took themselves"** — operator: *"who else is supposed to take
+bp reading?"* Fair. The distinction that matters is not WHO holds the cuff but
+WHERE: a pressure away from dialysis is a different measurement from one taken
+mid-treatment with fluid coming off, which is exactly why §3am forbids
+averaging the sources. Now "taken away from dialysis".
+
+> **The numbers were challenged as invented and they are not.** Re-derived in
+> raw SQL independently of the application: 37 / 35 / 95% / 39 / 16 / 33 / 26 /
+> 54, window 2026-07-15 → 2026-10-09. Every figure matches.
+
+---
+
+## 25. "you've been lying about not hard coding messages" — fair — FIXED 2026-10-12
+
+The operator was right, and the distinction I was drawing did not survive
+contact with the screen.
+
+`finding_text` genuinely has ALAFIA write the sentences. But the local model
+needs 14-17 s warm for ONE finding and over 20 s for a card, while
+`/wellness/score` allows 30 s — so **the render always fell back, and every
+sentence on screen was a hand-written fallback I kept hand-editing.** An
+architecture where a model writes the prose, and a screen that never shows a
+word of it, are not the same thing, and only the first was true.
+
+**Fixed with §3c's shape** — the one this product already uses for nutrition:
+
+1. the read path renders within its 20 s bound and returns whatever it has;
+2. a background pass (`finding_text.warm`, 180 s, nothing waiting on it)
+   renders properly and caches the result;
+3. the next read serves ALAFIA's words.
+
+Keyed by a **hash of the exact facts**, never by user or date: if a measurement
+changes the key changes, so a cached sentence can never describe a new number.
+That is the property that makes serving a cached clinical sentence safe at all.
+
+Measured after the background pass, written locally by `gpt-oss:20b`:
+
+> Worst symptom reported was twisted abdominal pain with severity 9 out of 10.
+> Seven of 102 bowel movements over 90 days contained blood, a 7% occurrence.
+
+⚠️ **Two of four still fall back, deliberately.** When the model dropped the
+diastolic ("Median systolic blood pressure 86 mmHg") and dropped the nadir and
+the below-70 count, those facts were made `essential` — so the two
+number-dense findings now fail verification rather than lose a clinical
+figure. A mechanical sentence carrying every number beats a readable one
+missing the 39. Making those render faithfully is real work, not a wording
+tweak.
+
+> **The in-process cache leaked between tests**, and a real failure found it:
+> one test cached a sentence for the same facts another used, so the slow-model
+> test got a cache HIT and never exercised the timeout. §3aj's shape — a suite
+> that passes without reaching the thing it checks. An autouse fixture clears
+> it now.

@@ -25,6 +25,22 @@ import pytest
 from app.services.finding_text import Finding, _numbers_preserved, render
 
 
+@pytest.fixture(autouse=True)
+def _clear_render_cache():
+    """`_CACHE` is process-global and survives between tests.
+
+    Found by a real failure: `test_rendering_is_LOCAL_ONLY` cached a sentence
+    for the same facts the slow-model test uses, so that test got a cache HIT
+    and never exercised the timeout at all. A cache that leaks across tests
+    silently turns other tests into no-ops — §3aj's shape, where a suite
+    passes without reaching the thing it claims to check.
+    """
+    from app.services import finding_text as ft
+    ft._CACHE.clear()
+    yield
+    ft._CACHE.clear()
+
+
 def _finding(**facts) -> Finding:
     return Finding(kind="t", domain="d", facts=facts, fallback="FALLBACK.")
 

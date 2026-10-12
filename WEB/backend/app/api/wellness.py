@@ -379,6 +379,14 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
             lowest_nadir=tolerance["lowest_nadir"],
             hypotension_floor=tolerance["floor"],
             severe_floor=tolerance["severe_floor"],
+            # The end-of-treatment count travels WITH the during-treatment
+            # one so the two denominators are read together. Apart, they read
+            # as rival claims about the same thing (OPEN_ITEMS 24).
+            sessions_ended_below_floor=sum(
+                1 for v in post_systolics
+                if tolerance["floor"] is not None and v < tolerance["floor"]),
+            sessions_with_post_reading=len(post_systolics),
+            lowest_post=min(post_systolics) if post_systolics else None,
         ) if (sessions_365 or on_dialysis) else hs.Component(
             "dialysis", None, hs.DEFAULT_WEIGHTS["dialysis"],
             {"reason": "not on dialysis"}),
@@ -423,9 +431,18 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
     # `finding_text.render`. Falls back to the deterministic wording per
     # finding, so a model outage costs phrasing and never a finding.
     from app.services import finding_text
-    findings = await finding_text.render(
-        result.get("critical_findings") or [],
-        language=language_name(language) if language else None)
+    raw_findings = result.get("critical_findings") or []
+    lang = language_name(language) if language else None
+    findings = await finding_text.render(raw_findings, language=lang)
+
+    # Whatever came back as a fallback, write it properly in the BACKGROUND so
+    # the next read shows ALAFIA's words rather than a hand-typed sentence.
+    # The read above is bounded at 20 s; this is not, because nothing waits on
+    # it. Without this the model never finished in time and the screen showed
+    # the deterministic wording every single time — an architecture nobody
+    # could see (OPEN_ITEMS 25).
+    import asyncio as _asyncio
+    _asyncio.create_task(finding_text.warm(raw_findings, language=lang))
     if findings:
         parts = list(findings) + parts
 
