@@ -3114,3 +3114,93 @@ screen for it. §3: a feature is not done until web, iOS and Android have it.
   sessions (data beats a missing declaration) but sees no therapy declared
   until they set one. Inventing it from their condition text is the guess this
   work removed.
+
+---
+
+## 37. "no change occured" — dev was serving a two-day-old bundle — 2026-10-13
+
+Operator, with the sidebar still showing PD Report: *"i'm looking at dev no
+change occured"*.
+
+**§4, exactly as written.** `docker compose ps` reported
+`frontend  Up 47 hours (healthy)` — the container keeps serving the image it
+started with, so the build succeeds, the status says `Up`, and :8080 serves the
+old bundle for days. Proven by asking the SERVED ASSET rather than the build
+log:
+
+    before   /assets/index-Dd8_iRhX.js   "users/me/surfaces" -> 0 occurrences
+    after    /assets/index-sDguN3Yh.js   "users/me/surfaces" -> 1
+
+`docker compose build frontend` **and** `docker compose up -d frontend`. The
+build alone is the trap, and I had been verifying backend behaviour through
+`docker compose exec` the whole time, which never touches the served bundle.
+
+### And the rule underneath it was wrong
+
+Operator: *"user can choose the therapy or therapies they undergo and only
+those therapies are surfaced in navigation."*
+
+Measured on user 63 once the bundle was current: declaring **only** peritoneal
+dialysis still offered the HD flowsheet, because 2,035 HD sessions opened it
+regardless. **A declaration the navigation overrules is not a choice.**
+
+    declared anything  ->  the DECLARATION decides which treatment screens
+                           appear — it states what the patient undergoes NOW
+    declared nothing   ->  fall back to the sessions on record; we cannot tell,
+                           and stranding a patient away from their own
+                           flowsheet is the worse error
+
+Verified across every combination on the reference record:
+
+    nothing declared                  hemodialysis (2,035 sessions)
+    "peritoneal_dialysis"             peritoneal_dialysis ONLY — HD retired
+    "hemodialysis"                    hemodialysis
+    "hemodialysis,peritoneal_dialysis" both
+    "chemotherapy"                    therapy_other — both dialysis screens gone
+
+> **Therapy History is offered either way, and that is the half that keeps this
+> safe.** A patient who moved from haemodialysis to PD stops needing the HD
+> flowsheet and never stops owning their HD record. Losing the screen you work
+> in daily and losing your past are different harms, and only the first is what
+> a declaration should cause (§3aa). The history line cites the SESSIONS, not
+> the declaration that replaced them.
+
+### Is hemodialysis in ICD-11? Yes — and I nearly said no
+
+Asked while looking at the therapy selector. `search_icd11("hemodialysis")`
+returns one row — *Haemodialysis-associated pruritus* — and I was about to
+conclude ICD-11 cannot express the modality. **A full scan of the bundled WHO
+catalog (35,370 rows, 71 mentioning dialysis) says otherwise:**
+
+    QB94      Care involving dialysis
+    QB94.0    Preparatory care for dialysis
+    QB94.1    Care involving extracorporeal dialysis      <- haemodialysis
+    QB94.2    Care involving peritoneal dialysis
+    QB42      Dependence on renal dialysis
+    QB95.1    Physical rehabilitation
+    QB95.7    Occupational therapy or vocational rehabilitation
+    QB96      Contact with health services for radiotherapy session
+    QB97      Contact with health services for chemotherapy session for neoplasm
+
+So hemodialysis is not a DISEASE code — there is no "Hemodialysis" condition —
+but the QB branch is a coded vocabulary for *care involving* a therapy, and it
+covers most of `TherapyType`. **I built the option set as a hand-written enum
+without checking whether WHO already codes it**, which is §3ad's own rule
+(`never type an ICD code from memory`; the catalog is the authority) applied to
+the wrong half of the problem — I obeyed it for conditions and not for the
+therapies beside them.
+
+Searching a truncated result set and generalising from five rows is §0 twice in
+one answer: the first search was evidence about the search, not about ICD.
+
+### STILL OPEN
+
+- **37a. `therapy_types` carries no ICD code.** `QB94.1` / `QB94.2` / `QB96` /
+  `QB97` / `QB95.x` exist and the stored value is ALAFIA-private, so a declared
+  therapy is not interoperable the way a condition's `icd11_code` is. Whether
+  to carry the code alongside the enum — the enum also covers immunotherapy,
+  infusion and transfusion, which QB does not — is a design decision, not a
+  cleanup.
+- **37b.** Nothing re-renders the nav when a therapy is declared in the same
+  session; `/users/me/surfaces` is fetched once on mount. Declaring PD then
+  navigating shows the old set until reload.

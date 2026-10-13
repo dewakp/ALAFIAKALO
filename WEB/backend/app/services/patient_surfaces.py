@@ -133,48 +133,81 @@ class Surfaces:
 
 
 async def for_user(db: AsyncSession, user_id: int) -> Surfaces:
-    """Derive the surface set from what the record actually holds."""
+    """Derive the surface set from what the record actually holds.
+
+    **A DECLARATION GOVERNS; sessions are history.** Operator, 2026-10-13:
+    *"user can choose the therapy or therapies they undergo and only those
+    therapies are surfaced in navigation."*
+
+    Measured before this rule existed: user 63 declared **only** peritoneal
+    dialysis and was still offered the HD flowsheet, because 2,035 HD sessions
+    opened it regardless — both modalities on screen for a patient who had just
+    said which one they are on. A declaration that the navigation overrules is
+    not a choice.
+
+    So the precedence is:
+
+      declared anything  -> the DECLARATION decides which treatment screens
+                            appear. It is a statement about what the patient
+                            undergoes NOW.
+      declared nothing   -> fall back to the sessions on record. We cannot
+                            tell, and stranding a patient away from their own
+                            flowsheet is the worse error.
+
+    **Therapy History is offered either way.** A patient who moved from
+    haemodialysis to PD stops needing the HD flowsheet and never stops owning
+    their HD record: hiding it would hide their own history from them (§3aa).
+    Losing the screen you work in daily and losing your past are different
+    harms, and only the first is what a declaration should cause.
+    """
     s = Surfaces()
     for name in CORE:
         s.offer(name, "always available")
 
-    # ── Therapy modalities, from sessions that EXIST ─────────────────────
+    # ── What the patient DECLARED they undergo ───────────────────────────
+    conditions = list(await sources.conditions(db, user_id, active_only=True))
+    declared: dict[str, str] = {}          # therapy -> the condition it treats
+    for condition in conditions:
+        for therapy in declared_therapy_types(condition):
+            declared.setdefault(
+                therapy, getattr(condition, "name", None) or "a recorded condition")
+
+    # ── What the record SHOWS they have had ──────────────────────────────
     rows = (await db.execute(
         select(TherapySession.therapy_type, func.count(TherapySession.id))
         .where(TherapySession.user_id == user_id)
         .group_by(TherapySession.therapy_type)
     )).all()
-
-    any_therapy = False
+    sessions: dict[str, int] = {}
     for therapy_type, count in rows:
         if not count:
             continue
-        any_therapy = True
         raw = getattr(therapy_type, "value", therapy_type)
-        key = str(raw).lower()
-        surface = _MODALITY_SURFACE.get(key)
-        if surface:
-            s.offer(surface, f"{count} {key.replace('_', ' ')} session(s) on record")
-        else:
-            # Chemotherapy, infusion, phototherapy … each is a real therapy and
-            # must not be silently dropped because this map does not name it.
-            s.offer("therapy_other", f"{count} {key.replace('_', ' ')} session(s) on record")
+        sessions[str(raw).lower()] = count
 
-    if any_therapy:
-        s.offer("therapies", "therapy sessions on record")
-        s.offer("therapy_history", "therapy sessions on record")
-
-    # ── A DECLARED therapy opens its screen before the first session ─────
-    # The patient starting dialysis next week needs the flowsheet now, and the
-    # record holds no session yet. What they declared is the evidence.
-    conditions = list(await sources.conditions(db, user_id, active_only=True))
-    for condition in conditions:
-        for therapy in declared_therapy_types(condition):
+    # ── The declaration governs the treatment screens ────────────────────
+    if declared:
+        for therapy, condition_name in declared.items():
+            # A therapy this map does not name — chemotherapy, infusion,
+            # phototherapy — still opens the group rather than vanishing.
             surface = _MODALITY_SURFACE.get(therapy, "therapy_other")
-            name = getattr(condition, "name", None) or "a recorded condition"
-            s.offer(surface, f"declared therapy for {name}")
-            s.offer("therapies", f"declared therapy for {name}")
-            s.offer("therapy_history", f"declared therapy for {name}")
+            s.offer(surface, f"declared therapy for {condition_name}")
+        s.offer("therapies", "declared therapy")
+    else:
+        for therapy, count in sessions.items():
+            surface = _MODALITY_SURFACE.get(therapy, "therapy_other")
+            s.offer(surface,
+                    f"{count} {therapy.replace(chr(95), chr(32))} session(s) on record")
+        if sessions:
+            s.offer("therapies", "therapy sessions on record")
+
+    # ── History is owned, not prescribed ─────────────────────────────────
+    if sessions:
+        s.offer("therapies", "therapy sessions on record")
+        s.offer("therapy_history",
+                f"{sum(sessions.values())} session(s) on record")
+    elif declared:
+        s.offer("therapy_history", "declared therapy")
 
     if conditions:
         s.offer("conditions_active", f"{len(conditions)} active condition(s)")

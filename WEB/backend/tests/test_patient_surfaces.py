@@ -274,3 +274,65 @@ def test_the_keyword_dict_is_gone():
         and any(isinstance(o, ast.In) for o in n.ops)
         and isinstance(n.left, ast.Name) and n.left.id in {"h", "hint"}
     ], "surfacing must not be decided by substring-matching a diagnosis"
+
+
+# ── The declaration GOVERNS; sessions are history ───────────────────────────
+#
+# Operator, 2026-10-13: *"user can choose the therapy or therapies they undergo
+# and only those therapies are surfaced in navigation."*
+
+@pytest.mark.asyncio
+async def test_a_declaration_OVERRULES_sessions_in_another_modality(db):
+    """The case that forced this rule. Measured on the reference record: user 63
+    declared ONLY peritoneal dialysis and was still offered the HD flowsheet,
+    because 2,035 HD sessions opened it regardless — both modalities on screen
+    for a patient who had just said which one they are on.
+
+    **A declaration the navigation overrules is not a choice.**
+    """
+    user = await _seed_user(db, "switched@example.test")
+    await _seed_session(db, user, TherapyType.HEMODIALYSIS)
+    await _seed_condition(db, user, "ESRD", "peritoneal_dialysis")
+    s = await patient_surfaces.for_user(db, user.id)
+    assert "peritoneal_dialysis" in s.offered
+    assert "hemodialysis" not in s.offered, (
+        "declaring PD must retire the HD flowsheet, whatever the history shows")
+
+
+@pytest.mark.asyncio
+async def test_but_the_PAST_is_never_hidden(db):
+    """Losing the screen you work in daily and losing your past are different
+    harms, and only the first is what a declaration should cause. A patient who
+    moved from haemodialysis to PD stops needing the HD flowsheet and never
+    stops owning their HD record (§3aa)."""
+    user = await _seed_user(db, "history@example.test")
+    await _seed_session(db, user, TherapyType.HEMODIALYSIS)
+    await _seed_condition(db, user, "ESRD", "peritoneal_dialysis")
+    s = await patient_surfaces.for_user(db, user.id)
+    assert "therapy_history" in s.offered
+    assert "session" in s.because["therapy_history"], (
+        "history must cite the sessions, not the declaration that replaced them")
+
+
+@pytest.mark.asyncio
+async def test_declaring_BOTH_offers_both(db):
+    """Some patients genuinely run both — PD at home with HD support."""
+    user = await _seed_user(db, "both@example.test")
+    await _seed_condition(db, user, "ESRD", "hemodialysis,peritoneal_dialysis")
+    s = await patient_surfaces.for_user(db, user.id)
+    assert {"hemodialysis", "peritoneal_dialysis"} <= s.offered
+
+
+@pytest.mark.asyncio
+async def test_declaring_an_UNRELATED_therapy_retires_the_dialysis_screens(db):
+    """A patient whose only declaration is chemotherapy is not on dialysis,
+    whatever sessions the record holds from before. The group and the history
+    stay; the dialysis flowsheets do not."""
+    user = await _seed_user(db, "chemo-now@example.test")
+    await _seed_session(db, user, TherapyType.HEMODIALYSIS)
+    await _seed_condition(db, user, "Lymphoma", "chemotherapy",
+                          category=ConditionCategory.CANCER)
+    s = await patient_surfaces.for_user(db, user.id)
+    assert "therapy_other" in s.offered
+    assert "hemodialysis" not in s.offered
+    assert "therapy_history" in s.offered
