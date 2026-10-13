@@ -631,7 +631,17 @@
     "in_remission": "Jiya",
     "failed_to_save_condition": "Kuskuren ajiye yanayin lafiya",
     "are_you_sure_you_want_to_delete_this": "Kina tabbatarwa cewa kina so ka share yanayin lafiya?",
-    "failed_to_delete_condition": "Kuskuren share yanayin lafiya"
+    "failed_to_delete_condition": "Kuskuren share yanayin lafiya",
+    "therapy_types": "Jiyya",
+    "therapy_types_help": "Wanne jiyya suke magani wannan yanayi. Wannan ne ya yanke shawarar ko app ya nuna maka waɗannan allon.",
+    "therapy_hemodialysis": "Hemodialysis",
+    "therapy_peritoneal_dialysis": "Peritoneal dialysis",
+    "therapy_chemotherapy": "Chemotherapy",
+    "therapy_radiation_therapy": "Radiation therapy",
+    "therapy_immunotherapy": "Immunotherapy",
+    "therapy_infusion_therapy": "Infusion therapy",
+    "therapy_physical_therapy": "Physical therapy",
+    "therapy_blood_transfusion": "Jefar jini"
   },
   "ClinicianDashboard": {
     "loading": "Ana lodin...",

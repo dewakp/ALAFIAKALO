@@ -631,7 +631,17 @@
     "in_remission": "缓解中",
     "failed_to_save_condition": "保存病情失败",
     "are_you_sure_you_want_to_delete_this": "确定要删除此病情吗？",
-    "failed_to_delete_condition": "删除病情失败"
+    "failed_to_delete_condition": "删除病情失败",
+    "therapy_types": "治疗方法",
+    "therapy_types_help": "哪些治疗方法可以治疗此病症。这决定了应用是否向您显示这些屏幕。",
+    "therapy_hemodialysis": "血液透析",
+    "therapy_peritoneal_dialysis": "腹膜透析",
+    "therapy_chemotherapy": "化疗",
+    "therapy_radiation_therapy": "放射治疗",
+    "therapy_immunotherapy": "免疫疗法",
+    "therapy_infusion_therapy": "输液治疗",
+    "therapy_physical_therapy": "物理治疗",
+    "therapy_blood_transfusion": "输血"
   },
   "ClinicianDashboard": {
     "loading": "加载中...",

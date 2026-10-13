@@ -7,6 +7,23 @@ import BackButton from '../components/BackButton';
 import ICD11Picker from '../components/ICD11Picker';
 import { t } from '../i18n';
 
+// Mirrors the backend `TherapyType` enum. The server validates every value it
+// receives against its own copy and discards anything it does not recognise, so
+// a drift here costs a missing checkbox — never a wrong stored modality.
+//
+// `get label()` rather than a computed string: a label evaluated at import time
+// never changes language (§3aw).
+const THERAPY_TYPES = [
+  { value: 'hemodialysis', get label() { return t('ChronicConditions.therapy_hemodialysis'); } },
+  { value: 'peritoneal_dialysis', get label() { return t('ChronicConditions.therapy_peritoneal_dialysis'); } },
+  { value: 'chemotherapy', get label() { return t('ChronicConditions.therapy_chemotherapy'); } },
+  { value: 'radiation_therapy', get label() { return t('ChronicConditions.therapy_radiation_therapy'); } },
+  { value: 'immunotherapy', get label() { return t('ChronicConditions.therapy_immunotherapy'); } },
+  { value: 'infusion_therapy', get label() { return t('ChronicConditions.therapy_infusion_therapy'); } },
+  { value: 'physical_therapy', get label() { return t('ChronicConditions.therapy_physical_therapy'); } },
+  { value: 'blood_transfusion', get label() { return t('ChronicConditions.therapy_blood_transfusion'); } },
+];
+
 const ChronicConditions = () => {
   const [conditions, setConditions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +45,7 @@ const ChronicConditions = () => {
     stage: '',
     grade: '',
     current_treatment_plan: '',
+    therapy_types: [],
     primary_physician: '',
     specialist_physician: '',
     monitoring_frequency: '',
@@ -127,6 +145,7 @@ const ChronicConditions = () => {
       stage: condition.stage || '',
       grade: condition.grade || '',
       current_treatment_plan: condition.current_treatment_plan || '',
+      therapy_types: condition.therapy_types || [],
       primary_physician: condition.primary_physician || '',
       specialist_physician: condition.specialist_physician || '',
       monitoring_frequency: condition.monitoring_frequency || '',
@@ -165,6 +184,7 @@ const ChronicConditions = () => {
       stage: '',
       grade: '',
       current_treatment_plan: '',
+    therapy_types: [],
       primary_physician: '',
       specialist_physician: '',
       monitoring_frequency: '',
@@ -408,6 +428,50 @@ const ChronicConditions = () => {
                   onChange={(e) => setFormData({ ...formData, next_appointment: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                 />
+              </div>
+            </div>
+
+            {/* Therapies this condition is treated with.
+                Declared by the patient, the same way the condition is — and it
+                decides which therapy screens the app offers. This replaced a
+                hand-typed keyword dict in the backend that matched the
+                condition's WORDING ("esrd", "capd", "peritoneal") to pick a
+                screen, so "ESKD" matched nothing and "history of dialysis"
+                matched everything.
+
+                The server validates every name against its own enum and drops
+                what it does not recognise (§3ad), so this list is a
+                convenience, never the authority. */}
+            <div style={{ marginTop: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                {t('ChronicConditions.therapy_types')}
+              </label>
+              <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6b7280' }}>
+                {t('ChronicConditions.therapy_types_help')}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {THERAPY_TYPES.map((tt) => {
+                  const on = (formData.therapy_types || []).includes(tt.value);
+                  return (
+                    <label key={tt.value} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 10px', borderRadius: 6, cursor: 'pointer',
+                      border: `1px solid ${on ? '#3b82f6' : '#ddd'}`,
+                      background: on ? '#eff6ff' : '#fff', fontSize: 13,
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={(e) => {
+                          const next = new Set(formData.therapy_types || []);
+                          if (e.target.checked) next.add(tt.value); else next.delete(tt.value);
+                          setFormData({ ...formData, therapy_types: [...next] });
+                        }}
+                      />
+                      {tt.label}
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

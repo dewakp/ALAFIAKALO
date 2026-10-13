@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.notification_engine import notify_therapy_session_completed, notify_treatment_anomaly
 from app.models.user import User
+from app.services.patient_surfaces import validate_therapy_types
 from app.models.chronic_conditions import ChronicCondition, TherapySession, ConditionMetric, IntradialyticReading, ClinicalNote, FlowsheetStatus
 from app.services import flowsheet_defaults as fs_defaults
 from app.services.flowsheet_drugs import COMMON_DIALYSIS_DRUGS
@@ -138,6 +139,24 @@ def _naive_session_payload(data: dict, stored_start: datetime | None = None) -> 
 
 
 logger = logging.getLogger(__name__)
+
+def _normalise_condition(data: dict) -> dict:
+    """Everything the SERVER decides about an incoming condition.
+
+    Both create and update go through here, so a rule cannot land on one path
+    and miss the other — the half-wiring that left `session_drugs` ten months
+    behind (§3av).
+    """
+    data = _apply_icd11(data)
+
+    # Therapy types: the client sends names, the server resolves them against
+    # `TherapyType` and DROPS anything unrecognised (§3ad — the client never
+    # decides what a code means). A typo must not silently become a modality
+    # nobody offers a screen for.
+    if "therapy_types" in data:
+        data["therapy_types"] = validate_therapy_types(data["therapy_types"])
+    return data
+
 
 def _apply_icd11(data: dict) -> dict:
     """Normalise and verify an ICD-11 code, and set its title from the catalog.
@@ -290,7 +309,7 @@ async def create_chronic_condition(
 ):
     """Create a new chronic condition."""
     db_condition = ChronicCondition(
-        **_apply_icd11(condition.model_dump()),
+        **_normalise_condition(condition.model_dump()),
         user_id=current_user.id
     )
     db.add(db_condition)
@@ -319,7 +338,8 @@ async def update_chronic_condition(
     if not db_condition:
         raise HTTPException(status_code=404, detail="Chronic condition not found")
     
-    update_data = _apply_icd11(condition_update.model_dump(exclude_unset=True))
+    update_data = _normalise_condition(
+        condition_update.model_dump(exclude_unset=True))
     for field, value in update_data.items():
         setattr(db_condition, field, value)
     

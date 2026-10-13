@@ -79,6 +79,19 @@ class ConditionView:
     icd11_code: str | None = None
     icd11_title: str | None = None
     icd10_code: str | None = None
+    #: Therapies the patient DECLARED this condition is treated with, as
+    #: comma-separated `TherapyType` values.
+    #:
+    #: ⚠️ Added 2026-10-13 because it was MISSING and nothing failed. The
+    #: surfacing rule read `getattr(condition, "therapy_types", None)` off these
+    #: views, `getattr` with a default cannot raise, and so every declaration
+    #: was silently dropped — a patient who had said they are on peritoneal
+    #: dialysis was offered no peritoneal screen. §3am's "wrong column names,
+    #: for the third time": `get_medications` serialised with dose-log column
+    #: names against a `MedicationView` and reported "no medications taken" for
+    #: a patient with four. The legacy table has no such column, so it stays
+    #: None there rather than being invented.
+    therapy_types: str | None = None
 
     @property
     def is_severe(self) -> bool:
@@ -108,6 +121,7 @@ def _chronic_view(c: ChronicCondition) -> ConditionView:
         icd11_code=c.icd11_code,
         icd11_title=c.icd11_title,
         icd10_code=c.icd10_code,
+        therapy_types=c.therapy_types,
     )
 
 

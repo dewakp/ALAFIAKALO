@@ -2081,6 +2081,66 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "ChronicConditions.therapy_blood_transfusion": {
+    "source": "Blood transfusion",
+    "translation": "Kuingizwa kwa mkate wa damu",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_chemotherapy": {
+    "source": "Chemotherapy",
+    "translation": "Chemotherapy",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_hemodialysis": {
+    "source": "Hemodialysis",
+    "translation": "Hemodialysis",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_immunotherapy": {
+    "source": "Immunotherapy",
+    "translation": "Immunotherapy",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_infusion_therapy": {
+    "source": "Infusion therapy",
+    "translation": "Infusion therapy",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_peritoneal_dialysis": {
+    "source": "Peritoneal dialysis",
+    "translation": "Peritoneal dialysis",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_physical_therapy": {
+    "source": "Physical therapy",
+    "translation": "Fizikali therapy",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_radiation_therapy": {
+    "source": "Radiation therapy",
+    "translation": "Radiation therapy",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_types": {
+    "source": "Therapies",
+    "translation": "Tiba",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_types_help": {
+    "source": "Which therapies treat this condition. This is what decides whether the app shows you those screens.",
+    "translation": "Ni tiba gani zinazotibu hali hii. Hii ndiyo inayoamua kama programu itakuonyesha skrini hizo.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "ChronicConditions.treatment_plan": {
     "source": "Treatment Plan:",
     "translation": "Mpango wa Matibabu:",

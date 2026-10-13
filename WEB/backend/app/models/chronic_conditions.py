@@ -108,6 +108,15 @@ class ChronicCondition(Base):
     
     # Treatment Plan
     current_treatment_plan = Column(Text, nullable=True)
+    #: The therapies this condition is treated with, as comma-separated
+    #: `TherapyType` VALUES. Declared by the patient, the same way the condition
+    #: itself is — never inferred from the condition's wording.
+    #:
+    #: NULL means NOT STATED, which is a different fact from "no therapy" and
+    #: must stay distinguishable (§3aa). Read it through
+    #: `declared_therapy_types()`, which also tolerates the spellings a free
+    #: text field attracts.
+    therapy_types = Column(Text, nullable=True)
     primary_physician = Column(String(200), nullable=True)
     specialist_physician = Column(String(200), nullable=True)
     

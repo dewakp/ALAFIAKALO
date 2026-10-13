@@ -631,7 +631,17 @@
     "in_remission": "In Remission",
     "failed_to_save_condition": "Erkrankung konnte nicht gespeichert werden",
     "are_you_sure_you_want_to_delete_this": "Möchten Sie diese Erkrankung wirklich löschen?",
-    "failed_to_delete_condition": "Erkrankung konnte nicht gelöscht werden"
+    "failed_to_delete_condition": "Erkrankung konnte nicht gelöscht werden",
+    "therapy_types": "Therapien",
+    "therapy_types_help": "Welche Therapien behandeln diese Erkrankung. Dies bestimmt, welche Bildschirme die App dir zeigt.",
+    "therapy_hemodialysis": "Hämodialyse",
+    "therapy_peritoneal_dialysis": "Peritonealdialyse",
+    "therapy_chemotherapy": "Chemotherapie",
+    "therapy_radiation_therapy": "Strahlentherapie",
+    "therapy_immunotherapy": "Immuntherapie",
+    "therapy_infusion_therapy": "Infusionstherapie",
+    "therapy_physical_therapy": "Physiotherapie",
+    "therapy_blood_transfusion": "Bluttransfusion"
   },
   "ClinicianDashboard": {
     "loading": "Wird geladen...",

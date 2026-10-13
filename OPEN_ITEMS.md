@@ -2976,3 +2976,89 @@ ruff F,E9 clean.
   evidence that no Android source references the removed fields. Together with
   both models declaring only `date` and `recommendations`, that is measurement
   rather than inference.
+
+---
+
+## 35. The patient declares the therapy; the app stops guessing it — 2026-10-13
+
+Operator: *"Only PD patients must see PD. Let user add Therapy types in
+Condition and profile. Same as other health conditions. use condition to
+determine the Therapy switch."*
+
+Surfacing decided which therapy screens to offer from two things, and **both
+failed the patient who most needs them**:
+
+1. **Sessions on record** — correct evidence, useless to someone starting
+   dialysis next week. They need the flowsheet BEFORE their first session,
+   which is exactly when the record holds none.
+2. **A hand-typed keyword dict.** `_CONDITION_HINTS` matched condition text
+   against `("peritoneal", " pd ", "capd", "ccpd")` and `("hemodialysis",
+   "haemodialysis", "end-stage renal", "esrd", "dialysis")`. §3an's forbidden
+   shape — *"covers only the condition someone happened to think of, cannot say
+   why, has no source, never improves, and goes stale silently"* — **deciding
+   which clinical screen a patient could reach.** A condition recorded as
+   "ESKD" or "renal replacement therapy" matched nothing; one reading "history
+   of dialysis" matched everything.
+
+`chronic_conditions.therapy_types` (migration `aq001`, additive, dev only) is
+the declared fact, entered the same way the condition is. Put on the CONDITION
+rather than the user because a therapy treats something: `users.therapy_types`
+would say a person "is a hemodialysis patient" with no statement of what for,
+and could not express someone on dialysis for ESRD who later has chemotherapy
+for a cancer.
+
+> ⚠️ **`ConditionView` had no such field, and nothing failed.** `for_user` read
+> `getattr(condition, "therapy_types", None)` off the canonical view —
+> `getattr` with a default cannot raise — so **every declaration was silently
+> dropped** and a patient who had said they are on PD was offered no PD screen.
+> §3am's *"wrong column names, for the third time"*: `get_medications`
+> serialised with dose-log column names against a `MedicationView` and reported
+> "no medications taken" for a patient with four. Caught only because a test
+> asserted the outcome rather than the plumbing.
+
+> **A behaviour CHANGE, not just a fix.** A condition that declares no therapy
+> now opens no therapy screen, where the keyword dict used to open HD for
+> anything whose name contained "dialysis". Sessions still win when nothing was
+> declared — data beats a missing declaration exactly as it beats a missing
+> diagnosis (§3aa) — so no existing patient loses the screen holding their own
+> history. Pinned by `test_sessions_still_win_when_nothing_was_declared`.
+
+Validation lives in `_normalise_condition`, which **create and update share**,
+so the rule cannot land on one path and miss the other — the half-wiring that
+left `session_drugs` ten months behind (§3av). Unrecognised names are dropped,
+never repaired: correcting what someone wrote about their own treatment invents
+a clinical fact.
+
+> ⚠️ **The response schema declares a list and the column stores a string**, so
+> `from_attributes=True` would hand pydantic a `str` and fail every row —
+> 200ing only for a user with NO conditions, the one case with nothing to
+> validate. That is §3ai precisely, where `metadata` raised one
+> ResponseValidationError per row and the page told a user holding 18
+> notifications that they had none. A `field_validator(mode="before")` splits it.
+
+### Verified
+
+    backend    73 passed across surfaces, clinical_sources, clinician board,
+               condition flags, HEBCS and the prose ratchet
+    frontend   279 passed
+    i18n       44 catalog tests; 10 new keys in all ten languages
+    migration  `alembic heads` reports ONE head (aq001_condition_therapies),
+               applied to dev; 5 existing conditions all NULL — nobody has
+               declared anything, and inventing a modality from their condition
+               text is the guess this column exists to replace
+    ruff       F,E9 clean
+
+> ⚠️ **Two guards tripped over their own documentation, in one day.** The
+> recommendations guard grepped for `"**recs"` and matched the comment
+> explaining its removal; this one grepped for `"_CONDITION_HINTS"` and matched
+> the docstring explaining ITS removal — twice, because I wrote a comment about
+> the first mistake and then repeated it. Both now ask the module (AST /
+> `hasattr`) rather than reading prose. §3av.
+
+### STILL OPEN
+
+- **35a. Profile does not expose it.** The operator asked for "Condition and
+  profile"; only the Conditions form has the control.
+- **35b. Mobile cannot set it.** iOS and Android render the surfacing but have
+  no therapy selector, so a phone-only patient cannot declare a modality.
+- **35c. Production is unmigrated.** `aq001` is dev only.

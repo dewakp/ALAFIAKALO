@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.chronic_conditions import TherapySession
+from app.models.chronic_conditions import TherapySession, TherapyType
 from app.services import clinical_sources as sources
 
 #: Surfaces every account sees. Gating these strands a new or uncoded patient.
@@ -58,15 +58,58 @@ _MODALITY_SURFACE = {
     "peritoneal_dialysis": "peritoneal_dialysis",
 }
 
-#: Condition text that indicates a modality where no session is on file yet —
-#: a patient starting dialysis needs the screen BEFORE their first session.
-#: Deliberately small and matched case-folded; data is the primary evidence and
-#: this only ever ADDS a surface.
-_CONDITION_HINTS = {
-    "peritoneal_dialysis": ("peritoneal", " pd ", "capd", "ccpd"),
-    "hemodialysis": ("hemodialysis", "haemodialysis", "end-stage renal",
-                     "end stage renal", "esrd", "dialysis"),
-}
+def declared_therapy_types(condition) -> set[str]:
+    """The `TherapyType` values a condition DECLARES it is treated with.
+
+    Operator, 2026-10-13: *"Only PD patients must see PD. Let user add Therapy
+    types in Condition and profile. Same as other health conditions. use
+    condition to determine the Therapy switch."*
+
+    ⚠️ **This replaces a hand-typed keyword dict.** `_CONDITION_HINTS` matched
+    condition text against `("peritoneal", " pd ", "capd", "ccpd")` and
+    `("hemodialysis", "haemodialysis", "esrd", "dialysis", …)` — §3an's
+    forbidden shape, *"covers only the condition someone happened to think of,
+    cannot say why, has no source, never improves, and goes stale silently"* —
+    deciding which clinical screen a patient could reach. A condition recorded
+    as "ESKD" or "renal replacement therapy" matched nothing, and one reading
+    "history of dialysis" matched everything.
+
+    Now the patient says so, and the app reads what they said.
+
+    Unrecognised values are DISCARDED rather than repaired: silently
+    correcting what someone wrote about their own treatment invents a clinical
+    fact (§3am — naming a unit is not an override), and the API validates on
+    the way in so a stored value should already be an enum member.
+    """
+    raw = getattr(condition, "therapy_types", None)
+    if not raw:
+        return set()
+    known = {t.value for t in TherapyType}
+    return {part.strip().lower() for part in str(raw).split(",")
+            if part.strip().lower() in known}
+
+
+def validate_therapy_types(values) -> str | None:
+    """Client-supplied names → the stored comma-separated string, or None.
+
+    §3ad: the client never decides what a code means. An unrecognised name is
+    dropped rather than stored, so a typo cannot silently become a modality
+    nobody offers a screen for.
+
+    An empty list stores NULL — "not stated", which is a different fact from
+    "no therapy" and must stay distinguishable (§3aa).
+    """
+    if not values:
+        return None
+    known = {t.value: t.value for t in TherapyType}
+    known.update({t.name.lower(): t.value for t in TherapyType})
+    kept = []
+    for v in values:
+        key = str(v).strip().lower().replace(" ", "_").replace("-", "_")
+        resolved = known.get(key)
+        if resolved and resolved not in kept:
+            kept.append(resolved)
+    return ",".join(kept) or None
 
 
 @dataclass
@@ -121,18 +164,17 @@ async def for_user(db: AsyncSession, user_id: int) -> Surfaces:
         s.offer("therapies", "therapy sessions on record")
         s.offer("therapy_history", "therapy sessions on record")
 
-    # ── Conditions can indicate a modality before the first session ──────
+    # ── A DECLARED therapy opens its screen before the first session ─────
+    # The patient starting dialysis next week needs the flowsheet now, and the
+    # record holds no session yet. What they declared is the evidence.
     conditions = list(await sources.conditions(db, user_id, active_only=True))
-    text = " ".join(
-        f" {(getattr(c, 'name', '') or '').lower()} "
-        f"{(getattr(c, 'icd11_title', '') or '').lower()} "
-        for c in conditions
-    )
-    for surface, hints in _CONDITION_HINTS.items():
-        if any(h in text for h in hints):
-            s.offer(surface, "indicated by a recorded condition")
-            s.offer("therapies", "indicated by a recorded condition")
-            s.offer("therapy_history", "indicated by a recorded condition")
+    for condition in conditions:
+        for therapy in declared_therapy_types(condition):
+            surface = _MODALITY_SURFACE.get(therapy, "therapy_other")
+            name = getattr(condition, "name", None) or "a recorded condition"
+            s.offer(surface, f"declared therapy for {name}")
+            s.offer("therapies", f"declared therapy for {name}")
+            s.offer("therapy_history", f"declared therapy for {name}")
 
     if conditions:
         s.offer("conditions_active", f"{len(conditions)} active condition(s)")

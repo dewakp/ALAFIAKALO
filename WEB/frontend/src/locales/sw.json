@@ -631,7 +631,17 @@
     "in_remission": "Umepona",
     "failed_to_save_condition": "Imeshindwa kuhifadhi hali",
     "are_you_sure_you_want_to_delete_this": "Je, una uhakika unataka kufuta hali hii?",
-    "failed_to_delete_condition": "Imeshindwa kufuta hali"
+    "failed_to_delete_condition": "Imeshindwa kufuta hali",
+    "therapy_types": "Tiba",
+    "therapy_types_help": "Ni tiba gani zinazotibu hali hii. Hii ndiyo inayoamua kama programu itakuonyesha skrini hizo.",
+    "therapy_hemodialysis": "Hemodialysis",
+    "therapy_peritoneal_dialysis": "Peritoneal dialysis",
+    "therapy_chemotherapy": "Chemotherapy",
+    "therapy_radiation_therapy": "Radiation therapy",
+    "therapy_immunotherapy": "Immunotherapy",
+    "therapy_infusion_therapy": "Infusion therapy",
+    "therapy_physical_therapy": "Fizikali therapy",
+    "therapy_blood_transfusion": "Kuingizwa kwa mkate wa damu"
   },
   "ClinicianDashboard": {
     "loading": "Inapakia...",

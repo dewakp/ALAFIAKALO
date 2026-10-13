@@ -1,7 +1,7 @@
 # Copyright © 2026 Wole Akpose / 6igma Health Inc.
 # All rights reserved. ALAFIA — proprietary and confidential.
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime, time
 
@@ -23,6 +23,11 @@ class ChronicConditionBase(BaseModel):
     stage: Optional[str] = Field(None, max_length=50)
     grade: Optional[str] = Field(None, max_length=50)
     current_treatment_plan: Optional[str] = None
+    #: Therapies this condition is treated with. The CLIENT sends names;
+    #: the server validates them against `TherapyType` and discards
+    #: anything it does not recognise (§3ad — the client never decides
+    #: what a code means).
+    therapy_types: Optional[list[str]] = None
     primary_physician: Optional[str] = Field(None, max_length=200)
     specialist_physician: Optional[str] = Field(None, max_length=200)
     monitoring_frequency: Optional[str] = Field(None, max_length=100)
@@ -51,6 +56,11 @@ class ChronicConditionUpdate(BaseModel):
     stage: Optional[str] = Field(None, max_length=50)
     grade: Optional[str] = Field(None, max_length=50)
     current_treatment_plan: Optional[str] = None
+    #: Therapies this condition is treated with. The CLIENT sends names;
+    #: the server validates them against `TherapyType` and discards
+    #: anything it does not recognise (§3ad — the client never decides
+    #: what a code means).
+    therapy_types: Optional[list[str]] = None
     primary_physician: Optional[str] = Field(None, max_length=200)
     specialist_physician: Optional[str] = Field(None, max_length=200)
     monitoring_frequency: Optional[str] = Field(None, max_length=100)
@@ -61,6 +71,20 @@ class ChronicConditionUpdate(BaseModel):
 
 
 class ChronicConditionResponse(ChronicConditionBase):
+    # ⚠️ The COLUMN is comma-separated text and the field is a list, so
+    # `from_attributes=True` hands pydantic a `str` where it wants `list[str]`
+    # and every row fails validation — the endpoint then 200s only for a user
+    # with NO conditions, which is the one case with nothing to validate.
+    # That is §3ai exactly: `metadata` on the notification model raised one
+    # ResponseValidationError per row and the page reported "No notifications"
+    # to someone holding 18.
+    @field_validator("therapy_types", mode="before")
+    @classmethod
+    def _split_therapy_types(cls, v):
+        if v is None or isinstance(v, list):
+            return v
+        return [part.strip() for part in str(v).split(",") if part.strip()] or None
+
     id: int
     user_id: int
     created_at: datetime

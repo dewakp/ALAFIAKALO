@@ -631,7 +631,17 @@
     "in_remission": "En Remisión",
     "failed_to_save_condition": "No se pudo guardar la condición",
     "are_you_sure_you_want_to_delete_this": "¿Está seguro de que desea eliminar esta condición?",
-    "failed_to_delete_condition": "No se pudo eliminar la condición"
+    "failed_to_delete_condition": "No se pudo eliminar la condición",
+    "therapy_types": "Terapias",
+    "therapy_types_help": "Qué terapias tratan esta condición. Esto decide si la app te muestra esas pantallas.",
+    "therapy_hemodialysis": "Hemodiálisis",
+    "therapy_peritoneal_dialysis": "Diálisis peritoneal",
+    "therapy_chemotherapy": "Quimioterapia",
+    "therapy_radiation_therapy": "Radioterapia",
+    "therapy_immunotherapy": "Inmunoterapia",
+    "therapy_infusion_therapy": "Terapia de infusión",
+    "therapy_physical_therapy": "Fisioterapia",
+    "therapy_blood_transfusion": "Transfusión de sangre"
   },
   "ClinicianDashboard": {
     "loading": "Cargando...",
