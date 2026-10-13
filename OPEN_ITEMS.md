@@ -2682,3 +2682,72 @@ Two existing tests failed and neither was a regression: both called
 - **30c.** The Ω explanation paragraph is still a hardcoded f-string and still
   says "how well that is being managed" — now provably the wrong sentence, as
   that is Α's job (27 §4a).
+
+---
+
+## 31. Mobile had neither the surfacing nor Α — FIXED 2026-10-13 (step 3 of 3)
+
+§3: *"A feature is not done until web, iOS, and Android all have it… Verify each
+platform by building it, not by reasoning that the change should compile."*
+Both of the previous two steps shipped web-only.
+
+### Navigation
+
+`GET /users/me/surfaces` already served all three clients; only web filtered on
+it. Now:
+
+- **Android** — `MoreGridItem` gained `surface: String?` beside the
+  `clinicianOnly` flag that was already there, and the Therapies tiles carry
+  `hemodialysis` / `peritoneal_dialysis` / `therapy_other`.
+- **iOS** — `HealthHubView` gates the Hemodialysis and Peritoneal Dialysis
+  `NavigationLink`s on `offers(_:)`, loaded in `.task`.
+- **Both treat "not yet known" as SHOW EVERYTHING.** A slow or failed request
+  must never hide the screen holding a patient's own records (§3aa).
+
+### Α beside Ω
+
+`alpha_pct`, `alpha_off_target` and `alpha_reason` decode on both clients and
+render next to Ω and coverage, with the off-target markers and the guideline
+that set each. **Absent Α prints its REASON in place of the number**, never a
+zero.
+
+### What the builds and guards caught, that reading the code did not
+
+- ⚠️ **Kotlin: `Smart cast to 'Set<String>' is impossible, because 'surfaces'
+  is a delegated property.`** The filter lambda needed a local binding. A
+  compile error, so only building found it.
+- ⚠️ **Swift: `the compiler is unable to type-check this expression in
+  reasonable time`** on the concatenated off-target line. Extracted to
+  `offTargetLine(_:)` — and the first extraction landed in the WRONG STRUCT
+  (`type 'HEBCSSection' has no member 'offTargetLine'`), which only the second
+  build revealed.
+- ⚠️ **Android lint `MissingTranslation`** and
+  `test_every_language_carries_every_source_key` **independently** caught
+  `condition_management` existing in English only — §3aw's exact failure, twice
+  in two days. Filled through `translate_catalogs.py` for all ten languages
+  (`Ìtọ́jú Àìsàn`, `إدارة الحالة الصحية`, `Gestion des conditions`).
+
+### Verified
+
+    iOS        ** BUILD SUCCEEDED **, 0 error: lines (iPhone 17 Pro simulator)
+    Android    BUILD SUCCESSFUL, app-debug.apk 32,757,741 bytes at 07:47
+               — the size CHANGED from 30,845,358 before the Α render, which is
+                 what proves the rebuild carried the new code rather than a
+                 cached one (§3bb)
+    backend    90 passed
+    frontend   43 files, 279 passed
+    guards     51 passed — iOS presentation flags, typed decimals, i18n catalogs
+               (run from a REPO-ROOT mount; inside backend-test they skip,
+               saying so, and banking that green proves nothing — §3bb)
+
+### STILL OPEN
+
+- **31a.** `RENAL` is the only indication axis, so a leukaemia or cancer patient
+  still gets no Α — the mechanism is built and the guidelines are not (30b).
+- **31b.** The Ω explanation paragraph is still a hardcoded f-string and still
+  says *"how well that is being managed"*, which is now provably Α's sentence
+  (27 §4a, 30c). It also still reads "at or below the bottom of their own
+  reference band" for values ABOVE the top.
+- **31c.** Surfacing covers the Therapies group only. Pharmacy, Telehealth and
+  the rest are still shown to everyone.
+- **31d.** Production is many commits behind and none of this is deployed.

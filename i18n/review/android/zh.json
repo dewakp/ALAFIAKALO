@@ -1265,6 +1265,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "condition_management": {
+    "source": "Condition management",
+    "translation": "病情管理",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "condition_name": {
     "source": "Condition Name *",
     "translation": "病情名称 *",

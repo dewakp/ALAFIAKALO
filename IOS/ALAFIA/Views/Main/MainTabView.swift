@@ -130,6 +130,33 @@ struct HealthHubView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var clinicianMode: ClinicianMode
 
+    /// Which screens this patient's record justifies.
+    ///
+    /// Operator, 2026-10-12: *"someone who has listed no condition need not see
+    /// therapies. they still do despite my repeated request. HD patient need
+    /// not see PD in navigation."* Measured on production: 2,035 therapy
+    /// sessions, every one HEMODIALYSIS, one user; zero peritoneal sessions for
+    /// any account — so "Peritoneal Dialysis" had never been a live screen for
+    /// anybody and sat one row under the one the dialysis patient uses daily.
+    ///
+    /// `nil` means NOT YET KNOWN and deliberately shows everything: a slow or
+    /// failed request must never hide the screen holding a patient's own
+    /// records (§3aa — an error is not an empty state). The BACKEND decides;
+    /// this only renders (§3).
+    @State private var surfaces: Set<String>?
+
+    private func offers(_ surface: String) -> Bool {
+        guard let surfaces else { return true }
+        return surfaces.contains(surface)
+    }
+
+    private func loadSurfaces() async {
+        struct Payload: Codable { let offered: [String]? }
+        if let p: Payload = try? await APIClient.shared.get("/users/me/surfaces") {
+            surfaces = Set(p.offered ?? [])
+        }
+    }
+
     private struct SupportLink {
         let title: String
         let icon: String
@@ -347,18 +374,22 @@ struct HealthHubView: View {
                 }
 
                 Section("Therapies") {
-                    NavigationLink {
-                        HemodialysisView()
-                    } label: {
-                        Label("Hemodialysis", systemImage: "waveform.path.ecg")
-                            .foregroundStyle(.blue)
+                    if offers("hemodialysis") {
+                        NavigationLink {
+                            HemodialysisView()
+                        } label: {
+                            Label("Hemodialysis", systemImage: "waveform.path.ecg")
+                                .foregroundStyle(.blue)
+                        }
                     }
 
-                    NavigationLink {
-                        PeritonealDialysisView()
-                    } label: {
-                        Label("Peritoneal Dialysis", systemImage: "drop.fill")
-                            .foregroundStyle(.teal)
+                    if offers("peritoneal_dialysis") {
+                        NavigationLink {
+                            PeritonealDialysisView()
+                        } label: {
+                            Label("Peritoneal Dialysis", systemImage: "drop.fill")
+                                .foregroundStyle(.teal)
+                        }
                     }
 
                     NavigationLink {
@@ -471,6 +502,7 @@ struct HealthHubView: View {
                 }
             }
             .navigationTitle("Health Hub")
+            .task { await loadSurfaces() }
         }
     }
 }

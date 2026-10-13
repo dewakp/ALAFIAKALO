@@ -1348,4 +1348,5 @@
     <string name="hospital_cancel">取消</string>
     <string name="hospital_name_required">手术需要名称。</string>
     <string name="hospital_admitted_required">住院需要您的入院日期。</string>
+    <string name="condition_management">病情管理</string>
 </resources>

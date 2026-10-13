@@ -1373,4 +1373,5 @@
     <string name="hospital_cancel">Cancel</string>
     <string name="hospital_name_required">An operation needs a name.</string>
     <string name="hospital_admitted_required">A hospital stay needs the date you were admitted.</string>
+    <string name="condition_management">Condition management</string>
 </resources>

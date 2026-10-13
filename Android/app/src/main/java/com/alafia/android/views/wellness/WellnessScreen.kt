@@ -719,6 +719,52 @@ private fun HEBCSTab() {
                             )
                             Text(stringResource(R.string.data_coverage), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        // Α — how well the CONDITIONS are being managed, which is a
+                        // different question from how well the patient IS. Shown beside
+                        // Ω because the pair is the only thing a clinician can act on.
+                        // Absent is NOT zero: the reason takes its place so a gap cannot
+                        // read as a bad score.
+                        val alphaPct = d.alphaPct
+                        if (alphaPct != null) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    String.format("%.0f%%", alphaPct),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8B5CF6)
+                                )
+                                Text(
+                                    stringResource(R.string.condition_management),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else if (d.alphaReason != null) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "—",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    d.alphaReason,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    d.alphaOffTarget.take(3).forEach { row ->
+                        Spacer(Modifier.height(4.dp))
+                        val lo = row.targetRange?.firstOrNull()
+                        val hi = row.targetRange?.lastOrNull()
+                        Text(
+                            "${row.name} ${row.value ?: "—"} — target ${lo ?: ""}-${hi ?: ""}" +
+                                (row.authority?.let { " · $it" } ?: ""),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     if (d.labDateUsed != null) {
                         Spacer(Modifier.height(4.dp))

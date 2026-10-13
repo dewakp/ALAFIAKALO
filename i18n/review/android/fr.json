@@ -1235,6 +1235,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "condition_management": {
+    "source": "Condition management",
+    "translation": "Gestion des conditions",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "condition_name": {
     "source": "Condition Name *",
     "translation": "Nom de la condition *",

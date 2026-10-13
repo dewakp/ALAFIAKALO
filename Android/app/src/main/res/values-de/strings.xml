@@ -1348,4 +1348,5 @@
     <string name="hospital_cancel">Abbrechen</string>
     <string name="hospital_name_required">Eine Operation benötigt einen Namen.</string>
     <string name="hospital_admitted_required">Ein Krankenhausaufenthalt benötigt das Aufnahmedatum.</string>
+    <string name="condition_management">Krankheitsverwaltung</string>
 </resources>

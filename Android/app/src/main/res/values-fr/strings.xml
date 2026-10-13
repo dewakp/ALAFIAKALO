@@ -1348,4 +1348,5 @@
     <string name="hospital_cancel">Annuler</string>
     <string name="hospital_name_required">Une intervention a besoin d\'un nom.</string>
     <string name="hospital_admitted_required">Une hospitalisation a besoin de la date de votre admission.</string>
+    <string name="condition_management">Gestion des conditions</string>
 </resources>

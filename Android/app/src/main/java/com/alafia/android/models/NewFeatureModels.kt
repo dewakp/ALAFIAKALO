@@ -894,7 +894,27 @@ data class HEBCSScoreResponse(
      *  neighbours — Glucose 273 scores 0.000 while Metabolic reads 0.549.
      *  Decoded through the same [HEBCSBiomarkerScore] the pathways use. */
     @SerializedName("critical_biomarkers") val criticalBiomarkers: List<HEBCSBiomarkerScore> = emptyList(),
+    /** Α — how well the CONDITIONS are being managed, against the guidelines
+     *  written for them. Null when no condition on record carries a guideline
+     *  target, which is the correct answer for a well person and is NEVER a
+     *  zero: [alphaReason] says why in its place.
+     *
+     *  Ω and Α are a pair. They answer different questions and routinely
+     *  disagree — haemoglobin 11.3 is anaemia on a health band and on-target
+     *  under KDIGO — and collapsing them into one number was the core failure. */
+    @SerializedName("alpha_pct") val alphaPct: Double? = null,
+    @SerializedName("alpha_off_target") val alphaOffTarget: List<AlphaOffTarget> = emptyList(),
+    @SerializedName("alpha_reason") val alphaReason: String? = null,
     val interpretation: String? = null
+)
+
+/** A marker sitting at or past the bottom of its own guideline target. */
+data class AlphaOffTarget(
+    val name: String,
+    val value: Double? = null,
+    val score: Double? = null,
+    @SerializedName("target_range") val targetRange: List<Double>? = null,
+    val authority: String? = null
 )
 
 data class WhatIfPathwayDelta(
@@ -1213,4 +1233,17 @@ data class FlowsheetDefaults(
     @SerializedName("carried_forward") val carriedForward: FlowsheetCarriedForward? = null,
     @SerializedName("carried_from_date") val carriedFromDate: String? = null,
     val notes: List<String> = emptyList()
+)
+
+
+/**
+ * What `GET /users/me/surfaces` returns.
+ *
+ * `offered` names the screens the record justifies; `because` carries the
+ * reason for each, so the client can explain itself and the decision is
+ * auditable rather than mysterious.
+ */
+data class PatientSurfaces(
+    @SerializedName("offered") val offered: List<String>? = null,
+    @SerializedName("because") val because: Map<String, String>? = null
 )

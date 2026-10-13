@@ -1348,4 +1348,5 @@
     <string name="hospital_cancel">Ghairi</string>
     <string name="hospital_name_required">Operesheni inahitaji jina.</string>
     <string name="hospital_admitted_required">Kukaa hospitalini kunahitaji tarehe uliyoingizwa.</string>
+    <string name="condition_management">Usimamizi wa Hali</string>
 </resources>

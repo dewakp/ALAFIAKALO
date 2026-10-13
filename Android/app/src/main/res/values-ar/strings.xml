@@ -1348,4 +1348,5 @@
     <string name="hospital_cancel">إلغاء</string>
     <string name="hospital_name_required">العملية تحتاج إلى اسم.</string>
     <string name="hospital_admitted_required">الإقامة في المستشفى تحتاج إلى تاريخ دخولك.</string>
+    <string name="condition_management">إدارة الحالة الصحية</string>
 </resources>

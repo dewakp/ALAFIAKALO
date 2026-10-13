@@ -618,6 +618,16 @@ private let whatIfParams: [(field: WritableKeyPath<WhatIfRequest, Double?>, labe
 ]
 
 private struct HEBCSSection: View {
+    /// One off-target line: what the marker reads, the guideline band it is
+    /// held to, and who says so.
+    static func offTargetLine(_ row: AlphaOffTarget) -> String {
+        let value = row.value.map { String(format: "%g", $0) } ?? "—"
+        let lo = row.targetRange?.first.map { String(format: "%g", $0) } ?? ""
+        let hi = row.targetRange?.last.map { String(format: "%g", $0) } ?? ""
+        let source = row.authority.map { " · \($0)" } ?? ""
+        return "\(row.name) \(value) — target \(lo)–\(hi)\(source)"
+    }
+
     /// "Glucose 273 (reference 74–106)" — the value and what judged it, in one
     /// string so a translator can reorder it.
     static func criticalLine(_ b: HEBCSBiomarkerScore) -> String {
@@ -689,6 +699,37 @@ private struct HEBCSSection: View {
                                 Text("Data coverage")
                                     .font(.caption2).foregroundStyle(.secondary)
                             }
+                            // Α — how well the CONDITIONS are being managed, which is
+                            // a different question from how well the patient IS. Shown
+                            // beside Ω because the pair is the only thing a clinician
+                            // can act on. Absent is NOT zero: the reason takes its
+                            // place so a gap cannot read as a bad score.
+                            if let alpha = d.alphaPct {
+                                VStack {
+                                    Text(String(format: "%.0f%%", alpha))
+                                        .font(.title2).bold().foregroundStyle(.purple)
+                                    Text("Condition management")
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
+                            } else if let reason = d.alphaReason {
+                                VStack {
+                                    Text("—")
+                                        .font(.title2).bold().foregroundStyle(.secondary)
+                                    Text(reason)
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                            }
+                        }
+
+                        ForEach(Array((d.alphaOffTarget ?? []).prefix(3).enumerated()),
+                                id: \.offset) { _, row in
+                            // Built in a plain function, not inline: Swift's
+                            // type-checker gave up on the concatenated version
+                            // ("unable to type-check this expression in
+                            // reasonable time") and the build failed.
+                            Text(Self.offTargetLine(row))
+                                .font(.caption2).foregroundStyle(.secondary)
                         }
 
                         if let lab = d.labDateUsed {

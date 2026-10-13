@@ -1690,6 +1690,17 @@ struct HEBCSScoreResponse: Codable {
     /// Metabolic still reads 0.549. Decoded through the same
     /// `HEBCSBiomarkerScore` the pathways use — one shape, not a near-duplicate.
     let criticalBiomarkers: [HEBCSBiomarkerScore]?
+    /// Α — how well the CONDITIONS are being managed, against the guidelines
+    /// written for them. `nil` when no condition on record carries a guideline
+    /// target, which is the correct answer for a well person and is NEVER a
+    /// zero: `alphaReason` says why in its place.
+    ///
+    /// Ω and Α are a pair. They answer different questions and routinely
+    /// disagree — haemoglobin 11.3 is anaemia on a health band and on-target
+    /// under KDIGO — and collapsing them into one number was the core failure.
+    let alphaPct: Double?
+    let alphaOffTarget: [AlphaOffTarget]?
+    let alphaReason: String?
     let interpretation: String?
 
     enum CodingKeys: String, CodingKey {
@@ -1699,7 +1710,24 @@ struct HEBCSScoreResponse: Codable {
         case omegaPct = "omega_pct"
         case dataCoverage = "data_coverage"
         case criticalBiomarkers = "critical_biomarkers"
+        case alphaPct = "alpha_pct"
+        case alphaOffTarget = "alpha_off_target"
+        case alphaReason = "alpha_reason"
         case pathways, interpretation
+    }
+}
+
+/// A marker sitting at or past the bottom of its own guideline target.
+struct AlphaOffTarget: Codable {
+    let name: String
+    let value: Double?
+    let score: Double?
+    let targetRange: [Double]?
+    let authority: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name, value, score, authority
+        case targetRange = "target_range"
     }
 }
 

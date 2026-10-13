@@ -348,7 +348,16 @@ data class MoreGridItem(
     val label: String,
     val icon: ImageVector,
     val route: String,
-    val clinicianOnly: Boolean = false
+    val clinicianOnly: Boolean = false,
+    /**
+     * The surface the RECORD must justify for this tile to appear, from
+     * `GET /users/me/surfaces`. Null means unconditional.
+     *
+     * Operator, 2026-10-12: "someone who has listed no condition need not see
+     * therapies. they still do despite my repeated request. HD patient need
+     * not see PD in navigation."
+     */
+    val surface: String? = null
 )
 
 data class MoreGridSection(
@@ -378,6 +387,9 @@ fun MoreScreen(
 ) {
     var isClinician by remember { mutableStateOf(false) }
     var myRoles by remember { mutableStateOf<List<String>>(emptyList()) }
+    // Null until the answer arrives, and null means SHOW EVERYTHING — see the
+    // filter below. A failed request must never hide a patient's own records.
+    var surfaces by remember { mutableStateOf<Set<String>?>(null) }
     LaunchedEffect(Unit) {
         try {
             val user = com.alafia.android.api.ApiClient.getApiService().getCurrentUser()
@@ -386,6 +398,10 @@ fun MoreScreen(
             isClinician = roles.any { it in CLINICIAN_ROLES }
             ClinicianModeState.reconcile(roles)
         } catch (_: Exception) { }
+        try {
+            surfaces = com.alafia.android.api.ApiClient.getApiService()
+                .getSurfaces().offered?.toSet()
+        } catch (_: Exception) { surfaces = null }
     }
 
     val sections = listOf(
@@ -424,9 +440,12 @@ fun MoreScreen(
             MoreGridItem("Clinician View", Icons.Default.Dashboard, CLINICIAN_MODE_ROUTE, clinicianOnly = true),
         )),
         MoreGridSection("Therapies", listOf(
-            MoreGridItem("Hemodialysis", Icons.Default.MonitorHeart, "hemodialysis"),
-            MoreGridItem("PD", Icons.Default.WaterDrop, "peritoneal-dialysis"),
-            MoreGridItem("Chemo", Icons.Default.Medication, "chemotherapy"),
+            MoreGridItem("Hemodialysis", Icons.Default.MonitorHeart, "hemodialysis",
+                surface = "hemodialysis"),
+            MoreGridItem("PD", Icons.Default.WaterDrop, "peritoneal-dialysis",
+                surface = "peritoneal_dialysis"),
+            MoreGridItem("Chemo", Icons.Default.Medication, "chemotherapy",
+                surface = "therapy_other"),
         )),
         MoreGridSection("Tools", listOf(
             MoreGridItem("AI Chat", Icons.Default.SmartToy, "ai-chat"),
@@ -464,7 +483,18 @@ fun MoreScreen(
         }
 
         sections.forEach { section ->
-            val visibleItems = section.items.filter { !it.clinicianOnly || isClinician }
+            // `surfaces == null` means NOT YET KNOWN, and is deliberately not
+            // the same as "offer nothing": until the answer arrives every tile
+            // shows, so a slow or failed request can never hide the screen
+            // holding a patient's own records (§3aa — an error is not an empty
+            // state).
+            // Bound to a local: `surfaces` is a delegated property, so Kotlin
+            // cannot smart-cast it to non-null inside the lambda.
+            val offered = surfaces
+            val visibleItems = section.items.filter {
+                (!it.clinicianOnly || isClinician) &&
+                    (offered == null || it.surface == null || it.surface in offered)
+            }
             if (visibleItems.isNotEmpty()) {
                 item(span = { GridItemSpan(4) }) {
                     Text(

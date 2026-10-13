@@ -53,6 +53,19 @@ interface ApiService {
     @GET("users/me")
     suspend fun getCurrentUser(): UserSchema
 
+    /**
+     * Which screens this patient's record justifies.
+     *
+     * The BACKEND decides (§3): a surface rule is a clinical statement about
+     * what a patient has, and three clients each applying their own would
+     * drift. Measured on production 2026-10-12: 2,035 therapy sessions, every
+     * one HEMODIALYSIS, one user; zero peritoneal sessions for any account —
+     * so "PD" has never been a live screen for anybody and sat beside the one
+     * the single dialysis patient uses daily.
+     */
+    @GET("users/me/surfaces")
+    suspend fun getSurfaces(): PatientSurfaces
+
     @PATCH("users/me")
     suspend fun updateUser(@Body updates: UserUpdateRequest): UserSchema
 

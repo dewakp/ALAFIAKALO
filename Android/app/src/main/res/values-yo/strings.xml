@@ -1348,4 +1348,5 @@
     <string name="hospital_cancel">Fagile</string>
     <string name="hospital_name_required">Iṣẹ́ nílò orúkọ.</string>
     <string name="hospital_admitted_required">Ibadandun nílò ọjọ́ tí o wọ́ ibadandun.</string>
+    <string name="condition_management">Ìtọ́jú Àìsàn</string>
 </resources>
