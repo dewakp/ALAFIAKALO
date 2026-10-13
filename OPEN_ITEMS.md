@@ -2968,8 +2968,11 @@ ruff F,E9 clean.
 
 ### STILL OPEN
 
-- **34a.** Removing seven response fields is a wire change. Both mobile clients
-  decode only `recommendations`, verified by reading
-  `DailyRecommendationsResponse` on each — but **no mobile build was run for
-  this change**, because nothing in their models referenced the removed fields.
-  That is reasoning, not the §3 standard of verifying by building.
+- ✅ **34a — CLOSED.** Removing seven response fields is a wire change, so §3's
+  standard is to verify by BUILDING rather than by reasoning that both clients
+  ignore them. Run 2026-10-13: iOS `** BUILD SUCCEEDED **`; Android
+  `BUILD SUCCESSFUL` with `app-debug.apk` **byte-identical at 32,763,421** and
+  its earlier timestamp intact — Gradle recompiled nothing, which is itself the
+  evidence that no Android source references the removed fields. Together with
+  both models declaring only `date` and `recommendations`, that is measurement
+  rather than inference.
