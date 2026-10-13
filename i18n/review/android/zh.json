@@ -491,6 +491,36 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "alpha_against_guidelines": {
+    "source": "against guideline targets",
+    "translation": "符合指南目标",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_card_subtitle": {
+    "source": "How well what you live with is being held to the guidelines written for it. A different question from how you are.",
+    "translation": "您所患疾病的管理是否符合相关医学指南。这与您的整体健康状况是不同的问题。",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_card_title": {
+    "source": "Condition management (Α)",
+    "translation": "病情管理 (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_none": {
+    "source": "No condition on record has a guideline target, so there is nothing to score here.",
+    "translation": "您的记录中没有具有指南目标的病情，因此这里无法评分。",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_off_target_heading": {
+    "source": "Outside its target",
+    "translation": "超出目标范围",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "already_have_an_account_login": {
     "source": "Already have an account? Login",
     "translation": "已有账户？登录",

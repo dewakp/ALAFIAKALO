@@ -17027,11 +17027,41 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Wellness.alpha_against_guidelines": {
+    "source": "against guideline targets",
+    "translation": "kọ́ sí àwọn ibi-afẹ́dẹ̀ ìtọ́sọ́nú",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_subtitle": {
+    "source": "How well what you live with is being held to the guidelines written for it. This is a different question from how you are: you can be seriously unwell and impeccably managed at the same time.",
+    "translation": "Bí o ṣe dáa ti a ń ṣakoso ohun tí o ń gbé pẹ̀lú gẹ́gẹ́ bí àwọn ìtọ́sọ́nú tí a kọ́ fún un. Èyí yatọ̀ síra rẹ: o lè jẹ́ àìlera gan-an ṣùgbọ́n a ń ṣakoso rẹ dáadáa ni kanna.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_title": {
+    "source": "Condition management (Α)",
+    "translation": "Iṣakoso Àrùn (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "Wellness.alpha_management": {
     "source": "Condition management",
     "translation": "Iṣakoso Àìsàn",
     "status": "machine",
     "translated_on": "2026-10-12"
+  },
+  "Wellness.alpha_none": {
+    "source": "No condition on record has a guideline target, so there is nothing to score here.",
+    "translation": "Àrùn kan tí a kọ́ sílẹ̀ kò ní ibi-afẹ́dẹ̀ ìtọ́sọ́nú, nítorí náà kò sí ohun tí a lè ṣe ìwọ̀n fún.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_off_target_heading": {
+    "source": "Outside its target",
+    "translation": "Kọ́ sí ibi-afẹ́dẹ̀ rẹ̀",
+    "status": "machine",
+    "translated_on": "2026-10-13"
   },
   "Wellness.alpha_target_range": {
     "source": "target {{low}}-{{high}}",

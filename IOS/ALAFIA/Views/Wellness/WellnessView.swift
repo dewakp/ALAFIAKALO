@@ -620,6 +620,56 @@ private let whatIfParams: [(field: WritableKeyPath<WhatIfRequest, Double?>, labe
 private struct HEBCSSection: View {
     /// One off-target line: what the marker reads, the guideline band it is
     /// held to, and who says so.
+    /// Α — CONDITION MANAGEMENT, in a card of its own.
+    ///
+    /// A separate card because it is a separate question. Ω says how the
+    /// patient IS; Α says how well what they live with is being HELD to the
+    /// guidelines written for it. They routinely disagree — haemoglobin 11.3
+    /// is anaemia on a health band and on target under KDIGO — and the pair is
+    /// the only thing a clinician can act on. Collapsing them into one number
+    /// was the core failure.
+    ///
+    /// Absent Α is NOT a zero: a patient with no condition carrying a
+    /// guideline target has nothing to manage, and the card says so in words
+    /// rather than showing an empty gauge that reads as a bad score.
+    @ViewBuilder
+    private func alphaCard(_ d: HEBCSScoreResponse) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Condition management (Α)", systemImage: "target")
+                .font(.headline)
+            Text("How well what you live with is being held to the guidelines "
+                 + "written for it. A different question from how you are.")
+                .font(.caption).foregroundStyle(.secondary)
+
+            if let alpha = d.alphaPct {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(String(format: "%.0f%%", alpha))
+                        .font(.largeTitle).bold().foregroundStyle(.purple)
+                    Text("against guideline targets")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                ForEach((d.alphaOffTarget ?? []), id: \.name) { row in
+                    VStack(alignment: .leading, spacing: 2) {
+                        // Built in a plain function, not inline: Swift's
+                        // type-checker gave up on the concatenated version
+                        // ("unable to type-check this expression in reasonable
+                        // time") and the build failed.
+                        Text(Self.offTargetLine(row))
+                            .font(.caption).foregroundStyle(.primary)
+                    }
+                }
+            } else {
+                Text(d.alphaReason
+                     ?? "No condition on record has a guideline target.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
     static func offTargetLine(_ row: AlphaOffTarget) -> String {
         let value = row.value.map { String(format: "%g", $0) } ?? "—"
         let lo = row.targetRange?.first.map { String(format: "%g", $0) } ?? ""
@@ -699,37 +749,6 @@ private struct HEBCSSection: View {
                                 Text("Data coverage")
                                     .font(.caption2).foregroundStyle(.secondary)
                             }
-                            // Α — how well the CONDITIONS are being managed, which is
-                            // a different question from how well the patient IS. Shown
-                            // beside Ω because the pair is the only thing a clinician
-                            // can act on. Absent is NOT zero: the reason takes its
-                            // place so a gap cannot read as a bad score.
-                            if let alpha = d.alphaPct {
-                                VStack {
-                                    Text(String(format: "%.0f%%", alpha))
-                                        .font(.title2).bold().foregroundStyle(.purple)
-                                    Text("Condition management")
-                                        .font(.caption2).foregroundStyle(.secondary)
-                                }
-                            } else if let reason = d.alphaReason {
-                                VStack {
-                                    Text("—")
-                                        .font(.title2).bold().foregroundStyle(.secondary)
-                                    Text(reason)
-                                        .font(.caption2).foregroundStyle(.secondary)
-                                        .multilineTextAlignment(.center)
-                                }
-                            }
-                        }
-
-                        ForEach(Array((d.alphaOffTarget ?? []).prefix(3).enumerated()),
-                                id: \.offset) { _, row in
-                            // Built in a plain function, not inline: Swift's
-                            // type-checker gave up on the concatenated version
-                            // ("unable to type-check this expression in
-                            // reasonable time") and the build failed.
-                            Text(Self.offTargetLine(row))
-                                .font(.caption2).foregroundStyle(.secondary)
                         }
 
                         if let lab = d.labDateUsed {
@@ -783,6 +802,9 @@ private struct HEBCSSection: View {
                     .background(Color(.systemBackground))
                     .cornerRadius(16)
                     .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+
+                    // Α — condition management, beside Ω and never inside it
+                    alphaCard(d)
 
                     // What-If simulator
                     VStack(alignment: .leading, spacing: 12) {

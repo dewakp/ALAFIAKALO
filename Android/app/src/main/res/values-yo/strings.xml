@@ -1348,5 +1348,9 @@
     <string name="hospital_cancel">Fagile</string>
     <string name="hospital_name_required">Iṣẹ́ nílò orúkọ.</string>
     <string name="hospital_admitted_required">Ibadandun nílò ọjọ́ tí o wọ́ ibadandun.</string>
-    <string name="condition_management">Ìtọ́jú Àìsàn</string>
+    <string name="alpha_card_title">Ìtọ́jú Àìsàn (Α)</string>
+    <string name="alpha_card_subtitle">Báwo ni ohun tí o ń gbé pẹ̀lú ti ń tẹ̀ àwọn ìtọ́sọ́nà tí a kọ́ fún un. Ìbéèrè tó yàtọ̀ síi lọ́wọ́ irú ohun tí o jẹ́.</string>
+    <string name="alpha_against_guidelines">lòdì sí àwọn ibi-ìfitọ́sọ́nà</string>
+    <string name="alpha_off_target_heading">Ó kọ jáde nínú ibi-ìfitọ́sọ́nà rẹ̀</string>
+    <string name="alpha_none">Kò sí àìsàn kan lórí ìwé tí ó ní ibi-ìfitọ́sọ́nà, nítorí náà kò sí ohun tí a lè ṣe ìsirò fún.</string>
 </resources>

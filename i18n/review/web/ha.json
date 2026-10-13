@@ -17027,11 +17027,41 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Wellness.alpha_against_guidelines": {
+    "source": "against guideline targets",
+    "translation": "a gaban burin ka'idodi",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_subtitle": {
+    "source": "How well what you live with is being held to the guidelines written for it. This is a different question from how you are: you can be seriously unwell and impeccably managed at the same time.",
+    "translation": "Yadda aka kula da abin da kake rayuwa daidai da ka'idodin da aka rubuta. Wannan tambaya ta banbanta da yadda kake: kana iya zama mai cuta sosai kuma aka kula da kai daidai a lokaci gida.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_title": {
+    "source": "Condition management (Α)",
+    "translation": "Sarrafa Cututtuka (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "Wellness.alpha_management": {
     "source": "Condition management",
     "translation": "Sarrafa Cututtuka",
     "status": "machine",
     "translated_on": "2026-10-12"
+  },
+  "Wellness.alpha_none": {
+    "source": "No condition on record has a guideline target, so there is nothing to score here.",
+    "translation": "Babu cututtuka a rikodin da ke da burin ka'idodi, don haka babu abin da za a ƙididdige a nan.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_off_target_heading": {
+    "source": "Outside its target",
+    "translation": "Waje da burinsa",
+    "status": "machine",
+    "translated_on": "2026-10-13"
   },
   "Wellness.alpha_target_range": {
     "source": "target {{low}}-{{high}}",

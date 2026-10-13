@@ -3052,8 +3052,12 @@
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
     "reference": "{{name}}: {{value}} (reference {{value2}})",
-    "alpha_management": "Njikwa ọrịa",
-    "alpha_target_range": "ihe ọ chọrọ {{low}}-{{high}}"
+    "alpha_target_range": "ihe ọ chọrọ {{low}}-{{high}}",
+    "alpha_card_title": "Njikwa ọrịa (Α)",
+    "alpha_card_subtitle": "Otu esi ejikwa ihe ị na-ebi na ya dị ka iwu e dere maka ya. Ọ bụ ajụjụ dị iche na otu ị dị: ị nwere ike ịnọ ụfọdụ ma a na-ejikwa gị nke ọma n'otu oge.",
+    "alpha_against_guidelines": "megide ihe ụkpụrụ akwụkwọ",
+    "alpha_off_target_heading": "Apụghị ịnwụ n'ebe ọ kwesịrị",
+    "alpha_none": "Ọrịa ọ bụla e dekọbara enweghị ihe ụkpụrụ akwụkwọ, ya mere enweghị ihe a ga-atụ anya ebe a."
   },
   "CategoryDetail": {
     "category": "Ụdị",

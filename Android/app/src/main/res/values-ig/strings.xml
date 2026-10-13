@@ -1348,5 +1348,9 @@
     <string name="hospital_cancel">Kagbuo</string>
     <string name="hospital_name_required">Ọrụ ịwa ahụ chọrọ aha.</string>
     <string name="hospital_admitted_required">Ụlọ ọgwụ chọrọ ụbọchị ị banye.</string>
-    <string name="condition_management">Njikwa Ọrịa</string>
+    <string name="alpha_card_title">Njikwa ọrịa (Α)</string>
+    <string name="alpha_card_subtitle">Otu ọrịa gị na-agbaso iwu ndị e dere maka ya. Ọ bụ ajụjụ dị iche na otu ị nọ.</string>
+    <string name="alpha_against_guidelines">megide ebumnuche iwu</string>
+    <string name="alpha_off_target_heading">Apụghị ịnwụ n\'ebe ọ kwesịrị</string>
+    <string name="alpha_none">Ọ dịghị ọrịa e dekọrọ nwere ebumnuche iwu, ya mere enweghi ihe a ga-atụ anya ebe a.</string>
 </resources>

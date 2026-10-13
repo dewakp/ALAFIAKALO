@@ -17027,11 +17027,41 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Wellness.alpha_against_guidelines": {
+    "source": "against guideline targets",
+    "translation": "frente a los objetivos de las directrices",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_subtitle": {
+    "source": "How well what you live with is being held to the guidelines written for it. This is a different question from how you are: you can be seriously unwell and impeccably managed at the same time.",
+    "translation": "Qué tan bien se está controlando lo que vives según las directrices establecidas para ello. Esta es una pregunta diferente de cómo te sientes: puedes estar muy enfermo y estar perfectamente controlado al mismo tiempo.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_title": {
+    "source": "Condition management (Α)",
+    "translation": "Gestión de condiciones (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "Wellness.alpha_management": {
     "source": "Condition management",
     "translation": "Gestión de condiciones",
     "status": "machine",
     "translated_on": "2026-10-12"
+  },
+  "Wellness.alpha_none": {
+    "source": "No condition on record has a guideline target, so there is nothing to score here.",
+    "translation": "Ninguna condición registrada tiene un objetivo de directriz, por lo que no hay nada que calificar aquí.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_off_target_heading": {
+    "source": "Outside its target",
+    "translation": "Fuera de su objetivo",
+    "status": "machine",
+    "translated_on": "2026-10-13"
   },
   "Wellness.alpha_target_range": {
     "source": "target {{low}}-{{high}}",

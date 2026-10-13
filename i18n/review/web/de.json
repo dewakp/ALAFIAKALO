@@ -17027,11 +17027,41 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Wellness.alpha_against_guidelines": {
+    "source": "against guideline targets",
+    "translation": "gegenüber Richtlinienvorgaben",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_subtitle": {
+    "source": "How well what you live with is being held to the guidelines written for it. This is a different question from how you are: you can be seriously unwell and impeccably managed at the same time.",
+    "translation": "Wie gut Ihre Erkrankung nach den dafür geltenden Richtlinien behandelt wird. Das ist eine andere Frage als Ihrem allgemeinen Gesundheitszustand: Sie können ernsthaft erkrankt sein und gleichzeitig vorbildlich behandelt werden.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_title": {
+    "source": "Condition management (Α)",
+    "translation": "Krankheitsverwaltung (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "Wellness.alpha_management": {
     "source": "Condition management",
     "translation": "Erkrankungsverwaltung",
     "status": "machine",
     "translated_on": "2026-10-12"
+  },
+  "Wellness.alpha_none": {
+    "source": "No condition on record has a guideline target, so there is nothing to score here.",
+    "translation": "Keine erfasste Erkrankung hat ein Richtlinienziel, daher gibt es hier nichts zu bewerten.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_off_target_heading": {
+    "source": "Outside its target",
+    "translation": "Außerhalb des Zielbereichs",
+    "status": "machine",
+    "translated_on": "2026-10-13"
   },
   "Wellness.alpha_target_range": {
     "source": "target {{low}}-{{high}}",

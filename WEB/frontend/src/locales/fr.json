@@ -3052,8 +3052,12 @@
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
     "reference": "{{name}}: {{value}} (reference {{value2}})",
-    "alpha_management": "Gestion des conditions",
-    "alpha_target_range": "objectif {{low}}-{{high}}"
+    "alpha_target_range": "objectif {{low}}-{{high}}",
+    "alpha_card_title": "Gestion de la condition (Α)",
+    "alpha_card_subtitle": "Dans quelle mesure votre condition est maintenue selon les recommandations établies pour elle. C'est une question différente de votre état général : vous pouvez être gravement malade et impeccablement suivi en même temps.",
+    "alpha_against_guidelines": "par rapport aux cibles des recommandations",
+    "alpha_off_target_heading": "En dehors de sa cible",
+    "alpha_none": "Aucune condition enregistrée n'a de cible de recommandation, il n'y a donc rien à évaluer ici."
   },
   "CategoryDetail": {
     "category": "Catégorie",

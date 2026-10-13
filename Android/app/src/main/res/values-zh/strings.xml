@@ -1348,5 +1348,9 @@
     <string name="hospital_cancel">取消</string>
     <string name="hospital_name_required">手术需要名称。</string>
     <string name="hospital_admitted_required">住院需要您的入院日期。</string>
-    <string name="condition_management">病情管理</string>
+    <string name="alpha_card_title">病情管理 (Α)</string>
+    <string name="alpha_card_subtitle">您所患疾病的管理是否符合相关医学指南。这与您的整体健康状况是不同的问题。</string>
+    <string name="alpha_against_guidelines">符合指南目标</string>
+    <string name="alpha_off_target_heading">超出目标范围</string>
+    <string name="alpha_none">您的记录中没有具有指南目标的病情，因此这里无法评分。</string>
 </resources>

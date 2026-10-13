@@ -3052,8 +3052,12 @@
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
     "reference": "{{name}}: {{value}} (reference {{value2}})",
-    "alpha_management": "Gestão de condições",
-    "alpha_target_range": "meta {{low}}-{{high}}"
+    "alpha_target_range": "meta {{low}}-{{high}}",
+    "alpha_card_title": "Gestão da condição (Α)",
+    "alpha_card_subtitle": "O quão bem a sua condição está sendo controlada de acordo com as diretrizes estabelecidas para ela. Esta é uma questão diferente de como você se sente: você pode estar muito doente e impecavelmente controlado ao mesmo tempo.",
+    "alpha_against_guidelines": "em relação aos objetivos das diretrizes",
+    "alpha_off_target_heading": "Fora do seu objetivo",
+    "alpha_none": "Nenhuma condição registrada tem um objetivo de diretriz, portanto não há nada para avaliar aqui."
   },
   "CategoryDetail": {
     "category": "Categoria",

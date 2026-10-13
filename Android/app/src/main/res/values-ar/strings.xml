@@ -1348,5 +1348,9 @@
     <string name="hospital_cancel">إلغاء</string>
     <string name="hospital_name_required">العملية تحتاج إلى اسم.</string>
     <string name="hospital_admitted_required">الإقامة في المستشفى تحتاج إلى تاريخ دخولك.</string>
-    <string name="condition_management">إدارة الحالة الصحية</string>
+    <string name="alpha_card_title">إدارة الحالة (Α)</string>
+    <string name="alpha_card_subtitle">مدى التزام علاجك بالإرشادات الموضوعة لحالتك. هذا يختلف عن سؤال كيف تشعر أنت.</string>
+    <string name="alpha_against_guidelines">مقابل أهداف الإرشادات</string>
+    <string name="alpha_off_target_heading">خارج النطاق المستهدف</string>
+    <string name="alpha_none">لا توجد حالة مسجلة لها هدف إرشادي، لذا لا يوجد شيء لتقييمه هنا.</string>
 </resources>

@@ -485,6 +485,36 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "alpha_against_guidelines": {
+    "source": "against guideline targets",
+    "translation": "par rapport aux cibles des directives",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_card_subtitle": {
+    "source": "How well what you live with is being held to the guidelines written for it. A different question from how you are.",
+    "translation": "Dans quelle mesure votre condition respecte les directives établies pour elle. Une question différente de comment vous allez.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_card_title": {
+    "source": "Condition management (Α)",
+    "translation": "Gestion de la condition (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_none": {
+    "source": "No condition on record has a guideline target, so there is nothing to score here.",
+    "translation": "Aucune condition enregistrée n'a de cible directrice, il n'y a donc rien à évaluer ici.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_off_target_heading": {
+    "source": "Outside its target",
+    "translation": "En dehors de sa cible",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "already_have_an_account_login": {
     "source": "Already have an account? Login",
     "translation": "Vous avez déjà un compte ? Se connecter",

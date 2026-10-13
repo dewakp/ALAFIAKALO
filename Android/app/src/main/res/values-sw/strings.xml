@@ -1348,5 +1348,9 @@
     <string name="hospital_cancel">Ghairi</string>
     <string name="hospital_name_required">Operesheni inahitaji jina.</string>
     <string name="hospital_admitted_required">Kukaa hospitalini kunahitaji tarehe uliyoingizwa.</string>
-    <string name="condition_management">Usimamizi wa Hali</string>
+    <string name="alpha_card_title">Usimamizi wa hali (Α)</string>
+    <string name="alpha_card_subtitle">Jinsi hali unayoishi inavyofuatwa kulingana na mwongozo uliandikwa kwa ajili yake. Swali tofauti na jinsi unavyohisi wewe.</string>
+    <string name="alpha_against_guidelines">dhidi ya lengo la mwongozo</string>
+    <string name="alpha_off_target_heading">Nje ya lengo lake</string>
+    <string name="alpha_none">Hakuna hali iliyoandikwa inayokuwa na lengo la mwongozo, kwa hivyo hakuna kitu cha kupima hapa.</string>
 </resources>

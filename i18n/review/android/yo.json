@@ -491,6 +491,36 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "alpha_against_guidelines": {
+    "source": "against guideline targets",
+    "translation": "lòdì sí àwọn ibi-ìfitọ́sọ́nà",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_card_subtitle": {
+    "source": "How well what you live with is being held to the guidelines written for it. A different question from how you are.",
+    "translation": "Báwo ni ohun tí o ń gbé pẹ̀lú ti ń tẹ̀ àwọn ìtọ́sọ́nà tí a kọ́ fún un. Ìbéèrè tó yàtọ̀ síi lọ́wọ́ irú ohun tí o jẹ́.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_card_title": {
+    "source": "Condition management (Α)",
+    "translation": "Ìtọ́jú Àìsàn (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_none": {
+    "source": "No condition on record has a guideline target, so there is nothing to score here.",
+    "translation": "Kò sí àìsàn kan lórí ìwé tí ó ní ibi-ìfitọ́sọ́nà, nítorí náà kò sí ohun tí a lè ṣe ìsirò fún.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "alpha_off_target_heading": {
+    "source": "Outside its target",
+    "translation": "Ó kọ jáde nínú ibi-ìfitọ́sọ́nà rẹ̀",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "already_have_an_account_login": {
     "source": "Already have an account? Login",
     "translation": "Ní àkọ́unt tẹ́lẹ̀? Login",

@@ -17027,11 +17027,41 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Wellness.alpha_against_guidelines": {
+    "source": "against guideline targets",
+    "translation": "megide ihe ụkpụrụ akwụkwọ",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_subtitle": {
+    "source": "How well what you live with is being held to the guidelines written for it. This is a different question from how you are: you can be seriously unwell and impeccably managed at the same time.",
+    "translation": "Otu esi ejikwa ihe ị na-ebi na ya dị ka iwu e dere maka ya. Ọ bụ ajụjụ dị iche na otu ị dị: ị nwere ike ịnọ ụfọdụ ma a na-ejikwa gị nke ọma n'otu oge.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_card_title": {
+    "source": "Condition management (Α)",
+    "translation": "Njikwa ọrịa (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "Wellness.alpha_management": {
     "source": "Condition management",
     "translation": "Njikwa ọrịa",
     "status": "machine",
     "translated_on": "2026-10-12"
+  },
+  "Wellness.alpha_none": {
+    "source": "No condition on record has a guideline target, so there is nothing to score here.",
+    "translation": "Ọrịa ọ bụla e dekọbara enweghị ihe ụkpụrụ akwụkwọ, ya mere enweghị ihe a ga-atụ anya ebe a.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_off_target_heading": {
+    "source": "Outside its target",
+    "translation": "Apụghị ịnwụ n'ebe ọ kwesịrị",
+    "status": "machine",
+    "translated_on": "2026-10-13"
   },
   "Wellness.alpha_target_range": {
     "source": "target {{low}}-{{high}}",

@@ -1373,5 +1373,9 @@
     <string name="hospital_cancel">Cancel</string>
     <string name="hospital_name_required">An operation needs a name.</string>
     <string name="hospital_admitted_required">A hospital stay needs the date you were admitted.</string>
-    <string name="condition_management">Condition management</string>
+    <string name="alpha_card_title">Condition management (Α)</string>
+    <string name="alpha_card_subtitle">How well what you live with is being held to the guidelines written for it. A different question from how you are.</string>
+    <string name="alpha_against_guidelines">against guideline targets</string>
+    <string name="alpha_off_target_heading">Outside its target</string>
+    <string name="alpha_none">No condition on record has a guideline target, so there is nothing to score here.</string>
 </resources>

@@ -3052,8 +3052,12 @@
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
     "reference": "{{name}}: {{value}} (reference {{value2}})",
-    "alpha_management": "Sarrafa Cututtuka",
-    "alpha_target_range": "burin {{low}}-{{high}}"
+    "alpha_target_range": "burin {{low}}-{{high}}",
+    "alpha_card_title": "Sarrafa Cututtuka (Α)",
+    "alpha_card_subtitle": "Yadda aka kula da abin da kake rayuwa daidai da ka'idodin da aka rubuta. Wannan tambaya ta banbanta da yadda kake: kana iya zama mai cuta sosai kuma aka kula da kai daidai a lokaci gida.",
+    "alpha_against_guidelines": "a gaban burin ka'idodi",
+    "alpha_off_target_heading": "Waje da burinsa",
+    "alpha_none": "Babu cututtuka a rikodin da ke da burin ka'idodi, don haka babu abin da za a ƙididdige a nan."
   },
   "CategoryDetail": {
     "category": "Nau'i",

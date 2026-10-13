@@ -25,6 +25,7 @@ import {
   Activity,
   FlaskConical,
   Sliders,
+  Target,
   ArrowUpRight,
   ArrowDownRight,
   Minus as MinusIcon,
@@ -503,39 +504,7 @@ function HEBCSTab() {
               <div style={{ fontSize: 22, fontWeight: 800, color: covPct >= 60 ? '#10b981' : '#f59e0b' }}>{covPct}%</div>
               <div style={{ fontSize: 11, color: '#9ca3af' }}>{t('Wellness.data_coverage')}</div>
             </div>
-            {/* Α — how well the CONDITIONS are being managed, which is a
-                different question from how well the patient IS. They routinely
-                disagree: haemoglobin 11.3 is anaemia on a health band and
-                on-target under KDIGO. Shown beside Ω because the pair is the
-                only thing a clinician can act on; collapsing them into one
-                number was the core failure (OPEN_ITEMS 28).
-
-                A patient with no condition carrying a guideline target has no
-                Α at all, and that is NOT a zero — the reason is printed in its
-                place so the gap cannot read as a bad score (§3aa). */}
-            {omega.alpha_pct != null ? (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#8b5cf6' }}>{Math.round(omega.alpha_pct)}%</div>
-                <div style={{ fontSize: 11, color: '#9ca3af' }}>{t('Wellness.alpha_management')}</div>
-              </div>
-            ) : omega.alpha_reason ? (
-              <div style={{ textAlign: 'center', maxWidth: 190 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#9ca3af' }}>—</div>
-                <div style={{ fontSize: 11, color: '#9ca3af' }}>{omega.alpha_reason}</div>
-              </div>
-            ) : null}
           </div>
-          {(omega.alpha_off_target || []).length > 0 && (
-            <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}>
-              {(omega.alpha_off_target || []).slice(0, 3).map((r, i) => (
-                <div key={i} style={{ marginTop: 4 }}>
-                  <strong>{r.name}</strong> {r.value} — {t('Wellness.alpha_target_range', {
-                    low: r.target_range?.[0], high: r.target_range?.[1] })}
-                  {r.authority ? ` · ${r.authority}` : ''}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -582,6 +551,74 @@ function HEBCSTab() {
         {Object.entries(pathways).map(([name, pw]) => (
           <PathwayBar key={name} name={name} score={pw.score} weight={pw.weight} />
         ))}
+      </div>
+
+      {/* Α — CONDITION MANAGEMENT.
+          A separate card because it is a separate question. Ω says how the
+          patient IS; Α says how well what they live with is being HELD to the
+          guidelines written for it. They routinely disagree — haemoglobin 11.3
+          is anaemia on a health band and on target under KDIGO — and the pair
+          is the only thing a clinician can act on. Collapsing them into one
+          number was the core failure (OPEN_ITEMS 28).
+
+          Absent Α is NOT a zero. A patient with no condition carrying a
+          guideline target has nothing to manage, and the card says so in words
+          rather than showing an empty gauge that reads as a bad score. */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <Target size={16} style={{ color: '#8b5cf6' }} />
+          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#374151' }}>
+            {t('Wellness.alpha_card_title')}
+          </h4>
+        </div>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>
+          {t('Wellness.alpha_card_subtitle')}
+        </p>
+
+        {omega.alpha_pct == null ? (
+          <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>
+            {omega.alpha_reason || t('Wellness.alpha_none')}
+          </p>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 30, fontWeight: 800, color: '#8b5cf6' }}>
+                {Math.round(omega.alpha_pct)}%
+              </span>
+              <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                {t('Wellness.alpha_against_guidelines')}
+              </span>
+            </div>
+
+            {Object.entries(omega.alpha_pathways || {}).map(([name, pw]) => (
+              <PathwayBar key={name} name={name} score={pw.score} weight={pw.weight} />
+            ))}
+
+            {(omega.alpha_off_target || []).length > 0 && (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#b45309', marginBottom: 8 }}>
+                  {t('Wellness.alpha_off_target_heading')}
+                </div>
+                {(omega.alpha_off_target || []).map((r, i) => (
+                  <div key={i} style={{ fontSize: 13, color: '#374151', marginBottom: 6 }}>
+                    <strong>{r.name}</strong> {r.value}
+                    {r.target_range && (
+                      <span style={{ color: '#6b7280' }}>
+                        {' '}— {t('Wellness.alpha_target_range', {
+                          low: r.target_range[0], high: r.target_range[1] })}
+                      </span>
+                    )}
+                    {/* The guideline that set the band. A target with no
+                        authority is a number someone typed (§3bc). */}
+                    {r.authority && (
+                      <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.authority}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* What-If simulator */}

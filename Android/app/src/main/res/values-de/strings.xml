@@ -1348,5 +1348,9 @@
     <string name="hospital_cancel">Abbrechen</string>
     <string name="hospital_name_required">Eine Operation benötigt einen Namen.</string>
     <string name="hospital_admitted_required">Ein Krankenhausaufenthalt benötigt das Aufnahmedatum.</string>
-    <string name="condition_management">Krankheitsverwaltung</string>
+    <string name="alpha_card_title">Erkrankungsverwaltung (Α)</string>
+    <string name="alpha_card_subtitle">Wie gut Ihre Erkrankung den geschriebenen Richtlinien entspricht. Eine andere Frage als Ihrem allgemeinen Befinden.</string>
+    <string name="alpha_against_guidelines">gegen Richtlinienziele</string>
+    <string name="alpha_off_target_heading">Außerhalb des Zielbereichs</string>
+    <string name="alpha_none">Keine erfasste Erkrankung hat ein Richtlinienziel, daher gibt es hier nichts zu bewerten.</string>
 </resources>

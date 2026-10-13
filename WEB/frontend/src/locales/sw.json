@@ -3052,8 +3052,12 @@
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
     "reference": "{{name}}: {{value}} (reference {{value2}})",
-    "alpha_management": "Usimamizi wa hali",
-    "alpha_target_range": "lengo {{low}}-{{high}}"
+    "alpha_target_range": "lengo {{low}}-{{high}}",
+    "alpha_card_title": "Usimamizi wa hali (Α)",
+    "alpha_card_subtitle": "Jinsi hali unayoishi inavyofuatwa kulingana na mwongozo uliowekwa kwa ajili yake. Hii ni swali tofauti na jinsi unavyohisi: unaweza kuwa mgonjwa sana lakini ukafuatwa vizuri wakati mmoja.",
+    "alpha_against_guidelines": "dhidi ya lengo la mwongozo",
+    "alpha_off_target_heading": "Nje ya lengo lake",
+    "alpha_none": "Hakuna hali iliyoandikwa inayokuwa na lengo la mwongozo, kwa hivyo hakuna kitu cha kupima hapa."
   },
   "CategoryDetail": {
     "category": "Kategoria",

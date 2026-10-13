@@ -3052,8 +3052,12 @@
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
     "reference": "{{name}}: {{value}} (reference {{value2}})",
-    "alpha_management": "Condition management",
-    "alpha_target_range": "target {{low}}-{{high}}"
+    "alpha_target_range": "target {{low}}-{{high}}",
+    "alpha_card_title": "Condition management (Α)",
+    "alpha_card_subtitle": "How well what you live with is being held to the guidelines written for it. This is a different question from how you are: you can be seriously unwell and impeccably managed at the same time.",
+    "alpha_against_guidelines": "against guideline targets",
+    "alpha_off_target_heading": "Outside its target",
+    "alpha_none": "No condition on record has a guideline target, so there is nothing to score here."
   },
   "CategoryDetail": {
     "category": "Category",

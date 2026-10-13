@@ -1348,5 +1348,9 @@
     <string name="hospital_cancel">Cancelar</string>
     <string name="hospital_name_required">Uma operação precisa de um nome.</string>
     <string name="hospital_admitted_required">Um internamento precisa da data em que foi internado.</string>
-    <string name="condition_management">Gestão de condições</string>
+    <string name="alpha_card_title">Gestão de condições (Α)</string>
+    <string name="alpha_card_subtitle">Como aquilo com que você vive está sendo mantido de acordo com as diretrizes escritas para isso. Uma pergunta diferente de como você está.</string>
+    <string name="alpha_against_guidelines">em relação aos objetivos das diretrizes</string>
+    <string name="alpha_off_target_heading">Fora do seu objetivo</string>
+    <string name="alpha_none">Nenhuma condição registrada tem um objetivo de diretriz, portanto não há nada para pontuar aqui.</string>
 </resources>

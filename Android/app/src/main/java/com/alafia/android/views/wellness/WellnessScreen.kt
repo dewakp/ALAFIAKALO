@@ -719,52 +719,6 @@ private fun HEBCSTab() {
                             )
                             Text(stringResource(R.string.data_coverage), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        // Α — how well the CONDITIONS are being managed, which is a
-                        // different question from how well the patient IS. Shown beside
-                        // Ω because the pair is the only thing a clinician can act on.
-                        // Absent is NOT zero: the reason takes its place so a gap cannot
-                        // read as a bad score.
-                        val alphaPct = d.alphaPct
-                        if (alphaPct != null) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    String.format("%.0f%%", alphaPct),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF8B5CF6)
-                                )
-                                Text(
-                                    stringResource(R.string.condition_management),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } else if (d.alphaReason != null) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    "—",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    d.alphaReason,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                    d.alphaOffTarget.take(3).forEach { row ->
-                        Spacer(Modifier.height(4.dp))
-                        val lo = row.targetRange?.firstOrNull()
-                        val hi = row.targetRange?.lastOrNull()
-                        Text(
-                            "${row.name} ${row.value ?: "—"} — target ${lo ?: ""}-${hi ?: ""}" +
-                                (row.authority?.let { " · $it" } ?: ""),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                     if (d.labDateUsed != null) {
                         Spacer(Modifier.height(4.dp))
@@ -806,6 +760,85 @@ private fun HEBCSTab() {
                                 stringResource(R.string.omega_reference, b.name, value, range),
                                 style = MaterialTheme.typography.labelSmall, color = fg
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Α — CONDITION MANAGEMENT, in a card of its own.
+        //
+        // A separate card because it is a separate question. Ω says how the
+        // patient IS; Α says how well what they live with is being HELD to the
+        // guidelines written for it. They routinely disagree — haemoglobin 11.3
+        // is anaemia on a health band and on target under KDIGO — and the pair
+        // is the only thing a clinician can act on.
+        //
+        // Absent Α is NOT a zero: the reason is shown in words rather than an
+        // empty gauge, which would read as a bad score.
+        item {
+            Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        stringResource(R.string.alpha_card_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(R.string.alpha_card_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    val alphaPct = d.alphaPct
+                    if (alphaPct == null) {
+                        Text(
+                            d.alphaReason ?: stringResource(R.string.alpha_none),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                String.format("%.0f%%", alphaPct),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF8B5CF6)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                stringResource(R.string.alpha_against_guidelines),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (d.alphaOffTarget.isNotEmpty()) {
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                stringResource(R.string.alpha_off_target_heading),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFB45309)
+                            )
+                            d.alphaOffTarget.forEach { row ->
+                                Spacer(Modifier.height(6.dp))
+                                val lo = row.targetRange?.firstOrNull()
+                                val hi = row.targetRange?.lastOrNull()
+                                Text(
+                                    "${row.name} ${row.value ?: "—"} — ${lo ?: ""}-${hi ?: ""}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                // The guideline that set the band. A target with
+                                // no authority is a number someone typed (§3bc).
+                                row.authority?.let {
+                                    Text(
+                                        it,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }

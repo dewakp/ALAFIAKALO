@@ -3052,8 +3052,12 @@
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
     "reference": "{{name}}: {{value}} (reference {{value2}})",
-    "alpha_management": "إدارة الحالة الصحية",
-    "alpha_target_range": "الهدف {{low}}-{{high}}"
+    "alpha_target_range": "الهدف {{low}}-{{high}}",
+    "alpha_card_title": "إدارة الحالة (Α)",
+    "alpha_card_subtitle": "مدى التزام علاجك بالإرشادات الموضوعة لحالتك. هذا سؤال مختلف عن حالتك الصحية العامة: يمكنك أن تكون مريضاً بشدة وفي نفس الوقت تتلقى علاجاً ممتازاً.",
+    "alpha_against_guidelines": "مقابل أهداف الإرشادات",
+    "alpha_off_target_heading": "خارج النطاق المستهدف",
+    "alpha_none": "لا توجد حالة مسجلة لها هدف إرشادي، لذا لا يوجد شيء لتقييمه هنا."
   },
   "CategoryDetail": {
     "category": "الفئة",

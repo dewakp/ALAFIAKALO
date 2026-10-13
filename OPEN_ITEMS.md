@@ -2859,3 +2859,60 @@ direction it could not support.
   labels for an enum rather than composed prose — the clinical content is the
   resolver-written `mechanism` — but the distinction deserves a decision rather
   than my assertion.
+
+---
+
+## 33. Α has a card of its own — 2026-10-13
+
+Operator: *"since we are measuring A alpha, we need to surface the card in
+wellness"*.
+
+Α had been a third column beside Ω's score and data coverage, which reads as a
+sub-measure of Ω. It is not one — it answers a different question, and the
+layout said otherwise.
+
+**A card of its own on all three clients**, after the pathway breakdown:
+
+- the Α figure against its guideline targets,
+- its own pathway bars (web),
+- every off-target marker with its value, its target band, **and the guideline
+  that set it** — a target with no authority is a number someone typed (§3bc),
+- and when Α is absent, **the reason in words** rather than an empty gauge.
+  Nothing to manage is not bad management, and a blank dial reads as a zero
+  (§3aa).
+
+The subtitle states the distinction the layout now carries: *"How well what you
+live with is being held to the guidelines written for it. A different question
+from how you are."*
+
+> **Two dead controls removed on the way.** `Wellness.alpha_management` (web,
+> 11 locales) and `condition_management` (Android, 11 locales) were the labels
+> for the column Α no longer occupies, and nothing read either. Left in place
+> they would be §3ar in the i18n catalog — a string translated into ten
+> languages for a surface that does not exist. The Android orphan also had to
+> be cleared from the ten `values-*` files, not just the source one.
+
+### Verified
+
+    web        bundle check: `alpha_card_title` present in the SERVED
+               dist/assets/Wellness-*.js and index-*.js, not just in source
+               (§4 — ask the served asset, never the build log)
+    frontend   43 files, 279 passed
+    backend    40 passed (ratchet still 109, slack 0)
+    iOS        ** BUILD SUCCEEDED **, 0 error: lines
+    Android    BUILD SUCCESSFUL, app-debug.apk 32,763,421 bytes
+               (32,757,741 → 32,759,581 → 32,763,421 across the three builds,
+                so each rebuild demonstrably carried its change)
+    i18n       44 catalog tests + Android lint MissingTranslation clean;
+               5 new keys translated into all ten languages on both platforms
+    guards     51 passed from a repo-root mount
+
+### STILL OPEN
+
+- **33a.** The card's copy is fixed UI text in the catalog, which is the right
+  home for it (§3aw) — but the SENTENCE a patient reads about their own Α is
+  still the deterministic off-target line, not ALAFIA's. The Ω paragraph goes
+  through `finding_text`; Α's does not yet.
+- **33b.** Α has no trend. Ω has history on `wellness_scores`; nothing stores Α,
+  so "is management improving?" cannot be answered — which is the question a
+  management score exists to answer.

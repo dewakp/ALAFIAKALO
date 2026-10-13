@@ -3052,8 +3052,12 @@
     "elimination": "Elimination",
     "needs_attention": "Needs attention",
     "reference": "{{name}}: {{value}} (reference {{value2}})",
-    "alpha_management": "Erkrankungsverwaltung",
-    "alpha_target_range": "Ziel {{low}}-{{high}}"
+    "alpha_target_range": "Ziel {{low}}-{{high}}",
+    "alpha_card_title": "Krankheitsverwaltung (Α)",
+    "alpha_card_subtitle": "Wie gut Ihre Erkrankung nach den dafür geltenden Richtlinien behandelt wird. Das ist eine andere Frage als Ihrem allgemeinen Gesundheitszustand: Sie können ernsthaft erkrankt sein und gleichzeitig vorbildlich behandelt werden.",
+    "alpha_against_guidelines": "gegenüber Richtlinienvorgaben",
+    "alpha_off_target_heading": "Außerhalb des Zielbereichs",
+    "alpha_none": "Keine erfasste Erkrankung hat ein Richtlinienziel, daher gibt es hier nichts zu bewerten."
   },
   "CategoryDetail": {
     "category": "Kategorie",
