@@ -1156,8 +1156,10 @@ async def get_daily_recommendations(
     ))
 
     all_recs = [r for v in recs.values() for r in v]
+    # `**recs` splatted the same items back in, grouped by category — see the
+    # schema. Every item already carries its own `category`.
     return DailyRecommendationsResponse(
-        date=today_str, recommendations=all_recs, **recs,
+        date=today_str, recommendations=all_recs,
     )
 
 

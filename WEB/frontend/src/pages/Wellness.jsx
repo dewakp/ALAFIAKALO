@@ -898,14 +898,17 @@ function RecommendationsTab() {
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
   if (!data) return <p style={{ color: '#9ca3af', textAlign: 'center', padding: 32 }}>{t('Wellness.no_recommendations_available')}</p>;
 
-  // Gather all recommendation items – combine the general list with named category arrays
-  const allRecs = [];
-  if (data.recommendations) allRecs.push(...data.recommendations);
-  ['nutrition', 'fitness', 'sleep', 'mood', 'medical', 'medication'].forEach((cat) => {
-    if (Array.isArray(data[cat])) {
-      data[cat].forEach((r) => allRecs.push({ ...r, category: r.category || cat }));
-    }
-  });
+  // ONE source. This used to push `data.recommendations` and then ALSO loop
+  // ['nutrition','fitness','sleep','mood','medical','medication'] pushing
+  // `data[cat]` — and the payload carried the same eight items both ways, so
+  // every card rendered twice: Nutrition showed 4 for 2 real recommendations.
+  // The per-category mirrors are gone from the response; every item carries its
+  // own `category` and is grouped below.
+  //
+  // (That loop also asked for a category the API never sent — 'medical' — while
+  // missing two it did: 'hydration' and 'general'. A hand-written list of keys
+  // beside a payload that already names them.)
+  const allRecs = Array.isArray(data.recommendations) ? [...data.recommendations] : [];
 
   // Group by category
   const grouped = {};

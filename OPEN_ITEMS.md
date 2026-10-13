@@ -2916,3 +2916,60 @@ from how you are."*
 - **33b.** Α has no trend. Ω has history on `wellness_scores`; nothing stores Α,
   so "is management improving?" cannot be answered — which is the question a
   management score exists to answer.
+
+---
+
+## 34. Every recommendation card rendered twice — FIXED 2026-10-13
+
+Reported from the live screen: *"every card here is duplicated"*. Nutrition
+showed **4** for two real recommendations, Fitness 2 for one, Sleep 2, Medication
+2 — and the section counts agreed with the duplicates, so the doubling was
+upstream of the layout.
+
+**The API was innocent; the schema was not.** `/wellness/recommendations`
+returned the same eight items twice:
+
+    recommendations  [8]        the flat list, every item carrying `category`
+    nutrition        [2]  ┐
+    fitness          [1]  │
+    sleep            [1]  ├─ the SAME eight items, split by category
+    medication       [1]  │
+    mood             [1]  │
+    hydration        [1]  │
+    general          [1]  ┘
+
+Both mobile clients decode only `recommendations` and ignored the mirrors. The
+single reader of those seven fields was `Wellness.jsx`, which pushed the flat
+list and *then* looped the category keys — so **the duplicate field's only
+reader was the code it broke.** §3ai's "two computations of one quantity must
+not disagree", in the case where they agreed and were summed.
+
+> The web loop also asked for a category the API never sent — `medical` — while
+> missing two it did: `hydration` and `general`. A hand-written list of keys
+> standing beside a payload that already names them, wrong in both directions
+> and invisible because the extra copies merely looked like more cards.
+
+Fixed in all three places rather than only the one that showed: the schema
+carries one list, the endpoint stopped splatting `**recs`, and the client reads
+`data.recommendations` alone. Measured after: `payload keys: ['date',
+'recommendations']`, 8 items, **duplicates: NONE**.
+
+> ⚠️ **The guard tripped over its own documentation.** The first version of
+> `test_the_endpoint_does_not_splat_a_second_copy` grepped the function source
+> for `"**recs"` — and failed, because the COMMENT explaining the removal
+> contains that string. It now walks the AST for a real `**` keyword on the
+> response construction. §3av: a scan is evidence only once it is shown to see
+> what it claims to, and that one was reading prose rather than code.
+
+**Verified:** 4 new guards (incl. one end-to-end against a seeded user counting
+ROWS, because a dedupe bug that reports the right fields while returning the
+same title twice is exactly the failure); 51 backend passed; 279 frontend;
+ruff F,E9 clean.
+
+### STILL OPEN
+
+- **34a.** Removing seven response fields is a wire change. Both mobile clients
+  decode only `recommendations`, verified by reading
+  `DailyRecommendationsResponse` on each — but **no mobile build was run for
+  this change**, because nothing in their models referenced the removed fields.
+  That is reasoning, not the §3 standard of verifying by building.

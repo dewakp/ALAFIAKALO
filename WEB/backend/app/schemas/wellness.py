@@ -220,14 +220,22 @@ class RecommendationItem(BaseModel):
 
 class DailyRecommendationsResponse(BaseModel):
     date: str
+    #: The complete list. Every item carries its own `category`, so a client
+    #: that wants them grouped groups them.
+    #:
+    #: ⚠️ This used to ship ALONGSIDE seven per-category mirrors — `nutrition`,
+    #: `fitness`, `sleep`, `medication`, `mood`, `hydration`, `general` — which
+    #: held THE SAME eight items split up. Both mobile clients decoded only
+    #: `recommendations` and ignored the mirrors; the single reader was the web
+    #: page, which pushed the flat list AND then looped the category keys,
+    #: rendering **every card twice**. Nutrition showed 4 for 2 real
+    #: recommendations.
+    #:
+    #: So the duplicate field was not merely redundant: its only reader was the
+    #: code it broke. Two copies of one fact, which this codebase keeps paying
+    #: for (§3ai: two computations of one quantity must not disagree — here
+    #: they agreed, and were added together).
     recommendations: list[RecommendationItem] = []
-    nutrition: list[RecommendationItem] = []
-    fitness: list[RecommendationItem] = []
-    sleep: list[RecommendationItem] = []
-    medication: list[RecommendationItem] = []
-    mood: list[RecommendationItem] = []
-    hydration: list[RecommendationItem] = []
-    general: list[RecommendationItem] = []
 
 
 # ── Health Improvements ──────────────────────────────────────
