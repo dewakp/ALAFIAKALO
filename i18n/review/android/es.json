@@ -7181,6 +7181,66 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "therapy_blood_transfusion": {
+    "source": "Blood transfusion",
+    "translation": "Transfusión de sangre",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_chemotherapy": {
+    "source": "Chemotherapy",
+    "translation": "Quimioterapia",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_hemodialysis": {
+    "source": "Hemodialysis",
+    "translation": "Hemodiálisis",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_immunotherapy": {
+    "source": "Immunotherapy",
+    "translation": "Inmunoterapia",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_infusion_therapy": {
+    "source": "Infusion therapy",
+    "translation": "Terapia de infusión",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_peritoneal_dialysis": {
+    "source": "Peritoneal dialysis",
+    "translation": "Diálisis peritoneal",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_physical_therapy": {
+    "source": "Physical therapy",
+    "translation": "Fisioterapia",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_radiation_therapy": {
+    "source": "Radiation therapy",
+    "translation": "Radioterapia",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_types": {
+    "source": "Therapies",
+    "translation": "Terapias",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "therapy_types_help": {
+    "source": "Which therapies treat this condition. This decides whether the app shows you those screens.",
+    "translation": "Qué terapias tratan esta condición. Esto decide si la app te muestra esas pantallas.",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "this_action_cannot_be_undone_all_your": {
     "source": "This action cannot be undone. All your health data will be permanently deleted. Are you sure you want to continue?",
     "translation": "Esta acción no se puede deshacer. Todos tus datos de salud se eliminarán permanentemente. ¿Estás seguro de que deseas continuar?",

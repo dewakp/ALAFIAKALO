@@ -2549,7 +2549,9 @@
     "data_sharing_consent": "Idhini ya Kushiriki Data",
     "ai_training_consent": "Idhini ya Mafunzo ya AI",
     "profile_updated_successfully": "Wasifu umebadilishwa kwa mafanikio.",
-    "failed_to_update_profile": "Imeshindwa kubadilisha wasifu."
+    "failed_to_update_profile": "Imeshindwa kubadilisha wasifu.",
+    "therapies": "Tiba",
+    "therapies_none": "Hakuna zilizotambuliwa — ongeza kwa hali ili kuona skrini za matibabu"
   },
   "PromptHub": {
     "how_are_you_doing_today": "Habari yako leo?",

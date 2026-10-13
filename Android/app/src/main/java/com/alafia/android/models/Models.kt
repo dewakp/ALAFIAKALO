@@ -416,6 +416,11 @@ data class ChronicCondition(
     val stage: String?,
     val grade: String?,
     @SerializedName("current_treatment_plan") val currentTreatmentPlan: String?,
+    /** Therapies this condition is treated with. DECLARED by the patient,
+     *  and what decides whether the app offers the matching treatment
+     *  screens — the backend used to guess it by substring-matching the
+     *  condition's wording. */
+    @SerializedName("therapy_types") val therapyTypes: List<String>? = null,
     @SerializedName("primary_physician") val primaryPhysician: String?,
     @SerializedName("specialist_physician") val specialistPhysician: String?,
     @SerializedName("monitoring_frequency") val monitoringFrequency: String?,

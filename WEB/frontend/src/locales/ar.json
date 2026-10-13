@@ -2549,7 +2549,9 @@
     "data_sharing_consent": "موافقة مشاركة البيانات",
     "ai_training_consent": "موافقة استخدام الذكاء الاصطناعي في التدريب",
     "profile_updated_successfully": "تم تحديث الملف الشخصي بنجاح.",
-    "failed_to_update_profile": "فشل تحديث الملف الشخصي."
+    "failed_to_update_profile": "فشل تحديث الملف الشخصي.",
+    "therapies": "العلاجات",
+    "therapies_none": "لم يتم إضافة أي علاجات — أضف علاجًا لحالة ما لعرض شاشات العلاج"
   },
   "PromptHub": {
     "how_are_you_doing_today": "كيف حالك اليوم؟",

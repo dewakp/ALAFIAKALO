@@ -1025,3 +1025,89 @@ whether the formula is right, and it is cited in the Discussion as if it did.
 > ⚠️ **F1 is the one that must not be repeated in the product.** §18e already
 > says fitting shapes or weights needs a non-tautological outcome. The paper
 > demonstrates exactly what happens without one, at AUC 1.000, in print.
+
+---
+
+## 19. "Chat with Alafia" — TELL performs, ASK answers
+
+Operator, 2026-10-13, verbatim:
+
+> *"change AI prompt message to "Chat with Alafia". This is more
+> representative. So user can tell (prompt for action) or Ask (query for
+> information). Tell call tools to "actually" perform tasks such as log
+> medication, elimination, food, mood, and anything else that is actionable.
+> Ask uses user's data as foundation to offer user spicific/tailored precision
+> response."*
+
+**Why the rename is not cosmetic.** The entry point is labelled `Ask ALAFIA`
+(`Layout.ask_alafia`, web sidebar and two more catalog entries), and that label
+is an accurate description of what the surface can mostly do — which is the
+problem. §3am already records the failure it caused: asked to *"log this meal"*
+the assistant answered *"I don't have the ability to log meals into your
+record"* and handed the work back, holding the meal, the times and an explicit
+instruction. `log_meal` and `log_medication` were opened afterwards; the NAME
+still says the assistant only answers.
+
+### Measured 2026-10-13 — what TELL can actually do
+
+    WRITE_TOOLS   log_meal, log_medication                         2
+    READ tools    get_meals, get_medications, get_eliminations,
+                  get_vitals, get_labs, get_surgical_history       6
+
+Loggable domains with an API and **no write tool**: `elimination`, `mood`,
+`sleep`, `symptoms`, `vitals`, `fitness`. The operator names elimination and
+mood explicitly, and both are read-only to the assistant today — it can tell a
+patient what their eliminations show and cannot record the one they just had.
+
+### 19a — the label, everywhere it appears
+
+`Layout.ask_alafia` in eleven web locales, plus iOS and Android. One string per
+platform, but §3aw's guard means all ten translations move with it, and the
+catalog test fails if they do not.
+
+### 19b — TELL: finish the write surface
+
+Per §3am's existing rules, which already govern `log_meal` and must govern the
+rest:
+
+- **Only what the patient named**, in their words and quantities — no adding,
+  rounding or completing.
+- **A repeat call does not double-count.** A tool loop retries; a duplicated
+  meal doubles a day's nutrients. Each write returns `already_logged` with the
+  original id.
+- **Every written value states its provenance**, so a figure the patient never
+  spoke cannot read as one they did.
+- **Inference proposes; it never writes.** No dose stated and none in history →
+  nothing is written, and it asks (§3aj).
+- **The patient's date, not the server's** — `patient_today` threads through
+  the loop into the write (§3am).
+- ⚠️ **Vitals and labs stay READ-ONLY**, deliberately. A blood pressure or a
+  lab value spoken into a chat and stored as measured is a clinical record
+  nobody took. `WRITE_TOOLS` is the declaration, and widening it is a decision,
+  not a convenience.
+- Each new writer touching a §3aa-guarded model needs its `ALLOWED` entry with
+  a stated reason, or `test_clinical_sources` fails the build.
+
+### 19c — ASK: the data is the foundation, and mostly is already
+
+The tool loop exists and works (§3am): the model asks for rows and reasons from
+them, rather than the backend guessing the question. What is NOT yet true of
+"user specific / tailored precision":
+
+- **Ω and Α are not reachable by the assistant.** There is no tool returning
+  the wellness or management score, its pathways, or its findings — so "how am
+  I doing?" is answered from raw rows while the product's own composite sits
+  unseen.
+- **Surgical history, hospital stays and declared therapies** are partly
+  wired (`get_surgical_history`) and partly not.
+- **The patient's own goals** (`compute_goals`, with the cited quotas of §3bc)
+  are in the framing prompt but have no tool, so a question about a specific
+  nutrient target cannot fetch its authority.
+
+### 19d — the two modes must not become two code paths
+
+One loop, one provider order, one redaction point. §3am records what two copies
+cost: `stream_chat` was implemented BESIDE `stream_events` and the Anthropic
+streamer silently dropped every `role="tool"` message on the path the product
+actually uses, while the fix sat in `chat()` next door. TELL and ASK are a
+difference in what the model decides to call, not a fork in the code.

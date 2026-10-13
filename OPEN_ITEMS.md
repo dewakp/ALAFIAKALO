@@ -3062,3 +3062,55 @@ a clinical fact.
 - **35b. Mobile cannot set it.** iOS and Android render the surfacing but have
   no therapy selector, so a phone-only patient cannot declare a modality.
 - **35c. Production is unmigrated.** `aq001` is dev only.
+
+---
+
+## 36. Profile and mobile can declare a therapy — 2026-10-13 (closes 35a, 35b)
+
+OPEN_ITEMS 35 shipped the declared-therapy field web-only, so a phone-only
+patient could not say what they are on — and therefore could not reach the
+screen for it. §3: a feature is not done until web, iOS and Android have it.
+
+- **iOS** — `ConditionFormView` gains a Therapies section; `ChronicCondition`
+  and its form model carry `therapyTypes`, with the coding key added to BOTH
+  `CodingKeys` blocks (the struct and the form each declare their own — missing
+  one would decode silently as nil, §3av's field that the form submits but
+  never declares).
+- **Android** — a checkbox group in `ChronicConditionsScreen`, with
+  `therapyTypes` on the model.
+- **Profile** surfaces the declared therapies READ-ONLY and links to the one
+  screen that edits them. A second edit form for one field is two forms to keep
+  in step — §3as's *"two front doors is worse than one broken one"*, where the
+  signup flow shipped beside the old one and nobody could tell which they
+  wanted. The line also says what the setting DOES, so the connection between
+  declaring a therapy and seeing its screen is not left invisible.
+
+> ⚠️ **Android sends `therapy_types` even when EMPTY.** A field the form shows
+> but only ever sends when non-empty cannot be UNSET: ticking a box, saving, and
+> then unticking it would leave the old value stored and the screen still
+> offered. That is §3av's "a field the form submits but never declares erases
+> itself", from the other side — and the asymmetry is why the clearing path
+> needs stating rather than assuming.
+
+### Verified
+
+    iOS        ** BUILD SUCCEEDED **, 0 error: lines
+    Android    BUILD SUCCESSFUL — APK 32,763,421 → 32,767,801 → 32,771,425
+               across the model, selector and translation builds
+    frontend   279 passed
+    backend    26 passed
+    i18n       51 guards + 44 catalog tests; Android lint MissingTranslation = 0;
+               10 Android and 2 web keys translated into all ten languages
+    ruff       F,E9 clean
+
+### STILL OPEN
+
+- **36a. `aq001` is dev-only.** Production has no `therapy_types` column, so
+  none of this reaches a patient until the migration ships. Deploying also
+  carries every undeployed change since `2a96a38` — including Ω/Α, which moves
+  the score for every patient — so it is one decision, not a routine push.
+- **36b.** Nothing BACKFILLS. The 5 existing production conditions will arrive
+  with NULL, so a current dialysis patient keeps their screens through their
+  sessions (data beats a missing declaration) but sees no therapy declared
+  until they set one. Inventing it from their condition text is the guess this
+  work removed.

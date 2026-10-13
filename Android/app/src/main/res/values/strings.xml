@@ -1378,4 +1378,14 @@
     <string name="alpha_against_guidelines">against guideline targets</string>
     <string name="alpha_off_target_heading">Outside its target</string>
     <string name="alpha_none">No condition on record has a guideline target, so there is nothing to score here.</string>
+    <string name="therapy_types">Therapies</string>
+    <string name="therapy_types_help">Which therapies treat this condition. This decides whether the app shows you those screens.</string>
+    <string name="therapy_hemodialysis">Hemodialysis</string>
+    <string name="therapy_peritoneal_dialysis">Peritoneal dialysis</string>
+    <string name="therapy_chemotherapy">Chemotherapy</string>
+    <string name="therapy_radiation_therapy">Radiation therapy</string>
+    <string name="therapy_immunotherapy">Immunotherapy</string>
+    <string name="therapy_infusion_therapy">Infusion therapy</string>
+    <string name="therapy_physical_therapy">Physical therapy</string>
+    <string name="therapy_blood_transfusion">Blood transfusion</string>
 </resources>

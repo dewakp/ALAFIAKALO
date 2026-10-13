@@ -2549,7 +2549,9 @@
     "data_sharing_consent": "数据共享同意",
     "ai_training_consent": "AI 训练同意",
     "profile_updated_successfully": "个人资料更新成功。",
-    "failed_to_update_profile": "个人资料更新失败。"
+    "failed_to_update_profile": "个人资料更新失败。",
+    "therapies": "治疗方案",
+    "therapies_none": "未添加 — 在病情中添加治疗方案以查看治疗屏幕"
   },
   "PromptHub": {
     "how_are_you_doing_today": "你今天感觉怎么样？",

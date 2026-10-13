@@ -161,6 +161,20 @@ struct ChronicSeverityBadge: View {
 }
 
 struct ConditionFormView: View {
+    /// Mirrors the backend `TherapyType` enum. The server validates what it
+    /// receives against its own copy, so a drift here costs a missing row —
+    /// never a wrong stored modality.
+    static let therapyOptions: [(value: String, label: String)] = [
+        ("hemodialysis", "Hemodialysis"),
+        ("peritoneal_dialysis", "Peritoneal dialysis"),
+        ("chemotherapy", "Chemotherapy"),
+        ("radiation_therapy", "Radiation therapy"),
+        ("immunotherapy", "Immunotherapy"),
+        ("infusion_therapy", "Infusion therapy"),
+        ("physical_therapy", "Physical therapy"),
+        ("blood_transfusion", "Blood transfusion"),
+    ]
+
     let condition: ChronicCondition?
     let onSave: (ChronicConditionCreate) -> Void
     
@@ -260,6 +274,30 @@ struct ConditionFormView: View {
                     ), displayedComponents: .date)
                 }
                 
+                // Therapies this condition is treated with. The server
+                // validates every value against its own `TherapyType` enum and
+                // drops what it does not recognise, so this list is a
+                // convenience and never the authority (§3ad).
+                Section("Therapies") {
+                    Text("Which therapies treat this condition. This decides whether the app shows you those screens.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    ForEach(ConditionFormView.therapyOptions, id: \.value) { option in
+                        let on = (formData.therapyTypes ?? []).contains(option.value)
+                        Button {
+                            var next = Set(formData.therapyTypes ?? [])
+                            if on { next.remove(option.value) } else { next.insert(option.value) }
+                            formData.therapyTypes = next.isEmpty ? nil : Array(next).sorted()
+                        } label: {
+                            HStack {
+                                Image(systemName: on ? "checkmark.square.fill" : "square")
+                                    .foregroundStyle(on ? .blue : .secondary)
+                                Text(option.label).foregroundStyle(.primary)
+                                Spacer()
+                            }
+                        }
+                    }
+                }
+
                 Section("Treatment & Notes") {
                     TextEditor(text: Binding(
                         get: { formData.currentTreatmentPlan ?? "" },
@@ -344,6 +382,12 @@ struct ChronicCondition: Identifiable, Codable {
     let stage: String?
     let grade: String?
     let currentTreatmentPlan: String?
+    /// Therapies this condition is treated with. DECLARED by the patient, and
+    /// what decides whether the app offers the matching treatment screens —
+    /// the backend used to guess it by substring-matching the condition's
+    /// wording, so "ESKD" matched nothing and "history of dialysis" matched
+    /// everything.
+    let therapyTypes: [String]?
     let primaryPhysician: String?
     let specialistPhysician: String?
     let monitoringFrequency: String?
@@ -367,6 +411,7 @@ struct ChronicCondition: Identifiable, Codable {
         case isActive = "is_active"
         case remissionDate = "remission_date"
         case currentTreatmentPlan = "current_treatment_plan"
+        case therapyTypes = "therapy_types"
         case primaryPhysician = "primary_physician"
         case specialistPhysician = "specialist_physician"
         case monitoringFrequency = "monitoring_frequency"
@@ -391,6 +436,7 @@ struct ChronicConditionCreate: Codable {
     var stage: String?
     var grade: String?
     var currentTreatmentPlan: String?
+    var therapyTypes: [String]?
     var primaryPhysician: String?
     var specialistPhysician: String?
     var monitoringFrequency: String?
@@ -411,6 +457,7 @@ struct ChronicConditionCreate: Codable {
         case isActive = "is_active"
         case remissionDate = "remission_date"
         case currentTreatmentPlan = "current_treatment_plan"
+        case therapyTypes = "therapy_types"
         case primaryPhysician = "primary_physician"
         case specialistPhysician = "specialist_physician"
         case monitoringFrequency = "monitoring_frequency"

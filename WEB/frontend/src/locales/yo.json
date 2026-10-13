@@ -2549,7 +2549,9 @@
     "data_sharing_consent": "Ìfẹ́ Pín Dátà",
     "ai_training_consent": "Ìfẹ́ Ìlò AI fún Ìkẹ́kọ̀ọ́",
     "profile_updated_successfully": "Profáìlì tún ṣe àkọ́kọ́ dáradára.",
-    "failed_to_update_profile": "Ṣíṣe tún profáìlì kù."
+    "failed_to_update_profile": "Ṣíṣe tún profáìlì kù.",
+    "therapies": "Àwọn Ìtúnú",
+    "therapies_none": "Kò sí — fi sí ọ̀rọ̀ kan láti rí àwọn ìkópin ìtúnú"
   },
   "PromptHub": {
     "how_are_you_doing_today": "Báwo ni o ń ṣe lónìí?",

@@ -1353,4 +1353,14 @@
     <string name="alpha_against_guidelines">مقابل أهداف الإرشادات</string>
     <string name="alpha_off_target_heading">خارج النطاق المستهدف</string>
     <string name="alpha_none">لا توجد حالة مسجلة لها هدف إرشادي، لذا لا يوجد شيء لتقييمه هنا.</string>
+    <string name="therapy_types">العلاجات</string>
+    <string name="therapy_types_help">أي العلاجات تعالج هذه الحالة. هذا يحدد ما إذا كان التطبيق يعرض لك تلك الشاشات.</string>
+    <string name="therapy_hemodialysis">غسيل الكلى</string>
+    <string name="therapy_peritoneal_dialysis">غسيل الكلى البريتوني</string>
+    <string name="therapy_chemotherapy">العلاج الكيميائي</string>
+    <string name="therapy_radiation_therapy">العلاج الإشعاعي</string>
+    <string name="therapy_immunotherapy">العلاج المناعي</string>
+    <string name="therapy_infusion_therapy">العلاج بالتسريب</string>
+    <string name="therapy_physical_therapy">العلاج الطبيعي</string>
+    <string name="therapy_blood_transfusion">نقل الدم</string>
 </resources>

@@ -1353,4 +1353,14 @@
     <string name="alpha_against_guidelines">gegen Richtlinienziele</string>
     <string name="alpha_off_target_heading">Außerhalb des Zielbereichs</string>
     <string name="alpha_none">Keine erfasste Erkrankung hat ein Richtlinienziel, daher gibt es hier nichts zu bewerten.</string>
+    <string name="therapy_types">Therapien</string>
+    <string name="therapy_types_help">Welche Therapien behandeln diese Erkrankung. Dies bestimmt, welche Bildschirme die App dir zeigt.</string>
+    <string name="therapy_hemodialysis">Hämodialyse</string>
+    <string name="therapy_peritoneal_dialysis">Peritonealdialyse</string>
+    <string name="therapy_chemotherapy">Chemotherapie</string>
+    <string name="therapy_radiation_therapy">Strahlentherapie</string>
+    <string name="therapy_immunotherapy">Immuntherapie</string>
+    <string name="therapy_infusion_therapy">Infusionstherapie</string>
+    <string name="therapy_physical_therapy">Physiotherapie</string>
+    <string name="therapy_blood_transfusion">Bluttransfusion</string>
 </resources>

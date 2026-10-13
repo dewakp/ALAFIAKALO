@@ -437,6 +437,29 @@ export default function Profile() {
               rather than a text box here. */}
           <div style={sectionStyle}>
             {sectionTitle('Health Conditions')}
+            {/* Declared therapies, surfaced here because this is where people
+                look — and READ-ONLY, linking to the one screen that edits them.
+                A second form for the same field is two forms to keep in step,
+                which is §3as's "two front doors is worse than one broken one":
+                the signup flow shipped beside the old one and nobody could tell
+                which they wanted.
+
+                This is also what decides whether the app offers the HD or PD
+                screens at all, so the line says so rather than leaving the
+                connection invisible. */}
+            {Array.isArray(conditions) && conditions.length > 0 && (() => {
+              const declared = [...new Set(
+                conditions.flatMap((c) => c.therapy_types || []))];
+              return (
+                <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem',
+                            color: 'var(--color-text-secondary, #666)' }}>
+                  <strong>{translate('Profile.therapies')}: </strong>
+                  {declared.length
+                    ? declared.map((v) => translate(`ChronicConditions.therapy_${v}`)).join(', ')
+                    : translate('Profile.therapies_none')}
+                </p>
+              );
+            })()}
             <Link
               to="/chronic-conditions"
               data-testid="profile-conditions-link"

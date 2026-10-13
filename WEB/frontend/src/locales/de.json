@@ -2549,7 +2549,9 @@
     "data_sharing_consent": "Einwilligung zur Datenweitergabe",
     "ai_training_consent": "Einwilligung zum KI-Training",
     "profile_updated_successfully": "Profil erfolgreich aktualisiert.",
-    "failed_to_update_profile": "Profil konnte nicht aktualisiert werden."
+    "failed_to_update_profile": "Profil konnte nicht aktualisiert werden.",
+    "therapies": "Therapien",
+    "therapies_none": "Keine eingetragen — fügen Sie eine Erkrankung hinzu, um Behandlungsoptionen zu sehen"
   },
   "PromptHub": {
     "how_are_you_doing_today": "Wie geht es dir heute?",

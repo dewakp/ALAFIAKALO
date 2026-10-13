@@ -2549,7 +2549,9 @@
     "data_sharing_consent": "Izini Raba Bayani",
     "ai_training_consent": "Izini Horon AI",
     "profile_updated_successfully": "An sabunta profaili cikin nasara.",
-    "failed_to_update_profile": "Sabunta profaili bai yi nasara ba."
+    "failed_to_update_profile": "Sabunta profaili bai yi nasara ba.",
+    "therapies": "Jiyya",
+    "therapies_none": "Babu wanda aka bayyana — ƙara su kan yanayi don ganin allon jiyya"
   },
   "PromptHub": {
     "how_are_you_doing_today": "Yaya kake jiya?",

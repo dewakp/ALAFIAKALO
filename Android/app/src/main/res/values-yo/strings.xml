@@ -1353,4 +1353,14 @@
     <string name="alpha_against_guidelines">lòdì sí àwọn ibi-ìfitọ́sọ́nà</string>
     <string name="alpha_off_target_heading">Ó kọ jáde nínú ibi-ìfitọ́sọ́nà rẹ̀</string>
     <string name="alpha_none">Kò sí àìsàn kan lórí ìwé tí ó ní ibi-ìfitọ́sọ́nà, nítorí náà kò sí ohun tí a lè ṣe ìsirò fún.</string>
+    <string name="therapy_types">Àwọn Ìtọ́nisọ̀rọ̀</string>
+    <string name="therapy_types_help">Àwọn ìtọ́nisọ̀rọ̀ tí ó ṣe àlàbá fún ìṣẹ̀lẹ̀ yìí. Èyí ń pín dájú bóyá àpp náà yóò fi hàn ọ́ àwọn ìkòkò wọ̀n.</string>
+    <string name="therapy_hemodialysis">Hemodialysis</string>
+    <string name="therapy_peritoneal_dialysis">Peritoneal dialysis</string>
+    <string name="therapy_chemotherapy">Chemotherapy</string>
+    <string name="therapy_radiation_therapy">Radiation therapy</string>
+    <string name="therapy_immunotherapy">Immunotherapy</string>
+    <string name="therapy_infusion_therapy">Infusion therapy</string>
+    <string name="therapy_physical_therapy">Physical therapy</string>
+    <string name="therapy_blood_transfusion">Ìfúnilẹ̀ ẹ̀jẹ̀</string>
 </resources>

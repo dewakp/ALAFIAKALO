@@ -1353,4 +1353,14 @@
     <string name="alpha_against_guidelines">em relação aos objetivos das diretrizes</string>
     <string name="alpha_off_target_heading">Fora do seu objetivo</string>
     <string name="alpha_none">Nenhuma condição registrada tem um objetivo de diretriz, portanto não há nada para pontuar aqui.</string>
+    <string name="therapy_types">Terapias</string>
+    <string name="therapy_types_help">Quais terapias tratam esta condição. Isto decide se o app mostra esses ecrãs.</string>
+    <string name="therapy_hemodialysis">Hemodiálise</string>
+    <string name="therapy_peritoneal_dialysis">Diálise peritoneal</string>
+    <string name="therapy_chemotherapy">Quimioterapia</string>
+    <string name="therapy_radiation_therapy">Radioterapia</string>
+    <string name="therapy_immunotherapy">Imunoterapia</string>
+    <string name="therapy_infusion_therapy">Terapia de infusão</string>
+    <string name="therapy_physical_therapy">Fisioterapia</string>
+    <string name="therapy_blood_transfusion">Transfusão de sangue</string>
 </resources>

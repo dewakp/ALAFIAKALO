@@ -14171,6 +14171,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Profile.therapies": {
+    "source": "Therapies",
+    "translation": "Thérapies",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
+  "Profile.therapies_none": {
+    "source": "None declared — add them on a condition to see its treatment screens",
+    "translation": "Aucune déclarée — ajoutez-en une à une condition pour voir ses écrans de traitement",
+    "status": "machine",
+    "translated_on": "2026-10-13"
+  },
   "Profile.timezone": {
     "source": "Timezone",
     "translation": "Fuseau horaire",

@@ -2549,7 +2549,9 @@
     "data_sharing_consent": "Consentimiento de Compartir Datos",
     "ai_training_consent": "Consentimiento de Entrenamiento de IA",
     "profile_updated_successfully": "Perfil actualizado correctamente.",
-    "failed_to_update_profile": "No se pudo actualizar el perfil."
+    "failed_to_update_profile": "No se pudo actualizar el perfil.",
+    "therapies": "Terapias",
+    "therapies_none": "Ninguna declarada — añade una condición para ver sus pantallas de tratamiento"
   },
   "PromptHub": {
     "how_are_you_doing_today": "¿Cómo te sientes hoy?",

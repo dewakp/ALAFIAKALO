@@ -2549,7 +2549,9 @@
     "data_sharing_consent": "Ịkwenye Ikabiga Data",
     "ai_training_consent": "Ịkwenye Iji AI Mụọ Ọmụmụ",
     "profile_updated_successfully": "Profaịlụ dị mma.",
-    "failed_to_update_profile": "Ịnwe profaịlụ adịghị mma."
+    "failed_to_update_profile": "Ịnwe profaịlụ adịghị mma.",
+    "therapies": "Ọgwụ Ọrụ",
+    "therapies_none": "Ọ dị mma — tinye ha na ọrịa iji hụ ihe a na-eme"
   },
   "PromptHub": {
     "how_are_you_doing_today": "Kedu ka ị na-eme taa?",

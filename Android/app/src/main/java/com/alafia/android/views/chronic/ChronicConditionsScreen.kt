@@ -342,12 +342,32 @@ fun ConditionFormDialog(
     var diagnosisDate by remember { mutableStateOf(condition?.diagnosisDate ?: "") }
     var primaryPhysician by remember { mutableStateOf(condition?.primaryPhysician ?: "") }
     var treatmentPlan by remember { mutableStateOf(condition?.currentTreatmentPlan ?: "") }
+    // Therapies this condition is treated with. DECLARED by the patient, and
+    // what decides whether the app offers the matching treatment screens.
+    var therapyTypes by remember {
+        mutableStateOf((condition?.therapyTypes ?: emptyList()).toSet())
+    }
     var notes by remember { mutableStateOf(condition?.notes ?: "") }
     
     val categories = listOf(
         "cancer", "renal", "diabetes", "blood_disorder",
         "cardiovascular", "respiratory", "autoimmune",
         "neurological", "endocrine", "other"
+    )
+
+    // Mirrors the backend `TherapyType` enum. The server validates what it
+    // receives against its own copy and discards anything it does not
+    // recognise, so a drift here costs a missing row — never a wrong stored
+    // modality (§3ad).
+    val therapyOptions = listOf(
+        "hemodialysis" to R.string.therapy_hemodialysis,
+        "peritoneal_dialysis" to R.string.therapy_peritoneal_dialysis,
+        "chemotherapy" to R.string.therapy_chemotherapy,
+        "radiation_therapy" to R.string.therapy_radiation_therapy,
+        "immunotherapy" to R.string.therapy_immunotherapy,
+        "infusion_therapy" to R.string.therapy_infusion_therapy,
+        "physical_therapy" to R.string.therapy_physical_therapy,
+        "blood_transfusion" to R.string.therapy_blood_transfusion,
     )
     
     val severities = listOf("mild", "moderate", "severe", "critical", "remission")
@@ -470,6 +490,35 @@ fun ConditionFormDialog(
                 }
                 
                 item {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            stringResource(R.string.therapy_types),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                        Text(
+                            stringResource(R.string.therapy_types_help),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        therapyOptions.forEach { (value, labelRes) ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Checkbox(
+                                    checked = value in therapyTypes,
+                                    onCheckedChange = { on ->
+                                        therapyTypes = if (on) therapyTypes + value
+                                                       else therapyTypes - value
+                                    }
+                                )
+                                Text(stringResource(labelRes))
+                            }
+                        }
+                    }
+                }
+
+                item {
                     OutlinedTextField(
                         value = treatmentPlan,
                         onValueChange = { treatmentPlan = it },
@@ -507,6 +556,11 @@ fun ConditionFormDialog(
                     if (diagnosisDate.isNotBlank()) data["diagnosis_date"] = diagnosisDate
                     if (primaryPhysician.isNotBlank()) data["primary_physician"] = primaryPhysician
                     if (treatmentPlan.isNotBlank()) data["current_treatment_plan"] = treatmentPlan
+                    // Sent even when EMPTY on an edit, so clearing every box
+                    // actually clears the stored value — a field the form
+                    // shows but only ever sends when non-empty cannot be
+                    // unset, which is §3av from the other side.
+                    data["therapy_types"] = therapyTypes.sorted()
                     if (notes.isNotBlank()) data["notes"] = notes
                     
                     onSave(data)
