@@ -2751,3 +2751,111 @@ zero.
 - **31c.** Surfacing covers the Therapies group only. Pharmacy, Telehealth and
   the rest are still shown to everyone.
 - **31d.** Production is many commits behind and none of this is deployed.
+
+---
+
+## 32. The hardcoded trap, measured — PARTLY FIXED 2026-10-13
+
+Operator, on a screenshot of two nutrient-effect lines: *"highlighted message
+stating effect has not been established or amount comes from automated sources
+help no one and creates confusion."* Then, after I fixed that one message:
+**"this is not about a particular medication or therapy --- the hard coded
+trap"**.
+
+Right, and I had walked into it: I replaced one hardcoded template with a map
+of five.
+
+### The message that prompted it
+
+    "<agent> affects this, but how much it changes has not been established,
+     so it is shown here and not added to your total."
+
+Calcitriol and Calcium Carbonate both carried it against phosphorus — and
+**those two push phosphate in opposite directions**. Calcitriol raises
+intestinal absorption; calcium carbonate binds it in the gut. The patient read
+one identical non-statement for both. The sentence described OUR uncertainty
+about the MAGNITUDE while hiding the DIRECTION, which is known, stored, and the
+only part they can act on. Measured: **21 of 26** `nutrient_effects` rows carry
+a NULL magnitude, so that was the common path.
+
+> ⚠️ **`INCREASES_REQUIREMENT` is now deliberately left unstated**, and that is
+> a safety decision. It is the stored direction for **Calcitriol → phosphorus**
+> and **Doxercalciferol → phosphorus**, whose own mechanisms read *"increases
+> intestinal phosphate absorption; in renal disease, hyperphosphatemia must be
+> prevented through dietary restriction"*. Rendering it as "you need more
+> phosphorus" would tell a dialysis patient to eat MORE of the thing their
+> limit exists to restrict — §3ac's *"a treatment changes the day's TOTALS, it
+> never changes the LIMIT"*. The rows are mis-classified; it is latent only
+> because every one has a NULL magnitude. **Not fixed — recorded (32a).**
+
+### The trap, measured
+
+A scan of every prose literal reaching a patient-facing field in `app/`:
+
+    109   OBSERVATION — prose + a runtime value. Describes THIS patient, goes
+          stale when the computation changes. The ratchet's subject.
+    255   FIXED COPY — a constant. "Invalid or expired verification link".
+          Routing those through a language model would be absurd; they belong
+          in the i18n catalog, which §3aw already governs.
+
+`tests/test_patient_prose_ratchet.py` holds it at 109 with **slack 0**, in the
+shape `test_parser_hardcoding_ratchet.py` uses for the parser's 290 literals.
+
+> ⚠️ **My first baseline was 96, and it was wrong — by the exact mistake §3ab
+> warns about, one layer in.** The scan judged each f-string FRAGMENT:
+> `f"Your potassium reached {v} today"` arrives as `"Your potassium reached "`
+> (23 chars) and `" today"`, neither long enough to count, so every sentence
+> built that way was **invisible to the thing counting them**. Caught by this
+> file's own `test_the_scan_can_actually_see_an_observation` failing on its own
+> example — not by reading the code. Joined first, the measured figure is
+> **109**. §3av: run the scan, and then prove the scan sees what it claims to.
+
+### Three wrong sentences removed from the Ω card
+
+1. *"A good score here describes how well that is being managed, not its
+   absence."* — **that is Α's job, stated inside Ω.** The conflation, printed
+   for the patient.
+2. *"N marker(s) sit at or below the bottom of their own reference band:
+   Glucose 273, RDW 21.3, RDW 21.3"* — all three were **above the top**, and
+   RDW appeared twice because it sits in two pathways. A sentence naming the
+   wrong side tells a patient to raise a value that is already too high.
+3. *"A pathway score is an average, so these do not show in it."* — stopped
+   being true when that mean became geometric (OPEN_ITEMS 27). **A score that
+   has changed and a caption that has not is how a true number acquires a false
+   explanation.**
+
+The paragraph now goes through `finding_text` — ALAFIA writes it locally, every
+figure verified against the facts, with the corrected deterministic text as the
+fallback. Live:
+
+    Overall biological state from laboratory values shows omega 0.427, 43%,
+    6 pathways scored; creatinine 8.23 and RDW 21.3 are above reference bands.
+
+> ⚠️ **`/wellness/omega` took no language header at all**, so that paragraph
+> was English for every patient whatever they chose (§3aw). Found by the render
+> raising `NameError: language`, not by reading the signature.
+
+### Verified
+
+    backend    118 passed (incl. the new ratchet, 4 tests)
+    frontend   43 files, 279 passed
+    iOS        ** BUILD SUCCEEDED **
+    Android    BUILD SUCCESSFUL, app-debug.apk 32,757,741 bytes
+    ruff       F,E9 clean
+
+A row carrying only a MECHANISM now renders on all three clients — gating on
+`withheld` alone would have hidden it the moment the server stopped asserting a
+direction it could not support.
+
+### STILL OPEN
+
+- **32a.** `INCREASES_REQUIREMENT` on a LIMIT nutrient is mis-modelled for four
+  rows (Calcitriol and Doxercalciferol × phosphorus/calcium). Latent only
+  because their magnitudes are NULL.
+- **32b.** 109 observations remain hand-written. The ratchet stops growth; it
+  does not lower the count. `notification_engine` (12), `wellness` (13),
+  `nutrient_effects_day` (8), `active_response` (6) are the largest.
+- **32c.** `_DIRECTION_LINE` is itself five hardcoded templates. They are
+  labels for an enum rather than composed prose — the clinical content is the
+  resolver-written `mechanism` — but the distinction deserves a decision rather
+  than my assertion.

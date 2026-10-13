@@ -358,7 +358,10 @@ struct GoalNutrientEffect: Codable {
     var isGain: Bool { direction == "adds" }
     /// Mirrors `DialysisBalance.hasEffect`: a withheld effect always shows, and
     /// a delta too small to round is not worth a line.
-    var hasEffect: Bool { withheld != nil || abs(delta) >= 0.005 }
+    /// A MECHANISM alone is enough to show the row: it is the clinical
+    /// content, and gating on `withheld` hid it the moment the server
+    /// stopped asserting a direction it could not support.
+    var hasEffect: Bool { withheld != nil || mechanism != nil || abs(delta) >= 0.005 }
 }
 
 /// What a session did to one nutrient's day.

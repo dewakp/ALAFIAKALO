@@ -98,7 +98,15 @@ function BalanceLine({ balance, unit }) {
    invisible. */
 function EffectLine({ effect, unit }) {
   const adds = effect.direction === 'adds';
-  if (!effect.withheld && Math.abs(effect.delta) < 0.005) return null;
+  // A row with a MECHANISM is shown even when nothing was added to the total
+  // and no direction could be stated. The mechanism is the clinical content —
+  // written by the resolver, not here — and it is exactly what the patient can
+  // act on: "Calcitriol increases intestinal phosphate absorption; in renal
+  // disease, hyperphosphatemia must be prevented through dietary restriction".
+  // Gating on `withheld` alone hid it the moment the server stopped asserting a
+  // direction it could not support (§3aa: an absent sentence is not an absent
+  // fact).
+  if (!effect.withheld && !effect.mechanism && Math.abs(effect.delta) < 0.005) return null;
 
   return (
     <div style={{ fontSize: '.68rem', marginTop: '.2rem', lineHeight: 1.4 }}>

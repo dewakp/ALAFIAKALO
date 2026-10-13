@@ -492,6 +492,7 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
 async def get_hebcs_omega_score(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    client_language: str | None = Header(None, alias=LANGUAGE_HEADER),
 ):
     """HEBCS Ω — Clinical biomarker wellness score using the published
     trapezoidal/pathway/geometric-mean framework (7-pathway ESRD model).
@@ -693,20 +694,48 @@ async def get_hebcs_omega_score(
         # could answer neither question — and capping by diagnosis would erase
         # the difference between a well-controlled patient and a deteriorating
         # one, which is the distinction worth keeping.
+        # ⚠️ The sentence that stood here said a good score "describes how well
+        # that is being managed, not its absence" — which is Α's job, stated
+        # inside Ω. It was the conflation, printed for the patient to read.
+        # Conditions are named as context and nothing is claimed about
+        # management; Α carries that, with its own number and its own reason.
         if severe:
-            interp += (" You are living with " + ", ".join(severe)
-                       + ", recorded as severe. A good score here describes how "
-                         "well that is being managed, not its absence.")
+            interp += " You are living with " + ", ".join(severe) + "."
         elif others:
             interp += " Recorded conditions: " + ", ".join(others) + "."
 
         if criticals:
-            named = ", ".join(
-                f"{b['name']} {b['value']:g}" for b in criticals[:3]
-                if b.get("value") is not None)
-            interp += (f" {len(criticals)} marker(s) sit at or below the bottom "
-                       f"of their own reference band: {named}. A pathway score "
-                       "is an average, so these do not show in it.")
+            # ⚠️ This read "sit at or below the bottom of their own reference
+            # band" for markers that were ABOVE the top — Glucose 273 against
+            # 74-106, RDW 21.3 against 11-15, printed twice because RDW sits in
+            # two pathways. A sentence naming the wrong side of the band is
+            # worse than none: it tells a patient to raise a value that is
+            # already too high.
+            #
+            # It also ended "A pathway score is an average, so these do not show
+            # in it", which stopped being true when the within-pathway mean
+            # became geometric (OPEN_ITEMS 27). A score that has changed and a
+            # caption that has not is how a true number acquires a false
+            # explanation.
+            high = [b for b in criticals
+                    if b.get("value") is not None and b.get("opt_range")
+                    and b["value"] > b["opt_range"][1]]
+            low = [b for b in criticals
+                   if b.get("value") is not None and b.get("opt_range")
+                   and b["value"] < b["opt_range"][0]]
+            seen_names: set[str] = set()
+            def _named(rows):
+                out = []
+                for b in rows:
+                    if b["name"] in seen_names:
+                        continue          # RDW sits in two pathways; say it once
+                    seen_names.add(b["name"])
+                    out.append(f"{b['name']} {b['value']:g}")
+                return ", ".join(out[:3])
+            if high:
+                interp += f" Above their reference band: {_named(high)}."
+            if low:
+                interp += f" Below their reference band: {_named(low)}."
 
     low_pathways = [] if omega is None else [
         name for name, pdata in result_data["pathways"].items()
@@ -727,6 +756,61 @@ async def get_hebcs_omega_score(
             if pdata["score"] is not None and pdata["coverage"] < 0.5]
     if thin:
         interp += (" Based on limited results: " + ", ".join(thin) + ".")
+
+    # ── ALAFIA writes it, locally ────────────────────────────────────────
+    #
+    # Operator, repeatedly: *"do not hard code messages, let our own LLM model
+    # do write messages that reflect the actual observation"* and *"message
+    # must be written by LOCAL LLM not third party providers like Anthropic.
+    # This ensures PII do not bleed out"*. Everything above is the FALLBACK —
+    # deterministic, correct, and used whenever the render is slow, fails, or
+    # cannot be verified against the facts.
+    #
+    # The facts are the same ones the sentence above is built from, so the
+    # number guard in `finding_text` can check every figure the model writes.
+    # §3c's shape: return immediately, warm in the background, serve ALAFIA's
+    # words on the next read.
+    if omega is not None:
+        from app.services import finding_text as _ft
+        import asyncio as _asyncio
+
+        _facts = {
+            "measure": "overall biological state from laboratory values",
+            "omega": round(omega, 3),
+            "omega_percent": round(omega * 100),
+            "pathways_scored": len(
+                [p for p in result_data["pathways"].values()
+                 if p["score"] is not None]),
+            "covers": "laboratory values only, not blood pressure, treatments, "
+                      "symptoms or anything logged",
+        }
+        if severe:
+            _facts["conditions_recorded_as_severe"] = ", ".join(severe)
+        for b in (criticals or [])[:3]:
+            if b.get("value") is None or not b.get("opt_range"):
+                continue
+            side = "above" if b["value"] > b["opt_range"][1] else "below"
+            _facts[f"{b['name']}_value"] = b["value"]
+            _facts[f"{b['name']}_is"] = f"{side} its reference band"
+        if result_data["unscored_pathways"]:
+            _facts["not_assessed"] = ", ".join(result_data["unscored_pathways"])
+
+        # §3aw: prose follows the patient. This endpoint took NO language
+        # header at all, so the Ω paragraph was English for everyone — a
+        # patient who chose Yoruba read their own interpretation in a language
+        # they did not pick. Found by the render raising `NameError: language`,
+        # not by reading the signature.
+        _lang = patient_language(current_user, client_language)
+        _finding = _ft.Finding(
+            kind="omega_interpretation", domain="labs", facts=_facts,
+            fallback=interp, essential=("omega_percent",))
+        try:
+            _written = await _ft.render([_finding], language=_lang)
+            if _written and _written[0]:
+                interp = _written[0]
+            _asyncio.create_task(_ft.warm([_finding], language=_lang))
+        except Exception:
+            logger.warning("omega interpretation render failed", exc_info=True)
 
     from app.schemas.wellness import HEBCSPathwayResult, HEBCSBiomarkerDetail
     pathway_response = {

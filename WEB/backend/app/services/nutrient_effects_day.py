@@ -64,6 +64,61 @@ _UNIT_ALIASES = {"µg": "mcg", "ug": "mcg", "mcgs": "mcg", "mgs": "mg",
                  "gram": "g", "grams": "g", "iu.": "iu"}
 
 
+#: What each direction MEANS, keyed on the stored enum.
+#:
+#: Reported from the live screen 2026-10-13, where Calcitriol and Calcium
+#: Carbonate both carried the identical sentence against phosphorus:
+#:
+#:     "<agent> affects this, but how much it changes has not been
+#:      established, so it is shown here and not added to your total."
+#:
+#: Operator: *"highlighted message stating effect has not been established or
+#: amount comes from automated sources help no one and creates confusion."*
+#: Right, and worse than useless here: **those two drugs push phosphate in
+#: OPPOSITE directions** — calcitriol raises what is absorbed, calcium
+#: carbonate binds it in the gut — and the patient read one identical
+#: non-statement for both. The sentence described OUR uncertainty about the
+#: magnitude while hiding the direction, which is known, stored, and the only
+#: part they can act on.
+#:
+#: Measured: **21 of 26** `nutrient_effects` rows carry a NULL magnitude, so
+#: this is the common path, not an edge case.
+#:
+#: These are LABELS for an enum, the way "Abnormal"/"Normal" labels
+#: `is_abnormal` — not composed clinical prose. The clinical content is
+#: `mechanism`, which the resolver already had the model write and store.
+_DIRECTION_LINE = {
+    ADDS: "{agent} adds to this.",
+    REMOVES: "{agent} removes some of this.",
+    BINDS_DIETARY: "{agent} binds this in food, so less is absorbed.",
+    BLOCKS_ABSORPTION: "{agent} reduces how much of this is absorbed.",
+}
+
+
+def _direction_line(agent: str, direction: str) -> str | None:
+    """The effect's direction, stated plainly. None when it cannot be.
+
+    ⚠️ `INCREASES_REQUIREMENT` is deliberately absent from the map, and that
+    is a safety decision rather than an oversight. Its own docstring says it
+    "moves the goal itself rather than the total" — but on this record it is
+    the stored direction for **Calcitriol → phosphorus** and
+    **Doxercalciferol → phosphorus**, whose mechanisms read "increases
+    intestinal phosphate absorption; in renal disease, hyperphosphatemia must
+    be prevented through dietary restriction". Rendering that as "you need
+    more phosphorus" would tell a dialysis patient to eat MORE of the thing
+    their limit exists to restrict — §3ac's "a treatment changes the day's
+    TOTALS, it never changes the LIMIT", and §3az's looser-than-the-patient
+    threshold, in one sentence.
+
+    So nothing is asserted for it: the stored `mechanism` is shown alone,
+    which is accurate and was written by the resolver rather than here. The
+    mis-classification itself is recorded in OPEN_ITEMS rather than papered
+    over — it is latent only because every such row has a NULL magnitude.
+    """
+    template = _DIRECTION_LINE.get(direction)
+    return template.format(agent=agent) if template else None
+
+
 def _canonical_unit(unit: str | None) -> str | None:
     if not unit:
         return None
@@ -346,11 +401,7 @@ def apply_effects_to_totals(
                 # saying what caused them. The data was on the wire the whole
                 # time (`agent_label`, `mechanism`); only the sentence and the
                 # client's rendering dropped it.
-                withheld=(
-                    f"{effect.agent_label} affects this, but how much it "
-                    "changes has not been established, so it is shown here "
-                    "and not added to your total."
-                ),
+                withheld=_direction_line(effect.agent_label, effect.direction),
             ))
             continue
 

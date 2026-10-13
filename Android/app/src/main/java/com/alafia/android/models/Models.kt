@@ -216,7 +216,11 @@ data class GoalNutrientEffect(
     val isGain: Boolean get() = direction == "adds"
 
     /** Mirrors [DialysisBalance.hasEffect]: a withheld effect always shows. */
-    val hasEffect: Boolean get() = withheld != null || kotlin.math.abs(delta) >= 0.005f
+    /** A MECHANISM alone is enough to show the row: it is the clinical
+     *  content, and gating on [withheld] hid it the moment the server
+     *  stopped asserting a direction it could not support. */
+    val hasEffect: Boolean get() =
+        withheld != null || mechanism != null || kotlin.math.abs(delta) >= 0.005f
 }
 
 /** What a session did to one nutrient's day. */
