@@ -355,20 +355,22 @@ fun ConditionFormDialog(
         "neurological", "endocrine", "other"
     )
 
-    // Mirrors the backend `TherapyType` enum. The server validates what it
-    // receives against its own copy and discards anything it does not
-    // recognise, so a drift here costs a missing row — never a wrong stored
-    // modality (§3ad).
-    val therapyOptions = listOf(
-        "hemodialysis" to R.string.therapy_hemodialysis,
-        "peritoneal_dialysis" to R.string.therapy_peritoneal_dialysis,
-        "chemotherapy" to R.string.therapy_chemotherapy,
-        "radiation_therapy" to R.string.therapy_radiation_therapy,
-        "immunotherapy" to R.string.therapy_immunotherapy,
-        "infusion_therapy" to R.string.therapy_infusion_therapy,
-        "physical_therapy" to R.string.therapy_physical_therapy,
-        "blood_transfusion" to R.string.therapy_blood_transfusion,
-    )
+    // Fetched from the server, which reads it out of the bundled WHO ICD-11
+    // catalog. This screen used to hold its OWN copy — one of four, alongside
+    // the backend, web and iOS — while WHO already codes every entry.
+    // §3ad: the catalog is the authority and a code is never typed from memory.
+    //
+    // Empty until it loads, and empty if the request fails: the field simply
+    // does not render, which is correct — a guessed list is worse than none.
+    var therapyOptions by remember {
+        mutableStateOf<List<com.alafia.android.models.TherapyOption>>(emptyList())
+    }
+    LaunchedEffect(Unit) {
+        try {
+            therapyOptions = com.alafia.android.api.ApiClient.getApiService()
+                .getTherapyOptions().options
+        } catch (_: Exception) { }
+    }
     
     val severities = listOf("mild", "moderate", "severe", "critical", "remission")
     
@@ -500,19 +502,20 @@ fun ConditionFormDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        therapyOptions.forEach { (value, labelRes) ->
+                        therapyOptions.forEach { option ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Checkbox(
-                                    checked = value in therapyTypes,
+                                    checked = option.code in therapyTypes,
                                     onCheckedChange = { on ->
-                                        therapyTypes = if (on) therapyTypes + value
-                                                       else therapyTypes - value
+                                        therapyTypes = if (on) therapyTypes + option.code
+                                                       else therapyTypes - option.code
                                     }
                                 )
-                                Text(stringResource(labelRes))
+                                // WHO's own title; nothing is relabelled here.
+                                Text(option.title)
                             }
                         }
                     }

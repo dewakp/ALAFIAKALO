@@ -1355,12 +1355,4 @@
     <string name="alpha_none">您的记录中没有具有指南目标的病情，因此这里无法评分。</string>
     <string name="therapy_types">治疗方法</string>
     <string name="therapy_types_help">哪些治疗方法可以治疗此病症。这决定了应用是否向您显示这些屏幕。</string>
-    <string name="therapy_hemodialysis">血液透析</string>
-    <string name="therapy_peritoneal_dialysis">腹膜透析</string>
-    <string name="therapy_chemotherapy">化疗</string>
-    <string name="therapy_radiation_therapy">放射治疗</string>
-    <string name="therapy_immunotherapy">免疫疗法</string>
-    <string name="therapy_infusion_therapy">输液治疗</string>
-    <string name="therapy_physical_therapy">物理治疗</string>
-    <string name="therapy_blood_transfusion">输血</string>
 </resources>

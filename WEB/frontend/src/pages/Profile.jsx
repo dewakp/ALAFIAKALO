@@ -454,8 +454,12 @@ export default function Profile() {
                 <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem',
                             color: 'var(--color-text-secondary, #666)' }}>
                   <strong>{translate('Profile.therapies')}: </strong>
+                  {/* The stored values are ICD-11 codes; WHO supplies the
+                      titles, so the summary shows the code rather than a label
+                      invented here. The full titles live on the Conditions
+                      screen, which fetches them. */}
                   {declared.length
-                    ? declared.map((v) => translate(`ChronicConditions.therapy_${v}`)).join(', ')
+                    ? declared.join(', ')
                     : translate('Profile.therapies_none')}
                 </p>
               );

@@ -3204,3 +3204,85 @@ one answer: the first search was evidence about the search, not about ICD.
 - **37b.** Nothing re-renders the nav when a therapy is declared in the same
   session; `/users/me/surfaces` is fetched once on mount. Declaring PD then
   navigating shows the old set until reload.
+
+---
+
+## 38. The therapy option set is WHO's, not mine — 2026-10-14 (closes 37a)
+
+Operator, on my own admission that I had built the option set as a hand-written
+enum without checking WHO: **"against the rule"**.
+
+Correct, and it is the rule I had been citing all day. §3ad: *"Never type an
+ICD code from memory. The catalog is GENERATED from WHO's published MMS
+linearization… `tests/test_icd11_catalog.py` fails the build if a hand-written
+alias points at a code that is not in the file."* I obeyed that for conditions
+and ignored it for the therapies sitting beside them — then mirrored the
+hand-typed list into **four files**: the backend, web, iOS and Android.
+
+WHO codes it. Verified against the bundled 2025-01 MMS linearization before a
+single line was written on top of them:
+
+    QB94.1   Care involving extracorporeal dialysis            -> hemodialysis
+    QB94.2   Care involving peritoneal dialysis                -> peritoneal_dialysis
+    QB96     Contact with health services for radiotherapy session
+    QB97     Contact with health services for chemotherapy session for neoplasm
+    QB98     Blood transfusion without reported diagnosis
+    QB95.1   Physical rehabilitation
+    QB95.4   Psychotherapy
+    QB95.5   Speech therapy
+    QB95.7   Occupational therapy or vocational rehabilitation
+    QB9C     Allergen immunotherapy
+
+**`GET /chronic/therapy-options`** serves the set, reading every TITLE out of
+the catalog at runtime. So no therapy name is typed anywhere in this codebase,
+and the three clients stopped carrying copies:
+
+- the backend enum mirror is gone (`TherapyType` still records what a SESSION
+  was — a different fact from what a patient declares they undergo),
+- `THERAPY_TYPES` deleted from `ChronicConditions.jsx`,
+- `ConditionFormView.therapyOptions` deleted from iOS,
+- the Android `therapyOptions` list deleted,
+- and with them **22 label strings across 11 web locales and 11 Android
+  locales** — translations of names WHO already publishes. The APK shrank
+  32,771,425 → 32,765,929, which is the removal showing up as bytes.
+
+Stored values are codes now. Anything written during the one day the enum
+existed still READS (`_LEGACY_TO_CODE`), because a declaration made yesterday
+must not stop working, and nothing writes those forms any more.
+
+> **Selecting WHICH codes offer a surface stays in the source, and that is a
+> different kind of decision.** `THERAPY_CODE_SURFACE` maps a code to a SCREEN
+> NAME — routing, not vocabulary. Inventing what a code MEANS would be the
+> violation; choosing which of WHO's codes this product has a screen for is
+> not.
+
+### Guards
+
+`test_every_offered_therapy_code_EXISTS_in_the_WHO_catalog` is the same check
+`test_icd11_catalog` already applies to condition aliases, now applied to these.
+`test_the_LABELS_come_from_WHO_and_are_not_written_here` compares every served
+title against the catalog, so a title typed beside a code — a second source of
+truth that drifts from the first — fails the build.
+
+### Verified
+
+    backend    147 passed (23 surfacing, incl. 4 new catalog guards)
+    frontend   279 passed
+    iOS        ** BUILD SUCCEEDED **, 0 error: lines
+    Android    BUILD SUCCESSFUL; lint MissingTranslation = 0
+    i18n       44 catalog tests + 51 cross-platform guards
+    served     dist carries BOTH calls, checked inside the container rather
+               than from the entry bundle — ChronicConditions is a LAZY chunk,
+               so grepping index-*.js alone reported 0 and would have read as
+               "not shipped" (§4: ask the served asset, and know which asset)
+
+### STILL OPEN
+
+- **38a.** Phototherapy and generic infusion therapy have **no Q code** —
+  measured, not assumed — so they cannot be declared at all. The previous
+  hand-typed enum could express them. That is a real loss, and the fix is a
+  decision about whether a non-coded therapy may be declared alongside coded
+  ones, not a silent re-addition.
+- **38b.** `aq001` remains dev-only; none of this reaches a patient yet.
+- **38c.** The nav still fetches `/users/me/surfaces` once on mount, so
+  declaring a therapy does not re-render it until reload (37b).

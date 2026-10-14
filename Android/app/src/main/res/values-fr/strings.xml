@@ -1355,12 +1355,4 @@
     <string name="alpha_none">Aucune condition enregistrée n\'a de cible directrice, il n\'y a donc rien à évaluer ici.</string>
     <string name="therapy_types">Traitements</string>
     <string name="therapy_types_help">Quels traitements soignent cette condition. Cela détermine les écrans que l\'app vous affiche.</string>
-    <string name="therapy_hemodialysis">Hémodialyse</string>
-    <string name="therapy_peritoneal_dialysis">Dialyse péritonéale</string>
-    <string name="therapy_chemotherapy">Chimiothérapie</string>
-    <string name="therapy_radiation_therapy">Radiothérapie</string>
-    <string name="therapy_immunotherapy">Immunothérapie</string>
-    <string name="therapy_infusion_therapy">Thérapie par perfusion</string>
-    <string name="therapy_physical_therapy">Physiothérapie</string>
-    <string name="therapy_blood_transfusion">Transfusion sanguine</string>
 </resources>

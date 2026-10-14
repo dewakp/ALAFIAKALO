@@ -18,7 +18,9 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.notification_engine import notify_therapy_session_completed, notify_treatment_anomaly
 from app.models.user import User
-from app.services.patient_surfaces import validate_therapy_types
+from app.services.patient_surfaces import (
+    therapy_options, validate_therapy_types,
+)
 from app.models.chronic_conditions import ChronicCondition, TherapySession, ConditionMetric, IntradialyticReading, ClinicalNote, FlowsheetStatus
 from app.services import flowsheet_defaults as fs_defaults
 from app.services.flowsheet_drugs import COMMON_DIALYSIS_DRUGS
@@ -212,6 +214,26 @@ router = APIRouter()
 # Authenticated like the rest of the namespace, but deliberately NOT rate
 # limited — a type-ahead fires a request per keystroke, and there is nothing to
 # enumerate in a public classification.
+
+
+@router.get("/therapy-options")
+async def get_therapy_options(
+    current_user: User = Depends(get_current_user),
+):
+    """The therapy option set a patient chooses from, with WHO's own titles.
+
+    Served so that **no client carries a therapy list of its own**. The first
+    version of this feature mirrored a hand-typed enum into four files — the
+    backend, web, iOS and Android — while WHO already codes it (QB94.1 "Care
+    involving extracorporeal dialysis", QB94.2 "Care involving peritoneal
+    dialysis", QB96, QB97 …). Operator: *"against the rule"*, and §3ad is the
+    rule: the catalog is the authority and a code is never typed from memory.
+
+    Each entry carries the `surface` it opens, so the client renders the choice
+    and the server keeps deciding what it means.
+    """
+    return {"options": therapy_options(),
+            "catalog_version": icd11_catalog_version()}
 
 
 @router.get("/icd11/search", response_model=ICD11SearchResult)

@@ -1247,3 +1247,16 @@ data class PatientSurfaces(
     @SerializedName("offered") val offered: List<String>? = null,
     @SerializedName("because") val because: Map<String, String>? = null
 )
+
+
+/** One therapy a patient can declare — an ICD-11 code with WHO's own title. */
+data class TherapyOption(
+    val code: String,
+    val title: String,
+    val surface: String
+)
+
+data class TherapyOptionsResponse(
+    val options: List<TherapyOption> = emptyList(),
+    @SerializedName("catalog_version") val catalogVersion: String? = null
+)

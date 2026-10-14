@@ -633,15 +633,7 @@
     "are_you_sure_you_want_to_delete_this": "Êtes-vous sûr de vouloir supprimer cette condition ?",
     "failed_to_delete_condition": "Impossible de supprimer la condition",
     "therapy_types": "Traitements",
-    "therapy_types_help": "Quels traitements soignent cette condition. Cela détermine les écrans que l'application vous affiche.",
-    "therapy_hemodialysis": "Hémodialyse",
-    "therapy_peritoneal_dialysis": "Dialyse péritonéale",
-    "therapy_chemotherapy": "Chimiothérapie",
-    "therapy_radiation_therapy": "Radiothérapie",
-    "therapy_immunotherapy": "Immunothérapie",
-    "therapy_infusion_therapy": "Thérapie par perfusion",
-    "therapy_physical_therapy": "Physiothérapie",
-    "therapy_blood_transfusion": "Transfusion sanguine"
+    "therapy_types_help": "Quels traitements soignent cette condition. Cela détermine les écrans que l'application vous affiche."
   },
   "ClinicianDashboard": {
     "loading": "Chargement...",

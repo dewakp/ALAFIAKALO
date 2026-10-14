@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.chronic_conditions import TherapySession, TherapyType
+from app.models.chronic_conditions import TherapySession
 from app.services import clinical_sources as sources
 
 #: Surfaces every account sees. Gating these strands a new or uncoded patient.
@@ -51,65 +51,155 @@ CORE = (
     "hospital_history", "data_sharing", "community", "profile",
 )
 
-#: Dialysis modalities, by the `TherapyType` value that evidences each.
+#: The therapy option set, as WHO CODES — not as names typed here.
+#:
+#: Operator, 2026-10-13: *"against the rule"*. Correct. §3ad says the catalog
+#: is the authority and a code is never typed from memory, and I built this
+#: option set as a hand-written enum mirrored into four places (the backend
+#: list, web, iOS, Android) **without checking whether WHO already coded it**.
+#: It does:
+#:
+#:     QB94.1   Care involving extracorporeal dialysis    <- haemodialysis
+#:     QB94.2   Care involving peritoneal dialysis
+#:     QB96     Contact with health services for radiotherapy session
+#:     QB97     Contact with health services for chemotherapy session …
+#:     QB98     Blood transfusion without reported diagnosis
+#:     QB95.1   Physical rehabilitation
+#:     QB95.4   Psychotherapy
+#:     QB95.5   Speech therapy
+#:     QB95.7   Occupational therapy or vocational rehabilitation
+#:     QB9C     Allergen immunotherapy
+#:
+#: Every one verified present in the bundled 2025-01 MMS linearization before
+#: being written here, the same way `build_icd11_catalog.py` is the only source
+#: of a condition code. **The LABELS are WHO's**, read from the catalog at
+#: runtime, so no therapy name is typed in this codebase at all — which is what
+#: lets the clients stop carrying their own copies.
+#:
+#: ⚠️ Selecting WHICH codes offer a surface is a routing decision and stays
+#: here; inventing what a code MEANS would not. The right-hand side is a
+#: screen name, never a clinical claim.
+THERAPY_CODE_SURFACE = {
+    "QB94.1": "hemodialysis",
+    "QB94.2": "peritoneal_dialysis",
+    "QB96": "therapy_other",
+    "QB97": "therapy_other",
+    "QB98": "therapy_other",
+    "QB95.1": "therapy_other",
+    "QB95.4": "therapy_other",
+    "QB95.5": "therapy_other",
+    "QB95.7": "therapy_other",
+    "QB9C": "therapy_other",
+}
+
+#: Values stored before the codes existed (2026-10-13, one day). Read-only
+#: compatibility so a declaration made this morning keeps working; nothing
+#: writes these any more.
+_LEGACY_TO_CODE = {
+    "hemodialysis": "QB94.1",
+    "dialysis": "QB94.1",
+    "peritoneal_dialysis": "QB94.2",
+    "radiation_therapy": "QB96",
+    "chemotherapy": "QB97",
+    "blood_transfusion": "QB98",
+    "physical_therapy": "QB95.1",
+    "occupational_therapy": "QB95.7",
+    "immunotherapy": "QB9C",
+}
+
+#: Therapy SESSIONS still carry `TherapyType`; that records what a session WAS
+#: and is a different fact from what a patient declares they undergo.
 _MODALITY_SURFACE = {
     "hemodialysis": "hemodialysis",
     "dialysis": "hemodialysis",          # the generic value predates the split
     "peritoneal_dialysis": "peritoneal_dialysis",
 }
 
+
+def therapy_options() -> list[dict]:
+    """The option set a patient chooses from, with WHO's own titles.
+
+    Served to every client so none of them carries a hand-typed therapy list —
+    four copies of one vocabulary was the §3ad violation this replaces.
+
+    A code missing from the catalog is DROPPED rather than labelled from
+    memory: `test_icd11_catalog` already fails the build on an alias pointing
+    at a code that is not in the file, and the same discipline applies here.
+    """
+    from app.services.icd11_catalog import get_icd11_by_code
+
+    out = []
+    for code, surface in THERAPY_CODE_SURFACE.items():
+        entry = get_icd11_by_code(code)
+        if entry is None:
+            continue
+        out.append({"code": code, "title": entry.title, "surface": surface})
+    return out
+
+
 def declared_therapy_types(condition) -> set[str]:
-    """The `TherapyType` values a condition DECLARES it is treated with.
+    """The ICD-11 therapy codes a condition DECLARES it is treated with.
 
     Operator, 2026-10-13: *"Only PD patients must see PD. Let user add Therapy
-    types in Condition and profile. Same as other health conditions. use
-    condition to determine the Therapy switch."*
+    types in Condition and profile … use condition to determine the Therapy
+    switch."*
 
-    ⚠️ **This replaces a hand-typed keyword dict.** `_CONDITION_HINTS` matched
-    condition text against `("peritoneal", " pd ", "capd", "ccpd")` and
-    `("hemodialysis", "haemodialysis", "esrd", "dialysis", …)` — §3an's
-    forbidden shape, *"covers only the condition someone happened to think of,
-    cannot say why, has no source, never improves, and goes stale silently"* —
-    deciding which clinical screen a patient could reach. A condition recorded
-    as "ESKD" or "renal replacement therapy" matched nothing, and one reading
-    "history of dialysis" matched everything.
+    ⚠️ **This replaced a hand-typed keyword dict, and then its replacement was
+    hand-typed too.** `_CONDITION_HINTS` matched condition TEXT against
+    `("peritoneal", " pd ", "capd")` — §3an's forbidden shape, deciding which
+    clinical screen a patient could reach. The declared field fixed that and
+    introduced a second violation: an ALAFIA-private enum mirrored into four
+    files while **WHO already codes this** (QB94.1, QB94.2, QB96, QB97 …).
+    Operator: *"against the rule"*. The values are codes now.
 
-    Now the patient says so, and the app reads what they said.
+    Values written before the codes existed still read, because a declaration
+    made this morning must not stop working — but nothing writes them.
 
-    Unrecognised values are DISCARDED rather than repaired: silently
-    correcting what someone wrote about their own treatment invents a clinical
-    fact (§3am — naming a unit is not an override), and the API validates on
-    the way in so a stored value should already be an enum member.
+    Anything unrecognised is DISCARDED, never repaired: silently correcting
+    what someone recorded about their own treatment invents a clinical fact.
     """
     raw = getattr(condition, "therapy_types", None)
     if not raw:
         return set()
-    known = {t.value for t in TherapyType}
-    return {part.strip().lower() for part in str(raw).split(",")
-            if part.strip().lower() in known}
+    out: set[str] = set()
+    for part in str(raw).split(","):
+        token = part.strip()
+        if not token:
+            continue
+        code = token.upper()
+        if code in THERAPY_CODE_SURFACE:
+            out.add(code)
+            continue
+        legacy = _LEGACY_TO_CODE.get(token.lower())
+        if legacy:
+            out.add(legacy)
+    return out
 
 
 def validate_therapy_types(values) -> str | None:
-    """Client-supplied names → the stored comma-separated string, or None.
+    """Client-supplied codes → the stored comma-separated string, or None.
 
-    §3ad: the client never decides what a code means. An unrecognised name is
-    dropped rather than stored, so a typo cannot silently become a modality
-    nobody offers a screen for.
+    §3ad: the client never decides what a code means. A code outside the
+    option set is dropped rather than stored, so a typo cannot silently become
+    a therapy nobody offers a screen for — and the code must EXIST in the
+    bundled WHO catalog, which is the same check `_apply_icd11` makes of a
+    condition's own code.
 
-    An empty list stores NULL — "not stated", which is a different fact from
-    "no therapy" and must stay distinguishable (§3aa).
+    An empty list stores NULL — "not stated", a different fact from "no
+    therapy" (§3aa).
     """
     if not values:
         return None
-    known = {t.value: t.value for t in TherapyType}
-    known.update({t.name.lower(): t.value for t in TherapyType})
-    kept = []
+    kept: list[str] = []
     for v in values:
-        key = str(v).strip().lower().replace(" ", "_").replace("-", "_")
-        resolved = known.get(key)
-        if resolved and resolved not in kept:
-            kept.append(resolved)
-    return ",".join(kept) or None
+        token = str(v).strip()
+        code = token.upper()
+        if code not in THERAPY_CODE_SURFACE:
+            code = _LEGACY_TO_CODE.get(token.lower().replace(" ", "_")
+                                       .replace("-", "_"), "")
+        if code and code not in kept:
+            kept.append(code)
+    return ",".join(sorted(kept)) or None
 
 
 @dataclass
@@ -190,7 +280,7 @@ async def for_user(db: AsyncSession, user_id: int) -> Surfaces:
         for therapy, condition_name in declared.items():
             # A therapy this map does not name — chemotherapy, infusion,
             # phototherapy — still opens the group rather than vanishing.
-            surface = _MODALITY_SURFACE.get(therapy, "therapy_other")
+            surface = THERAPY_CODE_SURFACE.get(therapy, "therapy_other")
             s.offer(surface, f"declared therapy for {condition_name}")
         s.offer("therapies", "declared therapy")
     else:

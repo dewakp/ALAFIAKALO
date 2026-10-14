@@ -66,6 +66,15 @@ interface ApiService {
     @GET("users/me/surfaces")
     suspend fun getSurfaces(): PatientSurfaces
 
+    /**
+     * The therapy option set, read by the server out of the bundled WHO ICD-11
+     * catalog. No client carries a therapy list of its own: this file's screen
+     * used to hold one of four hand-typed copies while WHO already codes every
+     * entry (QB94.1, QB94.2, QB96, QB97 …). §3ad — the catalog is the authority.
+     */
+    @GET("chronic/therapy-options")
+    suspend fun getTherapyOptions(): TherapyOptionsResponse
+
     @PATCH("users/me")
     suspend fun updateUser(@Body updates: UserUpdateRequest): UserSchema
 

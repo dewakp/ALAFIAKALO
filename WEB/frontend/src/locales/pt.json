@@ -633,15 +633,7 @@
     "are_you_sure_you_want_to_delete_this": "Tem certeza que deseja deletar esta condição?",
     "failed_to_delete_condition": "Falha ao deletar condição",
     "therapy_types": "Terapias",
-    "therapy_types_help": "Quais terapias tratam esta condição. Isto determina quais ecrãs o app lhe mostra.",
-    "therapy_hemodialysis": "Hemodiálise",
-    "therapy_peritoneal_dialysis": "Diálise peritoneal",
-    "therapy_chemotherapy": "Quimioterapia",
-    "therapy_radiation_therapy": "Radioterapia",
-    "therapy_immunotherapy": "Imunoterapia",
-    "therapy_infusion_therapy": "Terapia de infusão",
-    "therapy_physical_therapy": "Fisioterapia",
-    "therapy_blood_transfusion": "Transfusão de sangue"
+    "therapy_types_help": "Quais terapias tratam esta condição. Isto determina quais ecrãs o app lhe mostra."
   },
   "ClinicianDashboard": {
     "loading": "Carregando...",

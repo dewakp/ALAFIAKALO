@@ -633,15 +633,7 @@
     "are_you_sure_you_want_to_delete_this": "هل أنت متأكد من رغبتك في حذف هذه الحالة؟",
     "failed_to_delete_condition": "فشل حذف الحالة",
     "therapy_types": "العلاجات",
-    "therapy_types_help": "أي العلاجات تعالج هذه الحالة. هذا يحدد ما إذا كان التطبيق يعرض لك تلك الشاشات.",
-    "therapy_hemodialysis": "غسيل الكلى",
-    "therapy_peritoneal_dialysis": "غسيل الكلى البريتوني",
-    "therapy_chemotherapy": "العلاج الكيميائي",
-    "therapy_radiation_therapy": "العلاج الإشعاعي",
-    "therapy_immunotherapy": "العلاج المناعي",
-    "therapy_infusion_therapy": "العلاج بالتسريب",
-    "therapy_physical_therapy": "العلاج الطبيعي",
-    "therapy_blood_transfusion": "نقل الدم"
+    "therapy_types_help": "أي العلاجات تعالج هذه الحالة. هذا يحدد ما إذا كان التطبيق يعرض لك تلك الشاشات."
   },
   "ClinicianDashboard": {
     "loading": "جاري التحميل...",

@@ -7,24 +7,21 @@ import BackButton from '../components/BackButton';
 import ICD11Picker from '../components/ICD11Picker';
 import { t } from '../i18n';
 
-// Mirrors the backend `TherapyType` enum. The server validates every value it
-// receives against its own copy and discards anything it does not recognise, so
-// a drift here costs a missing checkbox — never a wrong stored modality.
-//
-// `get label()` rather than a computed string: a label evaluated at import time
-// never changes language (§3aw).
-const THERAPY_TYPES = [
-  { value: 'hemodialysis', get label() { return t('ChronicConditions.therapy_hemodialysis'); } },
-  { value: 'peritoneal_dialysis', get label() { return t('ChronicConditions.therapy_peritoneal_dialysis'); } },
-  { value: 'chemotherapy', get label() { return t('ChronicConditions.therapy_chemotherapy'); } },
-  { value: 'radiation_therapy', get label() { return t('ChronicConditions.therapy_radiation_therapy'); } },
-  { value: 'immunotherapy', get label() { return t('ChronicConditions.therapy_immunotherapy'); } },
-  { value: 'infusion_therapy', get label() { return t('ChronicConditions.therapy_infusion_therapy'); } },
-  { value: 'physical_therapy', get label() { return t('ChronicConditions.therapy_physical_therapy'); } },
-  { value: 'blood_transfusion', get label() { return t('ChronicConditions.therapy_blood_transfusion'); } },
-];
-
 const ChronicConditions = () => {
+  // The option set comes from the SERVER, which reads it out of the bundled WHO
+  // ICD-11 catalog. This file used to hold its own copy of the list — one of
+  // four — while WHO already codes every entry (QB94.1 "Care involving
+  // extracorporeal dialysis", QB94.2 "Care involving peritoneal dialysis", …).
+  // §3ad: the catalog is the authority and a code is never typed from memory.
+  const [therapyOptions, setTherapyOptions] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/chronic/therapy-options')
+      .then(({ data }) => { if (!cancelled) setTherapyOptions(data?.options || []); })
+      .catch(() => { /* the field simply does not render; never a guessed list */ });
+    return () => { cancelled = true; };
+  }, []);
+
   const [conditions, setConditions] = useState([]);
   const [loading, setLoading] = useState(true);
   // Kept separate from `conditions` on purpose: a failed fetch must never
@@ -450,10 +447,10 @@ const ChronicConditions = () => {
                 {t('ChronicConditions.therapy_types_help')}
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {THERAPY_TYPES.map((tt) => {
-                  const on = (formData.therapy_types || []).includes(tt.value);
+                {therapyOptions.map((tt) => {
+                  const on = (formData.therapy_types || []).includes(tt.code);
                   return (
-                    <label key={tt.value} style={{
+                    <label key={tt.code} style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '6px 10px', borderRadius: 6, cursor: 'pointer',
                       border: `1px solid ${on ? '#3b82f6' : '#ddd'}`,
@@ -464,11 +461,12 @@ const ChronicConditions = () => {
                         checked={on}
                         onChange={(e) => {
                           const next = new Set(formData.therapy_types || []);
-                          if (e.target.checked) next.add(tt.value); else next.delete(tt.value);
+                          if (e.target.checked) next.add(tt.code); else next.delete(tt.code);
                           setFormData({ ...formData, therapy_types: [...next] });
                         }}
                       />
-                      {tt.label}
+                      {/* WHO's own title — nothing is relabelled here. */}
+                      {tt.title}
                     </label>
                   );
                 })}

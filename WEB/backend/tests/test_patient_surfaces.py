@@ -166,7 +166,7 @@ async def test_a_declared_PD_opens_PD_before_any_session_exists(db):
     and the record holds no session yet — which is exactly when session-derived
     surfacing offers them nothing."""
     user = await _seed_user(db, "declared-pd@example.test")
-    await _seed_condition(db, user, "End-Stage Renal Disease", "peritoneal_dialysis")
+    await _seed_condition(db, user, "End-Stage Renal Disease", "QB94.2")
     s = await patient_surfaces.for_user(db, user.id)
     assert "peritoneal_dialysis" in s.offered
     assert "hemodialysis" not in s.offered, "declaring PD must not open HD"
@@ -179,7 +179,7 @@ async def test_only_PD_patients_see_PD(db):
     """The instruction, stated as a test. An HD patient — declared OR with
     sessions — is never offered the peritoneal screen."""
     hd = await _seed_user(db, "declared-hd@example.test")
-    await _seed_condition(db, hd, "ESRD", "hemodialysis")
+    await _seed_condition(db, hd, "ESRD", "QB94.1")
     s = await patient_surfaces.for_user(db, hd.id)
     assert "hemodialysis" in s.offered
     assert "peritoneal_dialysis" not in s.offered
@@ -221,7 +221,7 @@ async def test_sessions_still_win_when_nothing_was_declared(db):
 async def test_a_declared_therapy_the_map_does_not_name_opens_the_group(db):
     """Chemotherapy has no dedicated surface, and must not vanish for it."""
     user = await _seed_user(db, "declared-chemo@example.test")
-    await _seed_condition(db, user, "Lymphoma", "chemotherapy",
+    await _seed_condition(db, user, "Lymphoma", "QB97",
                           category=ConditionCategory.CANCER)
     s = await patient_surfaces.for_user(db, user.id)
     assert "therapy_other" in s.offered and "therapies" in s.offered
@@ -231,11 +231,15 @@ async def test_a_declared_therapy_the_map_does_not_name_opens_the_group(db):
 def test_the_server_decides_what_a_therapy_NAME_means():
     """§3ad: the client never decides what a code means. A typo must not become
     a modality nobody offers a screen for."""
-    assert validate_therapy_types(["Peritoneal Dialysis"]) == "peritoneal_dialysis"
-    assert set(validate_therapy_types(
-        ["PERITONEAL_DIALYSIS", "hemodialysis"]).split(",")) == {
-            "hemodialysis", "peritoneal_dialysis"}
+    assert validate_therapy_types(["QB94.2"]) == "QB94.2"
+    assert validate_therapy_types(["qb94.2"]) == "QB94.2"      # case-folded
+    assert set(validate_therapy_types(["QB94.2", "QB94.1"]).split(",")) == {
+        "QB94.1", "QB94.2"}
+    # A value stored before the codes existed still reads, and normalises.
+    assert validate_therapy_types(["peritoneal_dialysis"]) == "QB94.2"
     assert validate_therapy_types(["not-a-therapy"]) is None
+    # A real-looking code outside the option set is refused too.
+    assert validate_therapy_types(["QB99.9"]) is None
     # Empty is NULL — "not stated", a different fact from "no therapy" (§3aa).
     assert validate_therapy_types([]) is None
 
@@ -245,8 +249,8 @@ def test_a_stored_value_that_is_not_an_enum_member_is_ignored():
     from an older import cannot open a screen."""
     class _C:
         name = "X"
-        therapy_types = "garbage,peritoneal_dialysis"
-    assert declared_therapy_types(_C()) == {"peritoneal_dialysis"}
+        therapy_types = "garbage,QB94.2"
+    assert declared_therapy_types(_C()) == {"QB94.2"}
 
 
 def test_the_keyword_dict_is_gone():
@@ -292,7 +296,7 @@ async def test_a_declaration_OVERRULES_sessions_in_another_modality(db):
     """
     user = await _seed_user(db, "switched@example.test")
     await _seed_session(db, user, TherapyType.HEMODIALYSIS)
-    await _seed_condition(db, user, "ESRD", "peritoneal_dialysis")
+    await _seed_condition(db, user, "ESRD", "QB94.2")
     s = await patient_surfaces.for_user(db, user.id)
     assert "peritoneal_dialysis" in s.offered
     assert "hemodialysis" not in s.offered, (
@@ -307,7 +311,7 @@ async def test_but_the_PAST_is_never_hidden(db):
     stops owning their HD record (§3aa)."""
     user = await _seed_user(db, "history@example.test")
     await _seed_session(db, user, TherapyType.HEMODIALYSIS)
-    await _seed_condition(db, user, "ESRD", "peritoneal_dialysis")
+    await _seed_condition(db, user, "ESRD", "QB94.2")
     s = await patient_surfaces.for_user(db, user.id)
     assert "therapy_history" in s.offered
     assert "session" in s.because["therapy_history"], (
@@ -318,7 +322,7 @@ async def test_but_the_PAST_is_never_hidden(db):
 async def test_declaring_BOTH_offers_both(db):
     """Some patients genuinely run both — PD at home with HD support."""
     user = await _seed_user(db, "both@example.test")
-    await _seed_condition(db, user, "ESRD", "hemodialysis,peritoneal_dialysis")
+    await _seed_condition(db, user, "ESRD", "QB94.1,QB94.2")
     s = await patient_surfaces.for_user(db, user.id)
     assert {"hemodialysis", "peritoneal_dialysis"} <= s.offered
 
@@ -330,9 +334,60 @@ async def test_declaring_an_UNRELATED_therapy_retires_the_dialysis_screens(db):
     stay; the dialysis flowsheets do not."""
     user = await _seed_user(db, "chemo-now@example.test")
     await _seed_session(db, user, TherapyType.HEMODIALYSIS)
-    await _seed_condition(db, user, "Lymphoma", "chemotherapy",
+    await _seed_condition(db, user, "Lymphoma", "QB97",
                           category=ConditionCategory.CANCER)
     s = await patient_surfaces.for_user(db, user.id)
     assert "therapy_other" in s.offered
     assert "hemodialysis" not in s.offered
     assert "therapy_history" in s.offered
+
+
+# ── The option set is WHO's, not ours ───────────────────────────────────────
+
+def test_every_offered_therapy_code_EXISTS_in_the_WHO_catalog():
+    """Operator, 2026-10-13: *"against the rule"*.
+
+    §3ad: *"Never type an ICD code from memory. The catalog is GENERATED from
+    WHO's published MMS linearization… `tests/test_icd11_catalog.py` fails the
+    build if a hand-written alias points at a code that is not in the file."*
+
+    The first version of this feature was a hand-typed enum mirrored into FOUR
+    files — the backend, web, iOS and Android — while WHO already coded every
+    entry. This is the same guard that file applies to condition aliases.
+    """
+    from app.services.icd11_catalog import get_icd11_by_code
+    from app.services.patient_surfaces import THERAPY_CODE_SURFACE
+
+    missing = [c for c in THERAPY_CODE_SURFACE if get_icd11_by_code(c) is None]
+    assert not missing, f"codes absent from the bundled catalog: {missing}"
+
+
+def test_the_LABELS_come_from_WHO_and_are_not_written_here():
+    """A title typed beside a code is a second source of truth that drifts from
+    the first. `therapy_options()` reads every title out of the catalog."""
+    from app.services.icd11_catalog import get_icd11_by_code
+    from app.services.patient_surfaces import therapy_options
+
+    options = therapy_options()
+    assert options, "the option set must not be empty"
+    for o in options:
+        assert o["title"] == get_icd11_by_code(o["code"]).title
+
+
+def test_the_modality_codes_are_the_ones_WHO_actually_separates():
+    """QB94.1 and QB94.2 are what let "only PD patients see PD" be expressible
+    at all. Pinned by code AND by what WHO calls them, so a renumbering or a
+    mis-paste fails here rather than on a patient's navigation."""
+    from app.services.icd11_catalog import get_icd11_by_code
+    from app.services.patient_surfaces import THERAPY_CODE_SURFACE
+
+    assert THERAPY_CODE_SURFACE["QB94.1"] == "hemodialysis"
+    assert THERAPY_CODE_SURFACE["QB94.2"] == "peritoneal_dialysis"
+    assert "extracorporeal" in get_icd11_by_code("QB94.1").title.lower()
+    assert "peritoneal" in get_icd11_by_code("QB94.2").title.lower()
+
+
+def test_no_client_needs_a_therapy_list_of_its_own():
+    """The endpoint exists so none of the three clients carries a copy."""
+    from app.api.chronic_conditions import get_therapy_options
+    assert callable(get_therapy_options)

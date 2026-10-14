@@ -633,15 +633,7 @@
     "are_you_sure_you_want_to_delete_this": "Ṣe o da o lọ pe o fẹ pa aisan yii kuro?",
     "failed_to_delete_condition": "Aisan ko ni a gba lati pa kuro",
     "therapy_types": "Àwọn Ìtúnú",
-    "therapy_types_help": "Àwọn ìtúnú tí ó ṣe àlàyé ìṣòro yìí. Èyí ni ohun tí ó pinnu bóyá àpp náà yóò fi hàn ọ́ àwọn ìkòkò wọ̀n.",
-    "therapy_hemodialysis": "Hemodialysis",
-    "therapy_peritoneal_dialysis": "Peritoneal dialysis",
-    "therapy_chemotherapy": "Chemotherapy",
-    "therapy_radiation_therapy": "Radiation therapy",
-    "therapy_immunotherapy": "Immunotherapy",
-    "therapy_infusion_therapy": "Infusion therapy",
-    "therapy_physical_therapy": "Physical therapy",
-    "therapy_blood_transfusion": "Blood transfusion"
+    "therapy_types_help": "Àwọn ìtúnú tí ó ṣe àlàyé ìṣòro yìí. Èyí ni ohun tí ó pinnu bóyá àpp náà yóò fi hàn ọ́ àwọn ìkòkò wọ̀n."
   },
   "ClinicianDashboard": {
     "loading": "N lo...",

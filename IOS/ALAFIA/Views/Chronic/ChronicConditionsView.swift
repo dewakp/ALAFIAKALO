@@ -160,20 +160,36 @@ struct ChronicSeverityBadge: View {
     }
 }
 
+/// One therapy a patient can declare — an ICD-11 code with WHO's own title.
+struct TherapyOption: Codable, Identifiable {
+    let code: String
+    let title: String
+    let surface: String
+    var id: String { code }
+}
+
+struct TherapyOptionsResponse: Codable {
+    let options: [TherapyOption]
+}
+
 struct ConditionFormView: View {
-    /// Mirrors the backend `TherapyType` enum. The server validates what it
-    /// receives against its own copy, so a drift here costs a missing row —
-    /// never a wrong stored modality.
-    static let therapyOptions: [(value: String, label: String)] = [
-        ("hemodialysis", "Hemodialysis"),
-        ("peritoneal_dialysis", "Peritoneal dialysis"),
-        ("chemotherapy", "Chemotherapy"),
-        ("radiation_therapy", "Radiation therapy"),
-        ("immunotherapy", "Immunotherapy"),
-        ("infusion_therapy", "Infusion therapy"),
-        ("physical_therapy", "Physical therapy"),
-        ("blood_transfusion", "Blood transfusion"),
-    ]
+    /// Fetched from the server, which reads it out of the bundled WHO ICD-11
+    /// catalog. This file used to hold its OWN copy of the list — one of four,
+    /// alongside the backend, web and Android — while WHO already codes every
+    /// entry (QB94.1 "Care involving extracorporeal dialysis", QB94.2 "Care
+    /// involving peritoneal dialysis", …). §3ad: the catalog is the authority
+    /// and a code is never typed from memory.
+    ///
+    /// Empty until it loads, and empty if the request fails: the field simply
+    /// does not render, which is correct — a guessed list is worse than none.
+    @State private var therapyOptions: [TherapyOption] = []
+
+    private func loadTherapyOptions() async {
+        if let r: TherapyOptionsResponse =
+            try? await APIClient.shared.get("/chronic/therapy-options") {
+            therapyOptions = r.options
+        }
+    }
 
     let condition: ChronicCondition?
     let onSave: (ChronicConditionCreate) -> Void
@@ -281,17 +297,18 @@ struct ConditionFormView: View {
                 Section("Therapies") {
                     Text("Which therapies treat this condition. This decides whether the app shows you those screens.")
                         .font(.caption).foregroundStyle(.secondary)
-                    ForEach(ConditionFormView.therapyOptions, id: \.value) { option in
-                        let on = (formData.therapyTypes ?? []).contains(option.value)
+                    ForEach(therapyOptions) { option in
+                        let on = (formData.therapyTypes ?? []).contains(option.code)
                         Button {
                             var next = Set(formData.therapyTypes ?? [])
-                            if on { next.remove(option.value) } else { next.insert(option.value) }
+                            if on { next.remove(option.code) } else { next.insert(option.code) }
                             formData.therapyTypes = next.isEmpty ? nil : Array(next).sorted()
                         } label: {
                             HStack {
                                 Image(systemName: on ? "checkmark.square.fill" : "square")
                                     .foregroundStyle(on ? .blue : .secondary)
-                                Text(option.label).foregroundStyle(.primary)
+                                // WHO's own title; nothing is relabelled here.
+                                Text(option.title).foregroundStyle(.primary)
                                 Spacer()
                             }
                         }
@@ -337,6 +354,7 @@ struct ConditionFormView: View {
                 }
             }
             .navigationTitle(condition == nil ? "New Condition" : "Edit Condition")
+            .task { await loadTherapyOptions() }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
