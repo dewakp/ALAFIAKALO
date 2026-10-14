@@ -1172,6 +1172,11 @@
         <target state="translated">Demander à ALAFIA</target>
         <note />
       </trans-unit>
+      <trans-unit id="Ask a question, or tell Alafia to log something" xml:space="preserve">
+        <source>Ask a question, or tell Alafia to log something</source>
+        <target state="translated">Posez une question ou demandez à Alafia d'enregistrer quelque chose</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Ask about your health..." xml:space="preserve">
         <source>Ask about your health...</source>
         <target state="translated">Posez une question sur votre santé…</target>
@@ -1534,6 +1539,11 @@
       <trans-unit id="Chat" xml:space="preserve">
         <source>Chat</source>
         <target state="translated">Messagerie</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Chat with Alafia" xml:space="preserve">
+        <source>Chat with Alafia</source>
+        <target state="translated">Discuter avec Alafia</target>
         <note />
       </trans-unit>
       <trans-unit id="Check In" xml:space="preserve">

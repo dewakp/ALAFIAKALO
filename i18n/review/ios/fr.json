@@ -1175,6 +1175,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Ask a question, or tell Alafia to log something": {
+    "source": "Ask a question, or tell Alafia to log something",
+    "translation": "Posez une question ou demandez à Alafia d'enregistrer quelque chose",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Ask about your health...": {
     "source": "Ask about your health...",
     "translation": "Posez une question sur votre santé…",
@@ -1606,6 +1612,12 @@
     "translation": "Messagerie",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Chat with Alafia": {
+    "source": "Chat with Alafia",
+    "translation": "Discuter avec Alafia",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Check In": {
     "source": "Check In",

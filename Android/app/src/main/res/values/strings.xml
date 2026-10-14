@@ -42,7 +42,7 @@
     <string name="accept_enable_ai_features">Accept &amp; Enable AI Features</string>
     <string name="ai_health_assistant">AI Health Assistant</string>
     <string name="back">Back</string>
-    <string name="ask_about_your_health">Ask about your health...</string>
+    <string name="ask_about_your_health">Ask a question, or tell Alafia to log something</string>
     <string name="speak_your_question">Speak your question</string>
     <string name="choose_your_guide">Choose Your Guide</string>
     <string name="optional_close_to_keep_your_device">Optional — close to keep your device-language guide, or pick another.</string>
@@ -415,8 +415,8 @@
     <string name="clinician_view">Clinician view</string>
     <string name="your_own_health_record_meals_and">Your own health record, meals and tracking live in the patient view.</string>
     <string name="switch_to_patient_view">Switch to Patient View</string>
-    <string name="ask_alafia">Ask ALAFIA</string>
-    <string name="ask">Ask</string>
+    <string name="ask_alafia">Chat with Alafia</string>
+    <string name="ask">Chat</string>
     <string name="share_records">Share Records</string>
     <string name="share">Share</string>
     <string name="more">More</string>

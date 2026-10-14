@@ -36,7 +36,7 @@
     <string name="accept_enable_ai_features">Karbi &amp; Kunna AI Features</string>
     <string name="ai_health_assistant">Mataimakin AI na Lafiya</string>
     <string name="back">Koma baya</string>
-    <string name="ask_about_your_health">Tambayi game da lafiyarka...</string>
+    <string name="ask_about_your_health">Tambayi tambaya, ko gaya wa Alafia ya rubuta wani abu</string>
     <string name="speak_your_question">Faɗi tambayarki</string>
     <string name="choose_your_guide">Zaɓi Jagoran ka</string>
     <string name="optional_close_to_keep_your_device">Zaɓe — rufe don kiyaye jagoran harshen na\'urar ka, ko zaɓi wani.</string>
@@ -409,8 +409,8 @@
     <string name="clinician_view">Gidan likita</string>
     <string name="your_own_health_record_meals_and">Jariniyarka ta kanka, abinci da tracking suna zaune a gidan maroki.</string>
     <string name="switch_to_patient_view">Juyawa zuwa Gidan Maroki</string>
-    <string name="ask_alafia">Tambaya ALAFIA</string>
-    <string name="ask">Tambaya</string>
+    <string name="ask_alafia">Zama jiya da Alafia</string>
+    <string name="ask">Zama jiya</string>
     <string name="share_records">Raba Jaraye</string>
     <string name="share">Raba</string>
     <string name="more">Kari</string>

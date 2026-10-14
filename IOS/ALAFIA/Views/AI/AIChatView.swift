@@ -205,7 +205,7 @@ struct AIChatView: View {
                 
                 // Input
                 HStack(spacing: 12) {
-                    TextField(speech.isRecording ? "Listening… speak your question" : "Ask about your health...",
+                    TextField(speech.isRecording ? "Listening… speak your question" : "Ask a question, or tell Alafia to log something",
                               text: $vm.inputText, axis: .vertical)
                         .lineLimit(1...4)
                         .textFieldStyle(.plain)

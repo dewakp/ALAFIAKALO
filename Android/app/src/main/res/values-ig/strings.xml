@@ -36,7 +36,7 @@
     <string name="accept_enable_ai_features">Kwadoo &amp; Mee AI Features Dị Mma</string>
     <string name="ai_health_assistant">Onye Inyom AI maka Ahụ</string>
     <string name="back">Laghachi</string>
-    <string name="ask_about_your_health">Jụọ banyere ahụ gị...</string>
+    <string name="ask_about_your_health">Jụọ ajụjụ, ma ọ bụ gwa ALAFIA ka o dee ihe</string>
     <string name="speak_your_question">Kwuo ajụjụ gị</string>
     <string name="choose_your_guide">Họrọ Onye Nduzi Gị</string>
     <string name="optional_close_to_keep_your_device">Ọ Bụ Ihe Ọ Chọrọ — mechie iji nweta onye nduzi asụsụ igwe gị, ma ọ bụ họrọ ọzọ.</string>
@@ -409,8 +409,8 @@
     <string name="clinician_view">Anya onye ọjọọ</string>
     <string name="your_own_health_record_meals_and">Gị nwere akwụkwọ ọgwụ, nri na ihe ị na-eme dị na patient view.</string>
     <string name="switch_to_patient_view">Gbanwee na Patient View</string>
-    <string name="ask_alafia">Jụọ ALAFIA</string>
-    <string name="ask">Jụọ</string>
+    <string name="ask_alafia">Kparịta ụka na ALAFIA</string>
+    <string name="ask">Kparịta ụka</string>
     <string name="share_records">Kekọrịta Akwụkwọ</string>
     <string name="share">Kekọrịta</string>
     <string name="more">Ihe ọzọ</string>

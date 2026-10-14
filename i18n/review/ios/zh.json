@@ -1175,6 +1175,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Ask a question, or tell Alafia to log something": {
+    "source": "Ask a question, or tell Alafia to log something",
+    "translation": "提问或告诉 ALAFIA 记录某些内容",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Ask about your health...": {
     "source": "Ask about your health...",
     "translation": "询问您的健康状况…",
@@ -1606,6 +1612,12 @@
     "translation": "聊天",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Chat with Alafia": {
+    "source": "Chat with Alafia",
+    "translation": "与 ALAFIA 聊天",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Check In": {
     "source": "Check In",

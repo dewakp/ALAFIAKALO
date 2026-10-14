@@ -190,7 +190,7 @@
     "hospital_history": "Hospitali & Upasuaji",
     "notifications": "Arifa",
     "logout": "Toka",
-    "ask_alafia": "Uliza ALAFIA",
+    "ask_alafia": "Sema na ALAFIA",
     "overview_analysis": "Muhtasari & Uchambuzi",
     "dashboard": "Dashibodi",
     "health_insights": "Mwonekano wa Afya",
@@ -866,7 +866,8 @@
     "food_drug_recalls": "Ukataaji wa Chakula & Dawa",
     "connect_records": "Unganisha Rekodi",
     "cdc_health_info": "Taarifa za Afya za CDC",
-    "who_wellness_tips": "Vidokezo vya Afya vya WHO"
+    "who_wellness_tips": "Vidokezo vya Afya vya WHO",
+    "time_not_recorded": "wakati haujarekodiwa"
   },
   "DataSharing": {
     "data_sharing": "Kushiriki Data",
@@ -1140,7 +1141,7 @@
     "in_an_emergency_do_not_use_alafia": "Katika dharura, usitumie ALAFIA.",
     "still_stuck_a_human_will_read_it": "Bado umefungwa? Mtu atakisoma.",
     "contact_us": "Wasiliana Nasi ✦",
-    "ask_alafia": "Uliza ALAFIA",
+    "ask_alafia": "Sema na ALAFIA",
     "the_fastest_way_in_describe_what_you": "Njia ya haraka zaidi. Eleza kile unachotaka kurekodi au kujua kwa lugha rahisi, na ALAFIA itakuongoza mahali sahihi.",
     "log_a_meal": "Rekodi chakula",
     "type_or_photograph_what_you_ate_calories": "Andika au picha kile ulichokula. Kalori na virutubishi vitajazwa kwa otomatiki baada ya sekunde chache.",

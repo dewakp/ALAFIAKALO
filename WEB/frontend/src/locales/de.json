@@ -190,7 +190,7 @@
     "hospital_history": "Krankenhaus & Chirurgie",
     "notifications": "Benachrichtigungen",
     "logout": "Abmelden",
-    "ask_alafia": "ALAFIA fragen",
+    "ask_alafia": "Mit ALAFIA chatten",
     "overview_analysis": "Übersicht & Analyse",
     "dashboard": "Dashboard",
     "health_insights": "Gesundheitliche Einblicke",
@@ -866,7 +866,8 @@
     "food_drug_recalls": "Lebensmittel- & Medikamentenrückrufe",
     "connect_records": "Unterlagen verbinden",
     "cdc_health_info": "CDC-Gesundheitsinformationen",
-    "who_wellness_tips": "WHO-Wellness-Tipps"
+    "who_wellness_tips": "WHO-Wellness-Tipps",
+    "time_not_recorded": "Zeit nicht erfasst"
   },
   "DataSharing": {
     "data_sharing": "Datenaustausch",
@@ -1140,7 +1141,7 @@
     "in_an_emergency_do_not_use_alafia": "Verwende ALAFIA im Notfall nicht.",
     "still_stuck_a_human_will_read_it": "Noch nicht weitergekommen? Ein Mensch wird es lesen.",
     "contact_us": "Kontaktiere uns ✦",
-    "ask_alafia": "Frag ALAFIA",
+    "ask_alafia": "Mit ALAFIA chatten",
     "the_fastest_way_in_describe_what_you": "Der schnellste Weg. Beschreiben Sie in einfachen Worten, was Sie protokollieren oder wissen möchten – ALAFIA leitet es an die richtige Stelle weiter.",
     "log_a_meal": "Mahlzeit protokollieren",
     "type_or_photograph_what_you_ate_calories": "Geben Sie ein oder fotografieren Sie, was Sie gegessen haben. Kalorien und Nährstoffe werden wenige Sekunden später automatisch ausgefüllt.",

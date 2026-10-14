@@ -654,22 +654,22 @@
     "translated_on": "2026-09-15"
   },
   "ask": {
-    "source": "Ask",
-    "translation": "Demander",
+    "source": "Chat",
+    "translation": "Discuter",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "ask_about_your_health": {
-    "source": "Ask about your health...",
-    "translation": "Posez une question sur votre santé...",
+    "source": "Ask a question, or tell Alafia to log something",
+    "translation": "Posez une question ou demandez à ALAFIA d'enregistrer quelque chose",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "ask_alafia": {
-    "source": "Ask ALAFIA",
-    "translation": "Demander à ALAFIA",
+    "source": "Chat with Alafia",
+    "translation": "Discutez avec ALAFIA",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "assessment": {
     "source": "Assessment",

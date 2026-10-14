@@ -672,22 +672,22 @@
     "translated_on": "2026-09-15"
   },
   "ask": {
-    "source": "Ask",
-    "translation": "Fragen",
+    "source": "Chat",
+    "translation": "Chat",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "ask_about_your_health": {
-    "source": "Ask about your health...",
-    "translation": "Frage zu deiner Gesundheit...",
+    "source": "Ask a question, or tell Alafia to log something",
+    "translation": "Stelle eine Frage oder bitte ALAFIA, etwas zu protokollieren",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "ask_alafia": {
-    "source": "Ask ALAFIA",
-    "translation": "ALAFIA fragen",
+    "source": "Chat with Alafia",
+    "translation": "Mit ALAFIA chatten",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "assessment": {
     "source": "Assessment",

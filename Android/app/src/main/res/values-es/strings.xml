@@ -36,7 +36,7 @@
     <string name="accept_enable_ai_features">Aceptar y habilitar funciones de IA</string>
     <string name="ai_health_assistant">Asistente de Salud con IA</string>
     <string name="back">Atrás</string>
-    <string name="ask_about_your_health">Pregunta sobre tu salud...</string>
+    <string name="ask_about_your_health">Haz una pregunta o pídele a Alafia que registre algo</string>
     <string name="speak_your_question">Di tu pregunta</string>
     <string name="choose_your_guide">Elige tu guía</string>
     <string name="optional_close_to_keep_your_device">Opcional — cierra para mantener la guía en el idioma de tu dispositivo, o elige otra.</string>
@@ -409,8 +409,8 @@
     <string name="clinician_view">Vista del clínico</string>
     <string name="your_own_health_record_meals_and">Tu historial de salud, comidas y seguimiento están en la vista del paciente.</string>
     <string name="switch_to_patient_view">Cambiar a vista del paciente</string>
-    <string name="ask_alafia">Pregunta a ALAFIA</string>
-    <string name="ask">Preguntar</string>
+    <string name="ask_alafia">Conversa con Alafia</string>
+    <string name="ask">Conversa</string>
     <string name="share_records">Compartir Registros</string>
     <string name="share">Compartir</string>
     <string name="more">Más</string>

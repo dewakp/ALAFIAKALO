@@ -190,7 +190,7 @@
     "hospital_history": "المستشفى والجراحة",
     "notifications": "الإشعارات",
     "logout": "تسجيل الخروج",
-    "ask_alafia": "اسأل ALAFIA",
+    "ask_alafia": "الدردشة مع ALAFIA",
     "overview_analysis": "نظرة عامة وتحليل",
     "dashboard": "لوحة التحكم",
     "health_insights": "رؤى صحية",
@@ -866,7 +866,8 @@
     "food_drug_recalls": "استدعاءات الطعام والأدوية",
     "connect_records": "ربط السجلات",
     "cdc_health_info": "معلومات CDC الصحية",
-    "who_wellness_tips": "نصائح WHO للعافية"
+    "who_wellness_tips": "نصائح WHO للعافية",
+    "time_not_recorded": "الوقت غير مسجّل"
   },
   "DataSharing": {
     "data_sharing": "مشاركة البيانات",
@@ -1140,7 +1141,7 @@
     "in_an_emergency_do_not_use_alafia": "في حالة الطوارئ، لا تستخدم ALAFIA.",
     "still_stuck_a_human_will_read_it": "لا تزال عالقاً؟ سيقرأها إنسان.",
     "contact_us": "اتصل بنا ✦",
-    "ask_alafia": "اسأل ALAFIA",
+    "ask_alafia": "الدردشة مع ALAFIA",
     "the_fastest_way_in_describe_what_you": "الطريقة الأسرع للدخول. صِف ما تريد تسجيله أو معرفته بكلمات بسيطة وALAFIA سيوجهك للمكان الصحيح.",
     "log_a_meal": "تسجيل وجبة",
     "type_or_photograph_what_you_ate_calories": "اكتب أو صوّر ما أكلته. السعرات الحرارية والعناصر الغذائية تُملأ تلقائياً بعد ثوانٍ.",

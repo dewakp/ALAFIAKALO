@@ -190,7 +190,7 @@
     "hospital_history": "Hospital & Surgery",
     "notifications": "Notifications",
     "logout": "Logout",
-    "ask_alafia": "Ask ALAFIA",
+    "ask_alafia": "Chat with Alafia",
     "overview_analysis": "Overview & Analysis",
     "dashboard": "Dashboard",
     "health_insights": "Health Insights",
@@ -866,7 +866,8 @@
     "food_drug_recalls": "Food & Drug Recalls",
     "connect_records": "Connect Records",
     "cdc_health_info": "CDC Health Info",
-    "who_wellness_tips": "WHO Wellness Tips"
+    "who_wellness_tips": "WHO Wellness Tips",
+    "time_not_recorded": "time not recorded"
   },
   "DataSharing": {
     "data_sharing": "Data Sharing",
@@ -1140,7 +1141,7 @@
     "in_an_emergency_do_not_use_alafia": "In an emergency, do not use ALAFIA.",
     "still_stuck_a_human_will_read_it": "Still stuck? A human will read it.",
     "contact_us": "Contact Us ✦",
-    "ask_alafia": "Ask ALAFIA",
+    "ask_alafia": "Chat with Alafia",
     "the_fastest_way_in_describe_what_you": "The fastest way in. Describe what you want to log or know in plain language and ALAFIA routes it to the right place.",
     "log_a_meal": "Log a meal",
     "type_or_photograph_what_you_ate_calories": "Type or photograph what you ate. Calories and nutrients are filled in for you a few seconds later.",

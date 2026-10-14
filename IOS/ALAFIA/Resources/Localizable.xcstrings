@@ -14061,6 +14061,7 @@
       }
     },
     "Ask" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -14124,7 +14125,72 @@
         }
       }
     },
+    "Ask a question, or tell Alafia to log something" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اطرح سؤالاً أو اطلب من ALAFIA تسجيل شيء"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stelle eine Frage oder bitte ALAFIA, etwas zu protokollieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz una pregunta o pídele a Alafia que registre algo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posez une question ou demandez à Alafia d'enregistrer quelque chose"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tambayi tambaya, ko gaya wa Alafia ya rubuta wani abu"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jụọ ajụjụ, ma ọ bụ gwa ALAFIA ka o dee ihe"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faça uma pergunta ou peça ao Alafia para registrar algo"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uliza swali, au kumwambia ALAFIA kuandika kitu"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibeere kan beere, tabi sọ fun Alafia lati ṣe itọkasi nkan"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提问或告诉 ALAFIA 记录某些内容"
+          }
+        }
+      }
+    },
     "Ask about your health..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -14189,6 +14255,7 @@
       }
     },
     "Ask ALAFIA" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -18865,6 +18932,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "聊天"
+          }
+        }
+      }
+    },
+    "Chat with Alafia" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الدردشة مع ALAFIA"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit ALAFIA chatten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chatea con Alafia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discuter avec Alafia"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magana da Alafia"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kparịta ụka na ALAFIA"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Converse com o Alafia"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sema na ALAFIA"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sọrọ pelu Alafia"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与 ALAFIA 聊天"
           }
         }
       }

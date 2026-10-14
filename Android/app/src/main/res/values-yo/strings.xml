@@ -36,7 +36,7 @@
     <string name="accept_enable_ai_features">Gba &amp; Ṣe AI Features Ṣiṣẹ́</string>
     <string name="ai_health_assistant">Olùtúnú Ìlera AI</string>
     <string name="back">Padà</string>
-    <string name="ask_about_your_health">Béèrè nípa ìlera rẹ...</string>
+    <string name="ask_about_your_health">Ibeere kan beere, tabi sọ fun Alafia lati ṣe itọsọ nkan</string>
     <string name="speak_your_question">Sọ̀rọ̀ ibeèrè rẹ</string>
     <string name="choose_your_guide">Yàn Olùtúnú Rẹ</string>
     <string name="optional_close_to_keep_your_device">Àkọ́kọ́ — tì láti pa olùtúnú ede ẹrọ rẹ, tàbí yàn omiíràn.</string>
@@ -409,8 +409,8 @@
     <string name="clinician_view">Ìwòran onímọ̀</string>
     <string name="your_own_health_record_meals_and">Ìwé ìlera rẹ, oúnjẹ àti ìlànà àkọsílẹ̀ wà nínú ìwòran ọ̀jọ́.</string>
     <string name="switch_to_patient_view">Yípò sí Ìwòran Ọ̀jọ́</string>
-    <string name="ask_alafia">Béèrè ALAFIA</string>
-    <string name="ask">Béèrè</string>
+    <string name="ask_alafia">Sọrọ pelu Alafia</string>
+    <string name="ask">Sọrọ</string>
     <string name="share_records">Pín Àwọn Ìwé</string>
     <string name="share">Pín</string>
     <string name="more">Síi</string>

@@ -672,22 +672,22 @@
     "translated_on": "2026-09-15"
   },
   "ask": {
-    "source": "Ask",
-    "translation": "Jụọ",
+    "source": "Chat",
+    "translation": "Kparịta ụka",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "ask_about_your_health": {
-    "source": "Ask about your health...",
-    "translation": "Jụọ banyere ahụ gị...",
+    "source": "Ask a question, or tell Alafia to log something",
+    "translation": "Jụọ ajụjụ, ma ọ bụ gwa ALAFIA ka o dee ihe",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "ask_alafia": {
-    "source": "Ask ALAFIA",
-    "translation": "Jụọ ALAFIA",
+    "source": "Chat with Alafia",
+    "translation": "Kparịta ụka na ALAFIA",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "assessment": {
     "source": "Assessment",

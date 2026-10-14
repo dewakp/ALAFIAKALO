@@ -36,7 +36,7 @@
     <string name="accept_enable_ai_features">接受并启用 AI 功能</string>
     <string name="ai_health_assistant">AI 健康助手</string>
     <string name="back">返回</string>
-    <string name="ask_about_your_health">询问您的健康问题...</string>
+    <string name="ask_about_your_health">提问或告诉 ALAFIA 记录某项内容</string>
     <string name="speak_your_question">说出您的问题</string>
     <string name="choose_your_guide">选择您的指南</string>
     <string name="optional_close_to_keep_your_device">可选 — 关闭以保持您的设备语言指南，或选择另一个。</string>
@@ -409,8 +409,8 @@
     <string name="clinician_view">临床医生视图</string>
     <string name="your_own_health_record_meals_and">您的健康记录、饮食和追踪数据在患者视图中。</string>
     <string name="switch_to_patient_view">切换到患者视图</string>
-    <string name="ask_alafia">询问 ALAFIA</string>
-    <string name="ask">询问</string>
+    <string name="ask_alafia">与 ALAFIA 聊天</string>
+    <string name="ask">聊天</string>
     <string name="share_records">分享记录</string>
     <string name="share">分享</string>
     <string name="more">更多</string>

@@ -36,7 +36,7 @@
     <string name="accept_enable_ai_features">Akzeptieren &amp; KI-Funktionen aktivieren</string>
     <string name="ai_health_assistant">KI-Gesundheitsassistent</string>
     <string name="back">Zurück</string>
-    <string name="ask_about_your_health">Frage zu deiner Gesundheit...</string>
+    <string name="ask_about_your_health">Stelle eine Frage oder bitte ALAFIA, etwas zu protokollieren</string>
     <string name="speak_your_question">Sprich deine Frage</string>
     <string name="choose_your_guide">Wähle deinen Leitfaden</string>
     <string name="optional_close_to_keep_your_device">Optional — schließen, um deine Gerätesprache zu behalten, oder wähle eine andere.</string>
@@ -409,8 +409,8 @@
     <string name="clinician_view">Klinische Ansicht</string>
     <string name="your_own_health_record_meals_and">Ihre Gesundheitsakte, Mahlzeiten und Verfolgung befinden sich in der Patientenansicht.</string>
     <string name="switch_to_patient_view">Zur Patientenansicht wechseln</string>
-    <string name="ask_alafia">ALAFIA fragen</string>
-    <string name="ask">Fragen</string>
+    <string name="ask_alafia">Mit ALAFIA chatten</string>
+    <string name="ask">Chat</string>
     <string name="share_records">Aufzeichnungen teilen</string>
     <string name="share">Teilen</string>
     <string name="more">Mehr</string>

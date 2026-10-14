@@ -36,7 +36,7 @@
     <string name="accept_enable_ai_features">Kubali &amp; Wezesha Sifa za AI</string>
     <string name="ai_health_assistant">Msaada wa Afya wa AI</string>
     <string name="back">Rudi</string>
-    <string name="ask_about_your_health">Uliza kuhusu afya yako...</string>
+    <string name="ask_about_your_health">Uliza swali, au kumwambia ALAFIA kuandika kitu</string>
     <string name="speak_your_question">Sema swali lako</string>
     <string name="choose_your_guide">Chagua Mwongozi Wako</string>
     <string name="optional_close_to_keep_your_device">Hiari — funga ili kubaki na mwongozi wa lugha ya kifaa, au chagua kingine.</string>
@@ -409,8 +409,8 @@
     <string name="clinician_view">Mtazamo wa Kliniki</string>
     <string name="your_own_health_record_meals_and">Rekodi yako ya afya, chakula na ufuatiliaji unaishi katika mtazamo wa mgonjwa.</string>
     <string name="switch_to_patient_view">Badili kuwa Mtazamo wa Mgonjwa</string>
-    <string name="ask_alafia">Uliza ALAFIA</string>
-    <string name="ask">Uliza</string>
+    <string name="ask_alafia">Sema na ALAFIA</string>
+    <string name="ask">Sema</string>
     <string name="share_records">Sambaza Rekodi</string>
     <string name="share">Sambaza</string>
     <string name="more">Zaidi</string>

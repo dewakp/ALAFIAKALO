@@ -190,7 +190,7 @@
     "hospital_history": "医院与手术",
     "notifications": "通知",
     "logout": "登出",
-    "ask_alafia": "询问 ALAFIA",
+    "ask_alafia": "与 ALAFIA 聊天",
     "overview_analysis": "概览与分析",
     "dashboard": "仪表板",
     "health_insights": "健康洞察",
@@ -866,7 +866,8 @@
     "food_drug_recalls": "食品与药物召回",
     "connect_records": "连接医疗记录",
     "cdc_health_info": "CDC 健康信息",
-    "who_wellness_tips": "WHO 健康建议"
+    "who_wellness_tips": "WHO 健康建议",
+    "time_not_recorded": "未记录时间"
   },
   "DataSharing": {
     "data_sharing": "数据共享",
@@ -1140,7 +1141,7 @@
     "in_an_emergency_do_not_use_alafia": "在紧急情况下，请勿使用 ALAFIA。",
     "still_stuck_a_human_will_read_it": "仍然卡住？我们的工作人员会阅读。",
     "contact_us": "联系我们 ✦",
-    "ask_alafia": "询问 ALAFIA",
+    "ask_alafia": "与 ALAFIA 聊天",
     "the_fastest_way_in_describe_what_you": "最快的方式。用简单的语言描述你想记录或了解的内容，ALAFIA 会将其转到正确的位置。",
     "log_a_meal": "记录一餐",
     "type_or_photograph_what_you_ate_calories": "输入或拍摄你吃的食物。几秒钟后，卡路里和营养成分会自动填入。",

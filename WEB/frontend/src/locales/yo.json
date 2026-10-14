@@ -190,7 +190,7 @@
     "hospital_history": "Ile ìlera & Ìṣẹ̀",
     "notifications": "Àkiyèsi",
     "logout": "Lọ kúrò",
-    "ask_alafia": "Béèrè ALAFIA",
+    "ask_alafia": "Sọ̀rọ̀ pẹ̀lú Alafia",
     "overview_analysis": "Àkópọ̀ & Ìmọ̀ràn",
     "dashboard": "Dashboard",
     "health_insights": "Ìmọ̀ Àìsàn",
@@ -866,7 +866,8 @@
     "food_drug_recalls": "Àwọn Ìpadà Oúnjẹ & Oogun",
     "connect_records": "Tẹ̀ Àwọn Ìwé",
     "cdc_health_info": "Ìmọ̀ Àìlèra CDC",
-    "who_wellness_tips": "Àwọn Ìmọ̀ràn Ìwà Ẹ̀ẁà WHO"
+    "who_wellness_tips": "Àwọn Ìmọ̀ràn Ìwà Ẹ̀ẁà WHO",
+    "time_not_recorded": "àkókò kò tíì gbé"
   },
   "DataSharing": {
     "data_sharing": "Pípin Àkọ́lé",
@@ -1140,7 +1141,7 @@
     "in_an_emergency_do_not_use_alafia": "Nínú ìjambá, má lò ALAFIA.",
     "still_stuck_a_human_will_read_it": "Ṣì ní ìdáramú? Ẹnìkan tó ní ara àìmọ̀ máa kà á.",
     "contact_us": "Ìbá pẹ̀ lúwọ́ ✦",
-    "ask_alafia": "Béèrè ALAFIA",
+    "ask_alafia": "Sọ̀rọ̀ pẹ̀lú Alafia",
     "the_fastest_way_in_describe_what_you": "Ọ̀nà tí ó yára jù lọ. Ṣàpèjúwe ohun tí o fẹ́ ṣe àkiyèsi tàbí mọ̀ nípa ọ̀rọ̀ àìlọ́jú, ALAFIA yóò rán un sí ibi tí ó yẹ.",
     "log_a_meal": "Ṣe àkiyèsi oúnjẹ",
     "type_or_photograph_what_you_ate_calories": "Kọ tàbí gba àwòrán ohun tí o jẹ. Àwọn kalórì àti àwọn ìjáde ní a yóò pún fún ọ ní ìsẹ́jú díẹ̀.",

@@ -3473,6 +3473,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Dashboard.time_not_recorded": {
+    "source": "time not recorded",
+    "translation": "未记录时间",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Dashboard.to_see_the_trend": {
     "source": "to see the trend.",
     "translation": "以查看趋势。",
@@ -4992,10 +4998,10 @@
     "translated_on": "2026-09-15"
   },
   "Help.ask_alafia": {
-    "source": "Ask ALAFIA",
-    "translation": "询问 ALAFIA",
+    "source": "Chat with Alafia",
+    "translation": "与 ALAFIA 聊天",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "Help.ask_us_and_we_will_do_it_email": {
     "source": "Ask us and we will do it. Email",
@@ -7590,10 +7596,10 @@
     "translated_on": "2026-09-15"
   },
   "Layout.ask_alafia": {
-    "source": "Ask ALAFIA",
-    "translation": "询问 ALAFIA",
+    "source": "Chat with Alafia",
+    "translation": "与 ALAFIA 聊天",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-14"
   },
   "Layout.calendar": {
     "source": "Calendar",

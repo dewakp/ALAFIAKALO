@@ -20,7 +20,50 @@ import { t as translate } from '../i18n';
 /* ─── helpers ─── */
 const todayStr = () => localToday();
 const fmtDateLabel = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-const fmtTime = (t) => { if (!t) return ''; const [h, m] = t.split(':'); const hr = parseInt(h, 10); return `${String(hr % 12 || 12).padStart(2,'0')}:${m} ${hr < 12 ? 'AM' : 'PM'}`; };
+/**
+ * Elimination rows -> what the dashboard draws, with the REAL time.
+ *
+ * Exported for the test rather than inlined in the component: the bug lived in
+ * a `useMemo` inside a 900-line page, where nothing could reach it. A pure
+ * function is what let the regression be pinned (§3av — a guard that cannot
+ * execute the code is not evidence).
+ *
+ * `logTime` is `null` when the row carries no time, and the caller must SAY SO
+ * rather than invent one. §3av measured the cost of the opposite choice on
+ * 3,662 `intradialytic_readings`: an import defaulted a missing timestamp to
+ * midnight, and "the measurement is real and the time is not" had to be
+ * reconstructed afterwards from the population.
+ */
+export function buildEliminationEvents(bowel = [], vomiting = []) {
+  const row = (e, type, note) => ({
+    ...e,                       // spread FIRST — see the note at the call site
+    type,
+    note,
+    // The only time these rows have. Arrives as "HH:MM:SS" or null; a bare
+    // "HH:MM" is accepted too rather than assuming the seconds are there.
+    logTime: typeof e.log_time === 'string' && e.log_time.length >= 4
+      ? e.log_time.slice(0, 5)
+      : null,
+  });
+  return [
+    ...bowel.map(e => row(e, 'Bowel', e.stool_type || e.notes || '')),
+    ...vomiting.map(e => row(e, 'Vomiting', e.contents || e.notes || '')),
+  ].sort((a, b) => {
+    // An unknown time cannot bound a window and must not sort as midnight.
+    // Untimed rows go last, keeping their arrival order, instead of claiming
+    // the top of the day.
+    if (a.logTime && b.logTime) return a.logTime.localeCompare(b.logTime);
+    if (a.logTime) return -1;
+    if (b.logTime) return 1;
+    return 0;
+  });
+}
+
+// Exported with `buildEliminationEvents` because the defect lived in the
+// COMPOSITION of the two, not in either alone: the transform handed over a
+// date and this turned it into "08:00 PM". A test that checks only the
+// transform would have passed on a half-fix.
+export const fmtTime = (t) => { if (!t) return ''; const [h, m] = t.split(':'); const hr = parseInt(h, 10); return `${String(hr % 12 || 12).padStart(2,'0')}:${m} ${hr < 12 ? 'AM' : 'PM'}`; };
 
 function daysInMonth(y, mo) { return new Date(y, mo + 1, 0).getDate(); }
 function calGrid(y, mo) {
@@ -697,11 +740,28 @@ export default function Dashboard() {
     return order.filter(k => g[k]).map(k => ({ type: k, items: g[k] }));
   }, [nutrition]);
 
-  /* combine elimination events */
-  const elimEvents = useMemo(() => [
-    ...bowel.map(e => ({ type: 'Bowel', time: e.time || e.log_date, note: e.stool_type || e.notes || '', ...e })),
-    ...vomiting.map(e => ({ type: 'Vomiting', time: e.time || e.log_date, note: e.contents || e.notes || '', ...e })),
-  ].sort((a, b) => (a.time > b.time ? 1 : -1)), [bowel, vomiting]);
+  /* Combine elimination events.
+
+     ⚠️ THIS RENDERED EVERY EVENT AS THE SAME WRONG TIME. Reported 2026-10-14
+     with two bowel movements logged at 00:40 and 10:30 both showing
+     "08:00 PM". Three faults in one line, and the first is why the other two
+     were never visible:
+
+       1. `time: e.time || e.log_date` — the API sends **`log_time`**, and
+          there has never been a `time` field on either model. So `e.time` was
+          always undefined and every row fell back to its DATE.
+       2. The render then did `new Date("2026-10-14").toTimeString()`. An
+          ISO date-only string is parsed as UTC MIDNIGHT and `toTimeString`
+          prints LOCAL, so in EDT every event read 20:00 -> "08:00 PM". The
+          time shown was a function of the VIEWER'S TIMEZONE, not the event.
+       3. `...e` came AFTER `time:`, so had the API ever grown a `time` field
+          it would have silently overruled the computed one. The spread goes
+          FIRST now; what this function computes wins.
+
+     Both mobile clients bind `log_time` correctly and always have — §3av: when
+     one platform eats data and two do not, the two are the specification. */
+  const elimEvents = useMemo(
+    () => buildEliminationEvents(bowel, vomiting), [bowel, vomiting]);
 
   const mealEmoji = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎', other: '🍽️' };
   const noData = (text) => <p style={{ color: 'var(--color-text-tertiary)', fontSize: '.85rem', margin: 0 }}>{text}</p>;
@@ -810,7 +870,12 @@ export default function Dashboard() {
                     <span style={{ color: 'var(--color-text-secondary)', minWidth: 24 }}>•</span>
                     <span>
                       <strong>{e.type}</strong>
-                      {e.time && <span style={{ color: 'var(--color-text-tertiary)' }}> {translate('Dashboard.at', { value: fmtTime(typeof e.time === 'string' && e.time.length <= 8 ? e.time : new Date(e.time).toTimeString().slice(0,5)) })}</span>}
+                      {/* `logTime` is already "HH:MM" local wall-clock as the
+                          patient entered it. NOTHING constructs a Date here:
+                          doing so is what turned a date into 08:00 PM. */}
+                      {e.logTime
+                        ? <span style={{ color: 'var(--color-text-tertiary)' }}> {translate('Dashboard.at', { value: fmtTime(e.logTime) })}</span>
+                        : <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}> {translate('Dashboard.time_not_recorded')}</span>}
                       {e.note && <span style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)' }}> — {e.note}</span>}
                     </span>
                   </div>

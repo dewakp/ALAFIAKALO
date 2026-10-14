@@ -36,7 +36,7 @@
     <string name="accept_enable_ai_features">قبول وتفعيل ميزات المساعد الذكي</string>
     <string name="ai_health_assistant">مساعد صحي ذكي</string>
     <string name="back">رجوع</string>
-    <string name="ask_about_your_health">اسأل عن صحتك...</string>
+    <string name="ask_about_your_health">اطرح سؤالاً أو اطلب من ALAFIA تسجيل شيء</string>
     <string name="speak_your_question">تحدث عن سؤالك</string>
     <string name="choose_your_guide">اختر مرشدك</string>
     <string name="optional_close_to_keep_your_device">اختياري — أغلق للاحتفاظ بلغة جهازك، أو اختر لغة أخرى.</string>
@@ -409,8 +409,8 @@
     <string name="clinician_view">عرض الطبيب</string>
     <string name="your_own_health_record_meals_and">سجلك الصحي والوجبات والمتابعة توجد في عرض المريض.</string>
     <string name="switch_to_patient_view">التبديل إلى عرض المريض</string>
-    <string name="ask_alafia">اسأل ALAFIA</string>
-    <string name="ask">اسأل</string>
+    <string name="ask_alafia">الدردشة مع ALAFIA</string>
+    <string name="ask">الدردشة</string>
     <string name="share_records">مشاركة السجلات</string>
     <string name="share">مشاركة</string>
     <string name="more">المزيد</string>

@@ -255,7 +255,7 @@ struct PromptView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Ask ALAFIA")
+            .navigationTitle("Chat with Alafia")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $destination) { dest in
                 NavigationStack { dest.view }

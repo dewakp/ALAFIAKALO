@@ -35,7 +35,10 @@ struct MainTabView: View {
             // the device (App Review 2.1, question 3).
             AIConsentGate { PromptView() }
                 .tabItem {
-                    Label("Ask", systemImage: "sparkles")
+                    // "Chat", not "Ask": the surface TELLS as well as asks
+                    // (§3am — `log_meal` and `log_medication` are live write
+                    // tools). A tab bar cannot hold "Chat with Alafia".
+                    Label("Chat", systemImage: "sparkles")
                 }
                 .tag(0)
 

@@ -190,7 +190,7 @@
     "hospital_history": "Ụlọ ọgwụ & Ọgwụ",
     "notifications": "Ọkwa Ozi",
     "logout": "Pụta",
-    "ask_alafia": "Jụọ ALAFIA",
+    "ask_alafia": "Kparịta ụka na Alafia",
     "overview_analysis": "Nchikota & Nnyocha",
     "dashboard": "Ụlọ Mmalite",
     "health_insights": "Ihe Mma Ahụ",
@@ -866,7 +866,8 @@
     "food_drug_recalls": "Nri & Ọgwụ Ndị A Gbanwere",
     "connect_records": "Jikọ Ndekọ",
     "cdc_health_info": "Ozi Ike CDC",
-    "who_wellness_tips": "Ụmụ Ọrụ Ike WHO"
+    "who_wellness_tips": "Ụmụ Ọrụ Ike WHO",
+    "time_not_recorded": "oge eweghị ndekọ"
   },
   "DataSharing": {
     "data_sharing": "Ịkọ Ụka Ọrụ",
@@ -1140,7 +1141,7 @@
     "in_an_emergency_do_not_use_alafia": "N'oge ọrịa mgbawa, ejighị ALAFIA.",
     "still_stuck_a_human_will_read_it": "Ka ị ka na-enwe nsogbu? Mmadụ ga-agụ ya.",
     "contact_us": "Kpọtụrụ Anyị ✦",
-    "ask_alafia": "Jụọ ALAFIA",
+    "ask_alafia": "Kparịta ụka na Alafia",
     "the_fastest_way_in_describe_what_you": "Ụzọ kachasị mma ịbanye. Kọwaa ihe ị chọrọ ịdebanye ma ọ bụ ihe ị chọrọ ịmata n'asụsụ ọnụ, ALAFIA ga-eduga ya n'ebe kwesịrị ekwesị.",
     "log_a_meal": "Debanye nri",
     "type_or_photograph_what_you_ate_calories": "Dee ma ọ bụ fotuo ihe ị riri. Calories na nutrients ga-ejupụta maka gị n'ọtụtụ sekọnd.",

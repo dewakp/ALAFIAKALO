@@ -190,7 +190,7 @@
     "hospital_history": "Hospital & Cirurgia",
     "notifications": "Notificações",
     "logout": "Sair",
-    "ask_alafia": "Pergunte ao ALAFIA",
+    "ask_alafia": "Conversar com Alafia",
     "overview_analysis": "Visão Geral e Análise",
     "dashboard": "Painel",
     "health_insights": "Insights de Saúde",
@@ -866,7 +866,8 @@
     "food_drug_recalls": "Recalls de Alimentos e Medicamentos",
     "connect_records": "Conectar Registros",
     "cdc_health_info": "Informações de Saúde CDC",
-    "who_wellness_tips": "Dicas de Bem-estar OMS"
+    "who_wellness_tips": "Dicas de Bem-estar OMS",
+    "time_not_recorded": "hora não registrada"
   },
   "DataSharing": {
     "data_sharing": "Compartilhamento de Dados",
@@ -1140,7 +1141,7 @@
     "in_an_emergency_do_not_use_alafia": "Em caso de emergência, não use ALAFIA.",
     "still_stuck_a_human_will_read_it": "Ainda preso? Um humano vai ler.",
     "contact_us": "Contacte-nos ✦",
-    "ask_alafia": "Pergunte ao ALAFIA",
+    "ask_alafia": "Conversar com Alafia",
     "the_fastest_way_in_describe_what_you": "O caminho mais rápido. Descreva o que quer registar ou saber em linguagem simples e ALAFIA encaminha para o local certo.",
     "log_a_meal": "Registar uma refeição",
     "type_or_photograph_what_you_ate_calories": "Escreva ou fotografe o que comeu. As calorias e nutrientes preenchem-se automaticamente em poucos segundos.",
