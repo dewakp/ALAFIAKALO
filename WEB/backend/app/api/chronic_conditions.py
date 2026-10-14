@@ -19,9 +19,9 @@ from app.core.security import get_current_user
 from app.core.notification_engine import notify_therapy_session_completed, notify_treatment_anomaly
 from app.models.user import User
 from app.services.patient_surfaces import (
-    therapy_options, validate_therapy_types,
+    therapy_codes, therapy_options, validate_therapy_types,
 )
-from app.models.chronic_conditions import ChronicCondition, TherapySession, ConditionMetric, IntradialyticReading, ClinicalNote, FlowsheetStatus
+from app.models.chronic_conditions import ChronicCondition, TherapySession, ConditionMetric, IntradialyticReading, ClinicalNote, FlowsheetStatus, ConditionTherapy
 from app.services import flowsheet_defaults as fs_defaults
 from app.services.flowsheet_drugs import COMMON_DIALYSIS_DRUGS
 from app.services.session_drug_sync import sync_session_drugs
@@ -53,6 +53,7 @@ from app.schemas.chronic_conditions import (
     ICD11CodeOut,
     ICD11SearchResult,
     ICD11Chapter,
+    ConditionTherapiesUpdate,
 )
 
 
@@ -391,6 +392,127 @@ async def delete_chronic_condition(
     
     await db.delete(db_condition)
     await db.commit()
+
+
+# ============= THERAPY SWITCHES =============
+#
+# Operator, 2026-10-14: *"hard-coded enum for therapy will need a comprehensive
+# list with items zeroed out (no impact) when not present (like a switch) and a
+# mechanism for compounded therapies."*
+#
+# `chronic_conditions.therapy_types` is a comma-separated SET, so it can say
+# "on it" and cannot say "not on it": absence meant *"not receiving"* and
+# *"nobody asked"* at once. That is §3at's checkbox — *"'absent', the finding
+# that needs to shout, was indistinguishable from a box nobody had touched"* —
+# applied to a patient's whole therapy picture. These two routes are the third
+# state's only way in.
+
+
+async def _owned_condition(db: AsyncSession, condition_id: int, user_id: int):
+    """The condition, or 404. Scoped by owner, so another patient's id cannot
+    confirm a condition exists (§3b's rule, on this surface)."""
+    row = (await db.execute(
+        select(ChronicCondition).where(and_(
+            ChronicCondition.id == condition_id,
+            ChronicCondition.user_id == user_id,
+        ))
+    )).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Chronic condition not found")
+    return row
+
+
+@router.get("/conditions/{condition_id}/therapies")
+async def get_condition_therapies(
+    condition_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Every STATEMENT this condition carries about a therapy.
+
+    Only codes someone answered for are returned. A client must not receive 32
+    rows of `receiving: false` and conclude the patient was asked about
+    apheresis and said no — that is the measured zero this table exists to
+    record, and it is a different fact from silence. The option set comes from
+    `GET /chronic/therapy-options`; what is MISSING here is what nobody asked.
+    """
+    await _owned_condition(db, condition_id, current_user.id)
+    rows = (await db.execute(
+        select(ConditionTherapy)
+        .where(ConditionTherapy.condition_id == condition_id)
+        .order_by(ConditionTherapy.therapy_code)
+    )).scalars().all()
+    return {
+        "condition_id": condition_id,
+        "therapies": [
+            {
+                "therapy_code": r.therapy_code,
+                "receiving": bool(r.receiving),
+                "regimen": r.regimen,
+                "started_on": r.started_on,
+                "ended_on": r.ended_on,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.put("/conditions/{condition_id}/therapies")
+async def put_condition_therapies(
+    condition_id: int,
+    payload: ConditionTherapiesUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record what the patient says about each therapy they were asked about.
+
+    **A statement is upserted; it is never inferred.** An entry the payload
+    omits is left exactly as it was rather than being deleted or flipped to
+    false — the client may be editing one switch, and reading an absent key as
+    "not receiving" would turn every partial save into a silent retraction of
+    everything else on the condition. §3at again, now in a request body.
+
+    `regimen` is the compounding mechanism: therapies sharing a label are given
+    as one treatment. Nothing here decides what a combination MEANS — naming an
+    interaction is a clinical claim, and inventing one is what §3an forbids.
+    """
+    await _owned_condition(db, condition_id, current_user.id)
+
+    known = set(therapy_codes())
+    existing = {
+        r.therapy_code: r
+        for r in (await db.execute(
+            select(ConditionTherapy)
+            .where(ConditionTherapy.condition_id == condition_id)
+        )).scalars().all()
+    }
+
+    for entry in payload.therapies:
+        code = (entry.therapy_code or "").strip().upper()
+        # §3ad: the code must exist in WHO's own catalog, and the client never
+        # decides what it means. A typo is refused by NAME rather than stored —
+        # a therapy nobody offers a screen for is worse than a rejected save,
+        # because the patient believes they declared it.
+        if code not in known:
+            raise HTTPException(
+                status_code=422,
+                detail=f"'{entry.therapy_code}' is not a therapy code in the "
+                       f"WHO catalog. Ask GET /chronic/therapy-options.",
+            )
+        row = existing.get(code)
+        if row is None:
+            row = ConditionTherapy(condition_id=condition_id, therapy_code=code)
+            db.add(row)
+            existing[code] = row
+        row.receiving = bool(entry.receiving)
+        # An explicitly-sent null clears these; an omitted field keeps them.
+        fields = entry.model_dump(exclude_unset=True)
+        for name in ("regimen", "started_on", "ended_on"):
+            if name in fields:
+                setattr(row, name, fields[name])
+
+    await db.commit()
+    return await get_condition_therapies(condition_id, current_user, db)
 
 
 # ============= THERAPY SESSIONS =============

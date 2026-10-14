@@ -3284,5 +3284,238 @@ truth that drifts from the first — fails the build.
   decision about whether a non-coded therapy may be declared alongside coded
   ones, not a silent re-addition.
 - **38b.** `aq001` remains dev-only; none of this reaches a patient yet.
+  → `ar001` joins it. See **39a**.
 - **38c.** The nav still fetches `/users/me/surfaces` once on mount, so
-  declaring a therapy does not re-render it until reload (37b).
+  declaring a therapy does not re-render it until reload (37b). → **39b**,
+  where it is now worse: a patient who states "not on this" watches the screen
+  they just retired stay on screen.
+
+> **38 itself was not the end of it.** The operator's reply to this item —
+> *"hard-coded enum for therapy will need a comprehensive list with items
+> zeroed out (no impact) when not present (like a switch)"* — named two faults
+> this item introduced: the set above is **10 of the branch's 31 codes**, and
+> membership cannot express a stated zero. Both fixed in **39**.
+
+---
+
+## 39. A set cannot hold a zero — the therapy switch — 2026-10-14 (closes 38, closes 35's enum line)
+
+Operator: **"hard-coded enum for therapy will need a comprehensive list with
+items zeroed out (no impact) when not present (like a switch) and a mechanism
+for compounded therapies. current model lacks comprehensive list and does not
+include switch mechanism."**
+
+Both faults are real and both were measured before anything was written.
+
+### Fault 1 — the list was CURATED, not comprehensive
+
+Item 38 replaced a hand-typed enum with WHO's codes and then named **10** of
+them. Asked of the bundled 2025-01 MMS linearization, the branch those ten came
+from holds **31**:
+
+    QB4   (7)   Dependence on aspirator / respirator / renal dialysis /
+                artificial heart / wheelchair, + other and unspecified
+    QB94  (6)   Care involving dialysis — preparatory, extracorporeal,
+                peritoneal, other, unspecified
+    QB95  (12)  Cardiac, physical, alcohol, drug, psychotherapy, speech,
+                orthoptic, occupational/vocational, tobacco, + other and
+                unspecified
+    QB96  (1)   radiotherapy session        QB97 (1)  chemotherapy session
+    QB98  (1)   blood transfusion           QB99 (1)  apheresis
+    QB9A  (1)   preparatory care            QB9B (1)  palliative care
+    QB9C  (1)   allergen immunotherapy
+    --------------------------------------------------------------------
+    32 codes derived from the catalog, against 10 written down
+
+**Picking ten of thirty-one is typing them with extra steps.** It covers the
+therapies someone happened to think of (§3an), and a patient on apheresis,
+cardiac rehabilitation, tobacco rehabilitation or palliative care could not say
+so at all. `THERAPY_BRANCHES` now declares ten ROOTS, each with a stated reason,
+and `therapy_codes()` asks the catalog for the members. Adding a therapy means
+WHO published one — not that somebody edited this file.
+
+> ⚠️ **The first predicate silently dropped six of them.** `_in_branch` tested
+> `code.startswith(root + ".")`, which is right for `QB94 -> QB94.1` and wrong
+> for `QB4 -> QB40`: ICD-11 children are `ROOT.N` for a stem code and `ROOTx`
+> for a block. The "comprehensive" set quietly lost every dependence code and
+> reported a confident 26. Found by PRINTING the derived set and counting it,
+> not by reading the predicate (§3av). Pinned by
+> `test_a_three_character_root_still_matches_its_children`.
+
+> **Four of the ten "reasons" were labels, and a test refused them.**
+> `"apheresis"`, `"palliative care"`, `"blood transfusion"` restate WHO's own
+> title, which the catalog already supplies. A reason nobody can audit is a
+> curation decision in disguise, so each root now says why it is care the
+> patient RECEIVES. The test asserts a length, which is crude and caught it.
+
+> **`QB9Y`/`QB9Z` are excluded at the TOP level and the `.Y`/`.Z` members
+> INSIDE a root are kept.** Not a contradiction: "Care involving dialysis,
+> unspecified" is a real statement — on dialysis, modality not recorded — and
+> refusing it would force a guess between two screens. A bare `QB9Z` says only
+> that a contact happened.
+
+### Fault 2 — absence meant two things at once
+
+`chronic_conditions.therapy_types` is comma-separated membership. A code was
+present or absent, and **ABSENT MEANT "not receiving this" AND "nobody ever
+asked"**. That is §3at's checkbox exactly — *"A checkbox cannot record three
+states… 'absent', the finding that needs to shout, was indistinguishable from a
+box nobody had touched"* — applied here to a patient's whole therapy picture,
+on the axis that decides which clinical screen they can reach.
+
+`condition_therapies` (migration `ar001`, additive, **dev only**) is the third
+state's home:
+
+    no row                never asked          -> unknown, nothing inferred
+    receiving = false     explicitly not on it -> a measured ZERO, no impact
+    receiving = true      undergoing it        -> contributes, opens its screen
+
+`receiving` is `NOT NULL` deliberately: a row exists only because somebody
+answered, so the column never has to carry "unknown" as a third value — the
+absence of the row carries it. A nullable boolean would recreate the confusion
+one level down.
+
+A stated zero **overrules the legacy column**, which could never say "no".
+Precedence in `for_user`: the switch table where it has an answer, the legacy
+column only where the switch is silent, sessions only when nothing was
+declared. Therapy History is offered either way — losing the screen you work in
+daily and losing your past are different harms, and only the first is what a
+declaration should cause.
+
+### The compounding mechanism
+
+`regimen` — therapies sharing a label are given as ONE treatment, so a reader
+can tell a combination from a coincidence. `regimens()` groups them.
+
+> ⚠️ **It asserts nothing about effect, and that is the point.** Which
+> combinations have clinical MEANING is not decided here: naming an interaction
+> is a clinical claim, and inventing one is what §3an forbids. A zeroed member
+> is never part of a current regimen — a compound is what the patient is
+> actually given.
+
+### The three clients
+
+All three had a checkbox, so all three could express only the third state.
+Each now draws three choices per therapy, grouped by branch, with the regimen
+field appearing only on a therapy that is ON.
+
+`group`/`group_title` travel on the option payload so **no client reads a code
+prefix to decide which branch a code belongs to** — that would be the client
+deciding what a code means, the §3ad violation this whole item exists to undo.
+`QB4` is a block and carries no title of its own in the linearization, so its
+heading is the shared word-prefix of its own members ("Dependence on") rather
+than a phrase anyone typed.
+
+> **The therapy write is a SECOND request and deliberately not fatal to the
+> first.** A switch belongs to a condition that must exist first. Losing a
+> therapy answer is bad; losing the condition the patient just typed because a
+> therapy write failed is worse (§3c's argument for saving the meal before
+> estimating it). Its failure is REPORTED on all three — web keeps the form
+> open, iOS and Android say so — because silence would leave the patient
+> believing they declared a treatment the navigation will not reflect (§3aa).
+
+> **An OMITTED entry is left alone, never cleared.** The client may be editing
+> one switch, and reading an absent key as "not receiving" would turn every
+> partial save into a silent retraction of everything else on the condition —
+> §3av's "a field the form submits but never declares erases itself", from the
+> other side. Returning to *Not answered* REMOVES the key, because a client
+> cannot express "unknown" by sending false.
+
+> **Nothing writes `therapy_types` any more.** Two homes for one fact is the
+> drift this codebase keeps paying for, so all three clients stopped sending
+> the key — and stopped CARRYING it: it is gone from web's `formData`, from
+> iOS's `ChronicConditionCreate`, and from Android's payload. Not sending it
+> leaves what is stored, which is what keeps a declaration made yesterday
+> readable. The RESPONSE models keep the field; it is what the server returns.
+
+### Guards
+
+`tests/test_condition_therapy_switch.py` (12, over real HTTP) and 9 added to
+`tests/test_patient_surfaces.py`. The ones worth naming:
+
+- the comprehensive set is branch-derived, ≥30 codes, and includes four the
+  curated ten could not express;
+- a three-character root still matches its children (the `QB4` bug);
+- `receiving=false` retires a screen while an absent row leaves it unknown —
+  the two states are distinguishable in the payload, not merely in the table;
+- a stated zero overrules the legacy column;
+- `receiving=true` on ANY condition wins (on dialysis for ESRD is on dialysis);
+- a code outside the WHO catalog is refused BY NAME, and `GB61.5` — a real
+  code that is not a therapy — is refused too, so format checks alone cannot
+  put a diagnosis on the therapy axis;
+- `receiving` is required with no default, because a default of false would
+  make an omitted field read as a measured zero;
+- a switch is upserted, never duplicated (the unique constraint is real
+  protection: two rows for one code would let whichever was read first win);
+- another patient's condition is **404 on both routes**, not 403;
+- and the end-to-end one: the switch reaches `/users/me/surfaces` and a stated
+  zero retires the screen. Without it the table is something nothing reads
+  (§3ar).
+
+### Verified, 2026-10-14
+
+    backend     197 passed — 32 surfacing (9 new), 12 switch (new), plus the
+                §3aa guard, readable-sessions, clock rollover, ICD-11 catalog,
+                condition-nutrition and no-hardcoded-thresholds
+    frontend    279 passed (43 files), incl. the hardcoded-text extractor
+    i18n        44 catalog tests; lint MissingTranslation = 0
+    ruff        F,E9 clean on every changed backend file
+    iOS         ** BUILD SUCCEEDED **, 0 error: lines
+    Android     BUILD SUCCESSFUL; app-debug.apk 32,774,929 bytes (was
+                32,765,929 — the size CHANGING is what proves the rebuild
+                carried the new code rather than reporting a cached one)
+    mobile      7 passed from a repo-root mount — the iOS presentation-flag
+      guards    and typed-decimal guards SKIP inside backend-test (§3bb)
+    served      /assets/index-l6xnaVqb.js on :8080 carries the new strings,
+                after `build` AND `up -d` (§4: a running container keeps
+                serving the image it started with)
+    route       PUT /chronic/conditions/1/therapies answers 403, not 404 — it
+                is mounted. Not exercised against dev PHI on purpose; the
+                suite is the behavioural evidence
+
+### Translation
+
+8 web keys and 8 Android strings, translated into all ten languages through
+`translate_catalogs.py` (0 refused), and the retired `therapy_types_help`
+removed from all 11 catalogs on both platforms so no entry survives without an
+English source behind it.
+
+> **The iOS export surfaced a 65-string backlog nobody had noticed.** iOS
+> catalogs are only refreshed when somebody runs `xcodebuild
+> -exportLocalizations`, so `i18n/ios/en.xliff` was stale and
+> `test_catalogs.py` was comparing against it — green, while 65 literals from
+> earlier work shipped English-only in ten languages: the whole hospital-history
+> screen (§3bb), the Α card's "Condition management (Α)", the labs tri-state
+> ("Abnormal", "In range", "Not assessed"), "Given during treatment — already
+> on your record." All 65 are now translated and imported, and iOS rebuilt
+> clean afterwards. **A catalog test can only see what the export last put in
+> front of it** — §3aw's "a matching language LIST is not a matching CATALOG",
+> one layer further out.
+
+### STILL OPEN
+
+- **39a. `aq001` and `ar001` are dev-only.** Production has neither the
+  `therapy_types` column nor the `condition_therapies` table, so no patient can
+  declare anything yet. A prod deploy now carries everything since `2a96a38`,
+  including the Ω/Α split.
+- **39b. The nav still fetches `/users/me/surfaces` once on mount** (37b, 38c),
+  so setting a switch does not re-render navigation until reload. This is worse
+  now than it was: a patient who states *"not on this"* watches the screen they
+  just retired stay on screen.
+- **39c. Phototherapy and generic infusion therapy still have no Q code** (38a)
+  — the comprehensive list does not fix that, because the catalog does not hold
+  them. Whether a non-coded therapy may be declared beside coded ones is a
+  decision, not a silent re-addition.
+- **39d. Nothing SCORES a therapy yet.** The switch's stated purpose is an axis
+  with the same dimensions for every patient — most of them zero — so that two
+  records are comparable. Α reads conditions and labs; it does not read
+  `condition_therapies`. The mechanism is built and the consumer is not (TASKS
+  18, the tensor work).
+- **39e. `regimen` is free text.** Two patients on the same compound will write
+  it differently, so grouping is per-patient and nothing can aggregate across
+  records. Correct for now — a controlled vocabulary of regimens is a clinical
+  claim and WHO does not publish one — but it bounds what 39d can do with it.
+- **39f. No therapy history.** `started_on`/`ended_on` exist in the table and
+  on the API, and no client collects them, so a therapy that STOPPED is
+  expressed only by flipping its switch to false. The date a treatment ended is
+  a clinical fact the record cannot currently hold.

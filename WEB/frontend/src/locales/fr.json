@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "Êtes-vous sûr de vouloir supprimer cette condition ?",
     "failed_to_delete_condition": "Impossible de supprimer la condition",
     "therapy_types": "Traitements",
-    "therapy_types_help": "Quels traitements soignent cette condition. Cela détermine les écrans que l'application vous affiche."
+    "therapy_on": "Je prends",
+    "therapy_off": "Je ne prends pas",
+    "therapy_unanswered": "Non répondu",
+    "therapy_switch_help": "Pour chaque traitement, indiquez si vous le prenez, si vous ne le prenez pas, ou laissez sans réponse. Dire que vous ne le prenez pas est aussi une réponse — cela indique à l'app d'arrêter d'afficher cet écran. Ce que vous laissez sans réponse reste inchangé.",
+    "therapy_group_answered": "— répondu",
+    "therapy_regimen_placeholder": "Pris ensemble sous (optionnel)",
+    "therapies_not_saved": "Votre condition a été enregistrée, mais vos réponses sur les traitements ne l'ont pas été. Veuillez réessayer.",
+    "therapies_not_loaded": "Impossible de charger vos réponses sur les traitements. Rien n'a été modifié — les réponses que vous ne définissez pas restent comme elles sont."
   },
   "ClinicianDashboard": {
     "loading": "Chargement...",

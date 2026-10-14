@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">Nje ya lengo lake</string>
     <string name="alpha_none">Hakuna hali iliyoandikwa inayokuwa na lengo la mwongozo, kwa hivyo hakuna kitu cha kupima hapa.</string>
     <string name="therapy_types">Tiba</string>
-    <string name="therapy_types_help">Ni tiba gani zinazotibu hali hii. Hii huamua ikiwa programu itakuonyesha skrini hizo.</string>
+    <string name="therapy_switch_help">Kwa kila therapy, sema kama unayoitumia, hautumiyi, au acha bila jibu. Kusema hautumiyi ni jibu pia — inaambia programu kusimamisha kuonyesha skrini hiyo. Kile unachoacha bila jibu kitabaki kama vile.</string>
+    <string name="therapy_on">Ninayoitumia</string>
+    <string name="therapy_off">Situmii</string>
+    <string name="therapy_unanswered">Bila jibu</string>
+    <string name="therapy_group_answered">— iliyojibiwa</string>
+    <string name="therapy_regimen_placeholder">Zinatolewa pamoja kama (si lazima)</string>
+    <string name="therapies_not_saved">Hali yako ilihifadhiwa, lakini majibu yako ya therapy hayakuhifadhiwa. Tafadhali jaribu tena.</string>
+    <string name="therapies_not_loaded">Haiwezi kupakia majibu yako ya therapy. Hakuna kitu kilichobadilika.</string>
 </resources>

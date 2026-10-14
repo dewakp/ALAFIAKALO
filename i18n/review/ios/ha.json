@@ -35,6 +35,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "InfoPlist.xcstrings::NSHumanReadableCopyright": {
+    "source": "© 2026 6igma Health Inc. All rights reserved.",
+    "translation": "© 2026 6igma Health Inc. Duk hakki an ajiye.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "InfoPlist.xcstrings::NSMicrophoneUsageDescription": {
     "source": "ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.",
     "translation": "ALAFIA tana amfani da microphone domin ku iya faɗi bayanan lafiyarku da tambayoyi daga shafin buɗe.",
@@ -82,6 +88,12 @@
     "translation": "%1$@ → %2$@ kg",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::%@%@ %@ from %@": {
+    "source": "%1$@%2$@ %3$@ from %4$@",
+    "translation": "%1$@%2$@ %3$@ daga %4$@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::%@%@ %@ from dialysis": {
     "source": "%1$@%2$@ %3$@ from dialysis",
@@ -287,6 +299,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::(written as %@)": {
+    "source": "(written as %@)",
+    "translation": "(an rubuta a matsayin %@)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::/ month": {
     "source": "/ month",
     "translation": "/ wata",
@@ -364,6 +382,12 @@
     "translation": "= %1$lld min (%2$@)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.": {
+    "source": "A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.",
+    "translation": "Lambar tana buƙatar tsarin da ya fito da ita — ICD-10-PCS, CPT da SNOMED tsarau daban-daban ne.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::A direct message goes to one person. Remove them to pick someone else.": {
     "source": "A direct message goes to one person. Remove them to pick someone else.",
@@ -478,6 +502,12 @@
     "translation": "Saitunan APD",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Abnormal": {
+    "source": "Abnormal",
+    "translation": "Ba daidai ba",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::About & Sources": {
     "source": "About & Sources",
@@ -689,6 +719,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Add a hospital stay": {
+    "source": "Add a hospital stay",
+    "translation": "Ƙara jiya a asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Add a message…": {
     "source": "Add a message…",
     "translation": "Ƙara saƙo…",
@@ -700,6 +736,12 @@
     "translation": "Ƙara sanarwa…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Add an operation": {
+    "source": "Add an operation",
+    "translation": "Ƙara aiki",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Add clinical notes above": {
     "source": "Add clinical notes above",
@@ -802,6 +844,12 @@
     "translation": "Bin Jagora",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Admitted": {
+    "source": "Admitted",
+    "translation": "An shigar",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Advanced Directives": {
     "source": "Advanced Directives",
@@ -929,6 +977,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::All operations": {
+    "source": "All operations",
+    "translation": "Duk aiki",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Allergies": {
     "source": "Allergies",
     "translation": "Allerji",
@@ -988,6 +1042,12 @@
     "translation": "Mai ajiyar asusu dole ne ya kasance mai girma. Yaro ana tuƙa shi a matsayin ɗan ƙasa a ƙarƙar asusu mai ƙarewa ko mai kulawa.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "Aiki ba ya buƙatar jiya a asibiti. Tiyata na rana, da duk abin da kake rubuta shekaru da suka wuce, za a iya ƙara shi kansa.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Analyse Image(s) with Alafia": {
     "source": "Analyse Image(s) with Alafia",
@@ -1691,6 +1751,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Coding system": {
+    "source": "Coding system",
+    "translation": "Tsarin lambar",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Collective Insights": {
     "source": "Collective Insights",
     "translation": "Haɗin Gida na Bayani",
@@ -1774,6 +1840,12 @@
     "translation": "Sunan Cutin Jiya",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Condition management (Α)": {
+    "source": "Condition management (Α)",
+    "translation": "Sarrafa yanayin lafiya (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Condition, abbreviation or code": {
     "source": "Condition, abbreviation or code",
@@ -1882,6 +1954,12 @@
     "translation": "Muhimmin aiki — koyaushe yana aiki",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
+    "source": "Could not load your therapy answers. Nothing has been changed.",
+    "translation": "Ba a iya lodin amsa ku na therapy. Ba a canja komai.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Could not print": {
     "source": "Could not print",
@@ -2201,6 +2279,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Date of operation": {
+    "source": "Date of operation",
+    "translation": "Ranar aiki",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Date: %@": {
     "source": "Date: %@",
     "translation": "Ranar: %@",
@@ -2363,6 +2447,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Dialysis": {
+    "source": "Dialysis",
+    "translation": "Dialysis",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Dialysis today — %lld session%@": {
     "source": "Dialysis today — %1$lld session%2$@",
     "translation": "Dialysis jiya — %1$lld jeri%2$@",
@@ -2446,6 +2536,18 @@
     "translation": "Soke",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Discharge date": {
+    "source": "Discharge date",
+    "translation": "Ranar fita",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Discharged": {
+    "source": "Discharged",
+    "translation": "An fita",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Disease": {
     "source": "Disease",
@@ -2632,6 +2734,18 @@
     "translation": "Lokaci (min)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::During %@": {
+    "source": "During %@",
+    "translation": "A lokacin %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::During which stay?": {
+    "source": "During which stay?",
+    "translation": "A wane jiya?",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::EHR & Apps": {
     "source": "EHR & Apps",
@@ -2830,6 +2944,18 @@
     "translation": "Kiyaye kawai — duba sunan abinci da girman abin da aka ba da shi kafin ajiye.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "Duk aiki a rikodin ku, ciki har da waɗanda ba jiya a asibiti ba.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Every source together — what you were prescribed, what you logged, and what you were given at treatment.": {
+    "source": "Every source together — what you were prescribed, what you logged, and what you were given at treatment.",
+    "translation": "Duk tushe tare — abin da aka ba ku, abin da kuka rubuta, da abin da aka ba ku a lokacin jiya.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Exchange %lld": {
     "source": "Exchange %lld",
@@ -3179,6 +3305,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.",
+    "translation": "Ga kowane therapy, faɗi ko kana kan shi, ba ka kan shi, ko bar shi ba a amsa. Cewa ba ka kan shi kuma amsa ne.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::For example, an organ or gland removed, or something you have had to take ever since.": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "Misali, wata organ ko gida da aka cire, ko abin da ka ƙara daga jiya.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Forgot password?": {
     "source": "Forgot password?",
     "translation": "Manta da kalmar sirri?",
@@ -3268,6 +3406,18 @@
     "translation": "Gida",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Given during treatment — already on your record.": {
+    "source": "Given during treatment — already on your record.",
+    "translation": "An ba a lokacin jiya — a rikodin ku na.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Given together as (optional)": {
+    "source": "Given together as (optional)",
+    "translation": "An ba tare a matsayin (optional)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Goals": {
     "source": "Goals",
@@ -3539,11 +3689,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Hospital & Surgery": {
+    "source": "Hospital & Surgery",
+    "translation": "Asibiti & Aiki",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Hospital Affiliations (comma-separated)": {
     "source": "Hospital Affiliations (comma-separated)",
     "translation": "Haɗin Asibiti (jajere da koma)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Hospital stays": {
+    "source": "Hospital stays",
+    "translation": "Jiyoyi a asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Hospital/ER Since Last": {
     "source": "Hospital/ER Since Last",
@@ -3580,6 +3742,12 @@
     "translation": "Cibiyar Tarayya",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::I know the date": {
+    "source": "I know the date",
+    "translation": "Na san ranar",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::I've confirmed — continue": {
     "source": "I've confirmed — continue",
@@ -3658,6 +3826,12 @@
     "translation": "Inganta",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::In range": {
+    "source": "In range",
+    "translation": "A cikin jiya",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::In-Session Chat": {
     "source": "In-Session Chat",
@@ -3796,6 +3970,12 @@
     "translation": "Littafi",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Keep them": {
+    "source": "Keep them",
+    "translation": "Ajiye su",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::K⁺ (mEq)": {
     "source": "K⁺ (mEq)",
@@ -4589,6 +4769,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Needs attention": {
+    "source": "Needs attention",
+    "translation": "Buƙata kulawa",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::New Chemo Session": {
     "source": "New Chemo Session",
     "translation": "Sabon Jiya Chemo",
@@ -4997,6 +5183,24 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::No hospital stay": {
+    "source": "No hospital stay",
+    "translation": "Ba jiya a asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::No hospital stay recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "Ba jiya a asibiti da aka rubuta",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::No hospital stays recorded yet.": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "Ba jiya a asibiti da aka rubuta har yanzu.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::No intake logged for this date.": {
     "source": "No intake logged for this date.",
     "translation": "Babu abubuwan da aka shigar da su a wannan rana.",
@@ -5038,6 +5242,12 @@
     "translation": "Babu ƙimar gida da aka rubuta a wannan abinci har yanzu.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::No operations recorded yet.": {
+    "source": "No operations recorded yet.",
+    "translation": "Ba aiki da aka rubuta har yanzu.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::No patients yet": {
     "source": "No patients yet",
@@ -5111,6 +5321,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not answered": {
+    "source": "Not answered",
+    "translation": "Ba a amsa",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Not assessed": {
     "source": "Not assessed",
     "translation": "Ba a tantance ba",
@@ -5135,11 +5351,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not on this": {
+    "source": "Not on this",
+    "translation": "Ba kan wannan",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Not right? Teach ALAFIA what this actually is": {
     "source": "Not right? Teach ALAFIA what this actually is",
     "translation": "Ba daidai ba? Koya wa ALAFIA abin da wannan ke ji",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Not stated": {
+    "source": "Not stated",
+    "translation": "Ba a bayyana",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Notarized": {
     "source": "Notarized",
@@ -5237,11 +5465,29 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::On this": {
+    "source": "On this",
+    "translation": "Kan wannan",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::On your flowsheet": {
+    "source": "On your flowsheet",
+    "translation": "A kan flowsheet dinku",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::One-way sync": {
     "source": "One-way sync",
     "translation": "Sync na gida",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "Kawai sakamakon da aka rubuta tare da aiki ne kawai. Babu wani abu da aka zata daga sunan aiki.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Only one intradialytic reading — not enough to plot a curve.": {
     "source": "Only one intradialytic reading — not enough to plot a curve.",
@@ -5279,6 +5525,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Operation": {
+    "source": "Operation",
+    "translation": "Aiki",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Optional — close this to keep your device-language guide, or pick another.": {
     "source": "Optional — close this to keep your device-language guide, or pick another.",
     "translation": "Zaɓe — rufe wannan don kiyaye jagoran harshen na'ura, ko zaɓa wani.",
@@ -5314,6 +5566,12 @@
     "translation": "Cututtuka",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Outcome": {
+    "source": "Outcome",
+    "translation": "Sakamakon",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Outflow (mL)": {
     "source": "Outflow (mL)",
@@ -5404,6 +5662,12 @@
     "translation": "Rumfin Sannu",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Part of the body": {
+    "source": "Part of the body",
+    "translation": "Wuri na jiki",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Participants": {
     "source": "Participants",
@@ -5969,6 +6233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Procedure code": {
+    "source": "Procedure code",
+    "translation": "Lambar aiki",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Product Updates": {
     "source": "Product Updates",
     "translation": "Sabuntawa na Samfur",
@@ -6173,6 +6443,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Reason for admission": {
+    "source": "Reason for admission",
+    "translation": "Dalilin shigarwa",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Recalls": {
     "source": "Recalls",
     "translation": "Ƙirƙira",
@@ -6365,11 +6641,35 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Remove from my records": {
+    "source": "Remove from my records",
+    "translation": "Cire daga bayyanar mi",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Remove the records this document added?": {
+    "source": "Remove the records this document added?",
+    "translation": "Cire bayyanar da wannan takarda ta ƙara?",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Removed (mL)": {
     "source": "Removed (mL)",
     "translation": "An cire (mL)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Removes only what this document added. You can upload it again afterwards.": {
+    "source": "Removes only what this document added. You can upload it again afterwards.",
+    "translation": "Yana cire kawai abin da wannan takarda ta ƙara. Zaka iya sake tubaita ta daga gida.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Removing…": {
+    "source": "Removing…",
+    "translation": "Yana cirewa…",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Repeat": {
     "source": "Repeat",
@@ -8093,6 +8393,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Type of admission": {
+    "source": "Type of admission",
+    "translation": "Nau'in shigarwa",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Typical Dosage": {
     "source": "Typical Dosage",
     "translation": "Adadin Gida",
@@ -8501,11 +8807,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::What past surgery still means for you": {
+    "source": "What past surgery still means for you",
+    "translation": "Abin da jiyya na aiki ya nuna a gida",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::What reaches the provider": {
     "source": "What reaches the provider",
     "translation": "Abin da ya isa mai ciwon",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::What this still means for you": {
+    "source": "What this still means for you",
+    "translation": "Abin da haka ya nuna a gida",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::What-If Simulator": {
     "source": "What-If Simulator",
@@ -8573,6 +8891,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::You did not log anything yourself for this date.": {
+    "source": "You did not log anything yourself for this date.",
+    "translation": "Ba ka rubuta komai kanka a wannan ranar.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::You regularly log %lld medication%@ that aren’t on this list": {
     "source": "You regularly log %1$lld medication%2$@ that aren’t on this list",
     "translation": "Kana shiga %1$lld magungunan%2$@ da ba su kan jerin nan",
@@ -8597,6 +8921,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Your condition was saved, but your therapy answers were not: %@": {
+    "source": "Your condition was saved, but your therapy answers were not: %@",
+    "translation": "An adana yanayin ku, amma amsa jiya ba a adana: %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Your current password keeps working until you do.": {
     "source": "Your current password keeps working until you do.",
     "translation": "Kalmar sirrinka ta yanzu tana aiki har sai ka yi.",
@@ -8609,6 +8939,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Your hospital history could not be loaded": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "Ba a iya lodin tarihin asibiti",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Your lab results will appear here as charts once data is available.": {
     "source": "Your lab results will appear here as charts once data is available.",
     "translation": "Sakamakon gwajin ka za su bayyana nan a matsayin zane-zane da zarar bayanai suke akwai.",
@@ -8620,6 +8956,12 @@
     "translation": "Iyakokin ka ba su canja — sun riga sun ɗauka jiyya na gida. Abin da ya canja shine ma'auni na jiya.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your medication record": {
+    "source": "Your medication record",
+    "translation": "Bayyanar magungunan ku",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Your own health record, meals and tracking live in the patient view.": {
     "source": "Your own health record, meals and tracking live in the patient view.",
@@ -8662,6 +9004,24 @@
     "translation": "^[%lld jeri](inflect: true)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::against guideline targets": {
+    "source": "against guideline targets",
+    "translation": "a zai da manufofin jagora",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::also on your flowsheet": {
+    "source": "also on your flowsheet",
+    "translation": "a kuma a kan takardarka",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::also written as %@": {
+    "source": "also written as %@",
+    "translation": "a kuma an rubuta shi kamar %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::boluses, rinseback": {
     "source": "boluses, rinseback",
@@ -8735,6 +9095,24 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::from your clinic": {
+    "source": "from your clinic",
+    "translation": "daga kilinikinka",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::given at treatment": {
+    "source": "given at treatment",
+    "translation": "an ba shi a lokacin jiya",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::given on %lld day%@": {
+    "source": "given on %1$lld day%2$@",
+    "translation": "an ba shi a ranar %1$lld%2$@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::kg": {
     "source": "kg",
     "translation": "kg",
@@ -8783,6 +9161,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::prescribed": {
+    "source": "prescribed",
+    "translation": "an umarta",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::unavailable": {
     "source": "unavailable",
     "translation": "ba shi akwai",
@@ -8794,6 +9178,12 @@
     "translation": "tare da Karatu",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::you logged it": {
+    "source": "you logged it",
+    "translation": "ka rubuta shi",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::· estimated": {
     "source": "· estimated",

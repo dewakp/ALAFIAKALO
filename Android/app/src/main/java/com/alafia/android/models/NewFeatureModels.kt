@@ -1249,14 +1249,57 @@ data class PatientSurfaces(
 )
 
 
-/** One therapy a patient can declare — an ICD-11 code with WHO's own title. */
+/**
+ * One therapy a patient can declare — an ICD-11 code with WHO's own title.
+ *
+ * `group`/`groupTitle` are the SERVER's grouping. This client must never split
+ * a code on its dot to decide which branch it belongs to: that is the client
+ * deciding what a code MEANS, which is the §3ad rule the hand-typed enum broke.
+ */
 data class TherapyOption(
     val code: String,
     val title: String,
-    val surface: String
+    val surface: String,
+    val group: String? = null,
+    @SerializedName("group_title") val groupTitle: String? = null
 )
 
 data class TherapyOptionsResponse(
     val options: List<TherapyOption> = emptyList(),
     @SerializedName("catalog_version") val catalogVersion: String? = null
+)
+
+/**
+ * One STATEMENT about one therapy.
+ *
+ * Operator, 2026-10-14: *"a comprehensive list with items zeroed out (no
+ * impact) when not present (like a switch)"*.
+ *
+ * `receiving` is NON-NULL with no default, which is deliberate: a row exists
+ * only because somebody answered, so the three states are
+ *
+ *     no row            nobody asked          -> unknown, nothing inferred
+ *     receiving false   explicitly not on it  -> a measured ZERO
+ *     receiving true    undergoing it         -> opens its screen
+ *
+ * A checkbox could only ever express the third (§3at). ⚠️ Non-null here is
+ * safe because this model is only ever CONSTRUCTED by this app or read from a
+ * field the server declares non-null — the §3aj trap where Gson writes null
+ * into a Kotlin non-null field applies to columns the schema allows null for.
+ */
+data class ConditionTherapyRow(
+    @SerializedName("therapy_code") val therapyCode: String,
+    val receiving: Boolean,
+    val regimen: String? = null,
+    @SerializedName("started_on") val startedOn: String? = null,
+    @SerializedName("ended_on") val endedOn: String? = null
+)
+
+data class ConditionTherapiesResponse(
+    @SerializedName("condition_id") val conditionId: Int? = null,
+    val therapies: List<ConditionTherapyRow> = emptyList()
+)
+
+data class ConditionTherapiesUpdate(
+    val therapies: List<ConditionTherapyRow>
 )

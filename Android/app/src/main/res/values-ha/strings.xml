@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">Waje da manufofin sa</string>
     <string name="alpha_none">Babu ciwo a rikodin da ke da manufofin ka\'ida, don haka babu abin da za a ƙidaya a nan.</string>
     <string name="therapy_types">Jiyya</string>
-    <string name="therapy_types_help">Wanne jiyya ke warke wannan cutarwa. Wannan ya yanke ko app ya nuna maka waɗannan allon.</string>
+    <string name="therapy_switch_help">Ga kowane jiya, faɗi ko kana kan ta, ba ka kan ta, ko bar ta ba a amsa. Cewa ba ka kan ta jiya ne amsa kuma — yana gaya wa app-din don daina nuna maka wannan allon. Abin da ka bar ba a amsa ana bar shi kamar yadda yake.</string>
+    <string name="therapy_on">Ina kan wannan</string>
+    <string name="therapy_off">Ba ni kan wannan</string>
+    <string name="therapy_unanswered">Ba a amsa</string>
+    <string name="therapy_group_answered">— an amsa</string>
+    <string name="therapy_regimen_placeholder">An ba su tare kamar (optional)</string>
+    <string name="therapies_not_saved">An adana yanayin ku, amma amsosin jiya ba a adana su. Da fatan za a sake gwada.</string>
+    <string name="therapies_not_loaded">Ba a iya lodin amsosin jiya ku. Ba a canja komai.</string>
 </resources>

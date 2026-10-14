@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "Möchten Sie diese Erkrankung wirklich löschen?",
     "failed_to_delete_condition": "Erkrankung konnte nicht gelöscht werden",
     "therapy_types": "Therapien",
-    "therapy_types_help": "Welche Therapien behandeln diese Erkrankung. Dies bestimmt, welche Bildschirme die App dir zeigt."
+    "therapy_on": "Nehme ich",
+    "therapy_off": "Nehme ich nicht",
+    "therapy_unanswered": "Nicht beantwortet",
+    "therapy_switch_help": "Geben Sie für jede Therapie an, ob Sie sie nehmen, nicht nehmen oder die Antwort offen lassen. Auch „nehme ich nicht\" ist eine Antwort – die App zeigt Ihnen diesen Bildschirm dann nicht mehr. Offene Antworten bleiben unverändert.",
+    "therapy_group_answered": "— beantwortet",
+    "therapy_regimen_placeholder": "Zusammen gegeben als (optional)",
+    "therapies_not_saved": "Ihre Erkrankung wurde gespeichert, aber Ihre Therapieantworten nicht. Bitte versuchen Sie es erneut.",
+    "therapies_not_loaded": "Ihre Therapieantworten konnten nicht geladen werden. Nichts wurde geändert – Antworten, die Sie nicht setzen, bleiben wie sie sind."
   },
   "ClinicianDashboard": {
     "loading": "Wird geladen...",

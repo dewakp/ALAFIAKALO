@@ -360,6 +360,17 @@ def get_icd11_by_code(code: str) -> Optional[ICD11Code]:
     return _catalog().codes.get(code.strip().upper())
 
 
+def all_codes() -> list[str]:
+    """Every code in the bundled linearization.
+
+    Exposed so a caller can derive a SUBSET from the catalog by branch rather
+    than listing members by hand — `patient_surfaces.therapy_codes()` names
+    ten branch roots and lets WHO supply the 31 codes under them. A curated
+    list of items is the thing §3ad exists to prevent, one step removed.
+    """
+    return list(_catalog().codes.keys())
+
+
 def is_valid_icd11_code(code: str) -> bool:
     """True when *code* is a real ICD-11 MMS code, not merely code-shaped."""
     return get_icd11_by_code(code) is not None

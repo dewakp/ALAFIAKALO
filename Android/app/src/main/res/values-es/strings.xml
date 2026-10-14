@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">Fuera de su objetivo</string>
     <string name="alpha_none">Ninguna condición registrada tiene un objetivo de directriz, así que no hay nada que calificar aquí.</string>
     <string name="therapy_types">Terapias</string>
-    <string name="therapy_types_help">Qué terapias tratan esta condición. Esto decide si la app te muestra esas pantallas.</string>
+    <string name="therapy_switch_help">Para cada terapia, indica si la estás usando, si no la estás usando, o déjala sin responder. Decir que no la usas también es una respuesta — le indica a la app que deje de mostrarte esa pantalla. Lo que dejes sin responder se mantendrá sin cambios.</string>
+    <string name="therapy_on">Estoy en esta</string>
+    <string name="therapy_off">No estoy en esta</string>
+    <string name="therapy_unanswered">Sin responder</string>
+    <string name="therapy_group_answered">— respondida</string>
+    <string name="therapy_regimen_placeholder">Administradas juntas como (opcional)</string>
+    <string name="therapies_not_saved">Tu condición se guardó, pero tus respuestas sobre terapias no. Por favor, intenta de nuevo.</string>
+    <string name="therapies_not_loaded">No se pudieron cargar tus respuestas sobre terapias. Nada ha sido modificado.</string>
 </resources>

@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "确定要删除此病情吗？",
     "failed_to_delete_condition": "删除病情失败",
     "therapy_types": "治疗方法",
-    "therapy_types_help": "哪些治疗方法可以治疗此病症。这决定了应用是否向您显示这些屏幕。"
+    "therapy_on": "正在使用",
+    "therapy_off": "未使用",
+    "therapy_unanswered": "未回答",
+    "therapy_switch_help": "对于每种疗法，请说明您是否正在使用、未使用，或暂不回答。说明未使用也是一个回答——它会告诉应用停止显示该屏幕。您未回答的内容将保持不变。",
+    "therapy_group_answered": "— 已回答",
+    "therapy_regimen_placeholder": "一起给药（可选）",
+    "therapies_not_saved": "您的病情已保存，但疗法回答未保存。请重试。",
+    "therapies_not_loaded": "无法加载您的疗法回答。未做任何更改——您未设置的回答将保持不变。"
   },
   "ClinicianDashboard": {
     "loading": "加载中...",

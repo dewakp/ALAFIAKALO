@@ -35,6 +35,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "InfoPlist.xcstrings::NSHumanReadableCopyright": {
+    "source": "© 2026 6igma Health Inc. All rights reserved.",
+    "translation": "© 2026 6igma Health Inc. جميع الحقوق محفوظة.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "InfoPlist.xcstrings::NSMicrophoneUsageDescription": {
     "source": "ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.",
     "translation": "تستخدم ALAFIA الميكروفون حتى تتمكن من التحدث عن سجلات صحتك والأسئلة من صفحة الطلب.",
@@ -82,6 +88,12 @@
     "translation": "%1$@ → %2$@ كغ",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::%@%@ %@ from %@": {
+    "source": "%1$@%2$@ %3$@ from %4$@",
+    "translation": "%1$@%2$@ %3$@ من %4$@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::%@%@ %@ from dialysis": {
     "source": "%1$@%2$@ %3$@ from dialysis",
@@ -287,6 +299,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::(written as %@)": {
+    "source": "(written as %@)",
+    "translation": "(مكتوب كـ %@)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::/ month": {
     "source": "/ month",
     "translation": "/ شهر",
@@ -364,6 +382,12 @@
     "translation": "= %1$lld دقيقة (%2$@)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.": {
+    "source": "A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.",
+    "translation": "الكود يحتاج إلى النظام الذي أصدره — ICD-10-PCS و CPT و SNOMED أنظمة مختلفة.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::A direct message goes to one person. Remove them to pick someone else.": {
     "source": "A direct message goes to one person. Remove them to pick someone else.",
@@ -478,6 +502,12 @@
     "translation": "إعدادات APD",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Abnormal": {
+    "source": "Abnormal",
+    "translation": "غير طبيعي",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::About & Sources": {
     "source": "About & Sources",
@@ -689,6 +719,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Add a hospital stay": {
+    "source": "Add a hospital stay",
+    "translation": "إضافة إقامة في المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Add a message…": {
     "source": "Add a message…",
     "translation": "إضافة رسالة…",
@@ -700,6 +736,12 @@
     "translation": "إضافة ملاحظة…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Add an operation": {
+    "source": "Add an operation",
+    "translation": "إضافة عملية جراحية",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Add clinical notes above": {
     "source": "Add clinical notes above",
@@ -802,6 +844,12 @@
     "translation": "الالتزام بالعلاج",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Admitted": {
+    "source": "Admitted",
+    "translation": "تم القبول",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Advanced Directives": {
     "source": "Advanced Directives",
@@ -929,6 +977,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::All operations": {
+    "source": "All operations",
+    "translation": "جميع العمليات الجراحية",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Allergies": {
     "source": "Allergies",
     "translation": "الحساسيات",
@@ -988,6 +1042,12 @@
     "translation": "يجب أن يكون صاحب الحساب بالغاً. يتم تتبع الطفل كملف تابع تحت حساب الوالد أو الوصي.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "العملية الجراحية لا تحتاج إلى إقامة في المستشفى. الجراحة في نفس اليوم، وأي شيء تسجله بعد سنوات، يمكن إضافته بشكل منفصل.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Analyse Image(s) with Alafia": {
     "source": "Analyse Image(s) with Alafia",
@@ -1691,6 +1751,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Coding system": {
+    "source": "Coding system",
+    "translation": "نظام الترميز",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Collective Insights": {
     "source": "Collective Insights",
     "translation": "رؤى جماعية",
@@ -1774,6 +1840,12 @@
     "translation": "اسم الحالة",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Condition management (Α)": {
+    "source": "Condition management (Α)",
+    "translation": "إدارة العلاج (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Condition, abbreviation or code": {
     "source": "Condition, abbreviation or code",
@@ -1882,6 +1954,12 @@
     "translation": "دور أساسي — نشط دائماً",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
+    "source": "Could not load your therapy answers. Nothing has been changed.",
+    "translation": "تعذر تحميل إجاباتك عن العلاج. لم يتم تغيير أي شيء.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Could not print": {
     "source": "Could not print",
@@ -2201,6 +2279,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Date of operation": {
+    "source": "Date of operation",
+    "translation": "تاريخ العملية الجراحية",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Date: %@": {
     "source": "Date: %@",
     "translation": "التاريخ: %@",
@@ -2363,6 +2447,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Dialysis": {
+    "source": "Dialysis",
+    "translation": "غسيل كلى",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Dialysis today — %lld session%@": {
     "source": "Dialysis today — %1$lld session%2$@",
     "translation": "الغسيل الكلوي اليوم — جلسة %1$lld%2$@",
@@ -2446,6 +2536,18 @@
     "translation": "تجاهل",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Discharge date": {
+    "source": "Discharge date",
+    "translation": "تاريخ الخروج",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Discharged": {
+    "source": "Discharged",
+    "translation": "تم الخروج",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Disease": {
     "source": "Disease",
@@ -2632,6 +2734,18 @@
     "translation": "المدة (دقيقة)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::During %@": {
+    "source": "During %@",
+    "translation": "خلال %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::During which stay?": {
+    "source": "During which stay?",
+    "translation": "خلال أي إقامة؟",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::EHR & Apps": {
     "source": "EHR & Apps",
@@ -2830,6 +2944,18 @@
     "translation": "تقدير فقط — تحقق من اسم الطعام وحجم الحصة قبل الحفظ.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "كل عملية جراحية في سجلك، بما فيها تلك بدون إقامة في المستشفى.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Every source together — what you were prescribed, what you logged, and what you were given at treatment.": {
+    "source": "Every source together — what you were prescribed, what you logged, and what you were given at treatment.",
+    "translation": "جميع المصادر معاً — ما وصفه لك الطبيب، وما سجلته، وما أعطيت لك في العلاج.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Exchange %lld": {
     "source": "Exchange %lld",
@@ -3179,6 +3305,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.",
+    "translation": "لكل علاج، قل ما إذا كنت تتناوله أم لا، أو اترك الإجابة بدون رد. قول أنك لا تتناوله هو إجابة أيضاً.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::For example, an organ or gland removed, or something you have had to take ever since.": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "على سبيل المثال، عضو أو غدة تمت إزالتها، أو شيء اضطررت لتناوله منذ ذلك الحين.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Forgot password?": {
     "source": "Forgot password?",
     "translation": "هل نسيت كلمة المرور؟",
@@ -3268,6 +3406,18 @@
     "translation": "عام",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Given during treatment — already on your record.": {
+    "source": "Given during treatment — already on your record.",
+    "translation": "أعطيت أثناء العلاج — موجود بالفعل في سجلك.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Given together as (optional)": {
+    "source": "Given together as (optional)",
+    "translation": "أعطيت معاً كـ (اختياري)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Goals": {
     "source": "Goals",
@@ -3539,11 +3689,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Hospital & Surgery": {
+    "source": "Hospital & Surgery",
+    "translation": "المستشفى والجراحة",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Hospital Affiliations (comma-separated)": {
     "source": "Hospital Affiliations (comma-separated)",
     "translation": "فروع المستشفى (مفصولة بفواصل)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Hospital stays": {
+    "source": "Hospital stays",
+    "translation": "الإقامات في المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Hospital/ER Since Last": {
     "source": "Hospital/ER Since Last",
@@ -3580,6 +3742,12 @@
     "translation": "المركز",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::I know the date": {
+    "source": "I know the date",
+    "translation": "أنا أعرف التاريخ",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::I've confirmed — continue": {
     "source": "I've confirmed — continue",
@@ -3658,6 +3826,12 @@
     "translation": "تحسين",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::In range": {
+    "source": "In range",
+    "translation": "ضمن النطاق",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::In-Session Chat": {
     "source": "In-Session Chat",
@@ -3796,6 +3970,12 @@
     "translation": "اليوميات",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Keep them": {
+    "source": "Keep them",
+    "translation": "احتفظ بها",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::K⁺ (mEq)": {
     "source": "K⁺ (mEq)",
@@ -4589,6 +4769,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Needs attention": {
+    "source": "Needs attention",
+    "translation": "يحتاج إلى اهتمام",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::New Chemo Session": {
     "source": "New Chemo Session",
     "translation": "جلسة علاج كيميائي جديدة",
@@ -4997,6 +5183,24 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::No hospital stay": {
+    "source": "No hospital stay",
+    "translation": "بدون إقامة في المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::No hospital stay recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "لم يتم تسجيل إقامة في المستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::No hospital stays recorded yet.": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "لم يتم تسجيل أي إقامات في المستشفى حتى الآن.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::No intake logged for this date.": {
     "source": "No intake logged for this date.",
     "translation": "لم يتم تسجيل أي مدخول لهذا التاريخ.",
@@ -5038,6 +5242,12 @@
     "translation": "لم يتم تسجيل قيم المغذيات لهذه الوجبة حتى الآن.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::No operations recorded yet.": {
+    "source": "No operations recorded yet.",
+    "translation": "لم يتم تسجيل أي عمليات جراحية حتى الآن.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::No patients yet": {
     "source": "No patients yet",
@@ -5111,6 +5321,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not answered": {
+    "source": "Not answered",
+    "translation": "لم تتم الإجابة",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Not assessed": {
     "source": "Not assessed",
     "translation": "لم يتم تقييمه",
@@ -5135,11 +5351,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not on this": {
+    "source": "Not on this",
+    "translation": "لا أتناول هذا",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Not right? Teach ALAFIA what this actually is": {
     "source": "Not right? Teach ALAFIA what this actually is",
     "translation": "غير صحيح؟ علّم ALAFIA ما هذا فعلاً",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Not stated": {
+    "source": "Not stated",
+    "translation": "لم يتم التصريح به",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Notarized": {
     "source": "Notarized",
@@ -5237,11 +5465,29 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::On this": {
+    "source": "On this",
+    "translation": "أتناول هذا",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::On your flowsheet": {
+    "source": "On your flowsheet",
+    "translation": "في جدول تدفقك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::One-way sync": {
     "source": "One-way sync",
     "translation": "مزامنة أحادية الاتجاه",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "يتم إدراج التأثيرات المسجلة فقط مع العملية الجراحية. لا يتم تخمين أي شيء من اسم العملية.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Only one intradialytic reading — not enough to plot a curve.": {
     "source": "Only one intradialytic reading — not enough to plot a curve.",
@@ -5279,6 +5525,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Operation": {
+    "source": "Operation",
+    "translation": "العملية الجراحية",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Optional — close this to keep your device-language guide, or pick another.": {
     "source": "Optional — close this to keep your device-language guide, or pick another.",
     "translation": "اختياري — أغلق هذا للاحتفاظ بدليل لغة جهازك، أو اختر آخر.",
@@ -5314,6 +5566,12 @@
     "translation": "الفاشيات",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Outcome": {
+    "source": "Outcome",
+    "translation": "النتيجة",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Outflow (mL)": {
     "source": "Outflow (mL)",
@@ -5404,6 +5662,12 @@
     "translation": "المخزن فارغ",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Part of the body": {
+    "source": "Part of the body",
+    "translation": "جزء من الجسم",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Participants": {
     "source": "Participants",
@@ -5969,6 +6233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Procedure code": {
+    "source": "Procedure code",
+    "translation": "رمز الإجراء",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Product Updates": {
     "source": "Product Updates",
     "translation": "تحديثات المنتج",
@@ -6173,6 +6443,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Reason for admission": {
+    "source": "Reason for admission",
+    "translation": "سبب الدخول للمستشفى",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Recalls": {
     "source": "Recalls",
     "translation": "الاستدعاءات",
@@ -6365,11 +6641,35 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Remove from my records": {
+    "source": "Remove from my records",
+    "translation": "حذف من سجلاتي",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Remove the records this document added?": {
+    "source": "Remove the records this document added?",
+    "translation": "حذف السجلات التي أضافتها هذه الوثيقة؟",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Removed (mL)": {
     "source": "Removed (mL)",
     "translation": "تم إزالته (mL)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Removes only what this document added. You can upload it again afterwards.": {
+    "source": "Removes only what this document added. You can upload it again afterwards.",
+    "translation": "يحذف فقط ما أضافته هذه الوثيقة. يمكنك تحميلها مرة أخرى لاحقاً.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Removing…": {
+    "source": "Removing…",
+    "translation": "جاري الحذف…",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Repeat": {
     "source": "Repeat",
@@ -8093,6 +8393,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Type of admission": {
+    "source": "Type of admission",
+    "translation": "نوع الدخول",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Typical Dosage": {
     "source": "Typical Dosage",
     "translation": "الجرعة المعتادة",
@@ -8501,11 +8807,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::What past surgery still means for you": {
+    "source": "What past surgery still means for you",
+    "translation": "ما تعنيه العملية الجراحية السابقة لك الآن",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::What reaches the provider": {
     "source": "What reaches the provider",
     "translation": "ما يصل إلى مقدم الخدمة",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::What this still means for you": {
+    "source": "What this still means for you",
+    "translation": "ما يعنيه هذا لك الآن",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::What-If Simulator": {
     "source": "What-If Simulator",
@@ -8573,6 +8891,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::You did not log anything yourself for this date.": {
+    "source": "You did not log anything yourself for this date.",
+    "translation": "لم تسجل أي شيء بنفسك في هذا التاريخ.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::You regularly log %lld medication%@ that aren’t on this list": {
     "source": "You regularly log %1$lld medication%2$@ that aren’t on this list",
     "translation": "تسجل بانتظام %1$lld دواء%2$@ غير موجود في هذه القائمة",
@@ -8597,6 +8921,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Your condition was saved, but your therapy answers were not: %@": {
+    "source": "Your condition was saved, but your therapy answers were not: %@",
+    "translation": "تم حفظ حالتك، لكن إجاباتك على الأسئلة العلاجية لم تُحفظ: %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Your current password keeps working until you do.": {
     "source": "Your current password keeps working until you do.",
     "translation": "كلمة المرور الحالية تبقى صالحة حتى تقوم بتغييرها.",
@@ -8609,6 +8939,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Your hospital history could not be loaded": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "تعذر تحميل سجل المستشفى الخاص بك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Your lab results will appear here as charts once data is available.": {
     "source": "Your lab results will appear here as charts once data is available.",
     "translation": "ستظهر نتائج الفحوصات هنا كرسوم بيانية عند توفر البيانات.",
@@ -8620,6 +8956,12 @@
     "translation": "حدودك لم تتغير — فهي تفترض بالفعل علاجك المعتاد. ما يتغير هو رصيد اليوم.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your medication record": {
+    "source": "Your medication record",
+    "translation": "سجل الأدوية الخاص بك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Your own health record, meals and tracking live in the patient view.": {
     "source": "Your own health record, meals and tracking live in the patient view.",
@@ -8662,6 +9004,24 @@
     "translation": "^[%lld صف](inflect: true)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::against guideline targets": {
+    "source": "against guideline targets",
+    "translation": "مقابل أهداف الإرشادات",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::also on your flowsheet": {
+    "source": "also on your flowsheet",
+    "translation": "أيضاً في ورقة المتابعة الخاصة بك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::also written as %@": {
+    "source": "also written as %@",
+    "translation": "مكتوب أيضاً باسم %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::boluses, rinseback": {
     "source": "boluses, rinseback",
@@ -8735,6 +9095,24 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::from your clinic": {
+    "source": "from your clinic",
+    "translation": "من عيادتك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::given at treatment": {
+    "source": "given at treatment",
+    "translation": "أُعطي أثناء العلاج",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::given on %lld day%@": {
+    "source": "given on %1$lld day%2$@",
+    "translation": "أُعطي في اليوم %1$lld%2$@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::kg": {
     "source": "kg",
     "translation": "كغ",
@@ -8783,6 +9161,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::prescribed": {
+    "source": "prescribed",
+    "translation": "موصوف",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::unavailable": {
     "source": "unavailable",
     "translation": "غير متاح",
@@ -8794,6 +9178,12 @@
     "translation": "مع القراءات",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::you logged it": {
+    "source": "you logged it",
+    "translation": "سجلته بنفسك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::· estimated": {
     "source": "· estimated",

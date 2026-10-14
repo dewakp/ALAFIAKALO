@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">Außerhalb des Zielbereichs</string>
     <string name="alpha_none">Keine erfasste Erkrankung hat ein Richtlinienziel, daher gibt es hier nichts zu bewerten.</string>
     <string name="therapy_types">Therapien</string>
-    <string name="therapy_types_help">Welche Therapien behandeln diese Erkrankung. Dies bestimmt, welche Bildschirme die App dir zeigt.</string>
+    <string name="therapy_switch_help">Geben Sie für jede Therapie an, ob Sie sie anwenden, nicht anwenden oder ob Sie die Frage offenlassen. Auch die Angabe, dass Sie eine Therapie nicht anwenden, ist eine Antwort – sie teilt der App mit, dass sie diesen Bildschirm nicht mehr anzeigen soll. Offengelassene Fragen bleiben unverändert.</string>
+    <string name="therapy_on">Wende ich an</string>
+    <string name="therapy_off">Wende ich nicht an</string>
+    <string name="therapy_unanswered">Nicht beantwortet</string>
+    <string name="therapy_group_answered">— beantwortet</string>
+    <string name="therapy_regimen_placeholder">Zusammen gegeben als (optional)</string>
+    <string name="therapies_not_saved">Ihre Erkrankung wurde gespeichert, aber Ihre Therapieantworten nicht. Bitte versuchen Sie es erneut.</string>
+    <string name="therapies_not_loaded">Ihre Therapieantworten konnten nicht geladen werden. Nichts wurde geändert.</string>
 </resources>

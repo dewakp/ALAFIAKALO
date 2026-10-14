@@ -7337,6 +7337,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "therapies_not_loaded": {
+    "source": "Could not load your therapy answers. Nothing has been changed.",
+    "translation": "无法加载您的疗法回答。未做任何更改。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapies_not_saved": {
+    "source": "Your condition was saved, but your therapy answers were not. Please try again.",
+    "translation": "您的病情已保存，但疗法回答未保存。请重试。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_blood_transfusion": {
     "source": "Blood transfusion",
     "translation": "输血",
@@ -7348,6 +7360,12 @@
     "translation": "化疗",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_group_answered": {
+    "source": "— answered",
+    "translation": "— 已回答",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_hemodialysis": {
     "source": "Hemodialysis",
@@ -7367,6 +7385,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_off": {
+    "source": "Not on this",
+    "translation": "未使用",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_on": {
+    "source": "On this",
+    "translation": "正在使用",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_peritoneal_dialysis": {
     "source": "Peritoneal dialysis",
     "translation": "腹膜透析",
@@ -7385,6 +7415,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_regimen_placeholder": {
+    "source": "Given together as (optional)",
+    "translation": "一起给药（可选）",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_switch_help": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.",
+    "translation": "对于每种疗法，请说明您是否在使用、未使用或未回答。说明未使用也是一个回答——它会告诉应用停止显示该屏幕。您未回答的内容将保持不变。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_types": {
     "source": "Therapies",
     "translation": "治疗方法",
@@ -7396,6 +7438,12 @@
     "translation": "哪些治疗方法可以治疗此病症。这决定了应用是否向您显示这些屏幕。",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_unanswered": {
+    "source": "Not answered",
+    "translation": "未回答",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "this_action_cannot_be_undone_all_your": {
     "source": "This action cannot be undone. All your health data will be permanently deleted. Are you sure you want to continue?",

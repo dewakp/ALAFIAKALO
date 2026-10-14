@@ -7337,6 +7337,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "therapies_not_loaded": {
+    "source": "Could not load your therapy answers. Nothing has been changed.",
+    "translation": "Àwọn ìdáhùn therapy rẹ̀ kò ṣe àgbékalẹ̀. Ohun kan kò yí padà.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapies_not_saved": {
+    "source": "Your condition was saved, but your therapy answers were not. Please try again.",
+    "translation": "Àwọn ìṣẹ̀lẹ̀ rẹ̀ tí a pa mọ́, ṣùgbọ́n àwọn ìdáhùn therapy rẹ̀ kò pa mọ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_blood_transfusion": {
     "source": "Blood transfusion",
     "translation": "Ìfúnilẹ̀ ẹ̀jẹ̀",
@@ -7348,6 +7360,12 @@
     "translation": "Chemotherapy",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_group_answered": {
+    "source": "— answered",
+    "translation": "— dáhùn",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_hemodialysis": {
     "source": "Hemodialysis",
@@ -7367,6 +7385,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_off": {
+    "source": "Not on this",
+    "translation": "Kò wà lára mi",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_on": {
+    "source": "On this",
+    "translation": "Wà lára mi",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_peritoneal_dialysis": {
     "source": "Peritoneal dialysis",
     "translation": "Peritoneal dialysis",
@@ -7385,6 +7415,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_regimen_placeholder": {
+    "source": "Given together as (optional)",
+    "translation": "A fúnni pẹ̀lú (àkọ̀tun)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_switch_help": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.",
+    "translation": "Fun kọ̀ọ̀kan therapy, sọ pé o wà lára rẹ̀, tàbí o kò wà lára rẹ̀, tàbí fi ìdáhùn sílẹ̀. Sísọ pé o kò wà lára rẹ̀ jẹ́ ìdáhùn pẹ̀lú — ó sọ fún app náà láti dẹ́kù àkójú yìí. Ohun tí o fi sílẹ̀ a fi sílẹ̀ nìkan.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_types": {
     "source": "Therapies",
     "translation": "Àwọn Ìtọ́nisọ̀rọ̀",
@@ -7396,6 +7438,12 @@
     "translation": "Àwọn ìtọ́nisọ̀rọ̀ tí ó ṣe àlàbá fún ìṣẹ̀lẹ̀ yìí. Èyí ń pín dájú bóyá àpp náà yóò fi hàn ọ́ àwọn ìkòkò wọ̀n.",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_unanswered": {
+    "source": "Not answered",
+    "translation": "Kò dáhùn",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "this_action_cannot_be_undone_all_your": {
     "source": "This action cannot be undone. All your health data will be permanently deleted. Are you sure you want to continue?",

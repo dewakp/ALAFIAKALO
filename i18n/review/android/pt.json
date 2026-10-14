@@ -7337,6 +7337,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "therapies_not_loaded": {
+    "source": "Could not load your therapy answers. Nothing has been changed.",
+    "translation": "Não foi possível carregar suas respostas sobre terapia. Nada foi alterado.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapies_not_saved": {
+    "source": "Your condition was saved, but your therapy answers were not. Please try again.",
+    "translation": "Sua condição foi salva, mas suas respostas sobre terapia não foram. Tente novamente.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_blood_transfusion": {
     "source": "Blood transfusion",
     "translation": "Transfusão de sangue",
@@ -7348,6 +7360,12 @@
     "translation": "Quimioterapia",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_group_answered": {
+    "source": "— answered",
+    "translation": "— respondido",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_hemodialysis": {
     "source": "Hemodialysis",
@@ -7367,6 +7385,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_off": {
+    "source": "Not on this",
+    "translation": "Não em uso",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_on": {
+    "source": "On this",
+    "translation": "Em uso",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_peritoneal_dialysis": {
     "source": "Peritoneal dialysis",
     "translation": "Diálise peritoneal",
@@ -7385,6 +7415,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_regimen_placeholder": {
+    "source": "Given together as (optional)",
+    "translation": "Administrados juntos como (opcional)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_switch_help": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.",
+    "translation": "Para cada terapia, indique se está em uso, não está em uso, ou deixe sem responder. Dizer que não está em uso também é uma resposta — ela avisa ao app para parar de mostrar essa tela. O que deixar sem responder fica como está.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_types": {
     "source": "Therapies",
     "translation": "Terapias",
@@ -7396,6 +7438,12 @@
     "translation": "Quais terapias tratam esta condição. Isto decide se o app mostra esses ecrãs.",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_unanswered": {
+    "source": "Not answered",
+    "translation": "Sem responder",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "this_action_cannot_be_undone_all_your": {
     "source": "This action cannot be undone. All your health data will be permanently deleted. Are you sure you want to continue?",

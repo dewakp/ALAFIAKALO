@@ -4,12 +4,15 @@
 package com.alafia.android.views.chronic
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -163,16 +166,41 @@ fun ChronicConditionsScreen(
         ConditionFormDialog(
             condition = editingCondition,
             onDismiss = { showDialog = false },
-            onSave = { conditionData ->
+            onSave = { conditionData, therapies ->
                 scope.launch {
                     try {
                         val apiService = ApiClient.getApiService()
-                        if (editingCondition != null) {
+                        val conditionId = if (editingCondition != null) {
                             apiService.updateChronicCondition(editingCondition!!.id, conditionData)
                             Toast.makeText(context, "Condition updated", Toast.LENGTH_SHORT).show()
+                            editingCondition!!.id
                         } else {
-                            apiService.createChronicCondition(conditionData)
+                            val created = apiService.createChronicCondition(conditionData)
                             Toast.makeText(context, "Condition created", Toast.LENGTH_SHORT).show()
+                            created.id
+                        }
+                        // The therapy switches, written AFTER the condition
+                        // exists. Deliberately a second request and
+                        // deliberately not fatal to the first: losing a
+                        // therapy answer is bad, losing the condition the
+                        // patient just typed because a therapy write failed is
+                        // worse (§3c's argument for saving the meal before
+                        // estimating it). The failure is REPORTED — silence
+                        // would leave the patient believing they declared a
+                        // treatment the navigation will not reflect (§3aa).
+                        if (therapies.isNotEmpty()) {
+                            try {
+                                apiService.putConditionTherapies(
+                                    conditionId,
+                                    com.alafia.android.models.ConditionTherapiesUpdate(therapies),
+                                )
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.therapies_not_saved),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
                         }
                         conditions = apiService.getChronicConditions(limit = 1000, isActive = true)
                         showDialog = false
@@ -331,7 +359,9 @@ fun SeverityChip(severity: String) {
 fun ConditionFormDialog(
     condition: ChronicCondition?,
     onDismiss: () -> Unit,
-    onSave: (Map<String, Any?>) -> Unit
+    /** The condition AND its therapy statements — a switch belongs to a
+     *  condition that must exist first, so the caller needs both. */
+    onSave: (Map<String, Any?>, List<com.alafia.android.models.ConditionTherapyRow>) -> Unit
 ) {
     var conditionName by remember { mutableStateOf(condition?.conditionName ?: "") }
     var category by remember { mutableStateOf(condition?.category ?: "other") }
@@ -342,11 +372,20 @@ fun ConditionFormDialog(
     var diagnosisDate by remember { mutableStateOf(condition?.diagnosisDate ?: "") }
     var primaryPhysician by remember { mutableStateOf(condition?.primaryPhysician ?: "") }
     var treatmentPlan by remember { mutableStateOf(condition?.currentTreatmentPlan ?: "") }
-    // Therapies this condition is treated with. DECLARED by the patient, and
-    // what decides whether the app offers the matching treatment screens.
-    var therapyTypes by remember {
-        mutableStateOf((condition?.therapyTypes ?: emptyList()).toSet())
-    }
+    // Therapies this condition is treated with — a SWITCH over WHO's whole
+    // therapy branch, not a set of ticked items.
+    //
+    // This was a Checkbox per therapy, and a checkbox cannot record three
+    // states (§3at). Unticked meant BOTH "not on this therapy" and "nobody
+    // asked"; the first retires a screen and the second must leave it alone.
+    //
+    //     absent from the map   nobody asked          -> nothing inferred
+    //     false                 explicitly not on it  -> a measured ZERO
+    //     true                  undergoing it         -> opens its screen
+    var therapySwitches by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
+    var therapyRegimens by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    // §3aa: an unreadable list must never render as a screen full of zeros.
+    var therapyLoadFailed by remember { mutableStateOf(false) }
     var notes by remember { mutableStateOf(condition?.notes ?: "") }
     
     val categories = listOf(
@@ -365,11 +404,28 @@ fun ConditionFormDialog(
     var therapyOptions by remember {
         mutableStateOf<List<com.alafia.android.models.TherapyOption>>(emptyList())
     }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(condition?.id) {
+        val api = com.alafia.android.api.ApiClient.getApiService()
         try {
-            therapyOptions = com.alafia.android.api.ApiClient.getApiService()
-                .getTherapyOptions().options
+            therapyOptions = api.getTherapyOptions().options
         } catch (_: Exception) { }
+        // The stored statements, read back before the form is touched. A
+        // control that never loads its stored value shows its default, which
+        // reads as NEVER RECORDED, and the next save overwrites what was
+        // there — §3av, measured on `machine_total_time_minutes`.
+        val existing = condition?.id ?: return@LaunchedEffect
+        try {
+            val rows = api.getConditionTherapies(existing).therapies
+            therapySwitches = rows.associate { it.therapyCode to it.receiving }
+            therapyRegimens = rows.mapNotNull { row ->
+                row.regimen?.let { row.therapyCode to it }
+            }.toMap()
+            therapyLoadFailed = false
+        } catch (_: Exception) {
+            // Never guess. Every therapy stays UNANSWERED, so the save sends
+            // nothing for those codes and what is stored survives.
+            therapyLoadFailed = true
+        }
     }
     
     val severities = listOf("mild", "moderate", "severe", "critical", "remission")
@@ -498,24 +554,97 @@ fun ConditionFormDialog(
                             style = MaterialTheme.typography.labelLarge
                         )
                         Text(
-                            stringResource(R.string.therapy_types_help),
+                            stringResource(R.string.therapy_switch_help),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        therapyOptions.forEach { option ->
+                        if (therapyLoadFailed) {
+                            Text(
+                                stringResource(R.string.therapies_not_loaded),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        // Grouping is the SERVER's (`group`/`group_title`).
+                        // Splitting a code on its dot here would make this
+                        // screen decide what a code means (§3ad).
+                        therapyOptions.groupBy { it.group ?: it.code }.forEach { (groupCode, options) ->
+                            val heading = options.first().groupTitle ?: groupCode
+                            val answered = options.any { it.code in therapySwitches }
+                            var expanded by remember(groupCode) { mutableStateOf(answered) }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { expanded = !expanded }
+                                    .padding(vertical = 6.dp)
                             ) {
-                                Checkbox(
-                                    checked = option.code in therapyTypes,
-                                    onCheckedChange = { on ->
-                                        therapyTypes = if (on) therapyTypes + option.code
-                                                       else therapyTypes - option.code
-                                    }
+                                Icon(
+                                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null
                                 )
-                                // WHO's own title; nothing is relabelled here.
-                                Text(option.title)
+                                Spacer(Modifier.width(4.dp))
+                                // WHO's own heading, or the shared prefix of
+                                // its members where the root has no title.
+                                Text(heading, style = MaterialTheme.typography.labelMedium)
+                                if (answered) {
+                                    Text(
+                                        stringResource(R.string.therapy_group_answered),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            if (expanded) {
+                                options.forEach { option ->
+                                    val state: Boolean? = therapySwitches[option.code]
+                                    Column(modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)) {
+                                        // WHO's own title; nothing relabelled.
+                                        Text(option.title, style = MaterialTheme.typography.bodySmall)
+                                        Row {
+                                            listOf(
+                                                true to stringResource(R.string.therapy_on),
+                                                false to stringResource(R.string.therapy_off),
+                                                null to stringResource(R.string.therapy_unanswered),
+                                            ).forEach { (value, label) ->
+                                                FilterChip(
+                                                    selected = state == value,
+                                                    onClick = {
+                                                        therapySwitches = if (value == null) {
+                                                            // Back to unanswered. REMOVING the key is
+                                                            // the point: a client cannot express
+                                                            // "unknown" by sending false, so it stops
+                                                            // sending the entry at all.
+                                                            therapySwitches - option.code
+                                                        } else {
+                                                            therapySwitches + (option.code to value)
+                                                        }
+                                                        if (value != true) {
+                                                            therapyRegimens = therapyRegimens - option.code
+                                                        }
+                                                    },
+                                                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                                                    modifier = Modifier.padding(end = 4.dp)
+                                                )
+                                            }
+                                        }
+                                        // Compounding: therapies given as ONE
+                                        // treatment share a label. It records
+                                        // what is given together and claims
+                                        // nothing about the effect.
+                                        if (state == true) {
+                                            OutlinedTextField(
+                                                value = therapyRegimens[option.code] ?: "",
+                                                onValueChange = {
+                                                    therapyRegimens = therapyRegimens + (option.code to it)
+                                                },
+                                                label = { Text(stringResource(R.string.therapy_regimen_placeholder)) },
+                                                textStyle = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -559,14 +688,22 @@ fun ConditionFormDialog(
                     if (diagnosisDate.isNotBlank()) data["diagnosis_date"] = diagnosisDate
                     if (primaryPhysician.isNotBlank()) data["primary_physician"] = primaryPhysician
                     if (treatmentPlan.isNotBlank()) data["current_treatment_plan"] = treatmentPlan
-                    // Sent even when EMPTY on an edit, so clearing every box
-                    // actually clears the stored value — a field the form
-                    // shows but only ever sends when non-empty cannot be
-                    // unset, which is §3av from the other side.
-                    data["therapy_types"] = therapyTypes.sorted()
                     if (notes.isNotBlank()) data["notes"] = notes
-                    
-                    onSave(data)
+
+                    // Nothing writes the comma-separated `therapy_types`
+                    // column any more — the switch table is the authority, and
+                    // two homes for one fact is the drift this codebase keeps
+                    // paying for. Not SENDING the key leaves what is stored
+                    // there, which is deliberate: a declaration made before
+                    // the table existed stays readable until a switch speaks
+                    // for that code.
+                    onSave(data, therapySwitches.keys.sorted().map { code ->
+                        com.alafia.android.models.ConditionTherapyRow(
+                            therapyCode = code,
+                            receiving = therapySwitches[code] == true,
+                            regimen = therapyRegimens[code]?.takeIf { it.isNotBlank() },
+                        )
+                    })
                 },
                 enabled = conditionName.isNotBlank()
             ) {

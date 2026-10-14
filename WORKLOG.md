@@ -3525,3 +3525,77 @@ stored Ω history is now non-comparable and nothing says so; `data_coverage`
 reports 1.0 beside pathways showing `measured 2/3`; and the operator's
 instruction that the import note be written by ALAFIA at parse time rather than
 by hand (TASKS 17) is not started.
+
+---
+
+## 2026-10-14 — The therapy switch: a set cannot hold a zero
+
+Operator: *"hard-coded enum for therapy will need a comprehensive list with
+items zeroed out (no impact) when not present (like a switch) and a mechanism
+for compounded therapies. current model lacks comprehensive list and does not
+include switch mechanism."*
+
+Two faults, both measured before any code was written. Full detail in
+**OPEN_ITEMS 39**; canon in **CLAUDE.md §3bf**.
+
+**1 — the list was curated.** Yesterday's fix replaced a hand-typed enum with
+WHO's codes and then named **10** of them. The branch those ten came from holds
+**31**: 7 dependence codes, 6 dialysis, 12 rehabilitation, plus apheresis,
+palliative care, preparatory care, transfusion, radiotherapy, chemotherapy and
+immunotherapy. A patient on apheresis or cardiac rehabilitation could not say
+so. `THERAPY_BRANCHES` declares ten roots with a stated reason each and
+`therapy_codes()` asks the catalog — **32 codes**, and adding one means WHO
+published it.
+
+**2 — absence meant two things at once.** Comma-separated membership says
+"present" or "absent", and absent meant *not receiving* AND *nobody asked* —
+§3at's checkbox, deciding which clinical screen a patient can reach.
+`condition_therapies` (`ar001`, additive, dev only) puts the third state in the
+ROW: no row = unknown, `receiving=false` = a measured zero that retires the
+screen, `true` = contributes. A stated zero overrules the legacy column, which
+could never say "no". `regimen` records what is given TOGETHER and asserts
+nothing about the effect (§3an).
+
+All three clients went from a checkbox to three choices per therapy, grouped by
+branch, with `group`/`group_title` served so **no client reads a code prefix**.
+`GET`/`PUT /chronic/conditions/{id}/therapies` is the door; the write is a
+second request and deliberately not fatal to the condition save.
+
+### What it cost to learn
+
+- **`code.startswith(root + ".")` silently dropped six codes.** Right for
+  `QB94 -> QB94.1`, wrong for `QB4 -> QB40` — ICD-11 children are `ROOT.N` for
+  a stem code and `ROOTx` for a block. The "comprehensive" set reported a
+  confident 26. Caught by printing the derived set and counting it (§3av).
+- **Four of my ten branch "reasons" were labels**, restating WHO's own title
+  which the catalog already serves. The test that asserts a reason has length
+  refused them, which is crude and worked.
+- **The iOS export surfaced a 65-string translation backlog.**
+  `test_catalogs.py` compares against `i18n/ios/en.xliff`, which only refreshes
+  when somebody runs `xcodebuild -exportLocalizations` — so it was green while
+  the hospital-history screen, the Α card and the labs tri-state shipped
+  English-only in ten languages. All 65 now translated and imported.
+- **A dead form field left behind is the next bug.** `therapy_types` stayed in
+  web's `formData` and iOS's `ChronicConditionCreate` after nothing rendered
+  it; that is exactly the shape that erased `machine_total_time_minutes`
+  (§3av). Removed from both, and from Android's payload.
+
+**Verified:** backend 197 passed (32 surfacing incl. 9 new, 12 new switch tests
+over real HTTP, plus the §3aa guard and five neighbouring suites); frontend 279
+passed; 44 i18n catalog tests; Android `BUILD SUCCESSFUL` with lint
+`MissingTranslation = 0` and the APK size changing (32,765,929 → 32,774,929,
+which is what proves the rebuild carried the code); iOS `** BUILD SUCCEEDED **`
+twice, before and after the catalog import; ruff F,E9 clean; `alembic heads`
+reports ONE head (`ar001_therapy_switch`), applied to dev; the served :8080
+bundle carries the new strings after `build` AND `up -d`; and the new route
+answers 403 rather than 404, so it is mounted.
+
+**Not done, and named rather than implied:** nothing SCORES a therapy yet — Α
+reads conditions and labs, not `condition_therapies`, so the axis exists with
+no consumer (39d); `started_on`/`ended_on` are in the table and on the API and
+**no client collects them**, so a therapy that STOPPED can only be expressed by
+flipping its switch (39f); `regimen` is free text, so grouping is per-patient
+and nothing aggregates across records (39e); the nav still fetches
+`/users/me/surfaces` once on mount, which is now worse — a patient who states
+"not on this" watches the screen they just retired stay on screen (39b); and
+`aq001`/`ar001` are both dev-only, so no patient can declare anything yet (39a).

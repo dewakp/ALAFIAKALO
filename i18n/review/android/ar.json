@@ -7337,6 +7337,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "therapies_not_loaded": {
+    "source": "Could not load your therapy answers. Nothing has been changed.",
+    "translation": "تعذر تحميل إجابات العلاج. لم يتم تغيير أي شيء.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapies_not_saved": {
+    "source": "Your condition was saved, but your therapy answers were not. Please try again.",
+    "translation": "تم حفظ حالتك الصحية، لكن إجابات العلاج لم تُحفظ. يرجى المحاولة مجددًا.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_blood_transfusion": {
     "source": "Blood transfusion",
     "translation": "نقل الدم",
@@ -7348,6 +7360,12 @@
     "translation": "العلاج الكيميائي",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_group_answered": {
+    "source": "— answered",
+    "translation": "— تمت الإجابة",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_hemodialysis": {
     "source": "Hemodialysis",
@@ -7367,6 +7385,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_off": {
+    "source": "Not on this",
+    "translation": "لا أتلقاه",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_on": {
+    "source": "On this",
+    "translation": "أتلقاه",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_peritoneal_dialysis": {
     "source": "Peritoneal dialysis",
     "translation": "غسيل الكلى البريتوني",
@@ -7385,6 +7415,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_regimen_placeholder": {
+    "source": "Given together as (optional)",
+    "translation": "يُعطى معًا باسم (اختياري)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_switch_help": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.",
+    "translation": "لكل علاج، حدّد ما إذا كنت تتلقاه أم لا، أم اترك الإجابة فارغة. قول أنك لا تتلقى علاجًا معينًا هو إجابة أيضًا — فهو يخبر التطبيق بعدم عرض هذه الشاشة لك. ما تتركه بدون إجابة سيبقى كما هو.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_types": {
     "source": "Therapies",
     "translation": "العلاجات",
@@ -7396,6 +7438,12 @@
     "translation": "أي العلاجات تعالج هذه الحالة. هذا يحدد ما إذا كان التطبيق يعرض لك تلك الشاشات.",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_unanswered": {
+    "source": "Not answered",
+    "translation": "لم أجب",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "this_action_cannot_be_undone_all_your": {
     "source": "This action cannot be undone. All your health data will be permanently deleted. Are you sure you want to continue?",

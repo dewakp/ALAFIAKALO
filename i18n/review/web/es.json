@@ -2081,6 +2081,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "ChronicConditions.therapies_not_loaded": {
+    "source": "Could not load your therapy answers. Nothing has been changed — answers you do not set are left as they are.",
+    "translation": "No se pudieron cargar tus respuestas de terapia. Nada ha cambiado — las respuestas que no estableces se mantienen como están.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapies_not_saved": {
+    "source": "Your condition was saved, but your therapy answers were not. Please try again.",
+    "translation": "Tu condición se guardó, pero tus respuestas de terapia no. Por favor intenta de nuevo.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_blood_transfusion": {
     "source": "Blood transfusion",
     "translation": "Transfusión de sangre",
@@ -2092,6 +2104,12 @@
     "translation": "Quimioterapia",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_group_answered": {
+    "source": "— answered",
+    "translation": "— respondido",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "ChronicConditions.therapy_hemodialysis": {
     "source": "Hemodialysis",
@@ -2111,6 +2129,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "ChronicConditions.therapy_off": {
+    "source": "Not on this",
+    "translation": "No en este",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapy_on": {
+    "source": "On this",
+    "translation": "En este",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_peritoneal_dialysis": {
     "source": "Peritoneal dialysis",
     "translation": "Diálisis peritoneal",
@@ -2129,6 +2159,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "ChronicConditions.therapy_regimen_placeholder": {
+    "source": "Given together as (optional)",
+    "translation": "Administrados juntos como (opcional)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapy_switch_help": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.",
+    "translation": "Para cada terapia, indica si la estás usando, si no la estás usando, o déjalo sin responder. Decir que no estás en una es una respuesta también — le dice a la app que deje de mostrarte esa pantalla. Lo que dejes sin responder se mantiene igual.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_types": {
     "source": "Therapies",
     "translation": "Terapias",
@@ -2140,6 +2182,12 @@
     "translation": "Qué terapias tratan esta condición. Esto decide si la app te muestra esas pantallas.",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_unanswered": {
+    "source": "Not answered",
+    "translation": "No respondido",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "ChronicConditions.treatment_plan": {
     "source": "Treatment Plan:",

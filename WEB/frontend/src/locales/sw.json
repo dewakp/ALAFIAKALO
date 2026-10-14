@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "Je, una uhakika unataka kufuta hali hii?",
     "failed_to_delete_condition": "Imeshindwa kufuta hali",
     "therapy_types": "Tiba",
-    "therapy_types_help": "Ni tiba gani zinazotibu hali hii. Hii ndiyo inayoamua kama programu itakuonyesha skrini hizo."
+    "therapy_on": "Niko juu yake",
+    "therapy_off": "Siko juu yake",
+    "therapy_unanswered": "Sijasagilia",
+    "therapy_switch_help": "Kwa kila tiba, sema kama unayoitumia, hautumiiki, au acha bila jibu. Kusema hautumiiki ni jibu — inakamatia programu kusimamisha kuonyesha skrini hiyo. Kile unachoacha bila jibu kinabaki kama ilivyo.",
+    "therapy_group_answered": "— ilisagiliwa",
+    "therapy_regimen_placeholder": "Inatolewa pamoja kama (hiari)",
+    "therapies_not_saved": "Hali yako ilihifadhiwa, lakini majibu yako ya tiba hayakuhifadhiwa. Tafadhali jaribu tena.",
+    "therapies_not_loaded": "Haikuweza kupakia majibu yako ya tiba. Hakuna kitu kilichobadilika — majibu usiyoyaweka yanabaki kama yalivyo."
   },
   "ClinicianDashboard": {
     "loading": "Inapakia...",

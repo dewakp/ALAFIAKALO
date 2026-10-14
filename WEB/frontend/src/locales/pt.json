@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "Tem certeza que deseja deletar esta condição?",
     "failed_to_delete_condition": "Falha ao deletar condição",
     "therapy_types": "Terapias",
-    "therapy_types_help": "Quais terapias tratam esta condição. Isto determina quais ecrãs o app lhe mostra."
+    "therapy_on": "Estou neste",
+    "therapy_off": "Não estou neste",
+    "therapy_unanswered": "Não respondido",
+    "therapy_switch_help": "Para cada terapia, diga se está nela, se não está, ou deixe sem responder. Dizer que não está nela também é uma resposta — avisa ao app para parar de mostrar essa tela. O que deixar sem responder fica como está.",
+    "therapy_group_answered": "— respondido",
+    "therapy_regimen_placeholder": "Administrado junto como (opcional)",
+    "therapies_not_saved": "Sua condição foi salva, mas suas respostas sobre terapia não foram. Tente novamente.",
+    "therapies_not_loaded": "Não foi possível carregar suas respostas sobre terapia. Nada foi alterado — respostas que não definir ficam como estão."
   },
   "ClinicianDashboard": {
     "loading": "Carregando...",

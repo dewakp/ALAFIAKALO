@@ -35,6 +35,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "InfoPlist.xcstrings::NSHumanReadableCopyright": {
+    "source": "© 2026 6igma Health Inc. All rights reserved.",
+    "translation": "© 2026 6igma Health Inc. 版权所有。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "InfoPlist.xcstrings::NSMicrophoneUsageDescription": {
     "source": "ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.",
     "translation": "ALAFIA 使用麦克风，以便您可以从提示页面说出健康日志和问题。",
@@ -82,6 +88,12 @@
     "translation": "%1$@ → %2$@ kg",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::%@%@ %@ from %@": {
+    "source": "%1$@%2$@ %3$@ from %4$@",
+    "translation": "%1$@%2$@ %3$@ 来自 %4$@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::%@%@ %@ from dialysis": {
     "source": "%1$@%2$@ %3$@ from dialysis",
@@ -287,6 +299,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::(written as %@)": {
+    "source": "(written as %@)",
+    "translation": "（记为 %@）",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::/ month": {
     "source": "/ month",
     "translation": "/ 月",
@@ -364,6 +382,12 @@
     "translation": "= %1$lld 分钟 (%2$@)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.": {
+    "source": "A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.",
+    "translation": "代码需要发布它的系统 — ICD-10-PCS、CPT 和 SNOMED 是不同的系统。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::A direct message goes to one person. Remove them to pick someone else.": {
     "source": "A direct message goes to one person. Remove them to pick someone else.",
@@ -478,6 +502,12 @@
     "translation": "APD 设置",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Abnormal": {
+    "source": "Abnormal",
+    "translation": "异常",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::About & Sources": {
     "source": "About & Sources",
@@ -689,6 +719,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Add a hospital stay": {
+    "source": "Add a hospital stay",
+    "translation": "添加住院",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Add a message…": {
     "source": "Add a message…",
     "translation": "添加消息…",
@@ -700,6 +736,12 @@
     "translation": "添加备注…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Add an operation": {
+    "source": "Add an operation",
+    "translation": "添加手术",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Add clinical notes above": {
     "source": "Add clinical notes above",
@@ -802,6 +844,12 @@
     "translation": "依从性",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Admitted": {
+    "source": "Admitted",
+    "translation": "已入院",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Advanced Directives": {
     "source": "Advanced Directives",
@@ -929,6 +977,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::All operations": {
+    "source": "All operations",
+    "translation": "所有手术",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Allergies": {
     "source": "Allergies",
     "translation": "过敏症",
@@ -988,6 +1042,12 @@
     "translation": "账户持有人必须是成年人。儿童作为受抚养人资料在父母或监护人的账户下进行跟踪。",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "手术不需要住院。日间手术和多年后记录的任何手术都可以单独添加。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Analyse Image(s) with Alafia": {
     "source": "Analyse Image(s) with Alafia",
@@ -1691,6 +1751,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Coding system": {
+    "source": "Coding system",
+    "translation": "编码系统",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Collective Insights": {
     "source": "Collective Insights",
     "translation": "集体洞察",
@@ -1774,6 +1840,12 @@
     "translation": "病情名称",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Condition management (Α)": {
+    "source": "Condition management (Α)",
+    "translation": "病情管理 (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Condition, abbreviation or code": {
     "source": "Condition, abbreviation or code",
@@ -1882,6 +1954,12 @@
     "translation": "核心角色 — 始终活跃",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
+    "source": "Could not load your therapy answers. Nothing has been changed.",
+    "translation": "无法加载您的治疗答案。未做任何更改。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Could not print": {
     "source": "Could not print",
@@ -2201,6 +2279,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Date of operation": {
+    "source": "Date of operation",
+    "translation": "手术日期",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Date: %@": {
     "source": "Date: %@",
     "translation": "日期：%@",
@@ -2363,6 +2447,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Dialysis": {
+    "source": "Dialysis",
+    "translation": "透析",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Dialysis today — %lld session%@": {
     "source": "Dialysis today — %1$lld session%2$@",
     "translation": "今天透析 — %1$lld 次%2$@",
@@ -2446,6 +2536,18 @@
     "translation": "丢弃",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Discharge date": {
+    "source": "Discharge date",
+    "translation": "出院日期",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Discharged": {
+    "source": "Discharged",
+    "translation": "已出院",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Disease": {
     "source": "Disease",
@@ -2632,6 +2734,18 @@
     "translation": "时长（分钟）",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::During %@": {
+    "source": "During %@",
+    "translation": "在 %@ 期间",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::During which stay?": {
+    "source": "During which stay?",
+    "translation": "在哪次住院期间？",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::EHR & Apps": {
     "source": "EHR & Apps",
@@ -2830,6 +2944,18 @@
     "translation": "仅为估计值 — 保存前请检查食物名称和份量。",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "您记录中的每项手术，包括没有附加住院的手术。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Every source together — what you were prescribed, what you logged, and what you were given at treatment.": {
+    "source": "Every source together — what you were prescribed, what you logged, and what you were given at treatment.",
+    "translation": "所有来源合在一起 — 您被处方的、您记录的和您在治疗中获得的。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Exchange %lld": {
     "source": "Exchange %lld",
@@ -3179,6 +3305,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.",
+    "translation": "对于每项治疗，说明您是否在使用、未使用或不回答。说您未使用也是一个答案。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::For example, an organ or gland removed, or something you have had to take ever since.": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "例如，移除的器官或腺体，或您必须一直服用的东西。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Forgot password?": {
     "source": "Forgot password?",
     "translation": "忘记密码？",
@@ -3268,6 +3406,18 @@
     "translation": "通用",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Given during treatment — already on your record.": {
+    "source": "Given during treatment — already on your record.",
+    "translation": "在治疗期间给予 — 已在您的记录中。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Given together as (optional)": {
+    "source": "Given together as (optional)",
+    "translation": "一起给予为（可选）",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Goals": {
     "source": "Goals",
@@ -3539,11 +3689,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Hospital & Surgery": {
+    "source": "Hospital & Surgery",
+    "translation": "医院和手术",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Hospital Affiliations (comma-separated)": {
     "source": "Hospital Affiliations (comma-separated)",
     "translation": "医院关联机构（逗号分隔）",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Hospital stays": {
+    "source": "Hospital stays",
+    "translation": "住院",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Hospital/ER Since Last": {
     "source": "Hospital/ER Since Last",
@@ -3580,6 +3742,12 @@
     "translation": "中心",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::I know the date": {
+    "source": "I know the date",
+    "translation": "我知道日期",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::I've confirmed — continue": {
     "source": "I've confirmed — continue",
@@ -3658,6 +3826,12 @@
     "translation": "改进",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::In range": {
+    "source": "In range",
+    "translation": "在范围内",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::In-Session Chat": {
     "source": "In-Session Chat",
@@ -3796,6 +3970,12 @@
     "translation": "日志",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Keep them": {
+    "source": "Keep them",
+    "translation": "保留它们",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::K⁺ (mEq)": {
     "source": "K⁺ (mEq)",
@@ -4589,6 +4769,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Needs attention": {
+    "source": "Needs attention",
+    "translation": "需要关注",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::New Chemo Session": {
     "source": "New Chemo Session",
     "translation": "新化疗疗程",
@@ -4997,6 +5183,24 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::No hospital stay": {
+    "source": "No hospital stay",
+    "translation": "无住院",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::No hospital stay recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "未记录住院",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::No hospital stays recorded yet.": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "尚未记录住院。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::No intake logged for this date.": {
     "source": "No intake logged for this date.",
     "translation": "此日期未记录摄入量。",
@@ -5038,6 +5242,12 @@
     "translation": "此餐食还未记录营养值。",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::No operations recorded yet.": {
+    "source": "No operations recorded yet.",
+    "translation": "尚未记录手术。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::No patients yet": {
     "source": "No patients yet",
@@ -5111,6 +5321,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not answered": {
+    "source": "Not answered",
+    "translation": "未回答",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Not assessed": {
     "source": "Not assessed",
     "translation": "未评估",
@@ -5135,11 +5351,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not on this": {
+    "source": "Not on this",
+    "translation": "未使用此项",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Not right? Teach ALAFIA what this actually is": {
     "source": "Not right? Teach ALAFIA what this actually is",
     "translation": "不对？教ALAFIA这实际上是什么",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Not stated": {
+    "source": "Not stated",
+    "translation": "未说明",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Notarized": {
     "source": "Notarized",
@@ -5237,11 +5465,29 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::On this": {
+    "source": "On this",
+    "translation": "使用此项",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::On your flowsheet": {
+    "source": "On your flowsheet",
+    "translation": "在您的流程表上",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::One-way sync": {
     "source": "One-way sync",
     "translation": "单向同步",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "仅列出与手术一起记录的效果。此处不根据手术名称推测任何内容。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Only one intradialytic reading — not enough to plot a curve.": {
     "source": "Only one intradialytic reading — not enough to plot a curve.",
@@ -5279,6 +5525,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Operation": {
+    "source": "Operation",
+    "translation": "手术",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Optional — close this to keep your device-language guide, or pick another.": {
     "source": "Optional — close this to keep your device-language guide, or pick another.",
     "translation": "可选 — 关闭此项以保留您的设备语言指南，或选择其他语言。",
@@ -5314,6 +5566,12 @@
     "translation": "疫情",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Outcome": {
+    "source": "Outcome",
+    "translation": "结果",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Outflow (mL)": {
     "source": "Outflow (mL)",
@@ -5404,6 +5662,12 @@
     "translation": "食品储藏室为空",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Part of the body": {
+    "source": "Part of the body",
+    "translation": "身体部位",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Participants": {
     "source": "Participants",
@@ -5969,6 +6233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Procedure code": {
+    "source": "Procedure code",
+    "translation": "手术代码",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Product Updates": {
     "source": "Product Updates",
     "translation": "产品更新",
@@ -6173,6 +6443,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Reason for admission": {
+    "source": "Reason for admission",
+    "translation": "入院原因",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Recalls": {
     "source": "Recalls",
     "translation": "召回",
@@ -6365,11 +6641,35 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Remove from my records": {
+    "source": "Remove from my records",
+    "translation": "从我的记录中删除",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Remove the records this document added?": {
+    "source": "Remove the records this document added?",
+    "translation": "删除此文档添加的记录？",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Removed (mL)": {
     "source": "Removed (mL)",
     "translation": "移除量（mL）",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Removes only what this document added. You can upload it again afterwards.": {
+    "source": "Removes only what this document added. You can upload it again afterwards.",
+    "translation": "仅删除此文档添加的内容。之后您可以重新上传。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Removing…": {
+    "source": "Removing…",
+    "translation": "删除中…",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Repeat": {
     "source": "Repeat",
@@ -8093,6 +8393,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Type of admission": {
+    "source": "Type of admission",
+    "translation": "入院类型",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Typical Dosage": {
     "source": "Typical Dosage",
     "translation": "典型剂量",
@@ -8501,11 +8807,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::What past surgery still means for you": {
+    "source": "What past surgery still means for you",
+    "translation": "过往手术对您的影响",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::What reaches the provider": {
     "source": "What reaches the provider",
     "translation": "发送给医疗提供者的内容",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::What this still means for you": {
+    "source": "What this still means for you",
+    "translation": "这对您的影响",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::What-If Simulator": {
     "source": "What-If Simulator",
@@ -8573,6 +8891,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::You did not log anything yourself for this date.": {
+    "source": "You did not log anything yourself for this date.",
+    "translation": "您在此日期未记录任何内容。",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::You regularly log %lld medication%@ that aren’t on this list": {
     "source": "You regularly log %1$lld medication%2$@ that aren’t on this list",
     "translation": "您经常记录%1$lld种不在此列表中的药物%2$@",
@@ -8597,6 +8921,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Your condition was saved, but your therapy answers were not: %@": {
+    "source": "Your condition was saved, but your therapy answers were not: %@",
+    "translation": "您的病情已保存，但治疗答案未保存：%@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Your current password keeps working until you do.": {
     "source": "Your current password keeps working until you do.",
     "translation": "您的当前密码将继续有效，直到您更改为止。",
@@ -8609,6 +8939,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Your hospital history could not be loaded": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "无法加载您的住院历史",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Your lab results will appear here as charts once data is available.": {
     "source": "Your lab results will appear here as charts once data is available.",
     "translation": "您的实验室结果将在数据可用后以图表形式显示在此处。",
@@ -8620,6 +8956,12 @@
     "translation": "您的限制值未变——它们已经考虑了您的常规治疗。改变的是当天的平衡。",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your medication record": {
+    "source": "Your medication record",
+    "translation": "您的用药记录",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Your own health record, meals and tracking live in the patient view.": {
     "source": "Your own health record, meals and tracking live in the patient view.",
@@ -8662,6 +9004,24 @@
     "translation": "^[%lld 行](inflect: true)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::against guideline targets": {
+    "source": "against guideline targets",
+    "translation": "低于指南目标",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::also on your flowsheet": {
+    "source": "also on your flowsheet",
+    "translation": "也在您的流程表中",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::also written as %@": {
+    "source": "also written as %@",
+    "translation": "也写作 %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::boluses, rinseback": {
     "source": "boluses, rinseback",
@@ -8735,6 +9095,24 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::from your clinic": {
+    "source": "from your clinic",
+    "translation": "来自您的诊所",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::given at treatment": {
+    "source": "given at treatment",
+    "translation": "在治疗中给予",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::given on %lld day%@": {
+    "source": "given on %1$lld day%2$@",
+    "translation": "在第 %1$lld 天%2$@ 给予",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::kg": {
     "source": "kg",
     "translation": "kg",
@@ -8783,6 +9161,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::prescribed": {
+    "source": "prescribed",
+    "translation": "处方",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::unavailable": {
     "source": "unavailable",
     "translation": "不可用",
@@ -8794,6 +9178,12 @@
     "translation": "含读数",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::you logged it": {
+    "source": "you logged it",
+    "translation": "您记录的",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::· estimated": {
     "source": "· estimated",

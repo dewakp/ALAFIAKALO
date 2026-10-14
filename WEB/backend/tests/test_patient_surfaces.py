@@ -256,8 +256,6 @@ def test_a_stored_value_that_is_not_an_enum_member_is_ignored():
 def test_the_keyword_dict_is_gone():
     """A guard against it coming back. The dict decided clinical navigation
     from the spelling of a diagnosis."""
-    import inspect
-
     # ⚠️ Ask the MODULE, not its source text. The first two versions grepped
     # `inspect.getsource(...)` for "_CONDITION_HINTS" and failed on the
     # DOCSTRING that explains the removal — a guard tripping over its own
@@ -391,3 +389,144 @@ def test_no_client_needs_a_therapy_list_of_its_own():
     """The endpoint exists so none of the three clients carries a copy."""
     from app.api.chronic_conditions import get_therapy_options
     assert callable(get_therapy_options)
+
+
+# ── A comprehensive list, and a SWITCH that can hold a zero ─────────────────
+#
+# Operator, 2026-10-14: *"hard-coded enum for therapy will need a comprehensive
+# list with items zeroed out (no impact) when not present (like a switch) and a
+# mechanism for compounded therapies. current model lacks comprehensive list
+# and does not include switch mechanism."*
+
+from app.models.chronic_conditions import ConditionTherapy          # noqa: E402
+from app.services.patient_surfaces import (                         # noqa: E402
+    THERAPY_BRANCHES, regimens, therapy_codes, therapy_switches,
+)
+
+
+async def _switch(db, condition_id, code, receiving, regimen=None):
+    db.add(ConditionTherapy(condition_id=condition_id, therapy_code=code,
+                            receiving=receiving, regimen=regimen))
+    await db.flush()
+
+
+async def _condition_id(db, user, name="ESRD"):
+    from sqlalchemy import select
+    from app.models.chronic_conditions import ChronicCondition
+    await _seed_condition(db, user, name, None)
+    return (await db.execute(select(ChronicCondition.id)
+            .where(ChronicCondition.user_id == user.id)
+            .order_by(ChronicCondition.id.desc()).limit(1))).scalar_one()
+
+
+def test_the_list_is_COMPREHENSIVE_not_curated():
+    """The previous version named 10 codes while the branch they came from
+    holds 31. Picking ten of thirty-one is typing them with extra steps."""
+    codes = therapy_codes()
+    assert len(codes) >= 30, f"only {len(codes)} codes — the set is curated again"
+    # Things a patient could not previously say at all:
+    for code in ("QB99", "QB9B", "QB95.0", "QB41"):
+        assert code in codes, f"{code} missing — someone narrowed the branches"
+
+
+def test_the_branch_roots_each_carry_a_REASON():
+    """A root with no stated reason is a curation decision nobody can audit."""
+    for root, reason in THERAPY_BRANCHES.items():
+        assert reason and len(reason) > 20, f"{root} has no stated reason"
+
+
+def test_a_three_character_root_still_matches_its_children():
+    """⚠️ The first predicate tested `code.startswith(root + ".")`, right for
+    QB94 -> QB94.1 and SILENTLY WRONG for QB4 -> QB40: every dependence code
+    was dropped and the "comprehensive" list quietly lost six entries."""
+    codes = therapy_codes()
+    assert {"QB40", "QB41", "QB42", "QB43", "QB44"} <= set(codes)
+
+
+@pytest.mark.asyncio
+async def test_an_explicit_ZERO_retires_the_screen(db):
+    """The switch. A set could never express this: absence meant "not on it"
+    AND "nobody asked" at once (§3at's checkbox, on a therapy picture)."""
+    user = await _seed_user(db, "switch-off@example.test")
+    cid = await _condition_id(db, user)
+    await _switch(db, cid, "QB94.2", receiving=True)
+    s = await patient_surfaces.for_user(db, user.id)
+    assert "peritoneal_dialysis" in s.offered
+
+    # …now say explicitly that they are NOT on it.
+    from sqlalchemy import update
+    await db.execute(update(ConditionTherapy)
+                     .where(ConditionTherapy.condition_id == cid)
+                     .values(receiving=False))
+    await db.flush()
+    s = await patient_surfaces.for_user(db, user.id)
+    assert "peritoneal_dialysis" not in s.offered, (
+        "a stated zero must retire the screen, not read as never-asked")
+
+
+@pytest.mark.asyncio
+async def test_never_asked_and_stated_zero_are_different_facts(db):
+    """`receiving=False` is EVIDENCE; no row is the absence of evidence. They
+    must not be the same value in the payload (§3aa)."""
+    user = await _seed_user(db, "tri-state@example.test")
+    cid = await _condition_id(db, user)
+    await _switch(db, cid, "QB94.1", receiving=False)
+
+    switches = await therapy_switches(db, user.id)
+    assert switches["QB94.1"]["receiving"] is False     # a measured zero
+    assert "QB94.2" not in switches                     # never asked
+
+
+@pytest.mark.asyncio
+async def test_a_stated_zero_OVERRULES_the_legacy_column(db):
+    """A statement always beats a membership. The old comma-separated column
+    cannot say "no", so the switch must win where it has an answer."""
+    user = await _seed_user(db, "zero-beats-legacy@example.test")
+    await _seed_condition(db, user, "ESRD", "QB94.1")     # legacy: on HD
+    from sqlalchemy import select
+    from app.models.chronic_conditions import ChronicCondition
+    cid = (await db.execute(select(ChronicCondition.id)
+           .where(ChronicCondition.user_id == user.id))).scalars().first()
+    await _switch(db, cid, "QB94.1", receiving=False)     # switch: NOT on HD
+
+    s = await patient_surfaces.for_user(db, user.id)
+    assert "hemodialysis" not in s.offered
+
+
+@pytest.mark.asyncio
+async def test_RECEIVING_on_any_condition_wins(db):
+    """A patient on dialysis for ESRD is on dialysis, whatever a second
+    condition's row happens to say."""
+    user = await _seed_user(db, "two-conditions@example.test")
+    a = await _condition_id(db, user, "ESRD")
+    b = await _condition_id(db, user, "Diabetes")
+    await _switch(db, a, "QB94.1", receiving=True)
+    await _switch(db, b, "QB94.1", receiving=False)
+    switches = await therapy_switches(db, user.id)
+    assert switches["QB94.1"]["receiving"] is True
+
+
+@pytest.mark.asyncio
+async def test_COMPOUNDED_therapies_are_grouped_by_regimen(db):
+    """The compounding mechanism: therapies sharing a label are given as ONE
+    treatment, so a reader can tell a combination from a coincidence."""
+    user = await _seed_user(db, "regimen@example.test")
+    cid = await _condition_id(db, user)
+    await _switch(db, cid, "QB94.1", True, regimen="anaemia management")
+    await _switch(db, cid, "QB98", True, regimen="anaemia management")
+    await _switch(db, cid, "QB95.1", True)              # not part of it
+
+    groups = regimens(await therapy_switches(db, user.id))
+    assert groups == {"anaemia management": ["QB94.1", "QB98"]}
+
+
+@pytest.mark.asyncio
+async def test_a_regimen_never_includes_a_therapy_that_is_OFF(db):
+    """A compound is what the patient is actually given. A zeroed member is
+    not part of a current regimen."""
+    user = await _seed_user(db, "regimen-off@example.test")
+    cid = await _condition_id(db, user)
+    await _switch(db, cid, "QB94.1", True, regimen="combined")
+    await _switch(db, cid, "QB98", False, regimen="combined")
+    groups = regimens(await therapy_switches(db, user.id))
+    assert groups == {"combined": ["QB94.1"]}

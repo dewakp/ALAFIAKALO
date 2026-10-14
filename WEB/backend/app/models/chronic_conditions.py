@@ -1,7 +1,8 @@
 # Copyright © 2026 Wole Akpose / 6igma Health Inc.
 # All rights reserved. ALAFIA — proprietary and confidential.
 
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Time, ForeignKey, Text, Enum as SQLEnum
+from sqlalchemy import (Column, Integer, String, Float, Boolean, DateTime, Date,
+                        Time, ForeignKey, Text, UniqueConstraint, Enum as SQLEnum)
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -485,3 +486,44 @@ class ClinicalNote(Base):
 # - Hemoglobin - g/dL
 # - Haptoglobin - mg/dL
 # - LDH (Lactate Dehydrogenase) - U/L
+
+
+class ConditionTherapy(Base):
+    """One therapy SWITCH on one condition.
+
+    Three states, and the row is what separates them (§3at — a checkbox cannot
+    record three):
+
+        no row              never asked           -> unknown
+        receiving = False   explicitly not on it  -> a measured ZERO
+        receiving = True    undergoing it         -> contributes
+
+    A stated zero is evidence, and it is what lets the therapy axis have the
+    same dimensions for every patient instead of a variable-length list no two
+    records can be compared across.
+    """
+
+    __tablename__ = "condition_therapies"
+    __table_args__ = (
+        UniqueConstraint("condition_id", "therapy_code",
+                         name="uq_condition_therapy"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    condition_id = Column(Integer,
+                          ForeignKey("chronic_conditions.id", ondelete="CASCADE"),
+                          nullable=False, index=True)
+    #: ICD-11 code, verified against the bundled catalog on the way in (§3ad).
+    therapy_code = Column(String(16), nullable=False)
+    #: THE SWITCH. Not nullable: absence of the row carries "unknown", so this
+    #: column never has to, and a nullable boolean would recreate the tri-state
+    #: confusion one level down.
+    receiving = Column(Boolean, nullable=False, default=False)
+    #: Compounding — therapies sharing a label are given as ONE treatment.
+    #: What a combination MEANS is not asserted here (see the migration).
+    regimen = Column(String(120), nullable=True)
+    started_on = Column(Date, nullable=True)
+    ended_on = Column(Date, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow,
+                        onupdate=datetime.utcnow, nullable=False)

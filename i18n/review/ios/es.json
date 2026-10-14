@@ -35,6 +35,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "InfoPlist.xcstrings::NSHumanReadableCopyright": {
+    "source": "© 2026 6igma Health Inc. All rights reserved.",
+    "translation": "© 2026 6igma Health Inc. Todos los derechos reservados.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "InfoPlist.xcstrings::NSMicrophoneUsageDescription": {
     "source": "ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.",
     "translation": "ALAFIA usa el micrófono para que puedas hablar tus registros de salud y preguntas desde la página de indicaciones.",
@@ -82,6 +88,12 @@
     "translation": "%1$@ → %2$@ kg",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::%@%@ %@ from %@": {
+    "source": "%1$@%2$@ %3$@ from %4$@",
+    "translation": "%1$@%2$@ %3$@ desde %4$@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::%@%@ %@ from dialysis": {
     "source": "%1$@%2$@ %3$@ from dialysis",
@@ -287,6 +299,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::(written as %@)": {
+    "source": "(written as %@)",
+    "translation": "(escrito como %@)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::/ month": {
     "source": "/ month",
     "translation": "/ mes",
@@ -364,6 +382,12 @@
     "translation": "= %1$lld min (%2$@)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.": {
+    "source": "A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.",
+    "translation": "Un código necesita el sistema que lo emitió — ICD-10-PCS, CPT y SNOMED son sistemas diferentes.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::A direct message goes to one person. Remove them to pick someone else.": {
     "source": "A direct message goes to one person. Remove them to pick someone else.",
@@ -478,6 +502,12 @@
     "translation": "Configuración de APD",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Abnormal": {
+    "source": "Abnormal",
+    "translation": "Anormal",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::About & Sources": {
     "source": "About & Sources",
@@ -689,6 +719,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Add a hospital stay": {
+    "source": "Add a hospital stay",
+    "translation": "Añadir una hospitalización",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Add a message…": {
     "source": "Add a message…",
     "translation": "Agregar un mensaje…",
@@ -700,6 +736,12 @@
     "translation": "Agregar una nota…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Add an operation": {
+    "source": "Add an operation",
+    "translation": "Añadir una operación",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Add clinical notes above": {
     "source": "Add clinical notes above",
@@ -802,6 +844,12 @@
     "translation": "Adherencia",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Admitted": {
+    "source": "Admitted",
+    "translation": "Ingresado",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Advanced Directives": {
     "source": "Advanced Directives",
@@ -929,6 +977,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::All operations": {
+    "source": "All operations",
+    "translation": "Todas las operaciones",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Allergies": {
     "source": "Allergies",
     "translation": "Alergias",
@@ -988,6 +1042,12 @@
     "translation": "El titular de la cuenta debe ser un adulto. Un menor se registra como perfil dependiente bajo la cuenta de un padre o tutor.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.": {
+    "source": "An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.",
+    "translation": "Una operación no necesita hospitalización. La cirugía ambulatoria y cualquier cosa que registres años después se puede añadir por separado.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Analyse Image(s) with Alafia": {
     "source": "Analyse Image(s) with Alafia",
@@ -1691,6 +1751,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Coding system": {
+    "source": "Coding system",
+    "translation": "Sistema de codificación",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Collective Insights": {
     "source": "Collective Insights",
     "translation": "Información Colectiva",
@@ -1774,6 +1840,12 @@
     "translation": "Nombre de la Condición",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Condition management (Α)": {
+    "source": "Condition management (Α)",
+    "translation": "Manejo de condiciones (Α)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Condition, abbreviation or code": {
     "source": "Condition, abbreviation or code",
@@ -1882,6 +1954,12 @@
     "translation": "Función principal — siempre activa",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
+    "source": "Could not load your therapy answers. Nothing has been changed.",
+    "translation": "No se pudieron cargar tus respuestas de terapia. Nada ha cambiado.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Could not print": {
     "source": "Could not print",
@@ -2201,6 +2279,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Date of operation": {
+    "source": "Date of operation",
+    "translation": "Fecha de la operación",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Date: %@": {
     "source": "Date: %@",
     "translation": "Fecha: %@",
@@ -2363,6 +2447,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Dialysis": {
+    "source": "Dialysis",
+    "translation": "Diálisis",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Dialysis today — %lld session%@": {
     "source": "Dialysis today — %1$lld session%2$@",
     "translation": "Diálisis hoy — %1$lld sesión%2$@",
@@ -2446,6 +2536,18 @@
     "translation": "Descartar",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Discharge date": {
+    "source": "Discharge date",
+    "translation": "Fecha de alta",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Discharged": {
+    "source": "Discharged",
+    "translation": "Dado de alta",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Disease": {
     "source": "Disease",
@@ -2632,6 +2734,18 @@
     "translation": "Duración (min)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::During %@": {
+    "source": "During %@",
+    "translation": "Durante %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::During which stay?": {
+    "source": "During which stay?",
+    "translation": "¿Durante cuál hospitalización?",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::EHR & Apps": {
     "source": "EHR & Apps",
@@ -2830,6 +2944,18 @@
     "translation": "Solo estimado — verifica el nombre del alimento y el tamaño de la porción antes de guardar.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
+    "source": "Every operation on your record, including those with no hospital stay attached.",
+    "translation": "Todas las operaciones en tu registro, incluyendo las que no tienen hospitalización asociada.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Every source together — what you were prescribed, what you logged, and what you were given at treatment.": {
+    "source": "Every source together — what you were prescribed, what you logged, and what you were given at treatment.",
+    "translation": "Todas las fuentes juntas — lo que te prescribieron, lo que registraste y lo que te dieron en el tratamiento.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Exchange %lld": {
     "source": "Exchange %lld",
@@ -3179,6 +3305,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.",
+    "translation": "Para cada terapia, indica si la estás tomando, si no la estás tomando, o déjalo sin responder. Decir que no la estás tomando también es una respuesta.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::For example, an organ or gland removed, or something you have had to take ever since.": {
+    "source": "For example, an organ or gland removed, or something you have had to take ever since.",
+    "translation": "Por ejemplo, un órgano o glándula extirpada, o algo que has tenido que tomar desde entonces.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Forgot password?": {
     "source": "Forgot password?",
     "translation": "¿Olvidaste tu contraseña?",
@@ -3268,6 +3406,18 @@
     "translation": "Genérico",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Given during treatment — already on your record.": {
+    "source": "Given during treatment — already on your record.",
+    "translation": "Dado durante el tratamiento — ya en tu registro.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Given together as (optional)": {
+    "source": "Given together as (optional)",
+    "translation": "Dado junto como (opcional)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Goals": {
     "source": "Goals",
@@ -3539,11 +3689,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Hospital & Surgery": {
+    "source": "Hospital & Surgery",
+    "translation": "Hospital y Cirugía",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Hospital Affiliations (comma-separated)": {
     "source": "Hospital Affiliations (comma-separated)",
     "translation": "Afiliaciones Hospitalarias (separadas por comas)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Hospital stays": {
+    "source": "Hospital stays",
+    "translation": "Hospitalizaciones",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Hospital/ER Since Last": {
     "source": "Hospital/ER Since Last",
@@ -3580,6 +3742,12 @@
     "translation": "Centro",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::I know the date": {
+    "source": "I know the date",
+    "translation": "Conozco la fecha",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::I've confirmed — continue": {
     "source": "I've confirmed — continue",
@@ -3658,6 +3826,12 @@
     "translation": "Mejorar",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::In range": {
+    "source": "In range",
+    "translation": "Dentro del rango",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::In-Session Chat": {
     "source": "In-Session Chat",
@@ -3796,6 +3970,12 @@
     "translation": "Diario",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Keep them": {
+    "source": "Keep them",
+    "translation": "Mantenerlos",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::K⁺ (mEq)": {
     "source": "K⁺ (mEq)",
@@ -4589,6 +4769,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Needs attention": {
+    "source": "Needs attention",
+    "translation": "Necesita atención",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::New Chemo Session": {
     "source": "New Chemo Session",
     "translation": "Nueva Sesión de Quimio",
@@ -4997,6 +5183,24 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::No hospital stay": {
+    "source": "No hospital stay",
+    "translation": "Sin hospitalización",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::No hospital stay recorded": {
+    "source": "No hospital stay recorded",
+    "translation": "Sin hospitalización registrada",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::No hospital stays recorded yet.": {
+    "source": "No hospital stays recorded yet.",
+    "translation": "Sin hospitalizaciones registradas aún.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::No intake logged for this date.": {
     "source": "No intake logged for this date.",
     "translation": "Sin ingesta registrada para esta fecha.",
@@ -5038,6 +5242,12 @@
     "translation": "Sin valores de nutrientes registrados para esta comida aún.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::No operations recorded yet.": {
+    "source": "No operations recorded yet.",
+    "translation": "Sin operaciones registradas aún.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::No patients yet": {
     "source": "No patients yet",
@@ -5111,6 +5321,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not answered": {
+    "source": "Not answered",
+    "translation": "Sin responder",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Not assessed": {
     "source": "Not assessed",
     "translation": "No evaluado",
@@ -5135,11 +5351,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not on this": {
+    "source": "Not on this",
+    "translation": "No estoy en esta",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Not right? Teach ALAFIA what this actually is": {
     "source": "Not right? Teach ALAFIA what this actually is",
     "translation": "¿No es correcto? Enséñale a ALAFIA qué es realmente",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Not stated": {
+    "source": "Not stated",
+    "translation": "No indicado",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Notarized": {
     "source": "Notarized",
@@ -5237,11 +5465,29 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::On this": {
+    "source": "On this",
+    "translation": "Estoy en esta",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::On your flowsheet": {
+    "source": "On your flowsheet",
+    "translation": "En tu hoja de flujo",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::One-way sync": {
     "source": "One-way sync",
     "translation": "Sincronización unidireccional",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.": {
+    "source": "Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.",
+    "translation": "Solo se enumeran los efectos registrados con la operación. Nada aquí se deduce del nombre de una operación.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Only one intradialytic reading — not enough to plot a curve.": {
     "source": "Only one intradialytic reading — not enough to plot a curve.",
@@ -5279,6 +5525,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Operation": {
+    "source": "Operation",
+    "translation": "Operación",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Optional — close this to keep your device-language guide, or pick another.": {
     "source": "Optional — close this to keep your device-language guide, or pick another.",
     "translation": "Opcional — cierra esto para mantener tu guía de idioma del dispositivo, o elige otro.",
@@ -5314,6 +5566,12 @@
     "translation": "Brotes",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Outcome": {
+    "source": "Outcome",
+    "translation": "Resultado",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Outflow (mL)": {
     "source": "Outflow (mL)",
@@ -5404,6 +5662,12 @@
     "translation": "Despensa vacía",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Part of the body": {
+    "source": "Part of the body",
+    "translation": "Parte del cuerpo",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Participants": {
     "source": "Participants",
@@ -5969,6 +6233,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Procedure code": {
+    "source": "Procedure code",
+    "translation": "Código de procedimiento",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Product Updates": {
     "source": "Product Updates",
     "translation": "Actualizaciones de Producto",
@@ -6173,6 +6443,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Reason for admission": {
+    "source": "Reason for admission",
+    "translation": "Motivo del ingreso",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Recalls": {
     "source": "Recalls",
     "translation": "Retiros",
@@ -6365,11 +6641,35 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Remove from my records": {
+    "source": "Remove from my records",
+    "translation": "Eliminar de mis registros",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Remove the records this document added?": {
+    "source": "Remove the records this document added?",
+    "translation": "¿Eliminar los registros que agregó este documento?",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Removed (mL)": {
     "source": "Removed (mL)",
     "translation": "Extraído (mL)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Removes only what this document added. You can upload it again afterwards.": {
+    "source": "Removes only what this document added. You can upload it again afterwards.",
+    "translation": "Solo elimina lo que agregó este documento. Puedes cargarlo de nuevo después.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::Removing…": {
+    "source": "Removing…",
+    "translation": "Eliminando…",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Repeat": {
     "source": "Repeat",
@@ -8093,6 +8393,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Type of admission": {
+    "source": "Type of admission",
+    "translation": "Tipo de ingreso",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Typical Dosage": {
     "source": "Typical Dosage",
     "translation": "Dosis típica",
@@ -8501,11 +8807,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::What past surgery still means for you": {
+    "source": "What past surgery still means for you",
+    "translation": "Qué significa para ti esta cirugía anterior",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::What reaches the provider": {
     "source": "What reaches the provider",
     "translation": "Qué llega al proveedor",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::What this still means for you": {
+    "source": "What this still means for you",
+    "translation": "Qué significa esto para ti",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::What-If Simulator": {
     "source": "What-If Simulator",
@@ -8573,6 +8891,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::You did not log anything yourself for this date.": {
+    "source": "You did not log anything yourself for this date.",
+    "translation": "No registraste nada por tu cuenta para esta fecha.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::You regularly log %lld medication%@ that aren’t on this list": {
     "source": "You regularly log %1$lld medication%2$@ that aren’t on this list",
     "translation": "Registras regularmente %1$lld medicamento%2$@ que no están en esta lista",
@@ -8597,6 +8921,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Your condition was saved, but your therapy answers were not: %@": {
+    "source": "Your condition was saved, but your therapy answers were not: %@",
+    "translation": "Tu estado se guardó, pero tus respuestas de terapia no: %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Your current password keeps working until you do.": {
     "source": "Your current password keeps working until you do.",
     "translation": "Tu contraseña actual sigue funcionando hasta que la cambies.",
@@ -8609,6 +8939,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Your hospital history could not be loaded": {
+    "source": "Your hospital history could not be loaded",
+    "translation": "No se pudo cargar tu historial hospitalario",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Your lab results will appear here as charts once data is available.": {
     "source": "Your lab results will appear here as charts once data is available.",
     "translation": "Tus resultados de laboratorio aparecerán aquí como gráficos una vez haya datos disponibles.",
@@ -8620,6 +8956,12 @@
     "translation": "Tus límites no cambian — ya asumen tu tratamiento habitual. Lo que cambia es el balance del día.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your medication record": {
+    "source": "Your medication record",
+    "translation": "Tu registro de medicamentos",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Your own health record, meals and tracking live in the patient view.": {
     "source": "Your own health record, meals and tracking live in the patient view.",
@@ -8662,6 +9004,24 @@
     "translation": "^[%lld fila](inflect: true)",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::against guideline targets": {
+    "source": "against guideline targets",
+    "translation": "frente a los objetivos de las guías",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::also on your flowsheet": {
+    "source": "also on your flowsheet",
+    "translation": "también en tu hoja de flujo",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::also written as %@": {
+    "source": "also written as %@",
+    "translation": "también escrito como %@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::boluses, rinseback": {
     "source": "boluses, rinseback",
@@ -8735,6 +9095,24 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::from your clinic": {
+    "source": "from your clinic",
+    "translation": "de tu clínica",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::given at treatment": {
+    "source": "given at treatment",
+    "translation": "administrado en el tratamiento",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::given on %lld day%@": {
+    "source": "given on %1$lld day%2$@",
+    "translation": "administrado en %1$lld día%2$@",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::kg": {
     "source": "kg",
     "translation": "kg",
@@ -8783,6 +9161,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::prescribed": {
+    "source": "prescribed",
+    "translation": "prescrito",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::unavailable": {
     "source": "unavailable",
     "translation": "no disponible",
@@ -8794,6 +9178,12 @@
     "translation": "c/ Lecturas",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::you logged it": {
+    "source": "you logged it",
+    "translation": "lo registraste",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::· estimated": {
     "source": "· estimated",

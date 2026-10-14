@@ -75,6 +75,25 @@ interface ApiService {
     @GET("chronic/therapy-options")
     suspend fun getTherapyOptions(): TherapyOptionsResponse
 
+    /**
+     * The therapy SWITCHES on one condition. Only codes somebody answered for
+     * come back: a code that is absent was never asked about, which is a
+     * different clinical fact from `receiving = false` (§3at, §3aa).
+     */
+    @GET("chronic/conditions/{id}/therapies")
+    suspend fun getConditionTherapies(@Path("id") id: Int): ConditionTherapiesResponse
+
+    /**
+     * Record what the patient says about each therapy they were asked about.
+     * An entry this payload OMITS is left as it was — a client editing one
+     * switch must not retract every other statement on the condition.
+     */
+    @PUT("chronic/conditions/{id}/therapies")
+    suspend fun putConditionTherapies(
+        @Path("id") id: Int,
+        @Body body: ConditionTherapiesUpdate,
+    ): ConditionTherapiesResponse
+
     @PATCH("users/me")
     suspend fun updateUser(@Body updates: UserUpdateRequest): UserSchema
 

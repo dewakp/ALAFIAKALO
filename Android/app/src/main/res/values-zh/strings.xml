@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">超出目标范围</string>
     <string name="alpha_none">您的记录中没有具有指南目标的病情，因此这里无法评分。</string>
     <string name="therapy_types">治疗方法</string>
-    <string name="therapy_types_help">哪些治疗方法可以治疗此病症。这决定了应用是否向您显示这些屏幕。</string>
+    <string name="therapy_switch_help">对于每种疗法，请说明您是否在使用、未使用或未回答。说明未使用也是一个回答——它会告诉应用停止显示该屏幕。您未回答的内容将保持不变。</string>
+    <string name="therapy_on">正在使用</string>
+    <string name="therapy_off">未使用</string>
+    <string name="therapy_unanswered">未回答</string>
+    <string name="therapy_group_answered">— 已回答</string>
+    <string name="therapy_regimen_placeholder">一起给药（可选）</string>
+    <string name="therapies_not_saved">您的病情已保存，但疗法回答未保存。请重试。</string>
+    <string name="therapies_not_loaded">无法加载您的疗法回答。未做任何更改。</string>
 </resources>

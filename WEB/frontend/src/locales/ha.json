@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "Kina tabbatarwa cewa kina so ka share yanayin lafiya?",
     "failed_to_delete_condition": "Kuskuren share yanayin lafiya",
     "therapy_types": "Jiyya",
-    "therapy_types_help": "Wanne jiyya suke magani wannan yanayi. Wannan ne ya yanke shawarar ko app ya nuna maka waɗannan allon."
+    "therapy_on": "Ana kan wannan",
+    "therapy_off": "Ba ni kan wannan ba",
+    "therapy_unanswered": "Ba a amsa ba",
+    "therapy_switch_help": "Ga kowane maganin, fadi ko kana kan shi, ko ba ka kan shi ba, ko bari shi ba a amsa. Cewa ba ka kan shi ba shi ne amsa kuma — yana gaya wa app-din don daina nuna maka wannan allon. Abin da ba ka amsa ba ana barin shi kamar yadda yake.",
+    "therapy_group_answered": "— an amsa",
+    "therapy_regimen_placeholder": "Ana ba su tare kamar (optional)",
+    "therapies_not_saved": "An adana yanayin ku, amma ba a adana amsosin maganin ku ba. Jiya ku gwada.",
+    "therapies_not_loaded": "Ba za a iya lodin amsosin maganin ku ba. Ba wani abu ya canja — amsosin da ba ku saita ba ana barin su kamar yadda suke."
   },
   "ClinicianDashboard": {
     "loading": "Ana lodin...",

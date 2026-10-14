@@ -2081,6 +2081,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "ChronicConditions.therapies_not_loaded": {
+    "source": "Could not load your therapy answers. Nothing has been changed — answers you do not set are left as they are.",
+    "translation": "Àìlákbáyé láti ṣe àkópọ̀ àwọn ìdáhùn ìgbé ìtúnú rẹ. Ohun kan kò yí padà — àwọn ìdáhùn tí o kò ṣètò ni a fi síwájú.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapies_not_saved": {
+    "source": "Your condition was saved, but your therapy answers were not. Please try again.",
+    "translation": "Ìpilẹ̀ rẹ ti pé, ṣùgbọ́n àwọn ìdáhùn ìgbé ìtúnú rẹ kò pé. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_blood_transfusion": {
     "source": "Blood transfusion",
     "translation": "Blood transfusion",
@@ -2092,6 +2104,12 @@
     "translation": "Chemotherapy",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_group_answered": {
+    "source": "— answered",
+    "translation": "— ìdáhùn",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "ChronicConditions.therapy_hemodialysis": {
     "source": "Hemodialysis",
@@ -2111,6 +2129,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "ChronicConditions.therapy_off": {
+    "source": "Not on this",
+    "translation": "Kò lórí èyí",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapy_on": {
+    "source": "On this",
+    "translation": "Lórí èyí",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_peritoneal_dialysis": {
     "source": "Peritoneal dialysis",
     "translation": "Peritoneal dialysis",
@@ -2129,6 +2159,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "ChronicConditions.therapy_regimen_placeholder": {
+    "source": "Given together as (optional)",
+    "translation": "A fúnni pápọ̀ gẹ́gẹ́ (àkọ́kọ́)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapy_switch_help": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.",
+    "translation": "Fún ìgbé ìtúnú kọ̀ọ̀kan, sọ bóyá o wà lórí rẹ̀, tàbí o kò wà lórí rẹ̀, tàbí fi síwájú. Ìsọ pé o kò wà lórí ọ̀kan nìyẹn ìdáhùn pẹ̀lú — ó sọ fún àpò nǹkan náà láti dáwọ́ ìhun yẹn. Ohun tí o fi síwájú ni a fi síwájú.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_types": {
     "source": "Therapies",
     "translation": "Àwọn Ìtúnú",
@@ -2140,6 +2182,12 @@
     "translation": "Àwọn ìtúnú tí ó ṣe àlàyé ìṣòro yìí. Èyí ni ohun tí ó pinnu bóyá àpp náà yóò fi hàn ọ́ àwọn ìkòkò wọ̀n.",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_unanswered": {
+    "source": "Not answered",
+    "translation": "Kò sí ìdáhùn",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "ChronicConditions.treatment_plan": {
     "source": "Treatment Plan:",

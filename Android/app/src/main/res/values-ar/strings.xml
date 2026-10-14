@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">خارج النطاق المستهدف</string>
     <string name="alpha_none">لا توجد حالة مسجلة لها هدف إرشادي، لذا لا يوجد شيء لتقييمه هنا.</string>
     <string name="therapy_types">العلاجات</string>
-    <string name="therapy_types_help">أي العلاجات تعالج هذه الحالة. هذا يحدد ما إذا كان التطبيق يعرض لك تلك الشاشات.</string>
+    <string name="therapy_switch_help">لكل علاج، حدّد ما إذا كنت تتلقاه أم لا، أم اترك الإجابة فارغة. قول أنك لا تتلقى علاجًا معينًا هو إجابة أيضًا — فهو يخبر التطبيق بعدم عرض هذه الشاشة لك. ما تتركه بدون إجابة سيبقى كما هو.</string>
+    <string name="therapy_on">أتلقاه</string>
+    <string name="therapy_off">لا أتلقاه</string>
+    <string name="therapy_unanswered">لم أجب</string>
+    <string name="therapy_group_answered">— تمت الإجابة</string>
+    <string name="therapy_regimen_placeholder">يُعطى معًا باسم (اختياري)</string>
+    <string name="therapies_not_saved">تم حفظ حالتك الصحية، لكن إجابات العلاج لم تُحفظ. يرجى المحاولة مجددًا.</string>
+    <string name="therapies_not_loaded">تعذر تحميل إجابات العلاج. لم يتم تغيير أي شيء.</string>
 </resources>

@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "Are you sure you want to delete this condition?",
     "failed_to_delete_condition": "Failed to delete condition",
     "therapy_types": "Therapies",
-    "therapy_types_help": "Which therapies treat this condition. This is what decides whether the app shows you those screens."
+    "therapy_on": "On this",
+    "therapy_off": "Not on this",
+    "therapy_unanswered": "Not answered",
+    "therapy_switch_help": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.",
+    "therapy_group_answered": "— answered",
+    "therapy_regimen_placeholder": "Given together as (optional)",
+    "therapies_not_saved": "Your condition was saved, but your therapy answers were not. Please try again.",
+    "therapies_not_loaded": "Could not load your therapy answers. Nothing has been changed — answers you do not set are left as they are."
   },
   "ClinicianDashboard": {
     "loading": "Loading...",

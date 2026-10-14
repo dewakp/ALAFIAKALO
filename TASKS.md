@@ -1111,3 +1111,59 @@ cost: `stream_chat` was implemented BESIDE `stream_events` and the Anthropic
 streamer silently dropped every `role="tool"` message on the path the product
 actually uses, while the fix sat in `chat()` next door. TELL and ASK are a
 difference in what the model decides to call, not a fork in the code.
+
+---
+
+## 20. The therapy axis has no consumer — a switch nothing scores
+
+Raised by the work in OPEN_ITEMS 39, 2026-10-14. The switch's stated purpose,
+in the operator's own words, is *"a comprehensive list with items zeroed out
+(no impact) when not present"* — i.e. **an axis with the same dimensions for
+every patient**, most of them zero, so that two records are comparable. That
+is built. Nothing reads it.
+
+### 20a — Α must read `condition_therapies`
+
+`compute_alpha` resolves indications from conditions and measures them against
+labs. A patient's declared therapies are the other half of management: being ON
+dialysis, transfusion and IV iron is what Α's targets are a function of, and a
+patient who states they are NOT on a therapy their condition normally indicates
+is a finding, not a gap. Today Α cannot tell those apart because it never looks.
+
+> A stated zero must not be scored as a failure. "Not on erythropoietin" is a
+> fact about the regimen, and whether it SHOULD be is a clinical judgement
+> (§3an). The axis reports; the scoring question is which cells are evidence
+> about management and which are evidence about nothing.
+
+### 20b — a therapy that STOPPED
+
+`started_on` and `ended_on` exist in the table and on the API and **no client
+collects them**. So "I came off PD in March" can only be said by flipping a
+switch to false, which loses the date — and the date is exactly what makes a
+history interpretable. Needs a date field on all three clients, and a decision
+about what `receiving=false` WITH an `ended_on` means versus without one.
+
+### 20c — `regimen` is free text, deliberately, and that bounds 20a
+
+Two patients on the same compound will spell it differently, so grouping is
+per-patient and nothing aggregates across records. That is the right call for
+now — a controlled vocabulary of regimens is a clinical claim and WHO does not
+publish one (checked: the QB branch codes therapies, not combinations). But any
+cross-patient use of compounding needs that resolved first, the same
+resolve-cite-store shape as §3bc's quotas.
+
+### 20d — the navigation does not re-render
+
+37b, 38c and 39b are one bug and it is now the most visible one: the nav
+fetches `/users/me/surfaces` once on mount, so a patient who states *"not on
+this"* watches the screen they just retired stay on screen until they reload.
+Three clients, one fix each — refetch surfaces after a condition or therapy
+write, or have the write response carry the new surface set.
+
+### 20e — a non-coded therapy
+
+Phototherapy and generic infusion therapy have **no Q code** (measured, 38a),
+so they cannot be declared at all, and the hand-typed enum this replaced could
+express them. The fix is a decision about whether a non-coded therapy may be
+declared beside coded ones — and if so, how it is stored so it can never be
+mistaken for a WHO code (§3ad). Not a silent re-addition of the list.

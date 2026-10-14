@@ -2081,6 +2081,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "ChronicConditions.therapies_not_loaded": {
+    "source": "Could not load your therapy answers. Nothing has been changed — answers you do not set are left as they are.",
+    "translation": "Enweghị ike ilodata azịza gị maka ọrụ ọgwụ. Ọ dịghị ihe gbanwere — azịza ị na-ahapụ na-adị ka ọ dị.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapies_not_saved": {
+    "source": "Your condition was saved, but your therapy answers were not. Please try again.",
+    "translation": "E zọpụtara ọkwa gị, mana azịza gị maka ọrụ ọgwụ adịghị ezo. Biko gbalịa ọzọ.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_blood_transfusion": {
     "source": "Blood transfusion",
     "translation": "Ịnụ ọbara",
@@ -2092,6 +2104,12 @@
     "translation": "Chemotherapy",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_group_answered": {
+    "source": "— answered",
+    "translation": "— azịzawo",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "ChronicConditions.therapy_hemodialysis": {
     "source": "Hemodialysis",
@@ -2111,6 +2129,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "ChronicConditions.therapy_off": {
+    "source": "Not on this",
+    "translation": "Ọ na-agụ m",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapy_on": {
+    "source": "On this",
+    "translation": "Ọ na-eme m",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_peritoneal_dialysis": {
     "source": "Peritoneal dialysis",
     "translation": "Peritoneal dialysis",
@@ -2129,6 +2159,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "ChronicConditions.therapy_regimen_placeholder": {
+    "source": "Given together as (optional)",
+    "translation": "A na-enye ọnụ dị ka (ọ bụrụ na ọ dị)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapy_switch_help": {
+    "source": "For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.",
+    "translation": "Maka ọrụ ọgwụ ọ bụla, sị ma ọ na-eme gị, ma ọ na-agụ gị, ma hapụ ya. Ịsị na ọ na-agụ gị bụ azịza — ọ na-agwa app ka ọ kụwuo ihuenyo ahụ. Ihe ị na-ahapụ na-ahapụ dị ka ọ dị.",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_types": {
     "source": "Therapies",
     "translation": "Ọgwụ Ọrụ",
@@ -2140,6 +2182,12 @@
     "translation": "Kedu ọgwụ ọrụ na-agwọ ọrịa a. Nke a na-ekpebi ma app a ga-egosi gị ihe ndị ahụ.",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "ChronicConditions.therapy_unanswered": {
+    "source": "Not answered",
+    "translation": "Amaghị m",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "ChronicConditions.treatment_plan": {
     "source": "Treatment Plan:",

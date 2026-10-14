@@ -66,8 +66,6 @@
 		AA11BB22CC330002 /* Insurance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC330001 /* Insurance.swift */; };
 		AA11BB22CC330004 /* InsuranceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC330003 /* InsuranceView.swift */; };
 		BB0000000000000000000302 /* NewFeatureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000301 /* NewFeatureModels.swift */; };
-		BB0000000000000000000602 /* HospitalHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000601 /* HospitalHistory.swift */; };
-		BB0000000000000000000604 /* HospitalHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000603 /* HospitalHistoryView.swift */; };
 		BB0000000000000000000304 /* Physician.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000303 /* Physician.swift */; };
 		BB0000000000000000000402 /* PhysiciansView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000401 /* PhysiciansView.swift */; };
 		BB0000000000000000000404 /* LabChartsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000403 /* LabChartsView.swift */; };
@@ -82,6 +80,9 @@
 		BB0000000000000000000416 /* ClinicianDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000415 /* ClinicianDashboardView.swift */; };
 		BB0000000000000000000418 /* DataSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000417 /* DataSharingView.swift */; };
 		BB0000000000000000000511 /* ChartDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000510 /* ChartDashboardView.swift */; };
+		BB0000000000000000000602 /* HospitalHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000601 /* HospitalHistory.swift */; };
+		BB0000000000000000000604 /* HospitalHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000603 /* HospitalHistoryView.swift */; };
+		BB0000000000000000000607 /* LocaleDecimal.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000606 /* LocaleDecimal.swift */; };
 		CA1E0DA10000000000000002 /* CalendarEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1E0DA10000000000000001 /* CalendarEvent.swift */; };
 		CA1E0DA20000000000000002 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1E0DA20000000000000001 /* CalendarView.swift */; };
 		CC0000000000000000000602 /* PharmacyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000601 /* PharmacyModels.swift */; };
@@ -118,7 +119,6 @@
 		EE0000000000000000000109 /* EliminationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000009 /* EliminationModels.swift */; };
 		EE000000000000000000010A /* PromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000A /* PromptView.swift */; };
 		EE000000000000000000010B /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000B /* SpeechRecognizer.swift */; };
-		BB0000000000000000000607 /* LocaleDecimal.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000606 /* LocaleDecimal.swift */; };
 		EE20000000000000000000C2 /* MedicalSourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C1 /* MedicalSourcesView.swift */; };
 		EE20000000000000000000C4 /* AIAndDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C3 /* AIAndDataView.swift */; };
 		EE20000000000000000000C6 /* AIConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE20000000000000000000C5 /* AIConsentView.swift */; };
@@ -198,8 +198,6 @@
 		AA11BB22CC330003 /* InsuranceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsuranceView.swift; sourceTree = "<group>"; };
 		AA2F8EC6460A4A79A67B455E /* HemodialysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HemodialysisView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000301 /* NewFeatureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewFeatureModels.swift; sourceTree = "<group>"; };
-		BB0000000000000000000601 /* HospitalHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HospitalHistory.swift; sourceTree = "<group>"; };
-		BB0000000000000000000603 /* HospitalHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HospitalHistoryView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000303 /* Physician.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Physician.swift; sourceTree = "<group>"; };
 		BB0000000000000000000401 /* PhysiciansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiciansView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000403 /* LabChartsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabChartsView.swift; sourceTree = "<group>"; };
@@ -214,6 +212,9 @@
 		BB0000000000000000000415 /* ClinicianDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicianDashboardView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000417 /* DataSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSharingView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000510 /* ChartDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartDashboardView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000601 /* HospitalHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HospitalHistory.swift; sourceTree = "<group>"; };
+		BB0000000000000000000603 /* HospitalHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HospitalHistoryView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000606 /* LocaleDecimal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocaleDecimal.swift; sourceTree = "<group>"; };
 		C54A4453102DA1889F93494A /* OfflineCacheTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OfflineCacheTests.swift; path = Tests/ALAFIATests/OfflineCacheTests.swift; sourceTree = "<group>"; };
 		C7233D3E0162C748ECD40CD9 /* ALAFIATests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ALAFIATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA1E0DA10000000000000001 /* CalendarEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEvent.swift; sourceTree = "<group>"; };
@@ -252,7 +253,6 @@
 		EE0000000000000000000009 /* EliminationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EliminationModels.swift; sourceTree = "<group>"; };
 		EE000000000000000000000A /* PromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptView.swift; sourceTree = "<group>"; };
 		EE000000000000000000000B /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
-		BB0000000000000000000606 /* LocaleDecimal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocaleDecimal.swift; sourceTree = "<group>"; };
 		EE0000000000000000000011 /* EntitlementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementManager.swift; sourceTree = "<group>"; };
 		EE20000000000000000000C1 /* MedicalSourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalSourcesView.swift; sourceTree = "<group>"; };
 		EE20000000000000000000C3 /* AIAndDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAndDataView.swift; sourceTree = "<group>"; };
@@ -625,14 +625,6 @@
 			path = Chronic;
 			sourceTree = "<group>";
 		};
-		BB0000000000000000000605 /* Hospital */ = {
-			isa = PBXGroup;
-			children = (
-				BB0000000000000000000603 /* HospitalHistoryView.swift */,
-			);
-			path = Hospital;
-			sourceTree = "<group>";
-		};
 		4A00000000000000000000EA /* Privacy */ = {
 			isa = PBXGroup;
 			children = (
@@ -761,6 +753,14 @@
 				BB0000000000000000000417 /* DataSharingView.swift */,
 			);
 			path = DataSharing;
+			sourceTree = "<group>";
+		};
+		BB0000000000000000000605 /* Hospital */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000603 /* HospitalHistoryView.swift */,
+			);
+			path = Hospital;
 			sourceTree = "<group>";
 		};
 		CA1E0DA20000000000000003 /* Calendar */ = {

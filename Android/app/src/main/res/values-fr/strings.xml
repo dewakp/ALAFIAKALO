@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">En dehors de sa cible</string>
     <string name="alpha_none">Aucune condition enregistrée n\'a de cible directrice, il n\'y a donc rien à évaluer ici.</string>
     <string name="therapy_types">Traitements</string>
-    <string name="therapy_types_help">Quels traitements soignent cette condition. Cela détermine les écrans que l\'app vous affiche.</string>
+    <string name="therapy_switch_help">Pour chaque traitement, indiquez si vous le suivez, ne le suivez pas, ou laissez sans réponse. Dire que vous ne suivez pas un traitement est aussi une réponse — cela indique à l\'app d\'arrêter d\'afficher cet écran. Ce que vous laissez sans réponse reste inchangé.</string>
+    <string name="therapy_on">Je le suis</string>
+    <string name="therapy_off">Je ne le suis pas</string>
+    <string name="therapy_unanswered">Sans réponse</string>
+    <string name="therapy_group_answered">— répondu</string>
+    <string name="therapy_regimen_placeholder">Administrés ensemble sous (optionnel)</string>
+    <string name="therapies_not_saved">Votre condition a été enregistrée, mais vos réponses sur les traitements ne l\'ont pas été. Veuillez réessayer.</string>
+    <string name="therapies_not_loaded">Impossible de charger vos réponses sur les traitements. Rien n\'a été modifié.</string>
 </resources>

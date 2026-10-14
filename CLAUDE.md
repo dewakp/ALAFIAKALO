@@ -4609,6 +4609,82 @@ mount, not inside `backend-test`.
 
 ---
 
+## 3bf. A SET cannot hold a zero, and a CURATED list is a typed one
+
+The therapy a patient undergoes decides which clinical screens they can reach.
+It took four attempts to record it, each failing the way the last one taught:
+
+| attempt | how it decided | why it was wrong |
+|---|---|---|
+| keyword match on condition text | `("peritoneal", " pd ", "capd")` | §3an's forbidden shape; "ESKD" matched nothing |
+| an ALAFIA enum | 10 hand-written values, mirrored into 4 files | §3ad — **WHO already codes this**. Operator: *"against the rule"* |
+| 10 WHO codes | typed into `THERAPY_CODE_SURFACE` | **the branch holds 31**; picking ten is typing them with extra steps |
+| branch roots + the catalog | `THERAPY_BRANCHES` → `therapy_codes()` → **32** | adding a therapy means WHO published one |
+
+**A curated subset of a catalog is a hardcoded list.** It covers what somebody
+happened to think of, goes stale silently, and cannot say why it stops where it
+does. Declare the ROOTS with a stated reason and let the catalog supply the
+members. Each root's reason must say why it is care the patient RECEIVES — four
+of the first ten restated WHO's own title, which the catalog already serves, and
+a reason nobody can audit is a curation decision in disguise.
+
+> ⚠️ **ICD-11 children are `ROOT.N` for a stem code and `ROOTx` for a block.**
+> `code.startswith(root + ".")` is right for `QB94 -> QB94.1` and **silently
+> wrong for `QB4 -> QB40`**: the "comprehensive" set lost every dependence code
+> and reported a confident 26 of 32. Found by printing the derived set and
+> counting it (§3av), never by reading the predicate.
+
+### Absence means two things, and one of them is a clinical finding
+
+`therapy_types` was comma-separated membership, so a code was present or
+absent — and **absent meant "not receiving this" AND "nobody ever asked"**.
+That is §3at's checkbox on a new surface. `condition_therapies` (`ar001`) holds
+the third state in the ROW, not in the column:
+
+    no row              never asked          -> unknown, nothing inferred
+    receiving = false   explicitly not on it -> a measured ZERO, no impact
+    receiving = true    undergoing it        -> contributes, opens its screen
+
+`receiving` is NOT NULL on purpose: a row exists only because somebody
+answered, so the column never carries "unknown" and a nullable boolean cannot
+recreate the confusion one level down. **A stated zero is evidence** — it
+overrules a membership column that could never say "no", and it is what lets a
+therapy axis have the same dimensions for every patient (most of them zero)
+instead of a variable-length list no two records can be compared across.
+
+- **A payload must distinguish them too.** Returning 32 rows of `false` would
+  tell a client the patient was asked about apheresis and said no. Only answered
+  codes are returned; what is missing is what nobody asked.
+- **An OMITTED entry is left alone, never cleared.** A client editing one switch
+  must not retract every other statement — §3av's self-erasing field, from the
+  other side. Returning a control to *unanswered* REMOVES the key, because a
+  client cannot express "unknown" by sending false.
+- **`regimen` is the compounding mechanism and asserts nothing.** Therapies
+  sharing a label are given as one treatment, so a reader can tell a
+  combination from a coincidence. Which combinations have clinical MEANING is
+  not decided there: naming an interaction is a clinical claim (§3an).
+- **The client never groups by code prefix.** `group`/`group_title` travel on
+  the option payload. Splitting on the dot would make the client decide what a
+  code means. Where a branch root is a block with no title of its own (`QB4`),
+  the heading is the shared word-prefix of its own members ("Dependence on") —
+  derived, not typed.
+- **A dependent write is a second request and must not be fatal to the first.**
+  A switch belongs to a condition that must exist first. Losing a therapy
+  answer is bad; losing the condition the patient just typed because the
+  therapy write failed is worse (§3c). Report the failure — silence leaves them
+  believing they declared a treatment the navigation will not reflect (§3aa).
+
+> **A catalog test can only see what the export last put in front of it.** iOS
+> catalogs refresh only when somebody runs `xcodebuild -exportLocalizations`,
+> so `i18n/ios/en.xliff` was stale and `test_catalogs.py` was comparing against
+> it — **green, while 65 literals shipped English-only in ten languages**: the
+> whole hospital-history screen (§3bb), the Α card, the labs tri-state
+> ("Abnormal" / "In range" / "Not assessed"). §3aw's "a matching language LIST
+> is not a matching CATALOG", one layer further out: **re-export before
+> believing the iOS half of that guard.**
+
+---
+
 ## 6. Reporting
 
 State what was actually run and what wasn't. "Builds" ≠ "works". If a suite

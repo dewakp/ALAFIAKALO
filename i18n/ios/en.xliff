@@ -35,6 +35,11 @@
         <target state="new">ALAFIA does not write data to Apple Health.</target>
         <note>Privacy - Health Update Usage Description</note>
       </trans-unit>
+      <trans-unit id="NSHumanReadableCopyright" xml:space="preserve">
+        <source>© 2026 6igma Health Inc. All rights reserved.</source>
+        <target state="new">© 2026 6igma Health Inc. All rights reserved.</target>
+        <note>Copyright (human-readable)</note>
+      </trans-unit>
       <trans-unit id="NSMicrophoneUsageDescription" xml:space="preserve">
         <source>ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.</source>
         <target state="new">ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.</target>
@@ -140,6 +145,16 @@
       <trans-unit id="%@ → %@ kg" xml:space="preserve">
         <source>%1$@ → %2$@ kg</source>
         <target state="new">%1$@ → %2$@ kg</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%@%@" xml:space="preserve">
+        <source>%1$@%2$@</source>
+        <target state="new">%1$@%2$@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%@%@ %@ from %@" xml:space="preserve">
+        <source>%1$@%2$@ %3$@ from %4$@</source>
+        <target state="new">%1$@%2$@ %3$@ from %4$@</target>
         <note/>
       </trans-unit>
       <trans-unit id="%@%@ %@ from dialysis" xml:space="preserve">
@@ -372,6 +387,11 @@
         <target state="new">(edited)</target>
         <note/>
       </trans-unit>
+      <trans-unit id="(written as %@)" xml:space="preserve">
+        <source>(written as %@)</source>
+        <target state="new">(written as %@)</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="+%lld" xml:space="preserve">
         <source>+%lld</source>
         <target state="new">+%lld</target>
@@ -537,6 +557,11 @@
         <target state="new">?</target>
         <note/>
       </trans-unit>
+      <trans-unit id="A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems." xml:space="preserve">
+        <source>A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.</source>
+        <target state="new">A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="A direct message goes to one person. Remove them to pick someone else." xml:space="preserve">
         <source>A direct message goes to one person. Remove them to pick someone else.</source>
         <target state="new">A direct message goes to one person. Remove them to pick someone else.</target>
@@ -630,6 +655,11 @@
       <trans-unit id="APD Settings" xml:space="preserve">
         <source>APD Settings</source>
         <target state="new">APD Settings</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Abnormal" xml:space="preserve">
+        <source>Abnormal</source>
+        <target state="new">Abnormal</target>
         <note/>
       </trans-unit>
       <trans-unit id="About &amp; Sources" xml:space="preserve">
@@ -807,6 +837,11 @@
         <target state="new">Add a clinical note…</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Add a hospital stay" xml:space="preserve">
+        <source>Add a hospital stay</source>
+        <target state="new">Add a hospital stay</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Add a message…" xml:space="preserve">
         <source>Add a message…</source>
         <target state="new">Add a message…</target>
@@ -815,6 +850,11 @@
       <trans-unit id="Add a note…" xml:space="preserve">
         <source>Add a note…</source>
         <target state="new">Add a note…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Add an operation" xml:space="preserve">
+        <source>Add an operation</source>
+        <target state="new">Add an operation</target>
         <note/>
       </trans-unit>
       <trans-unit id="Add clinical notes above" xml:space="preserve">
@@ -900,6 +940,11 @@
       <trans-unit id="Adherence" xml:space="preserve">
         <source>Adherence</source>
         <target state="new">Adherence</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Admitted" xml:space="preserve">
+        <source>Admitted</source>
+        <target state="new">Admitted</target>
         <note/>
       </trans-unit>
       <trans-unit id="Advanced Directives" xml:space="preserve">
@@ -1007,6 +1052,11 @@
         <target state="new">All nutrients</target>
         <note/>
       </trans-unit>
+      <trans-unit id="All operations" xml:space="preserve">
+        <source>All operations</source>
+        <target state="new">All operations</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Allergies" xml:space="preserve">
         <source>Allergies</source>
         <target state="new">Allergies</target>
@@ -1055,6 +1105,11 @@
       <trans-unit id="An account holder must be an adult. A child is tracked as a dependent profile under a parent or guardian's account." xml:space="preserve">
         <source>An account holder must be an adult. A child is tracked as a dependent profile under a parent or guardian's account.</source>
         <target state="new">An account holder must be an adult. A child is tracked as a dependent profile under a parent or guardian's account.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own." xml:space="preserve">
+        <source>An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.</source>
+        <target state="new">An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.</target>
         <note/>
       </trans-unit>
       <trans-unit id="Analyse Image(s) with Alafia" xml:space="preserve">
@@ -1647,6 +1702,11 @@
         <target state="new">Coach Notes</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Coding system" xml:space="preserve">
+        <source>Coding system</source>
+        <target state="new">Coding system</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Collective Insights" xml:space="preserve">
         <source>Collective Insights</source>
         <target state="new">Collective Insights</target>
@@ -1715,6 +1775,11 @@
       <trans-unit id="Condition Name" xml:space="preserve">
         <source>Condition Name</source>
         <target state="new">Condition Name</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Condition management (Α)" xml:space="preserve">
+        <source>Condition management (Α)</source>
+        <target state="new">Condition management (Α)</target>
         <note/>
       </trans-unit>
       <trans-unit id="Condition, abbreviation or code" xml:space="preserve">
@@ -1805,6 +1870,11 @@
       <trans-unit id="Core role — always active" xml:space="preserve">
         <source>Core role — always active</source>
         <target state="new">Core role — always active</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Could not load your therapy answers. Nothing has been changed." xml:space="preserve">
+        <source>Could not load your therapy answers. Nothing has been changed.</source>
+        <target state="new">Could not load your therapy answers. Nothing has been changed.</target>
         <note/>
       </trans-unit>
       <trans-unit id="Could not print" xml:space="preserve">
@@ -2072,6 +2142,11 @@
         <target state="new">Date of Birth (locked)</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Date of operation" xml:space="preserve">
+        <source>Date of operation</source>
+        <target state="new">Date of operation</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Date: %@" xml:space="preserve">
         <source>Date: %@</source>
         <target state="new">Date: %@</target>
@@ -2207,6 +2282,11 @@
         <target state="new">Dialysate Prescription</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Dialysis" xml:space="preserve">
+        <source>Dialysis</source>
+        <target state="new">Dialysis</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Dialysis today — %lld session%@" xml:space="preserve">
         <source>Dialysis today — %1$lld session%2$@</source>
         <target state="new">Dialysis today — %1$lld session%2$@</target>
@@ -2275,6 +2355,16 @@
       <trans-unit id="Discard" xml:space="preserve">
         <source>Discard</source>
         <target state="new">Discard</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Discharge date" xml:space="preserve">
+        <source>Discharge date</source>
+        <target state="new">Discharge date</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Discharged" xml:space="preserve">
+        <source>Discharged</source>
+        <target state="new">Discharged</target>
         <note/>
       </trans-unit>
       <trans-unit id="Disease" xml:space="preserve">
@@ -2430,6 +2520,16 @@
       <trans-unit id="Duration (min)" xml:space="preserve">
         <source>Duration (min)</source>
         <target state="new">Duration (min)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="During %@" xml:space="preserve">
+        <source>During %@</source>
+        <target state="new">During %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="During which stay?" xml:space="preserve">
+        <source>During which stay?</source>
+        <target state="new">During which stay?</target>
         <note/>
       </trans-unit>
       <trans-unit id="EHR &amp; Apps" xml:space="preserve">
@@ -2595,6 +2695,16 @@
       <trans-unit id="Estimate only — check the food name and serving size before saving." xml:space="preserve">
         <source>Estimate only — check the food name and serving size before saving.</source>
         <target state="new">Estimate only — check the food name and serving size before saving.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Every operation on your record, including those with no hospital stay attached." xml:space="preserve">
+        <source>Every operation on your record, including those with no hospital stay attached.</source>
+        <target state="new">Every operation on your record, including those with no hospital stay attached.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Every source together — what you were prescribed, what you logged, and what you were given at treatment." xml:space="preserve">
+        <source>Every source together — what you were prescribed, what you logged, and what you were given at treatment.</source>
+        <target state="new">Every source together — what you were prescribed, what you logged, and what you were given at treatment.</target>
         <note/>
       </trans-unit>
       <trans-unit id="Exchange %lld" xml:space="preserve">
@@ -2892,6 +3002,16 @@
         <target state="new">Food name</target>
         <note/>
       </trans-unit>
+      <trans-unit id="For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too." xml:space="preserve">
+        <source>For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.</source>
+        <target state="new">For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="For example, an organ or gland removed, or something you have had to take ever since." xml:space="preserve">
+        <source>For example, an organ or gland removed, or something you have had to take ever since.</source>
+        <target state="new">For example, an organ or gland removed, or something you have had to take ever since.</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Forgot password?" xml:space="preserve">
         <source>Forgot password?</source>
         <target state="new">Forgot password?</target>
@@ -2965,6 +3085,16 @@
       <trans-unit id="Generic" xml:space="preserve">
         <source>Generic</source>
         <target state="new">Generic</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Given during treatment — already on your record." xml:space="preserve">
+        <source>Given during treatment — already on your record.</source>
+        <target state="new">Given during treatment — already on your record.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Given together as (optional)" xml:space="preserve">
+        <source>Given together as (optional)</source>
+        <target state="new">Given together as (optional)</target>
         <note/>
       </trans-unit>
       <trans-unit id="Goals" xml:space="preserve">
@@ -3192,9 +3322,19 @@
         <target state="new">Hospital &amp; Affiliations</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Hospital &amp; Surgery" xml:space="preserve">
+        <source>Hospital &amp; Surgery</source>
+        <target state="new">Hospital &amp; Surgery</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Hospital Affiliations (comma-separated)" xml:space="preserve">
         <source>Hospital Affiliations (comma-separated)</source>
         <target state="new">Hospital Affiliations (comma-separated)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Hospital stays" xml:space="preserve">
+        <source>Hospital stays</source>
+        <target state="new">Hospital stays</target>
         <note/>
       </trans-unit>
       <trans-unit id="Hospital/ER Since Last" xml:space="preserve">
@@ -3225,6 +3365,11 @@
       <trans-unit id="Hub" xml:space="preserve">
         <source>Hub</source>
         <target state="new">Hub</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="I know the date" xml:space="preserve">
+        <source>I know the date</source>
+        <target state="new">I know the date</target>
         <note/>
       </trans-unit>
       <trans-unit id="I've confirmed — continue" xml:space="preserve">
@@ -3290,6 +3435,11 @@
       <trans-unit id="Improve" xml:space="preserve">
         <source>Improve</source>
         <target state="new">Improve</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="In range" xml:space="preserve">
+        <source>In range</source>
+        <target state="new">In range</target>
         <note/>
       </trans-unit>
       <trans-unit id="In-Session Chat" xml:space="preserve">
@@ -3405,6 +3555,11 @@
       <trans-unit id="Journal" xml:space="preserve">
         <source>Journal</source>
         <target state="new">Journal</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Keep them" xml:space="preserve">
+        <source>Keep them</source>
+        <target state="new">Keep them</target>
         <note/>
       </trans-unit>
       <trans-unit id="K⁺ (mEq)" xml:space="preserve">
@@ -4072,6 +4227,11 @@
         <target state="new">Needle Length (mm)</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Needs attention" xml:space="preserve">
+        <source>Needs attention</source>
+        <target state="new">Needs attention</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="New Chemo Session" xml:space="preserve">
         <source>New Chemo Session</source>
         <target state="new">New Chemo Session</target>
@@ -4412,6 +4572,21 @@
         <target state="new">No hemodialysis sessions in this period.</target>
         <note/>
       </trans-unit>
+      <trans-unit id="No hospital stay" xml:space="preserve">
+        <source>No hospital stay</source>
+        <target state="new">No hospital stay</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="No hospital stay recorded" xml:space="preserve">
+        <source>No hospital stay recorded</source>
+        <target state="new">No hospital stay recorded</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="No hospital stays recorded yet." xml:space="preserve">
+        <source>No hospital stays recorded yet.</source>
+        <target state="new">No hospital stays recorded yet.</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="No intake logged for this date." xml:space="preserve">
         <source>No intake logged for this date.</source>
         <target state="new">No intake logged for this date.</target>
@@ -4445,6 +4620,11 @@
       <trans-unit id="No nutrient values recorded for this meal yet." xml:space="preserve">
         <source>No nutrient values recorded for this meal yet.</source>
         <target state="new">No nutrient values recorded for this meal yet.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="No operations recorded yet." xml:space="preserve">
+        <source>No operations recorded yet.</source>
+        <target state="new">No operations recorded yet.</target>
         <note/>
       </trans-unit>
       <trans-unit id="No patients yet" xml:space="preserve">
@@ -4507,6 +4687,11 @@
         <target state="new">Not a valid time</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Not answered" xml:space="preserve">
+        <source>Not answered</source>
+        <target state="new">Not answered</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Not assessed" xml:space="preserve">
         <source>Not assessed</source>
         <target state="new">Not assessed</target>
@@ -4527,9 +4712,19 @@
         <target state="new">Not enough data yet</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Not on this" xml:space="preserve">
+        <source>Not on this</source>
+        <target state="new">Not on this</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Not right? Teach ALAFIA what this actually is" xml:space="preserve">
         <source>Not right? Teach ALAFIA what this actually is</source>
         <target state="new">Not right? Teach ALAFIA what this actually is</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Not stated" xml:space="preserve">
+        <source>Not stated</source>
+        <target state="new">Not stated</target>
         <note/>
       </trans-unit>
       <trans-unit id="Notarized" xml:space="preserve">
@@ -4612,9 +4807,24 @@
         <target state="new">Official notice</target>
         <note/>
       </trans-unit>
+      <trans-unit id="On this" xml:space="preserve">
+        <source>On this</source>
+        <target state="new">On this</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="On your flowsheet" xml:space="preserve">
+        <source>On your flowsheet</source>
+        <target state="new">On your flowsheet</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="One-way sync" xml:space="preserve">
         <source>One-way sync</source>
         <target state="new">One-way sync</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation." xml:space="preserve">
+        <source>Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.</source>
+        <target state="new">Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.</target>
         <note/>
       </trans-unit>
       <trans-unit id="Only one intradialytic reading — not enough to plot a curve." xml:space="preserve">
@@ -4647,6 +4857,11 @@
         <target state="new">Opens alafia.app in your browser.</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Operation" xml:space="preserve">
+        <source>Operation</source>
+        <target state="new">Operation</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Optional — close this to keep your device-language guide, or pick another." xml:space="preserve">
         <source>Optional — close this to keep your device-language guide, or pick another.</source>
         <target state="new">Optional — close this to keep your device-language guide, or pick another.</target>
@@ -4675,6 +4890,11 @@
       <trans-unit id="Outbreaks" xml:space="preserve">
         <source>Outbreaks</source>
         <target state="new">Outbreaks</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Outcome" xml:space="preserve">
+        <source>Outcome</source>
+        <target state="new">Outcome</target>
         <note/>
       </trans-unit>
       <trans-unit id="Outflow (mL)" xml:space="preserve">
@@ -4760,6 +4980,11 @@
       <trans-unit id="Pantry Empty" xml:space="preserve">
         <source>Pantry Empty</source>
         <target state="new">Pantry Empty</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Part of the body" xml:space="preserve">
+        <source>Part of the body</source>
+        <target state="new">Part of the body</target>
         <note/>
       </trans-unit>
       <trans-unit id="Participants" xml:space="preserve">
@@ -5232,6 +5457,11 @@
         <target state="new">Private 1-on-1 conversations</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Procedure code" xml:space="preserve">
+        <source>Procedure code</source>
+        <target state="new">Procedure code</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Product Updates" xml:space="preserve">
         <source>Product Updates</source>
         <target state="new">Product Updates</target>
@@ -5402,6 +5632,11 @@
         <target state="new">Reason for Visit</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Reason for admission" xml:space="preserve">
+        <source>Reason for admission</source>
+        <target state="new">Reason for admission</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Recalls" xml:space="preserve">
         <source>Recalls</source>
         <target state="new">Recalls</target>
@@ -5562,9 +5797,29 @@
         <target state="new">Remove from Saved</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Remove from my records" xml:space="preserve">
+        <source>Remove from my records</source>
+        <target state="new">Remove from my records</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Remove the records this document added?" xml:space="preserve">
+        <source>Remove the records this document added?</source>
+        <target state="new">Remove the records this document added?</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Removed (mL)" xml:space="preserve">
         <source>Removed (mL)</source>
         <target state="new">Removed (mL)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Removes only what this document added. You can upload it again afterwards." xml:space="preserve">
+        <source>Removes only what this document added. You can upload it again afterwards.</source>
+        <target state="new">Removes only what this document added. You can upload it again afterwards.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Removing…" xml:space="preserve">
+        <source>Removing…</source>
+        <target state="new">Removing…</target>
         <note/>
       </trans-unit>
       <trans-unit id="Repeat" xml:space="preserve">
@@ -7006,6 +7261,11 @@ Are you absolutely sure?</target>
         <target state="new">Type a message...</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Type of admission" xml:space="preserve">
+        <source>Type of admission</source>
+        <target state="new">Type of admission</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Typical Dosage" xml:space="preserve">
         <source>Typical Dosage</source>
         <target state="new">Typical Dosage</target>
@@ -7346,9 +7606,19 @@ Are you absolutely sure?</target>
         <target state="new">What never reaches the provider</target>
         <note/>
       </trans-unit>
+      <trans-unit id="What past surgery still means for you" xml:space="preserve">
+        <source>What past surgery still means for you</source>
+        <target state="new">What past surgery still means for you</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="What reaches the provider" xml:space="preserve">
         <source>What reaches the provider</source>
         <target state="new">What reaches the provider</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="What this still means for you" xml:space="preserve">
+        <source>What this still means for you</source>
+        <target state="new">What this still means for you</target>
         <note/>
       </trans-unit>
       <trans-unit id="What-If Simulator" xml:space="preserve">
@@ -7406,6 +7676,11 @@ Are you absolutely sure?</target>
         <target state="new">You are never identified to an AI provider</target>
         <note/>
       </trans-unit>
+      <trans-unit id="You did not log anything yourself for this date." xml:space="preserve">
+        <source>You did not log anything yourself for this date.</source>
+        <target state="new">You did not log anything yourself for this date.</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="You regularly log %lld medication%@ that aren’t on this list" xml:space="preserve">
         <source>You regularly log %1$lld medication%2$@ that aren’t on this list</source>
         <target state="new">You regularly log %1$lld medication%2$@ that aren’t on this list</target>
@@ -7426,6 +7701,11 @@ Are you absolutely sure?</target>
         <target state="new">Your Holistic Health Journey</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Your condition was saved, but your therapy answers were not: %@" xml:space="preserve">
+        <source>Your condition was saved, but your therapy answers were not: %@</source>
+        <target state="new">Your condition was saved, but your therapy answers were not: %@</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Your current password keeps working until you do." xml:space="preserve">
         <source>Your current password keeps working until you do.</source>
         <target state="new">Your current password keeps working until you do.</target>
@@ -7436,6 +7716,11 @@ Are you absolutely sure?</target>
         <target state="new">Your data is protected according to applicable healthcare privacy regulations.</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Your hospital history could not be loaded" xml:space="preserve">
+        <source>Your hospital history could not be loaded</source>
+        <target state="new">Your hospital history could not be loaded</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Your lab results will appear here as charts once data is available." xml:space="preserve">
         <source>Your lab results will appear here as charts once data is available.</source>
         <target state="new">Your lab results will appear here as charts once data is available.</target>
@@ -7444,6 +7729,11 @@ Are you absolutely sure?</target>
       <trans-unit id="Your limits are unchanged — they already assume your usual treatment. What changes is the day's balance." xml:space="preserve">
         <source>Your limits are unchanged — they already assume your usual treatment. What changes is the day's balance.</source>
         <target state="new">Your limits are unchanged — they already assume your usual treatment. What changes is the day's balance.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Your medication record" xml:space="preserve">
+        <source>Your medication record</source>
+        <target state="new">Your medication record</target>
         <note/>
       </trans-unit>
       <trans-unit id="Your own health record, meals and tracking live in the patient view." xml:space="preserve">
@@ -7479,6 +7769,21 @@ Are you absolutely sure?</target>
       <trans-unit id="^[%lld row](inflect: true)" xml:space="preserve">
         <source>^[%lld row](inflect: true)</source>
         <target state="new">^[%lld row](inflect: true)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="against guideline targets" xml:space="preserve">
+        <source>against guideline targets</source>
+        <target state="new">against guideline targets</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="also on your flowsheet" xml:space="preserve">
+        <source>also on your flowsheet</source>
+        <target state="new">also on your flowsheet</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="also written as %@" xml:space="preserve">
+        <source>also written as %@</source>
+        <target state="new">also written as %@</target>
         <note/>
       </trans-unit>
       <trans-unit id="boluses, rinseback" xml:space="preserve">
@@ -7541,9 +7846,24 @@ Are you absolutely sure?</target>
         <target state="new">estimating…</target>
         <note/>
       </trans-unit>
+      <trans-unit id="from your clinic" xml:space="preserve">
+        <source>from your clinic</source>
+        <target state="new">from your clinic</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="g" xml:space="preserve">
         <source>g</source>
         <target state="new">g</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="given at treatment" xml:space="preserve">
+        <source>given at treatment</source>
+        <target state="new">given at treatment</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="given on %lld day%@" xml:space="preserve">
+        <source>given on %1$lld day%2$@</source>
+        <target state="new">given on %1$lld day%2$@</target>
         <note/>
       </trans-unit>
       <trans-unit id="kg" xml:space="preserve">
@@ -7586,6 +7906,11 @@ Are you absolutely sure?</target>
         <target state="new">ppm</target>
         <note/>
       </trans-unit>
+      <trans-unit id="prescribed" xml:space="preserve">
+        <source>prescribed</source>
+        <target state="new">prescribed</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="unavailable" xml:space="preserve">
         <source>unavailable</source>
         <target state="new">unavailable</target>
@@ -7604,6 +7929,11 @@ Are you absolutely sure?</target>
       <trans-unit id="w=%@" xml:space="preserve">
         <source>w=%@</source>
         <target state="new">w=%@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="you logged it" xml:space="preserve">
+        <source>you logged it</source>
+        <target state="new">you logged it</target>
         <note/>
       </trans-unit>
       <trans-unit id="°F" xml:space="preserve">
@@ -7664,6 +7994,11 @@ Are you absolutely sure?</target>
       <trans-unit id="• %@ — taken %lld×%@" xml:space="preserve">
         <source>• %1$@ — taken %2$lld×%3$@</source>
         <target state="new">• %1$@ — taken %2$lld×%3$@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="• %@%@" xml:space="preserve">
+        <source>• %1$@%2$@</source>
+        <target state="new">• %1$@%2$@</target>
         <note/>
       </trans-unit>
       <trans-unit id="• ICD-10: %@" xml:space="preserve">

@@ -35,6 +35,11 @@
         <target state="translated">لا تكتب ALAFIA البيانات إلى Apple Health.</target>
         <note>Privacy - Health Update Usage Description</note>
       </trans-unit>
+      <trans-unit id="NSHumanReadableCopyright" xml:space="preserve">
+        <source>© 2026 6igma Health Inc. All rights reserved.</source>
+        <target state="translated">© 2026 6igma Health Inc. جميع الحقوق محفوظة.</target>
+        <note>Copyright (human-readable)</note>
+      </trans-unit>
       <trans-unit id="NSMicrophoneUsageDescription" xml:space="preserve">
         <source>ALAFIA uses the microphone so you can speak your health logs and questions from the prompt page.</source>
         <target state="translated">تستخدم ALAFIA الميكروفون حتى تتمكن من التحدث عن سجلات صحتك والأسئلة من صفحة الطلب.</target>
@@ -128,6 +133,15 @@
       <trans-unit id="%@ → %@ kg" xml:space="preserve">
         <source>%1$@ → %2$@ kg</source>
         <target state="translated">%1$@ → %2$@ كغ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="%@%@" xml:space="preserve">
+        <source>%1$@%2$@</source>
+        <note />
+      </trans-unit>
+      <trans-unit id="%@%@ %@ from %@" xml:space="preserve">
+        <source>%1$@%2$@ %3$@ from %4$@</source>
+        <target state="translated">%1$@%2$@ %3$@ من %4$@</target>
         <note />
       </trans-unit>
       <trans-unit id="%@%@ %@ from dialysis" xml:space="preserve">
@@ -348,6 +362,11 @@
         <target state="translated">(تم التعديل)</target>
         <note />
       </trans-unit>
+      <trans-unit id="(written as %@)" xml:space="preserve">
+        <source>(written as %@)</source>
+        <target state="translated">(مكتوب كـ %@)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="+%lld" xml:space="preserve">
         <source>+%lld</source>
         <note />
@@ -493,6 +512,11 @@
         <source>?</source>
         <note />
       </trans-unit>
+      <trans-unit id="A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems." xml:space="preserve">
+        <source>A code needs the system that issued it — ICD-10-PCS, CPT and SNOMED are different systems.</source>
+        <target state="translated">الكود يحتاج إلى النظام الذي أصدره — ICD-10-PCS و CPT و SNOMED أنظمة مختلفة.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="A direct message goes to one person. Remove them to pick someone else." xml:space="preserve">
         <source>A direct message goes to one person. Remove them to pick someone else.</source>
         <target state="translated">الرسالة المباشرة تذهب لشخص واحد. احذفهم لاختيار شخص آخر.</target>
@@ -586,6 +610,11 @@
       <trans-unit id="APD Settings" xml:space="preserve">
         <source>APD Settings</source>
         <target state="translated">إعدادات APD</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Abnormal" xml:space="preserve">
+        <source>Abnormal</source>
+        <target state="translated">غير طبيعي</target>
         <note />
       </trans-unit>
       <trans-unit id="About &amp; Sources" xml:space="preserve">
@@ -763,6 +792,11 @@
         <target state="translated">إضافة ملاحظة سريرية…</target>
         <note />
       </trans-unit>
+      <trans-unit id="Add a hospital stay" xml:space="preserve">
+        <source>Add a hospital stay</source>
+        <target state="translated">إضافة إقامة في المستشفى</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Add a message…" xml:space="preserve">
         <source>Add a message…</source>
         <target state="translated">إضافة رسالة…</target>
@@ -771,6 +805,11 @@
       <trans-unit id="Add a note…" xml:space="preserve">
         <source>Add a note…</source>
         <target state="translated">إضافة ملاحظة…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Add an operation" xml:space="preserve">
+        <source>Add an operation</source>
+        <target state="translated">إضافة عملية جراحية</target>
         <note />
       </trans-unit>
       <trans-unit id="Add clinical notes above" xml:space="preserve">
@@ -856,6 +895,11 @@
       <trans-unit id="Adherence" xml:space="preserve">
         <source>Adherence</source>
         <target state="translated">الالتزام بالعلاج</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Admitted" xml:space="preserve">
+        <source>Admitted</source>
+        <target state="translated">تم القبول</target>
         <note />
       </trans-unit>
       <trans-unit id="Advanced Directives" xml:space="preserve">
@@ -963,6 +1007,11 @@
         <target state="translated">جميع العناصر الغذائية</target>
         <note />
       </trans-unit>
+      <trans-unit id="All operations" xml:space="preserve">
+        <source>All operations</source>
+        <target state="translated">جميع العمليات الجراحية</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Allergies" xml:space="preserve">
         <source>Allergies</source>
         <target state="translated">الحساسيات</target>
@@ -1011,6 +1060,11 @@
       <trans-unit id="An account holder must be an adult. A child is tracked as a dependent profile under a parent or guardian's account." xml:space="preserve">
         <source>An account holder must be an adult. A child is tracked as a dependent profile under a parent or guardian's account.</source>
         <target state="translated">يجب أن يكون صاحب الحساب بالغاً. يتم تتبع الطفل كملف تابع تحت حساب الوالد أو الوصي.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own." xml:space="preserve">
+        <source>An operation does not need a hospital stay. Day-case surgery, and anything you are recording years later, can be added on its own.</source>
+        <target state="translated">العملية الجراحية لا تحتاج إلى إقامة في المستشفى. الجراحة في نفس اليوم، وأي شيء تسجله بعد سنوات، يمكن إضافته بشكل منفصل.</target>
         <note />
       </trans-unit>
       <trans-unit id="Analyse Image(s) with Alafia" xml:space="preserve">
@@ -1602,6 +1656,11 @@
         <target state="translated">ملاحظات المدرب</target>
         <note />
       </trans-unit>
+      <trans-unit id="Coding system" xml:space="preserve">
+        <source>Coding system</source>
+        <target state="translated">نظام الترميز</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Collective Insights" xml:space="preserve">
         <source>Collective Insights</source>
         <target state="translated">رؤى جماعية</target>
@@ -1670,6 +1729,11 @@
       <trans-unit id="Condition Name" xml:space="preserve">
         <source>Condition Name</source>
         <target state="translated">اسم الحالة</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Condition management (Α)" xml:space="preserve">
+        <source>Condition management (Α)</source>
+        <target state="translated">إدارة العلاج (Α)</target>
         <note />
       </trans-unit>
       <trans-unit id="Condition, abbreviation or code" xml:space="preserve">
@@ -1760,6 +1824,11 @@
       <trans-unit id="Core role — always active" xml:space="preserve">
         <source>Core role — always active</source>
         <target state="translated">دور أساسي — نشط دائماً</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Could not load your therapy answers. Nothing has been changed." xml:space="preserve">
+        <source>Could not load your therapy answers. Nothing has been changed.</source>
+        <target state="translated">تعذر تحميل إجاباتك عن العلاج. لم يتم تغيير أي شيء.</target>
         <note />
       </trans-unit>
       <trans-unit id="Could not print" xml:space="preserve">
@@ -2027,6 +2096,11 @@
         <target state="translated">تاريخ الميلاد (مقفل)</target>
         <note />
       </trans-unit>
+      <trans-unit id="Date of operation" xml:space="preserve">
+        <source>Date of operation</source>
+        <target state="translated">تاريخ العملية الجراحية</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Date: %@" xml:space="preserve">
         <source>Date: %@</source>
         <target state="translated">التاريخ: %@</target>
@@ -2162,6 +2236,11 @@
         <target state="translated">وصفة سائل الديال</target>
         <note />
       </trans-unit>
+      <trans-unit id="Dialysis" xml:space="preserve">
+        <source>Dialysis</source>
+        <target state="translated">غسيل كلى</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dialysis today — %lld session%@" xml:space="preserve">
         <source>Dialysis today — %1$lld session%2$@</source>
         <target state="translated">الغسيل الكلوي اليوم — جلسة %1$lld%2$@</target>
@@ -2230,6 +2309,16 @@
       <trans-unit id="Discard" xml:space="preserve">
         <source>Discard</source>
         <target state="translated">تجاهل</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Discharge date" xml:space="preserve">
+        <source>Discharge date</source>
+        <target state="translated">تاريخ الخروج</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Discharged" xml:space="preserve">
+        <source>Discharged</source>
+        <target state="translated">تم الخروج</target>
         <note />
       </trans-unit>
       <trans-unit id="Disease" xml:space="preserve">
@@ -2385,6 +2474,16 @@
       <trans-unit id="Duration (min)" xml:space="preserve">
         <source>Duration (min)</source>
         <target state="translated">المدة (دقيقة)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="During %@" xml:space="preserve">
+        <source>During %@</source>
+        <target state="translated">خلال %@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="During which stay?" xml:space="preserve">
+        <source>During which stay?</source>
+        <target state="translated">خلال أي إقامة؟</target>
         <note />
       </trans-unit>
       <trans-unit id="EHR &amp; Apps" xml:space="preserve">
@@ -2550,6 +2649,16 @@
       <trans-unit id="Estimate only — check the food name and serving size before saving." xml:space="preserve">
         <source>Estimate only — check the food name and serving size before saving.</source>
         <target state="translated">تقدير فقط — تحقق من اسم الطعام وحجم الحصة قبل الحفظ.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Every operation on your record, including those with no hospital stay attached." xml:space="preserve">
+        <source>Every operation on your record, including those with no hospital stay attached.</source>
+        <target state="translated">كل عملية جراحية في سجلك، بما فيها تلك بدون إقامة في المستشفى.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Every source together — what you were prescribed, what you logged, and what you were given at treatment." xml:space="preserve">
+        <source>Every source together — what you were prescribed, what you logged, and what you were given at treatment.</source>
+        <target state="translated">جميع المصادر معاً — ما وصفه لك الطبيب، وما سجلته، وما أعطيت لك في العلاج.</target>
         <note />
       </trans-unit>
       <trans-unit id="Exchange %lld" xml:space="preserve">
@@ -2846,6 +2955,16 @@
         <target state="translated">اسم الغذاء</target>
         <note />
       </trans-unit>
+      <trans-unit id="For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too." xml:space="preserve">
+        <source>For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.</source>
+        <target state="translated">لكل علاج، قل ما إذا كنت تتناوله أم لا، أو اترك الإجابة بدون رد. قول أنك لا تتناوله هو إجابة أيضاً.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="For example, an organ or gland removed, or something you have had to take ever since." xml:space="preserve">
+        <source>For example, an organ or gland removed, or something you have had to take ever since.</source>
+        <target state="translated">على سبيل المثال، عضو أو غدة تمت إزالتها، أو شيء اضطررت لتناوله منذ ذلك الحين.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Forgot password?" xml:space="preserve">
         <source>Forgot password?</source>
         <target state="translated">هل نسيت كلمة المرور؟</target>
@@ -2919,6 +3038,16 @@
       <trans-unit id="Generic" xml:space="preserve">
         <source>Generic</source>
         <target state="translated">عام</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Given during treatment — already on your record." xml:space="preserve">
+        <source>Given during treatment — already on your record.</source>
+        <target state="translated">أعطيت أثناء العلاج — موجود بالفعل في سجلك.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Given together as (optional)" xml:space="preserve">
+        <source>Given together as (optional)</source>
+        <target state="translated">أعطيت معاً كـ (اختياري)</target>
         <note />
       </trans-unit>
       <trans-unit id="Goals" xml:space="preserve">
@@ -3146,9 +3275,19 @@
         <target state="translated">المستشفى والفروع</target>
         <note />
       </trans-unit>
+      <trans-unit id="Hospital &amp; Surgery" xml:space="preserve">
+        <source>Hospital &amp; Surgery</source>
+        <target state="translated">المستشفى والجراحة</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Hospital Affiliations (comma-separated)" xml:space="preserve">
         <source>Hospital Affiliations (comma-separated)</source>
         <target state="translated">فروع المستشفى (مفصولة بفواصل)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Hospital stays" xml:space="preserve">
+        <source>Hospital stays</source>
+        <target state="translated">الإقامات في المستشفى</target>
         <note />
       </trans-unit>
       <trans-unit id="Hospital/ER Since Last" xml:space="preserve">
@@ -3179,6 +3318,11 @@
       <trans-unit id="Hub" xml:space="preserve">
         <source>Hub</source>
         <target state="translated">المركز</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="I know the date" xml:space="preserve">
+        <source>I know the date</source>
+        <target state="translated">أنا أعرف التاريخ</target>
         <note />
       </trans-unit>
       <trans-unit id="I've confirmed — continue" xml:space="preserve">
@@ -3244,6 +3388,11 @@
       <trans-unit id="Improve" xml:space="preserve">
         <source>Improve</source>
         <target state="translated">تحسين</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="In range" xml:space="preserve">
+        <source>In range</source>
+        <target state="translated">ضمن النطاق</target>
         <note />
       </trans-unit>
       <trans-unit id="In-Session Chat" xml:space="preserve">
@@ -3359,6 +3508,11 @@
       <trans-unit id="Journal" xml:space="preserve">
         <source>Journal</source>
         <target state="translated">اليوميات</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Keep them" xml:space="preserve">
+        <source>Keep them</source>
+        <target state="translated">احتفظ بها</target>
         <note />
       </trans-unit>
       <trans-unit id="K⁺ (mEq)" xml:space="preserve">
@@ -4025,6 +4179,11 @@
         <target state="translated">طول الإبرة (ملم)</target>
         <note />
       </trans-unit>
+      <trans-unit id="Needs attention" xml:space="preserve">
+        <source>Needs attention</source>
+        <target state="translated">يحتاج إلى اهتمام</target>
+        <note />
+      </trans-unit>
       <trans-unit id="New Chemo Session" xml:space="preserve">
         <source>New Chemo Session</source>
         <target state="translated">جلسة علاج كيميائي جديدة</target>
@@ -4365,6 +4524,21 @@
         <target state="translated">لا توجد جلسات غسيل كلى في هذه الفترة.</target>
         <note />
       </trans-unit>
+      <trans-unit id="No hospital stay" xml:space="preserve">
+        <source>No hospital stay</source>
+        <target state="translated">بدون إقامة في المستشفى</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="No hospital stay recorded" xml:space="preserve">
+        <source>No hospital stay recorded</source>
+        <target state="translated">لم يتم تسجيل إقامة في المستشفى</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="No hospital stays recorded yet." xml:space="preserve">
+        <source>No hospital stays recorded yet.</source>
+        <target state="translated">لم يتم تسجيل أي إقامات في المستشفى حتى الآن.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="No intake logged for this date." xml:space="preserve">
         <source>No intake logged for this date.</source>
         <target state="translated">لم يتم تسجيل أي مدخول لهذا التاريخ.</target>
@@ -4398,6 +4572,11 @@
       <trans-unit id="No nutrient values recorded for this meal yet." xml:space="preserve">
         <source>No nutrient values recorded for this meal yet.</source>
         <target state="translated">لم يتم تسجيل قيم المغذيات لهذه الوجبة حتى الآن.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="No operations recorded yet." xml:space="preserve">
+        <source>No operations recorded yet.</source>
+        <target state="translated">لم يتم تسجيل أي عمليات جراحية حتى الآن.</target>
         <note />
       </trans-unit>
       <trans-unit id="No patients yet" xml:space="preserve">
@@ -4460,6 +4639,11 @@
         <target state="translated">وقت غير صحيح</target>
         <note />
       </trans-unit>
+      <trans-unit id="Not answered" xml:space="preserve">
+        <source>Not answered</source>
+        <target state="translated">لم تتم الإجابة</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Not assessed" xml:space="preserve">
         <source>Not assessed</source>
         <target state="translated">لم يتم تقييمه</target>
@@ -4480,9 +4664,19 @@
         <target state="translated">لا توجد بيانات كافية حتى الآن</target>
         <note />
       </trans-unit>
+      <trans-unit id="Not on this" xml:space="preserve">
+        <source>Not on this</source>
+        <target state="translated">لا أتناول هذا</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Not right? Teach ALAFIA what this actually is" xml:space="preserve">
         <source>Not right? Teach ALAFIA what this actually is</source>
         <target state="translated">غير صحيح؟ علّم ALAFIA ما هذا فعلاً</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Not stated" xml:space="preserve">
+        <source>Not stated</source>
+        <target state="translated">لم يتم التصريح به</target>
         <note />
       </trans-unit>
       <trans-unit id="Notarized" xml:space="preserve">
@@ -4565,9 +4759,24 @@
         <target state="translated">إشعار رسمي</target>
         <note />
       </trans-unit>
+      <trans-unit id="On this" xml:space="preserve">
+        <source>On this</source>
+        <target state="translated">أتناول هذا</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="On your flowsheet" xml:space="preserve">
+        <source>On your flowsheet</source>
+        <target state="translated">في جدول تدفقك</target>
+        <note />
+      </trans-unit>
       <trans-unit id="One-way sync" xml:space="preserve">
         <source>One-way sync</source>
         <target state="translated">مزامنة أحادية الاتجاه</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation." xml:space="preserve">
+        <source>Only effects recorded with the operation are listed. Nothing here is guessed from the name of an operation.</source>
+        <target state="translated">يتم إدراج التأثيرات المسجلة فقط مع العملية الجراحية. لا يتم تخمين أي شيء من اسم العملية.</target>
         <note />
       </trans-unit>
       <trans-unit id="Only one intradialytic reading — not enough to plot a curve." xml:space="preserve">
@@ -4600,6 +4809,11 @@
         <target state="translated">يفتح alafia.app في متصفحك.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Operation" xml:space="preserve">
+        <source>Operation</source>
+        <target state="translated">العملية الجراحية</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Optional — close this to keep your device-language guide, or pick another." xml:space="preserve">
         <source>Optional — close this to keep your device-language guide, or pick another.</source>
         <target state="translated">اختياري — أغلق هذا للاحتفاظ بدليل لغة جهازك، أو اختر آخر.</target>
@@ -4628,6 +4842,11 @@
       <trans-unit id="Outbreaks" xml:space="preserve">
         <source>Outbreaks</source>
         <target state="translated">الفاشيات</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Outcome" xml:space="preserve">
+        <source>Outcome</source>
+        <target state="translated">النتيجة</target>
         <note />
       </trans-unit>
       <trans-unit id="Outflow (mL)" xml:space="preserve">
@@ -4711,6 +4930,11 @@
       <trans-unit id="Pantry Empty" xml:space="preserve">
         <source>Pantry Empty</source>
         <target state="translated">المخزن فارغ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Part of the body" xml:space="preserve">
+        <source>Part of the body</source>
+        <target state="translated">جزء من الجسم</target>
         <note />
       </trans-unit>
       <trans-unit id="Participants" xml:space="preserve">
@@ -5183,6 +5407,11 @@
         <target state="translated">محادثات خاصة فردية</target>
         <note />
       </trans-unit>
+      <trans-unit id="Procedure code" xml:space="preserve">
+        <source>Procedure code</source>
+        <target state="translated">رمز الإجراء</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Product Updates" xml:space="preserve">
         <source>Product Updates</source>
         <target state="translated">تحديثات المنتج</target>
@@ -5353,6 +5582,11 @@
         <target state="translated">سبب الزيارة</target>
         <note />
       </trans-unit>
+      <trans-unit id="Reason for admission" xml:space="preserve">
+        <source>Reason for admission</source>
+        <target state="translated">سبب الدخول للمستشفى</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Recalls" xml:space="preserve">
         <source>Recalls</source>
         <target state="translated">الاستدعاءات</target>
@@ -5513,9 +5747,29 @@
         <target state="translated">إزالة من المحفوظ</target>
         <note />
       </trans-unit>
+      <trans-unit id="Remove from my records" xml:space="preserve">
+        <source>Remove from my records</source>
+        <target state="translated">حذف من سجلاتي</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Remove the records this document added?" xml:space="preserve">
+        <source>Remove the records this document added?</source>
+        <target state="translated">حذف السجلات التي أضافتها هذه الوثيقة؟</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Removed (mL)" xml:space="preserve">
         <source>Removed (mL)</source>
         <target state="translated">تم إزالته (mL)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Removes only what this document added. You can upload it again afterwards." xml:space="preserve">
+        <source>Removes only what this document added. You can upload it again afterwards.</source>
+        <target state="translated">يحذف فقط ما أضافته هذه الوثيقة. يمكنك تحميلها مرة أخرى لاحقاً.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Removing…" xml:space="preserve">
+        <source>Removing…</source>
+        <target state="translated">جاري الحذف…</target>
         <note />
       </trans-unit>
       <trans-unit id="Repeat" xml:space="preserve">
@@ -6957,6 +7211,11 @@ Are you absolutely sure?</source>
         <target state="translated">اكتب رسالة...</target>
         <note />
       </trans-unit>
+      <trans-unit id="Type of admission" xml:space="preserve">
+        <source>Type of admission</source>
+        <target state="translated">نوع الدخول</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Typical Dosage" xml:space="preserve">
         <source>Typical Dosage</source>
         <target state="translated">الجرعة المعتادة</target>
@@ -7297,9 +7556,19 @@ Are you absolutely sure?</source>
         <target state="translated">ما لا يصل أبدًا إلى مقدم الخدمة</target>
         <note />
       </trans-unit>
+      <trans-unit id="What past surgery still means for you" xml:space="preserve">
+        <source>What past surgery still means for you</source>
+        <target state="translated">ما تعنيه العملية الجراحية السابقة لك الآن</target>
+        <note />
+      </trans-unit>
       <trans-unit id="What reaches the provider" xml:space="preserve">
         <source>What reaches the provider</source>
         <target state="translated">ما يصل إلى مقدم الخدمة</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="What this still means for you" xml:space="preserve">
+        <source>What this still means for you</source>
+        <target state="translated">ما يعنيه هذا لك الآن</target>
         <note />
       </trans-unit>
       <trans-unit id="What-If Simulator" xml:space="preserve">
@@ -7357,6 +7626,11 @@ Are you absolutely sure?</source>
         <target state="translated">لن يتم تحديد هويتك لأي مزود ذكاء اصطناعي</target>
         <note />
       </trans-unit>
+      <trans-unit id="You did not log anything yourself for this date." xml:space="preserve">
+        <source>You did not log anything yourself for this date.</source>
+        <target state="translated">لم تسجل أي شيء بنفسك في هذا التاريخ.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="You regularly log %lld medication%@ that aren’t on this list" xml:space="preserve">
         <source>You regularly log %1$lld medication%2$@ that aren’t on this list</source>
         <target state="translated">تسجل بانتظام %1$lld دواء%2$@ غير موجود في هذه القائمة</target>
@@ -7377,6 +7651,11 @@ Are you absolutely sure?</source>
         <target state="translated">رحلتك الصحية الشاملة</target>
         <note />
       </trans-unit>
+      <trans-unit id="Your condition was saved, but your therapy answers were not: %@" xml:space="preserve">
+        <source>Your condition was saved, but your therapy answers were not: %@</source>
+        <target state="translated">تم حفظ حالتك، لكن إجاباتك على الأسئلة العلاجية لم تُحفظ: %@</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Your current password keeps working until you do." xml:space="preserve">
         <source>Your current password keeps working until you do.</source>
         <target state="translated">كلمة المرور الحالية تبقى صالحة حتى تقوم بتغييرها.</target>
@@ -7387,6 +7666,11 @@ Are you absolutely sure?</source>
         <target state="translated">بيانات صحتك محمية وفقاً للوائح الخصوصية الصحية المعمول بها.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Your hospital history could not be loaded" xml:space="preserve">
+        <source>Your hospital history could not be loaded</source>
+        <target state="translated">تعذر تحميل سجل المستشفى الخاص بك</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Your lab results will appear here as charts once data is available." xml:space="preserve">
         <source>Your lab results will appear here as charts once data is available.</source>
         <target state="translated">ستظهر نتائج الفحوصات هنا كرسوم بيانية عند توفر البيانات.</target>
@@ -7395,6 +7679,11 @@ Are you absolutely sure?</source>
       <trans-unit id="Your limits are unchanged — they already assume your usual treatment. What changes is the day's balance." xml:space="preserve">
         <source>Your limits are unchanged — they already assume your usual treatment. What changes is the day's balance.</source>
         <target state="translated">حدودك لم تتغير — فهي تفترض بالفعل علاجك المعتاد. ما يتغير هو رصيد اليوم.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Your medication record" xml:space="preserve">
+        <source>Your medication record</source>
+        <target state="translated">سجل الأدوية الخاص بك</target>
         <note />
       </trans-unit>
       <trans-unit id="Your own health record, meals and tracking live in the patient view." xml:space="preserve">
@@ -7430,6 +7719,21 @@ Are you absolutely sure?</source>
       <trans-unit id="^[%lld row](inflect: true)" xml:space="preserve">
         <source>^[%lld row](inflect: true)</source>
         <target state="translated">^[%lld صف](inflect: true)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="against guideline targets" xml:space="preserve">
+        <source>against guideline targets</source>
+        <target state="translated">مقابل أهداف الإرشادات</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="also on your flowsheet" xml:space="preserve">
+        <source>also on your flowsheet</source>
+        <target state="translated">أيضاً في ورقة المتابعة الخاصة بك</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="also written as %@" xml:space="preserve">
+        <source>also written as %@</source>
+        <target state="translated">مكتوب أيضاً باسم %@</target>
         <note />
       </trans-unit>
       <trans-unit id="boluses, rinseback" xml:space="preserve">
@@ -7492,8 +7796,23 @@ Are you absolutely sure?</source>
         <target state="translated">جاري التقدير…</target>
         <note />
       </trans-unit>
+      <trans-unit id="from your clinic" xml:space="preserve">
+        <source>from your clinic</source>
+        <target state="translated">من عيادتك</target>
+        <note />
+      </trans-unit>
       <trans-unit id="g" xml:space="preserve">
         <source>g</source>
+        <note />
+      </trans-unit>
+      <trans-unit id="given at treatment" xml:space="preserve">
+        <source>given at treatment</source>
+        <target state="translated">أُعطي أثناء العلاج</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="given on %lld day%@" xml:space="preserve">
+        <source>given on %1$lld day%2$@</source>
+        <target state="translated">أُعطي في اليوم %1$lld%2$@</target>
         <note />
       </trans-unit>
       <trans-unit id="kg" xml:space="preserve">
@@ -7536,6 +7855,11 @@ Are you absolutely sure?</source>
         <target state="translated">ppm</target>
         <note />
       </trans-unit>
+      <trans-unit id="prescribed" xml:space="preserve">
+        <source>prescribed</source>
+        <target state="translated">موصوف</target>
+        <note />
+      </trans-unit>
       <trans-unit id="unavailable" xml:space="preserve">
         <source>unavailable</source>
         <target state="translated">غير متاح</target>
@@ -7552,6 +7876,11 @@ Are you absolutely sure?</source>
       </trans-unit>
       <trans-unit id="w=%@" xml:space="preserve">
         <source>w=%@</source>
+        <note />
+      </trans-unit>
+      <trans-unit id="you logged it" xml:space="preserve">
+        <source>you logged it</source>
+        <target state="translated">سجلته بنفسك</target>
         <note />
       </trans-unit>
       <trans-unit id="°F" xml:space="preserve">
@@ -7604,6 +7933,10 @@ Are you absolutely sure?</source>
       <trans-unit id="• %@ — taken %lld×%@" xml:space="preserve">
         <source>• %1$@ — taken %2$lld×%3$@</source>
         <target state="translated">• %1$@ — تم تناوله %2$lld×%3$@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="• %@%@" xml:space="preserve">
+        <source>• %1$@%2$@</source>
         <note />
       </trans-unit>
       <trans-unit id="• ICD-10: %@" xml:space="preserve">

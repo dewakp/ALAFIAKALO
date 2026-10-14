@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "Ṣe o da o lọ pe o fẹ pa aisan yii kuro?",
     "failed_to_delete_condition": "Aisan ko ni a gba lati pa kuro",
     "therapy_types": "Àwọn Ìtúnú",
-    "therapy_types_help": "Àwọn ìtúnú tí ó ṣe àlàyé ìṣòro yìí. Èyí ni ohun tí ó pinnu bóyá àpp náà yóò fi hàn ọ́ àwọn ìkòkò wọ̀n."
+    "therapy_on": "Lórí èyí",
+    "therapy_off": "Kò lórí èyí",
+    "therapy_unanswered": "Kò sí ìdáhùn",
+    "therapy_switch_help": "Fún ìgbé ìtúnú kọ̀ọ̀kan, sọ bóyá o wà lórí rẹ̀, tàbí o kò wà lórí rẹ̀, tàbí fi síwájú. Ìsọ pé o kò wà lórí ọ̀kan nìyẹn ìdáhùn pẹ̀lú — ó sọ fún àpò nǹkan náà láti dáwọ́ ìhun yẹn. Ohun tí o fi síwájú ni a fi síwájú.",
+    "therapy_group_answered": "— ìdáhùn",
+    "therapy_regimen_placeholder": "A fúnni pápọ̀ gẹ́gẹ́ (àkọ́kọ́)",
+    "therapies_not_saved": "Ìpilẹ̀ rẹ ti pé, ṣùgbọ́n àwọn ìdáhùn ìgbé ìtúnú rẹ kò pé. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.",
+    "therapies_not_loaded": "Àìlákbáyé láti ṣe àkópọ̀ àwọn ìdáhùn ìgbé ìtúnú rẹ. Ohun kan kò yí padà — àwọn ìdáhùn tí o kò ṣètò ni a fi síwájú."
   },
   "ClinicianDashboard": {
     "loading": "N lo...",

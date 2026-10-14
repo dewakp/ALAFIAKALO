@@ -1379,5 +1379,12 @@
     <string name="alpha_off_target_heading">Outside its target</string>
     <string name="alpha_none">No condition on record has a guideline target, so there is nothing to score here.</string>
     <string name="therapy_types">Therapies</string>
-    <string name="therapy_types_help">Which therapies treat this condition. This decides whether the app shows you those screens.</string>
+    <string name="therapy_switch_help">For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too — it tells the app to stop showing you that screen. What you leave unanswered is left alone.</string>
+    <string name="therapy_on">On this</string>
+    <string name="therapy_off">Not on this</string>
+    <string name="therapy_unanswered">Not answered</string>
+    <string name="therapy_group_answered">— answered</string>
+    <string name="therapy_regimen_placeholder">Given together as (optional)</string>
+    <string name="therapies_not_saved">Your condition was saved, but your therapy answers were not. Please try again.</string>
+    <string name="therapies_not_loaded">Could not load your therapy answers. Nothing has been changed.</string>
 </resources>

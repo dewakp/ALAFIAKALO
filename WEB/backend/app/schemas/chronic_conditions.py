@@ -3,7 +3,7 @@
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 
 # Chronic Condition Schemas
@@ -587,3 +587,42 @@ class ICD11SearchResult(BaseModel):
 class ICD11Chapter(BaseModel):
     chapter: str
     title: str
+
+
+# ============= THERAPY SWITCHES =============
+#
+# Operator, 2026-10-14: *"hard-coded enum for therapy will need a comprehensive
+# list with items zeroed out (no impact) when not present (like a switch) and a
+# mechanism for compounded therapies."*
+
+
+class ConditionTherapyIn(BaseModel):
+    """One STATEMENT about one therapy.
+
+    ⚠️ **`receiving` is required and has no default.** A default of False would
+    make an omitted field read as "the patient is not on this" — which is a
+    measured zero, and the whole reason this model exists is that a zero
+    somebody stated and a zero nobody was asked about are different clinical
+    facts (§3at, §3aa). If the client has no answer it sends no entry.
+
+    `regimen` is the compounding mechanism: therapies sharing a label are given
+    as ONE treatment. It states what is given together and asserts nothing
+    about what the combination does — naming an interaction is a clinical claim
+    (§3an).
+    """
+    therapy_code: str = Field(..., min_length=3, max_length=16)
+    receiving: bool
+    regimen: Optional[str] = Field(None, max_length=120)
+    started_on: Optional[date] = None
+    ended_on: Optional[date] = None
+
+
+class ConditionTherapiesUpdate(BaseModel):
+    """The switches being SET. Omitted codes are left alone, never cleared.
+
+    A client editing one switch must not retract every other statement on the
+    condition, so this is an upsert over the entries present rather than a
+    replacement of the set — §3av's "a field the form submits but never
+    declares erases itself", pre-empted on a clinical declaration.
+    """
+    therapies: List[ConditionTherapyIn] = Field(default_factory=list)

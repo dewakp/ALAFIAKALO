@@ -51,11 +51,12 @@ struct ChronicConditionsView: View {
             .sheet(isPresented: $showingAddCondition) {
                 ConditionFormView(
                     condition: selectedCondition,
-                    onSave: { condition in
+                    onSave: { condition, therapies in
                         if let existing = selectedCondition {
-                            viewModel.updateCondition(id: existing.id, condition: condition)
+                            viewModel.updateCondition(id: existing.id, condition: condition,
+                                                      therapies: therapies)
                         } else {
-                            viewModel.createCondition(condition)
+                            viewModel.createCondition(condition, therapies: therapies)
                         }
                         showingAddCondition = false
                     }
@@ -161,15 +162,59 @@ struct ChronicSeverityBadge: View {
 }
 
 /// One therapy a patient can declare — an ICD-11 code with WHO's own title.
+///
+/// `group`/`groupTitle` are the SERVER's grouping. This file must never split
+/// a code on its dot to decide which branch it belongs to: that is the client
+/// deciding what a code means, which is the §3ad rule the hand-typed enum broke.
 struct TherapyOption: Codable, Identifiable {
     let code: String
     let title: String
     let surface: String
+    let group: String?
+    let groupTitle: String?
     var id: String { code }
+
+    enum CodingKeys: String, CodingKey {
+        case code, title, surface, group
+        case groupTitle = "group_title"
+    }
 }
 
 struct TherapyOptionsResponse: Codable {
     let options: [TherapyOption]
+}
+
+/// One STATEMENT about one therapy.
+///
+/// Operator, 2026-10-14: *"a comprehensive list with items zeroed out (no
+/// impact) when not present (like a switch)"*.
+///
+/// `receiving` is NOT optional and has no default. A row exists only because
+/// somebody answered, so the three states are:
+///
+///     no row            nobody asked          -> unknown, nothing inferred
+///     receiving false   explicitly not on it  -> a measured ZERO
+///     receiving true    undergoing it         -> opens its screen
+///
+/// A checkbox could only ever express the third (§3at).
+struct ConditionTherapyRow: Codable, Identifiable {
+    let therapyCode: String
+    let receiving: Bool
+    var regimen: String?
+    var id: String { therapyCode }
+
+    enum CodingKeys: String, CodingKey {
+        case receiving, regimen
+        case therapyCode = "therapy_code"
+    }
+}
+
+struct ConditionTherapiesResponse: Codable {
+    let therapies: [ConditionTherapyRow]
+}
+
+struct ConditionTherapiesUpdate: Codable {
+    let therapies: [ConditionTherapyRow]
 }
 
 struct ConditionFormView: View {
@@ -184,15 +229,118 @@ struct ConditionFormView: View {
     /// does not render, which is correct — a guessed list is worse than none.
     @State private var therapyOptions: [TherapyOption] = []
 
+    /// Each therapy's STATEMENT, keyed by code. A code ABSENT from this
+    /// dictionary was never answered — a different fact from `false`, and
+    /// keeping them apart is the whole reason this replaced a set of ticks.
+    @State private var therapySwitches: [String: Bool] = [:]
+    @State private var therapyRegimens: [String: String] = [:]
+    /// §3aa: an unreadable list must not render as a screen full of zeros.
+    @State private var therapyLoadFailed = false
+
+    /// The branches, in the order the server sent them.
+    private var therapyGroups: [(code: String, title: String?, options: [TherapyOption])] {
+        var order: [String] = []
+        var byGroup: [String: [TherapyOption]] = [:]
+        var titles: [String: String?] = [:]
+        for option in therapyOptions {
+            let key = option.group ?? option.code
+            if byGroup[key] == nil {
+                order.append(key)
+                titles[key] = option.groupTitle
+            }
+            byGroup[key, default: []].append(option)
+        }
+        return order.map { (code: $0, title: titles[$0] ?? nil, options: byGroup[$0] ?? []) }
+    }
+
     private func loadTherapyOptions() async {
         if let r: TherapyOptionsResponse =
             try? await APIClient.shared.get("/chronic/therapy-options") {
             therapyOptions = r.options
         }
+        // The stored statements, read back before the form is touched. A
+        // control that never loads its stored value shows its default, which
+        // reads as NEVER RECORDED, and the next save overwrites what was
+        // there — §3av, measured on `machine_total_time_minutes`.
+        guard let existing = condition else { return }
+        do {
+            let r: ConditionTherapiesResponse = try await APIClient.shared
+                .get("/chronic/conditions/\(existing.id)/therapies")
+            var states: [String: Bool] = [:]
+            var labels: [String: String] = [:]
+            for row in r.therapies {
+                states[row.therapyCode] = row.receiving
+                if let regimen = row.regimen { labels[row.therapyCode] = regimen }
+            }
+            therapySwitches = states
+            therapyRegimens = labels
+            therapyLoadFailed = false
+        } catch {
+            // Never guess. Every therapy stays UNANSWERED, so the save sends
+            // nothing for those codes and what is stored survives.
+            therapyLoadFailed = true
+        }
+    }
+
+    /// One therapy's three-state control.
+    ///
+    /// Extracted into its own function on purpose: the inline version of this
+    /// row made the compiler answer *"unable to type-check this expression in
+    /// reasonable time"*, which is how this file's Ω card was written too.
+    @ViewBuilder
+    private func therapyRow(_ option: TherapyOption) -> some View {
+        let state: Bool? = therapySwitches[option.code]
+        VStack(alignment: .leading, spacing: 6) {
+            // WHO's own title; nothing is relabelled here.
+            Text(option.title).font(.subheadline)
+            Picker("", selection: Binding<Int>(
+                get: { state == nil ? 2 : (state == true ? 0 : 1) },
+                set: { choice in
+                    switch choice {
+                    case 0: therapySwitches[option.code] = true
+                    case 1: therapySwitches[option.code] = false
+                    default:
+                        // Back to unanswered. REMOVING the key is the point: a
+                        // client cannot express "unknown" by sending false, so
+                        // it stops sending the entry at all.
+                        therapySwitches.removeValue(forKey: option.code)
+                        therapyRegimens.removeValue(forKey: option.code)
+                    }
+                }
+            )) {
+                Text("On this").tag(0)
+                Text("Not on this").tag(1)
+                Text("Not answered").tag(2)
+            }
+            .pickerStyle(.segmented)
+            // Compounding: therapies given as ONE treatment share a label. It
+            // records what is given together and claims nothing about effect.
+            if state == true {
+                TextField("Given together as (optional)", text: Binding(
+                    get: { therapyRegimens[option.code] ?? "" },
+                    set: { therapyRegimens[option.code] = $0 }
+                ))
+                .font(.caption)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// What the save sends: only the codes somebody answered for.
+    private var declaredTherapies: [ConditionTherapyRow] {
+        therapySwitches.keys.sorted().map { code in
+            ConditionTherapyRow(therapyCode: code,
+                                receiving: therapySwitches[code] ?? false,
+                                regimen: therapyRegimens[code]?.isEmpty == false
+                                    ? therapyRegimens[code] : nil)
+        }
     }
 
     let condition: ChronicCondition?
-    let onSave: (ChronicConditionCreate) -> Void
+    /// The condition AND its therapy statements. They travel together because
+    /// a switch belongs to a condition that must exist first, and the view
+    /// model is where the id comes back.
+    let onSave: (ChronicConditionCreate, [ConditionTherapyRow]) -> Void
     
     @Environment(\.dismiss) var dismiss
     @State private var formData = ChronicConditionCreate.empty()
@@ -290,29 +438,31 @@ struct ConditionFormView: View {
                     ), displayedComponents: .date)
                 }
                 
-                // Therapies this condition is treated with. The server
-                // validates every value against its own `TherapyType` enum and
-                // drops what it does not recognise, so this list is a
-                // convenience and never the authority (§3ad).
-                Section("Therapies") {
-                    Text("Which therapies treat this condition. This decides whether the app shows you those screens.")
+                // Therapies this condition is treated with — a SWITCH over
+                // WHO's whole therapy branch, not a set of ticked items.
+                //
+                // This was a checkbox per therapy, and a checkbox cannot
+                // record three states (§3at). Unticked meant BOTH "not on this
+                // therapy" and "nobody asked"; the first retires a screen and
+                // the second must leave it alone.
+                Section {
+                    Text("For each therapy, say whether you are on it, not on it, or leave it unanswered. Saying you are not on one is an answer too.")
                         .font(.caption).foregroundStyle(.secondary)
-                    ForEach(therapyOptions) { option in
-                        let on = (formData.therapyTypes ?? []).contains(option.code)
-                        Button {
-                            var next = Set(formData.therapyTypes ?? [])
-                            if on { next.remove(option.code) } else { next.insert(option.code) }
-                            formData.therapyTypes = next.isEmpty ? nil : Array(next).sorted()
-                        } label: {
-                            HStack {
-                                Image(systemName: on ? "checkmark.square.fill" : "square")
-                                    .foregroundStyle(on ? .blue : .secondary)
-                                // WHO's own title; nothing is relabelled here.
-                                Text(option.title).foregroundStyle(.primary)
-                                Spacer()
+                    if therapyLoadFailed {
+                        Text("Could not load your therapy answers. Nothing has been changed.")
+                            .font(.caption).foregroundStyle(.orange)
+                    }
+                    ForEach(therapyGroups, id: \.code) { group in
+                        // WHO's own heading, or the shared prefix of its
+                        // members where the branch root carries no title.
+                        DisclosureGroup(group.title ?? group.code) {
+                            ForEach(group.options) { option in
+                                therapyRow(option)
                             }
                         }
                     }
+                } header: {
+                    Text("Therapies")
                 }
 
                 Section("Treatment & Notes") {
@@ -364,7 +514,7 @@ struct ConditionFormView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        onSave(formData)
+                        onSave(formData, declaredTherapies)
                         dismiss()
                     }
                     .disabled(formData.conditionName.isEmpty)
@@ -454,7 +604,6 @@ struct ChronicConditionCreate: Codable {
     var stage: String?
     var grade: String?
     var currentTreatmentPlan: String?
-    var therapyTypes: [String]?
     var primaryPhysician: String?
     var specialistPhysician: String?
     var monitoringFrequency: String?
@@ -475,7 +624,6 @@ struct ChronicConditionCreate: Codable {
         case isActive = "is_active"
         case remissionDate = "remission_date"
         case currentTreatmentPlan = "current_treatment_plan"
-        case therapyTypes = "therapy_types"
         case primaryPhysician = "primary_physician"
         case specialistPhysician = "specialist_physician"
         case monitoringFrequency = "monitoring_frequency"
@@ -570,10 +718,12 @@ class ChronicConditionsViewModel: ObservableObject {
         }
     }
     
-    func createCondition(_ condition: ChronicConditionCreate) {
+    func createCondition(_ condition: ChronicConditionCreate,
+                         therapies: [ConditionTherapyRow] = []) {
         Task {
             do {
-                let _: ChronicCondition = try await APIClient.shared.post("/chronic/conditions", body: condition)
+                let created: ChronicCondition = try await APIClient.shared.post("/chronic/conditions", body: condition)
+                await saveTherapies(conditionId: created.id, therapies: therapies)
                 loadConditions()
             } catch {
                 errorMessage = AppLanguage.text("Failed to create condition: \(error.localizedDescription)")
@@ -582,10 +732,12 @@ class ChronicConditionsViewModel: ObservableObject {
         }
     }
     
-    func updateCondition(id: Int, condition: ChronicConditionCreate) {
+    func updateCondition(id: Int, condition: ChronicConditionCreate,
+                         therapies: [ConditionTherapyRow] = []) {
         Task {
             do {
                 let _: ChronicCondition = try await APIClient.shared.put("/chronic/conditions/\(id)", body: condition)
+                await saveTherapies(conditionId: id, therapies: therapies)
                 loadConditions()
             } catch {
                 errorMessage = AppLanguage.text("Failed to update condition: \(error.localizedDescription)")
@@ -594,6 +746,28 @@ class ChronicConditionsViewModel: ObservableObject {
         }
     }
     
+    /// The therapy switches, written AFTER the condition exists.
+    ///
+    /// Deliberately a second request and deliberately not fatal to the first:
+    /// losing a therapy answer is bad, losing the condition the patient just
+    /// typed because a therapy write failed is worse (§3c's argument for
+    /// saving the meal before estimating it). The failure is REPORTED —
+    /// silence would leave the patient believing they declared a treatment the
+    /// navigation will not reflect (§3aa).
+    private func saveTherapies(conditionId: Int,
+                               therapies: [ConditionTherapyRow]) async {
+        guard !therapies.isEmpty else { return }
+        do {
+            let _: ConditionTherapiesResponse = try await APIClient.shared.put(
+                "/chronic/conditions/\(conditionId)/therapies",
+                body: ConditionTherapiesUpdate(therapies: therapies))
+        } catch {
+            errorMessage = AppLanguage.text(
+                "Your condition was saved, but your therapy answers were not: \(error.localizedDescription)")
+            showError = true
+        }
+    }
+
     func deleteCondition(id: Int) {
         Task {
             do {

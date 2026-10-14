@@ -633,7 +633,14 @@
     "are_you_sure_you_want_to_delete_this": "Ị chọrọ ịkpọ ọrịa a gburugburu?",
     "failed_to_delete_condition": "Ọ dịghị ka a kpọrọ ọrịa",
     "therapy_types": "Ọgwụ Ọrụ",
-    "therapy_types_help": "Kedu ọgwụ ọrụ na-agwọ ọrịa a. Nke a na-ekpebi ma app a ga-egosi gị ihe ndị ahụ."
+    "therapy_on": "Ọ na-eme m",
+    "therapy_off": "Ọ na-agụ m",
+    "therapy_unanswered": "Amaghị m",
+    "therapy_switch_help": "Maka ọrụ ọgwụ ọ bụla, sị ma ọ na-eme gị, ma ọ na-agụ gị, ma hapụ ya. Ịsị na ọ na-agụ gị bụ azịza — ọ na-agwa app ka ọ kụwuo ihuenyo ahụ. Ihe ị na-ahapụ na-ahapụ dị ka ọ dị.",
+    "therapy_group_answered": "— azịzawo",
+    "therapy_regimen_placeholder": "A na-enye ọnụ dị ka (ọ bụrụ na ọ dị)",
+    "therapies_not_saved": "E zọpụtara ọkwa gị, mana azịza gị maka ọrụ ọgwụ adịghị ezo. Biko gbalịa ọzọ.",
+    "therapies_not_loaded": "Enweghị ike ilodata azịza gị maka ọrụ ọgwụ. Ọ dịghị ihe gbanwere — azịza ị na-ahapụ na-adị ka ọ dị."
   },
   "ClinicianDashboard": {
     "loading": "A na-aloading...",

@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">Ó kọ jáde nínú ibi-ìfitọ́sọ́nà rẹ̀</string>
     <string name="alpha_none">Kò sí àìsàn kan lórí ìwé tí ó ní ibi-ìfitọ́sọ́nà, nítorí náà kò sí ohun tí a lè ṣe ìsirò fún.</string>
     <string name="therapy_types">Àwọn Ìtọ́nisọ̀rọ̀</string>
-    <string name="therapy_types_help">Àwọn ìtọ́nisọ̀rọ̀ tí ó ṣe àlàbá fún ìṣẹ̀lẹ̀ yìí. Èyí ń pín dájú bóyá àpp náà yóò fi hàn ọ́ àwọn ìkòkò wọ̀n.</string>
+    <string name="therapy_switch_help">Fun kọ̀ọ̀kan therapy, sọ pé o wà lára rẹ̀, tàbí o kò wà lára rẹ̀, tàbí fi ìdáhùn sílẹ̀. Sísọ pé o kò wà lára rẹ̀ jẹ́ ìdáhùn pẹ̀lú — ó sọ fún app náà láti dẹ́kù àkójú yìí. Ohun tí o fi sílẹ̀ a fi sílẹ̀ nìkan.</string>
+    <string name="therapy_on">Wà lára mi</string>
+    <string name="therapy_off">Kò wà lára mi</string>
+    <string name="therapy_unanswered">Kò dáhùn</string>
+    <string name="therapy_group_answered">— dáhùn</string>
+    <string name="therapy_regimen_placeholder">A fúnni pẹ̀lú (àkọ̀tun)</string>
+    <string name="therapies_not_saved">Àwọn ìṣẹ̀lẹ̀ rẹ̀ tí a pa mọ́, ṣùgbọ́n àwọn ìdáhùn therapy rẹ̀ kò pa mọ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.</string>
+    <string name="therapies_not_loaded">Àwọn ìdáhùn therapy rẹ̀ kò ṣe àgbékalẹ̀. Ohun kan kò yí padà.</string>
 </resources>

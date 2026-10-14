@@ -1354,5 +1354,12 @@
     <string name="alpha_off_target_heading">Apụghị ịnwụ n\'ebe ọ kwesịrị</string>
     <string name="alpha_none">Ọ dịghị ọrịa e dekọrọ nwere ebumnuche iwu, ya mere enweghi ihe a ga-atụ anya ebe a.</string>
     <string name="therapy_types">Ọgwụ Ịgwọ</string>
-    <string name="therapy_types_help">Kedu ọgwụ ịgwọ na-agwọ ọrịa a. Nke a na-ekpebi ma app a ga-egosi gị ihe ndị ahụ.</string>
+    <string name="therapy_switch_help">Maka ọrụ ọgwụ ọ bụla, sị ma ị na-eji ya, na-ejighị ya, ma ọ bụ hapụ ya azụ. Ịsị na ị na-ejighị ya bụ azụ — ọ na-agwa app ka ọ kụwuo ihuenyo ahụ. Ihe ị hapụrụ azụ agaghị agbanwe.</string>
+    <string name="therapy_on">Na nke a</string>
+    <string name="therapy_off">Abụghị nke a</string>
+    <string name="therapy_unanswered">Azụ</string>
+    <string name="therapy_group_answered">— azụ</string>
+    <string name="therapy_regimen_placeholder">A na-enye ọnụ dị ka (ọ bụrụ na ọ dị mma)</string>
+    <string name="therapies_not_saved">E zọpụtara ọnọdụ gị, mana azụ gị maka ọrụ ọgwụ azụghị. Biko zaa ọzọ.</string>
+    <string name="therapies_not_loaded">Enweghị ike ilodata azụ gị maka ọrụ ọgwụ. Ọ bụla azụghị gbanwere.</string>
 </resources>
