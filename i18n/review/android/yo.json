@@ -515,11 +515,23 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "alpha_not_receiving": {
+    "source": "you told us you are not on this",
+    "translation": "Ìwọ sọ fún wa pé o kò wà lórí èyí",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "alpha_off_target_heading": {
     "source": "Outside its target",
     "translation": "Ó kọ jáde nínú ibi-ìfitọ́sọ́nà rẹ̀",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "alpha_regimen_heading": {
+    "source": "What is being done for you",
+    "translation": "Kini a ń ṣe fun ọ",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "already_have_an_account_login": {
     "source": "Already have an account? Login",
@@ -7361,6 +7373,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_date_unreadable": {
+    "source": "“%1$s” is not a date we can read. Please write it as YYYY-MM-DD, for example 2026-03-14.",
+    "translation": "\"%1$s\" kì í ṣe ọjọ́ tí a lè kà. Jọ̀wọ́ kọ́ ọ gẹ́gẹ́ YYYY-MM-DD, fún àpẹẹrẹ [dob].",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_ended_on": {
+    "source": "Stopped on",
+    "translation": "Dẹ̀kun sí",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_group_answered": {
     "source": "— answered",
     "translation": "— dáhùn",
@@ -7372,6 +7396,18 @@
     "translation": "Hemodialysis",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_i_know_started": {
+    "source": "I know when it started",
+    "translation": "Mo mọ̀ ìgbà tí ó bẹ̀rẹ̀",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_i_know_stopped": {
+    "source": "I know when it stopped",
+    "translation": "Mo mọ̀ ìgbà tí ó dẹ̀kun",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_immunotherapy": {
     "source": "Immunotherapy",
@@ -7418,6 +7454,12 @@
   "therapy_regimen_placeholder": {
     "source": "Given together as (optional)",
     "translation": "A fúnni pẹ̀lú (àkọ̀tun)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_started_on": {
+    "source": "Started on",
+    "translation": "Bẹ̀rẹ̀ sí",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

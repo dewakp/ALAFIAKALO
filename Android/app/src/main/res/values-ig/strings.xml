@@ -1362,4 +1362,11 @@
     <string name="therapy_regimen_placeholder">A na-enye ọnụ dị ka (ọ bụrụ na ọ dị mma)</string>
     <string name="therapies_not_saved">E zọpụtara ọnọdụ gị, mana azụ gị maka ọrụ ọgwụ azụghị. Biko zaa ọzọ.</string>
     <string name="therapies_not_loaded">Enweghị ike ilodata azụ gị maka ọrụ ọgwụ. Ọ bụla azụghị gbanwere.</string>
+    <string name="therapy_started_on">Malitere na</string>
+    <string name="therapy_ended_on">Kwụsịrị na</string>
+    <string name="therapy_i_know_started">Amaara m mgbe ọ malitere</string>
+    <string name="therapy_i_know_stopped">Amaara m mgbe ọ kwụsịrị</string>
+    <string name="alpha_regimen_heading">Gini ka a na-eme maka gị</string>
+    <string name="alpha_not_receiving">Ị sịrị na ị nọ na-eji nke a</string>
+    <string name="therapy_date_unreadable">\"%1$s\" abụghị ụbọchị anyị nwere ike ịgụ. Biko dee ya dị ka YYYY-MM-DD, dịka [dob].</string>
 </resources>

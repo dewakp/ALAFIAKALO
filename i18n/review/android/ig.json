@@ -515,11 +515,23 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "alpha_not_receiving": {
+    "source": "you told us you are not on this",
+    "translation": "Ị sịrị na ị nọ na-eji nke a",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "alpha_off_target_heading": {
     "source": "Outside its target",
     "translation": "Apụghị ịnwụ n'ebe ọ kwesịrị",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "alpha_regimen_heading": {
+    "source": "What is being done for you",
+    "translation": "Gini ka a na-eme maka gị",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "already_have_an_account_login": {
     "source": "Already have an account? Login",
@@ -7361,6 +7373,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_date_unreadable": {
+    "source": "“%1$s” is not a date we can read. Please write it as YYYY-MM-DD, for example 2026-03-14.",
+    "translation": "\"%1$s\" abụghị ụbọchị anyị nwere ike ịgụ. Biko dee ya dị ka YYYY-MM-DD, dịka [dob].",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_ended_on": {
+    "source": "Stopped on",
+    "translation": "Kwụsịrị na",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_group_answered": {
     "source": "— answered",
     "translation": "— azụ",
@@ -7372,6 +7396,18 @@
     "translation": "Hemodialysis",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_i_know_started": {
+    "source": "I know when it started",
+    "translation": "Amaara m mgbe ọ malitere",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_i_know_stopped": {
+    "source": "I know when it stopped",
+    "translation": "Amaara m mgbe ọ kwụsịrị",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_immunotherapy": {
     "source": "Immunotherapy",
@@ -7418,6 +7454,12 @@
   "therapy_regimen_placeholder": {
     "source": "Given together as (optional)",
     "translation": "A na-enye ọnụ dị ka (ọ bụrụ na ọ dị mma)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_started_on": {
+    "source": "Started on",
+    "translation": "Malitere na",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

@@ -3325,6 +3325,16 @@
         <target state="translated">أنا أعرف التاريخ</target>
         <note />
       </trans-unit>
+      <trans-unit id="I know when it started" xml:space="preserve">
+        <source>I know when it started</source>
+        <target state="translated">أعرف متى بدأ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="I know when it stopped" xml:space="preserve">
+        <source>I know when it stopped</source>
+        <target state="translated">أعرف متى توقف</target>
+        <note />
+      </trans-unit>
       <trans-unit id="I've confirmed — continue" xml:space="preserve">
         <source>I've confirmed — continue</source>
         <target state="translated">تم التأكيد — متابعة</target>
@@ -6577,6 +6587,11 @@
         <target state="translated">ابدأ بتسجيل حالتك المزاجية أو جرّب تمرين التنفس</target>
         <note />
       </trans-unit>
+      <trans-unit id="Started" xml:space="preserve">
+        <source>Started</source>
+        <target state="translated">بدأ</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Stat" xml:space="preserve">
         <source>Stat</source>
         <target state="translated">فوري</target>
@@ -6605,6 +6620,11 @@
       <trans-unit id="Stop" xml:space="preserve">
         <source>Stop</source>
         <target state="translated">إيقاف</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Stopped" xml:space="preserve">
+        <source>Stopped</source>
+        <target state="translated">توقف</target>
         <note />
       </trans-unit>
       <trans-unit id="Storage" xml:space="preserve">
@@ -7551,6 +7571,11 @@ Are you absolutely sure?</source>
         <target state="translated">ما المشاعر التي تشعر بها؟</target>
         <note />
       </trans-unit>
+      <trans-unit id="What is being done for you" xml:space="preserve">
+        <source>What is being done for you</source>
+        <target state="translated">ما الذي يتم القيام به لك</target>
+        <note />
+      </trans-unit>
       <trans-unit id="What never reaches the provider" xml:space="preserve">
         <source>What never reaches the provider</source>
         <target state="translated">ما لا يصل أبدًا إلى مقدم الخدمة</target>
@@ -7881,6 +7906,11 @@ Are you absolutely sure?</source>
       <trans-unit id="you logged it" xml:space="preserve">
         <source>you logged it</source>
         <target state="translated">سجلته بنفسك</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="you told us you are not on this" xml:space="preserve">
+        <source>you told us you are not on this</source>
+        <target state="translated">أخبرتنا أنك لست على هذا</target>
         <note />
       </trans-unit>
       <trans-unit id="°F" xml:space="preserve">

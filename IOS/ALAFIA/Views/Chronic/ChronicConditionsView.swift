@@ -201,11 +201,17 @@ struct ConditionTherapyRow: Codable, Identifiable {
     let therapyCode: String
     let receiving: Bool
     var regimen: String?
+    /// `YYYY-MM-DD`, or nil for NOT RECORDED — never today's date standing in
+    /// for a date nobody supplied (TASKS 20b).
+    var startedOn: String?
+    var endedOn: String?
     var id: String { therapyCode }
 
     enum CodingKeys: String, CodingKey {
         case receiving, regimen
         case therapyCode = "therapy_code"
+        case startedOn = "started_on"
+        case endedOn = "ended_on"
     }
 }
 
@@ -234,6 +240,16 @@ struct ConditionFormView: View {
     /// keeping them apart is the whole reason this replaced a set of ticks.
     @State private var therapySwitches: [String: Bool] = [:]
     @State private var therapyRegimens: [String: String] = [:]
+    /// When a therapy STARTED, and when it stopped. Both optional and NEVER
+    /// inferred (TASKS 20b).
+    ///
+    /// ⚠️ **A `receiving = false` with no `ended_on` cannot distinguish "never
+    /// was on it" from "stopped, date unknown."** That is a real limit of a
+    /// switch plus two dates, recorded rather than papered over: a date nobody
+    /// supplied must read as NOT RECORDED, and inventing a fourth state to
+    /// hold it would be the §3at collapse pointing the other way.
+    @State private var therapyStarted: [String: Date] = [:]
+    @State private var therapyEnded: [String: Date] = [:]
     /// §3aa: an unreadable list must not render as a screen full of zeros.
     @State private var therapyLoadFailed = false
 
@@ -268,12 +284,21 @@ struct ConditionFormView: View {
                 .get("/chronic/conditions/\(existing.id)/therapies")
             var states: [String: Bool] = [:]
             var labels: [String: String] = [:]
+            var started: [String: Date] = [:]
+            var ended: [String: Date] = [:]
             for row in r.therapies {
                 states[row.therapyCode] = row.receiving
                 if let regimen = row.regimen { labels[row.therapyCode] = regimen }
+                // A stored date must be LOADED or the control draws its
+                // default and the next save overwrites what was there — §3av,
+                // measured on `machine_total_time_minutes`.
+                if let d = Self.isoDay(row.startedOn) { started[row.therapyCode] = d }
+                if let d = Self.isoDay(row.endedOn) { ended[row.therapyCode] = d }
             }
             therapySwitches = states
             therapyRegimens = labels
+            therapyStarted = started
+            therapyEnded = ended
             therapyLoadFailed = false
         } catch {
             // Never guess. Every therapy stays UNANSWERED, so the save sends
@@ -321,6 +346,41 @@ struct ConditionFormView: View {
                     set: { therapyRegimens[option.code] = $0 }
                 ))
                 .font(.caption)
+                // The date it began. `Toggle` then `DatePicker` is the house
+                // idiom for an optional date (§3bb) — a DatePicker alone
+                // cannot be empty, so it would stamp today on every row and
+                // record a clinical date nobody supplied.
+                Toggle("I know when it started", isOn: Binding(
+                    get: { therapyStarted[option.code] != nil },
+                    set: { on in
+                        if on { therapyStarted[option.code] = therapyStarted[option.code] ?? Date() }
+                        else { therapyStarted.removeValue(forKey: option.code) }
+                    }
+                )).font(.caption)
+                if therapyStarted[option.code] != nil {
+                    DatePicker("Started", selection: Binding(
+                        get: { therapyStarted[option.code] ?? Date() },
+                        set: { therapyStarted[option.code] = $0 }
+                    ), displayedComponents: .date).font(.caption)
+                }
+            }
+            // A therapy that STOPPED. Flipping the switch to "not on this" is
+            // the only way to say so today, and that loses WHEN — which is
+            // exactly what makes a history interpretable (TASKS 20b).
+            if state == false {
+                Toggle("I know when it stopped", isOn: Binding(
+                    get: { therapyEnded[option.code] != nil },
+                    set: { on in
+                        if on { therapyEnded[option.code] = therapyEnded[option.code] ?? Date() }
+                        else { therapyEnded.removeValue(forKey: option.code) }
+                    }
+                )).font(.caption)
+                if therapyEnded[option.code] != nil {
+                    DatePicker("Stopped", selection: Binding(
+                        get: { therapyEnded[option.code] ?? Date() },
+                        set: { therapyEnded[option.code] = $0 }
+                    ), displayedComponents: .date).font(.caption)
+                }
             }
         }
         .padding(.vertical, 2)
@@ -332,8 +392,36 @@ struct ConditionFormView: View {
             ConditionTherapyRow(therapyCode: code,
                                 receiving: therapySwitches[code] ?? false,
                                 regimen: therapyRegimens[code]?.isEmpty == false
-                                    ? therapyRegimens[code] : nil)
+                                    ? therapyRegimens[code] : nil,
+                                startedOn: Self.dayString(therapyStarted[code]),
+                                endedOn: Self.dayString(therapyEnded[code]))
         }
+    }
+
+    /// `YYYY-MM-DD` both ways, with a FIXED locale and calendar.
+    ///
+    /// ⚠️ Not a locale-less `DateFormatter`: §3aw records that the app's
+    /// language is a SwiftUI `\.locale` choice and deliberately not
+    /// `Locale.setDefault`, so a formatter reading the ambient locale would
+    /// render an Arabic-Indic or Buddhist-calendar date into an API payload.
+    /// `en_US_POSIX` + Gregorian is the only safe pair for a wire format.
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private static func dayString(_ date: Date?) -> String? {
+        date.map { dayFormatter.string(from: $0) }
+    }
+
+    private static func isoDay(_ text: String?) -> Date? {
+        guard let text, !text.isEmpty else { return nil }
+        // The server may answer a bare day or a full timestamp; take the day.
+        return dayFormatter.date(from: String(text.prefix(10)))
     }
 
     let condition: ChronicCondition?
@@ -724,6 +812,7 @@ class ChronicConditionsViewModel: ObservableObject {
             do {
                 let created: ChronicCondition = try await APIClient.shared.post("/chronic/conditions", body: condition)
                 await saveTherapies(conditionId: created.id, therapies: therapies)
+                announceSurfacesChanged()
                 loadConditions()
             } catch {
                 errorMessage = AppLanguage.text("Failed to create condition: \(error.localizedDescription)")
@@ -738,6 +827,7 @@ class ChronicConditionsViewModel: ObservableObject {
             do {
                 let _: ChronicCondition = try await APIClient.shared.put("/chronic/conditions/\(id)", body: condition)
                 await saveTherapies(conditionId: id, therapies: therapies)
+                announceSurfacesChanged()
                 loadConditions()
             } catch {
                 errorMessage = AppLanguage.text("Failed to update condition: \(error.localizedDescription)")
@@ -746,6 +836,14 @@ class ChronicConditionsViewModel: ObservableObject {
         }
     }
     
+    /// Tell the navigation to ask again. Declaring a condition or a therapy is
+    /// what decides which clinical screens appear, and `MainTabView` reads
+    /// `GET /users/me/surfaces` once — so without this a patient's declaration
+    /// is invisible until relaunch (OPEN_ITEMS 39b).
+    private func announceSurfacesChanged() {
+        NotificationCenter.default.post(name: .alafiaSurfacesChanged, object: nil)
+    }
+
     /// The therapy switches, written AFTER the condition exists.
     ///
     /// Deliberately a second request and deliberately not fatal to the first:
@@ -772,6 +870,10 @@ class ChronicConditionsViewModel: ObservableObject {
         Task {
             do {
                 try await APIClient.shared.delete("/chronic/conditions/\(id)")
+                // Deleting the last condition retires screens as surely as
+                // adding one opens them, and its therapy rows go with it
+                // (FK ON DELETE CASCADE).
+                announceSurfacesChanged()
                 loadConditions()
             } catch {
                 errorMessage = AppLanguage.text("Failed to delete condition: \(error.localizedDescription)")

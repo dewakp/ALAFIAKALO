@@ -1362,4 +1362,11 @@
     <string name="therapy_regimen_placeholder">An ba su tare kamar (optional)</string>
     <string name="therapies_not_saved">An adana yanayin ku, amma amsosin jiya ba a adana su. Da fatan za a sake gwada.</string>
     <string name="therapies_not_loaded">Ba a iya lodin amsosin jiya ku. Ba a canja komai.</string>
+    <string name="therapy_started_on">An fara</string>
+    <string name="therapy_ended_on">An tsaya</string>
+    <string name="therapy_i_know_started">Na san lokacin da ya fara</string>
+    <string name="therapy_i_know_stopped">Na san lokacin da ya tsaya</string>
+    <string name="alpha_regimen_heading">Me ake yi maka</string>
+    <string name="alpha_not_receiving">Ka gaya mana ba ka kan wannan ba</string>
+    <string name="therapy_date_unreadable">Ba za mu iya karantawa \"%1$s\" ba. Rubuta shi a matsayin YYYY-MM-DD, misali [dob].</string>
 </resources>

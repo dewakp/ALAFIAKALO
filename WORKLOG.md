@@ -3660,3 +3660,85 @@ release. **And the mobile therapy switch is in the repo, not in anybody's
 hands**: the shipped TestFlight build and distributed APK still draw the old
 checkbox and post `therapy_types`, which still works through the legacy path —
 what they cannot do is state a zero. That needs an App Store build and an APK.
+
+---
+
+## 2026-10-14 — The therapy switch gets a consumer (TASKS 20a/20b/20d)
+
+The switch shipped to production that morning as a table nothing read. Full
+detail and verification: **OPEN_ITEMS 41**.
+
+**Α reads it now, and so does Ω's expected-marker set.** `indications_for`
+decided the axis by matching condition TEXT against
+`("renal", "kidney", "dialysis", "esrd", "ckd", "nephro")` — and **"ESKD"
+matches none of them**, so a patient on dialysis for end-stage kidney disease
+could be refused every renal guideline over four letters. That is the §3an
+shape this line of work began by deleting; it had moved one function along.
+
+A therapy is a STATEMENT and WHO titles it, so the therapy's own catalog title
+goes through the SAME hints — `QB94.1` is "Care involving extracorporeal
+dialysis", `QB42` is "Dependence on renal dialysis". **No code→axis table was
+added**: a second hand-typed clinical mapping is one more thing to keep in step,
+and WHO's wording is an authority where mine is not.
+
+⚠️ **A stated zero never removes an axis.** A patient with ESRD who says they
+are not on dialysis is pre-dialysis CKD — still renal, because the condition
+says so. Therapies only ever ADD: the failure mode of adding is measuring a
+marker the patient holds; the failure mode of subtracting is withholding a
+guideline from the person being worked up for it.
+
+**The regimen is reported and never scored.** `therapies_receiving`,
+`therapies_stated_zero`, `regimens` and `indication_because` travel with Α —
+even when Α is None, because a patient on apheresis has no Α today and drawing
+nothing would read as "no treatment on record" for someone under active
+treatment. A test pins that Α is identical with two stated zeros present and
+absent: whether a patient SHOULD be on something they declined is a clinical
+judgement, and the arithmetic must not make it. All three clients DRAW it,
+which is the half §3bc got wrong on the quota work.
+
+**The dates** are collected on all three, each with an idiom that leaves an
+untouched field empty rather than stamping today: `type="date"` on web,
+`Toggle` + `DatePicker` on iOS (§3bb's house idiom), a typed `YYYY-MM-DD` on
+Android that REFUSES the save and names a half-typed value (§3av) rather than
+discarding it or sending a 422.
+
+**The navigation re-asks** — open through three deploys (37b/38c/39b) and worse
+after the switch, because a patient could state "not on this" and watch the
+screen they retired stay on screen. One signal per platform, each with
+precedent here, all carrying no payload: the surface rule is the server's, so
+the only correct response is to ask again.
+
+### What it cost to learn
+
+- **My own test measured nothing and caught it.**
+  `assert gained & renal_markers or gained` passes on ANY gain. The four marker
+  names are pinned exactly now, read out of the container — §3av, inside the
+  test written to prove the feature works.
+- **A Python heredoc cannot carry Kotlin's `"""`.** The patch script died on
+  the raw string and applied NONE of its edits while the strings.xml script
+  beside it succeeded, so the build then failed on half-applied work. Write the
+  patch to a file when the target language shares Python's quoting.
+- **`context` is not shared between composables.** The dialog borrowed the
+  screen's `LocalContext.current`; Kotlin read the bare name as its own
+  `context(...)` declaration and said `Function invocation 'context(...)'
+  expected` — which does not obviously mean "you are in the wrong scope".
+- **`offTargetLine` is `static`, not `private static`.** An anchor assertion
+  failed on that one word and, because the write happens at the end of the
+  script, the two good edits were discarded with it. Grep the declaration;
+  never retype it from the call site.
+
+**Verified:** backend 91 passed (18 new); the four new response fields built
+through `HEBCSScoreResponse` end to end; web 279; i18n + mobile guards 51;
+ruff F,E9 clean; iOS `BUILD SUCCEEDED` ×3; Android `BUILD SUCCESSFUL`, lint
+`MissingTranslation = 0`, APK 32,774,929 → 32,782,021 bytes; 15 new strings ×
+10 languages, 0 refused; and the dev bundle checked PER CHUNK — the entry holds
+the surfaces event (it lives in a shared module), the Conditions chunk the
+`/therapies` PUT and `started_on`, the Wellness chunk `therapies_stated_zero`.
+
+**Not done:** only the RENAL axis exists in `_INDICATION_HINTS`, so a leukaemia
+patient on chemotherapy still gets no Α — the mechanism now reads their declared
+therapy and nothing is tagged for it to score, which is a guideline-sourcing job
+(§3bc's resolve-cite-store), not a code gap. `regimen` stays free text, so
+nothing aggregates across records. Phototherapy still has no Q code — an
+operator decision. **None of this is deployed**; production remains on
+`7cb62da`.

@@ -1387,4 +1387,11 @@
     <string name="therapy_regimen_placeholder">Given together as (optional)</string>
     <string name="therapies_not_saved">Your condition was saved, but your therapy answers were not. Please try again.</string>
     <string name="therapies_not_loaded">Could not load your therapy answers. Nothing has been changed.</string>
+    <string name="therapy_started_on">Started on</string>
+    <string name="therapy_ended_on">Stopped on</string>
+    <string name="therapy_i_know_started">I know when it started</string>
+    <string name="therapy_i_know_stopped">I know when it stopped</string>
+    <string name="alpha_regimen_heading">What is being done for you</string>
+    <string name="alpha_not_receiving">you told us you are not on this</string>
+    <string name="therapy_date_unreadable">“%1$s” is not a date we can read. Please write it as YYYY-MM-DD, for example 2026-03-14.</string>
 </resources>

@@ -640,7 +640,9 @@
     "therapy_group_answered": "— an amsa",
     "therapy_regimen_placeholder": "Ana ba su tare kamar (optional)",
     "therapies_not_saved": "An adana yanayin ku, amma ba a adana amsosin maganin ku ba. Jiya ku gwada.",
-    "therapies_not_loaded": "Ba za a iya lodin amsosin maganin ku ba. Ba wani abu ya canja — amsosin da ba ku saita ba ana barin su kamar yadda suke."
+    "therapies_not_loaded": "Ba za a iya lodin amsosin maganin ku ba. Ba wani abu ya canja — amsosin da ba ku saita ba ana barin su kamar yadda suke.",
+    "therapy_started_on": "An fara a",
+    "therapy_ended_on": "An tsaya a"
   },
   "ClinicianDashboard": {
     "loading": "Ana lodin...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "Yadda aka kula da abin da kake rayuwa daidai da ka'idodin da aka rubuta. Wannan tambaya ta banbanta da yadda kake: kana iya zama mai cuta sosai kuma aka kula da kai daidai a lokaci gida.",
     "alpha_against_guidelines": "a gaban burin ka'idodi",
     "alpha_off_target_heading": "Waje da burinsa",
-    "alpha_none": "Babu cututtuka a rikodin da ke da burin ka'idodi, don haka babu abin da za a ƙididdige a nan."
+    "alpha_none": "Babu cututtuka a rikodin da ke da burin ka'idodi, don haka babu abin da za a ƙididdige a nan.",
+    "alpha_regimen_heading": "Me ake yi maka",
+    "alpha_not_receiving": "Ka gaya mana ba ka kan wannan ba"
   },
   "CategoryDetail": {
     "category": "Nau'i",

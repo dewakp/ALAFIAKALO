@@ -640,7 +640,9 @@
     "therapy_group_answered": "— ìdáhùn",
     "therapy_regimen_placeholder": "A fúnni pápọ̀ gẹ́gẹ́ (àkọ́kọ́)",
     "therapies_not_saved": "Ìpilẹ̀ rẹ ti pé, ṣùgbọ́n àwọn ìdáhùn ìgbé ìtúnú rẹ kò pé. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.",
-    "therapies_not_loaded": "Àìlákbáyé láti ṣe àkópọ̀ àwọn ìdáhùn ìgbé ìtúnú rẹ. Ohun kan kò yí padà — àwọn ìdáhùn tí o kò ṣètò ni a fi síwájú."
+    "therapies_not_loaded": "Àìlákbáyé láti ṣe àkópọ̀ àwọn ìdáhùn ìgbé ìtúnú rẹ. Ohun kan kò yí padà — àwọn ìdáhùn tí o kò ṣètò ni a fi síwájú.",
+    "therapy_started_on": "Bẹ̀rẹ̀ sílẹ̀",
+    "therapy_ended_on": "Dáwọ́ sílẹ̀"
   },
   "ClinicianDashboard": {
     "loading": "N lo...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "Bí o ṣe dáa ti a ń ṣakoso ohun tí o ń gbé pẹ̀lú gẹ́gẹ́ bí àwọn ìtọ́sọ́nú tí a kọ́ fún un. Èyí yatọ̀ síra rẹ: o lè jẹ́ àìlera gan-an ṣùgbọ́n a ń ṣakoso rẹ dáadáa ni kanna.",
     "alpha_against_guidelines": "kọ́ sí àwọn ibi-afẹ́dẹ̀ ìtọ́sọ́nú",
     "alpha_off_target_heading": "Kọ́ sí ibi-afẹ́dẹ̀ rẹ̀",
-    "alpha_none": "Àrùn kan tí a kọ́ sílẹ̀ kò ní ibi-afẹ́dẹ̀ ìtọ́sọ́nú, nítorí náà kò sí ohun tí a lè ṣe ìwọ̀n fún."
+    "alpha_none": "Àrùn kan tí a kọ́ sílẹ̀ kò ní ibi-afẹ́dẹ̀ ìtọ́sọ́nú, nítorí náà kò sí ohun tí a lè ṣe ìwọ̀n fún.",
+    "alpha_regimen_heading": "Kini a ń ṣe fun ọ",
+    "alpha_not_receiving": "Ìwọ sọ fún wa pé o kò wà lórí èyí"
   },
   "CategoryDetail": {
     "category": "Ẹ̀kọ́",

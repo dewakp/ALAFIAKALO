@@ -515,11 +515,23 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "alpha_not_receiving": {
+    "source": "you told us you are not on this",
+    "translation": "أخبرتنا أنك لست على هذا",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "alpha_off_target_heading": {
     "source": "Outside its target",
     "translation": "خارج النطاق المستهدف",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "alpha_regimen_heading": {
+    "source": "What is being done for you",
+    "translation": "ما الذي يتم القيام به لك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "already_have_an_account_login": {
     "source": "Already have an account? Login",
@@ -7361,6 +7373,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_date_unreadable": {
+    "source": "“%1$s” is not a date we can read. Please write it as YYYY-MM-DD, for example 2026-03-14.",
+    "translation": "لا يمكننا قراءة التاريخ \"%1$s\". يرجى كتابته بصيغة YYYY-MM-DD، على سبيل المثال [dob].",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_ended_on": {
+    "source": "Stopped on",
+    "translation": "توقف في",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_group_answered": {
     "source": "— answered",
     "translation": "— تمت الإجابة",
@@ -7372,6 +7396,18 @@
     "translation": "غسيل الكلى",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_i_know_started": {
+    "source": "I know when it started",
+    "translation": "أعرف متى بدأ",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_i_know_stopped": {
+    "source": "I know when it stopped",
+    "translation": "أعرف متى توقف",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_immunotherapy": {
     "source": "Immunotherapy",
@@ -7418,6 +7454,12 @@
   "therapy_regimen_placeholder": {
     "source": "Given together as (optional)",
     "translation": "يُعطى معًا باسم (اختياري)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_started_on": {
+    "source": "Started on",
+    "translation": "بدأ في",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

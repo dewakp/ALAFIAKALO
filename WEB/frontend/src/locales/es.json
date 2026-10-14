@@ -640,7 +640,9 @@
     "therapy_group_answered": "— respondido",
     "therapy_regimen_placeholder": "Administrados juntos como (opcional)",
     "therapies_not_saved": "Tu condición se guardó, pero tus respuestas de terapia no. Por favor intenta de nuevo.",
-    "therapies_not_loaded": "No se pudieron cargar tus respuestas de terapia. Nada ha cambiado — las respuestas que no estableces se mantienen como están."
+    "therapies_not_loaded": "No se pudieron cargar tus respuestas de terapia. Nada ha cambiado — las respuestas que no estableces se mantienen como están.",
+    "therapy_started_on": "Iniciado el",
+    "therapy_ended_on": "Detenido el"
   },
   "ClinicianDashboard": {
     "loading": "Cargando...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "Qué tan bien se está controlando lo que vives según las directrices establecidas para ello. Esta es una pregunta diferente de cómo te sientes: puedes estar muy enfermo y estar perfectamente controlado al mismo tiempo.",
     "alpha_against_guidelines": "frente a los objetivos de las directrices",
     "alpha_off_target_heading": "Fuera de su objetivo",
-    "alpha_none": "Ninguna condición registrada tiene un objetivo de directriz, por lo que no hay nada que calificar aquí."
+    "alpha_none": "Ninguna condición registrada tiene un objetivo de directriz, por lo que no hay nada que calificar aquí.",
+    "alpha_regimen_heading": "Qué se está haciendo por ti",
+    "alpha_not_receiving": "nos dijiste que no estás en esto"
   },
   "CategoryDetail": {
     "category": "Categoría",

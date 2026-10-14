@@ -3749,6 +3749,18 @@
     "status": "machine",
     "translated_on": "2026-10-14"
   },
+  "Localizable.xcstrings::I know when it started": {
+    "source": "I know when it started",
+    "translation": "Mo mọ̀ ìgbà tí ó bẹ̀rẹ̀",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::I know when it stopped": {
+    "source": "I know when it stopped",
+    "translation": "Mo mọ̀ ìgbà tí ó páro",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::I've confirmed — continue": {
     "source": "I've confirmed — continue",
     "translation": "Mo ti ìdánilójú — tẹ̀síwájú",
@@ -7637,6 +7649,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Started": {
+    "source": "Started",
+    "translation": "Bẹ̀rẹ̀",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Stat": {
     "source": "Stat",
     "translation": "Ìjìjìn",
@@ -7672,6 +7690,12 @@
     "translation": "Dáwọ́",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Stopped": {
+    "source": "Stopped",
+    "translation": "Páro",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Storage": {
     "source": "Storage",
@@ -8801,6 +8825,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::What is being done for you": {
+    "source": "What is being done for you",
+    "translation": "Kini a ń ṣe fun ọ",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::What never reaches the provider": {
     "source": "What never reaches the provider",
     "translation": "Ohun ti ko de ọlọ́paa",
@@ -9182,6 +9212,12 @@
   "Localizable.xcstrings::you logged it": {
     "source": "you logged it",
     "translation": "ìwọ gbé e",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::you told us you are not on this": {
+    "source": "you told us you are not on this",
+    "translation": "Ìwọ sọ fún wa pé o kò wà lórí èyí",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

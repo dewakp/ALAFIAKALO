@@ -575,6 +575,58 @@ function HEBCSTab() {
           {t('Wellness.alpha_card_subtitle')}
         </p>
 
+        {/* THE REGIMEN Α IS A JUDGEMENT ABOUT (TASKS 20a).
+            Drawn OUTSIDE the `alpha_pct == null` branch on purpose: a patient
+            on apheresis or radiotherapy has no Α today — no guideline target is
+            tagged for those axes — and showing "nothing to manage" with no
+            statement of their treatment would read as "no treatment on record"
+            for someone under active treatment (§3aa).
+
+            This is also the fix for the shape §3bc records on the quota work:
+            *"the figure reaches all three clients; the citation does not"*. A
+            payload nothing draws is a dead payload. */}
+        {((omega.therapies_receiving || []).length > 0
+          || (omega.therapies_stated_zero || []).length > 0) && (
+          <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              {t('Wellness.alpha_regimen_heading')}
+            </div>
+            {(omega.therapies_receiving || []).map((th) => (
+              <div key={th.code} style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+                {/* WHO's own title; nothing is relabelled here (§3ad). */}
+                ● {th.title || th.code}
+                {th.regimen && (
+                  <span style={{ color: '#6b7280', fontSize: 12 }}>
+                    {' '}— {th.regimen}
+                  </span>
+                )}
+                {th.started_on && (
+                  <span style={{ color: '#9ca3af', fontSize: 11 }}>
+                    {' '}{t('ChronicConditions.therapy_started_on')} {String(th.started_on).slice(0, 10)}
+                  </span>
+                )}
+              </div>
+            ))}
+            {/* A STATED ZERO, shown as what it is. A membership set could never
+                express it, and it is reported and never scored: whether a
+                patient should be on something they declined is a clinical
+                judgement, not this card's to make (§3an). */}
+            {(omega.therapies_stated_zero || []).map((th) => (
+              <div key={th.code} style={{ fontSize: 13, color: '#9ca3af', marginBottom: 4 }}>
+                ○ {th.title || th.code}
+                <span style={{ fontSize: 11 }}>
+                  {' '}— {t('Wellness.alpha_not_receiving')}
+                </span>
+                {th.ended_on && (
+                  <span style={{ fontSize: 11 }}>
+                    {' '}({t('ChronicConditions.therapy_ended_on')} {String(th.ended_on).slice(0, 10)})
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {omega.alpha_pct == null ? (
           <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>
             {omega.alpha_reason || t('Wellness.alpha_none')}
@@ -593,6 +645,18 @@ function HEBCSTab() {
             {Object.entries(omega.alpha_pathways || {}).map(([name, pw]) => (
               <PathwayBar key={name} name={name} score={pw.score} weight={pw.weight} />
             ))}
+
+            {/* WHY these guidelines apply at all. An axis decides which
+                guideline Α is measured against, so the patient must be able to
+                see what put them on it — a bare score cannot be checked by the
+                person it is about. */}
+            {Object.entries(omega.indication_because || {}).length > 0 && (
+              <div style={{ marginTop: 12, fontSize: 11, color: '#9ca3af' }}>
+                {Object.entries(omega.indication_because).map(([axis, why]) => (
+                  <div key={axis}>{axis}: {why.join('; ')}</div>
+                ))}
+              </div>
+            )}
 
             {(omega.alpha_off_target || []).length > 0 && (
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>

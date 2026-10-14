@@ -515,11 +515,23 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "alpha_not_receiving": {
+    "source": "you told us you are not on this",
+    "translation": "Ka gaya mana ba ka kan wannan ba",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "alpha_off_target_heading": {
     "source": "Outside its target",
     "translation": "Waje da manufofin sa",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "alpha_regimen_heading": {
+    "source": "What is being done for you",
+    "translation": "Me ake yi maka",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "already_have_an_account_login": {
     "source": "Already have an account? Login",
@@ -7361,6 +7373,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_date_unreadable": {
+    "source": "“%1$s” is not a date we can read. Please write it as YYYY-MM-DD, for example 2026-03-14.",
+    "translation": "Ba za mu iya karantawa \"%1$s\" ba. Rubuta shi a matsayin YYYY-MM-DD, misali [dob].",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_ended_on": {
+    "source": "Stopped on",
+    "translation": "An tsaya",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_group_answered": {
     "source": "— answered",
     "translation": "— an amsa",
@@ -7372,6 +7396,18 @@
     "translation": "Hemodialysis",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_i_know_started": {
+    "source": "I know when it started",
+    "translation": "Na san lokacin da ya fara",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_i_know_stopped": {
+    "source": "I know when it stopped",
+    "translation": "Na san lokacin da ya tsaya",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_immunotherapy": {
     "source": "Immunotherapy",
@@ -7418,6 +7454,12 @@
   "therapy_regimen_placeholder": {
     "source": "Given together as (optional)",
     "translation": "An ba su tare kamar (optional)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_started_on": {
+    "source": "Started on",
+    "translation": "An fara",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

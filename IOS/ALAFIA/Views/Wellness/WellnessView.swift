@@ -641,6 +641,32 @@ private struct HEBCSSection: View {
                  + "written for it. A different question from how you are.")
                 .font(.caption).foregroundStyle(.secondary)
 
+            // THE REGIMEN, drawn OUTSIDE the `alphaPct` branch on purpose.
+            // A patient on apheresis or radiotherapy has no Α today — no
+            // guideline target is tagged for those axes — and showing "nothing
+            // to manage" with no statement of their treatment would read as
+            // "no treatment on record" for someone under active treatment
+            // (§3aa). It is also the fix for the shape §3bc records: a payload
+            // no client draws is a dead payload.
+            if !(d.therapiesReceiving ?? []).isEmpty
+                || !(d.therapiesStatedZero ?? []).isEmpty {
+                Divider()
+                Text("What is being done for you")
+                    .font(.caption).bold()
+                ForEach(d.therapiesReceiving ?? []) { th in
+                    Text(Self.therapyLine(th, receiving: true))
+                        .font(.caption).foregroundStyle(.primary)
+                }
+                // A stated zero, shown as what it is — reported, never scored:
+                // whether a patient SHOULD be on something they declined is a
+                // clinical judgement, not this card's to make (§3an).
+                ForEach(d.therapiesStatedZero ?? []) { th in
+                    Text(Self.therapyLine(th, receiving: false))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Divider()
+            }
+
             if let alpha = d.alphaPct {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(String(format: "%.0f%%", alpha))
@@ -658,6 +684,13 @@ private struct HEBCSSection: View {
                             .font(.caption).foregroundStyle(.primary)
                     }
                 }
+                // WHY these guidelines apply at all. A bare score cannot be
+                // checked by the person it is about.
+                ForEach((d.indicationBecause ?? [:]).sorted(by: { $0.key < $1.key }),
+                        id: \.key) { axis, why in
+                    Text("\(axis): \(why.joined(separator: "; "))")
+                        .font(.caption2).foregroundStyle(.tertiary)
+                }
             } else {
                 Text(d.alphaReason
                      ?? "No condition on record has a guideline target.")
@@ -668,6 +701,34 @@ private struct HEBCSSection: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// One therapy as a sentence.
+    ///
+    /// A plain function for the same reason `offTargetLine` is one: the inline
+    /// concatenation made Swift answer *"unable to type-check this expression
+    /// in reasonable time"*.
+    ///
+    /// Worded parts go through `AppLanguage.text`, NOT `String(localized:)` —
+    /// §3aw measured that the latter reads the DEVICE language, so a patient
+    /// who chose French on an English phone would get French screens and an
+    /// English sentence here. WHO's title is never translated: it is the
+    /// catalog's wording, and a lookup elsewhere compares it.
+    static func therapyLine(_ th: AlphaTherapy, receiving: Bool) -> String {
+        var line = (receiving ? "● " : "○ ") + (th.title ?? th.code)
+        if !receiving {
+            line += " — " + AppLanguage.text("you told us you are not on this")
+        }
+        if let regimen = th.regimen, !regimen.isEmpty {
+            line += " — " + regimen
+        }
+        if receiving, let started = th.startedOn, !started.isEmpty {
+            line += " (" + String(started.prefix(10)) + ")"
+        }
+        if !receiving, let ended = th.endedOn, !ended.isEmpty {
+            line += " (" + String(ended.prefix(10)) + ")"
+        }
+        return line
     }
 
     static func offTargetLine(_ row: AlphaOffTarget) -> String {

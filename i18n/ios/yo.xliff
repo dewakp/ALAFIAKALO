@@ -3325,6 +3325,16 @@
         <target state="translated">Mo mọ ọjọ́ náà</target>
         <note />
       </trans-unit>
+      <trans-unit id="I know when it started" xml:space="preserve">
+        <source>I know when it started</source>
+        <target state="translated">Mo mọ̀ ìgbà tí ó bẹ̀rẹ̀</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="I know when it stopped" xml:space="preserve">
+        <source>I know when it stopped</source>
+        <target state="translated">Mo mọ̀ ìgbà tí ó páro</target>
+        <note />
+      </trans-unit>
       <trans-unit id="I've confirmed — continue" xml:space="preserve">
         <source>I've confirmed — continue</source>
         <target state="translated">Mo ti ìdánilójú — tẹ̀síwájú</target>
@@ -6577,6 +6587,11 @@
         <target state="translated">Bẹ̀rẹ̀ nípa ìbáṣepọ̀ àyípadà rẹ tàbí gbìyànjú ẹ̀kó ẹ̀mi</target>
         <note />
       </trans-unit>
+      <trans-unit id="Started" xml:space="preserve">
+        <source>Started</source>
+        <target state="translated">Bẹ̀rẹ̀</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Stat" xml:space="preserve">
         <source>Stat</source>
         <target state="translated">Ìjìjìn</target>
@@ -6605,6 +6620,11 @@
       <trans-unit id="Stop" xml:space="preserve">
         <source>Stop</source>
         <target state="translated">Dáwọ́</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Stopped" xml:space="preserve">
+        <source>Stopped</source>
+        <target state="translated">Páro</target>
         <note />
       </trans-unit>
       <trans-unit id="Storage" xml:space="preserve">
@@ -7551,6 +7571,11 @@ Njẹ́ o dá gbogbo ohun yìí lójú dáadáa?</target>
         <target state="translated">Kini awọn ikunra ti o ni?</target>
         <note />
       </trans-unit>
+      <trans-unit id="What is being done for you" xml:space="preserve">
+        <source>What is being done for you</source>
+        <target state="translated">Kini a ń ṣe fun ọ</target>
+        <note />
+      </trans-unit>
       <trans-unit id="What never reaches the provider" xml:space="preserve">
         <source>What never reaches the provider</source>
         <target state="translated">Ohun ti ko de ọlọ́paa</target>
@@ -7881,6 +7906,11 @@ Njẹ́ o dá gbogbo ohun yìí lójú dáadáa?</target>
       <trans-unit id="you logged it" xml:space="preserve">
         <source>you logged it</source>
         <target state="translated">ìwọ gbé e</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="you told us you are not on this" xml:space="preserve">
+        <source>you told us you are not on this</source>
+        <target state="translated">Ìwọ sọ fún wa pé o kò wà lórí èyí</target>
         <note />
       </trans-unit>
       <trans-unit id="°F" xml:space="preserve">

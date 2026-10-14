@@ -905,7 +905,42 @@ data class HEBCSScoreResponse(
     @SerializedName("alpha_pct") val alphaPct: Double? = null,
     @SerializedName("alpha_off_target") val alphaOffTarget: List<AlphaOffTarget> = emptyList(),
     @SerializedName("alpha_reason") val alphaReason: String? = null,
+
+    /** The REGIMEN Α is a judgement about (TASKS 20a).
+     *
+     *  Α alone is a verdict with no statement of what is being managed, and a
+     *  reader cannot then tell a poorly-managed patient from one whose
+     *  treatment nobody recorded. These arrive even when [alphaPct] is null —
+     *  a patient on apheresis has no Α today because no guideline target is
+     *  tagged for that axis, and drawing nothing would read as "no treatment
+     *  on record" for someone under active treatment (§3aa). */
+    @SerializedName("therapies_receiving") val therapiesReceiving: List<AlphaTherapy> = emptyList(),
+    /** What the patient has explicitly said they are NOT on — a measured ZERO,
+     *  which a membership set could never express (§3at). Shown, never scored. */
+    @SerializedName("therapies_stated_zero") val therapiesStatedZero: List<AlphaTherapy> = emptyList(),
+    /** Per indication axis, what put the patient on it. An axis decides which
+     *  guideline Α applies, so it must be auditable by its subject. */
+    @SerializedName("indication_because") val indicationBecause: Map<String, List<String>> = emptyMap(),
+
     val interpretation: String? = null
+)
+
+/**
+ * One therapy on the Α card, with WHO's own title.
+ *
+ * Every field but `code` is NULLABLE because the server legitimately sends
+ * null for each: a code outside the catalog carries no title rather than an
+ * invented one, and a date nobody supplied is NOT RECORDED. §3aj — match the
+ * model to the schema, not to the rows you happened to see, because Gson
+ * writes null into a Kotlin non-null field regardless.
+ */
+data class AlphaTherapy(
+    val code: String,
+    val title: String? = null,
+    val condition: String? = null,
+    val regimen: String? = null,
+    @SerializedName("started_on") val startedOn: String? = null,
+    @SerializedName("ended_on") val endedOn: String? = null,
 )
 
 /** A marker sitting at or past the bottom of its own guideline target. */

@@ -644,7 +644,16 @@ async def get_hebcs_omega_score(
     # (PTH, ferritin, TSAT, nPCR, Ca×P) are only EXPECTED of someone whose
     # record carries a renal condition. A well person was being scored as though
     # tests nobody should have ordered were missing from their chart.
-    patient_pathways = pathways_for(conditions_now)
+    # The therapy SWITCH, read once and handed to BOTH scores (TASKS 20a).
+    # A patient who states they are receiving extracorporeal dialysis is on the
+    # renal axis because they said so — stronger evidence than whether their
+    # diagnosis is spelled "ESRD" or "ESKD", which is the §3an keyword shape
+    # `indications_for` still carries for conditions. A stated ZERO never
+    # removes an axis: see `_therapy_titles`.
+    from app.services.patient_surfaces import therapy_switches
+    therapies_now = await therapy_switches(db, current_user.id)
+
+    patient_pathways = pathways_for(conditions_now, therapies=therapies_now)
     result_data = compute_hebcs(biomarker_values, pathways=patient_pathways,
                                 derived_values=derived,
                                 reference_ranges=resolved_ranges)
@@ -656,7 +665,8 @@ async def get_hebcs_omega_score(
     # at all until now (§3ar). Conditions, not a boolean: a guideline applies to
     # the population it was written for.
     alpha_data = compute_alpha(biomarker_values, derived_values=derived,
-                               conditions=conditions_now)
+                               conditions=conditions_now,
+                               therapies=therapies_now)
 
     # ── What Ω is, said before what it is worth ──────────────────────────
     #
@@ -836,6 +846,10 @@ async def get_hebcs_omega_score(
         alpha_pathways=alpha_data["pathways"],
         alpha_off_target=alpha_data["off_target"],
         alpha_reason=alpha_data.get("reason"),
+        therapies_receiving=alpha_data.get("therapies_receiving", []),
+        therapies_stated_zero=alpha_data.get("therapies_stated_zero", []),
+        regimens=alpha_data.get("regimens", {}),
+        indication_because=alpha_data.get("indication_because", {}),
         omega=result_data["omega"],
         omega_pct=result_data["omega_pct"],
         data_coverage=result_data["data_coverage"],

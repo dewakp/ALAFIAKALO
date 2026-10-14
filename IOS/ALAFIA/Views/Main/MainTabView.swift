@@ -1,6 +1,7 @@
 // Copyright © 2026 Wole Akpose / 6igma Health Inc.
 // All rights reserved. ALAFIA — proprietary and confidential.
 
+import Combine
 import SwiftUI
 
 struct MainTabView: View {
@@ -503,6 +504,14 @@ struct HealthHubView: View {
             }
             .navigationTitle("Health Hub")
             .task { await loadSurfaces() }
+            // The WRITER announces; the nav re-asks. `.task` alone fires once
+            // per appearance, and this view stays mounted behind the Conditions
+            // screen, so a declaration made there would otherwise not be
+            // reflected until relaunch (OPEN_ITEMS 39b).
+            .onReceive(NotificationCenter.default.publisher(
+                for: .alafiaSurfacesChanged)) { _ in
+                Task { await loadSurfaces() }
+            }
         }
     }
 }

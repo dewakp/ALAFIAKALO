@@ -1362,4 +1362,11 @@
     <string name="therapy_regimen_placeholder">Administrés ensemble sous (optionnel)</string>
     <string name="therapies_not_saved">Votre condition a été enregistrée, mais vos réponses sur les traitements ne l\'ont pas été. Veuillez réessayer.</string>
     <string name="therapies_not_loaded">Impossible de charger vos réponses sur les traitements. Rien n\'a été modifié.</string>
+    <string name="therapy_started_on">Commencé le</string>
+    <string name="therapy_ended_on">Arrêté le</string>
+    <string name="therapy_i_know_started">Je sais quand c\'est commencé</string>
+    <string name="therapy_i_know_stopped">Je sais quand c\'est arrêté</string>
+    <string name="alpha_regimen_heading">Ce qui est fait pour vous</string>
+    <string name="alpha_not_receiving">vous nous avez dit que vous n\'êtes pas sous ce traitement</string>
+    <string name="therapy_date_unreadable">« %1$s » n\'est pas une date lisible. Veuillez l\'écrire au format AAAA-MM-JJ, par exemple [dob].</string>
 </resources>

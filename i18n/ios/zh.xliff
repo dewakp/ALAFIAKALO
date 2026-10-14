@@ -3325,6 +3325,16 @@
         <target state="translated">我知道日期</target>
         <note />
       </trans-unit>
+      <trans-unit id="I know when it started" xml:space="preserve">
+        <source>I know when it started</source>
+        <target state="translated">我知道何时开始</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="I know when it stopped" xml:space="preserve">
+        <source>I know when it stopped</source>
+        <target state="translated">我知道何时停止</target>
+        <note />
+      </trans-unit>
       <trans-unit id="I've confirmed — continue" xml:space="preserve">
         <source>I've confirmed — continue</source>
         <target state="translated">我已确认 — 继续</target>
@@ -6577,6 +6587,11 @@
         <target state="translated">从记录您的心情或尝试呼吸练习开始</target>
         <note />
       </trans-unit>
+      <trans-unit id="Started" xml:space="preserve">
+        <source>Started</source>
+        <target state="translated">开始</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Stat" xml:space="preserve">
         <source>Stat</source>
         <target state="translated">统计</target>
@@ -6604,6 +6619,11 @@
       </trans-unit>
       <trans-unit id="Stop" xml:space="preserve">
         <source>Stop</source>
+        <target state="translated">停止</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Stopped" xml:space="preserve">
+        <source>Stopped</source>
         <target state="translated">停止</target>
         <note />
       </trans-unit>
@@ -7551,6 +7571,11 @@ Are you absolutely sure?</source>
         <target state="translated">你现在感受到什么情绪？</target>
         <note />
       </trans-unit>
+      <trans-unit id="What is being done for you" xml:space="preserve">
+        <source>What is being done for you</source>
+        <target state="translated">为您做了什么</target>
+        <note />
+      </trans-unit>
       <trans-unit id="What never reaches the provider" xml:space="preserve">
         <source>What never reaches the provider</source>
         <target state="translated">永远不会发送给医疗提供者的内容</target>
@@ -7881,6 +7906,11 @@ Are you absolutely sure?</source>
       <trans-unit id="you logged it" xml:space="preserve">
         <source>you logged it</source>
         <target state="translated">您记录的</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="you told us you are not on this" xml:space="preserve">
+        <source>you told us you are not on this</source>
+        <target state="translated">您告诉我们您没有使用这个</target>
         <note />
       </trans-unit>
       <trans-unit id="°F" xml:space="preserve">

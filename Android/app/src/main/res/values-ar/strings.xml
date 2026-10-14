@@ -1362,4 +1362,11 @@
     <string name="therapy_regimen_placeholder">يُعطى معًا باسم (اختياري)</string>
     <string name="therapies_not_saved">تم حفظ حالتك الصحية، لكن إجابات العلاج لم تُحفظ. يرجى المحاولة مجددًا.</string>
     <string name="therapies_not_loaded">تعذر تحميل إجابات العلاج. لم يتم تغيير أي شيء.</string>
+    <string name="therapy_started_on">بدأ في</string>
+    <string name="therapy_ended_on">توقف في</string>
+    <string name="therapy_i_know_started">أعرف متى بدأ</string>
+    <string name="therapy_i_know_stopped">أعرف متى توقف</string>
+    <string name="alpha_regimen_heading">ما الذي يتم القيام به لك</string>
+    <string name="alpha_not_receiving">أخبرتنا أنك لست على هذا</string>
+    <string name="therapy_date_unreadable">لا يمكننا قراءة التاريخ \"%1$s\". يرجى كتابته بصيغة YYYY-MM-DD، على سبيل المثال [dob].</string>
 </resources>

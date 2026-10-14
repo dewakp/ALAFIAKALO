@@ -640,7 +640,9 @@
     "therapy_group_answered": "— beantwortet",
     "therapy_regimen_placeholder": "Zusammen gegeben als (optional)",
     "therapies_not_saved": "Ihre Erkrankung wurde gespeichert, aber Ihre Therapieantworten nicht. Bitte versuchen Sie es erneut.",
-    "therapies_not_loaded": "Ihre Therapieantworten konnten nicht geladen werden. Nichts wurde geändert – Antworten, die Sie nicht setzen, bleiben wie sie sind."
+    "therapies_not_loaded": "Ihre Therapieantworten konnten nicht geladen werden. Nichts wurde geändert – Antworten, die Sie nicht setzen, bleiben wie sie sind.",
+    "therapy_started_on": "Gestartet am",
+    "therapy_ended_on": "Beendet am"
   },
   "ClinicianDashboard": {
     "loading": "Wird geladen...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "Wie gut Ihre Erkrankung nach den dafür geltenden Richtlinien behandelt wird. Das ist eine andere Frage als Ihrem allgemeinen Gesundheitszustand: Sie können ernsthaft erkrankt sein und gleichzeitig vorbildlich behandelt werden.",
     "alpha_against_guidelines": "gegenüber Richtlinienvorgaben",
     "alpha_off_target_heading": "Außerhalb des Zielbereichs",
-    "alpha_none": "Keine erfasste Erkrankung hat ein Richtlinienziel, daher gibt es hier nichts zu bewerten."
+    "alpha_none": "Keine erfasste Erkrankung hat ein Richtlinienziel, daher gibt es hier nichts zu bewerten.",
+    "alpha_regimen_heading": "Was wird für Sie getan",
+    "alpha_not_receiving": "Sie haben uns mitgeteilt, dass Sie dies nicht nehmen"
   },
   "CategoryDetail": {
     "category": "Kategorie",

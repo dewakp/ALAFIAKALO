@@ -1701,6 +1701,23 @@ struct HEBCSScoreResponse: Codable {
     let alphaPct: Double?
     let alphaOffTarget: [AlphaOffTarget]?
     let alphaReason: String?
+
+    /// The REGIMEN Α is a judgement about (TASKS 20a).
+    ///
+    /// Α alone is a verdict with no statement of what is being managed, and a
+    /// reader cannot then tell a poorly-managed patient from one whose
+    /// treatment nobody recorded. These arrive even when `alphaPct` is nil —
+    /// a patient on apheresis has no Α today because no guideline target is
+    /// tagged for that axis, and drawing nothing would read as "no treatment
+    /// on record" for someone under active treatment (§3aa).
+    let therapiesReceiving: [AlphaTherapy]?
+    /// What the patient has explicitly said they are NOT on — a measured ZERO,
+    /// which a membership set could never express (§3at). Shown, never scored.
+    let therapiesStatedZero: [AlphaTherapy]?
+    /// Per indication axis, what put the patient on it. An axis decides which
+    /// guideline Α applies, so it must be auditable by the person it is about.
+    let indicationBecause: [String: [String]]?
+
     let interpretation: String?
 
     enum CodingKeys: String, CodingKey {
@@ -1713,7 +1730,32 @@ struct HEBCSScoreResponse: Codable {
         case alphaPct = "alpha_pct"
         case alphaOffTarget = "alpha_off_target"
         case alphaReason = "alpha_reason"
+        case therapiesReceiving = "therapies_receiving"
+        case therapiesStatedZero = "therapies_stated_zero"
+        case indicationBecause = "indication_because"
         case pathways, interpretation
+    }
+}
+
+/// One therapy on the Α card, with WHO's own title.
+///
+/// Every field is optional because the server legitimately sends null for each
+/// of them: a code outside the catalog carries no title rather than an
+/// invented one, and a date nobody supplied is NOT RECORDED. §3aj's lesson —
+/// match the model to the schema, not to the rows you happened to see.
+struct AlphaTherapy: Codable, Identifiable {
+    let code: String
+    let title: String?
+    let condition: String?
+    let regimen: String?
+    let startedOn: String?
+    let endedOn: String?
+    var id: String { code }
+
+    enum CodingKeys: String, CodingKey {
+        case code, title, condition, regimen
+        case startedOn = "started_on"
+        case endedOn = "ended_on"
     }
 }
 

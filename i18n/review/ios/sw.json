@@ -3749,6 +3749,18 @@
     "status": "machine",
     "translated_on": "2026-10-14"
   },
+  "Localizable.xcstrings::I know when it started": {
+    "source": "I know when it started",
+    "translation": "Najua lini ilipoanza",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::I know when it stopped": {
+    "source": "I know when it stopped",
+    "translation": "Najua lini ilisimama",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::I've confirmed — continue": {
     "source": "I've confirmed — continue",
     "translation": "Nimethibitisha — endelea",
@@ -7637,6 +7649,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Started": {
+    "source": "Started",
+    "translation": "Ilipoanza",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Stat": {
     "source": "Stat",
     "translation": "Haraka",
@@ -7672,6 +7690,12 @@
     "translation": "Acha",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Stopped": {
+    "source": "Stopped",
+    "translation": "Ilisimama",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Storage": {
     "source": "Storage",
@@ -8801,6 +8825,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::What is being done for you": {
+    "source": "What is being done for you",
+    "translation": "Nini kinachofanywa kwako",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::What never reaches the provider": {
     "source": "What never reaches the provider",
     "translation": "Kile kisichofika kwa mtoa huduma",
@@ -9182,6 +9212,12 @@
   "Localizable.xcstrings::you logged it": {
     "source": "you logged it",
     "translation": "uliandika",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::you told us you are not on this": {
+    "source": "you told us you are not on this",
+    "translation": "Ulituambia kuwa hauko juu ya hii",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

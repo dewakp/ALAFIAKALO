@@ -640,7 +640,9 @@
     "therapy_group_answered": "— azịzawo",
     "therapy_regimen_placeholder": "A na-enye ọnụ dị ka (ọ bụrụ na ọ dị)",
     "therapies_not_saved": "E zọpụtara ọkwa gị, mana azịza gị maka ọrụ ọgwụ adịghị ezo. Biko gbalịa ọzọ.",
-    "therapies_not_loaded": "Enweghị ike ilodata azịza gị maka ọrụ ọgwụ. Ọ dịghị ihe gbanwere — azịza ị na-ahapụ na-adị ka ọ dị."
+    "therapies_not_loaded": "Enweghị ike ilodata azịza gị maka ọrụ ọgwụ. Ọ dịghị ihe gbanwere — azịza ị na-ahapụ na-adị ka ọ dị.",
+    "therapy_started_on": "Malitere na",
+    "therapy_ended_on": "Kwụsịtere na"
   },
   "ClinicianDashboard": {
     "loading": "A na-aloading...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "Otu esi ejikwa ihe ị na-ebi na ya dị ka iwu e dere maka ya. Ọ bụ ajụjụ dị iche na otu ị dị: ị nwere ike ịnọ ụfọdụ ma a na-ejikwa gị nke ọma n'otu oge.",
     "alpha_against_guidelines": "megide ihe ụkpụrụ akwụkwọ",
     "alpha_off_target_heading": "Apụghị ịnwụ n'ebe ọ kwesịrị",
-    "alpha_none": "Ọrịa ọ bụla e dekọbara enweghị ihe ụkpụrụ akwụkwọ, ya mere enweghị ihe a ga-atụ anya ebe a."
+    "alpha_none": "Ọrịa ọ bụla e dekọbara enweghị ihe ụkpụrụ akwụkwọ, ya mere enweghị ihe a ga-atụ anya ebe a.",
+    "alpha_regimen_heading": "Gini ka a na-eme maka gị",
+    "alpha_not_receiving": "Ị sịrị na ị nọ na-eji nke a"
   },
   "CategoryDetail": {
     "category": "Ụdị",

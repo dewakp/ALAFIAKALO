@@ -1362,4 +1362,11 @@
     <string name="therapy_regimen_placeholder">Zinatolewa pamoja kama (si lazima)</string>
     <string name="therapies_not_saved">Hali yako ilihifadhiwa, lakini majibu yako ya therapy hayakuhifadhiwa. Tafadhali jaribu tena.</string>
     <string name="therapies_not_loaded">Haiwezi kupakia majibu yako ya therapy. Hakuna kitu kilichobadilika.</string>
+    <string name="therapy_started_on">Ilianza</string>
+    <string name="therapy_ended_on">Ilisimama</string>
+    <string name="therapy_i_know_started">Najua lini ilianza</string>
+    <string name="therapy_i_know_stopped">Najua lini ilisimama</string>
+    <string name="alpha_regimen_heading">Nini kinachofanywa kwako</string>
+    <string name="alpha_not_receiving">Ulituambia kuwa hauko juu ya hii</string>
+    <string name="therapy_date_unreadable">\"%1$s\" si tarehe tunayoweza kusoma. Tafadhali iandike kama YYYY-MM-DD, kwa mfano [dob].</string>
 </resources>

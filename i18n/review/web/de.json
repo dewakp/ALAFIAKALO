@@ -2105,6 +2105,12 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "ChronicConditions.therapy_ended_on": {
+    "source": "Stopped on",
+    "translation": "Beendet am",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "ChronicConditions.therapy_group_answered": {
     "source": "— answered",
     "translation": "— beantwortet",
@@ -2162,6 +2168,12 @@
   "ChronicConditions.therapy_regimen_placeholder": {
     "source": "Given together as (optional)",
     "translation": "Zusammen gegeben als (optional)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "ChronicConditions.therapy_started_on": {
+    "source": "Started on",
+    "translation": "Gestartet am",
     "status": "machine",
     "translated_on": "2026-10-14"
   },
@@ -17177,11 +17189,23 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "Wellness.alpha_not_receiving": {
+    "source": "you told us you are not on this",
+    "translation": "Sie haben uns mitgeteilt, dass Sie dies nicht nehmen",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Wellness.alpha_off_target_heading": {
     "source": "Outside its target",
     "translation": "Außerhalb des Zielbereichs",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "Wellness.alpha_regimen_heading": {
+    "source": "What is being done for you",
+    "translation": "Was wird für Sie getan",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Wellness.alpha_target_range": {
     "source": "target {{low}}-{{high}}",

@@ -509,11 +509,23 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "alpha_not_receiving": {
+    "source": "you told us you are not on this",
+    "translation": "vous nous avez dit que vous n'êtes pas sous ce traitement",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "alpha_off_target_heading": {
     "source": "Outside its target",
     "translation": "En dehors de sa cible",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "alpha_regimen_heading": {
+    "source": "What is being done for you",
+    "translation": "Ce qui est fait pour vous",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "already_have_an_account_login": {
     "source": "Already have an account? Login",
@@ -7205,6 +7217,18 @@
     "status": "machine",
     "translated_on": "2026-10-13"
   },
+  "therapy_date_unreadable": {
+    "source": "“%1$s” is not a date we can read. Please write it as YYYY-MM-DD, for example 2026-03-14.",
+    "translation": "« %1$s » n'est pas une date lisible. Veuillez l'écrire au format AAAA-MM-JJ, par exemple [dob].",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_ended_on": {
+    "source": "Stopped on",
+    "translation": "Arrêté le",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "therapy_group_answered": {
     "source": "— answered",
     "translation": "— répondu",
@@ -7216,6 +7240,18 @@
     "translation": "Hémodialyse",
     "status": "machine",
     "translated_on": "2026-10-13"
+  },
+  "therapy_i_know_started": {
+    "source": "I know when it started",
+    "translation": "Je sais quand c'est commencé",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_i_know_stopped": {
+    "source": "I know when it stopped",
+    "translation": "Je sais quand c'est arrêté",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "therapy_immunotherapy": {
     "source": "Immunotherapy",
@@ -7262,6 +7298,12 @@
   "therapy_regimen_placeholder": {
     "source": "Given together as (optional)",
     "translation": "Administrés ensemble sous (optionnel)",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "therapy_started_on": {
+    "source": "Started on",
+    "translation": "Commencé le",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

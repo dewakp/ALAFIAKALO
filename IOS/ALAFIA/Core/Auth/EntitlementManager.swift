@@ -11,6 +11,17 @@ extension Notification.Name {
     /// than only at launch.
     static let alafiaPaymentRequired = Notification.Name("alafia.paymentRequired")
 
+    /// Raised by anything that changes what the RECORD justifies — declaring a
+    /// condition, or setting a therapy switch. The navigation asks
+    /// `GET /users/me/surfaces` once; without this it keeps that answer until
+    /// the app is relaunched, so a patient who states *"I am NOT on this"*
+    /// watches the screen they just retired stay on screen and reasonably
+    /// concludes the control did nothing (§3ar, OPEN_ITEMS 39b).
+    ///
+    /// It carries NO payload. The surface rule is the SERVER's (§3): the only
+    /// correct response is to ask again, never to recompute the set here.
+    static let alafiaSurfacesChanged = Notification.Name("alafia.surfacesChanged")
+
     /// Raised by `APIClient` on a 401 that has already survived one transparent
     /// token refresh — i.e. the session is genuinely dead, not merely stale.
     ///

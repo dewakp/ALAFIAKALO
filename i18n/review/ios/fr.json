@@ -3749,6 +3749,18 @@
     "status": "machine",
     "translated_on": "2026-10-14"
   },
+  "Localizable.xcstrings::I know when it started": {
+    "source": "I know when it started",
+    "translation": "Je sais quand c'est commencé",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::I know when it stopped": {
+    "source": "I know when it stopped",
+    "translation": "Je sais quand c'est arrêté",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::I've confirmed — continue": {
     "source": "I've confirmed — continue",
     "translation": "J'ai confirmé — continuer",
@@ -7637,6 +7649,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Started": {
+    "source": "Started",
+    "translation": "Commencé",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Stat": {
     "source": "Stat",
     "translation": "Stat",
@@ -7672,6 +7690,12 @@
     "translation": "Arrêter",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Stopped": {
+    "source": "Stopped",
+    "translation": "Arrêté",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Storage": {
     "source": "Storage",
@@ -8801,6 +8825,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::What is being done for you": {
+    "source": "What is being done for you",
+    "translation": "Ce qui est fait pour vous",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::What never reaches the provider": {
     "source": "What never reaches the provider",
     "translation": "Ce qui ne parvient jamais au prestataire",
@@ -9182,6 +9212,12 @@
   "Localizable.xcstrings::you logged it": {
     "source": "you logged it",
     "translation": "vous l'avez enregistré",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::you told us you are not on this": {
+    "source": "you told us you are not on this",
+    "translation": "vous nous avez dit que vous ne prenez pas ceci",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

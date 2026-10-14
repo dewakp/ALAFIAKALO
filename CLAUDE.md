@@ -4746,6 +4746,97 @@ written anywhere, including here.
 
 ---
 
+## 3bh. A DECLARATION outranks the spelling of a diagnosis
+
+`indications_for` decides which guideline Α may apply and which markers Ω
+EXPECTS — one function, deliberately, because two would drift into a patient
+measured against a disease they do not have. It decided from condition TEXT:
+
+    RENAL = ("renal", "kidney", "dialysis", "esrd", "ckd", "nephro")
+
+**"ESKD" matches none of those.** A patient on dialysis for end-stage kidney
+disease could be refused every renal guideline over four letters — the §3an
+shape that the therapy work began by deleting from `_CONDITION_HINTS`, found
+one function along from where it was removed.
+
+**A therapy is a statement; a condition name is a spelling.** So the therapy's
+own WHO title goes through the SAME hints rather than through a new table:
+
+    QB94.1  Care involving extracorporeal dialysis   -> renal
+    QB42    Dependence on renal dialysis             -> renal
+    QB96    …radiotherapy session                    -> no axis
+
+No code→axis map was added, and that is the point: a second hand-typed clinical
+mapping is one more thing to keep in step, and WHO's wording is an authority
+where ours is not. Adding an axis means adding a key to `_INDICATION_HINTS`;
+the therapy half then comes free, or does not come at all — which is correct
+while nothing is tagged to score for it. Granting an axis with nothing to score
+would report a managed patient as unmanaged.
+
+> ⚠️ **A stated zero must never REMOVE an axis.** A patient with ESRD who says
+> they are not on dialysis is pre-dialysis CKD — still renal, because the
+> condition says so. The zero is a fact about the REGIMEN, not the disease.
+> Evidence like this may only ADD: the failure mode of adding is measuring a
+> marker the patient holds, and the failure mode of subtracting is withholding
+> a guideline from the person being worked up for it.
+
+> **Hand the same evidence to every consumer of a shared rule.** `pathways_for`
+> takes `therapies` too. Giving it to Α alone would apply KDIGO to a patient
+> whose PTH the same request calls unexpected — the drift the single function
+> exists to prevent, reintroduced at the call site.
+
+### A score needs the regimen beside it, and must not score it
+
+Α alone is a verdict with no statement of what is being managed, so a reader
+cannot tell a poorly-managed patient from one whose treatment nobody recorded.
+The therapies, the stated zeros, the regimen labels and the axis provenance
+travel with it — **and even when Α is None**, because a patient on apheresis
+has no Α today and an empty object reads as "no treatment on record" for
+someone under active treatment (§3aa).
+
+- **Reported, never scored, and a test pins it.** Α must be identical with the
+  stated zeros present and absent. Whether a patient SHOULD be on a therapy
+  they declined is a clinical judgement; the arithmetic must not make it (§3an).
+  Report the zero beside the score and let a clinician conclude.
+- **An axis must say WHY it applies.** A bare score cannot be checked by the
+  person it is about. `indication_because` names the condition or the therapy.
+- **A payload no client draws is a dead payload.** §3bc shipped `authority`
+  and `cited_text` that nothing rendered; this time the Α card on web, iOS and
+  Android draws all of it. Adding a field to a response is half the work.
+
+> **An optional DATE must be able to stay empty.** A bare `DatePicker` cannot,
+> so it records today on every row — a clinical date nobody supplied. Web uses
+> `type="date"`, iOS the `Toggle`-then-`DatePicker` idiom (§3bb), Android a
+> typed `YYYY-MM-DD` that REFUSES the save and names a half-typed value (§3av)
+> rather than discarding it or sending a 422 the patient cannot act on. Format
+> a wire date with `en_US_POSIX` + Gregorian + UTC, never the ambient locale —
+> §3aw's reason, and §3bd measured the same mistake on a typed number.
+
+### Re-asking is the only correct response to "something changed"
+
+The navigation reads `GET /users/me/surfaces` once. Three deploys shipped with
+no refresh, and the therapy switch made it worse: a patient could state *"I am
+NOT on this"* and watch the screen they just retired stay on screen, which
+reads as a control that did nothing (§3ar).
+
+    web       window event `alafia:surfaces-changed` -> Layout refetches
+    iOS       NotificationCenter `.alafiaSurfacesChanged`  (as §3ah's 402 does)
+    Android   SurfaceRefresh.epoch, a StateFlow a LaunchedEffect keys on
+
+**Every signal carries no payload, deliberately.** The surface rule is the
+server's (§3); a client that recomputed the set locally would be a second
+implementation of a clinical decision. Announce from **every** writer — create,
+update, the dependent write, and DELETE, since losing the last condition
+retires screens as surely as adding one opens them.
+
+> **A counter, not a one-shot event, where a collector may not be listening.**
+> Android keys a `LaunchedEffect` on an epoch, so a bump re-runs the fetch and a
+> screen that was off-composition still converges. A `SharedFlow` emission is
+> dropped while the writing screen is in front — which is exactly when every one
+> of these writes happens.
+
+---
+
 ## 6. Reporting
 
 State what was actually run and what wasn't. "Builds" ≠ "works". If a suite

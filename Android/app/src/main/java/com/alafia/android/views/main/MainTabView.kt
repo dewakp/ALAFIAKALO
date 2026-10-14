@@ -390,7 +390,12 @@ fun MoreScreen(
     // Null until the answer arrives, and null means SHOW EVERYTHING — see the
     // filter below. A failed request must never hide a patient's own records.
     var surfaces by remember { mutableStateOf<Set<String>?>(null) }
-    LaunchedEffect(Unit) {
+    // Re-asked whenever a writer announces (`SurfaceRefresh`). Keying the
+    // effect on the epoch rather than on `Unit` is the whole fix: a
+    // declaration the navigation does not reflect until restart is §3ar's dead
+    // control wearing a delay (OPEN_ITEMS 39b).
+    val surfaceEpoch by com.alafia.android.SurfaceRefresh.epoch.collectAsState()
+    LaunchedEffect(surfaceEpoch) {
         try {
             val user = com.alafia.android.api.ApiClient.getApiService().getCurrentUser()
             val roles = (user.active_roles ?: emptyList()) + listOfNotNull(user.primary_role)

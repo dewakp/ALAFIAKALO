@@ -3749,6 +3749,18 @@
     "status": "machine",
     "translated_on": "2026-10-14"
   },
+  "Localizable.xcstrings::I know when it started": {
+    "source": "I know when it started",
+    "translation": "أعرف متى بدأ",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::I know when it stopped": {
+    "source": "I know when it stopped",
+    "translation": "أعرف متى توقف",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::I've confirmed — continue": {
     "source": "I've confirmed — continue",
     "translation": "تم التأكيد — متابعة",
@@ -7637,6 +7649,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Started": {
+    "source": "Started",
+    "translation": "بدأ",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::Stat": {
     "source": "Stat",
     "translation": "فوري",
@@ -7672,6 +7690,12 @@
     "translation": "إيقاف",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Stopped": {
+    "source": "Stopped",
+    "translation": "توقف",
+    "status": "machine",
+    "translated_on": "2026-10-14"
   },
   "Localizable.xcstrings::Storage": {
     "source": "Storage",
@@ -8801,6 +8825,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::What is being done for you": {
+    "source": "What is being done for you",
+    "translation": "ما الذي يتم القيام به لك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
   "Localizable.xcstrings::What never reaches the provider": {
     "source": "What never reaches the provider",
     "translation": "ما لا يصل أبدًا إلى مقدم الخدمة",
@@ -9182,6 +9212,12 @@
   "Localizable.xcstrings::you logged it": {
     "source": "you logged it",
     "translation": "سجلته بنفسك",
+    "status": "machine",
+    "translated_on": "2026-10-14"
+  },
+  "Localizable.xcstrings::you told us you are not on this": {
+    "source": "you told us you are not on this",
+    "translation": "أخبرتنا أنك لست على هذا",
     "status": "machine",
     "translated_on": "2026-10-14"
   },

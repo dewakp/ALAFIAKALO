@@ -6,6 +6,7 @@ import api from '../services/api';
 import BackButton from '../components/BackButton';
 import ICD11Picker from '../components/ICD11Picker';
 import { t } from '../i18n';
+import { announceSurfacesChanged } from '../services/surfaces';
 
 const ChronicConditions = () => {
   // The option set comes from the SERVER, which reads it out of the bundled WHO
@@ -69,6 +70,24 @@ const ChronicConditions = () => {
       prev[code] === undefined
         ? prev
         : { ...prev, [code]: { ...prev[code], regimen } }
+    ));
+  };
+
+  /* When a therapy STARTED, and when it stopped. Both optional and never
+     inferred (TASKS 20b): flipping a switch to "not on this" is otherwise the
+     only way to say a therapy ended, and that loses WHEN — which is what makes
+     a history interpretable.
+
+     ⚠️ A `receiving: false` with no `ended_on` cannot distinguish "never was on
+     it" from "stopped, date unknown". That is a real limit of a switch plus two
+     dates, recorded rather than papered over — an empty date means NOT
+     RECORDED, and a fourth state invented to hold it would be §3at's collapse
+     pointing the other way. */
+  const setTherapyDate = (code, field, value) => {
+    setTherapySwitches((prev) => (
+      prev[code] === undefined
+        ? prev
+        : { ...prev, [code]: { ...prev[code], [field]: value || null } }
     ));
   };
 
@@ -187,6 +206,8 @@ const ChronicConditions = () => {
               therapy_code: code,
               receiving: !!row.receiving,
               regimen: row.regimen || null,
+              started_on: row.started_on || null,
+              ended_on: row.ended_on || null,
             })),
           });
         } catch (therapyError) {
@@ -194,9 +215,17 @@ const ChronicConditions = () => {
           setTherapySaveError(typeof detail === 'string'
             ? detail : t('ChronicConditions.therapies_not_saved'));
           loadConditions();
+          // The CONDITION saved even though the therapies did not, and a
+          // condition alone can change the surface set.
+          announceSurfacesChanged();
           return;      // keep the form open so the declaration is not lost
         }
       }
+
+      // Declaring a condition or a therapy is what decides which clinical
+      // screens the navigation offers, so the nav must ask again rather than
+      // keep the answer it got on mount (OPEN_ITEMS 39b).
+      announceSurfacesChanged();
 
       setShowForm(false);
       setEditing(null);
@@ -227,6 +256,10 @@ const ChronicConditions = () => {
           loaded[row.therapy_code] = {
             receiving: !!row.receiving,
             regimen: row.regimen || '',
+            // Loaded, or the input draws blank — which reads as NOT RECORDED
+            // — and the next save overwrites a stored date (§3av).
+            started_on: (row.started_on || '').slice(0, 10) || null,
+            ended_on: (row.ended_on || '').slice(0, 10) || null,
           };
         });
         setTherapySwitches(loaded);
@@ -268,6 +301,9 @@ const ChronicConditions = () => {
     try {
       await api.delete(`/chronic/conditions/${id}`);
       loadConditions();
+      // Deleting the last condition retires screens as surely as adding one
+      // opens them, and `condition_therapies` goes with it (FK CASCADE).
+      announceSurfacesChanged();
     } catch (error) {
       console.error('Failed to delete condition:', error);
       alert(t('ChronicConditions.failed_to_delete_condition'));
@@ -628,6 +664,31 @@ const ChronicConditions = () => {
                                   borderRadius: 4, border: '1px solid #ddd',
                                 }}
                               />
+                            )}
+                            {/* An empty date is NOT RECORDED. `type="date"`
+                                leaves itself blank, so nothing stamps today
+                                onto a clinical field nobody filled in. */}
+                            {state === true && (
+                              <label style={{ fontSize: 11, color: '#6b7280' }}>
+                                {t('ChronicConditions.therapy_started_on')}{' '}
+                                <input
+                                  type="date"
+                                  value={(row?.started_on || '').slice(0, 10)}
+                                  onChange={(e) => setTherapyDate(tt.code, 'started_on', e.target.value)}
+                                  style={{ padding: '3px 4px', fontSize: 11, borderRadius: 4, border: '1px solid #ddd' }}
+                                />
+                              </label>
+                            )}
+                            {state === false && (
+                              <label style={{ fontSize: 11, color: '#6b7280' }}>
+                                {t('ChronicConditions.therapy_ended_on')}{' '}
+                                <input
+                                  type="date"
+                                  value={(row?.ended_on || '').slice(0, 10)}
+                                  onChange={(e) => setTherapyDate(tt.code, 'ended_on', e.target.value)}
+                                  style={{ padding: '3px 4px', fontSize: 11, borderRadius: 4, border: '1px solid #ddd' }}
+                                />
+                              </label>
                             )}
                           </div>
                         );

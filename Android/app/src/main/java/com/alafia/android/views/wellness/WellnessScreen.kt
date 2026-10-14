@@ -791,6 +791,53 @@ private fun HEBCSTab() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(12.dp))
+
+                    // THE REGIMEN, drawn BEFORE the alphaPct branch on
+                    // purpose. A patient on apheresis or radiotherapy has no Α
+                    // today — no guideline target is tagged for those axes —
+                    // and showing "nothing to manage" with no statement of
+                    // their treatment would read as "no treatment on record"
+                    // for someone under active treatment (§3aa). It is also
+                    // the fix for the shape §3bc records: a payload no client
+                    // draws is a dead payload.
+                    if (d.therapiesReceiving.isNotEmpty()
+                        || d.therapiesStatedZero.isNotEmpty()) {
+                        Text(
+                            stringResource(R.string.alpha_regimen_heading),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        d.therapiesReceiving.forEach { th ->
+                            // WHO's own title; nothing is relabelled here.
+                            val parts = listOfNotNull(
+                                "● " + (th.title ?: th.code),
+                                th.regimen?.takeIf { it.isNotBlank() },
+                                th.startedOn?.take(10)?.takeIf { it.isNotBlank() },
+                            )
+                            Text(
+                                parts.joinToString(" — "),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        // A stated zero, shown as what it is — reported, never
+                        // scored: whether a patient SHOULD be on something
+                        // they declined is a clinical judgement (§3an).
+                        val notOn = stringResource(R.string.alpha_not_receiving)
+                        d.therapiesStatedZero.forEach { th ->
+                            val parts = listOfNotNull(
+                                "○ " + (th.title ?: th.code),
+                                notOn,
+                                th.endedOn?.take(10)?.takeIf { it.isNotBlank() },
+                            )
+                            Text(
+                                parts.joinToString(" — "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
+
                     val alphaPct = d.alphaPct
                     if (alphaPct == null) {
                         Text(
@@ -838,6 +885,18 @@ private fun HEBCSTab() {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                            }
+                        }
+                        // WHY these guidelines apply at all. A bare score
+                        // cannot be checked by the person it is about.
+                        if (d.indicationBecause.isNotEmpty()) {
+                            Spacer(Modifier.height(10.dp))
+                            d.indicationBecause.entries.sortedBy { it.key }.forEach { (axis, why) ->
+                                Text(
+                                    "$axis: ${why.joinToString("; ")}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }

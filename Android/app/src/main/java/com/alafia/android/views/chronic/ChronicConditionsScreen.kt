@@ -149,6 +149,11 @@ fun ChronicConditionsScreen(
                                 try {
                                     val apiService = ApiClient.getApiService()
                                     apiService.deleteChronicCondition(condition.id)
+                                    // Deleting the last condition retires
+                                    // screens as surely as adding one opens
+                                    // them, and its therapy rows go with it
+                                    // (FK ON DELETE CASCADE).
+                                    com.alafia.android.SurfaceRefresh.announce()
                                     conditions = apiService.getChronicConditions(limit = 1000, isActive = true)
                                     Toast.makeText(context, "Condition deleted", Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
@@ -202,6 +207,11 @@ fun ChronicConditionsScreen(
                                 ).show()
                             }
                         }
+                        // Declaring a condition or a therapy is what decides
+                        // which clinical screens the navigation offers, so the
+                        // nav must ask again rather than keep the answer it got
+                        // on first composition (OPEN_ITEMS 39b).
+                        com.alafia.android.SurfaceRefresh.announce()
                         conditions = apiService.getChronicConditions(limit = 1000, isActive = true)
                         showDialog = false
                     } catch (e: Exception) {
@@ -355,6 +365,26 @@ fun SeverityChip(severity: String) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * YYYY-MM-DD and nothing else.
+ *
+ * Deliberately NOT a locale-aware parser. §3aw records that the app's language
+ * is an `attachBaseContext` choice and not `Locale.setDefault`, so a parser
+ * keyed to either could disagree with what the keyboard produced — and §3bd
+ * measured what that costs on a typed NUMBER. A wire date has exactly one
+ * correct spelling, so this checks for that spelling rather than guessing
+ * between two readings of the same keystrokes.
+ *
+ * It also rejects an impossible day: `2026-02-31` is shaped like a date and is
+ * not one, and a server 422 on it is a refusal the patient cannot act on.
+ */
+internal fun isIsoDay(text: String): Boolean {
+    if (!Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(text)) return false
+    return try {
+        java.time.LocalDate.parse(text); true
+    } catch (_: Exception) { false }
+}
+
 @Composable
 fun ConditionFormDialog(
     condition: ChronicCondition?,
@@ -384,6 +414,22 @@ fun ConditionFormDialog(
     //     true                  undergoing it         -> opens its screen
     var therapySwitches by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var therapyRegimens by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    // When a therapy STARTED, and when it stopped — `YYYY-MM-DD` or absent.
+    // Both optional and NEVER inferred (TASKS 20b): flipping a switch to "not
+    // on this" is otherwise the only way to say a therapy ended, and that
+    // loses WHEN, which is what makes a history interpretable.
+    //
+    // ⚠️ A `receiving = false` with no end date cannot distinguish "never was
+    // on it" from "stopped, date unknown". A real limit of a switch plus two
+    // dates, recorded rather than papered over — an absent date means NOT
+    // RECORDED, and a fourth state invented to hold it would be §3at's
+    // collapse pointing the other way.
+    var therapyStarted by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var therapyEnded by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    // This dialog's OWN context. The screen's `context` (line 45) is a
+    // different composable's scope and is not in scope here — the compiler
+    // read the bare name as Kotlin's `context(...)` declaration and said so.
+    val dialogContext = LocalContext.current
     // §3aa: an unreadable list must never render as a screen full of zeros.
     var therapyLoadFailed by remember { mutableStateOf(false) }
     var notes by remember { mutableStateOf(condition?.notes ?: "") }
@@ -419,6 +465,14 @@ fun ConditionFormDialog(
             therapySwitches = rows.associate { it.therapyCode to it.receiving }
             therapyRegimens = rows.mapNotNull { row ->
                 row.regimen?.let { row.therapyCode to it }
+            }.toMap()
+            // Loaded, or the field draws blank — which reads as NOT RECORDED —
+            // and the next save overwrites a stored date (§3av).
+            therapyStarted = rows.mapNotNull { row ->
+                row.startedOn?.take(10)?.takeIf { it.isNotBlank() }?.let { row.therapyCode to it }
+            }.toMap()
+            therapyEnded = rows.mapNotNull { row ->
+                row.endedOn?.take(10)?.takeIf { it.isNotBlank() }?.let { row.therapyCode to it }
             }.toMap()
             therapyLoadFailed = false
         } catch (_: Exception) {
@@ -642,6 +696,33 @@ fun ConditionFormDialog(
                                                 textStyle = MaterialTheme.typography.bodySmall,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
+                                            // A typed YYYY-MM-DD, the same
+                                            // idiom this form already uses for
+                                            // the diagnosis date — and the one
+                                            // that leaves an untouched field
+                                            // EMPTY rather than stamping today
+                                            // onto a clinical date nobody
+                                            // supplied.
+                                            OutlinedTextField(
+                                                value = therapyStarted[option.code] ?: "",
+                                                onValueChange = {
+                                                    therapyStarted = therapyStarted + (option.code to it)
+                                                },
+                                                label = { Text(stringResource(R.string.therapy_started_on) + " (YYYY-MM-DD)") },
+                                                textStyle = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                        if (state == false) {
+                                            OutlinedTextField(
+                                                value = therapyEnded[option.code] ?: "",
+                                                onValueChange = {
+                                                    therapyEnded = therapyEnded + (option.code to it)
+                                                },
+                                                label = { Text(stringResource(R.string.therapy_ended_on) + " (YYYY-MM-DD)") },
+                                                textStyle = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
                                         }
                                     }
                                 }
@@ -697,11 +778,29 @@ fun ConditionFormDialog(
                     // there, which is deliberate: a declaration made before
                     // the table existed stays readable until a switch speaks
                     // for that code.
+                    // §3av: a field holding data but no usable value must
+                    // REFUSE the save and say which, never be discarded. A
+                    // half-typed date silently dropped is how the web
+                    // flowsheet ate intradialytic readings; a half-typed date
+                    // SENT is a 422 the patient cannot act on.
+                    val badDate = (therapyStarted + therapyEnded).entries
+                        .firstOrNull { (_, v) -> v.isNotBlank() && !isIsoDay(v) }
+                    if (badDate != null) {
+                        Toast.makeText(
+                            dialogContext,
+                            dialogContext.getString(
+                                R.string.therapy_date_unreadable, badDate.value),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                        return@TextButton
+                    }
                     onSave(data, therapySwitches.keys.sorted().map { code ->
                         com.alafia.android.models.ConditionTherapyRow(
                             therapyCode = code,
                             receiving = therapySwitches[code] == true,
                             regimen = therapyRegimens[code]?.takeIf { it.isNotBlank() },
+                            startedOn = therapyStarted[code]?.takeIf { it.isNotBlank() },
+                            endedOn = therapyEnded[code]?.takeIf { it.isNotBlank() },
                         )
                     })
                 },

@@ -640,7 +640,9 @@
     "therapy_group_answered": "— répondu",
     "therapy_regimen_placeholder": "Pris ensemble sous (optionnel)",
     "therapies_not_saved": "Votre condition a été enregistrée, mais vos réponses sur les traitements ne l'ont pas été. Veuillez réessayer.",
-    "therapies_not_loaded": "Impossible de charger vos réponses sur les traitements. Rien n'a été modifié — les réponses que vous ne définissez pas restent comme elles sont."
+    "therapies_not_loaded": "Impossible de charger vos réponses sur les traitements. Rien n'a été modifié — les réponses que vous ne définissez pas restent comme elles sont.",
+    "therapy_started_on": "Commencé le",
+    "therapy_ended_on": "Arrêté le"
   },
   "ClinicianDashboard": {
     "loading": "Chargement...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "Dans quelle mesure votre condition est maintenue selon les recommandations établies pour elle. C'est une question différente de votre état général : vous pouvez être gravement malade et impeccablement suivi en même temps.",
     "alpha_against_guidelines": "par rapport aux cibles des recommandations",
     "alpha_off_target_heading": "En dehors de sa cible",
-    "alpha_none": "Aucune condition enregistrée n'a de cible de recommandation, il n'y a donc rien à évaluer ici."
+    "alpha_none": "Aucune condition enregistrée n'a de cible de recommandation, il n'y a donc rien à évaluer ici.",
+    "alpha_regimen_heading": "Ce qui est fait pour vous",
+    "alpha_not_receiving": "vous nous avez dit que vous n'êtes pas sous ce traitement"
   },
   "CategoryDetail": {
     "category": "Catégorie",

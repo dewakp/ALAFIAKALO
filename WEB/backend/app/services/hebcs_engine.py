@@ -862,8 +862,41 @@ RENAL = ("renal", "kidney", "dialysis", "esrd", "ckd", "nephro")
 _INDICATION_HINTS = {"renal": RENAL}
 
 
-def indications_for(conditions=None) -> set[str]:
-    """Which disease axes this patient's own conditions put them on.
+def _therapy_titles(therapies=None) -> list[tuple[str, str]]:
+    """WHO's own title for each therapy the patient says they ARE receiving.
+
+    `therapies` is `patient_surfaces.therapy_switches()`'s mapping — code ->
+    {receiving, regimen, …}. Three states, and only ONE of them speaks here:
+
+        no row            nobody asked          -> says nothing
+        receiving False   a stated ZERO         -> says nothing about the AXIS
+        receiving True    undergoing it         -> the patient is on that axis
+
+    ⚠️ **A stated zero must never REMOVE an axis.** A patient with ESRD who
+    says they are not on dialysis is pre-dialysis CKD — still renal, because
+    the condition says so. The zero is a fact about the regimen, not about the
+    disease, and "not on erythropoietin" is not evidence that nothing needs
+    managing. Therapies therefore only ever ADD, which is also the safe
+    direction: the failure mode of adding is measuring a marker the patient
+    holds, and the failure mode of subtracting is withholding a guideline from
+    someone who needs it.
+
+    The title comes from the bundled catalog, never from here (§3ad).
+    """
+    from app.services.icd11_catalog import get_icd11_by_code
+
+    out: list[tuple[str, str]] = []
+    for code, row in (therapies or {}).items():
+        if not (row or {}).get("receiving"):
+            continue
+        entry = get_icd11_by_code(code)
+        if entry is not None:
+            out.append((code, entry.title))
+    return out
+
+
+def indications_for(conditions=None, therapies=None) -> set[str]:
+    """Which disease axes this patient's own record puts them on.
 
     One rule serves both scores: it decides which markers Ω EXPECTS, and which
     guideline targets Α is entitled to apply. Two rules would drift, and the
@@ -873,18 +906,66 @@ def indications_for(conditions=None) -> set[str]:
     Matched case-folded against the patient's own condition wording. The stored
     text is never rewritten — one row on the reference record reads "G6PD
     Deficitency" (§3aj).
+
+    **A DECLARED THERAPY is better evidence than the spelling of a diagnosis.**
+    Condition text is what somebody typed, and the hint list is the §3an shape
+    this codebase keeps paying for: "ESKD" matches none of
+    `("renal", "kidney", "dialysis", "esrd", "ckd", "nephro")`, so a patient on
+    dialysis for end-stage kidney disease could be refused every renal
+    guideline over four letters. A therapy is a STATEMENT — *"I am receiving
+    this"* — and WHO titles it.
+
+    So the therapy's own catalog title goes through the SAME hints rather than
+    through a new code->axis table. `QB94.1` is "Care involving extracorporeal
+    dialysis" and `QB42` is "Dependence on renal dialysis"; both already
+    contain the words `RENAL` looks for. That is deliberate: a second mapping
+    would be one more hand-typed clinical claim to keep in step (§3an), and
+    WHO's wording is an authority where mine is not.
+
+    ⚠️ It follows that **adding an axis means adding a key to
+    `_INDICATION_HINTS`, and the therapy half comes free** — or does not come
+    at all. Radiotherapy, chemotherapy and apheresis match no hint today and
+    therefore grant no axis, which is correct while no guideline target is
+    tagged for them: granting an axis with nothing to score would report a
+    managed patient as unmanaged.
     """
     text = " ".join(
         f" {(getattr(c, 'name', '') or '').lower()} "
         f"{(getattr(c, 'icd11_title', '') or '').lower()} "
         for c in (conditions or [])
     )
+    text += " " + " ".join(f" {title.lower()} "
+                           for _code, title in _therapy_titles(therapies))
     return {axis for axis, hints in _INDICATION_HINTS.items()
             if any(h in text for h in hints)}
 
 
+def indication_provenance(conditions=None, therapies=None) -> dict[str, list[str]]:
+    """Per axis, WHY the patient is on it — the condition or the therapy.
+
+    An axis decides which guideline Α applies, so a patient (or a clinician
+    reading over their shoulder) must be able to see what put them there. A
+    set of axis names cannot be audited; this can.
+    """
+    out: dict[str, list[str]] = {}
+    for axis, hints in _INDICATION_HINTS.items():
+        why: list[str] = []
+        for c in (conditions or []):
+            blob = (f"{getattr(c, 'name', '') or ''} "
+                    f"{getattr(c, 'icd11_title', '') or ''}").lower()
+            if any(h in blob for h in hints):
+                why.append(f"condition: {getattr(c, 'name', '') or '—'}")
+        for code, title in _therapy_titles(therapies):
+            if any(h in title.lower() for h in hints):
+                why.append(f"declared therapy {code}: {title}")
+        if why:
+            out[axis] = why
+    return out
+
+
 def pathways_for(conditions=None,
-                 pathways: list[Pathway] | None = None) -> list[Pathway]:
+                 pathways: list[Pathway] | None = None,
+                 therapies=None) -> list[Pathway]:
     """The decomposition THIS patient should be measured against.
 
     Operator, 2026-10-12: *"Also omega must be responsive to patient and not
@@ -906,11 +987,18 @@ def pathways_for(conditions=None,
     nobody should have ordered.
 
     A marker present is always scored. This governs absence only.
+
+    `therapies` is passed for the same reason Α takes it: **both scores must
+    agree on which axis the patient is on.** `indications_for` is deliberately
+    one function serving both, and handing it to one caller and not the other
+    would reinstate the drift that function exists to prevent — a patient whose
+    declared dialysis made Α apply KDIGO while Ω still called their PTH
+    unexpected.
     """
     if pathways is None:
         pathways = ESRD_PATHWAYS
 
-    indications = indications_for(conditions)
+    indications = indications_for(conditions, therapies)
 
     return [
         replace(p, biomarkers=[
@@ -921,10 +1009,70 @@ def pathways_for(conditions=None,
     ]
 
 
+def _regimen_report(conditions=None, therapies=None) -> dict:
+    """What the patient says is being DONE for them. Reported, never scored.
+
+    Operator, 2026-10-14: *"hard-coded enum for therapy will need a
+    comprehensive list with items zeroed out (no impact) when not present (like
+    a switch) and a mechanism for compounded therapies."*
+
+    Α is a number; this is the regimen that number is a judgement about. Without
+    it, "Α 0.38" is a verdict with no statement of what is being managed — and
+    a clinician cannot tell a poorly-managed patient from a patient whose
+    treatment nobody has recorded.
+
+    Three things travel, and the second is the one a set could never carry:
+
+      `receiving`      what they are on, with WHO's title
+      `stated_zero`    what they have explicitly said they are NOT on. A
+                       measured zero is EVIDENCE — it is why Α can report that
+                       a renal patient is not on an ESA without guessing
+                       whether anybody asked.
+      `regimens`       codes given together as one treatment (the compounding
+                       mechanism)
+
+    ⚠️ **Nothing here is scored, and that is deliberate.** Whether a patient
+    SHOULD be on a therapy they have said no to is a clinical judgement, and
+    asserting it would be the §3an violation — naming an indication nobody
+    published. A zero is reported beside Α so a reader can draw that conclusion
+    themselves; the arithmetic never draws it for them.
+
+    ⚠️ **`regimen` is free text** (OPEN_ITEMS 39e), so grouping is per-patient
+    and nothing can be aggregated across records. That bounds what this can
+    ever be used for and is the right trade for now: a controlled vocabulary of
+    regimens is a clinical claim, and WHO codes therapies, not combinations.
+    """
+    from app.services.icd11_catalog import get_icd11_by_code
+
+    receiving: list[dict] = []
+    stated_zero: list[dict] = []
+    for code, row in sorted((therapies or {}).items()):
+        entry = get_icd11_by_code(code)
+        item = {"code": code,
+                "title": entry.title if entry is not None else None,
+                "condition": (row or {}).get("condition"),
+                "regimen": (row or {}).get("regimen"),
+                "started_on": (row or {}).get("started_on"),
+                "ended_on": (row or {}).get("ended_on")}
+        (receiving if (row or {}).get("receiving") else stated_zero).append(item)
+
+    groups: dict[str, list[str]] = {}
+    for item in receiving:
+        if item["regimen"]:
+            groups.setdefault(item["regimen"], []).append(item["code"])
+
+    return {
+        "therapies_receiving": receiving,
+        "therapies_stated_zero": stated_zero,
+        "regimens": {k: sorted(v) for k, v in sorted(groups.items())},
+        "indication_because": indication_provenance(conditions, therapies),
+    }
+
+
 def compute_alpha(biomarker_values: dict[str, float],
                   pathways: list[Pathway] | None = None,
                   derived_values: dict[str, float] | None = None,
-                  conditions=None) -> dict:
+                  conditions=None, therapies=None) -> dict:
     """Α — how well the CONDITIONS are being managed. Not a health score.
 
     Operator, 2026-10-12, naming the core failure:
@@ -971,7 +1119,13 @@ def compute_alpha(biomarker_values: dict[str, float],
     # meant Α scored anyone holding a haemoglobin and the endpoint had only to
     # forget one argument for a well person to be measured against ESRD
     # guidelines. A default that is wrong when forgotten is the §3ar shape.
-    indications = indications_for(conditions)
+    #
+    # TASKS 20a: the therapy SWITCH is read here. A patient who states they are
+    # receiving extracorporeal dialysis is on the renal axis because they said
+    # so — which is stronger evidence than whether their diagnosis happens to
+    # be spelled "ESRD" rather than "ESKD". A stated ZERO never removes an
+    # axis; see `_therapy_titles`.
+    indications = indications_for(conditions, therapies)
     pathways = [
         replace(p, biomarkers=[
             b for b in p.biomarkers
@@ -979,11 +1133,19 @@ def compute_alpha(biomarker_values: dict[str, float],
         ])
         for p in pathways
     ]
+    regimen_report = _regimen_report(conditions, therapies)
+
     if not any(p.biomarkers for p in pathways):
         # None, never 0 — there is nothing to manage, which is not bad
         # management (§3aa: unmeasured and bad are different facts).
+        #
+        # The REGIMEN still travels. A patient on apheresis or radiotherapy has
+        # no Α today because no guideline target is tagged for those axes, and
+        # reporting that as an empty object would read as "no treatment on
+        # record" for someone under active treatment — §3aa, on the surface
+        # whose whole subject is what is being done for them.
         return {"alpha": None, "alpha_pct": None, "pathways": {},
-                "off_target": [],
+                "off_target": [], **regimen_report,
                 "reason": "no condition on record has a guideline target"}
 
     values = resolve_biomarkers(biomarker_values, pathways)
@@ -1027,7 +1189,7 @@ def compute_alpha(biomarker_values: dict[str, float],
 
     if not scored_any:
         return {"alpha": None, "alpha_pct": None, "pathways": {},
-                "off_target": [],
+                "off_target": [], **regimen_report,
                 "reason": "no managed condition has a guideline target on file"}
 
     alpha = omega_score(scores, [p for p in pathways if p.name in scores])
@@ -1037,6 +1199,7 @@ def compute_alpha(biomarker_values: dict[str, float],
         "alpha_pct": round(alpha * 100, 2) if alpha is not None else None,
         "pathways": pathway_results,
         "off_target": off_target,
+        **regimen_report,
     }
 
 

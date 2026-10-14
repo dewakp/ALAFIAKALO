@@ -640,7 +640,9 @@
     "therapy_group_answered": "— ilisagiliwa",
     "therapy_regimen_placeholder": "Inatolewa pamoja kama (hiari)",
     "therapies_not_saved": "Hali yako ilihifadhiwa, lakini majibu yako ya tiba hayakuhifadhiwa. Tafadhali jaribu tena.",
-    "therapies_not_loaded": "Haikuweza kupakia majibu yako ya tiba. Hakuna kitu kilichobadilika — majibu usiyoyaweka yanabaki kama yalivyo."
+    "therapies_not_loaded": "Haikuweza kupakia majibu yako ya tiba. Hakuna kitu kilichobadilika — majibu usiyoyaweka yanabaki kama yalivyo.",
+    "therapy_started_on": "Ilianza",
+    "therapy_ended_on": "Ilisimamishwa"
   },
   "ClinicianDashboard": {
     "loading": "Inapakia...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "Jinsi hali unayoishi inavyofuatwa kulingana na mwongozo uliowekwa kwa ajili yake. Hii ni swali tofauti na jinsi unavyohisi: unaweza kuwa mgonjwa sana lakini ukafuatwa vizuri wakati mmoja.",
     "alpha_against_guidelines": "dhidi ya lengo la mwongozo",
     "alpha_off_target_heading": "Nje ya lengo lake",
-    "alpha_none": "Hakuna hali iliyoandikwa inayokuwa na lengo la mwongozo, kwa hivyo hakuna kitu cha kupima hapa."
+    "alpha_none": "Hakuna hali iliyoandikwa inayokuwa na lengo la mwongozo, kwa hivyo hakuna kitu cha kupima hapa.",
+    "alpha_regimen_heading": "Nini kinachofanywa kwako",
+    "alpha_not_receiving": "Ulituambia kuwa hauko juu ya hii"
   },
   "CategoryDetail": {
     "category": "Kategoria",

@@ -3512,27 +3512,25 @@ English source behind it.
   revision in prose goes stale the first time anyone deploys and nobody
   notices, because the deploy still works"* — and it has now happened in
   OPEN_ITEMS as well as in DEPLOY.md. **Ask the database.**
-- **39b. The nav still fetches `/users/me/surfaces` once on mount** (37b, 38c),
-  so setting a switch does not re-render navigation until reload. This is worse
-  now than it was: a patient who states *"not on this"* watches the screen they
-  just retired stay on screen.
+- ✅ **39b. FIXED 2026-10-14** — one signal per platform, announced by every
+  writer and keyed into the fetch. Closes 37b and 38c with it. See **41d**.
 - **39c. Phototherapy and generic infusion therapy still have no Q code** (38a)
   — the comprehensive list does not fix that, because the catalog does not hold
   them. Whether a non-coded therapy may be declared beside coded ones is a
   decision, not a silent re-addition.
-- **39d. Nothing SCORES a therapy yet.** The switch's stated purpose is an axis
-  with the same dimensions for every patient — most of them zero — so that two
-  records are comparable. Α reads conditions and labs; it does not read
-  `condition_therapies`. The mechanism is built and the consumer is not (TASKS
-  18, the tensor work).
+- ✅ **39d. FIXED 2026-10-14** — Α reads `condition_therapies`, and so does Ω's
+  expected-marker set. A declared therapy GRANTS an indication axis; a stated
+  zero is reported and never enters the arithmetic. See **41a** and **41b**.
+  What remains is that only the renal axis exists to score against (**41f**).
 - **39e. `regimen` is free text.** Two patients on the same compound will write
   it differently, so grouping is per-patient and nothing can aggregate across
   records. Correct for now — a controlled vocabulary of regimens is a clinical
   claim and WHO does not publish one — but it bounds what 39d can do with it.
-- **39f. No therapy history.** `started_on`/`ended_on` exist in the table and
-  on the API, and no client collects them, so a therapy that STOPPED is
-  expressed only by flipping its switch to false. The date a treatment ended is
-  a clinical fact the record cannot currently hold.
+- ✅ **39f. FIXED 2026-10-14** — all three clients collect both dates, each
+  with an idiom that leaves an untouched field EMPTY rather than stamping
+  today. One limit remains stated rather than guessed: `receiving = false` with
+  no `ended_on` cannot tell "never was on it" from "stopped, date unknown".
+  See **41c**.
 
 ---
 
@@ -3597,3 +3595,174 @@ English source behind it.
 - **39b–39f are untouched** by shipping: the nav still fetches surfaces once on
   mount, nothing scores a therapy, `started_on`/`ended_on` have no client,
   `regimen` is free text, and phototherapy still has no Q code.
+
+---
+
+## 41. The switch has a consumer — Α reads it, and the nav re-asks — 2026-10-14
+
+Closes TASKS 20a, 20b and 20d; closes **39b**, **39d** and **39f**. The switch
+shipped that morning as a table nothing consulted — §3ar's dead control on the
+axis the operator asked for, so the stated zeros had nowhere to go.
+
+### 41a — a DECLARED therapy is better evidence than a diagnosis's spelling
+
+`indications_for` decided the axis from condition TEXT against a hint list:
+
+    RENAL = ("renal", "kidney", "dialysis", "esrd", "ckd", "nephro")
+
+**"ESKD" matches none of those**, so a patient on dialysis for end-stage kidney
+disease could be refused every renal guideline over four letters. That is the
+same §3an shape as the `_CONDITION_HINTS` dict this whole line of work began by
+deleting — it had simply moved one function along.
+
+A therapy is a STATEMENT, and WHO titles it. So the therapy's own catalog title
+goes through the SAME hints:
+
+    QB94.1  Care involving extracorporeal dialysis   -> renal
+    QB42    Dependence on renal dialysis             -> renal
+    QB96    …radiotherapy session                    -> no axis, correctly
+
+**No code→axis table was added, deliberately.** A second hand-typed clinical
+mapping is one more thing to keep in step (§3an), and WHO's wording is an
+authority where mine is not. It follows that adding an axis means adding a key
+to `_INDICATION_HINTS` and the therapy half comes free — or does not come at
+all, which is right while nothing is tagged to score for it.
+
+> ⚠️ **A stated zero must NEVER remove an axis, and getting this backwards
+> would be the harm.** A patient with ESRD who says they are not on dialysis is
+> pre-dialysis CKD — still renal, because the condition says so. The zero is a
+> fact about the REGIMEN, not about the disease. Therapies therefore only ever
+> ADD: the failure mode of adding is measuring a marker the patient holds, and
+> the failure mode of subtracting is withholding a guideline from the person
+> being worked up for it.
+
+**Ω gets the same evidence.** `pathways_for` takes `therapies` too, because
+`indications_for` is deliberately one function serving both scores and handing
+it to one caller only would reinstate the drift it exists to prevent — KDIGO
+applied to a patient whose PTH the same request calls unexpected. Measured: a
+declared `QB94.1` makes exactly `CaxP Product`, `Ferritin`,
+`Iron Saturation (TSAT)` and `PTH (Intact)` expected, and removes nothing.
+
+### 41b — the regimen is REPORTED, never scored
+
+Α alone is a verdict with no statement of what is being managed, and a reader
+cannot then tell a poorly-managed patient from one whose treatment nobody
+recorded. `compute_alpha` now returns `therapies_receiving`,
+`therapies_stated_zero`, `regimens` and `indication_because` — and they travel
+**even when `alpha` is None**, because a patient on apheresis has no Α today
+and drawing nothing would read as "no treatment on record" for someone under
+active treatment (§3aa).
+
+> **Nothing here enters the arithmetic, and a test pins it.** Α is identical
+> with two stated zeros present and absent. Whether a patient SHOULD be on a
+> therapy they declined is a clinical judgement; asserting it would be the
+> §3an violation. The zero is reported beside Α so a clinician can draw that
+> conclusion themselves — the arithmetic never draws it for them.
+
+**All three clients draw it**, which is the half §3bc got wrong on the quota
+work (*"the figure reaches all three clients; the citation does not"*). A
+payload no client draws is a dead payload, so the Α card on web, iOS and
+Android shows what is being given, what was declined, the regimen label, and
+why the guideline applies at all.
+
+### 41c — the dates, and a limit stated rather than papered over
+
+`started_on`/`ended_on` existed on the API with no client collecting them, so a
+therapy that STOPPED could only be expressed by flipping a switch — losing
+WHEN, which is what makes a history interpretable.
+
+- **Web** `type="date"`, which leaves itself blank — nothing stamps today onto
+  a clinical field nobody filled in.
+- **iOS** `Toggle` then `DatePicker`, the house idiom for an optional date
+  (§3bb). A `DatePicker` alone cannot be empty, so it would record a date
+  nobody supplied on every row.
+- **Android** a typed `YYYY-MM-DD`, matching the diagnosis-date field already
+  on that form. A half-typed value **refuses the save and names it** rather
+  than being discarded (§3av) or sent as a 422 the patient cannot act on, and
+  `isIsoDay` rejects `2026-02-31` — shaped like a date and not one.
+
+> ⚠️ **`receiving = false` with no `ended_on` cannot distinguish "never was on
+> it" from "stopped, date unknown."** That is a real limit of a switch plus two
+> optional dates, and it is recorded rather than guessed: an absent date means
+> NOT RECORDED. Inventing a fourth state to hold it would be §3at's collapse
+> pointing the other way.
+
+> **The date format is pinned, not localised.** iOS formats with
+> `en_US_POSIX` + Gregorian + UTC: §3aw records that the app's language is a
+> SwiftUI `\.locale` choice and NOT `Locale.setDefault`, so a formatter reading
+> the ambient locale would render an Arabic-Indic or Buddhist-calendar date
+> into an API payload. §3bd measured what the same mistake costs on a typed
+> number.
+
+### 41d — the navigation re-asks (closes 37b, 38c, 39b)
+
+Open through three deploys, and the switch made it worse: a patient could state
+*"I am NOT on this"* and watch the screen they just retired stay on screen,
+which reads as a control that did nothing (§3ar).
+
+One idiom per platform, each with precedent in this codebase, and all three
+carry **no payload** — the surface rule is the SERVER's (§3), so the only
+correct response to "something changed" is to ASK AGAIN. A client that
+recomputed the set locally would be a second implementation of a clinical
+decision.
+
+    web       window event `alafia:surfaces-changed` -> Layout refetches
+    iOS       NotificationCenter `.alafiaSurfacesChanged` (as §3ah's 402 does)
+    Android   SurfaceRefresh.epoch, a StateFlow the LaunchedEffect keys on
+
+> **A counter, not a one-shot event, on Android.** `MainTabView` keys a
+> `LaunchedEffect` on the epoch, so a bump re-runs the fetch and a collector
+> that was not listening at the moment of the write still converges. A
+> `SharedFlow` emission would be dropped while the Conditions screen is in
+> front — which is exactly when every one of these writes happens.
+
+Announced from **create, update, the therapy write AND delete** on all three.
+Deleting the last condition retires screens as surely as adding one opens them,
+and its therapy rows go with it (FK CASCADE).
+
+### Verified, 2026-10-14
+
+    backend     91 passed — 18 NEW in test_alpha_reads_therapies.py, plus
+                surfacing (32), the switch over HTTP (12) and the Ω maths (29)
+    schema      the four new fields survive HEBCSScoreResponse end to end,
+                checked by building the response from a real compute_alpha
+    frontend    279 passed (43 files)
+    i18n        51 — catalogs plus the iOS presentation-flag and typed-decimal
+                guards, run from a repo-root mount (§3bb: they SKIP inside
+                backend-test and say so)
+    ruff        F,E9 clean on hebcs_engine, wellness api + schema, the new test
+    iOS         ** BUILD SUCCEEDED ** ×3 (model, card, after the l10n import)
+    Android     BUILD SUCCESSFUL; lint MissingTranslation = 0; APK
+                32,774,929 -> 32,782,021 bytes (the size CHANGING is what
+                proves the rebuild carried the code)
+    translated  web 2 + android 7 + iOS 6 new strings × 10 languages, 0 refused
+    served      dev :8080 rebuilt (`build` AND `up -d`): the ENTRY carries the
+                surfaces event (it lives in services/surfaces.js, a shared
+                module), ChronicConditions-Ca5ASfPf.js carries the /therapies
+                PUT and started_on, Wellness-B3Dk39cM.js carries
+                therapies_stated_zero. Checked per chunk — §4's "ask the served
+                asset" plus knowing WHICH asset (§38 paid for that once)
+
+> ⚠️ **One of my own assertions measured nothing, and the test caught it.**
+> `test_BOTH_scores_read_the_same_evidence` first read
+> `assert gained & renal_markers or gained` — which passes on ANY gain. The
+> four marker names are now pinned exactly, read out of the container. §3av,
+> again, in the test written to prove the thing works.
+
+### STILL OPEN
+
+- **41e. `regimen` is free text** (39e, TASKS 20c). Two patients on the same
+  compound will spell it differently, so grouping is per-patient and nothing
+  aggregates across records. Correct for now — a controlled vocabulary of
+  regimens is a clinical claim and WHO codes therapies, not combinations — but
+  it bounds any cross-patient use of compounding.
+- **41f. Only the RENAL axis exists.** `_INDICATION_HINTS` has one key, so a
+  leukaemia patient on chemotherapy still gets no Α: the mechanism now reads
+  their declared therapy and there is nothing tagged for it to score. That is
+  the honest state and it is a guideline-sourcing job (§3bc's resolve-cite-store
+  shape), not a code gap.
+- **41g. Phototherapy and generic infusion therapy still have no Q code** (38a,
+  TASKS 20e) — an operator decision about whether a non-coded therapy may be
+  declared beside coded ones, and how it is stored so it can never be mistaken
+  for a WHO code.
+- **41h. Not deployed.** This is dev only; production is on `7cb62da`.

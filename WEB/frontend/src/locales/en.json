@@ -640,7 +640,9 @@
     "therapy_group_answered": "— answered",
     "therapy_regimen_placeholder": "Given together as (optional)",
     "therapies_not_saved": "Your condition was saved, but your therapy answers were not. Please try again.",
-    "therapies_not_loaded": "Could not load your therapy answers. Nothing has been changed — answers you do not set are left as they are."
+    "therapies_not_loaded": "Could not load your therapy answers. Nothing has been changed — answers you do not set are left as they are.",
+    "therapy_started_on": "Started on",
+    "therapy_ended_on": "Stopped on"
   },
   "ClinicianDashboard": {
     "loading": "Loading...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "How well what you live with is being held to the guidelines written for it. This is a different question from how you are: you can be seriously unwell and impeccably managed at the same time.",
     "alpha_against_guidelines": "against guideline targets",
     "alpha_off_target_heading": "Outside its target",
-    "alpha_none": "No condition on record has a guideline target, so there is nothing to score here."
+    "alpha_none": "No condition on record has a guideline target, so there is nothing to score here.",
+    "alpha_regimen_heading": "What is being done for you",
+    "alpha_not_receiving": "you told us you are not on this"
   },
   "CategoryDetail": {
     "category": "Category",

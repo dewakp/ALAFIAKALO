@@ -1116,13 +1116,19 @@ difference in what the model decides to call, not a fork in the code.
 
 ## 20. The therapy axis has no consumer — a switch nothing scores
 
+> ✅ **20a, 20b and 20d DONE 2026-10-14.** Α reads `condition_therapies`, the
+> dates are collected on all three clients, and the navigation re-asks. Detail
+> and verification: **OPEN_ITEMS 41**. **20c and 20e remain**, and 20e is a
+> decision rather than work — see the note at the end of each.
+
+
 Raised by the work in OPEN_ITEMS 39, 2026-10-14. The switch's stated purpose,
 in the operator's own words, is *"a comprehensive list with items zeroed out
 (no impact) when not present"* — i.e. **an axis with the same dimensions for
 every patient**, most of them zero, so that two records are comparable. That
 is built. Nothing reads it.
 
-### 20a — Α must read `condition_therapies`
+### 20a — Α must read `condition_therapies` ✅ DONE
 
 `compute_alpha` resolves indications from conditions and measures them against
 labs. A patient's declared therapies are the other half of management: being ON
@@ -1135,7 +1141,7 @@ is a finding, not a gap. Today Α cannot tell those apart because it never looks
 > (§3an). The axis reports; the scoring question is which cells are evidence
 > about management and which are evidence about nothing.
 
-### 20b — a therapy that STOPPED
+### 20b — a therapy that STOPPED ✅ DONE
 
 `started_on` and `ended_on` exist in the table and on the API and **no client
 collects them**. So "I came off PD in March" can only be said by flipping a
@@ -1143,7 +1149,7 @@ switch to false, which loses the date — and the date is exactly what makes a
 history interpretable. Needs a date field on all three clients, and a decision
 about what `receiving=false` WITH an `ended_on` means versus without one.
 
-### 20c — `regimen` is free text, deliberately, and that bounds 20a
+### 20c — `regimen` is free text, deliberately, and that bounds 20a ⏳ OPEN
 
 Two patients on the same compound will spell it differently, so grouping is
 per-patient and nothing aggregates across records. That is the right call for
@@ -1152,7 +1158,7 @@ publish one (checked: the QB branch codes therapies, not combinations). But any
 cross-patient use of compounding needs that resolved first, the same
 resolve-cite-store shape as §3bc's quotas.
 
-### 20d — the navigation does not re-render
+### 20d — the navigation does not re-render ✅ DONE
 
 37b, 38c and 39b are one bug and it is now the most visible one: the nav
 fetches `/users/me/surfaces` once on mount, so a patient who states *"not on
@@ -1160,7 +1166,7 @@ this"* watches the screen they just retired stay on screen until they reload.
 Three clients, one fix each — refetch surfaces after a condition or therapy
 write, or have the write response carry the new surface set.
 
-### 20e — a non-coded therapy
+### 20e — a non-coded therapy ⏳ OPEN — an operator DECISION, not work
 
 Phototherapy and generic infusion therapy have **no Q code** (measured, 38a),
 so they cannot be declared at all, and the hand-typed enum this replaced could

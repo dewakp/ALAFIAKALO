@@ -3325,6 +3325,16 @@
         <target state="translated">Amaara m ụbọchị</target>
         <note />
       </trans-unit>
+      <trans-unit id="I know when it started" xml:space="preserve">
+        <source>I know when it started</source>
+        <target state="translated">Amaara m mgbe o malitere</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="I know when it stopped" xml:space="preserve">
+        <source>I know when it stopped</source>
+        <target state="translated">Amaara m mgbe o kwụsịrị</target>
+        <note />
+      </trans-unit>
       <trans-unit id="I've confirmed — continue" xml:space="preserve">
         <source>I've confirmed — continue</source>
         <target state="translated">Akwadoro m — gaa n'ihu</target>
@@ -6577,6 +6587,11 @@
         <target state="translated">Malite site n'ịdebanye ọnọdụ obi gị ma ọ bụ ịnwale mmega iku ume</target>
         <note />
       </trans-unit>
+      <trans-unit id="Started" xml:space="preserve">
+        <source>Started</source>
+        <target state="translated">Malitere</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Stat" xml:space="preserve">
         <source>Stat</source>
         <target state="translated">Ozugbo</target>
@@ -6605,6 +6620,11 @@
       <trans-unit id="Stop" xml:space="preserve">
         <source>Stop</source>
         <target state="translated">Kwụsị</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Stopped" xml:space="preserve">
+        <source>Stopped</source>
+        <target state="translated">Kwụsịrị</target>
         <note />
       </trans-unit>
       <trans-unit id="Storage" xml:space="preserve">
@@ -7551,6 +7571,11 @@ I na-ekpebi nke ọma?</target>
         <target state="translated">Kedu ihe ị na-anya anya?</target>
         <note />
       </trans-unit>
+      <trans-unit id="What is being done for you" xml:space="preserve">
+        <source>What is being done for you</source>
+        <target state="translated">Gini ka a na-eme maka gị</target>
+        <note />
+      </trans-unit>
       <trans-unit id="What never reaches the provider" xml:space="preserve">
         <source>What never reaches the provider</source>
         <target state="translated">Ihe na-apụghị ịrute onye ọjọ</target>
@@ -7881,6 +7906,11 @@ I na-ekpebi nke ọma?</target>
       <trans-unit id="you logged it" xml:space="preserve">
         <source>you logged it</source>
         <target state="translated">ị dekọtara ya</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="you told us you are not on this" xml:space="preserve">
+        <source>you told us you are not on this</source>
+        <target state="translated">Ị sịrị na ị nọ na-eji nke a</target>
         <note />
       </trans-unit>
       <trans-unit id="°F" xml:space="preserve">

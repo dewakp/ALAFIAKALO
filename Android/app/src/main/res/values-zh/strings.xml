@@ -1362,4 +1362,11 @@
     <string name="therapy_regimen_placeholder">一起给药（可选）</string>
     <string name="therapies_not_saved">您的病情已保存，但疗法回答未保存。请重试。</string>
     <string name="therapies_not_loaded">无法加载您的疗法回答。未做任何更改。</string>
+    <string name="therapy_started_on">开始于</string>
+    <string name="therapy_ended_on">停止于</string>
+    <string name="therapy_i_know_started">我知道它何时开始</string>
+    <string name="therapy_i_know_stopped">我知道它何时停止</string>
+    <string name="alpha_regimen_heading">为您做了什么</string>
+    <string name="alpha_not_receiving">您告诉我们您没有使用这个</string>
+    <string name="therapy_date_unreadable">\"%1$s\"不是我们能读取的日期。请按YYYY-MM-DD格式写入，例如[dob]。</string>
 </resources>

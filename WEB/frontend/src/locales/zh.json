@@ -640,7 +640,9 @@
     "therapy_group_answered": "— 已回答",
     "therapy_regimen_placeholder": "一起给药（可选）",
     "therapies_not_saved": "您的病情已保存，但疗法回答未保存。请重试。",
-    "therapies_not_loaded": "无法加载您的疗法回答。未做任何更改——您未设置的回答将保持不变。"
+    "therapies_not_loaded": "无法加载您的疗法回答。未做任何更改——您未设置的回答将保持不变。",
+    "therapy_started_on": "开始于",
+    "therapy_ended_on": "停止于"
   },
   "ClinicianDashboard": {
     "loading": "加载中...",
@@ -3068,7 +3070,9 @@
     "alpha_card_subtitle": "您所患疾病的管理是否符合为其制定的指南。这与您的身体状况是两个不同的问题：您可能病情严重但管理得当，也可能身体状况良好但管理不足。",
     "alpha_against_guidelines": "未达指南目标",
     "alpha_off_target_heading": "超出目标范围",
-    "alpha_none": "记录中的病情均无指南目标，因此无法评分。"
+    "alpha_none": "记录中的病情均无指南目标，因此无法评分。",
+    "alpha_regimen_heading": "为您做了什么",
+    "alpha_not_receiving": "您告诉我们您没有使用这个"
   },
   "CategoryDetail": {
     "category": "类别",

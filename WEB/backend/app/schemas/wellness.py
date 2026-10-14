@@ -83,6 +83,30 @@ class HEBCSScoreResponse(BaseModel):
     alpha_off_target: list[dict] = []
     #: Why Α is absent, when it is.
     alpha_reason: str | None = None
+
+    # ── The REGIMEN Α is a judgement about (TASKS 20a) ───────────────────
+    #
+    # Α alone is a verdict with no statement of what is being managed, and a
+    # reader cannot then tell a poorly-managed patient from one whose treatment
+    # nobody recorded. These travel even when `alpha` is None — a patient on
+    # apheresis or radiotherapy has no Α today because no guideline target is
+    # tagged for those axes, and returning nothing would read as "no treatment
+    # on record" for someone under active treatment (§3aa).
+    #
+    #: Therapies the patient states they ARE receiving, with WHO's own title.
+    therapies_receiving: list[dict] = []
+    #: Therapies they have explicitly said they are NOT on — a measured ZERO,
+    #: which a membership set could never express (§3at). Reported, never
+    #: scored: whether a patient SHOULD be on something they declined is a
+    #: clinical judgement, and asserting it here would be the §3an violation.
+    therapies_stated_zero: list[dict] = []
+    #: Codes given TOGETHER as one treatment — the compounding mechanism. It
+    #: says what is combined and nothing about what the combination does.
+    regimens: dict[str, list[str]] = {}
+    #: Per indication axis, what put the patient on it — a condition's wording
+    #: or a declared therapy. An axis decides which guideline Α applies, so it
+    #: must be auditable rather than mysterious.
+    indication_because: dict[str, list[str]] = {}
     #: Biomarkers sitting at or below the bottom of their own band. A pathway
     #: score is a weighted ARITHMETIC mean, so a marker at zero is averaged up
     #: by its neighbours: on the reference record Glucose 273 scores 0.000 and

@@ -3372,6 +3372,16 @@
         <target state="new">I know the date</target>
         <note/>
       </trans-unit>
+      <trans-unit id="I know when it started" xml:space="preserve">
+        <source>I know when it started</source>
+        <target state="new">I know when it started</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="I know when it stopped" xml:space="preserve">
+        <source>I know when it stopped</source>
+        <target state="new">I know when it stopped</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="I've confirmed — continue" xml:space="preserve">
         <source>I've confirmed — continue</source>
         <target state="new">I've confirmed — continue</target>
@@ -6627,6 +6637,11 @@
         <target state="new">Start by logging your mood or trying a breathing exercise</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Started" xml:space="preserve">
+        <source>Started</source>
+        <target state="new">Started</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Stat" xml:space="preserve">
         <source>Stat</source>
         <target state="new">Stat</target>
@@ -6655,6 +6670,11 @@
       <trans-unit id="Stop" xml:space="preserve">
         <source>Stop</source>
         <target state="new">Stop</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Stopped" xml:space="preserve">
+        <source>Stopped</source>
+        <target state="new">Stopped</target>
         <note/>
       </trans-unit>
       <trans-unit id="Storage" xml:space="preserve">
@@ -7601,6 +7621,11 @@ Are you absolutely sure?</target>
         <target state="new">What emotions are you feeling?</target>
         <note/>
       </trans-unit>
+      <trans-unit id="What is being done for you" xml:space="preserve">
+        <source>What is being done for you</source>
+        <target state="new">What is being done for you</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="What never reaches the provider" xml:space="preserve">
         <source>What never reaches the provider</source>
         <target state="new">What never reaches the provider</target>
@@ -7934,6 +7959,11 @@ Are you absolutely sure?</target>
       <trans-unit id="you logged it" xml:space="preserve">
         <source>you logged it</source>
         <target state="new">you logged it</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="you told us you are not on this" xml:space="preserve">
+        <source>you told us you are not on this</source>
+        <target state="new">you told us you are not on this</target>
         <note/>
       </trans-unit>
       <trans-unit id="°F" xml:space="preserve">

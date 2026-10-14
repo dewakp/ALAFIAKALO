@@ -1362,4 +1362,11 @@
     <string name="therapy_regimen_placeholder">Zusammen gegeben als (optional)</string>
     <string name="therapies_not_saved">Ihre Erkrankung wurde gespeichert, aber Ihre Therapieantworten nicht. Bitte versuchen Sie es erneut.</string>
     <string name="therapies_not_loaded">Ihre Therapieantworten konnten nicht geladen werden. Nichts wurde geändert.</string>
+    <string name="therapy_started_on">Begonnen am</string>
+    <string name="therapy_ended_on">Beendet am</string>
+    <string name="therapy_i_know_started">Ich kenne das Startdatum</string>
+    <string name="therapy_i_know_stopped">Ich kenne das Enddatum</string>
+    <string name="alpha_regimen_heading">Was wird für Sie getan</string>
+    <string name="alpha_not_receiving">Sie haben uns mitgeteilt, dass Sie dies nicht nehmen</string>
+    <string name="therapy_date_unreadable">„%1$s\" ist kein lesbares Datum. Bitte schreiben Sie es als YYYY-MM-DD, zum Beispiel [dob].</string>
 </resources>

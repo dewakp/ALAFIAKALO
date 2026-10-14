@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useClinicianMode } from '../context/ClinicianModeContext';
 import api from '../services/api';
+import { SURFACES_CHANGED } from '../services/surfaces';
 import MembershipNudge from './MembershipNudge';
 import LanguageSwitcher from './LanguageSwitcher';
 import {
@@ -285,6 +286,11 @@ export default function Layout() {
      holding their own records (§3aa — an error is not an empty state). The
      backend owns the rule; this only renders it. */
   const [surfaces, setSurfaces] = useState(null);
+  /* Bumped by `SURFACES_CHANGED`, below. A declaration the navigation does not
+     reflect until the next page load is §3ar's dead control wearing a delay:
+     the patient states "not on this", watches the screen they just retired
+     stay on screen, and reasonably concludes the control did nothing. */
+  const [surfacesEpoch, setSurfacesEpoch] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -297,7 +303,18 @@ export default function Layout() {
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, surfacesEpoch]);
+
+  /* The WRITER announces; the nav refetches. Deliberately not a shared cache
+     or a prop drilled through every page: the surface rule lives on the server
+     (§3), so the only correct response to "something that decides surfaces
+     changed" is to ASK AGAIN. A client that recomputed the set locally would
+     be a second implementation of a clinical rule. */
+  useEffect(() => {
+    const onChanged = () => setSurfacesEpoch((n) => n + 1);
+    window.addEventListener(SURFACES_CHANGED, onChanged);
+    return () => window.removeEventListener(SURFACES_CHANGED, onChanged);
+  }, []);
 
   /* An entry with no `surface` is unconditional. An entry that names one is
      shown only when the record justifies it — and a GROUP disappears once its

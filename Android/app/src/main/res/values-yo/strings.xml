@@ -1362,4 +1362,11 @@
     <string name="therapy_regimen_placeholder">A fúnni pẹ̀lú (àkọ̀tun)</string>
     <string name="therapies_not_saved">Àwọn ìṣẹ̀lẹ̀ rẹ̀ tí a pa mọ́, ṣùgbọ́n àwọn ìdáhùn therapy rẹ̀ kò pa mọ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.</string>
     <string name="therapies_not_loaded">Àwọn ìdáhùn therapy rẹ̀ kò ṣe àgbékalẹ̀. Ohun kan kò yí padà.</string>
+    <string name="therapy_started_on">Bẹ̀rẹ̀ sí</string>
+    <string name="therapy_ended_on">Dẹ̀kun sí</string>
+    <string name="therapy_i_know_started">Mo mọ̀ ìgbà tí ó bẹ̀rẹ̀</string>
+    <string name="therapy_i_know_stopped">Mo mọ̀ ìgbà tí ó dẹ̀kun</string>
+    <string name="alpha_regimen_heading">Kini a ń ṣe fun ọ</string>
+    <string name="alpha_not_receiving">Ìwọ sọ fún wa pé o kò wà lórí èyí</string>
+    <string name="therapy_date_unreadable">\"%1$s\" kì í ṣe ọjọ́ tí a lè kà. Jọ̀wọ́ kọ́ ọ gẹ́gẹ́ YYYY-MM-DD, fún àpẹẹrẹ [dob].</string>
 </resources>
