@@ -1081,7 +1081,9 @@ weight and height are continuous.
 
 #### What was built
 
-`condition_nutrient_quotas` (migration **`ap001_nutrient_quotas`**, dev only):
+`condition_nutrient_quotas` (migration **`ap001_nutrient_quotas`** — read as
+`dev only` here until 2026-10-14, when the live `alembic_version` said
+`ap001_nutrient_quotas`: it shipped in the 2026-10-10 deploy of `2a96a38`):
 amount + unit + **basis** (`absolute` | `per_kg` | `per_1000_kcal` |
 `per_dose`) + **kind** (target | limit) + **includes_supplements** +
 **time_course** + scope, and **`source` / `cited_text` NOT NULL**. A quota
@@ -3061,7 +3063,7 @@ a clinical fact.
   profile"; only the Conditions form has the control.
 - **35b. Mobile cannot set it.** iOS and Android render the surfacing but have
   no therapy selector, so a phone-only patient cannot declare a modality.
-- **35c. Production is unmigrated.** `aq001` is dev only.
+- ✅ **35c. Shipped 2026-10-14** — `aq001` and `ar001` both applied. See 39a.
 
 ---
 
@@ -3105,10 +3107,10 @@ screen for it. §3: a feature is not done until web, iOS and Android have it.
 
 ### STILL OPEN
 
-- **36a. `aq001` is dev-only.** Production has no `therapy_types` column, so
-  none of this reaches a patient until the migration ships. Deploying also
-  carries every undeployed change since `2a96a38` — including Ω/Α, which moves
-  the score for every patient — so it is one decision, not a routine push.
+- ✅ **36a. Shipped 2026-10-14.** `aq001` + `ar001` applied; `/api/health`
+  reports `7cb62da`. It was indeed one decision and not a routine push — Ω/Α
+  went with it, so **every patient's wellness number moved today** and stored Ω
+  history is no longer comparable with what follows it (32b).
 - **36b.** Nothing BACKFILLS. The 5 existing production conditions will arrive
   with NULL, so a current dialysis patient keeps their screens through their
   sessions (data beats a missing declaration) but sees no therapy declared
@@ -3283,8 +3285,8 @@ truth that drifts from the first — fails the build.
   hand-typed enum could express them. That is a real loss, and the fix is a
   decision about whether a non-coded therapy may be declared alongside coded
   ones, not a silent re-addition.
-- **38b.** `aq001` remains dev-only; none of this reaches a patient yet.
-  → `ar001` joins it. See **39a**.
+- ✅ **38b.** Shipped 2026-10-14 with `ar001`. See **39a** for what was
+  verified in the production schema.
 - **38c.** The nav still fetches `/users/me/surfaces` once on mount, so
   declaring a therapy does not re-render it until reload (37b). → **39b**,
   where it is now worse: a patient who states "not on this" watches the screen
@@ -3494,10 +3496,22 @@ English source behind it.
 
 ### STILL OPEN
 
-- **39a. `aq001` and `ar001` are dev-only.** Production has neither the
-  `therapy_types` column nor the `condition_therapies` table, so no patient can
-  declare anything yet. A prod deploy now carries everything since `2a96a38`,
-  including the Ω/Α split.
+- ✅ **39a. SHIPPED 2026-10-14.** Deployed `7cb62da`; the migration job
+  (`alafia-migrate-2sbf7`) took production `ap001_nutrient_quotas` →
+  `ar001_therapy_switch`. Asked of the database afterwards, not of the log:
+  `condition_therapies` carries `receiving boolean NOT NULL default false`,
+  `UNIQUE (condition_id, therapy_code)` and `FK … ON DELETE CASCADE`;
+  `chronic_conditions.therapy_types` exists and is nullable. **0 rows in each**
+  — correct, because nothing backfills (36b) and inventing a modality from a
+  patient's condition text is the guess this replaced.
+
+  ⚠️ **This item ALSO claimed `ao001` and `ap001` were dev-only, and they were
+  not.** The live `alembic_version` read `ap001_nutrient_quotas` *before* this
+  deploy: both shipped on 2026-10-10 with `2a96a38`, and these notes went stale
+  the moment that deploy ran. DEPLOY.md §3 warns about exactly this — *"a
+  revision in prose goes stale the first time anyone deploys and nobody
+  notices, because the deploy still works"* — and it has now happened in
+  OPEN_ITEMS as well as in DEPLOY.md. **Ask the database.**
 - **39b. The nav still fetches `/users/me/surfaces` once on mount** (37b, 38c),
   so setting a switch does not re-render navigation until reload. This is worse
   now than it was: a patient who states *"not on this"* watches the screen they
@@ -3519,3 +3533,67 @@ English source behind it.
   on the API, and no client collects them, so a therapy that STOPPED is
   expressed only by flipping its switch to false. The date a treatment ended is
   a clinical fact the record cannot currently hold.
+
+---
+
+## 40. The deploy of 2026-10-14 — what reached patients, and what did not
+
+`7cb62da`, 13 commits, `680863a..7cb62da` on main. Production had been on
+`2a96a38` (built 2026-10-09, deployed 2026-10-10), so this release carried
+**everything since** — it was never a routine push.
+
+### Verified, by asking rather than reading
+
+    migration job   alafia-migrate-2sbf7   successfully completed
+    prod DB         ap001_nutrient_quotas -> ar001_therapy_switch
+    code head       alembic heads = ar001_therapy_switch        ← equal, as §4 requires
+    /api/health     version 7cb62dabd585658ea705967933a0ae62d645e5c0
+    /api/ready      database ok, 13.9 ms
+    revisions       backend 00239-v9p, identity 00118-6ml, frontend 00115-56n
+    public          subscription/plans 200, auth/csrf-cookie 204
+    new routes      chronic/therapy-options 401, users/me/surfaces 401,
+                    conditions/{id}/therapies 401 GET / 403 PUT (CSRF)
+                    — 401/403 and never 404 is what proves them MOUNTED
+    served bundle   /assets/ChronicConditions-BjibXQPz.js on alafia.app carries
+                    the `/therapies` call and `therapy_unanswered`, and no
+                    longer carries the retired `therapy_types_help`
+    schema shape    condition_therapies: receiving NOT NULL default false,
+                    UNIQUE (condition_id, therapy_code), FK ON DELETE CASCADE
+    row counts      condition_therapies 0, chronic_conditions.therapy_types 0
+
+### What this changed for every patient on the platform
+
+- **Ω and Α are now two numbers.** Ω is health; Α is how well a condition is
+  managed. The reference record's Ω moves **0.781 → 0.421** with Α at 0.382.
+  **Stored Ω history is not comparable with anything computed after today** and
+  nothing on the screen says so (32b, still open).
+- **Navigation is patient-specific.** A patient with no condition no longer
+  sees therapy screens; an HD patient no longer sees PD.
+- **Five Ω arithmetic faults** are corrected (§3be): stale analytes, a
+  population reference interval used as a treatment target, an arithmetic mean
+  inside each pathway, one-sided bands, and a zeroed pathway that raised the
+  score.
+
+### What did NOT reach patients, stated rather than implied
+
+- ⚠️ **The mobile SWITCH is in the repo and not in anybody's hands.** The
+  shipped TestFlight build and the distributed APK still draw the old checkbox
+  and still post `therapy_types`. That is why the legacy path was kept and why
+  `for_user` reads the column where the switch is silent: an old client's
+  declaration still lands, still resolves through `_LEGACY_TO_CODE`, and still
+  opens the right screen. What a shipped app **cannot** do is state a zero.
+  Closing it needs an App Store build and an APK, not a backend change.
+- **Nothing backfills, deliberately** (36b). All 5 production conditions arrive
+  with every therapy UNANSWERED, which is the honest state: nobody has asked.
+- **The smoke script's AI checks were SKIPPED, not passed** — they need a
+  bearer token for `dew@6igma.com`, which this session does not hold. The
+  script says so itself rather than printing green, which is the whole reason
+  it says it (§4: a token-less green run is what missed a month-long AI
+  outage). **`/api/v1/admin/health` was not called**, so the vision-corpus
+  size, the configured AI backends and the email provider are unverified on
+  this release.
+- **`QUOTA_RESOLVE_ENABLED` is still false** (§3bc), so the quota clock did not
+  start and `times_confirmed` stays 1.
+- **39b–39f are untouched** by shipping: the nav still fetches surfaces once on
+  mount, nothing scores a therapy, `started_on`/`ended_on` have no client,
+  `regimen` is free text, and phototherapy still has no Q code.

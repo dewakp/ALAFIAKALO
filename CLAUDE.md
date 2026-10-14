@@ -4223,7 +4223,12 @@ Measured: **zero** rows mention a parathyroidectomy in `chronic_conditions`,
 `symptom_logs` or anywhere else in the database. The fact existed only in a
 chat message, so no amount of retrieval could reach it and the nutrient targets
 kept quoting a bone-health RDA. `hospitalizations` + `surgical_procedures`
-(migration `ao001_hospital_history`, dev only) are where it now lives.
+(migration `ao001_hospital_history`) are where it now lives. ⚠️ This said
+**dev only** until 2026-10-14, when the live `alembic_version` was read and
+said `ap001_nutrient_quotas` — `ao001` shipped in the 2026-10-10 deploy. A
+revision written in prose goes stale the first time anyone deploys and
+nobody notices, because the deploy still works (DEPLOY.md §3). **Ask the
+database.**
 
 **Two tables, and EITHER ROW CAN STAND ALONE.** That is the whole design.
 `surgical_procedures.hospitalization_id` is NULLABLE on purpose: day-case
@@ -4480,7 +4485,8 @@ answers are not a daily dietary number at all.
   safety **12.1%** of the time. So the conflict check in
   `nutrient_quota_service` is deterministic code, never a prompt.
 
-`condition_nutrient_quotas` (`ap001`, **dev only**) therefore carries amount +
+`condition_nutrient_quotas` (`ap001`, **in production since 2026-10-10** —
+read off `alembic_version`, not from this line) therefore carries amount +
 unit + `basis` + `kind` + `includes_supplements` + `time_course` + scope, with
 **`source` and `cited_text` NOT NULL**: a quota with no citation is REFUSED,
 because §3az's own history is a hardcoded potassium limit of 4,700 mg sitting
@@ -4682,6 +4688,61 @@ instead of a variable-length list no two records can be compared across.
 > ("Abnormal" / "In range" / "Not assessed"). §3aw's "a matching language LIST
 > is not a matching CATALOG", one layer further out: **re-export before
 > believing the iOS half of that guard.**
+
+---
+
+## 3bg. "Unshipped" is a claim about the database, not about a document
+
+Deploying `7cb62da` on 2026-10-14 began by reading four documents that said
+`ao001` and `ap001` were **dev only**. The live `alembic_version` said
+`ap001_nutrient_quotas`: both had shipped four days earlier with `2a96a38`, and
+every one of those lines went stale the moment that deploy ran.
+
+DEPLOY.md §3 and §4 already say this about themselves — *"a revision in prose
+goes stale the first time anyone deploys and nobody notices, because the deploy
+still works"* — and they record three previous occurrences. It has now happened
+in `OPEN_ITEMS.md` and in `CLAUDE.md` as well, which is the point worth
+recording: **the failure is not specific to the runbook.** Any document that
+names a deployed revision, a gate's value or a release's contents is a document
+that will be wrong and will not fail.
+
+    # what production is on                     — the only trustworthy answer
+    prod_psql -tAc "select version_num from alembic_version;"
+    # what the code expects
+    docker compose exec -T -w /app backend alembic heads
+
+**They must be equal after a deploy, and that is the check** — never a number
+written anywhere, including here.
+
+- **Date every release note.** DEPLOY.md's "What is in this release" described
+  mid-2026 nutrition work through at least eight later deploys. It looked
+  harmless, which is why it survived. Add a dated section; never edit the one
+  below it.
+- **Ask the schema, not the migration job's exit code.** The job reporting
+  success says it ran, not that the objects are what the revision intended.
+  After `ar001` the columns, the `UNIQUE (condition_id, therapy_code)` and the
+  `FK … ON DELETE CASCADE` were read back out of
+  `information_schema`/`pg_constraint`, and the row counts too — **0 and 0**,
+  which is the evidence that nothing backfilled.
+- **A mounted route answers 401, never 404.** That one status code separates
+  "the release shipped the endpoint" from "the router was never included", and
+  it needs no credential to check.
+- ⚠️ **The entry bundle is not the screen.** `index-*.js` carried the new i18n
+  keys because the catalog is bundled there, while the page itself is a LAZY
+  chunk — so proving it shipped meant fetching
+  `/assets/ChronicConditions-<hash>.js` **by name** and grepping that. §4's
+  "ask the served asset" plus the knowledge of WHICH asset.
+- ⚠️ **A green smoke run without a token is not a green smoke run.**
+  `scripts/gcp/smoke.sh` says so itself, and that sentence exists because a
+  token-less checklist passed daily for 27 days while every AI panel answered
+  503. If you cannot produce the token, report the AI tier and
+  `/admin/health` as **unchecked** — not as fine.
+
+> **A release that moves a stored clinical number must say so in the release
+> note.** Ω/Α shipped here, so every patient's wellness figure changed on
+> 2026-10-14 and stored Ω history is not comparable across that line. That is a
+> fact about the record, and the place a clinician or an operator would look for
+> it is the release note — not a commit message.
 
 ---
 

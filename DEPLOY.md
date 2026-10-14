@@ -290,6 +290,34 @@ silently fails.
 
 ## What is in this release
 
+> ⚠️ **DATE EVERY RELEASE TABLE.** This heading said "this release" over a
+> table describing the nutrition/vision work of mid-2026, through at least
+> eight deploys that had nothing to do with it. It is the same failure as the
+> stale revision numbers in §3 and §4 — prose cannot notice it has died — and
+> here it is harmless-looking, which is why nobody fixed it. **Add a new dated
+> section at the top; never edit the one below it.**
+
+### 2026-10-14 — `7cb62da` (13 commits since `2a96a38`)
+
+Verification table and what did NOT ship: **OPEN_ITEMS 40**.
+
+| Area | Change |
+|---|---|
+| Wellness | **Ω and Α are two numbers now.** Ω is biological health; Α is how well a condition is MANAGED. Every patient's wellness figure moved — the reference record's Ω goes 0.781 → 0.421 with Α 0.382 — and stored Ω history is **not comparable** with anything computed after this deploy |
+| Wellness | Five Ω arithmetic faults (§3be): stale analytes, a population reference interval used as a treatment target, an arithmetic mean inside each pathway, one-sided bands, and a zeroed pathway that RAISED the score |
+| Navigation | Patient-specific surfacing — no condition means no therapy screens; an HD patient no longer sees PD |
+| Conditions | **The therapy switch** (`ar001`): three states per therapy — unknown / a stated zero / receiving — over WHO's 32-code ICD-11 therapy branch, with `regimen` for compounded treatment. `GET`/`PUT /chronic/conditions/{id}/therapies` |
+| Conditions | `aq001` adds `chronic_conditions.therapy_types`, the legacy comma-separated column shipped mobile clients still write |
+| i18n | 8 web keys + 8 Android strings in all ten languages, and **65 iOS literals** that had been shipping English-only (hospital history, the Α card, the labs tri-state) |
+| Migrations | `ap001_nutrient_quotas` → `aq001_condition_therapies` → `ar001_therapy_switch`, both additive |
+
+⚠️ **The mobile therapy switch is NOT in anybody's hands.** The shipped
+TestFlight build and distributed APK still draw the old checkbox and post
+`therapy_types`, which still resolves and still opens the right screen — what
+they cannot do is state a zero. That needs an App Store build and an APK.
+
+### Mid-2026 — historical, kept for the record
+
 | Area | Change |
 |---|---|
 | Nutrition | Saves return in ~1.5s instead of timing out; nutrients enrich in the background (`nutrient_status`) |

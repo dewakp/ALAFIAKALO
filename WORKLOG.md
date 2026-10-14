@@ -3599,3 +3599,64 @@ and nothing aggregates across records (39e); the nav still fetches
 `/users/me/surfaces` once on mount, which is now worse — a patient who states
 "not on this" watches the screen they just retired stay on screen (39b); and
 `aq001`/`ar001` are both dev-only, so no patient can declare anything yet (39a).
+
+---
+
+## 2026-10-14 — Deployed `7cb62da` to production (13 commits since `2a96a38`)
+
+Committed, pushed `680863a..7cb62da` to main (nothing unmerged into main, tree
+clean so `deploy.sh` built the code it reports — §5a's working-tree trap), then
+`deploy/gcp/deploy.sh`. Full verification table: **OPEN_ITEMS 40**.
+
+    migration job   alafia-migrate-2sbf7  completed
+    prod DB         ap001_nutrient_quotas -> ar001_therapy_switch
+    alembic heads   ar001_therapy_switch           ← equal to the DB, as §4 requires
+    /api/health     7cb62dabd585658ea705967933a0ae62d645e5c0
+    /api/ready      database ok, 13.9 ms
+    revisions       backend 00239-v9p · identity 00118-6ml · frontend 00115-56n
+
+Two migrations applied, both additive. The production schema was then **asked**
+rather than inferred: `condition_therapies` carries `receiving boolean NOT NULL
+default false`, `UNIQUE (condition_id, therapy_code)` and `FK … ON DELETE
+CASCADE`; 0 rows in it and 0 non-null `therapy_types`, which is correct because
+nothing backfills.
+
+Carried to patients: the **Ω/Α split** (the reference record's Ω moves 0.781 →
+0.421, Α 0.382 — so every patient's wellness number moved today and stored Ω
+history is no longer comparable), **patient-specific navigation**, the
+**therapy switch** with WHO's 32-code option set, and the five Ω arithmetic
+faults of §3be.
+
+### What it cost to learn
+
+- **Four "dev only" claims were false before I started.** OPEN_ITEMS said
+  `ao001` and `ap001` were dev-only; the live `alembic_version` read
+  `ap001_nutrient_quotas` — both had shipped on 2026-10-10 with `2a96a38`.
+  DEPLOY.md §3 warns that a revision written in prose goes stale the first time
+  anyone deploys *and nobody notices, because the deploy still works*. It had
+  already happened three times in DEPLOY.md; it has now happened in OPEN_ITEMS
+  too. **Ask the database before you believe a migration is unshipped.**
+  Corrected in CLAUDE.md §3bb/§3bc and OPEN_ITEMS §8a with the date and the
+  measurement.
+- **A `:'var'` psql substitution does not survive `docker run -i`** through
+  nested quoting — it reached psql as a literal `:` and errored. Writing the
+  SQL to a file and passing `-f /sql/…` is the shape `db_lib.sh` already
+  expects, and the one the rest of this repo uses.
+- **The entry bundle is not the component.** `/assets/index-l6xnaVqb.js` on
+  alafia.app carries `therapy_switch_help` — but that is the i18n catalog, not
+  the screen. ChronicConditions is a LAZY chunk, so proving it shipped meant
+  fetching `/assets/ChronicConditions-BjibXQPz.js` **by name** and grepping it
+  for the `/therapies` call. §38 already paid for this once and §4 states the
+  rule: ask the served asset, and know which asset. (The prod entry hash equals
+  the dev one — same source, same content hash — which is corroboration, not
+  evidence on its own.)
+
+**Not verified, named rather than implied:** the smoke script's AI checks were
+SKIPPED, not passed — they need a bearer token for `dew@6igma.com` which this
+session does not hold, and the script says so itself rather than printing
+green. `/api/v1/admin/health` was therefore not called, so the vision-corpus
+size, the configured AI backends and the email provider are unchecked on this
+release. **And the mobile therapy switch is in the repo, not in anybody's
+hands**: the shipped TestFlight build and distributed APK still draw the old
+checkbox and post `therapy_types`, which still works through the legacy path —
+what they cannot do is state a zero. That needs an App Store build and an APK.
