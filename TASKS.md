@@ -1030,6 +1030,13 @@ whether the formula is right, and it is cited in the Discussion as if it did.
 
 ## 19. "Chat with Alafia" — TELL performs, ASK answers
 
+> ⚠️ **19a (the LABEL) is done, 2026-10-14; 19b–19d are not.** The rename
+> shipped across web, iOS and Android — OPEN_ITEMS 43. **That makes the gap
+> worse before it makes it better**: the control now says a patient may tell
+> Alafia to log something, while elimination, mood, sleep, symptoms and fitness
+> still have no write tool. The honest sequencing would have been tools first.
+
+
 Operator, 2026-10-13, verbatim:
 
 > *"change AI prompt message to "Chat with Alafia". This is more

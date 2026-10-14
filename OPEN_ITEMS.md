@@ -3766,3 +3766,137 @@ and its therapy rows go with it (FK CASCADE).
   declared beside coded ones, and how it is stored so it can never be mistaken
   for a WHO code.
 - **41h. Not deployed.** This is dev only; production is on `7cb62da`.
+
+---
+
+## 42. Two eliminations at 00:40 and 10:30 both read "08:00 PM" — 2026-10-14
+
+Reported with a screenshot: the dashboard's Elimination Events showed two bowel
+movements at the SAME time, beside an Elimination Log on the next screen
+showing the true 00:40 and 10:30.
+
+**Three faults in one line of `Dashboard.jsx`, and the first is why the other
+two were never visible:**
+
+    time: e.time || e.log_date,  …  ...e
+
+1. **The API sends `log_time`.** There has never been a `time` field on
+   `BowelMovement` or `VomitingLog` — both declare `log_date` and `log_time`.
+   So `e.time` was always `undefined` and every row fell back to its DATE.
+2. The render then did `new Date("2026-10-14").toTimeString()`. An ISO
+   **date-only** string is parsed as **UTC midnight**, and `toTimeString`
+   prints **local** — so in EDT every event read `20:00` → "08:00 PM".
+   **The time shown was a function of the VIEWER'S TIMEZONE, not of the
+   event.** In a UTC browser the same rows would have read 12:00 AM.
+3. `...e` came AFTER the computed keys, so had the API ever grown a `time`
+   field it would have silently overruled them. The spread goes first now.
+
+**Reproduced before changing anything** (§0), running the exact old expression
+against the real row shape in a node container at `TZ=America/New_York`:
+
+    log_time 00:40:00 -> merged.time "2026-10-14" -> RENDERED 08:00 PM
+    log_time 10:30:00 -> merged.time "2026-10-14" -> RENDERED 08:00 PM
+    new Date("2026-10-14").toTimeString() = 20:00:00 GMT-0400
+
+> ⚠️ **It is in the INITIAL COMMIT**, measured with `git log -L`. It did not
+> regress and no deploy introduced it — production has rendered every
+> elimination event at the viewer's midnight since the app shipped. **I said
+> mid-investigation that the in-flight deploy would "ship the wrong times" and
+> offered to kill it; that was wrong**, and asking git rather than inferring
+> from "the bug is in the tree I am deploying" is what settled it. §3ad's shape:
+> *it did not regress; it was never right.*
+
+**iOS and Android bind `log_time` correctly and always have.** §3av again:
+when one platform eats data and two do not, the two are the specification.
+
+### What changed beyond the field name
+
+- **A row with NO time now says so.** §3av measured the cost of the opposite
+  choice on **3,662** `intradialytic_readings`, where an import defaulted a
+  missing timestamp to midnight and "the measurement is real and the time is
+  not" had to be reconstructed from the population afterwards.
+- **Sorting is by the real time**, and untimed rows go last rather than
+  claiming the top of the day. The old sort compared the DATE, so every event
+  on one day was in arbitrary order — a third consequence nobody had noticed
+  because every row also displayed the same time.
+- **`buildEliminationEvents` and `fmtTime` are exported** so a test can reach
+  them. The defect lived in the COMPOSITION of the two — a correct transform
+  meeting a formatter that turned a date into a time — so a test of either
+  alone would pass on a half-fix. The end-to-end assertion pins
+  `['12:40 AM', '10:30 AM']` and rejects `'08:00 PM'` by name.
+
+> **My own patch script broke the file first.** The anchor consumed `=>` and
+> the replacement gave back `=`, so `const fmtTime = (t) = {` reached esbuild.
+> Three test files went red including the i18n extractor, which is the suite
+> doing its job — and the reason to run it before believing a scripted edit.
+
+### Verified
+
+    web         290 passed in 44 files (was 279/43 — 11 new)
+    i18n        44 catalog tests; 3 web strings × 10 languages, 0 refused
+    served      dev :8080 rebuilt (`build` AND `up -d`) and ASKED:
+                Dashboard-BWdE0kfi.js reads `log_time` and contains ZERO
+                `toTimeString`; the entry carries "Chat with Alafia"
+
+### STILL OPEN
+
+- **42a.** The same dashboard renders meals, medications and appointments
+  through their own time paths, and **none of them was audited here**. Only
+  elimination was reported and only elimination was measured; a sweep of every
+  `time`-shaped field the dashboard reads against the column each model
+  actually declares is a separate job, and the static-check shape of §3ag
+  (every `Model.attribute` must exist on that model) is what would catch it.
+- **42b.** `GET /elimination/*` returns `log_time` as `"HH:MM:SS"`. Nothing
+  states which timezone a patient's wall-clock entry belongs to, so the same
+  row means different instants for a patient who travels. Today every client
+  treats it as local wall clock, consistently — which is right for a diary and
+  wrong for anything that correlates it with a lab draw or a dialysis session.
+
+---
+
+## 43. "Ask ALAFIA" became "Chat with Alafia" — TASKS 19a only — 2026-10-14
+
+Operator, 2026-10-13: *"change AI prompt message to 'Chat with Alafia'. This is
+more representative. So user can tell (prompt for action) or Ask (query for
+information)."* Raised again 2026-10-14 with a screenshot of the sidebar still
+reading "Ask ALAFIA".
+
+**"Ask" understated a surface that WRITES.** §3am records that `log_meal` and
+`log_medication` are live tools — a patient can tell it to do something, not
+only ask it a question — so the label described less than the product does.
+That is §3ar's dead control pointed the other way: the capability exists and
+nothing tells the patient it is there.
+
+    web      Layout.ask_alafia, Help.ask_alafia   -> "Chat with Alafia"
+    iOS      PromptView .navigationTitle          -> "Chat with Alafia"
+             MainTabView tab label "Ask"          -> "Chat"
+             AIChatView placeholder               -> "Ask a question, or tell
+                                                     Alafia to log something"
+    Android  R.string.ask_alafia                  -> "Chat with Alafia"
+             R.string.ask (tab label)             -> "Chat"
+             R.string.ask_about_your_health       -> as iOS
+
+A tab bar cannot hold "Chat with Alafia", so the short label carries the same
+correction in one word. `R.string.ask` was checked for other callers first —
+it has exactly one.
+
+> **The KEY stays `ask_alafia`.** A key is an identifier; renaming it would
+> churn 11 locale files and every review file for nothing the patient sees. The
+> translator keys off the English SOURCE text, so changing the VALUE is what
+> triggers retranslation in all ten languages — which is what was wanted.
+
+### STILL OPEN — this is the label, and TASKS 19 is not the label
+
+- **43a. 19b — TELL cannot write most of what it says it can.** Elimination,
+  mood, sleep, symptoms and fitness have **no write tool** at all, so a patient
+  who now reads "tell Alafia to log something" and says "log that I slept
+  badly" gets an apology. **Renaming the control before its capability exists
+  widens the gap between what the label promises and what the product does** —
+  the honest sequencing would have been tools first. It is recorded here rather
+  than quietly accepted.
+- **43b. 19c — Ω and Α are unreachable by the assistant.** No tool returns the
+  wellness or management score, so "how am I doing?" is answered from raw rows
+  while the product's own composite sits unseen.
+- **43c. 19d — one loop, not two code paths.** TELL and ASK must remain a
+  difference in what the model decides to call, never a fork (§3am: two copies
+  is how the Anthropic streamer silently dropped every tool turn).

@@ -3742,3 +3742,65 @@ therapy and nothing is tagged for it to score, which is a guideline-sourcing job
 nothing aggregates across records. Phototherapy still has no Q code — an
 operator decision. **None of this is deployed**; production remains on
 `7cb62da`.
+
+---
+
+## 2026-10-14 (3) — Deployed 7f1fb6c; then a time bug from the initial commit
+
+**Deployed `7f1fb6c`** (the Α-reads-therapies work). No new migrations — prod
+was already at `ar001_therapy_switch`, so the job was a no-op.
+
+    /api/health   7f1fb6c599904e013044cf18ba2474a0ae5fc9dd
+    /api/ready    database ok, 21.2 ms
+    alembic       prod ar001_therapy_switch == code head
+    smoke         plans 200, csrf 204, wellness/omega 401 (mounted)
+
+**No production score moved.** Measured before deploying: user 63 is the only
+account that has declared a therapy (`QB42`, `QB94.1`, both receiving), and
+their conditions already read "End-Stage Renal Disease (ESRD)" — which the
+renal hints already matched. So the declaration is redundant evidence for an
+axis they already had, and Ω and Α are numerically unchanged for everyone. The
+release is additive display plus latent correctness for the "ESKD" case.
+
+### Then: two eliminations at 00:40 and 10:30 both read "08:00 PM"
+
+Full detail: **OPEN_ITEMS 42**. Three faults in one line of `Dashboard.jsx` —
+the API sends `log_time` and the code read `time`, so every row fell back to
+its DATE; `new Date(dateOnly)` is UTC midnight and `toTimeString()` prints
+local, so in EDT every event read 20:00; and `...e` came after the computed
+keys. **The time displayed was a function of the viewer's timezone.**
+
+**It is in the initial commit.** I said mid-investigation that the in-flight
+deploy would ship the wrong times and offered to kill it. That was wrong —
+production has had this since the app shipped. Asking `git log -L` rather than
+inferring from "the bug is in the tree I am deploying" is what settled it.
+
+**"Ask ALAFIA" → "Chat with Alafia"** across all three clients (TASKS 19a,
+OPEN_ITEMS 43). Worth saying plainly: the rename makes the honesty gap WORSE
+before better, because TELL still cannot write elimination, mood, sleep,
+symptoms or fitness. Tools first would have been the right order.
+
+### What it cost to learn
+
+- **A scripted edit can produce a file that does not parse.** My anchor
+  consumed `=>` and the replacement gave back `=`. Three test files went red
+  including the i18n extractor — run the suite before believing a patch script.
+- **Reproduce the symptom before theorising.** Running the exact old expression
+  against the real row shape in a node container returned "08:00 PM" for both
+  rows — the screenshot's value — which named all three faults at once.
+- **Export what the bug spans.** `buildEliminationEvents` and `fmtTime` are
+  both exported because the defect lived in their composition; a test of either
+  alone passes on a half-fix.
+- **Ask the APK, not the build log.** Android reported `BUILD SUCCESSFUL in 2s`
+  after a strings-only change; "Chat with Alafia" was confirmed inside the
+  built `resources.arsc`.
+
+**Verified:** web 290 passed in 44 files (was 279/43); 44 i18n catalog tests;
+15 strings × 10 languages across the two pieces, 0 refused; iOS
+`BUILD SUCCEEDED`; Android `BUILD SUCCESSFUL` with the string read out of the
+APK; dev :8080 rebuilt and asked — `Dashboard-BWdE0kfi.js` reads `log_time`
+and contains **zero** `toTimeString`.
+
+**Not done:** the dashboard's meal, medication and appointment time paths were
+not audited — only elimination was reported and only elimination was measured
+(42a). `802c23e` is **not deployed**; production is on `7f1fb6c`.
