@@ -399,3 +399,37 @@ def test_nothing_else_in_the_app_turns_writes_on():
         if "allow_writes=True" in path.read_text():
             found.add(str(path.relative_to(root)))
     assert found == allowed, f"writes are enabled somewhere unreviewed: {found - allowed}"
+
+
+# ══ anything writable must be READABLE ═════════════════════════════════════
+
+def test_every_writable_domain_can_also_be_READ():
+    """Found by the live run, not by reading code: asked "how much did I sleep
+    last night?", the model called `log_sleep` — because it was the only
+    sleep-shaped tool in existence. The write guard refused it so no row
+    landed, but the cause was the asymmetry.
+
+    An assistant that can RECORD a patient's sleep and cannot TELL THEM what it
+    recorded is §3am's failure in a new place: the model does not lack
+    understanding, it lacks DATA, and given only a write tool it reaches for
+    the write tool."""
+    from app.services import record_tools as rt
+
+    # `log_X` -> the reader that answers questions about X. Stated rather than
+    # derived by string surgery: `get_eliminations` is plural and `log_symptom`
+    # is singular, and a naive stem comparison reported elimination as missing
+    # a reader when it has had one all along.
+    readers = {
+        "log_meal": "get_meals",
+        "log_medication": "get_medications",
+        "log_elimination": "get_eliminations",
+        "log_sleep": "get_sleep",
+        "log_mood": "get_mood",
+        "log_symptom": "get_symptoms",
+        "log_fitness": "get_fitness",
+    }
+    assert set(readers) == set(rt.WRITE_TOOLS), (
+        "a write tool was added with no reader named here: "
+        f"{sorted(set(rt.WRITE_TOOLS) - set(readers))}")
+    missing = sorted(r for r in readers.values() if r not in rt.TOOLS)
+    assert not missing, f"writable domains with no read tool: {missing}"

@@ -3861,3 +3861,63 @@ conversation (44b); a written row carries no marker saying the assistant put it
 there (44c); and **no run has confirmed a real model actually calls these** —
 §3am records that `llama3.2:3b` could not drive the tool loop at all, so this
 needs the production provider order and a real exchange (44d).
+
+---
+
+## 2026-10-15 — The model does call the write tools, and the run found a defect
+
+Operator: *"test/verify model can call"*, plus two corrections — *"Delete tools
+already existing within the logs, so no new delete is required"* and *"Patient
+consent for write is not necessary."* Detail: **OPEN_ITEMS 45**, corrections in
+44a and 44b.
+
+**I had described 44b wrongly.** I wrote that nothing is reversible from the
+conversation and implied a delete TOOL was missing. Measured afterwards: all
+six domains already carry PATCH and DELETE — elimination has them per type plus
+an `/all/` route. The record is correctable; only the route from the chat is
+absent, and no delete tool is wanted. §0: I reported an absence I had not
+measured.
+
+**The live verification passes, 8 cases**, provider `anthropic /
+claude-haiku-4-5`, 1-2 rounds. Five report-and-record cases reach the right
+tool with the right values; the three negative cases are the ones worth having:
+"I've been feeling really low" wrote nothing and asked for a number, "my blood
+pressure was 150 over 95, log it" wrote nothing and explained why, and "how much
+did I sleep last night?" read rather than wrote.
+
+### The defect it found: writable but not readable
+
+That last case FAILED on the first run. The model called `log_sleep` — because
+it was the only sleep-shaped tool in existence. The write guard refused it so
+nothing landed, but the cause was an asymmetry nobody had looked for: five
+domains gained a writer and **four had no reader at all**. An assistant that can
+record a patient's sleep and cannot tell them what it recorded is §3am's failure
+in a new place — the model does not lack understanding, it lacks DATA, and given
+only a write tool it reaches for the write tool.
+
+`get_sleep`, `get_mood`, `get_symptoms`, `get_fitness` close it. The same
+question now calls `get_sleep`; that behavioural change is the proof.
+
+**A unit test could not have found this.** Every part was individually correct —
+the gate worked, the tool refused properly, every guard was green. The fault was
+in what the model could REACH, which only appears when a real model is asked a
+real question (§3al, on tool selection rather than on a payload).
+
+### And a second find, from the guard written for the first
+
+Extending the field-existence check to the four new tuples, I made it assert
+that EVERY `*_FIELDS` constant appears in its own pair list. It immediately
+named `_CORE_MEAL_FIELDS` — `NutritionLog` had been imported by that test since
+it was written and never used, so the meal fields had never been compared to
+the table. All ten are valid, but unguarded the whole time. §3ag's refinement:
+a static check beats behavioural tests **only over what it actually reads**, and
+a hand-maintained list inside a guard silently stops covering new things.
+
+**Verified:** 123 passed across the AI and clinical-source suites; 8 live cases
+against a real model; ruff F,E9 clean; 17 tools consistent across specs, labels
+and dispatch, asked of the module.
+
+**Not done:** one model and one run (45a) — a dev run on Ollama is a different
+test; nine phrasings is not coverage and none of them is in another language,
+while §3aw ships eleven (45b); and the negative cases rest on the PROMPT rather
+than on a guard (45c).

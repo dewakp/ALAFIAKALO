@@ -380,21 +380,46 @@ def test_every_field_a_tool_reads_exists_on_its_model():
     who had it. Behavioural tests do not catch this; comparing the names to the
     table does, for free, for all of them at once (§3ag).
     """
+    from app.models.conditions import SymptomLog
     from app.models.elimination import BowelMovement, VomitingLog
+    from app.models.fitness import FitnessLog
     from app.models.labs import LabResult
+    from app.models.mood import MoodEntry
     from app.models.nutrition import NutritionLog
+    from app.models.sleep import SleepLog
     from app.models.vitals import VitalsLog
     from app.services import record_tools as rt
 
-    for model, fields in (
-        (VitalsLog, rt.VITALS_FIELDS),
-        (BowelMovement, rt.BOWEL_FIELDS),
-        (VomitingLog, rt.VOMIT_FIELDS),
-        (LabResult, rt.LAB_FIELDS),
-    ):
+    pairs = (
+        (VitalsLog, "VITALS_FIELDS"),
+        (BowelMovement, "BOWEL_FIELDS"),
+        (VomitingLog, "VOMIT_FIELDS"),
+        (LabResult, "LAB_FIELDS"),
+        (SleepLog, "SLEEP_FIELDS"),
+        (MoodEntry, "MOOD_FIELDS"),
+        (SymptomLog, "SYMPTOM_FIELDS"),
+        (FitnessLog, "FITNESS_FIELDS"),
+        # Found by the meta-check below the first time it ran: `NutritionLog`
+        # was IMPORTED by this test and never used, so the meal fields were
+        # never compared to anything. All ten are valid — measured — but they
+        # had been unguarded since the tool shipped.
+        (NutritionLog, "_CORE_MEAL_FIELDS"),
+    )
+    for model, const in pairs:
         columns = {c.key for c in model.__table__.columns}
-        missing = set(fields) - columns
+        missing = set(getattr(rt, const)) - columns
         assert not missing, f"{model.__name__} has no column(s): {sorted(missing)}"
+
+    # ⚠️ The list above was hand-maintained, so four field tuples added in
+    # 2026-10-14 were unchecked the moment they landed — the guard was there
+    # and did not cover them. Every `*_FIELDS` constant must now appear, or
+    # adding the next one silently escapes the check that exists for exactly
+    # this (§3ag: a static check beats behavioural tests, but only over what it
+    # actually reads).
+    declared = {n for n in dir(rt) if n.endswith("_FIELDS")}
+    covered = {const for _m, const in pairs}
+    assert declared <= covered, (
+        f"field constants nothing checks: {sorted(declared - covered)}")
 
 
 def test_the_medication_serialiser_matches_the_view_it_is_given():

@@ -819,6 +819,122 @@ async def get_surgical_history(db: AsyncSession, user_id: int, *,
 
 
 
+# ── the four domains that could be WRITTEN and not READ ────────────────────
+#
+# Found by the live verification, not by reading the code: asked "how much did
+# I sleep last night?", the model called `log_sleep` — because it was the only
+# sleep-shaped tool that existed. The write guard refused it ("no sleep detail
+# given — nothing was logged") so no row landed and the answer was correct, but
+# the cause is the asymmetry: five domains gained a writer and four of them had
+# no reader at all.
+#
+# An assistant that can record a patient's sleep and cannot tell them what it
+# recorded is §3am's failure in a new place — the model does not lack
+# understanding, it lacks DATA, and given only a write tool it will reach for
+# the write tool.
+
+#: What each reader returns, per row. Columns, not prose — a curated subset is
+#: a decision about which facts matter taken by someone who cannot know the
+#: question (§3am, measured on the 14-nutrient allowlist that hid folate).
+SLEEP_FIELDS = ("total_hours", "quality_score", "bedtime", "wake_time",
+                "times_awakened", "time_to_fall_asleep_min", "morning_alertness",
+                "morning_mood", "notes")
+MOOD_FIELDS = ("mood_score", "energy_level", "stress_level", "anxiety_level",
+               "sleep_quality", "sleep_hours", "emotions", "triggers",
+               "coping_strategies", "journal_entry", "notes")
+SYMPTOM_FIELDS = ("symptom_name", "severity", "body_part", "location_specific",
+                  "duration_hours", "symptom_type", "quality", "onset",
+                  "pattern", "triggers", "relievers", "affects_function",
+                  "interferes_sleep", "interferes_work", "self_treatment",
+                  "treatment_effective", "sought_medical_care", "notes")
+FITNESS_FIELDS = ("activity_type", "duration_minutes", "distance_km",
+                  "calories_burned", "heart_rate_avg", "heart_rate_max",
+                  "steps", "sets", "reps", "weight_kg", "intensity", "notes")
+
+
+def _rows(records, date_attr: str, fields: tuple[str, ...]) -> list[dict]:
+    """Rows as the record holds them. An absent value is OMITTED, never zeroed:
+    §3aa — unmeasured and zero are different facts, and a model handed
+    `quality_score: 0` would report a terrible night nobody recorded."""
+    out = []
+    for r in records:
+        row = {"date": str(getattr(r, date_attr))}
+        for f in fields:
+            v = getattr(r, f, None)
+            if v not in (None, ""):
+                row[f] = str(v)
+        out.append(row)
+    return out
+
+
+async def _simple_history(db: AsyncSession, user_id: int, model, date_attr: str,
+                          fields: tuple[str, ...], label: str, *,
+                          start_date, end_date, today) -> dict[str, Any]:
+    """One windowed read. Shared so four readers cannot drift apart."""
+    s, e = _window(start_date, end_date, today)
+    col = getattr(model, date_attr)
+    rows = (await db.execute(
+        select(model)
+        .where(model.user_id == user_id, col >= s, col <= e)
+        .order_by(col).limit(_MAX_ROWS)
+    )).scalars().all()
+    return {
+        "range": {"start": str(s), "end": str(e)},
+        label: _rows(rows, date_attr, fields),
+        "period": _period_block([getattr(r, date_attr) for r in rows], s, e, label),
+    }
+
+
+async def get_sleep(db: AsyncSession, user_id: int, *,
+                    start_date: str | None = None, end_date: str | None = None,
+                    today: date | None = None) -> dict[str, Any]:
+    """Nights of sleep on record."""
+    from app.models.sleep import SleepLog
+    return await _simple_history(db, user_id, SleepLog, "sleep_date",
+                                 SLEEP_FIELDS, "sleep",
+                                 start_date=start_date, end_date=end_date,
+                                 today=today)
+
+
+async def get_mood(db: AsyncSession, user_id: int, *,
+                   start_date: str | None = None, end_date: str | None = None,
+                   today: date | None = None) -> dict[str, Any]:
+    """Mood entries on record."""
+    from app.models.mood import MoodEntry
+    return await _simple_history(db, user_id, MoodEntry, "entry_date",
+                                 MOOD_FIELDS, "mood",
+                                 start_date=start_date, end_date=end_date,
+                                 today=today)
+
+
+async def get_symptoms(db: AsyncSession, user_id: int, *,
+                       start_date: str | None = None, end_date: str | None = None,
+                       today: date | None = None) -> dict[str, Any]:
+    """Symptoms the patient has reported.
+
+    §3am records that symptoms described to the AI used to leave no trace at
+    all — *"dizzy, weak" informed one answer and left no trace* — on a patient
+    whose dizziness is exactly what a clinician would want a history of. They
+    are written now, and this is what makes that history answerable.
+    """
+    from app.models.conditions import SymptomLog
+    return await _simple_history(db, user_id, SymptomLog, "log_date",
+                                 SYMPTOM_FIELDS, "symptoms",
+                                 start_date=start_date, end_date=end_date,
+                                 today=today)
+
+
+async def get_fitness(db: AsyncSession, user_id: int, *,
+                      start_date: str | None = None, end_date: str | None = None,
+                      today: date | None = None) -> dict[str, Any]:
+    """Activity on record."""
+    from app.models.fitness import FitnessLog
+    return await _simple_history(db, user_id, FitnessLog, "log_date",
+                                 FITNESS_FIELDS, "activity",
+                                 start_date=start_date, end_date=end_date,
+                                 today=today)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # The gated write tools
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1342,6 +1458,49 @@ TOOL_SPECS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "get_sleep",
+        "description": "Nights of sleep on record — hours, quality, bedtime "
+                       "and wake time, how often they woke. Use this for ANY "
+                       "question about how the patient slept.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"start_date": {"type": "string", "description": "YYYY-MM-DD. Omit both dates for a sensible recent window."}, "end_date": {"type": "string", "description": "YYYY-MM-DD. Omit both dates for a sensible recent window."}},
+            "required": [],
+        },
+    },
+    {
+        "name": "get_mood",
+        "description": "Mood entries on record — the score the patient gave, "
+                       "energy, stress and anxiety, and what they wrote.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"start_date": {"type": "string", "description": "YYYY-MM-DD. Omit both dates for a sensible recent window."}, "end_date": {"type": "string", "description": "YYYY-MM-DD. Omit both dates for a sensible recent window."}},
+            "required": [],
+        },
+    },
+    {
+        "name": "get_symptoms",
+        "description": "Symptoms the patient has reported — what, where, how "
+                       "severe, how long, and what they said about it. Use "
+                       "this before answering anything about how they have "
+                       "been feeling.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"start_date": {"type": "string", "description": "YYYY-MM-DD. Omit both dates for a sensible recent window."}, "end_date": {"type": "string", "description": "YYYY-MM-DD. Omit both dates for a sensible recent window."}},
+            "required": [],
+        },
+    },
+    {
+        "name": "get_fitness",
+        "description": "Activity on record — what they did, for how long, how "
+                       "far, and how hard.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"start_date": {"type": "string", "description": "YYYY-MM-DD. Omit both dates for a sensible recent window."}, "end_date": {"type": "string", "description": "YYYY-MM-DD. Omit both dates for a sensible recent window."}},
+            "required": [],
+        },
+    },
+    {
         "name": "log_meal",
         "description": "RECORD a meal in the patient's diary. Use this whenever "
                        "they ask you to log, add, save or record something they "
@@ -1784,6 +1943,10 @@ TOOL_LABELS = {
     "get_medications": "Checking your medications",
     "get_vitals": "Checking your vitals",
     "get_labs": "Checking your lab results",
+    "get_sleep": "Checking your sleep",
+    "get_mood": "Checking how you have been feeling",
+    "get_symptoms": "Checking your symptoms",
+    "get_fitness": "Checking your activity",
     "log_meal": "Saving your meal",
     "log_medication": "Recording your medication",
     "log_elimination": "Recording that in your elimination log",
@@ -1830,6 +1993,10 @@ TOOLS = {
     "get_medications": get_medications,
     "get_vitals": get_vitals,
     "get_labs": get_labs,
+    "get_sleep": get_sleep,
+    "get_mood": get_mood,
+    "get_symptoms": get_symptoms,
+    "get_fitness": get_fitness,
     "log_meal": log_meal,
     "log_medication": log_medication,
     "log_elimination": log_elimination,

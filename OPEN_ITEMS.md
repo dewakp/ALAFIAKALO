@@ -3996,23 +3996,138 @@ subjective field than mood.
 
 ### STILL OPEN
 
-- **44a. No per-patient consent for AI writes.** The capability is a CALLER
-  property, not a user preference: any signed-in patient using the chat can
-  have it write. The clients gate the Ask tab behind AI consent, but that is
-  client-side, and `users.ai_training_consent` is about training data, not
-  about letting the assistant alter a chart. A real opt-out needs a column, a
-  migration and three Profile screens.
-- **44b. Nothing is reversible from the conversation.** A patient who says
-  "actually that was yesterday" cannot have the row corrected or removed by
-  asking; there is no `amend_*` or `delete_*` tool, deliberately — a delete
-  tool is a far larger decision than a log tool. Today the answer is the
-  matching screen.
+- ✅ **44a. NOT REQUIRED — operator decision, 2026-10-15:** *"Patient consent
+  for write is not necessary."* The capability stays a CALLER property. No
+  column, no migration, no Profile control. Recorded so the next session does
+  not re-propose it as an oversight.
+- ⚠️ **44b. I described this wrongly, and the operator corrected it.** I wrote
+  that "nothing is reversible" and implied a delete TOOL was the missing piece.
+  **Correction and deletion already exist in the product.** Measured across the
+  routers afterwards — all six domains carry both:
+
+        elimination  PATCH/DELETE per type (bowel, urination, vomiting)
+                     plus DELETE /all/{event_type}/{entry_id}
+        mood         PATCH/DELETE /{entry_id}
+        sleep        PATCH/DELETE /{entry_id}
+        fitness      PATCH/DELETE /{log_id}
+        nutrition    PATCH/DELETE /{log_id}
+        medications  PATCH/DELETE /{med_id}, DELETE /dose-logs/{log_id}
+
+  Operator: *"Delete tools already existing within the logs, so no new delete
+  is required."* So the record IS correctable; what the conversation lacks is a
+  route to those screens, and **no delete tool is wanted**. Stated as a
+  decision rather than a gap. §0 again: I reported an absence I had not
+  measured.
 - **44c. The write is not announced anywhere but the reply.** A row appears in
   the record with no marker saying the assistant put it there. `log_meal` has
   had this since it shipped; five more writers make it worth a provenance
   column rather than a convention.
-- **44d. Untested against a real model.** The tools, the gate and the
-  instructions are pinned by unit tests; no run has confirmed that a capable
-  model actually CALLS `log_sleep` when a patient says "I slept badly". §3am
-  records that `llama3.2:3b` could not drive the tool loop at all, so this
-  needs the production provider order and a real exchange.
+- ✅ **44d. VERIFIED 2026-10-15** — and it found a real defect. See **45**.
+
+---
+
+## 45. The model DOES call the write tools — and the run found a real defect
+
+Operator, 2026-10-15: *"test/verify model can call."* Closes **44d**.
+
+`tests/test_ai_write_tools_live.py` drives the REAL loop against a REAL model
+with writes enabled, exactly as `/ai/chat` does, and asserts both the tool that
+was called and the row that landed. **Deliberately not in CI** — every case is
+a live generation, so it is opt-in like the docparse corpus harness (§3ab):
+
+    docker compose --profile test run --rm -e VERIFY_AI_WRITES=1 \
+        backend-test python -m pytest tests/test_ai_write_tools_live.py -q -s
+
+It runs against the TEST database with a user it seeds itself, so no patient
+record is near it — never the dev copy of production, which is real PHI.
+
+### What answered, and what it did
+
+**8 passed**, provider `anthropic / claude-haiku-4-5`, 1-2 rounds each. The
+production order, which is the one worth verifying.
+
+    "I slept badly last night, only about four hours. Log it."
+        -> log_sleep          total_hours 4.0
+    "record that I've been dizzy since this morning, about a 6 out of 10"
+        -> log_symptom        severity 6, symptom kept whole
+    "Log a bowel movement at 3pm today, it was loose."
+        -> log_elimination    log_time 15:00, blood_present NULL
+    "I walked for twenty minutes this morning — please log it."
+        -> log_fitness        20 min, calories_burned NULL
+    "Record my mood as a 3 out of 10 today, I feel low."
+        -> log_mood           mood_score 3
+
+**The three negative cases are the ones that matter:**
+
+    "I've been feeling really low today. Can you note that?"
+        -> NO tool call. "I need a mood score from 1 to 10 — where would you
+           rate your mood today?"      ← it did not invent a number
+    "My blood pressure was 150 over 95 this morning, log it."
+        -> NO tool call. "I can't log blood pressure readings — vitals come
+           from devices and are read-only."
+    "How much did I sleep last night?"
+        -> a READ, not a write
+
+### ⚠️ The defect the run found: writable but not readable
+
+That last case did **not** pass on the first run. The model called
+**`log_sleep`** — because it was the only sleep-shaped tool that existed. The
+write guard refused it (*"no sleep detail given — nothing was logged"*), so no
+row landed and the final answer was correct, but the cause was an asymmetry
+nobody had looked for:
+
+    writable                          readable
+    log_meal                          get_meals        ✓
+    log_medication                    get_medications  ✓
+    log_elimination                   get_eliminations ✓
+    log_sleep                         —
+    log_mood                          —
+    log_symptom                       —
+    log_fitness                       —
+
+**Five domains gained a writer and four of them had no reader at all.** An
+assistant that can record a patient's sleep and cannot tell them what it
+recorded is §3am's failure in a new place: *the model does not lack
+understanding, it lacks DATA* — and given only a write tool, it reaches for the
+write tool.
+
+`get_sleep`, `get_mood`, `get_symptoms` and `get_fitness` close it, and the
+same question now calls **`get_sleep`**. That behavioural change is the proof,
+not the reasoning. `test_every_writable_domain_can_also_be_READ` pins the pair
+list so the next write tool cannot arrive alone.
+
+> **A unit test could not have found this.** Everything was individually
+> correct — the gate worked, the tool refused properly, the guards were green.
+> The fault was in what the model could REACH, which only appears when a real
+> model is asked a real question. §3al's "a unit test proves the function; only
+> the wire proves the system", on tool selection rather than on a payload.
+
+### A second find, from the guard written for the first
+
+Extending `test_every_field_a_tool_reads_exists_on_its_model` to cover the four
+new field tuples, I made it assert that **every** `*_FIELDS` constant appears
+in its own pair list. It immediately named one nothing checked:
+`_CORE_MEAL_FIELDS`. `NutritionLog` had been IMPORTED by that test since it was
+written and never used — so the meal fields had never been compared to the
+table. All ten are valid (measured), but they were unguarded the whole time.
+
+> §3ag's lesson is that a static check beats behavioural tests here. The
+> refinement: **it only beats them over what it actually reads.** A
+> hand-maintained list inside a guard is a guard that silently stops covering
+> new things.
+
+### STILL OPEN
+
+- **45a. One model, one run.** `claude-haiku-4-5` answered every case. §3am
+  measured that `llama3.2:3b` cannot drive the tool loop at all and
+  `gpt-oss:20b` can, so a dev run on Ollama is a different test and has not
+  been done. The file prints the provider and model with every case precisely
+  so a failure can be attributed.
+- **45b. Nine phrasings is not coverage.** These are the obvious forms. "I
+  didn't sleep at all", "my mood is in the gutter", "I was sick twice" and
+  anything in another language are untested — and §3aw ships eleven languages.
+- **45c. The negative cases depend on the PROMPT, not on a guard.** Nothing
+  structurally prevents a future model from inventing a mood score; the
+  instruction says not to and this run confirms the current model obeys. The
+  tool requires the number, so the failure mode is a wrong number rather than
+  an unasked question — which is the weaker protection of the two.
