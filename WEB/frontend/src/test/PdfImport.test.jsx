@@ -57,7 +57,16 @@ const renderPage = () => render(<MemoryRouter><PdfTools /></MemoryRouter>);
 
 async function uploadFile(response = PARSED) {
   postImpl = vi.fn((url) => {
-    if (url.includes('parse-document')) return Promise.resolve({ data: response });
+    // The page uploads through the BATCH endpoint now — several documents at
+    // once, each staged and routed on its own. A mock is only evidence if it
+    // matches the wire (§3at), so this returns the batch envelope rather than
+    // the single-document body the page no longer asks for.
+    if (url.includes('parse-documents')) {
+      return Promise.resolve({ data: {
+        documents: [{ filename: 'labs.pdf', ok: true, error: null, document: response }],
+        parsed: 1, failed: 0, duplicates: 0,
+      } });
+    }
     if (url.includes('/confirm')) {
       return Promise.resolve({ data: { import_id: 42, status: 'confirmed', total_imported: 2, message: 'Imported 2 record(s): 2 → lab_results' } });
     }
@@ -89,7 +98,7 @@ describe('document import review', () => {
 
     // Only the parse call — no confirm was sent.
     expect(postImpl).toHaveBeenCalledTimes(1);
-    expect(postImpl.mock.calls[0][0]).toContain('parse-document');
+    expect(postImpl.mock.calls[0][0]).toContain('parse-documents');
   });
 
   it('shows the readings with their ranges', async () => {
@@ -209,5 +218,124 @@ describe('taking back an import that was already written', () => {
     expect(postImpl).not.toHaveBeenCalledWith('/pdf/imports/42/discard');
     // …and the way back in is still offered, rather than the page dead-ending.
     expect(screen.getByRole('button', { name: /Remove from my records/i })).toBeInTheDocument();
+  });
+});
+
+/* ── Several documents at once ────────────────────────────────────────────
+ *
+ * Operator, 2026-10-15: *"PDF import must support multiple PDF imports at the
+ * same time and route them properly."*
+ *
+ * Each file is its own import on the server; this page reviews ONE at a time
+ * with a switcher. The hazard worth testing is bleed — one document's ticks,
+ * outcome or rows appearing under another, which would have the patient
+ * confirming rows against the wrong report.
+ */
+
+const SECOND = {
+  ...PARSED,
+  import_id: 77,
+  patient_name: 'Dana Rivera',
+  report_date: '2026-06-02',
+  items: [{
+    item_id: 9, test_name: 'Potassium', value: '5.9', unit: 'mEq/L',
+    reference_range: '3.5 – 5.5', is_abnormal: true, test_date: '2026-06-02',
+    dedupe_status: 'new', accepted: true, source_label: 'POTASSIUM', note: null,
+  }],
+};
+
+async function uploadMany(documents) {
+  postImpl = vi.fn((url) => {
+    if (url.includes('parse-documents')) {
+      return Promise.resolve({ data: {
+        documents,
+        parsed: documents.filter(d => d.ok).length,
+        failed: documents.filter(d => !d.ok).length,
+        duplicates: 0,
+      } });
+    }
+    if (url.includes('/confirm')) {
+      return Promise.resolve({ data: { import_id: 42, status: 'confirmed',
+        total_imported: 1, message: 'Imported 1 record(s)' } });
+    }
+    return Promise.resolve({ data: {} });
+  });
+  renderPage();
+  const input = document.querySelector('input[type="file"]');
+  fireEvent.change(input, { target: { files: [
+    new File(['a'], 'march.pdf', { type: 'application/pdf' }),
+    new File(['b'], 'june.pdf', { type: 'application/pdf' }),
+  ] } });
+  fireEvent.click(screen.getByRole('button', { name: /Read Document/i }));
+  await waitFor(() => expect(postImpl).toHaveBeenCalled());
+}
+
+describe('several documents in one upload', () => {
+  it('sends them in ONE request to the batch endpoint', async () => {
+    await uploadMany([
+      { filename: 'march.pdf', ok: true, error: null, document: PARSED },
+      { filename: 'june.pdf', ok: true, error: null, document: SECOND },
+    ]);
+    expect(postImpl).toHaveBeenCalledTimes(1);
+    expect(postImpl.mock.calls[0][0]).toContain('parse-documents');
+  });
+
+  it('offers a tab per document, named by its file', async () => {
+    await uploadMany([
+      { filename: 'march.pdf', ok: true, error: null, document: PARSED },
+      { filename: 'june.pdf', ok: true, error: null, document: SECOND },
+    ]);
+    expect(await screen.findByRole('button', { name: /march\.pdf/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /june\.pdf/ })).toBeInTheDocument();
+  });
+
+  it('shows ONE document at a time, and switching changes the rows', async () => {
+    await uploadMany([
+      { filename: 'march.pdf', ok: true, error: null, document: PARSED },
+      { filename: 'june.pdf', ok: true, error: null, document: SECOND },
+    ]);
+    // The first document's rows, and not the second's.
+    await waitFor(() => expect(screen.getByText('Albumin')).toBeInTheDocument());
+    expect(screen.queryByText('Potassium')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /june\.pdf/ }));
+    await waitFor(() => expect(screen.getByText('Potassium')).toBeInTheDocument());
+    // …and the first document's rows are gone, not stacked underneath.
+    expect(screen.queryByText('Albumin')).not.toBeInTheDocument();
+  });
+
+  it('confirms against the ACTIVE document, not the first one', async () => {
+    await uploadMany([
+      { filename: 'march.pdf', ok: true, error: null, document: PARSED },
+      { filename: 'june.pdf', ok: true, error: null, document: SECOND },
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: /june\.pdf/ }));
+    await waitFor(() => expect(screen.getByText('Potassium')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Import \d+ selected/i }));
+
+    await waitFor(() => {
+      const confirmCall = postImpl.mock.calls.find(c => String(c[0]).includes('/confirm'));
+      expect(confirmCall).toBeTruthy();
+      // 77, not 42 — confirming the document on screen.
+      expect(confirmCall[0]).toContain('77');
+      expect(confirmCall[1].accepted_item_ids).toEqual([9]);
+    });
+  });
+
+  it('a file that could not be read says WHY, and the others still import', async () => {
+    await uploadMany([
+      { filename: 'march.pdf', ok: true, error: null, document: PARSED },
+      { filename: 'IMG_0551.jpeg', ok: false, document: null,
+        error: 'This looks like a photo (JPEG), not a PDF or text document.' },
+    ]);
+    // It opens on the document that PARSED, not on the error.
+    await waitFor(() => expect(screen.getByText('Albumin')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /IMG_0551\.jpeg/ }));
+    await waitFor(() =>
+      expect(screen.getByText(/looks like a photo/i)).toBeInTheDocument());
+    // An empty review panel here would read as "this document contained
+    // nothing", which is the opposite of what happened (§3aa).
+    expect(screen.queryByText('Albumin')).not.toBeInTheDocument();
   });
 });

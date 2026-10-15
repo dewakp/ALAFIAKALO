@@ -413,6 +413,34 @@ struct LabReportItem: Codable, Identifiable {
     }
 }
 
+/// One document's outcome inside a multi-file upload.
+///
+/// Operator, 2026-10-15: *"PDF import must support multiple PDF imports at the
+/// same time and route them properly."* Each file becomes its OWN import on
+/// the server — confirm, reject and discard are per-document — so this wraps
+/// a whole `LabReportParseResponse` rather than flattening several together.
+struct BatchDocumentResult: Codable {
+    let filename: String
+    /// False when THIS document failed. The others still carry their results:
+    /// one unreadable file must never sink the batch (§3ab).
+    let ok: Bool
+    /// Why this one failed, when it did. Never blank — §3aa, an error and an
+    /// empty result mean opposite things.
+    let error: String?
+    let document: LabReportParseResponse?
+}
+
+struct BatchParseResponse: Codable {
+    let documents: [BatchDocumentResult]
+    /// Counted by the SERVER. Three clients deriving a summary is three ways
+    /// to disagree about how many files failed.
+    let parsed: Int
+    let failed: Int
+    /// Documents whose content was already on file, by hash. They resolve to
+    /// the EXISTING import rather than creating a second one (§3ab).
+    let duplicates: Int
+}
+
 struct LabReportParseResponse: Codable {
     let patientName: String?
     let reportDate: String?

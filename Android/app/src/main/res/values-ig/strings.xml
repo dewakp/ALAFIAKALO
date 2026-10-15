@@ -1368,5 +1368,6 @@
     <string name="therapy_i_know_stopped">Amaara m mgbe ọ kwụsịrị</string>
     <string name="alpha_regimen_heading">Gini ka a na-eme maka gị</string>
     <string name="alpha_not_receiving">Ị sịrị na ị nọ na-eji nke a</string>
+    <string name="no_readable_files_selected">Enweghị faịlụ ị họpụtara nke a pụrụ ịgụ.</string>
     <string name="therapy_date_unreadable">\"%1$s\" abụghị ụbọchị anyị nwere ike ịgụ. Biko dee ya dị ka YYYY-MM-DD, dịka [dob].</string>
 </resources>

@@ -4131,3 +4131,139 @@ table. All ten are valid (measured), but they were unguarded the whole time.
   instruction says not to and this run confirms the current model obeys. The
   tool requires the number, so the failure mode is a wrong number rather than
   an unasked question — which is the weaker protection of the two.
+
+---
+
+## 46. Several PDFs at once, each routed on its own — 2026-10-15
+
+Operator: **"PDF import must support multiple PDF imports at the same time and
+route them properly."**
+
+Measured first: `parse-document` took one `UploadFile`; the web input had no
+`multiple` and read `files[0]`; iOS pinned `allowsMultipleSelection = false`
+and took `urls.first`; Android used `GetContent()` (singular). One document at
+a time on every client.
+
+### Each file becomes its OWN import, and that is the whole design
+
+`POST /pdf/parse-documents` loops the existing single-file logic per file.
+Merging a batch into one `DocumentImport` is the shorter code and breaks three
+things that already work:
+
+- **`discard` deletes exactly the rows ONE import created**, by the
+  `imported_row_id` stamped on each staged row. Share a record between two
+  reports and discarding the bad one deletes the good one's rows.
+- **the content-hash check** resolves a re-uploaded file to the import it
+  already made — §3ab's dedupe, which exists because re-importing after a
+  parser fix produces contradictory duplicates.
+- **`confirm` is per-import**, with the reviewer ticking rows per document.
+
+Row routing is untouched: every staged row already carries its own
+`target_table` (per-claim since 2026-10-11), so a visit summary feeding
+conditions AND medications routes the same way in a batch as alone.
+
+> **In-batch hash dedupe is separate from the stored one.**
+> `find_existing_import` queries the database, and a row staged a moment
+> earlier in the same transaction is not reliably visible to it — so the same
+> PDF twice in one request would stage twice. A per-request map closes it.
+
+> **One unreadable file never sinks the others.** Each result carries its own
+> `ok`/`error`, and the batch reports `parsed`/`failed`/`duplicates` counted on
+> the server — three clients deriving a summary is three ways to disagree.
+
+### ⚠️ The defect a batch exposes: dedupe was a STAGE-TIME snapshot
+
+Raised as a lead by a peer session reading the code; **verified by running it
+before fixing** (§0). Two documents in one batch, both reporting albumin for
+2026-03-14 with different values, both confirmed:
+
+    albumin on 2026-03-14 was written 2 times: [4.1, 4.4]
+
+Two contradictory readings for one date — exactly what §3ab describes and what
+the dedupe exists to prevent. `_existing_labs` and the two `known` sets are
+read when a document is STAGED, so a second document staged before the first
+was confirmed saw a table that did not yet contain the first document's rows.
+Both were marked `DEDUPE_NEW`.
+
+**Sequential uploading mostly hid it** — confirming A put A's rows in
+`lab_results` before B was ever staged. Multi-file import makes staging two
+documents before confirming either the normal path, so the window stops being
+an edge case.
+
+`confirm()` now re-reads the live keys and checks each row immediately before
+writing, updating the map as rows land (so a document repeating an analyte
+within itself is caught too). All three targets, by the same keys their stage
+steps use — analyte identity for labs (§3ax), folded name for medications and
+conditions, so the two computations cannot disagree (§3ai).
+
+> **Skipped, never overwritten.** Which of two readings is right is a clinical
+> judgement, and §3ab's own instruction for a genuine correction is to delete
+> first and re-import. The item records why so the reviewer can see it.
+
+### ⚠️ A photo was parsed as text and reported as an empty document
+
+The peer also noted the operator's screenshot had `IMG_0551.jpeg` selected — a
+filename I could not read off the image. Verified by running a real JPEG
+through the pipeline:
+
+    doc_type: unknown   records: 0   error: None
+
+So a patient who photographs their lab report got an **empty table and no
+explanation** — §3aa on the surface where it means "this document contained no
+results". `_refuse_unreadable` now answers **415** naming what the file is and
+what to do instead, detected by **magic bytes** rather than extension or the
+browser's content type (§0: read the bytes). In a batch the photo is refused on
+its own and the PDFs beside it still import, which is what someone who picked a
+whole folder actually needs.
+
+### The clients
+
+All three keep reviewing ONE document at a time with a switcher above it.
+Reviewing five documents' rows in one scroll is worse to use, and it reuses the
+existing review UI unchanged — only which document is active moves.
+
+> **Ticks are keyed by import id on all three.** A single shared set would
+> carry one document's selections onto the next one opened — confirming rows
+> against the wrong report, which is the whole hazard of batching. Pinned on
+> web by a test that switches documents and asserts the rows swap rather than
+> stack.
+
+> **Android recorded every import as `"report.pdf"`.** The filename was a
+> constant in `createFormData`. Wrong on its own — the record keeps a filename
+> so a row can be traced back to the paper it came from — and useless in a
+> batch, where attributing a result to its file is the point. It reads
+> `OpenableColumns.DISPLAY_NAME` now.
+
+### Verified
+
+    backend     88 passed across five import suites — 19 new, including the
+                cross-document duplicate (which FAILED before the fix) and the
+                photo refusal
+    frontend    295 passed (was 290) — 5 new multi-document tests
+    i18n        44 catalog tests; 2 strings × 10 languages, 0 refused
+    ruff        F,E9 clean on every changed backend file
+    iOS         ** BUILD SUCCEEDED **
+    Android     BUILD SUCCESSFUL, lint MissingTranslation = 0, APK 32,782,817
+
+### STILL OPEN
+
+- **46a. A dialysis flowsheet parses and has nowhere to go.**
+  `DIALYSIS_FLOWSHEET` is a recognised `doc_type`, but the only targets are
+  `lab_results`, `medications` and `chronic_conditions` — there is no
+  `therapy_sessions` target, so a flowsheet PDF ends in "read but cannot be
+  imported". Whether a parsed flowsheet should create a `TherapySession` is a
+  clinical decision, not a gap to fill quietly: §3at shows how much structure
+  those rows carry (two clocks, two fluid figures, a tri-state thrill/bruit),
+  and inventing a mapping would be the §3an violation. **Raised, not
+  implemented.**
+- **46b. A photo is refused, not read.** §3a already has a vision path, and
+  photographing a report is what a patient will naturally do. Routing an image
+  to that path instead of refusing it is a real feature and a bigger decision —
+  it is a different privacy surface (§3al: redaction is a text instrument, and
+  a lab-report photo carries the header).
+- **46c. The batch is sequential on the server.** Twelve documents are parsed
+  one after another in one request. Fine for a clinic visit's handful; a larger
+  batch would want a job and a progress channel rather than a longer wait.
+- **46d. iOS and Android were not run.** Both BUILD, and §3 is explicit that a
+  build is not a verification. The multi-select, the switcher and the per-import
+  ticks are unexercised on a device or simulator.

@@ -11261,6 +11261,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "PdfTools.n_documents_selected": {
+    "source": "{{count}} documents selected",
+    "translation": "已选择 {{count}} 个文档",
+    "status": "machine",
+    "translated_on": "2026-10-15"
+  },
   "PdfTools.patient": {
     "source": "Patient:",
     "translation": "患者：",

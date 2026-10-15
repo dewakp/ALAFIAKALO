@@ -2067,7 +2067,8 @@
     "remove_confirm": "Remover o(s) {{count}} registro(s) que este documento adicionou?",
     "removing": "Removendo…",
     "remove_hint": "Remove apenas o que este documento adicionou — nada que você inseriu. Você pode enviá-lo novamente depois.",
-    "keep": "Manter"
+    "keep": "Manter",
+    "n_documents_selected": "{{count}} documentos selecionados"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Diálise Peritoneal",

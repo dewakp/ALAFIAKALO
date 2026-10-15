@@ -42,6 +42,8 @@ const DEDUPE_BADGE = {
   conflict: { get text() { return t('PdfTools.differs_from_existing'); }, bg: '#fef3c7', fg: '#b45309' },
 };
 
+const EMPTY_SET = new Set();
+
 const DOC_TYPE_LABEL = {
   lab_report: 'Lab report',
   medication_list: 'Medication list',
@@ -52,12 +54,24 @@ const DOC_TYPE_LABEL = {
 };
 
 function ImportDocument() {
-  const [file, setFile] = useState(null);
-  const [result, setResult] = useState(null);
-  const [selected, setSelected] = useState(() => new Set());
+  /* Several documents at once (operator, 2026-10-15), each staged and routed
+     on its own — the server returns one `import_id` per file and confirm,
+     reject and discard all stay per-document.
+
+     The REVIEW surface is deliberately still one document at a time, with a
+     switcher above it. Five documents' rows in one scroll is worse to use and
+     would have meant rewriting 300 lines of review markup; this reuses all of
+     it and changes only which document is current. */
+  const [files, setFiles] = useState([]);
+  const [batch, setBatch] = useState(null);      // [{filename, ok, error, document}]
+  const [activeIdx, setActiveIdx] = useState(0);
+  /* Per-document, keyed by import_id. A single shared Set would carry one
+     document's ticks onto the next one the reviewer opened — confirming rows
+     against the wrong report, which is the whole hazard of batching. */
+  const [selectedBy, setSelectedBy] = useState({});
+  const [importedBy, setImportedBy] = useState({});
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [imported, setImported] = useState(null);
   const [error, setError] = useState(null);
   const [showRaw, setShowRaw] = useState(false);
   // Removing a CONFIRMED import deletes clinical rows, so it asks first — two
@@ -67,22 +81,50 @@ function ImportDocument() {
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removed, setRemoved] = useState(null);
 
+  /* The document under review, and its own ticks and outcome. Everything below
+     reads these exactly as it did when the page handled one file. */
+  const entry = batch?.[activeIdx] || null;
+  const result = entry?.document || null;
+  const importId = result?.import_id ?? null;
+  const selected = selectedBy[importId] || EMPTY_SET;
+  const imported = importedBy[importId] || null;
+
+  const setSelected = (next) => setSelectedBy(prev => ({
+    ...prev,
+    [importId]: typeof next === 'function' ? next(prev[importId] || EMPTY_SET) : next,
+  }));
+  const setImported = (value) => setImportedBy(prev => ({ ...prev, [importId]: value }));
+
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!file) return;
+    if (!files.length) return;
     setLoading(true);
     setError(null);
-    setImported(null);
+    setImportedBy({});
     try {
       const fd = new FormData();
-      fd.append('file', file);
-      const { data } = await api.post('/pdf/parse-document', fd);
-      setResult(data);
-      // Pre-tick what the server judged safe to import — duplicates stay off.
-      setSelected(new Set(data.items.filter(i => i.accepted).map(i => i.item_id)));
+      // Every part is named `files` — that is what makes FastAPI bind a list.
+      files.forEach(f => fd.append('files', f));
+      const { data } = await api.post('/pdf/parse-documents', fd);
+      setBatch(data.documents || []);
+      // Open the first document that actually parsed, rather than always the
+      // first file: landing on an error card hides the work that succeeded.
+      const firstOk = (data.documents || []).findIndex(d => d.ok);
+      setActiveIdx(firstOk >= 0 ? firstOk : 0);
+      // Pre-tick what the server judged safe to import, PER DOCUMENT —
+      // duplicates stay off.
+      const ticks = {};
+      (data.documents || []).forEach(d => {
+        const doc = d.document;
+        if (doc?.import_id) {
+          ticks[doc.import_id] = new Set(
+            (doc.items || []).filter(i => i.accepted).map(i => i.item_id));
+        }
+      });
+      setSelectedBy(ticks);
     } catch (err) {
-      setResult(null);
-      setError(err?.response?.data?.detail || 'The document could not be read.');
+      setBatch(null);
+      setError(err?.response?.data?.detail || 'The documents could not be read.');
     } finally {
       setLoading(false);
     }
@@ -97,11 +139,11 @@ function ImportDocument() {
   }
 
   async function handleImport() {
-    if (!result?.import_id) return;
+    if (!importId) return;
     setImporting(true);
     setError(null);
     try {
-      const { data } = await api.post(`/pdf/imports/${result.import_id}/confirm`, {
+      const { data } = await api.post(`/pdf/imports/${importId}/confirm`, {
         accepted_item_ids: [...selected],
       });
       setImported(data);
@@ -112,10 +154,22 @@ function ImportDocument() {
     }
   }
 
+  /* Drops the ACTIVE document only. The rest of the batch is untouched —
+     rejecting one report must not throw away four others the patient has not
+     reviewed yet. */
+  function dropActive() {
+    setBatch(prev => {
+      const next = (prev || []).filter((_, i) => i !== activeIdx);
+      setActiveIdx(Math.max(0, Math.min(activeIdx, next.length - 1)));
+      return next.length ? next : null;
+    });
+    if (!batch || batch.length <= 1) setFiles([]);
+  }
+
   async function handleDiscard() {
-    if (!result?.import_id) return;
-    try { await api.post(`/pdf/imports/${result.import_id}/reject`); } catch { /* already gone */ }
-    setResult(null); setSelected(new Set()); setImported(null); setFile(null);
+    if (!importId) return;
+    try { await api.post(`/pdf/imports/${importId}/reject`); } catch { /* already gone */ }
+    dropActive();
   }
 
   // Take back an import that was ALREADY written. `reject` cannot do this — it
@@ -124,17 +178,15 @@ function ImportDocument() {
   // Deletes only the rows this document added, by the id recorded against each
   // one at import time; anything the patient typed is untouched.
   async function handleRemove() {
-    if (!result?.import_id) return;
+    if (!importId) return;
     setRemoving(true);
     setError(null);
     try {
-      const { data } = await api.post(`/pdf/imports/${result.import_id}/discard`);
+      const { data } = await api.post(`/pdf/imports/${importId}/discard`);
       setImported(null);
-      setResult(null);
-      setSelected(new Set());
-      setFile(null);
       setConfirmRemove(false);
       setRemoved(data.message);
+      dropActive();
     } catch (err) {
       setError(err?.response?.data?.detail || 'Those records could not be removed.');
     } finally {
@@ -154,10 +206,18 @@ function ImportDocument() {
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label className="form-label">{t('PdfTools.document_pdf_or_text')}</label>
-          <input type="file" accept=".pdf,.txt" className="form-input"
-            onChange={e => { setFile(e.target.files[0]); setResult(null); setImported(null); setError(null); }} />
+          <input type="file" accept=".pdf,.txt" className="form-input" multiple
+            onChange={e => {
+              setFiles(Array.from(e.target.files || []));
+              setBatch(null); setImportedBy({}); setSelectedBy({}); setError(null);
+            }} />
+          {files.length > 1 && (
+            <p style={{ fontSize: '.78rem', color: 'var(--color-text-tertiary)', margin: '.3rem 0 0' }}>
+              {t('PdfTools.n_documents_selected', { count: files.length })}
+            </p>
+          )}
         </div>
-        <button className="btn btn-primary" disabled={!file || loading}>
+        <button className="btn btn-primary" disabled={!files.length || loading}>
           <Upload size={16} /> {(loading) ? t('PdfTools.reading') : t('PdfTools.read_document')}
         </button>
       </form>
@@ -223,6 +283,49 @@ function ImportDocument() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* THE BATCH, with one document under review at a time.
+
+          A result a patient cannot attribute to a file is a result they would
+          confirm against the wrong report, so every tab carries its filename
+          and its own outcome. Failures are shown here rather than hidden: a
+          file that could not be read is a finding, and §3ab's rule is that a
+          parser dropping what it cannot read without counting it hides its own
+          failure. */}
+      {batch && batch.length > 1 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.4rem', marginBottom: '1rem' }}>
+          {batch.map((d, i) => {
+            const active = i === activeIdx;
+            const done = d.document?.import_id && importedBy[d.document.import_id];
+            return (
+              <button
+                key={`${d.filename}-${i}`}
+                type="button"
+                onClick={() => { setActiveIdx(i); setError(null); setConfirmRemove(false); }}
+                title={d.error || d.filename}
+                style={{
+                  padding: '.35rem .6rem', fontSize: '.78rem', borderRadius: 6,
+                  cursor: 'pointer', maxWidth: 230, overflow: 'hidden',
+                  textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                  background: active ? 'var(--color-primary)' : 'var(--color-surface)',
+                  color: active ? '#fff' : (d.ok ? 'var(--color-text)' : '#b91c1c'),
+                }}
+              >
+                {d.ok ? (done ? '✓ ' : '') : '⚠ '}{d.filename}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* A document that could not be read says WHY, in its own tab. An empty
+          review panel here would read as "this document contained nothing". */}
+      {entry && !entry.ok && (
+        <div style={bannerStyle('#fee2e2', '#fca5a5', '#b91c1c')}>
+          <AlertTriangle size={15} /> {entry.filename}: {entry.error}
         </div>
       )}
 

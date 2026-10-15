@@ -1368,5 +1368,6 @@
     <string name="therapy_i_know_stopped">Ich kenne das Enddatum</string>
     <string name="alpha_regimen_heading">Was wird für Sie getan</string>
     <string name="alpha_not_receiving">Sie haben uns mitgeteilt, dass Sie dies nicht nehmen</string>
+    <string name="no_readable_files_selected">Keine der ausgewählten Dateien konnte gelesen werden.</string>
     <string name="therapy_date_unreadable">„%1$s\" ist kein lesbares Datum. Bitte schreiben Sie es als YYYY-MM-DD, zum Beispiel [dob].</string>
 </resources>

@@ -2067,7 +2067,8 @@
     "remove_confirm": "Supprimer le(s) {{count}} dossier(s) que ce document a ajouté(s) ?",
     "removing": "Suppression en cours…",
     "remove_hint": "Supprime uniquement ce que ce document a ajouté — rien de ce que vous avez entré vous-même. Vous pouvez le télécharger à nouveau par la suite.",
-    "keep": "Les conserver"
+    "keep": "Les conserver",
+    "n_documents_selected": "{{count}} documents sélectionnés"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Dialyse péritonéale",

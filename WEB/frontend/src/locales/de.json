@@ -2067,7 +2067,8 @@
     "remove_confirm": "Die {{count}} Datensatz/Datensätze aus diesem Dokument entfernen?",
     "removing": "Wird entfernt…",
     "remove_hint": "Entfernt nur, was dieses Dokument hinzugefügt hat – nichts, das Sie selbst eingegeben haben. Sie können es danach erneut hochladen.",
-    "keep": "Behalten"
+    "keep": "Behalten",
+    "n_documents_selected": "{{count}} Dokumente ausgewählt"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritonealdialyse",

@@ -3921,3 +3921,72 @@ and dispatch, asked of the module.
 test; nine phrasings is not coverage and none of them is in another language,
 while §3aw ships eleven (45b); and the negative cases rest on the PROMPT rather
 than on a guard (45c).
+
+---
+
+## 2026-10-15 (2) — Several PDFs at once, each routed on its own
+
+Operator: *"PDF import must support multiple PDF imports at the same time and
+route them properly."* Detail: **OPEN_ITEMS 46**.
+
+`POST /pdf/parse-documents` takes a list and loops the existing single-file
+logic per file, so **each document becomes its own `DocumentImport`**. Merging
+them is shorter and breaks three working things: `discard` deletes exactly the
+rows one import created, the content-hash check resolves a re-upload to the
+import it already made, and `confirm` is per-import with the reviewer ticking
+rows per document. Row routing needed nothing — every staged row already
+carries its own `target_table`.
+
+All three clients now multi-select and review one document at a time with a
+switcher, reusing the existing review UI unchanged. Ticks are keyed by import
+id everywhere, because a shared set would carry one document's selections onto
+the next one opened.
+
+### Two defects a batch exposed, both raised by a peer session and both verified
+### by running before fixing
+
+**Dedupe was a stage-time snapshot.** Two documents in one batch both reporting
+albumin for 2026-03-14, both confirmed, wrote it **twice — 4.1 and 4.4**. Two
+contradictory values for one date, which is precisely §3ab's named failure.
+`_existing_labs` is read when a document is STAGED, so the second saw a table
+that did not yet hold the first document's rows. Sequential uploading mostly
+hid it; a batch makes staging two documents before confirming either the normal
+path. `confirm()` now re-reads the live keys and checks immediately before
+writing, updating the map as rows land. Skipped, never overwritten — which of
+two readings is right is a clinical judgement.
+
+**A photo was parsed as text and reported as nothing.** A real JPEG through the
+pipeline returned `doc_type=unknown`, 0 records and **`error=None`** — so a
+patient photographing their report saw an empty table, which the screen's own
+copy reads as "this document contained no results" (§3aa). Refused with a 415
+now, by MAGIC BYTES rather than extension or content type, naming what the file
+is and what to do instead. In a batch the photo is refused alone and the PDFs
+beside it still import.
+
+### What it cost to learn
+
+- **A peer's lead is not a finding.** Both were reported as "read, not run". I
+  ran each before changing anything, and both reproduced — but the duplicate
+  one only reproduces when two documents are staged before either is confirmed,
+  which is the detail that explains why it had not been seen.
+- **An anchor that matches twice aborts the whole script.** `result?.let` exists
+  in both components of `PdfToolsScreen.kt`; the assertion failed and none of
+  that patch applied, while the strings file beside it had already been written.
+- **Kotlin locals have no hoisting.** My derived `result` referenced
+  `activeEntry` declared fifteen lines below it.
+- **`itemsIndexed` cannot be reached fully-qualified** — it is an extension on
+  `LazyListScope`. A plain scrolling `Row` is right for a handful of chips.
+- **Android recorded every import as `"report.pdf"`**, a constant in
+  `createFormData`. Harmless-looking until a batch, where tracing a result to
+  its file is the point.
+
+**Verified:** backend 88 passed across five import suites (19 new, including
+the cross-document duplicate which failed before the fix); frontend 295 (was
+290); 44 i18n catalog tests; ruff clean; iOS `BUILD SUCCEEDED`; Android
+`BUILD SUCCESSFUL`, lint `MissingTranslation = 0`.
+
+**Not done:** a dialysis flowsheet still parses with nowhere to go — there is no
+`therapy_sessions` target, and inventing one is a clinical decision I raised
+rather than took (46a). A photo is refused rather than routed to the vision
+path, which is a different privacy surface (46b). The batch is sequential on
+the server (46c). And iOS and Android BUILD but were not RUN (46d).

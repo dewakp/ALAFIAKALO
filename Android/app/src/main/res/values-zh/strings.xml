@@ -1368,5 +1368,6 @@
     <string name="therapy_i_know_stopped">我知道它何时停止</string>
     <string name="alpha_regimen_heading">为您做了什么</string>
     <string name="alpha_not_receiving">您告诉我们您没有使用这个</string>
+    <string name="no_readable_files_selected">无法读取您选择的任何文件。</string>
     <string name="therapy_date_unreadable">\"%1$s\"不是我们能读取的日期。请按YYYY-MM-DD格式写入，例如[dob]。</string>
 </resources>

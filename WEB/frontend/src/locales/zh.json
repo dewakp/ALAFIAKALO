@@ -2067,7 +2067,8 @@
     "remove_confirm": "删除此文档添加的 {{count}} 条记录？",
     "removing": "删除中…",
     "remove_hint": "仅删除此文档添加的内容——不会删除您自己输入的内容。之后您可以重新上传。",
-    "keep": "保留"
+    "keep": "保留",
+    "n_documents_selected": "已选择 {{count}} 个文档"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "腹膜透析",

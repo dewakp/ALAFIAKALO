@@ -498,6 +498,41 @@ class LabReportParseResponse(BaseModel):
     already_imported: bool = False
 
 
+class BatchDocumentResult(BaseModel):
+    """One document's outcome inside a multi-file upload.
+
+    `filename` is echoed because a batch is reviewed per document and a result
+    a patient cannot attribute to a file is a result they cannot act on — they
+    would be confirming rows against the wrong report.
+    """
+    filename: str
+    #: False when THIS document failed. The others still carry their results:
+    #: one unreadable file must never sink the batch (§3ab — count the rejects
+    #: and name them, rather than dropping what could not be read).
+    ok: bool
+    #: Why this one failed, when it did. Never blank: §3aa, an error and an
+    #: empty result mean opposite things.
+    error: str | None = None
+    #: The full staged result, exactly as the single-file endpoint returns it.
+    #: Each document keeps its OWN `import_id`, so confirm, reject and discard
+    #: stay per-document.
+    document: LabReportParseResponse | None = None
+
+
+class BatchParseResponse(BaseModel):
+    """Several documents, each staged and routed on its own."""
+    documents: list[BatchDocumentResult] = []
+    #: Counted on the server rather than left to each client to derive — three
+    #: clients computing a summary is three ways to disagree about how many
+    #: files failed.
+    parsed: int = 0
+    failed: int = 0
+    #: Documents whose content was already on file, by hash. They resolve to
+    #: the EXISTING import rather than creating a second one, which is what
+    #: stops a re-uploaded report becoming contradictory duplicate rows (§3ab).
+    duplicates: int = 0
+
+
 class DocumentImportSummary(BaseModel):
     id: int
     filename: str | None = None

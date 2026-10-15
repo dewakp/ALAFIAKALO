@@ -2067,7 +2067,8 @@
     "remove_confirm": "Yọ {{count}} iwe(ẹ) ti ọkunrin yii fi kun?",
     "removing": "N yọ…",
     "remove_hint": "O yọ nkan ti ọkunrin yii fi kun nikan — ohun ti o fi ara e kun ko yọ. O le gbe e sile lẹẹkansi.",
-    "keep": "Pa won"
+    "keep": "Pa won",
+    "n_documents_selected": "{{count}} ọwọ́ àkọsílẹ̀ ti a yan"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

@@ -1368,5 +1368,6 @@
     <string name="therapy_i_know_stopped">Sé cuándo se detuvo</string>
     <string name="alpha_regimen_heading">Qué se está haciendo por ti</string>
     <string name="alpha_not_receiving">nos dijiste que no estás en esto</string>
+    <string name="no_readable_files_selected">No se pudieron leer los archivos seleccionados.</string>
     <string name="therapy_date_unreadable">\"%1$s\" no es una fecha que podamos leer. Escríbela como YYYY-MM-DD, por ejemplo [dob].</string>
 </resources>

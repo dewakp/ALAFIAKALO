@@ -4439,6 +4439,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "no_readable_files_selected": {
+    "source": "None of the files you picked could be read.",
+    "translation": "Babu daya daga cikin fayilolin da ka zaɓa da za a iya karantawa.",
+    "status": "machine",
+    "translated_on": "2026-10-15"
+  },
   "no_recalls_found": {
     "source": "No recalls found",
     "translation": "Babu bugi da aka samu",

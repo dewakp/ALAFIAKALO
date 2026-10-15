@@ -4439,6 +4439,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "no_readable_files_selected": {
+    "source": "None of the files you picked could be read.",
+    "translation": "لم يتمكن من قراءة أي من الملفات التي اخترتها.",
+    "status": "machine",
+    "translated_on": "2026-10-15"
+  },
   "no_recalls_found": {
     "source": "No recalls found",
     "translation": "لم يتم العثور على استدعاءات",

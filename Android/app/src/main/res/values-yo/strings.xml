@@ -1368,5 +1368,6 @@
     <string name="therapy_i_know_stopped">Mo mọ̀ ìgbà tí ó dẹ̀kun</string>
     <string name="alpha_regimen_heading">Kini a ń ṣe fun ọ</string>
     <string name="alpha_not_receiving">Ìwọ sọ fún wa pé o kò wà lórí èyí</string>
+    <string name="no_readable_files_selected">Àìfẹ́ láti ka ọ̀kan nínú àwọn fáìlì tí o yan.</string>
     <string name="therapy_date_unreadable">\"%1$s\" kì í ṣe ọjọ́ tí a lè kà. Jọ̀wọ́ kọ́ ọ gẹ́gẹ́ YYYY-MM-DD, fún àpẹẹrẹ [dob].</string>
 </resources>

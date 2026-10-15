@@ -1368,5 +1368,6 @@
     <string name="therapy_i_know_stopped">Najua lini ilisimama</string>
     <string name="alpha_regimen_heading">Nini kinachofanywa kwako</string>
     <string name="alpha_not_receiving">Ulituambia kuwa hauko juu ya hii</string>
+    <string name="no_readable_files_selected">Hakuna kati ya faili ulizochagua inayoweza kusomwa.</string>
     <string name="therapy_date_unreadable">\"%1$s\" si tarehe tunayoweza kusoma. Tafadhali iandike kama YYYY-MM-DD, kwa mfano [dob].</string>
 </resources>

@@ -473,6 +473,63 @@ async def _stage_conditions(db: AsyncSession, user_id: int, parsed: ParseResult)
 
 # ── Confirmation ─────────────────────────────────────────────────────────────
 
+async def _live_keys(db: AsyncSession, user_id: int) -> dict[str, set]:
+    """What is in each clinical table RIGHT NOW, by the key its stage step uses.
+
+    ⚠️ **Staging deduped against a snapshot and confirm trusted it.**
+    `_existing_labs` and the two `known` sets are read when a document is
+    STAGED, so a second document staged before the first was confirmed saw a
+    table that did not yet contain the first document's rows. Both were marked
+    `DEDUPE_NEW` and both were written.
+
+    Measured 2026-10-15 on a two-document batch: albumin for 2026-03-14 landed
+    **twice, 4.1 and 4.4** — two contradictory values for one date, which is
+    the exact failure §3ab describes and the dedupe exists to prevent.
+
+    Sequential uploading mostly hid it, because confirming A put A's rows in
+    `lab_results` before B was ever staged. Multi-file import makes staging two
+    documents before confirming either the NORMAL path, so the window stops
+    being an edge case.
+
+    The keys are deliberately the SAME ones the stage steps compute — analyte
+    identity for labs (§3ax: a report printing ALP must find the "Alk Phos" row
+    already on file), folded name for medications and conditions. Two
+    computations of one quantity must not disagree (§3ai).
+    """
+    labs = {
+        (str(r.test_date), analyte_key(r.test_name))
+        for r in (await db.execute(
+            select(LabResult).where(LabResult.user_id == user_id)
+        )).scalars().all()
+        if r.test_date and r.test_name
+    }
+    # Both go through the canonical readers, as the stage steps do — a
+    # medication lives in more than one table and reading one is how a fact
+    # gets hidden (§3aa).
+    meds = {(m.name or "").lower()
+            for m in await sources.medications_prescribed(db, user_id)}
+    conds = {(c.name or "").lower()
+             for c in await sources.conditions(db, user_id)}
+    return {TABLE_LABS: labs, TABLE_MEDICATIONS: meds, TABLE_CONDITIONS: conds}
+
+
+def _live_key_for(item: DocumentImportItem):
+    """This staged row's key in the shape `_live_keys` holds, or None."""
+    payload = item.payload or {}
+    if item.target_table == TABLE_LABS:
+        date_text, name = payload.get("test_date"), payload.get("test_name")
+        if not date_text or not name:
+            return None
+        return (str(date_text), analyte_key(name))
+    if item.target_table == TABLE_MEDICATIONS:
+        name = payload.get("medication_name") or payload.get("name")
+        return name.lower() if name else None
+    if item.target_table == TABLE_CONDITIONS:
+        name = payload.get("condition_name")
+        return name.lower() if name else None
+    return None
+
+
 async def confirm(
     db: AsyncSession,
     user_id: int,
@@ -485,6 +542,10 @@ async def confirm(
     them. Returns a per-table count of what was written.
     """
     counts = {TABLE_LABS: 0, TABLE_MEDICATIONS: 0, TABLE_CONDITIONS: 0}
+    #: Re-read NOW, not trusted from stage time. Updated as rows are written,
+    #: so a document that repeats an analyte within itself is caught too.
+    live = await _live_keys(db, user_id)
+    skipped_existing = 0
 
     for item in record.items:
         wanted = (
@@ -513,9 +574,27 @@ async def confirm(
         if row is None:
             continue
 
+        # The row may have arrived from ANOTHER document since this one was
+        # staged. Writing it anyway is how a patient ends up holding two
+        # contradictory values for one date (§3ab).
+        #
+        # It is SKIPPED, never overwritten: which of two readings is right is a
+        # clinical judgement, and §3ab's own instruction for a genuine
+        # correction is to delete first and re-import, not to have the importer
+        # silently pick. The item says what happened so the reviewer can see it.
+        key = _live_key_for(item)
+        if key is not None and key in live[item.target_table]:
+            item.error = (
+                "Already on your record from another document — not added "
+                "again. Remove the existing entry first if this one corrects it.")
+            skipped_existing += 1
+            continue
+
         db.add(row)
         await db.flush()
         item.imported_row_id = row.id
+        if key is not None:
+            live[item.target_table].add(key)
         counts[item.target_table] = counts.get(item.target_table, 0) + 1
 
     # Learn from what the reviewer just decided. This is the half that was
@@ -532,6 +611,10 @@ async def confirm(
     except Exception:  # noqa: BLE001
         logger.warning("could not record review decisions for import %s",
                        record.id, exc_info=True)
+
+    if skipped_existing:
+        logger.info("import %s: %d row(s) already present from another "
+                    "document, not written again", record.id, skipped_existing)
 
     record.status = STATUS_CONFIRMED
     record.confirmed_at = datetime.now(timezone.utc)

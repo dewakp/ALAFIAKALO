@@ -32,6 +32,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.navigation.NavHostController
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.res.stringResource
 import com.alafia.android.R
 
@@ -68,11 +69,27 @@ fun PdfToolsScreen(navController: NavHostController) {
     }
 }
 
-// ── Parse Lab Report Tab ────────────────────────────────────────────────────
+/**
+ * The file's real display name, or a neutral fallback.
+ *
+ * Every Android import was recorded on the server as the constant
+ * `"report.pdf"` until 2026-10-15. Wrong on its own — the record keeps a
+ * filename so a row can be traced back to the paper it came from — and useless
+ * in a batch, where attributing a result to its file is the entire point.
+ */
+private fun displayNameOf(context: android.content.Context, uri: android.net.Uri): String {
+    return runCatching {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
+        }
+    }.getOrNull() ?: uri.lastPathSegment ?: "document.pdf"
+}
+
+// ── Parse Lab Report Tab ─────────────────────────────────────────────────
 
 @Composable
 private fun ParseLabReportTab() {
-    var result by remember { mutableStateOf<LabReportParseResponse?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var isImporting by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf<String?>(null) }
@@ -87,31 +104,76 @@ private fun ParseLabReportTab() {
     var isRemoving by remember { mutableStateOf(false) }
     var confirmRemove by rememberSaveable { mutableStateOf(false) }
     var removedMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    // Item ids the patient has chosen to import.
-    val selectedIds = remember { mutableStateListOf<Int>() }
+    // One entry per uploaded file, each with its OWN import.
+    var batch by remember { mutableStateOf<List<com.alafia.android.models.BatchDocumentResult>>(emptyList()) }
+    var activeIndex by remember { mutableStateOf(0) }
+    // Item ids the patient has chosen to import, KEYED BY IMPORT — see the
+    // picker above for why a single shared list is unsafe here.
+    val selectedByImport = remember { mutableStateMapOf<Int, MutableList<Int>>() }
+    val activeEntry = batch.getOrNull(activeIndex)
+    val activeImportId = activeEntry?.document?.importId
+    val selectedIds = activeImportId?.let {
+        selectedByImport.getOrPut(it) { mutableListOf() }
+    } ?: remember { mutableStateListOf<Int>() }
+    // The document under review. Everything below reads this exactly as it did
+    // when the screen handled one file; only `activeIndex` moves. Declared
+    // AFTER the batch it is derived from — Kotlin locals have no hoisting.
+    val result = activeEntry?.document
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val pdfPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            selectedUri = uri
+    // SEVERAL documents at once, each staged and routed on its own.
+    val pdfPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            selectedUri = uris.first()
             scope.launch {
                 isLoading = true
                 importMessage = null
                 try {
-                    val inputStream = context.contentResolver.openInputStream(uri)
-                    val bytes = inputStream?.readBytes() ?: byteArrayOf()
-                    inputStream?.close()
-                    val requestBody = bytes.toRequestBody("application/pdf".toMediaTypeOrNull())
-                    val part = MultipartBody.Part.createFormData("file", "report.pdf", requestBody)
-                    val parsed = ApiClient.getApiService().parseDocument(part)
-                    result = parsed
-                    // Pre-tick what the server judged safe; duplicates stay off
-                    // so confirming never writes a second copy of a reading.
-                    selectedIds.clear()
-                    selectedIds.addAll(
-                        parsed.items.orEmpty().filter { it.accepted == true }.mapNotNull { it.itemId }
-                    )
+                    val parts = uris.mapNotNull { uri ->
+                        val bytes = context.contentResolver.openInputStream(uri)
+                            ?.use { it.readBytes() }
+                        if (bytes == null || bytes.isEmpty()) null
+                        else MultipartBody.Part.createFormData(
+                            // The repeated part name `files` is what makes the
+                            // server bind a list.
+                            "files",
+                            // The REAL filename, not a constant. Every Android
+                            // import was recorded as "report.pdf" until now,
+                            // which is wrong on its own and useless in a batch,
+                            // where attributing a result to its file is the
+                            // point.
+                            displayNameOf(context, uri),
+                            bytes.toRequestBody("application/pdf".toMediaTypeOrNull()),
+                        )
+                    }
+                    if (parts.isEmpty()) {
+                        Toast.makeText(context,
+                            context.getString(R.string.no_readable_files_selected),
+                            Toast.LENGTH_SHORT).show()
+                    } else {
+                        val response = ApiClient.getApiService().parseDocuments(parts)
+                        batch = response.documents
+                        // Open the first document that actually parsed: landing
+                        // on an error card hides the work that succeeded.
+                        activeIndex = response.documents.indexOfFirst { it.ok }
+                            .let { if (it >= 0) it else 0 }
+                        // Pre-tick what the server judged safe, PER DOCUMENT.
+                        //
+                        // ⚠️ Keyed by import id. One shared list would carry one
+                        // document's ticks onto the next one opened, confirming
+                        // rows against the wrong report.
+                        selectedByImport.clear()
+                        response.documents.forEach { entry ->
+                            val id = entry.document?.importId ?: return@forEach
+                            selectedByImport[id] = entry.document.items.orEmpty()
+                                .filter { it.accepted == true }
+                                .mapNotNull { it.itemId }
+                                .toMutableList()
+                        }
+                    }
                 } catch (e: Exception) {
                     Toast.makeText(context, ErrorUtil.userMessage(e), Toast.LENGTH_SHORT).show()
                 }
@@ -171,9 +233,14 @@ private fun ParseLabReportTab() {
                                     val response = ApiClient.getApiService()
                                         .discardDocumentImport(result!!.importId!!)
                                     removedMessage = response.message
-                                    result = null
-                                    selectedIds.clear()
-                                    selectedUri = null
+                                    // Drop the ACTIVE document only. The rest
+                                    // of the batch is untouched — removing one
+                                    // report must not throw away others the
+                                    // patient has not reviewed yet.
+                                    activeImportId?.let { selectedByImport.remove(it) }
+                                    batch = batch.filterIndexed { i, _ -> i != activeIndex }
+                                    activeIndex = activeIndex.coerceAtMost(
+                                        (batch.size - 1).coerceAtLeast(0))
                                     importMessage = null
                                     confirmRemove = false
                                 } catch (e: Exception) {
@@ -208,7 +275,44 @@ private fun ParseLabReportTab() {
             }
         }
 
-        result?.let { res ->
+        // One chip per document, named by its file. A result a patient cannot
+    // attribute to a file is a result they would confirm against the wrong
+    // report.
+    if (batch.size > 1) {
+        // A plain scrolling Row: a handful of chips does not need a lazy list,
+        // and `itemsIndexed` is an extension on LazyListScope that cannot be
+        // reached fully-qualified.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.horizontalScroll(rememberScrollState())
+        ) {
+            batch.forEachIndexed { index, entry ->
+                FilterChip(
+                    selected = index == activeIndex,
+                    onClick = { activeIndex = index; confirmRemove = false },
+                    label = {
+                        Text(
+                            (if (entry.ok) "" else "\u26A0 ") + entry.filename,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    // A file that could not be read says WHY. An empty review panel here would
+    // read as "this document contained nothing" (§3aa).
+    activeEntry?.takeIf { !it.ok }?.error?.let { why ->
+        Text(
+            why,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+
+    result?.let { res ->
             // A document that could not be read must say so. An empty table
             // here would read as "the document contained no results".
             res.error?.let { NoticeCard(it, Color(0xFFB45309)) }
@@ -338,7 +442,11 @@ private fun ParseLabReportTab() {
                                 scope.launch {
                                     try { ApiClient.getApiService().rejectDocumentImport(res.importId!!) }
                                     catch (_: Exception) { /* already gone */ }
-                                    result = null; selectedIds.clear(); selectedUri = null; importMessage = null
+                                    activeImportId?.let { selectedByImport.remove(it) }
+                                    batch = batch.filterIndexed { i, _ -> i != activeIndex }
+                                    activeIndex = activeIndex.coerceAtMost(
+                                        (batch.size - 1).coerceAtLeast(0))
+                                    importMessage = null
                                 }
                             },
                             enabled = !isImporting

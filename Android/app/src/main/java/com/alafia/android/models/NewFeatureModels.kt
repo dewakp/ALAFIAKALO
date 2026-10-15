@@ -245,6 +245,35 @@ data class LabReportItem(
     val isConflict: Boolean get() = dedupeStatus == "conflict"
 }
 
+/**
+ * One document's outcome inside a multi-file upload.
+ *
+ * Operator, 2026-10-15: *"PDF import must support multiple PDF imports at the
+ * same time and route them properly."* Each file becomes its OWN import on the
+ * server — confirm, reject and discard are per-document — so this wraps a whole
+ * [LabReportParseResponse] rather than flattening several together.
+ */
+data class BatchDocumentResult(
+    val filename: String,
+    /** False when THIS document failed; the others still carry results (§3ab). */
+    val ok: Boolean = false,
+    /** Why it failed. Never blank — §3aa, an error and an empty result mean
+     *  opposite things. */
+    val error: String? = null,
+    val document: LabReportParseResponse? = null,
+)
+
+data class BatchParseResponse(
+    val documents: List<BatchDocumentResult> = emptyList(),
+    /** Counted by the SERVER: three clients deriving a summary is three ways to
+     *  disagree about how many files failed. */
+    val parsed: Int = 0,
+    val failed: Int = 0,
+    /** Already on file by content hash — resolved to the EXISTING import rather
+     *  than creating a second one (§3ab). */
+    val duplicates: Int = 0,
+)
+
 data class LabReportParseResponse(
     @SerializedName("patient_name") val patientName: String? = null,
     @SerializedName("report_date") val reportDate: String? = null,

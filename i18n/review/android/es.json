@@ -4313,6 +4313,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "no_readable_files_selected": {
+    "source": "None of the files you picked could be read.",
+    "translation": "No se pudieron leer los archivos seleccionados.",
+    "status": "machine",
+    "translated_on": "2026-10-15"
+  },
   "no_recalls_found": {
     "source": "No recalls found",
     "translation": "No se encontraron retiros",

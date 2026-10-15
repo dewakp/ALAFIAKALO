@@ -1368,5 +1368,6 @@
     <string name="therapy_i_know_stopped">Na san lokacin da ya tsaya</string>
     <string name="alpha_regimen_heading">Me ake yi maka</string>
     <string name="alpha_not_receiving">Ka gaya mana ba ka kan wannan ba</string>
+    <string name="no_readable_files_selected">Babu daya daga cikin fayilolin da ka zaɓa da za a iya karantawa.</string>
     <string name="therapy_date_unreadable">Ba za mu iya karantawa \"%1$s\" ba. Rubuta shi a matsayin YYYY-MM-DD, misali [dob].</string>
 </resources>

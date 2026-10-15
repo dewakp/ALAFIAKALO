@@ -25,15 +25,51 @@ final class PdfToolsViewModel {
 
     // Import
     var showDocPicker = false
-    var selectedFileName: String?
-    var selectedFileData: Data?
-    var parseResult: LabReportParseResponse?
+    /// Files chosen but not yet uploaded.
+    var pendingFiles: [(data: Data, name: String)] = []
+    /// What came back: one entry per file, each with its OWN import.
+    var batch: [BatchDocumentResult] = []
+    /// Which document is being reviewed. The review UI below is unchanged and
+    /// simply reads `parseResult`, which is derived from this.
+    var activeIndex: Int = 0
     var isParsing = false
     var showRawText = false
-    /// Item ids the patient has chosen to import.
-    var selectedItemIds: Set<Int> = []
+    /// Item ids the patient has chosen to import, KEYED BY IMPORT.
+    ///
+    /// ⚠️ A single shared set would carry one document's ticks onto the next
+    /// one opened — confirming rows against the wrong report, which is the
+    /// whole hazard of reviewing several documents in one place.
+    var selectedByImport: [Int: Set<Int>] = [:]
+    /// Outcome per import, for the same reason.
+    var importedByImport: [Int: String] = [:]
+
+    /// The document under review, or nil. Everything below reads this exactly
+    /// as it did when the screen handled one file.
+    var parseResult: LabReportParseResponse? {
+        guard batch.indices.contains(activeIndex) else { return nil }
+        return batch[activeIndex].document
+    }
+
+    var activeImportId: Int? { parseResult?.importId }
+
+    var selectedItemIds: Set<Int> {
+        get { activeImportId.flatMap { selectedByImport[$0] } ?? [] }
+        set { if let id = activeImportId { selectedByImport[id] = newValue } }
+    }
+
+    /// Drops the ACTIVE document from the batch. The rest is untouched —
+    /// rejecting one report must not throw away others not yet reviewed.
+    func dropActive() {
+        guard batch.indices.contains(activeIndex) else { return }
+        batch.remove(at: activeIndex)
+        activeIndex = max(0, min(activeIndex, batch.count - 1))
+        if batch.isEmpty { pendingFiles = [] }
+    }
     var isImporting = false
-    var importMessage: String?
+    var importMessage: String? {
+        get { activeImportId.flatMap { importedByImport[$0] } }
+        set { if let id = activeImportId { importedByImport[id] = newValue } }
+    }
     /// Removing a CONFIRMED import deletes clinical rows, so it asks first.
     var isRemoving = false
     var confirmRemove = false
@@ -53,19 +89,36 @@ final class PdfToolsViewModel {
 
     // MARK: - Parse Upload
 
-    /// Reads the document and stages what it found. Writes nothing — the
-    /// clinical tables are only touched by `confirmImport`.
+    /// Reads the documents and stages what each one contains. Writes nothing —
+    /// the clinical tables are only touched by `confirmImport`.
+    ///
+    /// Several at once, each staged and routed on its own. The REVIEW surface
+    /// is still one document at a time with a picker above it: five documents'
+    /// rows in one scroll is worse to use, and this way the existing review UI
+    /// is reused unchanged and only `activeIndex` moves.
     func parseLabReport() async {
-        guard let data = selectedFileData, let name = selectedFileName else { return }
+        guard !pendingFiles.isEmpty else { return }
         isParsing = true; errorMessage = nil; importMessage = nil
         do {
-            let result: LabReportParseResponse = try await uploadFile(
-                data, fileName: name, to: "/pdf/parse-document"
-            )
-            parseResult = result
-            // Pre-tick what the server judged safe; duplicates stay off so
-            // confirming never silently writes a second copy of a reading.
-            selectedItemIds = Set((result.items ?? []).compactMap { $0.accepted == true ? $0.itemId : nil })
+            let batchResult: BatchParseResponse = try await uploadFiles(
+                pendingFiles, to: "/pdf/parse-documents")
+            batch = batchResult.documents
+            // Open the first document that actually parsed. Landing on an
+            // error card hides the work that succeeded.
+            activeIndex = batchResult.documents.firstIndex(where: { $0.ok }) ?? 0
+            // Pre-tick what the server judged safe, PER DOCUMENT; duplicates
+            // stay off so confirming never silently writes a second copy.
+            //
+            // ⚠️ Keyed by import id. One shared set would carry one document's
+            // ticks onto the next one opened — confirming rows against the
+            // wrong report, which is the whole hazard of batching.
+            var ticks: [Int: Set<Int>] = [:]
+            for entry in batchResult.documents {
+                guard let doc = entry.document, let id = doc.importId else { continue }
+                ticks[id] = Set((doc.items ?? []).compactMap {
+                    $0.accepted == true ? $0.itemId : nil })
+            }
+            selectedByImport = ticks
         } catch { errorMessage = error.localizedDescription }
         isParsing = false
     }
@@ -91,11 +144,9 @@ final class PdfToolsViewModel {
     func discardImport() async {
         guard let importId = parseResult?.importId else { return }
         _ = try? await postJSON([:], to: "/pdf/imports/\(importId)/reject") as ConfirmImportResponse
-        parseResult = nil
-        selectedItemIds = []
-        importMessage = nil
-        selectedFileData = nil
-        selectedFileName = nil
+        selectedByImport[importId] = nil
+        importedByImport[importId] = nil
+        dropActive()
     }
 
     /// Take back an import that has ALREADY been written to the record.
@@ -117,12 +168,10 @@ final class PdfToolsViewModel {
                 [:], to: "/pdf/imports/\(importId)/discard"
             )
             removedMessage = response.message
-            parseResult = nil
-            selectedItemIds = []
-            importMessage = nil
-            selectedFileData = nil
-            selectedFileName = nil
+            selectedByImport[importId] = nil
+            importedByImport[importId] = nil
             confirmRemove = false
+            dropActive()
         } catch { errorMessage = error.localizedDescription }
         isRemoving = false
     }
@@ -209,6 +258,51 @@ final class PdfToolsViewModel {
 
     // MARK: - Multipart File Upload
 
+    /// Several files in ONE request, every part named `files`.
+    ///
+    /// That repeated part name is what makes FastAPI bind a list; naming them
+    /// `files[]` or `file` would quietly deliver one document or none. Each
+    /// file still becomes its OWN import on the server — confirm, reject and
+    /// discard are per-document, and merging them would break all three.
+    private func uploadFiles<T: Decodable>(_ files: [(data: Data, name: String)],
+                                           to path: String) async throws -> T {
+        let boundary = UUID().uuidString
+        let url = URL(string: "\(AppConfig.baseURL)\(path)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)",
+                         forHTTPHeaderField: "Content-Type")
+        if let token = KeychainHelper.get(key: AppConfig.tokenKey) {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        // A batch of documents takes longer than one. The default 60s cut off
+        // uploads the server went on to finish — §3ae's ladder, on an upload.
+        request.timeoutInterval = 285
+
+        var body = Data()
+        for file in files {
+            let mimeType = file.name.hasSuffix(".pdf") ? "application/pdf" : "text/plain"
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"files\"; filename=\"\(file.name)\"\r\n"
+                        .data(using: .utf8)!)
+            body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+            body.append(file.data)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            if let detail = try? JSONDecoder().decode(ErrorDetail.self, from: data) {
+                throw APIError.clientError(detail.detail)
+            }
+            throw APIError.invalidResponse
+        }
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
     private func uploadFile<T: Decodable>(_ fileData: Data, fileName: String, to path: String) async throws -> T {
         let boundary = UUID().uuidString
         let url = URL(string: "\(AppConfig.baseURL)\(path)")!
@@ -244,12 +338,15 @@ final class PdfToolsViewModel {
 
 struct DocumentPicker: UIViewControllerRepresentable {
     let types: [UTType]
-    let onPick: (URL) -> Void
+    /// Several at once (operator, 2026-10-15). Each file becomes its own
+    /// import on the server, so the picker hands back the whole selection and
+    /// nothing here decides which one "the" document is.
+    let onPick: ([URL]) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: types)
         picker.delegate = context.coordinator
-        picker.allowsMultipleSelection = false
+        picker.allowsMultipleSelection = true
         return picker
     }
 
@@ -258,12 +355,12 @@ struct DocumentPicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
 
     class Coordinator: NSObject, UIDocumentPickerDelegate {
-        let onPick: (URL) -> Void
-        init(onPick: @escaping (URL) -> Void) { self.onPick = onPick }
+        let onPick: ([URL]) -> Void
+        init(onPick: @escaping ([URL]) -> Void) { self.onPick = onPick }
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let url = urls.first else { return }
-            onPick(url)
+            guard !urls.isEmpty else { return }
+            onPick(urls)
         }
     }
 }
@@ -294,13 +391,23 @@ struct PdfToolsView: View {
             }
             .navigationTitle("PDF Tools")
             .sheet(isPresented: $vm.showDocPicker) {
-                DocumentPicker(types: [.pdf, .plainText]) { url in
-                    guard url.startAccessingSecurityScopedResource() else { return }
-                    defer { url.stopAccessingSecurityScopedResource() }
-                    if let data = try? Data(contentsOf: url) {
-                        vm.selectedFileData = data
-                        vm.selectedFileName = url.lastPathComponent
+                DocumentPicker(types: [.pdf, .plainText]) { urls in
+                    // Read every file the patient picked. A file that cannot be
+                    // read is SKIPPED here and the rest still upload — the
+                    // server reports per-document failures of its own, and one
+                    // unreadable file must not cost the others (§3ab).
+                    var picked: [(data: Data, name: String)] = []
+                    for url in urls {
+                        guard url.startAccessingSecurityScopedResource() else { continue }
+                        defer { url.stopAccessingSecurityScopedResource() }
+                        if let data = try? Data(contentsOf: url) {
+                            picked.append((data: data, name: url.lastPathComponent))
+                        }
                     }
+                    vm.pendingFiles = picked
+                    vm.batch = []
+                    vm.selectedByImport = [:]
+                    vm.importedByImport = [:]
                 }
             }
             .alert("Error", isPresented: .constant(vm.errorMessage != nil)) {
@@ -322,7 +429,12 @@ struct PdfToolsView: View {
             Button {
                 vm.showDocPicker = true
             } label: {
-                Label(vm.selectedFileName ?? "Select PDF or Text File", systemImage: "doc.badge.plus")
+                Label(vm.pendingFiles.isEmpty
+                      ? AppLanguage.text("Select PDF or Text Files")
+                      : (vm.pendingFiles.count == 1
+                         ? vm.pendingFiles[0].name
+                         : "\(vm.pendingFiles.count) documents selected"),
+                      systemImage: "doc.badge.plus")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(Color.brown.opacity(0.12))
@@ -333,7 +445,40 @@ struct PdfToolsView: View {
             LKButton(title: "Read Document", isLoading: vm.isParsing) {
                 Task { await vm.parseLabReport() }
             }
-            .disabled(vm.selectedFileData == nil)
+            .disabled(vm.pendingFiles.isEmpty)
+
+            // One tab per document, named by its file. A result a patient
+            // cannot attribute to a file is a result they would confirm
+            // against the wrong report.
+            if vm.batch.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(vm.batch.enumerated()), id: \.offset) { index, entry in
+                            Button {
+                                vm.activeIndex = index
+                                vm.confirmRemove = false
+                            } label: {
+                                Text((entry.ok ? "" : "⚠ ") + entry.filename)
+                                    .font(.caption).lineLimit(1)
+                                    .padding(.horizontal, 10).padding(.vertical, 6)
+                                    .background(index == vm.activeIndex
+                                                ? Color.accentColor : Color(.secondarySystemBackground))
+                                    .foregroundStyle(index == vm.activeIndex
+                                                     ? .white : (entry.ok ? .primary : .red))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                }
+            }
+
+            // A file that could not be read says WHY. An empty review panel
+            // here would read as "this document contained nothing" (§3aa).
+            if vm.batch.indices.contains(vm.activeIndex),
+               !vm.batch[vm.activeIndex].ok,
+               let why = vm.batch[vm.activeIndex].error {
+                banner(why, systemImage: "exclamationmark.triangle.fill", tint: .red)
+            }
 
             if let removed = vm.removedMessage {
                 banner(removed, systemImage: "arrow.uturn.backward.circle.fill", tint: .blue)

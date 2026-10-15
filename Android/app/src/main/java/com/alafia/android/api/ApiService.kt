@@ -951,6 +951,18 @@ interface ApiService {
     @POST("pdf/parse-document")
     suspend fun parseDocument(@Part file: MultipartBody.Part): LabReportParseResponse
 
+    /**
+     * Several documents in ONE request — each staged and ROUTED on its own.
+     *
+     * Every part is named `files`; that repeated name is what makes the server
+     * bind a list. Each file still becomes its own import, because confirm,
+     * reject and discard are all per-document and merging them would break all
+     * three.
+     */
+    @Multipart
+    @POST("pdf/parse-documents")
+    suspend fun parseDocuments(@Part files: List<MultipartBody.Part>): BatchParseResponse
+
     @POST("pdf/imports/{importId}/confirm")
     suspend fun confirmDocumentImport(
         @Path("importId") importId: Int,

@@ -1393,5 +1393,6 @@
     <string name="therapy_i_know_stopped">I know when it stopped</string>
     <string name="alpha_regimen_heading">What is being done for you</string>
     <string name="alpha_not_receiving">you told us you are not on this</string>
+    <string name="no_readable_files_selected">None of the files you picked could be read.</string>
     <string name="therapy_date_unreadable">“%1$s” is not a date we can read. Please write it as YYYY-MM-DD, for example 2026-03-14.</string>
 </resources>

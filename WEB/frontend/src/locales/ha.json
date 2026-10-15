@@ -2067,7 +2067,8 @@
     "remove_confirm": "Cire {{count}} bayyanar(ren) da wannan takarda ta ƙara?",
     "removing": "Yana cirewa…",
     "remove_hint": "Yana cire kawai abin da wannan takarda ta ƙara — babu abin da ka shigar da kanka. Za ka iya sake loda shi bayan.",
-    "keep": "Ajiye su"
+    "keep": "Ajiye su",
+    "n_documents_selected": "{{count}} takardun da aka zaɓa"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

@@ -2067,7 +2067,8 @@
     "remove_confirm": "Wepụ {{count}} ndekọ nke akwụkwọ a tinyere?",
     "removing": "N'ịwepụ…",
     "remove_hint": "Ọ na-ewepụ naanị ihe akwụkwọ a tinyere — ọ bụghị ihe ị deere gị. Ị nwere ike ịtinyegharị ya mgbe e mesịa.",
-    "keep": "Jide ha"
+    "keep": "Jide ha",
+    "n_documents_selected": "{{count}} ndokumenti ahọpụtara"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

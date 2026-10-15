@@ -2067,7 +2067,8 @@
     "remove_confirm": "Ondoa rekodi {{count}} ambayo hati hii iliongeza?",
     "removing": "Inaondolewa…",
     "remove_hint": "Inaondoa tu kile hati hii iliongeza — si kitu chochote ulichoingiza mwenyewe. Unaweza kuipakia tena baadaye.",
-    "keep": "Ziweke"
+    "keep": "Ziweke",
+    "n_documents_selected": "{{count}} hati zilizochaguliwa"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

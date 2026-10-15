@@ -35,6 +35,8 @@ from app.models.document_import import (
 from app.models.peritoneal_dialysis import PDSession
 from app.models.user import User
 from app.schemas.wellness import (
+    BatchDocumentResult,
+    BatchParseResponse,
     ConfirmImportRequest,
     ConfirmImportResponse,
     DocumentImportDetail,
@@ -123,6 +125,54 @@ def _summary(record: DocumentImport) -> dict:
     }
 
 
+#: Formats this pipeline reads. Anything else is refused by NAME rather than
+#: decoded as UTF-8 and handed to the parser.
+#:
+#: ⚠️ Measured 2026-10-15 on a real JPEG: `extract` decoded it as text, the
+#: classifier returned `doc_type=unknown`, 0 records and **`error=None`** — so
+#: a patient who photographs their lab report is shown an EMPTY TABLE and told
+#: nothing. §3aa's "an error is not an empty state", on the surface where it
+#: means "this document contained no results".
+#:
+#: Detected by MAGIC BYTES, not by extension or the browser's content type: a
+#: renamed file is ordinary, and §0 says read the bytes rather than trust the
+#: label.
+_MAGIC = (
+    (b"\xff\xd8\xff", "a photo (JPEG)"),
+    (b"\x89PNG\r\n\x1a\n", "a photo (PNG)"),
+    (b"GIF87a", "an image (GIF)"),
+    (b"GIF89a", "an image (GIF)"),
+    (b"RIFF", "an image or audio file"),
+    (b"\x00\x00\x00\x18ftypheic", "a photo (HEIC)"),
+    (b"\x00\x00\x00\x1cftypheic", "a photo (HEIC)"),
+    (b"PK\x03\x04", "a Word, Excel or zip file"),
+    (b"\xd0\xcf\x11\xe0", "an older Word or Excel file"),
+)
+
+
+def _refuse_unreadable(filename: str | None, content: bytes) -> None:
+    """Raise if this is plainly not a document the parser can read.
+
+    Says WHAT it is and what to do instead. A refusal that cannot explain
+    itself gets blamed for the thing it did not do (§3aj).
+    """
+    head = content[:16]
+    for magic, described in _MAGIC:
+        if head.startswith(magic):
+            raise ValueError(
+                f"This looks like {described}, not a PDF or text document. "
+                f"Photos of a report cannot be imported here — export or "
+                f"download the report as a PDF and upload that.")
+
+    # A PDF that is not a PDF: the extension says one thing and the bytes
+    # another, and the parser would read an empty document from it.
+    name = (filename or "").lower()
+    if name.endswith(".pdf") and not head.startswith(b"%PDF"):
+        raise ValueError(
+            "This file is named .pdf but its contents are not a PDF. "
+            "Re-export it and try again.")
+
+
 @router.post("/parse-document", response_model=LabReportParseResponse)
 @router.post("/parse-lab-report", response_model=LabReportParseResponse)
 async def parse_document(
@@ -143,6 +193,12 @@ async def parse_document(
             status_code=413,
             detail=f"File is too large (limit {MAX_UPLOAD_BYTES // (1024 * 1024)} MB).",
         )
+    try:
+        _refuse_unreadable(file.filename, content)
+    except ValueError as exc:
+        # 415, not 400: the request is well formed and the MEDIA TYPE is what
+        # cannot be processed.
+        raise HTTPException(status_code=415, detail=str(exc)) from exc
 
     parsed = await pipeline.parse(content, file.filename, file.content_type)
 
@@ -157,6 +213,132 @@ async def parse_document(
     await db.commit()
     await db.refresh(record, ["items"])
     return _response_for(record, parsed)
+
+
+#: How many documents one upload may carry. A clinic visit produces a handful,
+#: not a hundred — and each file is read in full in memory, so an unbounded
+#: batch is a memory and timeout problem rather than a generosity.
+MAX_BATCH_FILES = 12
+
+#: And a ceiling on the WHOLE batch, not just each file. Twelve files each just
+#: under the per-file limit is 240 MB, which the per-file check alone allows.
+MAX_BATCH_BYTES = 60 * 1024 * 1024
+
+
+@router.post("/parse-documents", response_model=BatchParseResponse)
+async def parse_documents(
+    files: list[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Read SEVERAL clinical documents in one upload, each staged on its own.
+
+    Operator, 2026-10-15: *"PDF import must support multiple PDF imports at the
+    same time and route them properly."*
+
+    **Each file becomes its own `DocumentImport`, and that is the whole
+    design.** Merging a batch into one import record would be the easy version
+    and it breaks three things that already work:
+
+      * `discard` deletes exactly the rows ONE import created, by the
+        `imported_row_id` stamped on each staged row. Share a record between two
+        reports and discarding the bad one deletes the good one's rows.
+      * the content-hash check resolves a re-uploaded file to the import it
+        already made (§3ab: re-importing after a parser fix produces
+        contradictory duplicates, so the dedupe is load-bearing).
+      * `confirm` is per-import and a reviewer ticks rows per document. One
+        record holding two reports means ticking rows against the wrong one.
+
+    Routing is untouched: every staged row already carries its own
+    `target_table` (per-claim since 2026-10-11), so a visit summary feeding
+    conditions AND medications routes the same way in a batch as alone.
+
+    **One unreadable file never sinks the others.** Each result carries its own
+    `ok` and `error` — §3ab's rule that a parser dropping what it cannot read,
+    without counting it, hides its own failure.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="No files were uploaded.")
+    if len(files) > MAX_BATCH_FILES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Too many files at once (limit {MAX_BATCH_FILES}). "
+                   f"Upload them in smaller batches.",
+        )
+
+    results: list[BatchDocumentResult] = []
+    parsed_n = failed_n = duplicate_n = 0
+    total_bytes = 0
+    # Hashes staged EARLIER IN THIS REQUEST. `find_existing_import` queries the
+    # database, and rows staged a moment ago in this same transaction are not
+    # necessarily visible to it — so the same PDF twice in one batch would
+    # create two imports of identical readings, which is precisely the
+    # contradictory duplicate the hash check exists to prevent.
+    seen_in_batch: dict[str, DocumentImport] = {}
+
+    for upload in files:
+        name = upload.filename or "(unnamed)"
+        try:
+            content = await upload.read()
+            if not content:
+                raise ValueError("The file is empty.")
+            total_bytes += len(content)
+            if len(content) > MAX_UPLOAD_BYTES:
+                raise ValueError(
+                    f"Too large (limit {MAX_UPLOAD_BYTES // (1024 * 1024)} MB).")
+            if total_bytes > MAX_BATCH_BYTES:
+                raise ValueError(
+                    f"The batch exceeds {MAX_BATCH_BYTES // (1024 * 1024)} MB "
+                    f"in total; upload fewer files at once.")
+            # A photo among the PDFs is refused on its own and the rest of the
+            # batch still imports — which is the behaviour a patient who picked
+            # a whole folder actually needs.
+            _refuse_unreadable(upload.filename, content)
+
+            parsed = await pipeline.parse(content, upload.filename,
+                                          upload.content_type)
+
+            record = seen_in_batch.get(parsed.content_hash)
+            already = record is not None
+            if record is None:
+                record = await importer.find_existing_import(
+                    db, current_user.id, parsed.content_hash)
+                already = record is not None
+            if record is not None:
+                await db.refresh(record, ["items"])
+            else:
+                record = await importer.stage(db, current_user.id, parsed)
+                # Flushed per file so the next file's hash check and the
+                # response both see a real id. The COMMIT is once, at the end:
+                # a batch either stages or it does not.
+                await db.flush()
+                await db.refresh(record, ["items"])
+                seen_in_batch[parsed.content_hash] = record
+
+            if already:
+                duplicate_n += 1
+            else:
+                parsed_n += 1
+            results.append(BatchDocumentResult(
+                filename=name, ok=True,
+                document=_response_for(record, parsed, already_imported=already),
+            ))
+
+        except Exception as exc:  # noqa: BLE001 — one bad file must not sink the batch
+            failed_n += 1
+            logger.warning("batch import: %s could not be read: %s", name, exc,
+                           exc_info=not isinstance(exc, ValueError))
+            # Name the exception TYPE for anything unexpected. §3ae: a failure
+            # formatted as `last: {exc}` rendered as an empty string for the
+            # most common error of all.
+            detail = (str(exc) if isinstance(exc, ValueError)
+                      else f"Could not be read ({type(exc).__name__}).")
+            results.append(BatchDocumentResult(
+                filename=name, ok=False, error=detail, document=None))
+
+    await db.commit()
+    return BatchParseResponse(documents=results, parsed=parsed_n,
+                              failed=failed_n, duplicates=duplicate_n)
 
 
 def _primary_target(record: DocumentImport) -> str | None:
