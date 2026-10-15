@@ -483,7 +483,7 @@ async def test_the_loop_reports_each_step_it_actually_takes(monkeypatch):
     async def _fake_chat(prompt, **kw):
         return replies.pop(0)
 
-    async def _fake_tool(db, user_id, name, args, today=None):
+    async def _fake_tool(db, user_id, name, args, today=None, **_kw):
         return {"meals": [1, 2, 3, 4, 5, 6], "count": 6}
 
     monkeypatch.setattr("app.services.alafia_model_service.alafia_chat_detailed",
@@ -612,7 +612,7 @@ async def test_streaming_loop_retracts_a_preamble_that_preceded_a_tool_call(monk
         for ev in rounds.pop(0):
             yield ev
 
-    async def _fake_tool(db, user_id, name, args, today=None):
+    async def _fake_tool(db, user_id, name, args, today=None, **_kw):
         return {"meals": [1, 2, 3]}
 
     monkeypatch.setattr("app.services.alafia_model_service.stream_alafia_events",
@@ -648,7 +648,7 @@ async def test_streaming_loop_reports_the_same_steps_as_the_buffered_one(monkeyp
         for ev in rounds.pop(0):
             yield ev
 
-    async def _fake_tool(db, user_id, name, args, today=None):
+    async def _fake_tool(db, user_id, name, args, today=None, **_kw):
         return {"meals": [1]}
 
     monkeypatch.setattr("app.services.alafia_model_service.stream_alafia_events",
@@ -793,7 +793,7 @@ async def test_the_loop_passes_the_patients_date_to_every_tool(monkeypatch):
         return {"text": "done", "tool_calls": [], "provider": "p", "model": "m",
                 "tokens_used": 0}
 
-    async def _fake_tool(db, user_id, name, args, today=None):
+    async def _fake_tool(db, user_id, name, args, today=None, **_kw):
         seen["today"] = today
         return {"meals": [1]}
 
@@ -1484,19 +1484,30 @@ async def test_a_repeated_call_does_not_double_a_dose(db):
     assert second["logged"][0]["id"] == first["logged"][0]["id"]
 
 
-def test_only_meals_and_medication_are_writable():
+def test_what_is_writable_is_DECLARED_and_reads_never_are():
     """§3aj: a dose is a clinical statement, and inference proposes but never
     writes. Medication became writable deliberately — the patient says they took
     it, the dose comes from their own history, and the guard still runs — but
     vitals and labs stay read-only, and this is DECLARED rather than inferred
     from a description (a keyword test on prose once flagged `get_meals`
-    because its text says "the record")."""
-    from app.services.record_tools import TOOLS, WRITE_TOOLS
+    because its text says "the record").
 
-    assert WRITE_TOOLS == {"log_meal", "log_medication"}
+    ⚠️ This asserted the exact membership `{"log_meal", "log_medication"}`
+    until 2026-10-14, which made it a CHANGE DETECTOR rather than a guard: it
+    went red the moment five more domains became writable, and said nothing
+    about the property that actually matters. The invariants below hold however
+    many write tools exist — and `tests/test_ai_write_tools.py` is where the
+    gate itself is proven."""
+    from app.services.record_tools import NEVER_WRITABLE, TOOLS, WRITE_TOOLS
+
     assert WRITE_TOOLS <= set(TOOLS)
-    # Vitals and labs stay read-only.
+    # Every writer is a log_*, and no reader is ever a writer.
+    assert all(n.startswith("log_") for n in WRITE_TOOLS)
+    assert {n for n in TOOLS if n.startswith("get_")} & WRITE_TOOLS == set()
     assert {"get_vitals", "get_labs", "get_medications"} & WRITE_TOOLS == set()
+    # The two domains §3am decided must never be written from here.
+    assert NEVER_WRITABLE == {"vitals", "labs"}
+    assert not {"log_vitals", "log_labs"} & set(TOOLS)
 
 
 def test_the_loop_tells_the_model_not_to_invent_a_dose():

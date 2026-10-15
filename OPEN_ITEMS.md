@@ -3887,16 +3887,132 @@ it has exactly one.
 
 ### STILL OPEN — this is the label, and TASKS 19 is not the label
 
-- **43a. 19b — TELL cannot write most of what it says it can.** Elimination,
-  mood, sleep, symptoms and fitness have **no write tool** at all, so a patient
-  who now reads "tell Alafia to log something" and says "log that I slept
-  badly" gets an apology. **Renaming the control before its capability exists
-  widens the gap between what the label promises and what the product does** —
-  the honest sequencing would have been tools first. It is recorded here rather
-  than quietly accepted.
+- ✅ **43a. 19b — CLOSED the same day.** All five domains have gated write
+  tools, and the gate itself — which had no reader at all — is wired and fails
+  closed. See **44**. The label and the capability now agree.
 - **43b. 19c — Ω and Α are unreachable by the assistant.** No tool returns the
   wellness or management score, so "how am I doing?" is answered from raw rows
   while the product's own composite sits unseen.
 - **43c. 19d — one loop, not two code paths.** TELL and ASK must remain a
   difference in what the model decides to call, never a fork (§3am: two copies
   is how the Anthropic streamer silently dropped every tool turn).
+
+---
+
+## 44. A gated, secure set of write tools — TASKS 19b — 2026-10-14
+
+Operator, on the five domains that had none: **"a gated, secure set of write
+tools."** Raised the moment the label became "Chat with Alafia" — which invites
+a patient to TELL the assistant things it could not then record (43a).
+
+### ⚠️ The gate mattered more than the tools, and it was not wired
+
+`WRITE_TOOLS` has existed since the write path shipped, declaring which calls
+may alter a patient's chart. Measured across the repo: **its only reader was
+its own test.** `run_tool` dispatched `log_meal` for any caller that named it.
+
+That is §3ay's never-plugged-in sink on the most consequential switch in the
+module, and §3ar's dead control in the place it is worst — a thing that looks
+like a safeguard. **Adding five more writers behind it would have multiplied
+the defect by five**, so the gate was wired first.
+
+    run_tool(..., allow_writes=False)        ← the default, and it FAILS CLOSED
+
+A caller that does not ask gets a read-only assistant. Forgetting the flag
+makes the product less capable; it can never silently make it able to write.
+That is §3at's lesson about which way a default fails, applied to a capability
+rather than a checkbox — and the opposite of what was there, where forgetting
+to consult the set left every write open.
+
+**Exactly one place opens it**: the patient's own conversation, on BOTH the
+buffered and the streaming path. A static guard pins that — by AST, not grep,
+because a string search matches the comment that explains the flag, which is
+the mistake two guards here have already made (§3av). A second guard asserts
+that **nothing else in `app/` turns writes on**, the same shape as
+`test_clinical_sources`'s ALLOWED set.
+
+### What "gated" means, enforced rather than hoped for
+
+| | |
+|---|---|
+| **capability** | `allow_writes` defaults False; the gate fails closed |
+| **contract** | each tool declares the exact columns it may set (`_WriteSpec`). No `**kwargs`, no `setattr` loop over whatever the model invented |
+| **validation** | scales and lengths checked at the boundary and **refused by name**, never clamped |
+| **idempotence** | every write checks for the row it is about to insert, scoped to this patient and day |
+| **scope** | `user_id` comes from the session and is never an argument the model supplies |
+| **closed set** | `NEVER_WRITABLE = {vitals, labs}`, declared with the reason |
+
+> **Refused, never clamped.** Turning a severity of 50 into 10 records a
+> clinical value nobody stated — §3am's *"a bad argument that becomes a wrong
+> clinical number is worse than an error, which the model can act on and
+> retry"*. Same for a text longer than its column: truncating stores a clinical
+> sentence with its end cut off, which reads as a complete statement.
+
+> **Vitals and labs stay read-only, and the asymmetry is the point.** A reading
+> comes off a device the patient read; a result comes from a laboratory with a
+> reference range and a provenance this path cannot supply. Writing either
+> would make the assistant a measurement source, and a transcription slip would
+> become a clinical observation nobody can trace back to a cuff.
+
+### The tools do not INTERPRET — that is the subtle half
+
+`log_elimination` stores the patient's words and **does not set
+`blood_present`**, even when the description says "bloody". `elimination_text`
+already reads those words for every consumer, and §3ba's rule is that a SET
+column wins while only NULL falls through to the text. Writing the boolean too
+would put a second interpreter beside the first, which §3ai forbids: two
+computations of one quantity must not disagree.
+
+Likewise `log_sleep` does **not** derive `total_hours` from bedtime and wake
+time — a night crossing midnight is exactly the §3av case where every client
+rolled over for display and none for storage, and four production dialysis
+sessions stored a negative duration as a result. And `log_fitness` derives no
+calories: that needs weight, heart rate and a formula nobody here has cited
+(§3az).
+
+**A number is written only where the patient stated one.** The instructions say
+so outright — *"NEVER choose a number for them"* — because a mood score, a
+severity, a Bristol number and an hours-slept figure are the patient's to give,
+and §3am's "inference proposes; it never writes" was written for a far less
+subjective field than mood.
+
+### Verified
+
+    backend     105 passed across the two AI suites; 142 across the wider slice
+    guards      3 of the 26 new tests FAIL with the gate opened and pass with
+                it closed — proven by temporarily flipping the default and
+                running. The other 23 are coverage of new code; calling all 26
+                guards would be §3al's mistake
+    ruff        F,E9 clean on record_tools, ai_conversation, api/ai
+    consistency all 13 tools carry a spec, a label and a dispatch entry, and
+                every `log_*` is in WRITE_TOOLS — asked of the module, not read
+
+> **An existing test was a change detector, not a guard.**
+> `test_only_meals_and_medication_are_writable` asserted the exact membership
+> `{"log_meal", "log_medication"}`, so it went red the moment the set grew and
+> said nothing about the property that matters. It now asserts invariants that
+> hold however many writers exist: every writer is a `log_*`, no reader is ever
+> a writer, and vitals and labs are absent.
+
+### STILL OPEN
+
+- **44a. No per-patient consent for AI writes.** The capability is a CALLER
+  property, not a user preference: any signed-in patient using the chat can
+  have it write. The clients gate the Ask tab behind AI consent, but that is
+  client-side, and `users.ai_training_consent` is about training data, not
+  about letting the assistant alter a chart. A real opt-out needs a column, a
+  migration and three Profile screens.
+- **44b. Nothing is reversible from the conversation.** A patient who says
+  "actually that was yesterday" cannot have the row corrected or removed by
+  asking; there is no `amend_*` or `delete_*` tool, deliberately — a delete
+  tool is a far larger decision than a log tool. Today the answer is the
+  matching screen.
+- **44c. The write is not announced anywhere but the reply.** A row appears in
+  the record with no marker saying the assistant put it there. `log_meal` has
+  had this since it shipped; five more writers make it worth a provenance
+  column rather than a convention.
+- **44d. Untested against a real model.** The tools, the gate and the
+  instructions are pinned by unit tests; no run has confirmed that a capable
+  model actually CALLS `log_sleep` when a patient says "I slept badly". §3am
+  records that `llama3.2:3b` could not drive the tool loop at all, so this
+  needs the production provider order and a real exchange.

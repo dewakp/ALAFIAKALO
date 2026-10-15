@@ -37,6 +37,7 @@ import json
 import logging
 import re
 from datetime import date, timedelta
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy import select
@@ -816,6 +817,446 @@ async def get_surgical_history(db: AsyncSession, user_id: int, *,
     }
 
 
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# The gated write tools
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Operator, 2026-10-14, on the five domains that had no write tool at all:
+# *"a gated, secure set of write tools."*
+#
+# Gated means six things, and each one is enforced here rather than hoped for:
+#
+#   1. CAPABILITY   `run_tool(..., allow_writes=False)` by default. A caller
+#                   has to ask. The gate fails CLOSED, so forgetting it makes
+#                   the assistant read-only rather than silently able to write.
+#   2. CONTRACT     every tool declares the exact columns it may set
+#                   (`_WriteSpec.fields`). Nothing reaches a model object that
+#                   the spec does not name — no `**kwargs`, no `setattr` loop
+#                   over whatever the LLM invented.
+#   3. VALIDATION   scales and lengths are checked at the boundary and REFUSED
+#                   BY NAME. Never clamped: silently turning a severity of 50
+#                   into 10 records a clinical value nobody stated (§3am's
+#                   "a bad argument that becomes a wrong clinical number is
+#                   worse than an error").
+#   4. IDEMPOTENCE  a tool loop retries. Every write checks for the row it is
+#                   about to insert, scoped to this patient and this day.
+#   5. SCOPE        `user_id` comes from the authenticated session and is
+#                   never an argument the model can supply.
+#   6. CLOSED SET   vitals and labs stay unwritable, by declaration, with the
+#                   reason (`NEVER_WRITABLE`).
+#
+# And one thing it deliberately does NOT do: interpret. The tool stores the
+# patient's own words; the readers that already exist interpret them. Writing
+# `blood_present=True` because the patient said "bloody" would put a second
+# interpreter beside `elimination_text` (§3ba), and §3ai's rule is that two
+# computations of one quantity must not disagree. A value is written only
+# where the patient STATED one.
+
+
+@dataclass(frozen=True)
+class _WriteSpec:
+    """What one write tool is allowed to touch.
+
+    The model's arguments are matched against this and nothing else, so a tool
+    cannot be talked into setting a column its author never considered.
+    """
+    model: str                      # attribute on app.models
+    date_field: str                 # log_date / entry_date / sleep_date
+    #: argument -> column, for plain text
+    text: dict[str, tuple[str, int]] = field(default_factory=dict)
+    #: argument -> (column, low, high), inclusive, refused outside
+    scales: dict[str, tuple[str, int, int]] = field(default_factory=dict)
+    #: argument -> column, parsed by `_parse_clock`
+    clocks: dict[str, str] = field(default_factory=dict)
+    #: argument -> (column, low, high) for a real quantity
+    numbers: dict[str, tuple[str, float, float]] = field(default_factory=dict)
+    #: columns identifying "the same event", for the idempotency check
+    identity: tuple[str, ...] = ()
+
+
+def _apply_spec(spec: _WriteSpec, args: dict[str, Any]) -> tuple[dict, list[str]]:
+    """Arguments -> column values, or a list of refusals naming each problem.
+
+    A refusal is a sentence the model can read back to the patient. §3aj: a
+    guard that cannot explain itself gets blamed for the thing it did not do.
+    """
+    values: dict[str, Any] = {}
+    refusals: list[str] = []
+
+    for arg, (column, limit) in spec.text.items():
+        raw = args.get(arg)
+        if raw is None:
+            continue
+        text = str(raw).strip()
+        if not text:
+            continue
+        if len(text) > limit:
+            # Truncating would store a clinical sentence with its end cut off,
+            # which reads as a complete statement. Refuse and say the limit.
+            refusals.append(
+                f"{arg} is {len(text)} characters and the record holds "
+                f"{limit}; shorten it and try again")
+            continue
+        values[column] = text
+
+    for arg, (column, low, high) in spec.scales.items():
+        raw = args.get(arg)
+        if raw is None:
+            continue
+        try:
+            n = int(float(raw))
+        except (TypeError, ValueError):
+            refusals.append(f"{arg}={raw!r} is not a number from {low} to {high}")
+            continue
+        if not (low <= n <= high):
+            refusals.append(
+                f"{arg}={raw} is outside the {low}-{high} scale this record "
+                f"uses; ask the patient for a value in that range")
+            continue
+        values[column] = n
+
+    for arg, (column, low, high) in spec.numbers.items():
+        raw = args.get(arg)
+        if raw is None:
+            continue
+        try:
+            n = float(raw)
+        except (TypeError, ValueError):
+            refusals.append(f"{arg}={raw!r} is not a number")
+            continue
+        if not (low <= n <= high):
+            refusals.append(
+                f"{arg}={raw} is outside what this field can hold ({low}-{high})")
+            continue
+        values[column] = n
+
+    for arg, column in spec.clocks.items():
+        raw = args.get(arg)
+        if raw is None:
+            continue
+        parsed = _parse_clock(str(raw))
+        if parsed is None:
+            # §3av: a value that cannot be read is refused, never dropped. The
+            # web flowsheet silently discarded unparseable times and ate the
+            # reading with them.
+            refusals.append(f"{arg}={raw!r} is not a time I can read "
+                            f"(try \"20:45\" or \"8:45 pm\")")
+            continue
+        values[column] = parsed
+
+    return values, refusals
+
+
+async def _write_row(db: AsyncSession, user_id: int, spec: _WriteSpec,
+                     when: date, args: dict[str, Any], *,
+                     label: str, confirm: str) -> dict[str, Any]:
+    """The one path every gated write takes."""
+    from app import models
+
+    model = getattr(models, spec.model)
+    values, refusals = _apply_spec(spec, args)
+    if refusals:
+        return {"error": "nothing was written", "refused": True,
+                "problems": refusals,
+                "tell_the_patient":
+                    "Say what could not be recorded and why, and ask for the "
+                    "value again. Nothing was saved."}
+
+    # Idempotency, scoped to this patient and this day. A tool loop retries —
+    # a provider hiccup, a round that re-reads the request — and a duplicated
+    # clinical row is indistinguishable from a second real event.
+    where = [model.user_id == user_id, getattr(model, spec.date_field) == when]
+    for column in spec.identity:
+        where.append(getattr(model, column) == values.get(column))
+    existing = (await db.execute(
+        select(model).where(*where).limit(1))).scalars().first()
+    if existing is not None:
+        return {"already_logged": True, "id": existing.id, "date": str(when),
+                "what": label,
+                "note": "This is already on the record for that day; nothing "
+                        "was added. Tell the patient it was already there."}
+
+    row = model(user_id=user_id, **{spec.date_field: when}, **values)
+    db.add(row)
+    await db.flush()
+    await db.refresh(row)
+    await db.commit()
+
+    logger.info("ai wrote %s %s for user %s", spec.model, row.id, user_id)
+    return {"logged": True, "id": row.id, "date": str(when), "what": label,
+            "recorded": {k: str(v) for k, v in values.items()},
+            "confirm_to_patient": confirm}
+
+
+def _resolve_day(log_date_str: str | None, today: date | None) -> tuple[date | None, str | None]:
+    """The PATIENT's day, never the server's (§3am).
+
+    The containers run UTC, so `date.today()` is already tomorrow for a patient
+    in the Americas from early evening — which once told someone with six
+    logged meals that they had eaten nothing.
+    """
+    base = today or date.today()
+    if not log_date_str:
+        return base, None
+    when = _parse_day(log_date_str, base)
+    if when is None:
+        return None, f"log_date_str={log_date_str!r} is not a date I can read"
+    return when, None
+
+
+# ── elimination ────────────────────────────────────────────────────────────
+
+_ELIMINATION_SPECS = {
+    "bowel": _WriteSpec(
+        model="BowelMovement", date_field="log_date",
+        text={"description": ("notes", 2000)},
+        clocks={"time": "log_time"},
+        scales={"bristol_scale": ("bristol_scale", 1, 7),
+                "pain_level": ("pain_level", 0, 10)},
+        identity=("log_time",),
+    ),
+    "vomiting": _WriteSpec(
+        model="VomitingLog", date_field="log_date",
+        text={"description": ("notes", 2000)},
+        clocks={"time": "log_time"},
+        identity=("log_time",),
+    ),
+}
+
+
+async def log_elimination(
+    db: AsyncSession, user_id: int, *,
+    kind: str = "bowel",
+    description: str | None = None,
+    time: str | None = None,
+    bristol_scale: Any = None,
+    pain_level: Any = None,
+    log_date_str: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Record a bowel movement or a vomiting episode the patient describes.
+
+    ⚠️ **The patient's WORDS go in; no finding is derived from them here.**
+    `blood_present` is not set even when the description says "bloody", and
+    that is deliberate: `services/elimination_text.py` already reads those
+    words for every consumer, and §3ba's rule is that a SET column wins while
+    only NULL falls through to the text. Writing the boolean too would put a
+    second interpreter beside the first, which §3ai forbids — two computations
+    of one quantity must not disagree.
+    """
+    spec = _ELIMINATION_SPECS.get((kind or "bowel").strip().lower())
+    if spec is None:
+        return {"error": f"kind={kind!r} is not something this can record; "
+                         f"use 'bowel' or 'vomiting'"}
+    when, bad = _resolve_day(log_date_str, today)
+    if bad:
+        return {"error": bad}
+    if not (description or "").strip() and time is None:
+        return {"error": "nothing was described — nothing was logged"}
+
+    return await _write_row(
+        db, user_id, spec, when,
+        {"description": description, "time": time,
+         "bristol_scale": bristol_scale, "pain_level": pain_level},
+        label=f"{kind} event",
+        confirm=("Say exactly what was saved, with the date and time, so they "
+                 "can correct it. Do not add detail they did not give."))
+
+
+# ── mood ───────────────────────────────────────────────────────────────────
+
+_MOOD_SPEC = _WriteSpec(
+    model="MoodEntry", date_field="entry_date",
+    text={"note": ("journal_entry", 4000), "triggers": ("triggers", 2000)},
+    scales={"mood_score": ("mood_score", 1, 10),
+            "energy_level": ("energy_level", 1, 10),
+            "stress_level": ("stress_level", 1, 10),
+            "anxiety_level": ("anxiety_level", 1, 10)},
+)
+
+
+async def log_mood(
+    db: AsyncSession, user_id: int, *,
+    mood_score: Any = None,
+    energy_level: Any = None,
+    stress_level: Any = None,
+    anxiety_level: Any = None,
+    note: str | None = None,
+    triggers: str | None = None,
+    log_date_str: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Record how the patient says they feel.
+
+    `mood_score` is NOT NULL on the model, so a number is required — and it is
+    required FROM THE PATIENT. Inferring "they sound low, call it 3" would be
+    the assistant entering a clinical score nobody gave, which §3am's
+    "inference proposes; it never writes" forbids on a far less subjective
+    field than this one.
+    """
+    when, bad = _resolve_day(log_date_str, today)
+    if bad:
+        return {"error": bad}
+    if mood_score is None:
+        return {"error": "no mood score given — nothing was logged",
+                "ask_the_patient":
+                    "How would they rate their mood from 1 to 10? Do not pick "
+                    "a number for them."}
+
+    return await _write_row(
+        db, user_id, _MOOD_SPEC, when,
+        {"mood_score": mood_score, "energy_level": energy_level,
+         "stress_level": stress_level, "anxiety_level": anxiety_level,
+         "note": note, "triggers": triggers},
+        label="mood entry",
+        confirm="Repeat the score and anything else saved, so they can correct it.")
+
+
+# ── sleep ──────────────────────────────────────────────────────────────────
+
+_SLEEP_SPEC = _WriteSpec(
+    model="SleepLog", date_field="sleep_date",
+    text={"note": ("notes", 2000)},
+    clocks={"bedtime": "bedtime", "wake_time": "wake_time"},
+    scales={"quality_score": ("quality_score", 1, 10),
+            "times_awakened": ("times_awakened", 0, 50)},
+    # 24 is the ceiling a day can hold; anything above it is a transcription
+    # error, not a long night.
+    numbers={"total_hours": ("total_hours", 0.0, 24.0)},
+)
+
+
+async def log_sleep(
+    db: AsyncSession, user_id: int, *,
+    total_hours: Any = None,
+    quality_score: Any = None,
+    bedtime: str | None = None,
+    wake_time: str | None = None,
+    times_awakened: Any = None,
+    note: str | None = None,
+    log_date_str: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Record a night's sleep.
+
+    ⚠️ **`total_hours` is not computed from bedtime and wake time here.** A
+    night crossing midnight is exactly the §3av case where every client rolled
+    over for DISPLAY and none for STORAGE, and four production dialysis
+    sessions stored a negative duration as a result. The patient's own figure
+    is recorded when they give one; the two clocks are recorded as given; and
+    nothing derives one from the other in this module.
+    """
+    when, bad = _resolve_day(log_date_str, today)
+    if bad:
+        return {"error": bad}
+    if total_hours is None and bedtime is None and wake_time is None:
+        return {"error": "no sleep detail given — nothing was logged"}
+
+    return await _write_row(
+        db, user_id, _SLEEP_SPEC, when,
+        {"total_hours": total_hours, "quality_score": quality_score,
+         "bedtime": bedtime, "wake_time": wake_time,
+         "times_awakened": times_awakened, "note": note},
+        label="sleep record",
+        confirm="Repeat what was saved for that night so they can correct it.")
+
+
+# ── symptoms ───────────────────────────────────────────────────────────────
+
+_SYMPTOM_SPEC = _WriteSpec(
+    model="SymptomLog", date_field="log_date",
+    text={"symptom": ("symptom_name", 255), "body_part": ("body_part", 100),
+          "note": ("notes", 4000)},
+    scales={"severity": ("severity", 1, 10)},
+    numbers={"duration_hours": ("duration_hours", 0.0, 8760.0)},
+    identity=("symptom_name",),
+)
+
+
+async def log_symptom(
+    db: AsyncSession, user_id: int, *,
+    symptom: str | None = None,
+    severity: Any = None,
+    body_part: str | None = None,
+    duration_hours: Any = None,
+    note: str | None = None,
+    log_date_str: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Record a symptom the patient reports.
+
+    §3am already records symptoms described to `/personalization/analyze-symptoms`
+    — *"dizzy, weak" informed one answer and left no trace* — and this is the
+    same fact arriving through the chat. The symptom is stored WHOLE as the
+    patient said it: that section's own lesson is that splitting on a
+    vocabulary of symptom words invented two symptoms from one sentence.
+    """
+    when, bad = _resolve_day(log_date_str, today)
+    if bad:
+        return {"error": bad}
+    name = (symptom or "").strip()
+    if not name:
+        return {"error": "no symptom named — nothing was logged"}
+
+    return await _write_row(
+        db, user_id, _SYMPTOM_SPEC, when,
+        {"symptom": name, "severity": severity, "body_part": body_part,
+         "duration_hours": duration_hours, "note": note},
+        label=f"symptom: {name}",
+        confirm=("Repeat the symptom and severity saved. If it sounds urgent, "
+                 "say so plainly and tell them to contact their care team — "
+                 "recording it is not treating it."))
+
+
+# ── fitness ────────────────────────────────────────────────────────────────
+
+_FITNESS_SPEC = _WriteSpec(
+    model="FitnessLog", date_field="log_date",
+    text={"activity": ("activity_type", 100), "note": ("notes", 2000),
+          "intensity": ("intensity", 20)},
+    scales={"duration_minutes": ("duration_minutes", 0, 1440),
+            "steps": ("steps", 0, 200000)},
+    numbers={"distance_km": ("distance_km", 0.0, 1000.0)},
+    identity=("activity_type",),
+)
+
+
+async def log_fitness(
+    db: AsyncSession, user_id: int, *,
+    activity: str | None = None,
+    duration_minutes: Any = None,
+    distance_km: Any = None,
+    steps: Any = None,
+    intensity: str | None = None,
+    note: str | None = None,
+    log_date_str: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Record activity the patient reports.
+
+    No calories are derived. `calories_burned` is a column this tool does not
+    name, because computing it needs weight, heart rate and a formula nobody
+    here has cited — and §3az's rule is that a figure with no authority must
+    not be presented as the patient's own.
+    """
+    when, bad = _resolve_day(log_date_str, today)
+    if bad:
+        return {"error": bad}
+    name = (activity or "").strip()
+    if not name:
+        return {"error": "no activity named — nothing was logged"}
+
+    return await _write_row(
+        db, user_id, _FITNESS_SPEC, when,
+        {"activity": name, "duration_minutes": duration_minutes,
+         "distance_km": distance_km, "steps": steps,
+         "intensity": intensity, "note": note},
+        label=f"activity: {name}",
+        confirm="Repeat what was saved so they can correct it.")
+
+
 TOOL_SPECS: list[dict[str, Any]] = [
     {
         "name": "get_surgical_history",
@@ -956,6 +1397,126 @@ TOOL_SPECS: list[dict[str, Any]] = [
                 "taken_at": {"type": "string", "description": "e.g. '8:45 am'"},
             },
             "required": ["medications"],
+        },
+    },
+    {
+        "name": "log_elimination",
+        "description": "RECORD a bowel movement or a vomiting episode the "
+                       "patient reports — 'I had a bowel movement at 3', 'I "
+                       "threw up this morning'. Do NOT tell them to open the "
+                       "Elimination screen. Pass their description in THEIR "
+                       "words; do not decide whether there was blood or what "
+                       "it means, the record reads the words itself.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": ["bowel", "vomiting"],
+                         "description": "Which event. Defaults to bowel."},
+                "description": {"type": "string", "description":
+                    "What the patient said about it, in their own words."},
+                "time": {"type": "string", "description": "e.g. '3 pm', '15:00'"},
+                "bristol_scale": {"type": "integer", "description":
+                    "1-7, ONLY if the patient gave a Bristol number."},
+                "pain_level": {"type": "integer", "description":
+                    "0-10, ONLY if the patient gave a number."},
+                "log_date_str": {"type": "string", "description":
+                    "YYYY-MM-DD, or 'today' / 'yesterday'. OMIT for today."},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "log_mood",
+        "description": "RECORD how the patient says they feel. Needs a mood "
+                       "score from 1 to 10 THAT THEY GAVE — if they have not "
+                       "given one, ask; never choose a number for them. Use "
+                       "this whenever they report their mood, energy, stress "
+                       "or anxiety rather than telling them to open a screen.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "mood_score": {"type": "integer", "description":
+                    "1-10, AS THE PATIENT STATED IT. Required."},
+                "energy_level": {"type": "integer", "description": "1-10, if stated"},
+                "stress_level": {"type": "integer", "description": "1-10, if stated"},
+                "anxiety_level": {"type": "integer", "description": "1-10, if stated"},
+                "note": {"type": "string", "description":
+                    "What they said about it, in their own words."},
+                "triggers": {"type": "string", "description":
+                    "What they said brought it on, in their words."},
+                "log_date_str": {"type": "string", "description":
+                    "YYYY-MM-DD, or 'today' / 'yesterday'. OMIT for today."},
+            },
+            "required": ["mood_score"],
+        },
+    },
+    {
+        "name": "log_sleep",
+        "description": "RECORD a night's sleep the patient reports — 'I slept "
+                       "about five hours', 'I was awake four times'. Record "
+                       "what they said; do NOT work out hours from bedtime "
+                       "and wake time yourself.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "total_hours": {"type": "number", "description":
+                    "Hours slept, if the patient said how many."},
+                "quality_score": {"type": "integer", "description": "1-10, if stated"},
+                "bedtime": {"type": "string", "description": "e.g. '11 pm'"},
+                "wake_time": {"type": "string", "description": "e.g. '6:30 am'"},
+                "times_awakened": {"type": "integer", "description": "if stated"},
+                "note": {"type": "string", "description": "Their own words."},
+                "log_date_str": {"type": "string", "description":
+                    "YYYY-MM-DD, or 'today' / 'yesterday'. OMIT for today."},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "log_symptom",
+        "description": "RECORD a symptom the patient reports — 'I have been "
+                       "dizzy since this morning', 'my left arm aches'. Use it "
+                       "whenever they describe something they are feeling. "
+                       "Keep the symptom in THEIR words and do not split one "
+                       "sentence into several symptoms.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "symptom": {"type": "string", "description":
+                    "The symptom as the patient named it."},
+                "severity": {"type": "integer", "description":
+                    "1-10, ONLY if the patient gave a number."},
+                "body_part": {"type": "string", "description": "if they said where"},
+                "duration_hours": {"type": "number", "description":
+                    "How long, in hours, if they said."},
+                "note": {"type": "string", "description": "Their own words."},
+                "log_date_str": {"type": "string", "description":
+                    "YYYY-MM-DD, or 'today' / 'yesterday'. OMIT for today."},
+            },
+            "required": ["symptom"],
+        },
+    },
+    {
+        "name": "log_fitness",
+        "description": "RECORD activity the patient reports — 'I walked for "
+                       "twenty minutes', 'I did my exercises'. Do not estimate "
+                       "calories; the record does not want a figure nobody "
+                       "measured.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "activity": {"type": "string", "description":
+                    "What they did, in their words — walking, cycling, yoga."},
+                "duration_minutes": {"type": "integer", "description": "if stated"},
+                "distance_km": {"type": "number", "description": "if stated"},
+                "steps": {"type": "integer", "description": "if stated"},
+                "intensity": {"type": "string", "description":
+                    "low / moderate / high, if they said"},
+                "note": {"type": "string", "description": "Their own words."},
+                "log_date_str": {"type": "string", "description":
+                    "YYYY-MM-DD, or 'today' / 'yesterday'. OMIT for today."},
+            },
+            "required": ["activity"],
         },
     },
 ]
@@ -1225,13 +1786,42 @@ TOOL_LABELS = {
     "get_labs": "Checking your lab results",
     "log_meal": "Saving your meal",
     "log_medication": "Recording your medication",
+    "log_elimination": "Recording that in your elimination log",
+    "log_mood": "Saving how you are feeling",
+    "log_sleep": "Saving your sleep",
+    "log_symptom": "Recording your symptom",
+    "log_fitness": "Saving your activity",
 }
 
 #: Tools that CHANGE the record. Declared, not inferred from a description —
 #: a keyword test on prose matched `get_meals` because its text mentions "the
 #: record". Anything added here is a tool that can write to a patient's chart,
 #: which is a decision worth making explicitly.
-WRITE_TOOLS = frozenset({"log_meal", "log_medication"})
+#:
+#: ⚠️ **Until 2026-10-14 this set had NO READER.** It was declared here, tested
+#: by one assertion, and consulted by nothing: `run_tool` dispatched `log_meal`
+#: for any caller that named it. A set whose whole purpose is to mark which
+#: calls can alter a patient's chart, enforcing nothing, is §3ay's
+#: never-plugged-in sink on the most consequential switch in the module — and
+#: §3ar's dead control, which is worst exactly where it looks most like a
+#: safeguard. `run_tool` now refuses these unless the CALLER asks for writes.
+WRITE_TOOLS = frozenset({
+    "log_meal", "log_medication",
+    "log_elimination", "log_mood", "log_sleep", "log_symptom", "log_fitness",
+})
+
+#: Deliberately NOT writable, with the reason, so the next person adding a tool
+#: does not have to re-derive the decision (§3am):
+#:
+#:   vitals  a reading comes off a device the patient read. Writing it here
+#:           makes the assistant a measurement source, and a transcription
+#:           error becomes a clinical observation nobody can trace to a cuff.
+#:   labs    a result comes from a laboratory, through the document import or
+#:           an EHR feed, and carries a reference range and a provenance this
+#:           path cannot supply (§3ab, §3ax).
+#:
+#: Both remain readable. The asymmetry is the point.
+NEVER_WRITABLE = frozenset({"vitals", "labs"})
 
 TOOLS = {
     "get_surgical_history": get_surgical_history,
@@ -1242,20 +1832,50 @@ TOOLS = {
     "get_labs": get_labs,
     "log_meal": log_meal,
     "log_medication": log_medication,
+    "log_elimination": log_elimination,
+    "log_mood": log_mood,
+    "log_sleep": log_sleep,
+    "log_symptom": log_symptom,
+    "log_fitness": log_fitness,
 }
 
 
 async def run_tool(db: AsyncSession, user_id: int, name: str,
                    arguments: dict[str, Any],
-                   today: date | None = None) -> dict[str, Any]:
+                   today: date | None = None, *,
+                   allow_writes: bool = False) -> dict[str, Any]:
     """Execute one tool call. Errors are returned, never raised.
 
     A tool that raises would abort the whole answer; a tool that reports its
     failure lets the model say what it could not check.
+
+    **THE WRITE GATE, and it FAILS CLOSED.** `allow_writes` defaults to False,
+    so a caller gets a read-only assistant unless it says otherwise. Every
+    consumer of this module — a summariser, a scheduled job, a future report
+    builder — therefore cannot alter a chart by accident; it has to ask.
+
+    That default is the whole point. `WRITE_TOOLS` existed for weeks with no
+    reader, which meant any caller naming `log_meal` wrote a clinical row
+    (§3ar). A gate that must be opted INTO cannot be forgotten into the open
+    position — the §3at lesson about which way a default fails, applied to a
+    capability rather than a checkbox.
     """
     fn = TOOLS.get(name)
     if fn is None:
         return {"error": f"no such tool: {name}"}
+    if name in WRITE_TOOLS and not allow_writes:
+        # Reported, never raised, and SAID OUT LOUD: the model must be able to
+        # tell the patient their request was refused rather than silently
+        # answering as though it had been done (§3aa — and §3am's rule that an
+        # error must never become an answer).
+        logger.warning("refused write tool %s for user %s: writes not enabled "
+                       "for this caller", name, user_id)
+        return {"error": f"{name} cannot write from here",
+                "refused": True,
+                "tell_the_patient":
+                    "Saving to the record is not available in this "
+                    "conversation. Nothing was written. They can log it on the "
+                    "matching screen."}
     try:
         # `today` is passed by the loop, never by the model: a model does not
         # know the date and must not be asked to supply one.

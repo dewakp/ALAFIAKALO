@@ -3804,3 +3804,60 @@ and contains **zero** `toTimeString`.
 **Not done:** the dashboard's meal, medication and appointment time paths were
 not audited — only elimination was reported and only elimination was measured
 (42a). `802c23e` is **not deployed**; production is on `7f1fb6c`.
+
+---
+
+## 2026-10-14 (4) — A gated, secure set of write tools (TASKS 19b)
+
+Operator: *"a gated, secure set of write tools."* Full detail: **OPEN_ITEMS 44**.
+
+**The gate mattered more than the tools.** `WRITE_TOOLS` has existed since the
+write path shipped, declaring which calls may alter a patient's chart — and
+measured across the repo, **its only reader was its own test**. `run_tool`
+dispatched `log_meal` for any caller that named it. §3ay's never-plugged-in
+sink, on the most consequential switch in the module. Adding five writers
+behind it would have multiplied the defect, so it was wired first:
+`allow_writes=False` by default, failing CLOSED, opened in exactly one place —
+the patient's own conversation, on both the buffered and the streaming path.
+
+Five tools behind it: `log_elimination`, `log_mood`, `log_sleep`,
+`log_symptom`, `log_fitness`. Each declares the exact columns it may set; scales
+and lengths are refused by name rather than clamped; every write is idempotent
+and scoped to the session's user; vitals and labs stay read-only by declaration
+with the reason.
+
+**The tools deliberately do not interpret.** `log_elimination` stores the words
+and leaves `blood_present` NULL even when the patient says "bloody", because
+`elimination_text` already reads those words and §3ai forbids two computations
+of one quantity. `log_sleep` does not derive hours from the two clocks — §3av's
+midnight-rollover case. `log_fitness` derives no calories (§3az).
+
+### What it cost to learn
+
+- **Measure the gate before building on it.** One grep for `WRITE_TOOLS`
+  readers changed the shape of the whole task.
+- **Prove a guard fails.** The gate default was temporarily flipped open: 3 of
+  the 26 new tests go red, 23 stay green. Those 3 are the regression guards and
+  the rest are coverage — §3al's distinction, stated rather than blurred.
+- **An existing test was a change detector.**
+  `test_only_meals_and_medication_are_writable` pinned the exact membership, so
+  it went red when the set grew and said nothing about the property that
+  matters. Rewritten as invariants.
+- **Four test doubles had to learn the new kwarg.** `_fake_tool(db, user_id,
+  name, args, today=None)` does not accept `allow_writes`, so four loop tests
+  failed on the signature rather than on behaviour — the cost of widening a
+  function every caller stubs.
+- **`SymptomLog` lives in `app/models/conditions.py`**, not `app/models/
+  symptoms.py`. My test imported the module name I expected; four tests failed
+  at import before any assertion ran.
+
+**Verified:** 105 passed across the two AI suites, 142 across the wider slice;
+ruff F,E9 clean; all 13 tools confirmed consistent across specs, labels and
+dispatch by asking the module.
+
+**Not done:** no per-patient consent for AI writes — the capability is a caller
+property, not a user preference (44a); nothing is reversible from the
+conversation (44b); a written row carries no marker saying the assistant put it
+there (44c); and **no run has confirmed a real model actually calls these** —
+§3am records that `llama3.2:3b` could not drive the tool loop at all, so this
+needs the production provider order and a real exchange (44d).
