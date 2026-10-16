@@ -4570,3 +4570,62 @@ blocked on it, 49c is a schema and consent question (a symptom photo has no
 column and no retention rule — §3a's food corpus is gated on
 `allow_collective_insights` and a symptom photo is not food), and 49d is a
 product decision. Queued, not started.
+
+---
+
+## 50. OCR depends on a system binary, and no operator surface says whether it is there — 2026-10-16
+
+Found while deploying §47/§48 to production, by asking who reads the readiness
+function rather than trusting its docstring.
+
+    $ grep -rn "ocr\.available()" WEB/backend/app WEB/backend/scripts
+    app/services/docparse/extract.py:217
+    app/services/docparse/extract.py:246
+
+**Both callers are the patient's parse path.** `_extract_image` and
+`_extract_scanned_pdf` call it, and an unavailable OCR becomes
+`_ocr_unavailable(why)` — a `Document` with `extraction_method="unreadable"`
+telling the PATIENT *"text recognition is not available on the server"*. That
+message is correct and well-written. It is also the only place the fact appears.
+
+`ocr.py`'s own docstring for that function cites the rule it is breaking:
+
+> *"§3ae's rule about a transport gated on its own credential, applied to a
+> binary: an unconfigured capability that silently does nothing is how the
+> PayPal rail was advertised and unbuyable for weeks."*
+
+It reports WHY not — into a surface no operator watches. §3ar's dead control,
+one level in: the function is not unread, it is read by the wrong reader.
+
+### Why it matters on THIS deploy specifically
+
+The capability is three `apt` packages and three pip pins added to
+`WEB/backend/Dockerfile` and `requirements.txt` in `e19e9a9`:
+
+    tesseract-ocr  tesseract-ocr-eng  poppler-utils
+    pytesseract==0.3.13  pdf2image==1.17.0  pillow-heif==1.1.0
+
+If any of those is absent from the built image, every photographed report is
+refused with an honest message and **nobody is told but the patient**. That is
+indistinguishable, from an operator's chair, from §47 never having shipped —
+and §3ae measured exactly that: three AI surfaces dead in production for 27
+days behind a check that could never pass.
+
+### Where it belongs, and the pattern already exists
+
+`GET /admin/health` (`app/api/admin.py:275`) runs a `probe(name, fn)` ladder
+and already reports `vision_corpus`, `alafia_corpus` and `push`. The push probe
+is the precedent worth copying: it **RAISES when tokens are held that nothing
+can reach** (§3az), so a configured-but-unreachable transport is degraded
+rather than quiet. An `ocr` probe reporting `ocr.available()` plus the tesseract
+version and the installed language packs is the same shape, and 47b already
+records that only `tesseract-ocr-eng` is installed.
+
+**Not implemented** — the deploy was in flight when this was found, and §5a
+forbids changing anything under `WEB/` while `deploy.sh` is uploading it. It is
+a small, well-shaped addition for the next one.
+
+> ⚠️ Until that probe exists, the only honest way to confirm OCR works in
+> production is to **ask the artefact**: pull the deployed image by digest and
+> run `tesseract --version` inside it. Reading the deploy log is weaker — it
+> says the layer built, not that the binary is on PATH in the final stage.
