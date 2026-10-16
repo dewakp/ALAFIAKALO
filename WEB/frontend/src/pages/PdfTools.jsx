@@ -206,7 +206,12 @@ function ImportDocument() {
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label className="form-label">{t('PdfTools.document_pdf_or_text')}</label>
-          <input type="file" accept=".pdf,.txt" className="form-input" multiple
+          {/* Photos are acceptable now (operator, 2026-10-16). A patient
+              photographing a report is the ordinary case, and HEIC is what an
+              iPhone produces by default — omitting it would refuse the most
+              likely file of all. */}
+          <input type="file" className="form-input" multiple
+            accept=".pdf,.txt,.jpg,.jpeg,.png,.heic,.heif,.tif,.tiff,.webp,image/*"
             onChange={e => {
               setFiles(Array.from(e.target.files || []));
               setBatch(null); setImportedBy({}); setSelectedBy({}); setError(null);
@@ -326,6 +331,17 @@ function ImportDocument() {
       {entry && !entry.ok && (
         <div style={bannerStyle('#fee2e2', '#fca5a5', '#b91c1c')}>
           <AlertTriangle size={15} /> {entry.filename}: {entry.error}
+        </div>
+      )}
+
+      {/* ⚠️ A document read from an image says so, above its rows. OCR is
+          confidently wrong in ways no threshold catches — at a 300-dpi render
+          the fixture's A/G ratio 1.8 came back as 18, at confidence 85 — so
+          every row arrives UNTICKED. Without this the patient sees a table
+          where nothing is selected and nothing explains why. */}
+      {result?.extraction_method === 'ocr' && (
+        <div style={bannerStyle('#fef3c7', '#fcd34d', '#b45309')}>
+          <AlertTriangle size={15} /> {t('PdfTools.read_from_image_warning')}
         </div>
       )}
 

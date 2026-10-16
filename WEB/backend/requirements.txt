@@ -64,6 +64,20 @@ reportlab==4.2.5
 # Without this the upload endpoint fell through to decoding PDF bytes as UTF-8.
 pdfplumber==0.11.9
 
+# Text recognition for documents with no text layer (photo, scan). The binary
+# is installed in the Dockerfile; these are the bindings.
+#
+# ⚠️ 400 DPI IS NOT A ROUND NUMBER, it is measured. At tesseract's default
+# handling of a 300-dpi render of the test fixture, the A/G ratio `1.8` came
+# back as `18` — a decimal point lost, AT CONFIDENCE 85, which no confidence
+# threshold would have caught. At 400 dpi it reads `1.8` under every page
+# segmentation mode tried. See `services/docparse/ocr.py`.
+pytesseract==0.3.13
+pdf2image==1.17.0
+# iPhones photograph in HEIC by default, so refusing it would refuse the most
+# likely file a patient sends.
+pillow-heif==1.1.0
+
 # Utilities
 python-dateutil==2.9.0
 

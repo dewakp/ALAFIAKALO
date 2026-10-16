@@ -11190,10 +11190,10 @@
     "translated_on": "2026-09-15"
   },
   "PdfTools.document_pdf_or_text": {
-    "source": "Document (PDF or text)",
-    "translation": "Dokument (PDF oder Text)",
+    "source": "Document (PDF, photo or text)",
+    "translation": "Dokument (PDF, Foto oder Text)",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-16"
   },
   "PdfTools.download_pdf": {
     "source": "Download PDF",
@@ -11302,6 +11302,12 @@
     "translation": "Dokument lesen",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "PdfTools.read_from_image_warning": {
+    "source": "This was read from a photo or scan, so values may be misread — a decimal point in particular. Nothing is ticked: check each row against the original before importing it.",
+    "translation": "Dies wurde aus einem Foto oder Scan gelesen, daher können Werte falsch erkannt worden sein – besonders Dezimaltrennzeichen. Nichts ist markiert: Überprüfen Sie jede Zeile vor dem Importieren anhand des Originals.",
+    "status": "machine",
+    "translated_on": "2026-10-16"
   },
   "PdfTools.reading": {
     "source": "Reading…",

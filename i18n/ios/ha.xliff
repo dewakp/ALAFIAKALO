@@ -6162,6 +6162,11 @@
         <target state="translated">Zaɓi Hoto na Maganin</target>
         <note />
       </trans-unit>
+      <trans-unit id="Select PDFs, Photos or Text Files" xml:space="preserve">
+        <source>Select PDFs, Photos or Text Files</source>
+        <target state="translated">Zaɓi PDFs, Hotuna ko Fayilolin Rubutu</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Select Provider" xml:space="preserve">
         <source>Select Provider</source>
         <target state="translated">Zaɓi Mai Kulawa</target>

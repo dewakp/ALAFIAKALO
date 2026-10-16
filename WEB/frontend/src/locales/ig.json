@@ -2021,7 +2021,7 @@
     "pdf_tools": "PDF Tools",
     "import_a_clinical_document": "Bubata Akwụkwọ Ọgwụ",
     "upload_a_lab_report_medication_list_or": "Tinye ụkọ ọrụ ọgwụ, ndepụta ọgwụ ma ọ bụ flowsheet. A naghị agbakwụnye ihe ọ bụla na ndekọ gị ruo mgbe ị nyochaa ya ma họọ Import.",
-    "document_pdf_or_text": "Akwụkwọ (PDF ma ọ bụ ederede)",
+    "document_pdf_or_text": "Akwụkwọ (PDF, foto ma ọ bụ ederede)",
     "reading": "Ịgụ…",
     "read_document": "Gụọ Akwụkwọ",
     "you_have_uploaded_this_file_before": "Ị tinyela faịlụ a na mbụ — na-egosi ihe a gụrụ mgbe ahụ.",
@@ -2068,7 +2068,8 @@
     "removing": "N'ịwepụ…",
     "remove_hint": "Ọ na-ewepụ naanị ihe akwụkwọ a tinyere — ọ bụghị ihe ị deere gị. Ị nwere ike ịtinyegharị ya mgbe e mesịa.",
     "keep": "Jide ha",
-    "n_documents_selected": "{{count}} ndokumenti ahọpụtara"
+    "n_documents_selected": "{{count}} ndokumenti ahọpụtara",
+    "read_from_image_warning": "A gụrụ nke a site na foto ma ọ bụ scan, ya mere ụkọ nwere ike ịbụ nke adịghị mma — ọkwa ọkwa karịsịa. Ọ dịghị ihe e tinyere: lelee ahịrị ọ bụla megide nke mbụ tupu ịkwọ ya."
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

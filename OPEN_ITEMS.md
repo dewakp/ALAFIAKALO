@@ -4256,14 +4256,136 @@ existing review UI unchanged — only which document is active moves.
   those rows carry (two clocks, two fluid figures, a tri-state thrill/bruit),
   and inventing a mapping would be the §3an violation. **Raised, not
   implemented.**
-- **46b. A photo is refused, not read.** §3a already has a vision path, and
-  photographing a report is what a patient will naturally do. Routing an image
-  to that path instead of refusing it is a real feature and a bigger decision —
-  it is a different privacy surface (§3al: redaction is a text instrument, and
-  a lab-report photo carries the header).
+- ✅ **46b. CLOSED 2026-10-16 — and NOT via the vision path.** I proposed
+  routing photos to §3a's vision model; the implementation went to local OCR
+  instead, precisely because of the privacy surface named here. Tesseract runs
+  in the container, so the question of whether a lab-report photo may reach a
+  third party does not arise. See **47**.
 - **46c. The batch is sequential on the server.** Twelve documents are parsed
   one after another in one request. Fine for a clinic visit's handful; a larger
   batch would want a job and a progress channel rather than a longer wait.
 - **46d. iOS and Android were not run.** Both BUILD, and §3 is explicit that a
   build is not a verification. The multi-select, the switcher and the per-import
   ticks are unexercised on a device or simulator.
+
+---
+
+## 47. A photo of a report is a document now — 2026-10-16
+
+Operator, on the upload screen refusing five JPEGs: **"We need to expand
+acceptable uploads."** Five photos is a five-page report, and photographing one
+is what a patient does. Refusing (46b) was better than the empty table it
+replaced and was still the wrong answer.
+
+`docparse/ocr.py` reads text and GEOMETRY out of an image, so the existing
+layout parser handles it unchanged. The same path fixes a second thing:
+`extract.py` has detected scanned PDFs as **`needs_ocr` since it was written**
+and nothing could act on it (§3ar), so a scan failed exactly like a photo.
+
+### Tesseract, not a vision model, and the reason is not performance
+
+- **Nothing leaves.** §3al records that a lab-report photo carries the
+  patient's name, address and record number in its header, that
+  `scrub_payload` redacts a message only when its content is a string so image
+  bytes *could never* be redacted, and that whether a photo may reach a third
+  party at all is a product decision. Tesseract makes that decision
+  unnecessary.
+- **It cannot invent.** A vision model asked for a potassium value can produce
+  a plausible one. §3ab exists because a wrong value in `lab_results` is
+  indistinguishable from a real one forever after.
+
+### ⚠️ Three faults found by measuring, two of them clinically dangerous
+
+**1. A lost decimal point, at high confidence.** At a 300-dpi render of the
+test fixture, the A/G ratio **`1.8` came back as `18`** — **at confidence 85**.
+No confidence threshold catches that; the engine is confident and wrong. At 400
+dpi it reads correctly under every `--psm` tried, which is why `MIN_DPI` is 400
+and not a rounder number.
+
+**2. A liver enzyme recorded as a mineral.** This is the one that matters.
+Tesseract's DEFAULT segmentation reads a lab table **column-major** — the word
+order runs `CODE LAB TEST NAME … RESULT 18 4.6 637H …` — so the layout parser
+grouped only the LAST word of each test name:
+
+    default / --psm 4   raw='PHOS'      -> Phosphorus            637.0 U/L
+    --psm 6             raw='ALK PHOS'  -> Alkaline Phosphatase  637.0 U/L
+
+Alkaline phosphatase is a liver enzyme in U/L with a reference near 46-116.
+**Phosphorus is a mineral a dialysis patient is managed on**, in mg/dL, where
+637 is impossible. The characters were recognised correctly every time; only
+the grouping differed. `--psm 6` is therefore not a tuning preference —
+changing it changes which analyte a row claims to be.
+
+**3. My own design decision caused a variant of the same thing.** I first left
+OCR boxes in PIXELS, reasoning that the parser only compares positions to each
+other. **It does not**: §3ab records the name/value boundary at `x_mid 162.0`
+and separates "a gap INSIDE a name (2.0 pt)" from "the gap to the real value
+(29.0 pt)". At 400 dpi one point is ~5.5 pixels, so every one of those figures
+was meaningless. Boxes are scaled to a 612-point letter page now, and the
+measured geometry then matches the PDF path to within a point
+(`ALK` at x0 68.0 both ways).
+
+**With all three fixed, a photograph parses identically to the PDF**, analyte
+for analyte:
+
+    PDF    [('A/G Ratio', 1.8, 'Calc'), ('Albumin', 4.6, 'g/dL'),
+            ('Alkaline Phosphatase', 637.0, 'U/L'), ('ACTUAL DAYS/WEEK…', 6.0)]
+    PHOTO  identical
+
+### Nothing from an image is pre-ticked
+
+The protection is **not** a threshold — the `1.8` → `18` corruption scored 85.
+Every row from an OCR'd document is staged **unticked**, with the reason on it,
+so a person reads the value against the paper first. That is §3ab's own pattern
+for a row that might be wrong — *"an implausible row arrives unticked with its
+reason"* — applied to a whole document.
+
+Placed in `stage()` where items are attached, so labs, medications, conditions
+and any fourth target added later are covered by one line. Half-wiring is what
+left `session_drugs` ten months behind.
+
+### What is still refused
+
+Expanding what is acceptable is not accepting everything. Word, Excel, zip,
+audio and video are refused by name with what to do instead. A file named
+`.pdf` whose bytes are neither a PDF **nor an image** is refused; one that is a
+renamed photo is read.
+
+### Verified
+
+    backend     191 passed across nine document suites — 8 new OCR tests,
+                and the refusal tests rewritten to the new contract
+    frontend    295 passed
+    i18n        44 catalog tests; 3 strings × 10 languages, 0 refused
+    ruff        F,E9 clean on every changed file
+    iOS         ** BUILD SUCCEEDED ** (picker takes .image; HEIC included)
+    Android     BUILD SUCCESSFUL, lint MissingTranslation = 0
+    image       tesseract 5.5.0 in the backend container
+
+> **A fixture that is not the thing it claims to be tests the wrong path.** My
+> first JPEG was a hand-written header plus zero bytes; Pillow refuses to open
+> it, so the `.pdf`-that-is-not-a-PDF guard rejected it and the test failed for
+> a reason unrelated to what it was testing. Built by Pillow now (§3at).
+
+### STILL OPEN
+
+- **47a. Five photos are five IMPORTS, not one five-page report.** Each file is
+  its own `DocumentImport` by design (46), which is right for five different
+  reports and wrong for five pages of one. Nothing merges them, and nothing
+  asks. A patient confirming page 3 separately from page 1 is workable but not
+  what they meant.
+- **47b. Only English is installed** (`tesseract-ocr-eng`). A report in another
+  script will not read, and §3aw ships eleven languages.
+- **47c. No real photograph has been tested.** Every measurement here is a
+  rendered PDF saved as JPEG — flat, square, evenly lit, no shadow, no
+  perspective, no glare. A phone photo has all of those, and none of the
+  numbers above should be assumed to hold for one. **The honest next step is a
+  real photo of a real report**, which the operator has (`IMG_0549`–`IMG_0553`).
+- **47d. No deskew, no perspective correction, no glare handling.** `_prepare`
+  upscales and greyscales, nothing more. That is deliberate — thresholding
+  destroys faint print — but a photo taken at an angle is untested and likely
+  worse.
+- **47e. A low-confidence word is recorded and not surfaced.** `ocr.py` keeps
+  per-word confidence; nothing shows the reviewer WHICH values were least
+  certain. Since every row is unticked anyway the practical cost is low, but a
+  reviewer with ten rows would benefit from knowing which three to check first.

@@ -8,6 +8,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl build-esse
     && apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+# Text recognition for documents that have no selectable text — a photo of a
+# report, or a scanned PDF. `extract.py` already detected the second case and
+# called it `needs_ocr`; nothing could act on it until now.
+#
+# ⚠️ Tesseract runs IN THIS CONTAINER and nothing leaves. That is the whole
+# reason it is here rather than a vision model: §3al records that a
+# lab-report photo carries the patient's name, address and record number in
+# its header, that `scrub_payload` cannot redact image bytes, and that whether
+# a photo may reach a third party at all is a product decision. It is also
+# deterministic — a vision model asked to read a potassium value can invent
+# one, and §3ab exists because a wrong value in `lab_results` is
+# indistinguishable from a real one.
+#
+# poppler-utils renders a scanned PDF's pages to images for the same path.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        tesseract-ocr tesseract-ocr-eng poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

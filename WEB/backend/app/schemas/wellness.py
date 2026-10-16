@@ -496,6 +496,14 @@ class LabReportParseResponse(BaseModel):
     #: empty table — an error and an empty result mean opposite things.
     error: str | None = None
     already_imported: bool = False
+    #: "pdf_text" | "plain_text" | "ocr" | "unreadable".
+    #:
+    #: ⚠️ `ocr` means the text was RECOGNISED FROM AN IMAGE and may be misread
+    #: — at a 300-dpi render this fixture's A/G ratio `1.8` came back as `18`,
+    #: at confidence 85. Every row from such a document is staged UNTICKED, so
+    #: a client that does not show this leaves the patient looking at a table
+    #: where nothing is selected and nothing explains why.
+    extraction_method: str | None = None
 
 
 class BatchDocumentResult(BaseModel):

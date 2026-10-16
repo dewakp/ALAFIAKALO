@@ -3990,3 +3990,66 @@ the cross-document duplicate which failed before the fix); frontend 295 (was
 rather than took (46a). A photo is refused rather than routed to the vision
 path, which is a different privacy surface (46b). The batch is sequential on
 the server (46c). And iOS and Android BUILD but were not RUN (46d).
+
+---
+
+## 2026-10-16 — A photo of a report is a document now
+
+Operator, on the screen refusing five JPEGs: *"We need to expand acceptable
+uploads."* Detail: **OPEN_ITEMS 47**; closes 46b.
+
+`docparse/ocr.py` pulls text AND GEOMETRY out of an image, so the existing
+layout parser handles a photo unchanged. The same path fixes a second thing
+that had been sitting there: `extract.py` has detected scanned PDFs as
+`needs_ocr` since it was written and nothing could act on it, so a scan failed
+exactly like a photo.
+
+**Tesseract, not a vision model**, and not for speed: §3al records that a
+lab-report photo carries the patient's name, address and record number in its
+header and that image bytes can never be redacted, so keeping it in the
+container removes the question. It also cannot invent a value, which a vision
+model asked for a potassium reading certainly can.
+
+### Three faults, found by measuring, two of them clinically dangerous
+
+**A lost decimal at high confidence.** At 300 dpi the fixture's A/G ratio `1.8`
+read as `18` — at confidence 85. No threshold catches that. 400 dpi fixes it.
+
+**A liver enzyme recorded as a mineral.** Tesseract's default segmentation
+reads a lab table COLUMN-MAJOR, so the parser grouped only the last word of
+each name: `ALK PHOS` became `PHOS`, which the dictionary resolved to
+**Phosphorus** — 637 U/L is ordinary for alkaline phosphatase and impossible
+for the mineral a dialysis patient is managed on. `--psm 6` is what separates
+them, so it is not a tuning preference.
+
+**My own design decision caused a third.** I left boxes in pixels, reasoning
+the parser only compares positions to each other. It does not — §3ab's own
+notes give the name/value boundary as `x_mid 162.0` and distinguish a 2.0 pt
+word space from a 29.0 pt column gap. Scaled to a 612-pt page, the geometry now
+matches the PDF path to within a point.
+
+With all three fixed, a photograph parses **identically** to the PDF.
+
+**Nothing from an image is pre-ticked.** The protection is the review step, not
+a threshold — the corruption scored 85. Placed where items are attached, so all
+three targets and any fourth are covered by one line.
+
+### What it cost to learn
+
+- **Measure the engine, do not configure it from intuition.** Every one of the
+  three faults was invisible in the output summary and obvious in a word dump.
+- **A fixture that is not the thing it claims to be tests the wrong path.** My
+  first JPEG was a header plus zeros; Pillow will not open it, so the guard
+  rejected it and the test failed for an unrelated reason.
+- **An anchor that appears twice aborts the patch.** `{result && (` is in both
+  components of `PdfTools.jsx`, for the second time today.
+
+**Verified:** backend 191 across nine document suites (8 new OCR tests, the old
+refusal tests rewritten to the new contract); frontend 295; 44 catalog tests;
+ruff clean; iOS and Android both build; tesseract 5.5.0 in the image.
+
+**Not done:** five photos are five IMPORTS, not one five-page report (47a);
+only English is installed (47b); **no real photograph has been tested** — every
+measurement is a rendered PDF saved as JPEG, with no shadow, perspective or
+glare (47c); no deskew (47d); per-word confidence is recorded but not surfaced
+(47e).

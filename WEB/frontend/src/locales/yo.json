@@ -2021,7 +2021,7 @@
     "pdf_tools": "PDF Tools",
     "import_a_clinical_document": "Wọ Ìwé Ìjìnlẹ̀ Àkọ́kọ́",
     "upload_a_lab_report_medication_list_or": "Gbé ìwé ìsọfúnni, àtòjọ oogun tàbí àkójú ìjìnlẹ̀. A kò fi ohun kan sí ìwé rẹ títí o yóò wo ó àti yan Wọ.",
-    "document_pdf_or_text": "Ìwé (PDF tàbí ọ̀rọ̀)",
+    "document_pdf_or_text": "Ìwé (PDF, fọ́tò tàbí ọ̀rọ̀)",
     "reading": "Ń ka…",
     "read_document": "Ka Ìwé",
     "you_have_uploaded_this_file_before": "O ti gbé fáìlì yìí sáájú — ìpilẹ̀ ohun tí a ka nígbà náà.",
@@ -2068,7 +2068,8 @@
     "removing": "N yọ…",
     "remove_hint": "O yọ nkan ti ọkunrin yii fi kun nikan — ohun ti o fi ara e kun ko yọ. O le gbe e sile lẹẹkansi.",
     "keep": "Pa won",
-    "n_documents_selected": "{{count}} ọwọ́ àkọsílẹ̀ ti a yan"
+    "n_documents_selected": "{{count}} ọwọ́ àkọsílẹ̀ ti a yan",
+    "read_from_image_warning": "A ka èyí láti fọ́tò tàbí scani, nítorí náà àwọn iye lè jẹ́ kíkà àìtọ́ — àmì ìpín nítòótọ́. Ohun kan kò tẹ̀: ṣàyẹ̀wò àwọn ìlà kọ̀ọ̀kan sí ìwé àtijọ́ kí o tó gbé e wọ."
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

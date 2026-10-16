@@ -6162,6 +6162,11 @@
         <target state="translated">Chagua Picha ya Dawa</target>
         <note />
       </trans-unit>
+      <trans-unit id="Select PDFs, Photos or Text Files" xml:space="preserve">
+        <source>Select PDFs, Photos or Text Files</source>
+        <target state="translated">Chagua PDF, Picha au Faili za Maandishi</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Select Provider" xml:space="preserve">
         <source>Select Provider</source>
         <target state="translated">Chagua Mtoa Huduma</target>

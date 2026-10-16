@@ -7139,6 +7139,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Select PDFs, Photos or Text Files": {
+    "source": "Select PDFs, Photos or Text Files",
+    "translation": "Họ PDF, Foto ma ọ bụ Faịlụ Ederede",
+    "status": "machine",
+    "translated_on": "2026-10-16"
+  },
   "Localizable.xcstrings::Select Provider": {
     "source": "Select Provider",
     "translation": "Họn Onye Ọrụ Ahụike",

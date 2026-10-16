@@ -2021,7 +2021,7 @@
     "pdf_tools": "PDF Tools",
     "import_a_clinical_document": "Import a Clinical Document",
     "upload_a_lab_report_medication_list_or": "Upload a lab report, medication list or flowsheet. Nothing is added to your records until you review it and choose Import.",
-    "document_pdf_or_text": "Document (PDF or text)",
+    "document_pdf_or_text": "Document (PDF, photo or text)",
     "reading": "Reading…",
     "read_document": "Read Document",
     "you_have_uploaded_this_file_before": "You have uploaded this file before — showing what was read then.",
@@ -2068,7 +2068,8 @@
     "removing": "Removing…",
     "remove_hint": "Removes only what this document added — nothing you entered yourself. You can upload it again afterwards.",
     "keep": "Keep them",
-    "n_documents_selected": "{{count}} documents selected"
+    "n_documents_selected": "{{count}} documents selected",
+    "read_from_image_warning": "This was read from a photo or scan, so values may be misread — a decimal point in particular. Nothing is ticked: check each row against the original before importing it."
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

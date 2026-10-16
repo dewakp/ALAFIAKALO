@@ -6212,6 +6212,11 @@
         <target state="new">Select Medication Photo</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Select PDFs, Photos or Text Files" xml:space="preserve">
+        <source>Select PDFs, Photos or Text Files</source>
+        <target state="new">Select PDFs, Photos or Text Files</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Select Provider" xml:space="preserve">
         <source>Select Provider</source>
         <target state="new">Select Provider</target>

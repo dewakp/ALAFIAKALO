@@ -7139,6 +7139,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Select PDFs, Photos or Text Files": {
+    "source": "Select PDFs, Photos or Text Files",
+    "translation": "选择 PDF、照片或文本文件",
+    "status": "machine",
+    "translated_on": "2026-10-16"
+  },
   "Localizable.xcstrings::Select Provider": {
     "source": "Select Provider",
     "translation": "选择医疗提供者",

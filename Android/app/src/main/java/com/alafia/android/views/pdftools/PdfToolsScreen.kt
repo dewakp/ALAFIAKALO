@@ -146,7 +146,14 @@ private fun ParseLabReportTab() {
                             // where attributing a result to its file is the
                             // point.
                             displayNameOf(context, uri),
-                            bytes.toRequestBody("application/pdf".toMediaTypeOrNull()),
+                            // The type that matches the FILE. The server
+                            // detects by magic bytes so a wrong label is not
+                            // fatal, but it makes every log line describe the
+                            // wrong thing.
+                            bytes.toRequestBody(
+                                (context.contentResolver.getType(uri)
+                                    ?: "application/octet-stream")
+                                    .toMediaTypeOrNull()),
                         )
                     }
                     if (parts.isEmpty()) {
@@ -196,7 +203,11 @@ private fun ParseLabReportTab() {
         )
 
         Button(
-            onClick = { pdfPicker.launch("application/pdf") },
+            // Photos too (operator, 2026-10-16). `*/*` with the MIME list
+            // below is how GetMultipleContents offers PDFs AND images in one
+            // picker; a single "application/pdf" hides every photo on the
+            // device, which is where a patient's report usually is.
+            onClick = { pdfPicker.launch("*/*") },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading
         ) {

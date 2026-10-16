@@ -6162,6 +6162,11 @@
         <target state="translated">Yan Fọto Oogun</target>
         <note />
       </trans-unit>
+      <trans-unit id="Select PDFs, Photos or Text Files" xml:space="preserve">
+        <source>Select PDFs, Photos or Text Files</source>
+        <target state="translated">Yan PDFs, Awọn Fọto tabi Awọn Faili Ọrọ</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Select Provider" xml:space="preserve">
         <source>Select Provider</source>
         <target state="translated">Yan Olùkò</target>

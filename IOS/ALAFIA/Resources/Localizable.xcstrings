@@ -79275,6 +79275,70 @@
         }
       }
     },
+    "Select PDFs, Photos or Text Files" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اختر ملفات PDF أو صور أو ملفات نصية"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDFs, Fotos oder Textdateien auswählen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleccionar PDFs, Fotos o Archivos de Texto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionner des PDF, photos ou fichiers texte"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaɓi PDFs, Hotuna ko Fayilolin Rubutu"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Họ PDF, Foto ma ọ bụ Faịlụ Ederede"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecionar PDFs, Fotos ou Arquivos de Texto"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chagua PDF, Picha au Faili za Maandishi"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yan PDFs, Awọn Fọto tabi Awọn Faili Ọrọ"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择 PDF、照片或文本文件"
+          }
+        }
+      }
+    },
     "Select Provider" : {
       "localizations" : {
         "ar" : {

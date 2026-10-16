@@ -2021,7 +2021,7 @@
     "pdf_tools": "Zana za PDF",
     "import_a_clinical_document": "Ingiza Hati ya Kliniki",
     "upload_a_lab_report_medication_list_or": "Pakia ripoti ya maabara, orodha ya dawa au karatasi ya mtiririko. Hakuna kitu kinachojumlishwa kwenye rekodi zako hadi utakapokagua na kuchagua Ingiza.",
-    "document_pdf_or_text": "Hati (PDF au maandishi)",
+    "document_pdf_or_text": "Hati (PDF, picha au maandishi)",
     "reading": "Inasoma…",
     "read_document": "Soma Hati",
     "you_have_uploaded_this_file_before": "Umepakia faili hili hapo awali — inaonyesha kile kilichosomwa hapo.",
@@ -2068,7 +2068,8 @@
     "removing": "Inaondolewa…",
     "remove_hint": "Inaondoa tu kile hati hii iliongeza — si kitu chochote ulichoingiza mwenyewe. Unaweza kuipakia tena baadaye.",
     "keep": "Ziweke",
-    "n_documents_selected": "{{count}} hati zilizochaguliwa"
+    "n_documents_selected": "{{count}} hati zilizochaguliwa",
+    "read_from_image_warning": "Hii ilisomwa kutoka kwa picha au scan, kwa hivyo thamani zinaweza kusomwa vibaya — haswa nukta ya desimali. Hakuna kilicho kachaguliwa: angalia kila safu dhidi ya asili kabla ya kuingiza."
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

@@ -49,6 +49,15 @@ def _files(*items):
     return [("files", (name, content, mime)) for name, content, mime in items]
 
 
+def _blank_jpeg(size=(64, 64)) -> bytes:
+    """A valid but textless JPEG — a photo of nothing in particular."""
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", size, "white").save(buffer, "JPEG")
+    return buffer.getvalue()
+
+
 def one_analyte_pdf(name: str, value: str, collected: str = "03/14/2026") -> bytes:
     """A minimal report carrying ONE named analyte on a stated date.
 
@@ -274,46 +283,59 @@ class TestCrossDocumentDuplicates:
 
 @pytest.mark.asyncio
 class TestUnreadableUploads:
-    """A patient photographing their lab report is an ordinary thing to do.
+    """What is acceptable, and what still is not.
 
-    Measured before the guard existed: a JPEG was decoded as UTF-8, the
-    classifier returned `doc_type=unknown`, **0 records and `error=None`** — so
-    the screen showed an empty table, which its own copy reads as "this
-    document contained no results". §3aa, on the surface where it is most
-    misleading.
+    ⚠️ **This class used to assert that a photo was REFUSED**, and that was
+    right for one day. The history is worth keeping because each step was a
+    real improvement on the last:
 
-    Raised by a peer session from the operator's screenshot, which had
-    `IMG_0551.jpeg` selected; verified by running it before fixing (§0).
+        before    a JPEG decoded as UTF-8 -> doc_type=unknown, 0 records,
+                  error=None. An EMPTY TABLE, which the screen's own copy
+                  reads as "this document contained no results" (§3aa).
+        2026-10-15  refused with a 415 naming what the file was.
+        2026-10-16  READ. Operator: *"We need to expand acceptable uploads."*
+                  Photographing a report is what a patient does, and five
+                  photos is a five-page report.
+
+    Expanding what is acceptable is not accepting everything — a Word document
+    is still refused, by name, with what to do instead.
     """
 
-    JPEG = (bytes.fromhex("ffd8ffe000104a46494600010100000100010000")
-            + b"\x00" * 64 + bytes.fromhex("ffd9"))
+    #: A REAL JPEG, built by Pillow.
+    #:
+    #: ⚠️ A hand-written header plus zero bytes is not an image: Pillow refuses
+    #: to open it, so the `.pdf`-that-is-not-a-PDF guard correctly rejected it
+    #: and this test failed for a reason that had nothing to do with what it
+    #: was testing. A fixture that is not the thing it claims to be tests the
+    #: wrong path (§3at: a mock is only evidence if it matches the wire).
+    JPEG = _blank_jpeg()
 
-    async def test_a_photo_is_REFUSED_by_name_not_parsed_as_text(
+    async def test_a_word_document_is_refused_and_says_what_to_do(
             self, client: AsyncClient):
         token = await _token(client, "photo1@example.com")
         r = await client.post(
             "/api/v1/pdf/parse-document",
-            files={"file": ("IMG_0551.jpeg", self.JPEG, "image/jpeg")},
+            files={"file": ("notes.docx", b"PK\x03\x04" + b"\x00" * 64,
+                            "application/octet-stream")},
             headers=_auth(token))
         assert r.status_code == 415, r.text
         detail = r.json()["detail"]
-        assert "photo" in detail.lower()
-        # It must say what to do instead — a guard that cannot explain itself
-        # gets blamed for the thing it did not do (§3aj).
-        assert "PDF" in detail
+        assert "Word" in detail
+        # A guard that cannot explain itself gets blamed for the thing it did
+        # not do (§3aj).
+        assert "PDF" in detail or "photo" in detail
 
-    async def test_detection_is_by_BYTES_not_by_the_name(
-            self, client: AsyncClient):
-        """A photo renamed `.pdf` is common, and the label is not evidence."""
+    async def test_an_audio_file_is_refused(self, client: AsyncClient):
+        """It arrives from the same share sheet as a photo."""
         token = await _token(client, "photo2@example.com")
         r = await client.post(
             "/api/v1/pdf/parse-document",
-            files={"file": ("report.pdf", self.JPEG, "application/pdf")},
+            files={"file": ("voice.mp3", b"ID3" + b"\x00" * 64, "audio/mpeg")},
             headers=_auth(token))
-        assert r.status_code == 415, r.text
+        assert r.status_code == 415
+        assert "audio" in r.json()["detail"].lower()
 
-    async def test_a_file_named_pdf_that_is_not_one_says_so(
+    async def test_a_file_named_pdf_that_is_neither_PDF_nor_image_says_so(
             self, client: AsyncClient):
         token = await _token(client, "photo3@example.com")
         r = await client.post(
@@ -322,13 +344,27 @@ class TestUnreadableUploads:
                             "application/pdf")},
             headers=_auth(token))
         assert r.status_code == 415
-        assert "not a PDF" in r.json()["detail"]
+        assert "neither a PDF nor an image" in r.json()["detail"]
 
-    async def test_a_photo_among_the_PDFs_does_not_sink_the_batch(
+    async def test_a_photo_renamed_pdf_is_READ_not_refused(
             self, client: AsyncClient):
-        """The case the operator's screenshot actually showed: a folder picked
-        whole, with one image among the reports."""
+        """Detection is by BYTES. A photo someone renamed is still a photo,
+        and it is readable now — so the .pdf guard must not refuse it."""
         token = await _token(client, "photo4@example.com")
+        r = await client.post(
+            "/api/v1/pdf/parse-document",
+            files={"file": ("report.pdf", self.JPEG, "application/pdf")},
+            headers=_auth(token))
+        # A 4-pixel JPEG has no text, so this is a READ that found nothing —
+        # which must say so rather than 415. The distinction is the point.
+        assert r.status_code == 200, r.text
+        assert r.json()["error"], "an unreadable photo must explain itself"
+
+    async def test_a_photo_in_a_batch_is_READ_alongside_the_PDFs(
+            self, client: AsyncClient):
+        """The operator's screenshot: a folder picked whole, photos among the
+        reports. Both are documents now."""
+        token = await _token(client, "photo5@example.com")
         r = await client.post(
             "/api/v1/pdf/parse-documents",
             files=_files(("labs.pdf", wrapped_range_pdf(), "application/pdf"),
@@ -336,17 +372,18 @@ class TestUnreadableUploads:
             headers=_auth(token))
         assert r.status_code == 200, r.text
         body = r.json()
-        assert body["parsed"] == 1 and body["failed"] == 1
-        bad = next(d for d in body["documents"] if d["filename"] == "IMG_0551.jpeg")
-        assert bad["ok"] is False and "photo" in bad["error"].lower()
-        good = next(d for d in body["documents"] if d["filename"] == "labs.pdf")
-        assert good["ok"] is True and good["document"]["import_id"]
+        # Both are accepted as documents; the tiny JPEG simply has no text.
+        assert body["parsed"] == 2 and body["failed"] == 0
+        photo = next(d for d in body["documents"]
+                     if d["filename"] == "IMG_0551.jpeg")
+        assert photo["ok"] is True
+        assert photo["document"]["error"], (
+            "a photo with no readable text must SAY so, not show an empty "
+            "table (§3aa)")
 
     async def test_a_plain_text_report_is_still_accepted(
             self, client: AsyncClient):
-        """The guard must not refuse what the pipeline genuinely reads — the
-        upload control offers .pdf AND .txt."""
-        token = await _token(client, "photo5@example.com")
+        token = await _token(client, "photo6@example.com")
         r = await client.post(
             "/api/v1/pdf/parse-document",
             files={"file": ("notes.txt", b"Albumin 4.1 g/dL\n", "text/plain")},

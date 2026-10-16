@@ -2021,7 +2021,7 @@
     "pdf_tools": "PDF-Tools",
     "import_a_clinical_document": "Klinisches Dokument importieren",
     "upload_a_lab_report_medication_list_or": "Laden Sie einen Laborbericht, eine Medikamentenliste oder ein Formular hoch. Nichts wird zu Ihren Unterlagen hinzugefügt, bis Sie es überprüfen und zum Importieren auswählen.",
-    "document_pdf_or_text": "Dokument (PDF oder Text)",
+    "document_pdf_or_text": "Dokument (PDF, Foto oder Text)",
     "reading": "Wird gelesen…",
     "read_document": "Dokument lesen",
     "you_have_uploaded_this_file_before": "Sie haben diese Datei bereits hochgeladen — zeige, was damals gelesen wurde.",
@@ -2068,7 +2068,8 @@
     "removing": "Wird entfernt…",
     "remove_hint": "Entfernt nur, was dieses Dokument hinzugefügt hat – nichts, das Sie selbst eingegeben haben. Sie können es danach erneut hochladen.",
     "keep": "Behalten",
-    "n_documents_selected": "{{count}} Dokumente ausgewählt"
+    "n_documents_selected": "{{count}} Dokumente ausgewählt",
+    "read_from_image_warning": "Dies wurde aus einem Foto oder Scan gelesen, daher können Werte falsch erkannt worden sein – besonders Dezimaltrennzeichen. Nichts ist markiert: Überprüfen Sie jede Zeile vor dem Importieren anhand des Originals."
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritonealdialyse",

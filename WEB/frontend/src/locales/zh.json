@@ -2021,7 +2021,7 @@
     "pdf_tools": "PDF 工具",
     "import_a_clinical_document": "导入临床文档",
     "upload_a_lab_report_medication_list_or": "上传实验室报告、药物清单或流程表。在您审查并选择导入之前，不会向您的记录中添加任何内容。",
-    "document_pdf_or_text": "文档（PDF 或文本）",
+    "document_pdf_or_text": "文档（PDF、照片或文本）",
     "reading": "读取中…",
     "read_document": "读取文档",
     "you_have_uploaded_this_file_before": "您之前上传过此文件 — 显示当时读取的内容。",
@@ -2068,7 +2068,8 @@
     "removing": "删除中…",
     "remove_hint": "仅删除此文档添加的内容——不会删除您自己输入的内容。之后您可以重新上传。",
     "keep": "保留",
-    "n_documents_selected": "已选择 {{count}} 个文档"
+    "n_documents_selected": "已选择 {{count}} 个文档",
+    "read_from_image_warning": "这是从照片或扫描读取的，所以数值可能被误读——特别是小数点。没有勾选任何项：导入前请对照原件检查每一行。"
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "腹膜透析",

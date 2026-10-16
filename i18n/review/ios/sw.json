@@ -7139,6 +7139,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Select PDFs, Photos or Text Files": {
+    "source": "Select PDFs, Photos or Text Files",
+    "translation": "Chagua PDF, Picha au Faili za Maandishi",
+    "status": "machine",
+    "translated_on": "2026-10-16"
+  },
   "Localizable.xcstrings::Select Provider": {
     "source": "Select Provider",
     "translation": "Chagua Mtoa Huduma",

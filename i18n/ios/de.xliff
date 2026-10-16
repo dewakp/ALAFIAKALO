@@ -6162,6 +6162,11 @@
         <target state="translated">Medikamenten-Foto auswählen</target>
         <note />
       </trans-unit>
+      <trans-unit id="Select PDFs, Photos or Text Files" xml:space="preserve">
+        <source>Select PDFs, Photos or Text Files</source>
+        <target state="translated">PDFs, Fotos oder Textdateien auswählen</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Select Provider" xml:space="preserve">
         <source>Select Provider</source>
         <target state="translated">Anbieter auswählen</target>

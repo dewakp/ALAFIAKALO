@@ -2021,7 +2021,7 @@
     "pdf_tools": "Herramientas PDF",
     "import_a_clinical_document": "Importar un Documento Clínico",
     "upload_a_lab_report_medication_list_or": "Carga un informe de laboratorio, lista de medicamentos o hoja de flujo. Nada se añade a tus registros hasta que lo revises y elijas Importar.",
-    "document_pdf_or_text": "Documento (PDF o texto)",
+    "document_pdf_or_text": "Documento (PDF, foto o texto)",
     "reading": "Leyendo…",
     "read_document": "Leer Documento",
     "you_have_uploaded_this_file_before": "Ya has cargado este archivo antes — mostrando lo que se leyó entonces.",
@@ -2068,7 +2068,8 @@
     "removing": "Eliminando…",
     "remove_hint": "Solo elimina lo que agregó este documento — nada que hayas ingresado tú mismo. Puedes cargarlo de nuevo después.",
     "keep": "Mantenerlos",
-    "n_documents_selected": "{{count}} documentos seleccionados"
+    "n_documents_selected": "{{count}} documentos seleccionados",
+    "read_from_image_warning": "Esto se leyó de una foto o escaneo, por lo que los valores pueden estar mal leídos — especialmente los puntos decimales. Nada está marcado: verifica cada fila contra el original antes de importar."
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Diálisis Peritoneal",

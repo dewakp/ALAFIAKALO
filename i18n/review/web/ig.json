@@ -11190,10 +11190,10 @@
     "translated_on": "2026-09-15"
   },
   "PdfTools.document_pdf_or_text": {
-    "source": "Document (PDF or text)",
-    "translation": "Akwụkwọ (PDF ma ọ bụ ederede)",
+    "source": "Document (PDF, photo or text)",
+    "translation": "Akwụkwọ (PDF, foto ma ọ bụ ederede)",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-16"
   },
   "PdfTools.download_pdf": {
     "source": "Download PDF",
@@ -11302,6 +11302,12 @@
     "translation": "Gụọ Akwụkwọ",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "PdfTools.read_from_image_warning": {
+    "source": "This was read from a photo or scan, so values may be misread — a decimal point in particular. Nothing is ticked: check each row against the original before importing it.",
+    "translation": "A gụrụ nke a site na foto ma ọ bụ scan, ya mere ụkọ nwere ike ịbụ nke adịghị mma — ọkwa ọkwa karịsịa. Ọ dịghị ihe e tinyere: lelee ahịrị ọ bụla megide nke mbụ tupu ịkwọ ya.",
+    "status": "machine",
+    "translated_on": "2026-10-16"
   },
   "PdfTools.reading": {
     "source": "Reading…",

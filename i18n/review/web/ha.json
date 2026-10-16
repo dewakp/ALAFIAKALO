@@ -11190,10 +11190,10 @@
     "translated_on": "2026-09-15"
   },
   "PdfTools.document_pdf_or_text": {
-    "source": "Document (PDF or text)",
-    "translation": "Takarda (PDF ko rubutu)",
+    "source": "Document (PDF, photo or text)",
+    "translation": "Takarda (PDF, hoto ko rubutu)",
     "status": "machine",
-    "translated_on": "2026-09-15"
+    "translated_on": "2026-10-16"
   },
   "PdfTools.download_pdf": {
     "source": "Download PDF",
@@ -11302,6 +11302,12 @@
     "translation": "Karanta Takarda",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "PdfTools.read_from_image_warning": {
+    "source": "This was read from a photo or scan, so values may be misread — a decimal point in particular. Nothing is ticked: check each row against the original before importing it.",
+    "translation": "An karanta wannan daga hoto ko scan, don haka ƙiyaye na iya zama ba daidai ba — musamman ƙarfe gida. Babu wani da aka ƙara alamar: duba kowane layi da asali kafin shigo da shi.",
+    "status": "machine",
+    "translated_on": "2026-10-16"
   },
   "PdfTools.reading": {
     "source": "Reading…",

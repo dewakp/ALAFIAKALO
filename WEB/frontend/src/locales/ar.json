@@ -2021,7 +2021,7 @@
     "pdf_tools": "أدوات PDF",
     "import_a_clinical_document": "استيراد مستند سريري",
     "upload_a_lab_report_medication_list_or": "حمّل تقرير مختبر أو قائمة أدوية أو جدول متابعة. لن يتم إضافة شيء إلى سجلاتك حتى تراجعه وتختار الاستيراد.",
-    "document_pdf_or_text": "المستند (PDF أو نص)",
+    "document_pdf_or_text": "مستند (PDF أو صورة أو نص)",
     "reading": "جاري القراءة…",
     "read_document": "اقرأ المستند",
     "you_have_uploaded_this_file_before": "لقد حملت هذا الملف من قبل — يعرض ما تمت قراءته حينها.",
@@ -2068,7 +2068,8 @@
     "removing": "جاري الحذف…",
     "remove_hint": "يحذف فقط ما أضافته هذه الوثيقة — لا شيء مما أدخلته بنفسك. يمكنك تحميلها مرة أخرى لاحقاً.",
     "keep": "الاحتفاظ بها",
-    "n_documents_selected": "{{count}} مستند محدد"
+    "n_documents_selected": "{{count}} مستند محدد",
+    "read_from_image_warning": "تمّ قراءة هذا من صورة أو مسح ضوئي، لذا قد تكون القيم غير دقيقة — خاصة الفاصلة العشرية. لم يتم تحديد أي شيء: تحقق من كل صف مقابل الأصل قبل استيراده."
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "غسيل كلى بالصفاق",

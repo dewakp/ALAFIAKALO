@@ -192,8 +192,33 @@ async def stage(db: AsyncSession, user_id: int, parsed: ParseResult) -> Document
             "only."
         )
 
+    # ⚠️ NOTHING FROM AN IMAGE IS PRE-TICKED.
+    #
+    # OCR is confidently wrong in a way no threshold catches. Measured on the
+    # test fixture: at a 300-dpi render the A/G ratio `1.8` came back as `18`
+    # — a decimal point lost, AT CONFIDENCE 85. Rendering at 400 dpi fixed that
+    # case and promises nothing about a phone photo taken at an angle in bad
+    # light.
+    #
+    # So the protection is not a threshold, it is the review step this whole
+    # design exists for: a person reads each value against the paper before it
+    # becomes a clinical record. §3ab's own pattern for a row that might be
+    # wrong — *"nothing is deleted: an implausible row arrives unticked with
+    # its reason"* — applied to a whole document.
+    #
+    # Deliberately HERE rather than in each `_stage_*`: one place covers labs,
+    # medications and conditions, and a fourth target added later cannot
+    # forget it. Half-wiring is what left `session_drugs` ten months behind.
+    from_image = parsed.extraction_method == "ocr"
     for item in items:
         item.import_id = record.id
+        if from_image:
+            item.accepted = False
+            item.error = "; ".join(filter(None, [
+                item.error,
+                "Recognised from an image — check this value against the "
+                "original before importing it.",
+            ]))
         db.add(item)
 
     await db.flush()

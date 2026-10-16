@@ -6162,6 +6162,11 @@
         <target state="translated">اختر صورة الدواء</target>
         <note />
       </trans-unit>
+      <trans-unit id="Select PDFs, Photos or Text Files" xml:space="preserve">
+        <source>Select PDFs, Photos or Text Files</source>
+        <target state="translated">اختر ملفات PDF أو صور أو ملفات نصية</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Select Provider" xml:space="preserve">
         <source>Select Provider</source>
         <target state="translated">اختر مقدم الخدمة</target>

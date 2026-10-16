@@ -2021,7 +2021,7 @@
     "pdf_tools": "Kayan Aikin PDF",
     "import_a_clinical_document": "Shigo da Takarda ta Likita",
     "upload_a_lab_report_medication_list_or": "Lika rahotacciyar gwaje, jerin magungunan ko takarda ta aiki. Ba a ƙara wani abu ga bayananinka sai ka duba kuma ka zaɓi Shigo.",
-    "document_pdf_or_text": "Takarda (PDF ko rubutu)",
+    "document_pdf_or_text": "Takarda (PDF, hoto ko rubutu)",
     "reading": "Karatu…",
     "read_document": "Karanta Takarda",
     "you_have_uploaded_this_file_before": "Ka riga ka lika fayil nan - nuna abin da aka karanta jiya.",
@@ -2068,7 +2068,8 @@
     "removing": "Yana cirewa…",
     "remove_hint": "Yana cire kawai abin da wannan takarda ta ƙara — babu abin da ka shigar da kanka. Za ka iya sake loda shi bayan.",
     "keep": "Ajiye su",
-    "n_documents_selected": "{{count}} takardun da aka zaɓa"
+    "n_documents_selected": "{{count}} takardun da aka zaɓa",
+    "read_from_image_warning": "An karanta wannan daga hoto ko scan, don haka ƙiyaye na iya zama ba daidai ba — musamman ƙarfe gida. Babu wani da aka ƙara alamar: duba kowane layi da asali kafin shigo da shi."
   },
   "PeritonealDialysis": {
     "peritoneal_dialysis": "Peritoneal Dialysis",

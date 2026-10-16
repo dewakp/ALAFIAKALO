@@ -137,16 +137,22 @@ def _summary(record: DocumentImport) -> dict:
 #: Detected by MAGIC BYTES, not by extension or the browser's content type: a
 #: renamed file is ordinary, and §0 says read the bytes rather than trust the
 #: label.
+#: ⚠️ PHOTOS ARE NO LONGER HERE. Operator, 2026-10-16: *"We need to expand
+#: acceptable uploads."* A JPEG, PNG or HEIC now goes to text recognition
+#: (`docparse/ocr.py`) and every row it produces is staged UNTICKED, because
+#: OCR is confidently wrong in ways no threshold catches. Refusing them was
+#: better than the empty table it replaced, and still wrong: photographing a
+#: report is what a patient does, and five photos is a five-page report.
+#:
+#: What remains are formats this pipeline genuinely cannot read, each named so
+#: the refusal can say what to do instead.
 _MAGIC = (
-    (b"\xff\xd8\xff", "a photo (JPEG)"),
-    (b"\x89PNG\r\n\x1a\n", "a photo (PNG)"),
-    (b"GIF87a", "an image (GIF)"),
-    (b"GIF89a", "an image (GIF)"),
-    (b"RIFF", "an image or audio file"),
-    (b"\x00\x00\x00\x18ftypheic", "a photo (HEIC)"),
-    (b"\x00\x00\x00\x1cftypheic", "a photo (HEIC)"),
     (b"PK\x03\x04", "a Word, Excel or zip file"),
     (b"\xd0\xcf\x11\xe0", "an older Word or Excel file"),
+    # Audio and video arrive from the same share sheet as a photo.
+    (b"\x1aE\xdf\xa3", "a video (Matroska/WebM)"),
+    (b"OggS", "an audio file"),
+    (b"ID3", "an audio file (MP3)"),
 )
 
 
@@ -160,17 +166,22 @@ def _refuse_unreadable(filename: str | None, content: bytes) -> None:
     for magic, described in _MAGIC:
         if head.startswith(magic):
             raise ValueError(
-                f"This looks like {described}, not a PDF or text document. "
-                f"Photos of a report cannot be imported here — export or "
-                f"download the report as a PDF and upload that.")
+                f"This looks like {described}, which cannot be read here. "
+                f"Upload a PDF, a photo of the page, or a text file.")
 
     # A PDF that is not a PDF: the extension says one thing and the bytes
     # another, and the parser would read an empty document from it.
+    # A file named .pdf whose bytes are not a PDF. It may still be a photo
+    # someone renamed, which IS readable now — so this only refuses when the
+    # bytes are not an image either.
     name = (filename or "").lower()
     if name.endswith(".pdf") and not head.startswith(b"%PDF"):
-        raise ValueError(
-            "This file is named .pdf but its contents are not a PDF. "
-            "Re-export it and try again.")
+        from app.services.docparse import ocr
+
+        if ocr.open_image(content) is None:
+            raise ValueError(
+                "This file is named .pdf but its contents are neither a PDF "
+                "nor an image. Re-export it and try again.")
 
 
 @router.post("/parse-document", response_model=LabReportParseResponse)
@@ -383,6 +394,7 @@ def _response_for(
         confidence=record.parse_confidence,
         target_table=_primary_target(record),
         page_count=record.page_count,
+        extraction_method=record.extraction_method,
         error=record.error_detail,
         already_imported=already_imported,
     )

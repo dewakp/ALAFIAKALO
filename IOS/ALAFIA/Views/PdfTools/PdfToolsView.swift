@@ -281,7 +281,7 @@ final class PdfToolsViewModel {
 
         var body = Data()
         for file in files {
-            let mimeType = file.name.hasSuffix(".pdf") ? "application/pdf" : "text/plain"
+            let mimeType = Self.mimeType(for: file.name)
             body.append("--\(boundary)\r\n".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"files\"; filename=\"\(file.name)\"\r\n"
                         .data(using: .utf8)!)
@@ -301,6 +301,22 @@ final class PdfToolsViewModel {
             throw APIError.invalidResponse
         }
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// The content type that matches the FILE, not a constant.
+    ///
+    /// The server detects by magic bytes, so a wrong label is not fatal — but
+    /// sending `text/plain` for a photo makes every log line and every error
+    /// message describe the wrong thing.
+    static func mimeType(for name: String) -> String {
+        let lower = name.lowercased()
+        if lower.hasSuffix(".pdf") { return "application/pdf" }
+        if lower.hasSuffix(".png") { return "image/png" }
+        if lower.hasSuffix(".heic") || lower.hasSuffix(".heif") { return "image/heic" }
+        if lower.hasSuffix(".jpg") || lower.hasSuffix(".jpeg") { return "image/jpeg" }
+        if lower.hasSuffix(".tif") || lower.hasSuffix(".tiff") { return "image/tiff" }
+        if lower.hasSuffix(".webp") { return "image/webp" }
+        return "text/plain"
     }
 
     private func uploadFile<T: Decodable>(_ fileData: Data, fileName: String, to path: String) async throws -> T {
@@ -391,7 +407,11 @@ struct PdfToolsView: View {
             }
             .navigationTitle("PDF Tools")
             .sheet(isPresented: $vm.showDocPicker) {
-                DocumentPicker(types: [.pdf, .plainText]) { urls in
+                // Photos too (operator, 2026-10-16). `.image` covers JPEG,
+                // PNG and HEIC — and HEIC is what an iPhone shoots by
+                // default, so omitting it would refuse the most likely file a
+                // patient sends from this very device.
+                DocumentPicker(types: [.pdf, .plainText, .image]) { urls in
                     // Read every file the patient picked. A file that cannot be
                     // read is SKIPPED here and the rest still upload — the
                     // server reports per-document failures of its own, and one
@@ -430,7 +450,7 @@ struct PdfToolsView: View {
                 vm.showDocPicker = true
             } label: {
                 Label(vm.pendingFiles.isEmpty
-                      ? AppLanguage.text("Select PDF or Text Files")
+                      ? AppLanguage.text("Select PDFs, Photos or Text Files")
                       : (vm.pendingFiles.count == 1
                          ? vm.pendingFiles[0].name
                          : "\(vm.pendingFiles.count) documents selected"),
