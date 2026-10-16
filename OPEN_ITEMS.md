@@ -4629,3 +4629,27 @@ a small, well-shaped addition for the next one.
 > production is to **ask the artefact**: pull the deployed image by digest and
 > run `tesseract --version` inside it. Reading the deploy log is weaker — it
 > says the layer built, not that the binary is on PATH in the final stage.
+
+### 50a. Answered for THIS image, by pulling it — 2026-10-16
+
+The probe is still unwritten, so the question was put to the artefact
+production is serving, addressed by digest rather than by tag:
+
+    image   us-east4-docker.pkg.dev/.../backend@sha256:387c58da…
+    tesseract 5.5.0 / leptonica-1.84.1      poppler 25.03.0
+    tessdata: eng, osd                      pytesseract 0.3.13, pillow-heif 1.1.0
+    ocr.available() run INSIDE it -> (True, None)
+
+So OCR works in production today. That is a fact about one digest, which is
+exactly the limitation: the next image is unverified until someone repeats this
+by hand, and a patient is still the first to find out. 50 stands.
+
+> **`osd` was not explicitly installed, and the rotation fix depends on it.**
+> `_upright()` calls `image_to_osd`, which needs `osd.traineddata`; it came in
+> with the `tesseract-ocr` package rather than from a line anyone wrote. Had it
+> been absent the failure would have been SILENT — the `except` branch logs at
+> debug and returns the page unturned, and §48 measured 4/0/0/0 records across
+> the four orientations in that state. **An undeclared dependency that happens
+> to be satisfied is not a satisfied dependency**: `tesseract-ocr-osd` belongs
+> in the Dockerfile beside `tesseract-ocr-eng`, so a base-image change cannot
+> quietly delete the rotation repair.

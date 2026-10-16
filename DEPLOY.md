@@ -297,6 +297,65 @@ silently fails.
 > here it is harmless-looking, which is why nobody fixed it. **Add a new dated
 > section at the top; never edit the one below it.**
 
+### 2026-10-16 — `4c08ea1` (main whole; prod was on the divergent `3366e10`)
+
+Revisions `alafia-backend-00245-pld`, `alafia-frontend-00118-zqq`.
+**No migration ran** — production was already at `ar001_therapy_switch`, equal
+to code head, verified before and after by asking `alembic_version`.
+
+⚠️ **This release gives the ASSISTANT a clinical write path.** `/ai/chat` can
+now write seven kinds of row on the patient's instruction — meals, medication,
+elimination, mood, sleep, symptoms, fitness — where before it could only read.
+Nothing is written without the patient asking for it, `vitals` and `labs` are
+structurally unwritable (`NEVER_WRITABLE`), and the gate is fail-closed
+(`run_tool(..., allow_writes=False)` by default, refusing by name). Dose writes
+still pass the §3aj RxNorm guard and write nothing when neither the request nor
+the history supplies a dose. Detail: OPEN_ITEMS 44, 45.
+
+**It also expands what an upload may BE.** A photograph of a report — JPEG,
+PNG, HEIC — and a scanned PDF with no text layer are now read by **Tesseract
+inside our own container**, so no image reaches a third party (§3al's
+unresolved image-egress gap is sidestepped rather than accepted). Every row
+from an OCR'd document stages **UNTICKED with its reason**: measured, a 300-dpi
+render read `1.8` as `18` at confidence 85, so no threshold can be trusted and
+a person checks each value against the paper. Several files at once, each its
+own import, routed per item. Detail: OPEN_ITEMS 46, 47, 48.
+
+**No stored clinical figure moves.** Ω/Α are untouched; OCR rows reach no
+clinical table until the patient confirms. Unlike 2026-10-14, stored history
+stays comparable across this line.
+
+Verified against production, not the build log:
+
+    /api/health                      4c08ea1
+    alembic_version (prod)           ar001_therapy_switch  = code head
+    POST /pdf/parse-documents        403, not 404 — the batch route is mounted
+    serving image, by digest         sha256:387c58da…
+      tesseract                      5.5.0 / leptonica-1.84.1
+      tessdata                       eng, osd
+      poppler (pdftoppm)             25.03.0
+      pytesseract / pillow-heif      0.3.13 / 1.1.0
+      ocr.available() IN that image  (True, None)
+
+> **`osd` being present is load-bearing and was not explicitly installed.**
+> `_upright()` calls `image_to_osd`, which needs `osd.traineddata`; it arrived
+> with `tesseract-ocr`. Without it every rotated page would read as NOTHING and
+> the failure would be SILENT — the exception branch logs at debug and returns
+> the page unturned. Measured 4/0/0/0 records across the four orientations
+> before the fix. So the rotation repair is genuinely live, and that is why the
+> language list was read rather than assumed.
+
+⚠️ **Still only `eng`.** A report printed in French, Spanish, Portuguese or
+Arabic will not be read, on a product that answers patients in eleven languages
+(OPEN_ITEMS 47b). And **no operator surface reports OCR readiness** — the probe
+is unwritten, so the evidence above is a pulled image, not a dashboard
+(OPEN_ITEMS 50).
+
+**Untested on a real photograph.** OPEN_ITEMS 48a: what was measured were
+1024-px Photos derivatives, and they produced zero records. The honest claim is
+that the pipeline works on clean renders and on rotated pages, and has not been
+judged on a phone photo of paper.
+
 ### 2026-10-14 — `7cb62da` (13 commits since `2a96a38`)
 
 Verification table and what did NOT ship: **OPEN_ITEMS 40**.

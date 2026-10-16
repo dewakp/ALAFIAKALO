@@ -4102,3 +4102,54 @@ perspective and glare are untouched (48b); the failure message does not say
 WHY, though word count and confidence are already measured (48c); and a
 dialysis flowsheet — which is what page 1 of this report classifies as — still
 has no target table (48d/46a).
+
+---
+
+## 2026-10-16 (3) — The held-back half shipped, and production was not where main was
+
+Operator: *"deploy I write"*. Deployed **main whole** — `4c08ea1`, revisions
+`alafia-backend-00245-pld` / `alafia-frontend-00118-zqq`. Release note, with
+every verification: **DEPLOY.md → 2026-10-16**.
+
+**Production was on a DIVERGENT commit, and no document said so.** `3366e10`
+was *"DEPLOY BRANCH: multi-PDF without the AI write tools"* — main minus
+`record_tools.py`, built when the operator asked for the deploys to be split.
+It is not an ancestor of main, so three commits were unshipped: the write
+tools, **the whole photo/OCR import**, and the rotation fix.
+
+That middle one is the finding. *"We need to expand acceptable uploads"* was
+built, tested and documented a day earlier and **was not live** — a patient
+photographing their report was still being refused in production, and I had
+reported the work as done without ever saying it had not shipped. §3bg's rule
+is about revision numbers in prose; the same hole swallows a feature. **Ask
+what production is RUNNING before saying what it does.**
+
+### What it cost to learn
+
+- **My first measurement of the thing I was about to deploy was wrong.**
+  Checking the write tools were in the uploaded tree, my regex expected
+  `WRITE_TOOLS = {` and the declaration is `= frozenset({`, so it printed
+  `0 []` and `NEVER_WRITABLE ABSENT`. One sentence from reporting "the write
+  tools are missing" off my own bad grep — §5b's failure inside the check
+  written to prevent it. Read the declaration, not a pattern you expect.
+- **A capability can ship as an honest refusal nobody hears.** `ocr.available()`
+  has two callers, both on the patient's parse path, so a missing binary tells
+  the PATIENT and no operator (OPEN_ITEMS 50). Confirmed OCR by pulling the
+  serving image by digest and running `ocr.available()` inside it — `(True,
+  None)`, tesseract 5.5.0, `eng` + `osd`.
+- **`osd` is load-bearing and nobody installed it on purpose.** The rotation
+  fix needs `osd.traineddata`; it arrived with `tesseract-ocr`. Absent, the
+  repair fails SILENTLY at debug level. Reading the language list is what
+  turned "the fix is deployed" into "the fix can actually run".
+
+**Verified:** `/api/health` → `4c08ea1`; prod `alembic_version` =
+`ar001_therapy_switch` = code head, so no migration ran; `POST
+/pdf/parse-documents` → **403, not 404**, so the batch route is mounted;
+`deploy.sh` exit 0 with no error lines in 6,460 log lines.
+
+**Not verified:** the AI tier and `/admin/health` need a bearer token, and §3bg
+records that a token-less smoke run passed daily for 27 days while every AI
+panel answered 503 — so those are **unchecked, not fine**. The write path has
+not been exercised against production (and must not be, against a real record
+— seed Ada Demo). Still only `eng` installed; still untested on a real
+photograph (48a).
