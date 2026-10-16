@@ -4476,3 +4476,97 @@ That is the design working as intended under the worst input it has seen.
 - **48d. A dialysis flowsheet still has no target table** (46a). Page 1 of this
   very report classified as `dialysis_flowsheet` — so even read perfectly, it
   has nowhere to go. That decision is still the operator's.
+
+---
+
+## 49. The arm photographs had nowhere to go — and "log my rash" opens Mental Health — 2026-10-16
+
+The operator's uploads on 2026-10-16 were **two different things**, and only one
+was answered. Five photographs were pages of a DaVita Treatment Details Report
+and drove §§47-48. **Two were photographs of an arm with skin lesions**, and
+nothing in this session acknowledged them. They are not documents; the document
+pipeline would have refused them correctly and told the patient nothing useful.
+
+Asking the code what a patient can do with a photograph of their own skin:
+
+### 49a. Neither phone can record a symptom at all
+
+    /symptoms call sites   web 1   iOS 0   Android 0
+    symptom screen files   web Symptoms.jsx (10,151 bytes, routed)
+                           iOS  — none
+                           Android — none
+    symptom_logs (dev copy of prod)   4 rows / 2 users / 2025-10-29 .. 2026-10-09
+
+§3 is explicit that a feature is not done until web, iOS and Android have it.
+This is not a half-wired control (§3ar) or an unrouted page (§3ad) — on mobile
+the screen does not exist, and `symptom_logs` has two writers, both reached only
+from web (`api/symptoms.py:44`, `api/personalization.py:299`).
+
+### 49b. A symptom intent is routed to MENTAL HEALTH on both phones
+
+    IOS/ALAFIA/Views/Prompt/PromptView.swift:70     case "log_symptom": return .mentalHealth
+    Android .../views/prompt/PromptScreen.kt:59     "/symptoms" to "mental-health"
+
+So a patient who types *"I have a rash on my arm"* into the prompt hub is taken
+to a mental-health screen on both platforms. The Android file's own comment
+says *"Screens not yet on mobile fall back to the closest available one"* — and
+mental health is not the closest thing to a skin lesion; it is a destination
+that reads as a judgement about the person asking. §0's rule applies to a
+fallback as much as to a diagnosis: where there is no right screen, say so
+rather than choose a confident wrong one. **This cannot be repaired by editing
+the map — there is nothing to point it at until 49a is built.**
+
+### 49c. The photo path writes NOTHING
+
+`POST /image-ai/symptom-from-image` (`app/api/image_ai.py:736`) takes **no `db`
+dependency**, so it cannot write, and it does not: it returns a description plus
+suggested `symptom_name` / `body_part` to prefill a form the patient must then
+submit themselves. §3am already paid for this exact shape on the TEXT path —
+*"Symptoms described to the AI are clinical data"*, where "dizzy, weak" informed
+one answer and left no trace. A photographed symptom is in that state today, and
+a skin lesion is the case where the IMAGE is the finding: a description of a
+photograph is not the photograph, and a clinician comparing the lesion to itself
+in three weeks needs the picture.
+
+### 49d. The photograph leaves, and nothing can redact it
+
+`_vision_ask` goes through `alafia_infer("vision", …)`, which is the production
+order: **hosted vision first**, Ollama last. §3al records the unresolved half of
+that — `scrub_payload` redacts a message only when its `content` is a string, so
+*"the prompt beside the photo is never scrubbed, and the bytes never could be"*,
+and it states the conclusion plainly: *"whether a photo or a recording may reach
+a third party at all is a product decision, not something `scrub_pii` can make
+safe."*
+
+A photograph of a patient's arm is that decision in its sharpest form. Skin,
+unlike a plate of food, is **identifying** — a tattoo, a fistula, a scar, a
+wristband — and unlike the document path (§47, where Tesseract made the question
+unnecessary because nothing leaves) there is no local reader here.
+`local_only=True` exists for exactly this and is not set on the vision path.
+
+**This is the operator's call, not a defect to fix quietly.** Three routes, and
+they are not equivalent:
+
+1. **`local_only=True` for symptom photos** — ALAFIA-operated inference only,
+   no fallback. Honest, and in production that is a scale-to-zero GPU (§5), so
+   it is slow and sometimes unavailable.
+2. **Ask, per photo.** The AI consent gate (§3al) covers text processing; it
+   does not say "a photograph of your body will be sent to a vendor".
+3. **Keep the current order and say so** — in the app, in the privacy copy, and
+   in the App Review reply, all three of which §3al records were rewritten once
+   already because they described a local-only architecture that had changed.
+
+### What was NOT found, having gone looking for it
+
+The wellness score does **not** penalise a patient for being unable to log.
+`symptom_component` returns `None` with `"no symptoms logged in this window"`
+when the window is empty, so the domain is UNSCORED rather than zero — §3ba's
+own rule, correctly applied. §3ba's symptoms 10.0 on the reference record came
+from a real symptom the patient rated 9/10, not from absence. Checked before
+writing, because the opposite would have been the tidier finding.
+
+**Nothing here is implemented.** 49a is a feature on two platforms, 49b is
+blocked on it, 49c is a schema and consent question (a symptom photo has no
+column and no retention rule — §3a's food corpus is gated on
+`allow_collective_insights` and a symptom photo is not food), and 49d is a
+product decision. Queued, not started.
