@@ -118,23 +118,9 @@ _TOOL_LOOP_INSTRUCTIONS = (
     "\n• Say where each dose came from — their own logs, their prescription, "
     "or what they just told you. A dose they never spoke aloud must not read "
     "as one they did."
-    "\n• Elimination, mood, sleep, symptoms and activity are writable too. "
-    "When the patient reports one — 'I slept badly', 'I have been dizzy since "
-    "this morning', 'I walked for twenty minutes', 'I threw up' — CALL the "
-    "matching log tool. Do not hand the work back by naming a screen."
-    "\n• Record only what they stated, in their words. NEVER choose a number "
-    "for them: a mood score, a severity, a Bristol number and an hours-slept "
-    "figure are theirs to give. If one is required and missing, ask ONE short "
-    "question. A score you picked is a clinical value nobody reported."
-    "\n• Do not interpret as you write. Pass their description through; do "
-    "not decide that 'bloody' means a finding or work out how long they slept "
-    "from the two clock times. The record does that reading itself."
-    "\n• VITALS AND LABS ARE READ-ONLY. A blood pressure comes off a device "
-    "and a lab result comes from a laboratory, so you can show them and you "
-    "cannot write them; say what you can see and what they should record "
-    "themselves."
-    "\n• If a write comes back `refused`, say plainly that NOTHING was saved "
-    "and why. Never answer as though it had been."
+    "\n• Meals and medication are the only things you can write. Vitals and "
+    "labs are read-only; for those, say what you can see and what they should "
+    "record themselves."
 )
 
 #: Said out loud rather than truncating silently: an answer built on partial
@@ -177,10 +163,6 @@ async def answer_with_tools(
     temperature: float = 0.3,
     max_tokens: int = 2048,
     today: date | None = None,
-    # The WRITE capability, defaulting to OFF and passed explicitly by the
-    # endpoint. A caller that does not ask for writes gets a read-only
-    # assistant — see `record_tools.run_tool`, where the gate lives.
-    allow_writes: bool = False,
     progress: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
 ) -> Conversation:
     """Run the question to an answer, executing whatever tools the model calls.
@@ -250,8 +232,7 @@ async def answer_with_tools(
                 label=TOOL_LABELS.get(call["name"], "Checking your record"),
             )
             result = await run_tool(db, user_id, call["name"],
-                                    call.get("arguments") or {}, today,
-                                    allow_writes=allow_writes)
+                                    call.get("arguments") or {}, today)
             payload = json.dumps(result, default=str)
             if len(payload) > _MAX_RESULT_CHARS:
                 payload = payload[:_MAX_RESULT_CHARS] + '…","truncated":true}'
@@ -297,10 +278,6 @@ async def stream_with_tools(
     temperature: float = 0.3,
     max_tokens: int = 2048,
     today: date | None = None,
-    # The WRITE capability, defaulting to OFF and passed explicitly by the
-    # endpoint. A caller that does not ask for writes gets a read-only
-    # assistant — see `record_tools.run_tool`, where the gate lives.
-    allow_writes: bool = False,
 ):
     """The tool loop, streaming the answer as the model writes it.
 
@@ -371,8 +348,7 @@ async def stream_with_tools(
             yield {"phase": "tool", "tool": call["name"],
                    "label": TOOL_LABELS.get(call["name"], "Checking your record")}
             result = await run_tool(db, user_id, call["name"],
-                                    call.get("arguments") or {}, today,
-                                    allow_writes=allow_writes)
+                                    call.get("arguments") or {}, today)
             payload = json.dumps(result, default=str)
             if len(payload) > _MAX_RESULT_CHARS:
                 payload = payload[:_MAX_RESULT_CHARS] + '…","truncated":true}'

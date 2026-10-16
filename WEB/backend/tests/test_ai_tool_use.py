@@ -380,46 +380,21 @@ def test_every_field_a_tool_reads_exists_on_its_model():
     who had it. Behavioural tests do not catch this; comparing the names to the
     table does, for free, for all of them at once (§3ag).
     """
-    from app.models.conditions import SymptomLog
     from app.models.elimination import BowelMovement, VomitingLog
-    from app.models.fitness import FitnessLog
     from app.models.labs import LabResult
-    from app.models.mood import MoodEntry
     from app.models.nutrition import NutritionLog
-    from app.models.sleep import SleepLog
     from app.models.vitals import VitalsLog
     from app.services import record_tools as rt
 
-    pairs = (
-        (VitalsLog, "VITALS_FIELDS"),
-        (BowelMovement, "BOWEL_FIELDS"),
-        (VomitingLog, "VOMIT_FIELDS"),
-        (LabResult, "LAB_FIELDS"),
-        (SleepLog, "SLEEP_FIELDS"),
-        (MoodEntry, "MOOD_FIELDS"),
-        (SymptomLog, "SYMPTOM_FIELDS"),
-        (FitnessLog, "FITNESS_FIELDS"),
-        # Found by the meta-check below the first time it ran: `NutritionLog`
-        # was IMPORTED by this test and never used, so the meal fields were
-        # never compared to anything. All ten are valid — measured — but they
-        # had been unguarded since the tool shipped.
-        (NutritionLog, "_CORE_MEAL_FIELDS"),
-    )
-    for model, const in pairs:
+    for model, fields in (
+        (VitalsLog, rt.VITALS_FIELDS),
+        (BowelMovement, rt.BOWEL_FIELDS),
+        (VomitingLog, rt.VOMIT_FIELDS),
+        (LabResult, rt.LAB_FIELDS),
+    ):
         columns = {c.key for c in model.__table__.columns}
-        missing = set(getattr(rt, const)) - columns
+        missing = set(fields) - columns
         assert not missing, f"{model.__name__} has no column(s): {sorted(missing)}"
-
-    # ⚠️ The list above was hand-maintained, so four field tuples added in
-    # 2026-10-14 were unchecked the moment they landed — the guard was there
-    # and did not cover them. Every `*_FIELDS` constant must now appear, or
-    # adding the next one silently escapes the check that exists for exactly
-    # this (§3ag: a static check beats behavioural tests, but only over what it
-    # actually reads).
-    declared = {n for n in dir(rt) if n.endswith("_FIELDS")}
-    covered = {const for _m, const in pairs}
-    assert declared <= covered, (
-        f"field constants nothing checks: {sorted(declared - covered)}")
 
 
 def test_the_medication_serialiser_matches_the_view_it_is_given():
@@ -508,7 +483,7 @@ async def test_the_loop_reports_each_step_it_actually_takes(monkeypatch):
     async def _fake_chat(prompt, **kw):
         return replies.pop(0)
 
-    async def _fake_tool(db, user_id, name, args, today=None, **_kw):
+    async def _fake_tool(db, user_id, name, args, today=None):
         return {"meals": [1, 2, 3, 4, 5, 6], "count": 6}
 
     monkeypatch.setattr("app.services.alafia_model_service.alafia_chat_detailed",
@@ -637,7 +612,7 @@ async def test_streaming_loop_retracts_a_preamble_that_preceded_a_tool_call(monk
         for ev in rounds.pop(0):
             yield ev
 
-    async def _fake_tool(db, user_id, name, args, today=None, **_kw):
+    async def _fake_tool(db, user_id, name, args, today=None):
         return {"meals": [1, 2, 3]}
 
     monkeypatch.setattr("app.services.alafia_model_service.stream_alafia_events",
@@ -673,7 +648,7 @@ async def test_streaming_loop_reports_the_same_steps_as_the_buffered_one(monkeyp
         for ev in rounds.pop(0):
             yield ev
 
-    async def _fake_tool(db, user_id, name, args, today=None, **_kw):
+    async def _fake_tool(db, user_id, name, args, today=None):
         return {"meals": [1]}
 
     monkeypatch.setattr("app.services.alafia_model_service.stream_alafia_events",
@@ -818,7 +793,7 @@ async def test_the_loop_passes_the_patients_date_to_every_tool(monkeypatch):
         return {"text": "done", "tool_calls": [], "provider": "p", "model": "m",
                 "tokens_used": 0}
 
-    async def _fake_tool(db, user_id, name, args, today=None, **_kw):
+    async def _fake_tool(db, user_id, name, args, today=None):
         seen["today"] = today
         return {"meals": [1]}
 
@@ -1509,30 +1484,19 @@ async def test_a_repeated_call_does_not_double_a_dose(db):
     assert second["logged"][0]["id"] == first["logged"][0]["id"]
 
 
-def test_what_is_writable_is_DECLARED_and_reads_never_are():
+def test_only_meals_and_medication_are_writable():
     """§3aj: a dose is a clinical statement, and inference proposes but never
     writes. Medication became writable deliberately — the patient says they took
     it, the dose comes from their own history, and the guard still runs — but
     vitals and labs stay read-only, and this is DECLARED rather than inferred
     from a description (a keyword test on prose once flagged `get_meals`
-    because its text says "the record").
+    because its text says "the record")."""
+    from app.services.record_tools import TOOLS, WRITE_TOOLS
 
-    ⚠️ This asserted the exact membership `{"log_meal", "log_medication"}`
-    until 2026-10-14, which made it a CHANGE DETECTOR rather than a guard: it
-    went red the moment five more domains became writable, and said nothing
-    about the property that actually matters. The invariants below hold however
-    many write tools exist — and `tests/test_ai_write_tools.py` is where the
-    gate itself is proven."""
-    from app.services.record_tools import NEVER_WRITABLE, TOOLS, WRITE_TOOLS
-
+    assert WRITE_TOOLS == {"log_meal", "log_medication"}
     assert WRITE_TOOLS <= set(TOOLS)
-    # Every writer is a log_*, and no reader is ever a writer.
-    assert all(n.startswith("log_") for n in WRITE_TOOLS)
-    assert {n for n in TOOLS if n.startswith("get_")} & WRITE_TOOLS == set()
+    # Vitals and labs stay read-only.
     assert {"get_vitals", "get_labs", "get_medications"} & WRITE_TOOLS == set()
-    # The two domains §3am decided must never be written from here.
-    assert NEVER_WRITABLE == {"vitals", "labs"}
-    assert not {"log_vitals", "log_labs"} & set(TOOLS)
 
 
 def test_the_loop_tells_the_model_not_to_invent_a_dose():

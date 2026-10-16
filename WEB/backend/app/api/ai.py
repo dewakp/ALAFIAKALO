@@ -2210,12 +2210,6 @@ async def ai_chat(
             db, current_user.id, tool_system_prompt,
             _assemble_chat_messages(None, request.messages, request.query, None),
             temperature=0.3, today=today,
-            # THE PATIENT'S OWN CONVERSATION about their OWN record is the one
-            # place a write belongs. `run_tool` fails closed, so this line is
-            # what makes "log my meal" work at all — and anything else that
-            # drives the loop stays read-only without having to remember to
-            # say so.
-            allow_writes=True,
         )
     except Exception as exc:  # noqa: BLE001
         # An error must never become an ANSWER.
@@ -2367,11 +2361,6 @@ async def ai_chat_stream(
             async for event in stream_with_tools(
                 db, current_user.id, tool_system_prompt, tool_messages,
                 temperature=0.3, today=today,
-                # The streaming path is the one web, iOS and Android actually
-                # use (§3am: wire the endpoint the product uses, not the one
-                # that is easy to curl). Both paths must agree about writes or
-                # "log my meal" would work on whichever one you tested.
-                allow_writes=True,
             ):
                 if "text" in event:
                     yield f"data: {json.dumps({'content': event['text']})}\n\n"
