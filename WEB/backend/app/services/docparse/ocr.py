@@ -91,6 +91,70 @@ def available() -> tuple[bool, str | None]:
 #: could not tell, and acting on that would have turned an upright page.
 MIN_ORIENTATION_CONF = 2.0
 
+#: The language pack `image_to_osd` needs. It is NOT the same thing as a
+#: recognition language: `eng` reads the words, `osd` decides which way up the
+#: page is. See `status()` for why its absence has to be reported.
+OSD_TRAINEDDATA = "osd"
+
+
+def status() -> dict:
+    """What an OPERATOR needs to know about OCR, in one call.
+
+    `available()` reports usability to the PARSE PATH, which turns it into a
+    sentence for the patient — *"text recognition is not available on the
+    server"*. That is the right message and the wrong audience: it told the one
+    person who cannot fix it, and nothing told anyone who could. OPEN_ITEMS 50,
+    and this function is the fix — the shape of `push.status()`, for the same
+    reason §3ah's PayPal rail needed one.
+
+    Three capabilities fail INDEPENDENTLY, so they are reported separately
+    rather than collapsed into one boolean (§3aa):
+
+    * **the engine** — no tesseract, and every photograph and scan is refused;
+    * **`osd`** — the recognition languages are present, the page-orientation
+      pack is not, so `_upright()` silently gives up and a sideways page reads
+      as NOTHING. Measured in §48: 4 records upright, **0** at 90/180/270. The
+      failure is invisible — the `except` in `_upright` logs at DEBUG and
+      returns the page unturned;
+    * **poppler** — tesseract is fine and `pdf2image` cannot rasterise, so
+      PHOTOGRAPHS still import and SCANNED PDFs do not.
+
+    Nothing here raises. The caller decides what is degraded, because that
+    judgement depends on what the upload surface currently accepts.
+    """
+    import shutil
+
+    ok, why = available()
+    out: dict = {
+        "available": ok,
+        "reason": why,
+        "version": None,
+        "languages": [],
+        "osd_present": False,
+        "poppler": shutil.which("pdftoppm"),
+        "min_dpi": MIN_DPI,
+    }
+    if not ok:
+        return out
+
+    import pytesseract
+
+    try:
+        out["version"] = str(pytesseract.get_tesseract_version())
+    except Exception as exc:  # noqa: BLE001 — a version we cannot read is not fatal
+        out["version"] = f"unreadable ({type(exc).__name__})"
+    try:
+        langs = sorted(pytesseract.get_languages(config=""))
+    except Exception as exc:  # noqa: BLE001
+        # Do NOT report an empty list here: "no languages installed" and "we
+        # could not ask" are opposite facts (§3aa), and the first would make a
+        # working install look broken.
+        out["languages"] = f"unreadable ({type(exc).__name__})"
+        return out
+    out["languages"] = langs
+    out["osd_present"] = OSD_TRAINEDDATA in langs
+    return out
+
 
 def _upright(image):
     """Turn a sideways page the right way up, or leave it exactly as it is.

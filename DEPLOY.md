@@ -297,6 +297,39 @@ silently fails.
 > here it is harmless-looking, which is why nobody fixed it. **Add a new dated
 > section at the top; never edit the one below it.**
 
+### 2026-10-16 (2) — OCR readiness became an operator surface
+
+Follows `4c08ea1` the same day. Code-only; production was already at
+`ar001_therapy_switch`, equal to code head, so **no migration runs**.
+
+- **`GET /admin/health` now carries a `document_ocr` probe.** It RAISES — so
+  the overall status degrades — when the engine is unavailable, when the `osd`
+  orientation pack is missing, or when poppler cannot rasterise. Before this
+  the probe list was `database, migration_revision, data, vision_corpus,
+  alafia_corpus, push, ai_backends, email`: OCR was not in it, and the only
+  reader of `ocr.available()` was the patient's own parse message.
+- **`tesseract-ocr-osd` is named explicitly in the Dockerfile.** It arrived
+  transitively and `_upright()` cannot work without it; absent, a sideways
+  photograph reads as nothing with only a DEBUG line. Dry-run verified in the
+  real base image (Debian 13.7): tesseract 5.5.0, -eng and -osd 1:4.1.0-2.
+- **Git converged.** `deploy/pdf-only-2026-10-15` is retired — tagged
+  `deployed/pdf-only-2026-10-15` first, because its one commit is a REVERT
+  (−1,534 lines, both write-tool suites deleted) and merging it would have
+  deleted what `4c08ea1` shipped. Every ref, 49 local and 4 remote, is now
+  contained in `main`.
+
+Verified: 173 backend tests across eight suites; the 8 new readiness tests all
+**fail against the pre-fix tree** (4 `AttributeError: no attribute 'status'`,
+and `no document_ocr check in [...]`), so they are guards, not coverage; ruff
+F,E9 clean.
+
+⚠️ **`/admin/health` itself is STILL unverified against production**, including
+the probe added here — it needs an admin bearer token, and minting one requires
+the signing secret, which is deliberately out of reach. See §4: a token-less
+smoke run passed daily for 27 days while every AI panel answered 503. Run
+`scripts/gcp/smoke.sh` with a real token, or sign in to `/minister`, before
+calling this release checked.
+
 ### 2026-10-16 — `4c08ea1` (main whole; prod was on the divergent `3366e10`)
 
 Revisions `alafia-backend-00245-pld`, `alafia-frontend-00118-zqq`.

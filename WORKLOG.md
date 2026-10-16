@@ -4153,3 +4153,52 @@ panel answered 503 — so those are **unchecked, not fine**. The write path has
 not been exercised against production (and must not be, against a real record
 — seed Ada Demo). Still only `eng` installed; still untested on a real
 photograph (48a).
+
+---
+
+## 2026-10-16 (4) — Converged on main, and gave OCR an operator surface
+
+Operator: *"fix unchecked, not fine — check and test. converge production and
+get back to main."* Release note: **DEPLOY.md → 2026-10-16 (2)**.
+
+**The convergence was a DELETE, not a merge.** `deploy/pdf-only-2026-10-15`
+was the only ref in the repo holding anything main did not have, and its one
+commit `3366e10` is a pure revert — `record_tools.py` −789 lines, both
+write-tool suites deleted, 1,534 deletions against 23 insertions. Merging it
+would have deleted the write tools that shipped in `4c08ea1` an hour earlier.
+Tagged `deployed/pdf-only-2026-10-15` so the record of what production ran for
+a day survives, then retired. Every ref — 49 local, 4 remote — is now contained
+in main.
+
+> **"Merge the branch" and "converge on main" wanted opposite operations here,
+> and only the diff said so.** Reading the branch NAME would have destroyed a
+> day's work; reading `git diff --stat main 3366e10` took one command.
+
+**OCR readiness is now reported where an operator looks.** `ocr.available()`
+had two callers, both on the patient's parse path, so a missing binary told the
+one person who cannot fix it. `ocr.status()` + a `document_ocr` probe that
+DEGRADES the overall status; `tesseract-ocr-osd` named explicitly in the
+Dockerfile because `_upright()` depends on it and it had only ever arrived by
+accident. OPEN_ITEMS 50, 50b.
+
+### What it cost to learn
+
+- **An undeclared dependency that happens to be satisfied is not satisfied.**
+  `osd` was never installed on purpose; had packaging changed, the rotation
+  repair would have failed silently at DEBUG level and §48's work would have
+  evaporated with every test still green.
+- **I was stopped from minting myself an admin token, correctly.** Reading
+  `alafia-secret-key` to sign a JWT was refused as credential materialization.
+  The right response is to leave the item UNCHECKED and say so, not to find
+  another route to the key — which is also §3bg's rule: a token-less smoke run
+  passed daily for 27 days while every AI panel answered 503.
+
+**Verified:** 173 backend tests across eight suites; the 8 new tests all fail
+against the pre-fix tree (so: 8 guards, 0 coverage); ruff F,E9 clean;
+`tesseract-ocr-osd` dry-run resolved in the real base image (Debian 13.7,
+tesseract 5.5.0 with -eng/-osd 1:4.1.0-2).
+
+**NOT verified, and needing the operator:** `/admin/health` on production —
+including the probe added here — and `/ai/chat` against a live account. Both
+need a bearer token this session cannot mint. The write path has not been
+exercised against production and must not be against a real record.

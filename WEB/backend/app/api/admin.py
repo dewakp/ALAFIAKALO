@@ -403,6 +403,45 @@ async def admin_app_health(
         return provider
     await probe("email", _email)
 
+    # Document OCR. The upload surface ACCEPTS photographs and scans on all
+    # three clients as of 4c08ea1, and the capability is three apt packages in
+    # the image — so "advertised and unreadable" is a live possibility and it
+    # had no operator surface at all (OPEN_ITEMS 50). The only way anyone
+    # learned tesseract was missing was a patient being told so.
+    #
+    # It RAISES rather than reporting quietly, for `_push`'s reason: a declared
+    # input nobody can read is §3ah's PayPal rail, and a degraded overall
+    # status is the thing that gets looked at.
+    async def _ocr():
+        from app.services.docparse import ocr
+
+        s = ocr.status()
+        if not s["available"]:
+            raise RuntimeError(
+                f"the upload surface accepts photographs and scanned PDFs and "
+                f"text recognition is unavailable — every one will be refused: "
+                f"{s['reason']}")
+        langs = s["languages"]
+        parts = [f"tesseract {s['version']}"]
+        parts.append(f"langs {','.join(langs) if isinstance(langs, list) else langs}")
+        parts.append("poppler " + ("ok" if s["poppler"] else "MISSING"))
+        parts.append(f"min_dpi {s['min_dpi']}")
+        # `osd` decides which way up a page is. Without it a sideways
+        # photograph reads as NOTHING and says nothing — measured 0 records at
+        # 90/180/270 (§48) — so its absence is a degradation, not a note.
+        if not s["osd_present"]:
+            raise RuntimeError(
+                "tesseract has no `osd` language pack, so page orientation "
+                "cannot be detected and a sideways photograph will read as "
+                "nothing, silently: " + "; ".join(parts))
+        if not s["poppler"]:
+            raise RuntimeError(
+                "poppler (pdftoppm) is missing, so a SCANNED PDF cannot be "
+                "rasterised and will be refused — photographs still "
+                "import: " + "; ".join(parts))
+        return "; ".join(parts)
+    await probe("document_ocr", _ocr)
+
     overall = "ok" if all(c["status"] == "ok" for c in checks) else "degraded"
     return {
         "status": overall,

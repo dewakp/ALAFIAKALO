@@ -4653,3 +4653,29 @@ by hand, and a patient is still the first to find out. 50 stands.
 > to be satisfied is not a satisfied dependency**: `tesseract-ocr-osd` belongs
 > in the Dockerfile beside `tesseract-ocr-eng`, so a base-image change cannot
 > quietly delete the rotation repair.
+
+### 50b. Fixed — the probe exists — 2026-10-16
+
+`ocr.status()` + a `document_ocr` probe on `GET /admin/health`, degrading when
+the engine, the `osd` pack or poppler is missing, and `tesseract-ocr-osd` named
+explicitly in the Dockerfile. `ocr.available()` now has the operator-facing
+reader 50 said it lacked.
+
+**8 tests, all 8 guards** — run against the pre-fix tree they fail with four
+`AttributeError: module 'app.services.docparse.ocr' has no attribute 'status'`
+and `no document_ocr check in ['database', 'migration_revision', 'data',
+'vision_corpus', 'alafia_corpus', 'push', 'ai_backends', 'email']`. That list
+is the measurement: OCR was absent from the ladder.
+
+Three capabilities are reported SEPARATELY because they fail independently —
+no engine refuses everything, no `osd` loses only rotated pages (silently), no
+poppler loses only scanned PDFs while photographs still import. Collapsing them
+would overstate the outage and send someone hunting the wrong capability
+(§3ae's 503-vs-502).
+
+> ⚠️ **What is still NOT verified: the probe's own output in production.**
+> Reading `/admin/health` needs an admin bearer token; minting one needs the
+> JWT signing secret, and that is correctly out of reach. So the fix for "no
+> operator surface" is itself unconfirmed on the live service until someone
+> with a token looks. 47b (only `eng` installed) and 48a (untested on a real
+> photograph) are untouched by this.

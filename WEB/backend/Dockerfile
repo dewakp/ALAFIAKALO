@@ -22,8 +22,21 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # indistinguishable from a real one.
 #
 # poppler-utils renders a scanned PDF's pages to images for the same path.
+#
+# ⚠️ `tesseract-ocr-osd` is named EXPLICITLY, and it was not before. It is the
+# page-orientation pack — a different thing from a recognition language: -eng
+# reads the words, -osd decides which way up the page is, and `_upright()`
+# cannot work without it. Paper photographed on a desk is routinely sideways,
+# and §48 measured what that costs: 4 records upright, ZERO at 90/180/270, with
+# `_upright`'s except branch logging at DEBUG and returning the page unturned.
+# A SILENT total loss.
+#
+# It arrived transitively with `tesseract-ocr` (verified in the serving image:
+# tessdata held eng and osd). An undeclared dependency that happens to be
+# satisfied is not a satisfied dependency — a base-image or packaging change
+# could have deleted the rotation repair with nothing failing. OPEN_ITEMS 50a.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        tesseract-ocr tesseract-ocr-eng poppler-utils \
+        tesseract-ocr tesseract-ocr-eng tesseract-ocr-osd poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
