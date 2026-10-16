@@ -323,6 +323,30 @@ Verified: 173 backend tests across eight suites; the 8 new readiness tests all
 and `no document_ocr check in [...]`), so they are guards, not coverage; ruff
 F,E9 clean.
 
+Shipped as `58b8268` — revisions `alafia-backend-00247-2tm`,
+`alafia-identity-00122-sr8`, `alafia-frontend-00119-zgk`; `deploy.sh` exit 0,
+no error lines in 6,324. Verified against production:
+
+    /api/health                      58b8268
+    alembic_version (prod)           ar001_therapy_switch — UNCHANGED, no migration ran
+    GET /pdf/parse-documents         405 (method not allowed) — the path exists
+    GET /admin/health                401 — mounted, and gated
+    serving image, by digest         sha256:c49c926c…
+      dpkg                           tesseract-ocr 5.5.0-1+b1
+                                     tesseract-ocr-eng 1:4.1.0-2
+                                     tesseract-ocr-osd 1:4.1.0-2   <- now EXPLICIT
+      ocr.status() run INSIDE it     available True, version 5.5.0,
+                                     languages [eng, osd], osd_present True,
+                                     poppler /usr/bin/pdftoppm, min_dpi 400
+
+> **That is the probe's INPUT confirmed, not its OUTPUT read.** `ocr.status()`
+> was executed in the serving image, so `document_ocr` will report
+> `tesseract 5.5.0; langs eng,osd; poppler ok; min_dpi 400` and will not raise.
+> The endpoint's own response is still **unread** — `/admin/health` answers 401
+> without a bearer token, and minting one requires the JWT signing secret,
+> which is deliberately unreachable from an agent session. One authenticated
+> `scripts/gcp/smoke.sh --token "$TOKEN"` closes it, and the AI tier with it.
+
 ⚠️ **`/admin/health` itself is STILL unverified against production**, including
 the probe added here — it needs an admin bearer token, and minting one requires
 the signing secret, which is deliberately out of reach. See §4: a token-less

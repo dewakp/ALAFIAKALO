@@ -4679,3 +4679,24 @@ would overstate the outage and send someone hunting the wrong capability
 > operator surface" is itself unconfirmed on the live service until someone
 > with a token looks. 47b (only `eng` installed) and 48a (untested on a real
 > photograph) are untouched by this.
+
+### 50c. Deployed and confirmed in the serving image — 2026-10-16
+
+`58b8268`, revision `alafia-backend-00247-2tm`, image
+`sha256:c49c926c…`. Asked of that image rather than of the build log:
+
+    dpkg            tesseract-ocr 5.5.0-1+b1, -eng 1:4.1.0-2, -osd 1:4.1.0-2
+    ocr.status()    available True, languages [eng, osd], osd_present True,
+                    poppler /usr/bin/pdftoppm, min_dpi 400
+
+`tesseract-ocr-osd` is now an explicitly installed package rather than a
+transitive accident, so a packaging change cannot silently delete the rotation
+repair (50a closed).
+
+**Still open, and it is the narrow residue of 50:** the probe's *output* has
+not been read. `/admin/health` answers **401** without a bearer token and this
+session cannot mint one — reading the signing secret to sign a JWT is refused
+as credential materialization, correctly. The inputs are confirmed in the
+serving image, so the probe cannot raise; what nobody has yet seen is the
+endpoint saying so. §3bg's rule applies to me as much as to a document: an
+inference from confirmed inputs is not a reading.
