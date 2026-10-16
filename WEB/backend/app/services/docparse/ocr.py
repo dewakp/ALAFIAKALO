@@ -85,6 +85,51 @@ def available() -> tuple[bool, str | None]:
     return True, None
 
 
+#: Below this, tesseract's orientation guess is not evidence. Measured: a clean
+#: rendered page scores 4.6-7.1 whichever way it is turned, while a 1024-px
+#: thumbnail of a REAL sideways photo scored **0.43 and said "rotate 0"** — it
+#: could not tell, and acting on that would have turned an upright page.
+MIN_ORIENTATION_CONF = 2.0
+
+
+def _upright(image):
+    """Turn a sideways page the right way up, or leave it exactly as it is.
+
+    ⚠️ **Rotation is total, not partial.** Measured on the test fixture, same
+    page, four orientations:
+
+        0deg    records=4
+        90deg   records=0
+        180deg  records=0
+        270deg  records=0
+
+    `--psm 6` assumes horizontal lines, so a page photographed sideways — which
+    is what happens when someone lays a report on a desk and turns to it —
+    reads as nothing at all. Tesseract's own orientation detection gets the
+    angle right every time on a legible image (90 -> 90, 180 -> 180,
+    270 -> 270), so the fix is to ask it.
+
+    It is asked, never assumed: a low-confidence guess is IGNORED rather than
+    acted on, because rotating a page that was already upright would turn a
+    working import into a blank one.
+    """
+    try:
+        import pytesseract
+
+        osd = pytesseract.image_to_osd(image, output_type=pytesseract.Output.DICT)
+        angle = int(osd.get("rotate", 0) or 0)
+        confidence = float(osd.get("orientation_conf", 0) or 0)
+    except Exception as exc:  # noqa: BLE001 — OSD is an aid, never a gate
+        logger.debug("orientation detection unavailable: %s", exc)
+        return image, 0
+
+    if angle % 360 == 0 or confidence < MIN_ORIENTATION_CONF:
+        return image, 0
+    # `rotate` is how far to turn the image to make it upright, clockwise;
+    # PIL rotates counter-clockwise, hence the negation.
+    return image.rotate(-angle, expand=True), angle
+
+
 def _prepare(image):
     """Upscale so small text is legible, and flatten to greyscale.
 
@@ -143,7 +188,10 @@ def words_from_image(image) -> list[dict]:
     import pytesseract
     from pytesseract import Output
 
-    prepared = _prepare(image)
+    upright, turned = _upright(image)
+    if turned:
+        logger.info("rotated a sideways page %s degrees before reading it", turned)
+    prepared = _prepare(upright)
     data = pytesseract.image_to_data(prepared, output_type=Output.DICT,
                                      config=_PSM)
 

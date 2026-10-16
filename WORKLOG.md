@@ -4053,3 +4053,52 @@ only English is installed (47b); **no real photograph has been tested** — ever
 measurement is a rendered PDF saved as JPEG, with no shadow, perspective or
 glare (47c); no deskew (47d); per-word confidence is recorded but not surfaced
 (47e).
+
+---
+
+## 2026-10-16 (2) — Real photographs read NOTHING, and one cause was mine
+
+47c warned that none of the fixture numbers should be assumed to carry over to
+a real photo. The operator supplied real photographs the same day. **They did
+not carry over: every page produced 0 records.** Detail: **OPEN_ITEMS 48**.
+
+**Cause 1, mine.** The files were Photos DERIVATIVES — 1024 px on the long edge
+against a ~4032 px original. Upscaling a thumbnail cannot invent detail, and
+the words show it dissolving: `tment`, `Detal`, `eport` from "Treatment Details
+Report". I could not fetch the originals (the Photos library is TCC-protected),
+so **the pipeline still has not been judged on a real photograph** — only on a
+thumbnail of one. Stating that plainly rather than reporting a verdict.
+
+**Cause 2, real and fixed.** Several pages are sideways, which is what happens
+to paper on a desk. `--psm 6` assumes horizontal lines, so a rotated page read
+as NOTHING — total loss, not degradation:
+
+    before  0/90/180/270 -> 4/0/0/0 records
+    after   0/90/180/270 -> 4/4/4/4 records
+
+Tesseract's orientation detection gets the angle right every time on a legible
+image, so `_upright()` asks it. It asks and never assumes: the thumbnail of a
+genuinely sideways page scored **0.43 and said "rotate 0"**, and acting on a
+guess that weak would turn upright pages over and break imports that work.
+
+**What went right is the part that matters.** Every failed page returned
+`ok=False`, zero records and a stated reason. 384 words of OCR noise produced
+no clinical record at all — the patient is told it could not be read rather
+than shown an empty table or invented rows (§3aa).
+
+### What it cost to learn
+
+- **Check what a file actually IS before measuring with it.** A path inside a
+  Photos library is a derivative unless you looked. I built a verdict on
+  thumbnails and nearly reported "OCR fails on real photos" as a finding.
+- **A capability that works on clean input can fail totally on real input**, in
+  a way that looks like a parser bug and is a geometry bug.
+
+**Verified:** 177 passed across seven document suites (6 new, including all
+four orientations); ruff F,E9 clean.
+
+**Not done:** the real test still needs **full-resolution exports** (48a); warp,
+perspective and glare are untouched (48b); the failure message does not say
+WHY, though word count and confidence are already measured (48c); and a
+dialysis flowsheet — which is what page 1 of this report classifies as — still
+has no target table (48d/46a).

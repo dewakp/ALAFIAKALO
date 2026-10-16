@@ -4376,16 +4376,103 @@ renamed photo is read.
   what they meant.
 - **47b. Only English is installed** (`tesseract-ocr-eng`). A report in another
   script will not read, and §3aw ships eleven languages.
-- **47c. No real photograph has been tested.** Every measurement here is a
-  rendered PDF saved as JPEG — flat, square, evenly lit, no shadow, no
-  perspective, no glare. A phone photo has all of those, and none of the
-  numbers above should be assumed to hold for one. **The honest next step is a
-  real photo of a real report**, which the operator has (`IMG_0549`–`IMG_0553`).
-- **47d. No deskew, no perspective correction, no glare handling.** `_prepare`
-  upscales and greyscales, nothing more. That is deliberate — thresholding
-  destroys faint print — but a photo taken at an angle is untested and likely
-  worse.
+- ⚠️ **47c. TESTED, AND IT FAILED.** The operator supplied real photographs the
+  same day — a five-page DaVita Treatment Details Report on a desk. **Every
+  page produced 0 records.** See **48**: one cause was mine (I measured Photos
+  *derivatives*, 1024 px on the long edge, not the originals), one was a real
+  gap now fixed (rotation).
+- ✅ **47d (rotation).** Fixed — see **48**. Deskew, perspective and glare are
+  still untouched.
 - **47e. A low-confidence word is recorded and not surfaced.** `ocr.py` keeps
   per-word confidence; nothing shows the reviewer WHICH values were least
   certain. Since every row is unticked anyway the practical cost is low, but a
   reviewer with ten rows would benefit from knowing which three to check first.
+
+---
+
+## 48. Real photographs: every page read NOTHING — 2026-10-16
+
+47c said *"no real photograph has been tested"* and warned that none of the
+fixture numbers should be assumed to carry over. The operator supplied real
+photographs the same day. **They do not carry over.**
+
+Six images, a five-page DaVita Treatment Details Report photographed on a desk:
+
+    page1 (upright)  768x1024   method=ocr  type=dialysis_flowsheet  records=0
+    page2 (rotated) 1024x 768   method=ocr  type=unknown             records=0
+    page3..6                    method=ocr  type=unknown             records=0
+
+**Zero records from every one.** Two independent causes, and the first is a
+measurement error of mine rather than a defect.
+
+### Cause 1 — I measured thumbnails, not photographs
+
+The files were Photos **derivatives**: 1024 px on the long edge. A 12 MP phone
+original is about 4032 px. Upscaling a thumbnail cannot invent detail that was
+never captured, and the word list shows exactly that:
+
+    page1  384 words, 196 above confidence 60
+    sample: 'net', 'p2', 'gat?', 'ils', '(mee', 'tment', 'Detal', 'eport'
+
+`tment`, `Detal`, `eport` is "Treatment Details Report" dissolving. The engine
+is not misreading a legible page; there is no legible page.
+
+> **I could not fetch the originals myself** — the Photos library is
+> TCC-protected, and the derivative paths only reached me because the operator
+> passed them through. **So the pipeline has still not been judged on a real
+> photograph**, and nothing here should be read as evidence that it fails on
+> one. It is evidence that it fails on a 1024-px thumbnail of one.
+
+### Cause 2 — a sideways page read as NOTHING, and that was real
+
+Several pages are rotated 90°, which is simply what happens to paper on a desk.
+`--psm 6` assumes horizontal lines. Measured on the fixture, same page:
+
+    before          after
+    0deg    4        4
+    90deg   0        4
+    180deg  0        4
+    270deg  0        4
+
+Not degradation — **total loss**. Tesseract's own orientation detection gets
+the angle right every time on a legible image (90→90, 180→180, 270→270), so
+`_upright()` asks it and turns the page before reading.
+
+> ⚠️ **It asks; it never assumes.** The guess carries a confidence, and on a
+> degraded image it is noise: the 1024-px thumbnail of a genuinely sideways
+> page scored **0.43 and answered "rotate 0"**. Acting on a guess that weak
+> would turn UPRIGHT pages over and break imports that work today, so anything
+> below `MIN_ORIENTATION_CONF` is ignored. A clean page scores 4.6-7.1.
+
+### What went right, and it is the part that matters
+
+**Nothing garbage reached staging.** Every page returned `ok=False`, zero
+records and a stated reason. The patient is told the document could not be
+read — not shown an empty table that reads as "this document contained no
+results" (§3aa), and not given invented rows. 384 words of OCR noise produced
+no clinical record at all.
+
+That is the design working as intended under the worst input it has seen.
+
+### Verified
+
+    backend   177 passed across seven document suites — 6 new tests, including
+              all four orientations and an unreadable-photo case
+    ruff      F,E9 clean
+
+### STILL OPEN
+
+- **48a. The real test has not happened.** It needs **full-resolution exports**
+  of those photographs — AirDrop or "Export Unmodified Original" rather than a
+  Photos derivative. Until then the honest statement is "untested on a real
+  photograph", exactly as 47c said.
+- **48b. A page that is upright but WARPED is untested.** The operator's paper
+  is curled and shadowed; rotation is the only geometric correction here. No
+  deskew, no perspective correction, no glare handling.
+- **48c. Nothing tells the patient WHY a photo failed.** "No measurements could
+  be read" is honest and unhelpful — it does not distinguish "too blurry",
+  "too small", "sideways and I could not tell", or "this is not a report".
+  Word count and mean confidence are already measured and could say which.
+- **48d. A dialysis flowsheet still has no target table** (46a). Page 1 of this
+  very report classified as `dialysis_flowsheet` — so even read perfectly, it
+  has nowhere to go. That decision is still the operator's.

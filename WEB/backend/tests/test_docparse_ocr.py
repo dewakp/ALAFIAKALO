@@ -206,3 +206,89 @@ async def _token(client, email: str) -> str:
     r = await client.post("/api/v1/auth/login",
                           data={"username": email, "password": "SecureP@ss123"})
     return r.json()["access_token"]
+
+
+@pytest.mark.asyncio
+class TestASidewaysPageIsTurnedUpright:
+    """Found on the operator's REAL photographs, 2026-10-16.
+
+    A five-page report laid on a desk and photographed: several pages are
+    sideways, because that is how paper ends up when you turn to it.
+
+    ⚠️ **Rotation is not degradation, it is total loss.** Measured on the test
+    fixture, same page, four orientations, before the fix:
+
+        0deg    records=4
+        90deg   records=0
+        180deg  records=0
+        270deg  records=0
+
+    `--psm 6` assumes horizontal lines, so a sideways page reads as nothing.
+    """
+
+    @pytest.mark.parametrize("angle", [0, 90, 180, 270])
+    async def test_a_page_reads_the_same_whichever_way_it_was_photographed(
+            self, angle):
+        from pdf2image import convert_from_bytes
+
+        from app.services.docparse import pipeline
+
+        page = convert_from_bytes(wrapped_range_pdf(), dpi=200)[0]
+        turned = page.rotate(angle, expand=True)
+        buffer = io.BytesIO()
+        turned.convert("RGB").save(buffer, "JPEG", quality=88)
+
+        parsed = await pipeline.parse(buffer.getvalue(), "p.jpeg", "image/jpeg")
+        names = [r.test_name for r in parsed.records]
+        assert names == ["A/G Ratio", "Albumin", "Alkaline Phosphatase",
+                         "ACTUAL DAYS/WEEK TREATED"], (
+            f"a page photographed at {angle} degrees read as {names}")
+
+    async def test_an_upright_page_is_NOT_turned(self):
+        """⚠️ The dangerous direction. Tesseract's orientation guess carries a
+        confidence, and on a degraded image it is noise: a 1024-px thumbnail of
+        a genuinely sideways page scored **0.43 and said "rotate 0"**. Acting
+        on a guess that weak would turn upright pages over and lose documents
+        that currently work, so a low-confidence answer is ignored."""
+        from PIL import Image
+
+        from app.services.docparse import ocr
+
+        # A blank page gives the detector nothing to go on.
+        blank = Image.new("L", (1700, 2200), "white")
+        _image, turned = ocr._upright(blank)
+        assert turned == 0, "an unreadable page must not be rotated on a guess"
+
+
+@pytest.mark.asyncio
+class TestAnUnreadablePhotoSaysSo:
+
+    async def test_a_photo_too_poor_to_read_reports_it(self):
+        """⚠️ Measured on the operator's real photographs: at 1024 px on the
+        long edge, every page produced **0 records**. The text came back as
+        fragments — "tment", "Detal", "eport" from "Treatment Details Report" —
+        because upscaling a thumbnail cannot invent detail that was never
+        captured.
+
+        The result that matters is that it FAILED HONESTLY: `ok=False`, zero
+        records, and a stated reason. Nothing garbage reached staging, and the
+        screen does not show an empty table that reads as "this document
+        contained no results" (§3aa).
+        """
+        from PIL import Image
+
+        from app.services.docparse import pipeline
+
+        # Noise, not a document.
+        import random
+        random.seed(7)
+        noise = Image.new("L", (900, 1200))
+        noise.putdata([random.randint(0, 255) for _ in range(900 * 1200)])
+        buffer = io.BytesIO()
+        noise.convert("RGB").save(buffer, "JPEG", quality=60)
+
+        parsed = await pipeline.parse(buffer.getvalue(), "blurry.jpeg",
+                                      "image/jpeg")
+        assert not parsed.records
+        assert parsed.ok is False
+        assert parsed.error_detail, "an unreadable photo must explain itself"
