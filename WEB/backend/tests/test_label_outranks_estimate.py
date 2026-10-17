@@ -30,6 +30,7 @@ import datetime
 import uuid
 
 import pytest
+import pytest_asyncio
 
 from app.core.security import get_current_user
 from app.main import app
@@ -208,3 +209,79 @@ async def test_a_panel_with_no_serving_WEIGHT_is_not_learned_as_a_density(db, mo
     agg = meal["aggregate_nutrients"]
     assert agg["calories"] == 190.0, "the meal itself must still read the label"
     assert learned == [], f"nothing may be learned without a serving weight: {learned}"
+
+
+# ── a labelled product is measured by its own serving ────────────────────
+
+#: The real seeded row, copied from production rather than invented: per-100 g
+#: values and the carton's own 244.8 g serving. Seeding it here is deliberate —
+#: a test that passed only because the dev database happened to hold this row
+#: would be measuring the database, not the code.
+BOOST_PER_100G = {
+    "calories": 77.6144, "protein_g": 6.5359, "fat_g": 2.8595,
+    "carbs_g": 6.5359, "fiber_g": 1.2255, "sugar_g": 1.634,
+    "sodium_mg": 81.6993, "potassium_mg": 102.1242, "phosphorus_mg": 127.6552,
+}
+
+
+@pytest_asyncio.fixture
+async def boost_label(db):
+    """One carton: 244.8 g, so 190 kcal / 16 g protein / 312.5 mg phosphorus."""
+    from app.models.learned_nutrient import LearnedFoodNutrient
+
+    db.add(LearnedFoodNutrient(
+        food_name_normalized="boost glucose control",
+        food_name_original="Boost Glucose Control",
+        nutrients=dict(BOOST_PER_100G),
+        serving_weight_g=244.8, source="label", sample_count=1, confidence=1.0,
+    ))
+    await db.commit()
+
+@pytest.mark.asyncio
+async def test_a_learned_product_uses_its_own_serving_not_100g(db, boost_label):
+    """51g. `qty_text == "default"` is the parser saying no portion was
+    stated, so 100 g is a placeholder. For a product learned from a label it
+    is the wrong number: the carton is 244.8 g and 190 kcal, and the patient
+    had to type "8 fl oz" to get it."""
+    from app.services.nutrient_estimator import estimate_meal_nutrients
+
+    meal = await estimate_meal_nutrients(db, "Boost Glucose Control", notes=None)
+    agg = meal["aggregate_nutrients"]
+    assert round(agg["calories"]) == 190, agg["calories"]
+    assert round(agg["protein_g"]) == 16
+
+
+@pytest.mark.asyncio
+async def test_the_renal_numbers_survive_a_label(db, boost_label):
+    """51f. A panel lists what a label must print — not phosphorus, not
+    potassium. Filling them from the store is the difference between a
+    dialysis patient's two governing numbers being present and being None."""
+    from app.services.nutrient_estimator import estimate_meal_nutrients
+
+    meal = await estimate_meal_nutrients(db, FOOD, notes=PANEL)
+    agg = meal["aggregate_nutrients"]
+    assert round(agg["calories"]) == 190
+    assert round(agg.get("phosphorus_mg") or 0) == 312, agg.get("phosphorus_mg")
+    assert round(agg.get("potassium_mg") or 0) == 250, agg.get("potassium_mg")
+
+
+@pytest.mark.asyncio
+async def test_a_descriptor_in_brackets_is_not_a_second_food(db, boost_label):
+    """The vision caption path produces "NAME (what it is)". Expanded as
+    ingredients it added 30 g of an unrelated USDA "nutritional drink"."""
+    from app.services.nutrient_estimator import estimate_meal_nutrients
+
+    meal = await estimate_meal_nutrients(db, FOOD, notes=None)
+    assert len(meal["components"]) == 1, [c["food_name"] for c in meal["components"]]
+    assert round(meal["aggregate_nutrients"]["calories"]) == 190
+
+
+@pytest.mark.asyncio
+async def test_a_bracket_that_holds_real_food_is_still_food(db, boost_label):
+    """The other half: "(with 2 eggs)" carries a digit and the word "with",
+    so it is an ingredient list and must not be discarded."""
+    from app.services.nutrient_estimator import estimate_meal_nutrients
+
+    meal = await estimate_meal_nutrients(db, "Boost Glucose Control (with 2 eggs)", notes=None)
+    names = [c["food_name"] for c in meal["components"]]
+    assert len(names) > 1, names

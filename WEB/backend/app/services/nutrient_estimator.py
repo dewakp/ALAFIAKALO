@@ -908,7 +908,36 @@ async def estimate_meal_nutrients(
         if facts and description and description.strip():
             facts["name"] = description.strip()[:120]
     if facts:
-        serving_g = facts["serving_g"] or 100.0
+        # ── What the panel does NOT say, the store may already know ──────────
+        #
+        # A printed panel states values PER SERVING and usually does not say
+        # what the serving WEIGHS, and it lists the macros a label is required
+        # to carry — not phosphorus, not potassium. So a correctly-read label
+        # produced calories and protein and then `None` for the two numbers a
+        # dialysis patient is actually managed on, while the figures sat in
+        # `learned_food_nutrients` the whole time (this carton: 127.6552 mg
+        # phosphorus and 102.1242 mg potassium per 100 g, 244.8 g per serving
+        # → 312.5 and 250).
+        #
+        # This is a LOOKUP IN WHAT WE HAVE LEARNED, never a table of products:
+        # the name comes from the parser, the values come from the store, and
+        # both improve on their own as labels are read. Nothing here knows what
+        # Boost is.
+        from app.services.learned_nutrient_service import get_learned
+        from app.services.meal_parser import parse_meal_text as _parse
+
+        known = None
+        try:
+            # The parser's name, not the raw description — it is what the store
+            # is keyed by, and it is what strips a trailing "(nutritional
+            # drink)" so the product can be found at all.
+            parsed_first = (_parse(description) or [None])[0]
+            if parsed_first is not None:
+                known = await get_learned(db, parsed_first.food_name)
+        except Exception:  # noqa: BLE001 — enrichment is a bonus, never a gate
+            logger.exception("Could not consult learned values for %r", description[:60])
+
+        serving_g = facts["serving_g"] or (known or {}).get("serving_weight_g") or 100.0
         per100 = {k: round(v * 100.0 / serving_g, 4) for k, v in facts["nutrients"].items()}
         per100, warnings, believable = plausibility.review(facts["name"], per100)
         # ⚠️ LEARN ONLY WHEN THE SERVING MASS IS KNOWN.
@@ -937,6 +966,15 @@ async def estimate_meal_nutrients(
                 "but not learning a per-100 g density from it",
                 facts["name"][:60])
         scaled = {k: round(v * serving_g / 100.0, 4) for k, v in per100.items()}
+        # The panel is authoritative for everything it states. What it is
+        # SILENT about is filled from what has been learned, scaled to the same
+        # serving — so a label that prints no phosphorus no longer erases a
+        # phosphorus we already know. A stated value is never overwritten.
+        if known:
+            for key, value in (known.get("nutrients") or {}).items():
+                if key in scaled or not isinstance(value, (int, float)):
+                    continue
+                scaled[key] = round(float(value) * serving_g / 100.0, 4)
         return {
             "description": description,
             "components": [{
@@ -963,6 +1001,42 @@ async def estimate_meal_nutrients(
     from app.services import locale_units
     vol_factors = locale_units.volume_factors(country, preferred_units, locale)
     components = parse_meal_text(food_text or description, vol_factors=vol_factors)
+
+    # ── "NAME (what it is)" is one thing, not two ───────────────────────────
+    #
+    # The parser expands a parenthetical as recipe sub-ingredients, which is
+    # right for "Jollof rice (rice, tomatoes, pepper, oil)" — those were eaten.
+    # It is wrong for an APPOSITION: "Boost Glucose Control (nutritional
+    # drink)" became 100 g of Boost plus 30 g of an unrelated USDA "nutritional
+    # drink", and the vision caption path produces exactly that shape.
+    #
+    # The anchor is the LEARNING STORE, not a list of products: if the head
+    # resolves to something we have learned from a label, it is a packaged item
+    # sold as one serving, and a trailing parenthetical describes it. Nothing
+    # here knows what Boost is, and it improves as more labels are read.
+    #
+    # Two shape conditions keep it from eating real food:
+    #   * the description is exactly HEAD (TAIL) — nothing after the bracket;
+    #   * TAIL carries no digit and no "with"/"plus", so "(with 2 eggs)" and
+    #     "(and rice)" are still treated as food.
+    if len(components) > 1:
+        shape = re.match(r"^\s*([^()]+?)\s*\(([^()]*)\)\s*$", (food_text or description))
+        if shape:
+            tail = shape.group(2).lower()
+            looks_like_a_descriptor = (
+                not any(ch.isdigit() for ch in tail)
+                and not re.search(r"\b(with|plus|and)\b", tail)
+            )
+            if looks_like_a_descriptor:
+                from app.services.learned_nutrient_service import get_learned
+                head_known = await get_learned(db, components[0].food_name)
+                if head_known and head_known.get("serving_weight_g"):
+                    logger.info(
+                        "Treating %r as a descriptor of the labelled product %r, "
+                        "not as a separate food", shape.group(2)[:40],
+                        components[0].food_name[:40])
+                    components = components[:1]
+
     if not components:
         # Nothing but facts ("170 mg calcium, 6 g fat") is still worth keeping.
         if stated:
@@ -988,9 +1062,32 @@ async def estimate_meal_nutrients(
         est = await estimate_nutrients(db, comp.food_name)
         per_100g = dict(est.get("nutrients") or {})
 
+        # ── A LEARNED product is measured by its own serving, not by 100 g ──
+        #
+        # `qty_text == "default"` is the parser saying the patient stated no
+        # portion, so 100 g is a placeholder rather than a measurement. For a
+        # food we have learned from a label that is simply the wrong number:
+        # "Boost Glucose Control" scored 77.6 kcal where the carton — the only
+        # way it is sold — is 244.8 g and 190 kcal, and the patient had to
+        # write "8 fl oz" to get the right answer. Understating by 2.45x also
+        # understates its phosphorus and potassium by 2.45x.
+        #
+        # Deliberately NARROW: only the learned store, only when no portion was
+        # stated. USDA rows carry serving sizes too, and adopting those would
+        # silently re-portion every food in the product. The learned store is
+        # the one that grows from labels we have actually read.
+        portion_g, portion_text = comp.qty_g, comp.qty_text
+        if comp.qty_text == "default" and est.get("source") == "learned":
+            learned_serving = est.get("serving_weight_g")
+            if isinstance(learned_serving, (int, float)) and learned_serving > 0:
+                portion_g = float(learned_serving)
+                # Say where the portion came from. "default" reads as a guess
+                # and this no longer is one (§3aa).
+                portion_text = f"1 serving ({portion_g:.0f} g, from the label)"
+
         # Input-side believability: cap an implausibly large parsed portion
         # (usually a count misread as grams, e.g. "100 of chicken thigh").
-        qty_g, parse_warnings = plausibility.validate_parse(comp.food_name, comp.qty_g)
+        qty_g, parse_warnings = plausibility.validate_parse(comp.food_name, portion_g)
 
         # Per-100 g hard ceiling backstop (the review step already clamps to 902).
         cal = per_100g.get("calories")
@@ -1012,7 +1109,7 @@ async def estimate_meal_nutrients(
         component_results.append({
             "food_name": comp.food_name,
             "qty_g": qty_g,
-            "qty_text": comp.qty_text,
+            "qty_text": portion_text,
             "source": est.get("source"),
             "fdc_id": est.get("fdc_id"),
             "confidence": est.get("confidence", 0.0),

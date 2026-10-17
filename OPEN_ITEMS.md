@@ -4801,3 +4801,43 @@ less data**. The screen never says why (§3aa). **NOT fixed** — see 51e.
   repair what it already imported. The affected rows hold wrong values (108)
   and absent ones ("unavailable"), and correcting them writes to a real record,
   so it is the operator's call.
+
+### 51f/51g/51i. Fixed — the renal numbers, the serving, and the descriptor — 2026-10-17
+
+All three answered from the LEARNING STORE, never a table of products. Nothing
+added here knows what Boost is; the name comes from the parser, the values from
+`learned_food_nutrients`, and both improve as more labels are read.
+
+    input                              before            after
+    your row + the panel      190/16/16/7, P None   190/16/16/7, P 312.5  K 250.0
+    your row, no panel            107.9 (2 foods)   190/16/16/7, P 312.5  K 250.0
+    bare "Boost Glucose Control"             77.6   190/16/16/7, P 312.5  K 250.0
+    "8 fl oz Boost Glucose Control"   190 (right)   unchanged
+    "2 eggs"                          143 @ 100 g   unchanged
+
+- **51f** — a panel lists what a label is REQUIRED to print, which is not
+  phosphorus and not potassium. What the panel is silent about is now filled
+  from the store, scaled to the same serving; a stated value is never
+  overwritten.
+- **51g** — `qty_text == "default"` is the parser stating that no portion was
+  given, so 100 g is a placeholder. For a product learned from a label the
+  serving governs, and the component now says `1 serving (245 g, from the
+  label)` rather than `default` (§3aa). Deliberately narrow: learned rows only.
+  USDA rows carry serving sizes too and adopting those would silently
+  re-portion every food in the product.
+- **51i** — "NAME (what it is)" is one thing. Anchored on the head resolving
+  to a learned label, plus two shape conditions so `(with 2 eggs)` and
+  `(and rice)` are still food: the description must be exactly `HEAD (TAIL)`,
+  and TAIL must carry no digit and no with/plus/and.
+
+> ⚠️ **Fixing 51g alone would have made your row WORSE**, and only measuring
+> caught it: with the first component correctly at 244.8 g and the descriptor
+> still eaten, the total went 107.9 → **220.3**. Two errors had been cancelling.
+> A fix verified on the case it targets can still regress the case it does not.
+
+**Residual risk, stated rather than discovered later:** 51i can drop a real
+food if someone writes a labelled product followed by a bracketed ingredient
+with no digit and no conjunction — `"Boost Glucose Control (banana)"` would
+lose the banana. The guard is shape plus the learned anchor; it is not proof.
+
+**12 tests, 8 of them guards** that fail against the shipped code.
