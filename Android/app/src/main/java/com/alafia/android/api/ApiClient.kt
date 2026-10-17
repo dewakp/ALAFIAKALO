@@ -46,7 +46,15 @@ object ApiClient {
             val clientBuilder = OkHttpClient.Builder()
                 .cache(cache)
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
+                // ⚠️ This governs SENDING a body, and the app now uploads
+                // PHOTOGRAPHS: a five-page report measured 14.4 MB in one
+                // multipart POST. 30 s is ample for JSON and short for that on
+                // mobile data, and the failure would look exactly like the web
+                // one it is being fixed alongside — the server reads the
+                // document, the client has already given up, and the patient
+                // is told it could not be read. Raised to the same 285 s rung
+                // as the read timeout, still below Cloud Run's 300.
+                .writeTimeout(285, TimeUnit.SECONDS)
                 // The AI stream runs a tool loop before it can say anything, and a
                 // cold Ollama fallback is ~250s all in. This is an IDLE timeout, so
                 // the progress frames now keep it fed — but the final round can

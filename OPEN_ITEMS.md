@@ -4841,3 +4841,69 @@ with no digit and no conjunction — `"Boost Glucose Control (banana)"` would
 lose the banana. The guard is shape plus the learned anchor; it is not proof.
 
 **12 tests, 8 of them guards** that fail against the shipped code.
+
+---
+
+## 52. The photographs WERE read. The browser gave up at 30 s — 2026-10-17
+
+Operator: *"real photographs are not working for therapy and labs"*, with
+`The documents could not be read.` on five uploaded photos.
+
+**The server read them. Twice.** Production request log:
+
+    2026-10-17 23:32:06   200   latency 59.58s   15,136,126 bytes
+    2026-10-17 03:46:58   200   latency 64.72s   15,136,126 bytes
+
+Both **200**. `PdfTools.jsx` posts with the axios default — **30 000 ms**, the
+value meant for CRUD — so the browser aborted at 30 s, fell into the `catch`,
+and rendered its generic message while the backend worked on and succeeded.
+§3ae: *"unavailable usually means slower than the client"*, and §3aa: an error
+is not an empty state, least of all when the work completed.
+
+iOS already used 285 s for this exact upload (`PdfToolsView.swift:280`). §3av's
+rule applies — the platform that handles it correctly is the specification —
+so web now matches, and Android's **`writeTimeout` of 30 s** is raised too: it
+governs SENDING a 14.4 MB multipart body, and would fail the same way on mobile
+data while its `readTimeout` was already 285.
+
+### What the patient would have seen, had they seen it
+
+The uploads staged ten imports nobody ever reached:
+
+    id  file             doc_type             method  items
+     9  IMG_0553.jpeg    unknown              ocr       0
+    10  IMG_0552.jpeg    unknown              ocr       0
+    11  IMG_0551.jpeg    discharge_summary    ocr       0
+    12  IMG_0550.jpeg    dialysis_flowsheet   ocr       0
+    13  IMG_0549.jpeg    dialysis_flowsheet   ocr       0
+            (the same five again at 23:32, ids 14-18)
+
+**This settles 48a, which has been open since the OCR work shipped.** Those are
+real photographs at ~3 MB each, not the 1024-px derivatives measured before.
+
+- `extraction_method = ocr`, not `unreadable` — **Tesseract ran and recognised
+  text.**
+- `doc_type` came back `dialysis_flowsheet` and `discharge_summary`, which the
+  classifier can only reach by reading words off the photo.
+- And **every one extracted zero measurements.**
+
+So OCR was never the blocker. The gap is **recognised words → rows**: the
+layout parser works from the column geometry of a rendered PDF, and a
+hand-held photograph of a flowsheet does not present that geometry. 47d
+(deskew, perspective, glare) is the same finding from the other side.
+
+### Still open
+
+- **52a. A photographed flowsheet yields no rows**, which is the actual
+  feature. Nothing here changes that — this entry only means the patient now
+  SEES the honest failure instead of a timeout. The next measurement is the
+  OCR word list for one of these photos against the same page as a PDF.
+- **52b. Even parsed rows have nowhere to go** — a dialysis flowsheet still has
+  no target table (46a/48d), and two of these five classify as exactly that.
+- **52c. Ten failed imports are sitting on the record** from the two aborted
+  attempts. They wrote no clinical rows (`items 0`), so they are clutter rather
+  than contamination, and clearing them is the operator's call.
+- **52d. The parse is synchronous.** A 60-second request is inside Cloud Run's
+  300 s today, but twelve files are allowed and five took sixty seconds.
+  Staging belongs in a background task with the row polled, the shape §3c
+  already uses for nutrition.

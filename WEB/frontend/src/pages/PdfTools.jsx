@@ -2,7 +2,7 @@
 // All rights reserved. ALAFIA — proprietary and confidential.
 
 import { useState } from 'react';
-import api from '../services/api';
+import api, { AI_TIMEOUT_MS } from '../services/api';
 import { FileText, Download, Upload, FileBarChart, Check, X, AlertTriangle } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { t } from '../i18n';
@@ -105,7 +105,25 @@ function ImportDocument() {
       const fd = new FormData();
       // Every part is named `files` — that is what makes FastAPI bind a list.
       files.forEach(f => fd.append('files', f));
-      const { data } = await api.post('/pdf/parse-documents', fd);
+      // ⚠️ Reading a PHOTOGRAPH is nothing like reading a PDF, and the default
+      // 30 s is for CRUD. Measured in production on five photos, 14.4 MB:
+      //
+      //     23:32:06  200  latency 59.58s
+      //     03:46:58  200  latency 64.72s
+      //
+      // Both requests SUCCEEDED — the server OCR'd every page and answered —
+      // and the browser had already aborted at 30 s, so the patient was told
+      // "The documents could not be read." twice about documents that were
+      // read. §3ae: "unavailable" usually means slower than the client, and
+      // §3aa: an error is not an empty state, least of all when the work
+      // actually completed.
+      //
+      // 285 s is the documented client rung of the ladder, below
+      // OLLAMA_TIMEOUT 290 and Cloud Run's 300 — and iOS already used it for
+      // this very upload (PdfToolsView.swift:280), so this is web catching up
+      // with the platform that had it right (§3av).
+      const { data } = await api.post('/pdf/parse-documents', fd,
+                                      { timeout: AI_TIMEOUT_MS });
       setBatch(data.documents || []);
       // Open the first document that actually parsed, rather than always the
       // first file: landing on an error card hides the work that succeeded.
