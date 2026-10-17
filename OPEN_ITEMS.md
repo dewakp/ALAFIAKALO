@@ -4700,3 +4700,104 @@ as credential materialization, correctly. The inputs are confirmed in the
 serving image, so the probe cannot raise; what nobody has yet seen is the
 endpoint saying so. §3bg's rule applies to me as much as to a document: an
 inference from confirmed inputs is not a reading.
+
+---
+
+## 51. A correct label reading was available and a fabricated number stored over it — 2026-10-17
+
+Operator, on a production row: *"Read label correctly, provided with hints yet
+recorded wrong values. Also ignore all information and recorded unavailable"*
+and *"Making up numbers when the actual values can be read from image is not a
+drift but malpractice. We addressed this over 100 turns ago."*
+
+Both statements are correct, including the last one. The capability exists, it
+works, and nothing asked it.
+
+### What was stored vs what was available
+
+    the label, and the form      190 kcal · 16 g protein · 16 g carbs · 7 g fat
+    the stored row               108 · 7.8 · 11.7 · 3.4   "composite meal (130 g)"
+
+Reproduced exactly from the food name alone:
+
+    "Boost Glucose Control (nutritional drink)"
+      -> 'boost glucose control'   100.0 g    (the learned serving is 244.8 g)
+       + 'nutritional drink'        30.0 g    (the DESCRIPTOR, as a second food,
+                                               resolved to USDA fdc 2710714)
+      =  107.9144 / 7.8019 / 11.7259 / 3.3665    — the production row, to 4 d.p.
+
+And the correct answer was one call away the whole time:
+
+    estimate_meal_nutrients(food, notes=<the typed panel>)  -> 190.0/16.0/16.0/7.0
+    "8 fl oz Boost Glucose Control"                         -> 190.0/16.0/16.0/7.0
+
+### Four defects, each measured
+
+**51a. The PATCH route re-estimated only on a NAME change.** `notes` is
+authoritative label text to the estimator — its own comment says *"if the text
+carries an explicit label, TRUST it (no re-estimation) … Fixes 'I gave the
+right numbers and it still computed something else' (the Boost case)"* — but
+typing the panel into Notes triggered nothing, so the row stayed `done` at 108
+forever. **Fixed:** a change to `notes` or `serving_size` that yields a panel
+re-estimates, gated on `extract_nutrition_facts` rather than on "did this field
+change", so appending "tasted good" still changes nothing.
+
+**51b. `_enrich` never read `serving_size`.** The patient typed the label into
+both free-text fields; only one was read. §3ar's dead control, on the
+authoritative source. **Fixed:** notes keeps precedence (it is longer, so it
+carries the full panel), `serving_size` is the fallback.
+
+**51c. The label path named the food after its own numbers.** Measured, created
+fresh by a single test run:
+
+    learned_food_nutrients ->
+      "190 calories, 16 g of protein, 16 g of carbs, 3g of fiber, 4"   100 g, source=label
+
+That is §3am's poisoned `boost glucose control contains` row happening again,
+in a SHARED store preferred over USDA and AI. `extract_nutrition_facts` fills
+`name` with the panel's leading text, so the guard `if not facts.get("name")`
+could never fire. **Fixed:** a panel arriving from a different field than the
+food name always takes the description as its name.
+
+**51d. A panel with no serving WEIGHT was learned as a per-100 g density.**
+`serving_g = facts["serving_g"] or 100.0` asserts a mass nobody stated: an
+8 fl oz carton's 190 kcal filed as 190 kcal/100 g, when the carton is 244.8 g
+and the truth is 77.6 — a **2.45x overstatement learned from a correct label**,
+then preferred over USDA for every later meal (§3c). **Fixed:** the meal still
+reads the label; nothing is learned unless the serving mass is known.
+
+### The "unavailable" rows are the same root cause
+
+    "Rice and beans in onions, tomatoes, peppers and cheeses, 1 Lamb chop in
+     Stew (with peppers, tomatoes and onions, oil, salt, 5 spices)"
+      -> 10 components, 512 g, including 'with peppers' 2.5 g and 'salt' 2.85 g
+      -> believable=False  ('salt: sodium exceeds pure-salt density')
+      -> nutrient_status='failed'  -> the screen says "unavailable"
+
+One invented pseudo-component voids the whole meal, so nine sound components
+are discarded and **the patient who described their food more carefully gets
+less data**. The screen never says why (§3aa). **NOT fixed** — see 51e.
+
+### Still open
+
+- **51e. One impossible component should not void the meal**, and a rejection
+  must state its reason on screen rather than rendering "unavailable". Touching
+  this means softening §3am's deliberate *"storing an impossible number is worse
+  than storing none"*, so it needs the caveat to actually reach all three
+  clients — not a quiet relaxation of the guard.
+- ⚠️ **51f. The label path returns NO phosphorus and NO potassium.** Measured
+  end to end: with the panel, `phosphorus_mg` and `potassium_mg` are **None**;
+  without it they were 165.8 and 175.6 — wrong, from the bogus composite. The
+  stored label row holds the true figures (312.5 mg P, 250 mg K for one
+  carton). So the fix trades a wrong number for an absent one, which is right
+  (§3ab) and still not the answer: **for a dialysis patient these are the two
+  numbers that matter most.** The panel should state what it states, and the
+  matching labelled product should fill what it does not.
+- **51g. A labelled product is still portioned at 100 g** when no portion is
+  stated — `Boost Glucose Control` alone yields 77.6 kcal, not 190, because
+  the learned row's own `serving_weight_g = 244.8` is ignored. 51f and 51g are
+  one fix: let a labelled product's own serving govern.
+- **51h. Nothing repairs the rows already stored.** §3ab: a parser fix does not
+  repair what it already imported. The affected rows hold wrong values (108)
+  and absent ones ("unavailable"), and correcting them writes to a real record,
+  so it is the operator's call.

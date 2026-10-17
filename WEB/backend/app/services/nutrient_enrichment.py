@@ -68,6 +68,7 @@ async def enrich_log(log_id: int, *, overwrite_zeros: bool = False) -> None:
 
 async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
     from app.core.nutrition_data import DB_COLUMN_KEYS
+    from app.services.meal_parser import extract_nutrition_facts
     from app.services.nutrient_estimator import estimate_meal_nutrients, estimate_nutrients
 
     async with async_session() as db:
@@ -93,7 +94,22 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
         #
         # (Multi-item still MUST NOT use the single path: that one merges per-100 g
         # densities, which for a list produces an impossible number — CLAUDE.md §3c.)
-        meal = await estimate_meal_nutrients(db, log.food_name, notes=log.notes)
+        # A printed panel may arrive in EITHER free-text field. `notes` has been
+        # read as label text since the estimator was written; `serving_size` was
+        # not, and on the row that exposed this the patient had typed the label
+        # into both — the obvious places to put "190 Calories, 16 g of Protein".
+        # A field a patient fills that nothing reads is a dead control (§3ar),
+        # and here it was a dead control on the authoritative source.
+        #
+        # `notes` keeps precedence: it is the longer field, so it carries the
+        # full panel where `serving_size` is usually truncated to what fits.
+        # Only text that actually yields a panel is considered, so an ordinary
+        # "1 cup" or "composite meal" changes nothing.
+        label_text = log.notes
+        if not extract_nutrition_facts(label_text or ""):
+            if extract_nutrition_facts(log.serving_size or ""):
+                label_text = log.serving_size
+        meal = await estimate_meal_nutrients(db, log.food_name, notes=label_text)
         nutrients = meal.get("aggregate_nutrients") or {}
         components = meal.get("components") or []
         # Keep the USDA provenance link when the meal resolved to one known food.

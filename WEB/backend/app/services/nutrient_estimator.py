@@ -892,17 +892,50 @@ async def estimate_meal_nutrients(
     facts = extract_nutrition_facts(description)
     if not facts and notes:
         facts = extract_nutrition_facts(notes)
-        if facts and not facts.get("name"):
+        # ⚠️ The panel came from a DIFFERENT FIELD than the food name, so the
+        # name must come from the description — always, not only when
+        # `extract_nutrition_facts` left it blank. It never leaves it blank: it
+        # fills `name` with the panel's own leading text, so the old guard could
+        # not fire and the food was named after its numbers. Measured:
+        #
+        #   learned_food_nutrients ->
+        #     "190 calories, 16 g of protein, 16 g of carbs, 3g of fiber, 4"
+        #
+        # That is §3am's poisoned row created afresh — the same shape as the
+        # `boost glucose control contains` entry still in that table. The store
+        # is SHARED and preferred over USDA and AI, so one bad row is served to
+        # every patient forever.
+        if facts and description and description.strip():
             facts["name"] = description.strip()[:120]
     if facts:
         serving_g = facts["serving_g"] or 100.0
         per100 = {k: round(v * 100.0 / serving_g, 4) for k, v in facts["nutrients"].items()}
         per100, warnings, believable = plausibility.review(facts["name"], per100)
-        try:
-            from app.services.learned_nutrient_service import record_correction
-            await record_correction(db, facts["name"], per100, serving_weight_g=serving_g, source="label")
-        except Exception:  # learning is best-effort; never block the estimate
-            logger.exception("Failed to persist label values for '%s'", facts["name"])
+        # ⚠️ LEARN ONLY WHEN THE SERVING MASS IS KNOWN.
+        #
+        # A panel states values PER SERVING. Without the serving's weight there
+        # is no density to store, and `serving_g or 100.0` silently asserts one:
+        # "190 Calories … 16 g of Protein" off an 8 fl oz carton would be filed
+        # as 190 kcal per 100 g, when the carton is 244.8 g and the true figure
+        # is 77.6. That row is then preferred over USDA for every later meal —
+        # a 2.45x overstatement learned from a correct label. §3c: store per-100
+        # GRAMS, and a derived number that looks measured is how a wrong figure
+        # becomes authoritative.
+        #
+        # The ESTIMATE below is unaffected: the panel is this serving, and
+        # scaling by `serving_g/100` returns exactly what was printed.
+        if facts.get("serving_g"):
+            try:
+                from app.services.learned_nutrient_service import record_correction
+                await record_correction(db, facts["name"], per100,
+                                        serving_weight_g=facts["serving_g"], source="label")
+            except Exception:  # learning is best-effort; never block the estimate
+                logger.exception("Failed to persist label values for '%s'", facts["name"])
+        else:
+            logger.info(
+                "Label for %r states no serving weight — using it for THIS meal "
+                "but not learning a per-100 g density from it",
+                facts["name"][:60])
         scaled = {k: round(v * serving_g / 100.0, 4) for k, v in per100.items()}
         return {
             "description": description,

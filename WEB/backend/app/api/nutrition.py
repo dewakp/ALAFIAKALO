@@ -850,7 +850,36 @@ async def update_nutrition_log(
         fields.get(k) is not None for k in ("calories", "protein_g", "carbs_g", "fat_g")
     )
 
-    if name_changed and not supplied_nutrients and not fields.get("fdc_id"):
+    # A PRINTED LABEL arriving in notes or serving_size is new evidence, and it
+    # outranks anything that was estimated from a name.
+    #
+    # `estimate_meal_nutrients` has treated the notes field as authoritative
+    # label text since it was written — "if the text carries an explicit label,
+    # TRUST it (no re-estimation)" — and it works: fed this row's notes it
+    # returns 190 / 16 / 16 / 7, the carton exactly. But the ONLY trigger for
+    # re-estimation here was a changed NAME, so a patient who went back and
+    # typed the panel values into Notes changed nothing at all. The row kept
+    # 108 kcal — a figure assembled by splitting "Boost Glucose Control
+    # (nutritional drink)" into 100 g of Boost plus 30 g of an unrelated USDA
+    # "nutritional drink" — while the label sat in the same row, parsed and
+    # ignored. A correct reading was available and a fabricated number was
+    # stored over it; on a renal patient that also understated phosphorus and
+    # potassium by the same 2.45x.
+    #
+    # The guard is `extract_nutrition_facts`, the estimator's own parser, not a
+    # "did this field change" test: a patient appending "tasted good" must not
+    # wipe values, and only text that actually yields a nutrition panel does.
+    from app.services.meal_parser import extract_nutrition_facts
+
+    label_text_changed = False
+    for column in ("notes", "serving_size"):
+        if column not in fields:
+            continue
+        if extract_nutrition_facts(fields.get(column) or ""):
+            label_text_changed = True
+            break
+
+    if (name_changed or label_text_changed) and not supplied_nutrients and not fields.get("fdc_id"):
         # Clear what no longer describes this row rather than leaving it to be
         # read as fact. `pending` is what the clients already render as
         # "estimating…", so this reuses the path the create flow established
