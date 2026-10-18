@@ -139,6 +139,16 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
         # Storing an impossible number is worse than storing none: it is
         # indistinguishable from food the patient ate, and it inflates every
         # daily total and every answer built on them.
+        # A partial total must never pass unremarked. The meal is stored, which
+        # is right — the alternative was discarding every sound component beside
+        # the flagged one — but a number that omits an item reads as the whole
+        # meal, so the omission is logged with the row id and the names.
+        if meal.get("excluded_components"):
+            logger.warning(
+                "Log %s stores a PARTIAL total for %r — not counted: %s",
+                log_id, (log.food_name or "")[:60],
+                ", ".join(meal["excluded_components"])[:200])
+
         if meal.get("believable") is False:
             log.nutrient_status = "failed"
             await db.commit()

@@ -5009,3 +5009,71 @@ The label resolves both directions at once:
 Averaging is forbidden in **both** branches, and the distinction is now about
 WHICH value to report — the label's own, once; or the sum — rather than about
 whether to merge.
+
+---
+
+## 54. "Used to work, stopped working" — a cached category voids a whole meal — 2026-10-18
+
+Operator: *"labels fixed but model is returning no computed/aggregate nutrient
+values … things that used to work stop working reliably."*
+
+Reproduced on their own rows, and the result contradicted the obvious story —
+which is the finding:
+
+    "1 boiled egg, 1 cup of tea, 1 slice of kiwi"   stored 92 kcal in production
+        NOW: believable=False
+        tea: 1 kcal/100g is outside the expected 22-110 for 'tea_coffee'
+
+    "Banana, numb earl grey tea"                    unavailable
+        numb earl grey tea: 1 kcal/100g outside 30-160 for 'DAIRY'
+
+    "Organic Milk (Pasteurized, Nonfat), Protein Drink ..."   unavailable
+        components: milk | pasteurized 16 g | nonfat 14 g | carton 100 g
+
+**Plain tea really is about 1 kcal/100 g. The BAND is wrong, not the value.**
+And the band is chosen from `food_category_cache`, which is filled the first
+time a name is seen — so the same text can be judged differently on different
+days with nothing about the meal having changed. That is the mechanism behind
+"it used to work": the stored row was written before that name acquired a
+category, and the category it later acquired rejects it.
+
+`"numb earl grey tea"` resolving to **dairy** and `"carton"` being priced as
+food are the same cache answering a question it cannot answer.
+
+### Fixed: the collateral damage, not the cause
+
+    "believable": all(c.get("believable", True) for c in component_results) ...
+
+One flagged component made the whole meal unbelievable, `_enrich` marked it
+`failed`, and the screen said **"unavailable"** — discarding every sound
+component beside it. Now a flagged component is EXCLUDED from the total, the
+rest is kept, and the omission is stated first in `warnings`:
+
+    banana + tea        97.0 kcal   NOT COUNTED: numb earl grey tea
+    milk snack         193.4 kcal   NOT COUNTED: milk, carton
+    egg/tea/kiwi        89.8 kcal   NOT COUNTED: tea
+
+§3am's rule survives intact — an impossible number is still never stored, a
+meal with nothing countable is still refused, and the 3,892 kcal / 394 g fat
+case is still refused by `review_meal` on the kept aggregate. `total_weight_g`
+now counts only what was counted, or the density check would compare one set of
+nutrients against another set's mass.
+
+### Still open — and the second item is the real cause
+
+- ⚠️ **54a. A partial total is invisible to the patient.** It is logged with
+  the row id and the excluded names, and `excluded_components` rides on the
+  estimator result — but nothing stores it against the row and no client draws
+  it. The milk snack above shows why that matters: the real milk was dropped as
+  a wrong match, so 193 kcal UNDERCOUNTS, and the screen will show it like any
+  other number. A new `nutrient_status` was deliberately NOT invented —
+  `record_tools.py:309` treats any status outside `(None, "done")` as
+  unusable, so "partial" would have hidden these meals from the assistant.
+  This needs a column and three clients, which is why it is written down rather
+  than bolted on.
+- **54b. The bands and the categories are the cause and are untouched.**
+  `tea_coffee` 22-110 kcal/100 g cannot hold plain tea; nothing should price a
+  `carton`; and a category cached once is never revisited. A band that rejects
+  a true value teaches its reader to ignore the guard (§3ab).
+- **54c. The parser still makes foods out of adjectives** — `pasteurized`,
+  `nonfat` — which is §51i's problem in a sentence without brackets.

@@ -1055,6 +1055,8 @@ async def estimate_meal_nutrients(
 
     component_results: list[dict] = []
     aggregate: dict[str, float] = {}
+    excluded: list[str] = []      # components the guard refused, named for the caller
+    kept_weight_g: float = 0.0    # grams actually counted into `aggregate`
 
     from app.services import plausibility
 
@@ -1102,9 +1104,39 @@ async def estimate_meal_nutrients(
             if isinstance(val, (int, float))
         }
 
-        # Accumulate into meal totals
-        for key, val in scaled.items():
-            aggregate[key] = round(aggregate.get(key, 0.0) + val, 4)
+        # ── ONE BAD COMPONENT MUST NOT VOID THE WHOLE MEAL ─────────────────
+        #
+        # Operator, 2026-10-18: *"things that used to work stop working
+        # reliably."* Measured on their own rows:
+        #
+        #   "1 boiled egg, 1 cup of tea, 1 slice of kiwi"   stored 92 kcal,
+        #       and now reports  tea: 1 kcal/100g is outside the expected
+        #       22-110 for 'tea_coffee'  -> whole meal rejected
+        #   "Banana, numb earl grey tea"  -> "numb earl grey tea" categorised
+        #       DAIRY, band 30-160, so 1 kcal/100g is "impossible"
+        #   "Organic Milk (Pasteurized, Nonfat), ..." -> components `pasteurized`
+        #       16 g, `nonfat` 14 g, `carton` 100 g
+        #
+        # Plain tea IS about 1 kcal/100 g. The BAND is wrong, not the value —
+        # and the band comes from `food_category_cache`, which is filled the
+        # first time a name is seen. So the same text can be judged differently
+        # on different days, which is exactly "it used to work": nothing in the
+        # meal changed, the cached category did.
+        #
+        # Excluding the flagged component keeps §3am's rule — an impossible
+        # number is still never stored — while ending the collateral damage of
+        # discarding everything beside it. Most of what it removes is parser
+        # debris (`carton`, `pasteurized`) or a wrong match, which is precisely
+        # what should be removed.
+        component_believable = (
+            est.get("believable", True) and est.get("out_of_band") is not True
+        )
+        if component_believable:
+            kept_weight_g += qty_g
+            for key, val in scaled.items():
+                aggregate[key] = round(aggregate.get(key, 0.0) + val, 4)
+        else:
+            excluded.append(comp.food_name)
 
         component_results.append({
             "food_name": comp.food_name,
@@ -1115,10 +1147,14 @@ async def estimate_meal_nutrients(
             "confidence": est.get("confidence", 0.0),
             "nutrients_scaled": scaled,
             "warnings": (est.get("plausibility_warnings") or []) + parse_warnings,
-            "believable": est.get("believable", True) and est.get("out_of_band") is not True,
+            "believable": component_believable,
         })
 
-    total_weight_g = round(sum(c.qty_g for c in components), 1)
+    # The weight of what was actually COUNTED. Keeping the excluded component's
+    # grams here would hand `review_meal` a total whose nutrients and mass come
+    # from different sets of food, and the density it checks would be wrong by
+    # construction.
+    total_weight_g = round(kept_weight_g, 1)
 
     # Anything the user stated OUTRANKS the estimate — they read it off the pot.
     if stated:
@@ -1135,6 +1171,15 @@ async def estimate_meal_nutrients(
     for c in component_results:
         for w in c["warnings"]:
             warnings.append(f"{c['food_name']}: {w}")
+    if excluded:
+        # Say it plainly and FIRST. A total that silently omits an item reads
+        # as the whole meal, and a quiet undercount is the failure this change
+        # could introduce if the exclusion were not stated (§3aa).
+        warnings.insert(0, (
+            "NOT COUNTED in this total: " + ", ".join(excluded)
+            + " — the estimate for each was outside the plausible range for "
+              "its food category, so it was left out rather than discarding "
+              "the whole meal."))
 
     return {
         "description": description,
@@ -1142,6 +1187,11 @@ async def estimate_meal_nutrients(
         "aggregate_nutrients": aggregate,
         "total_weight_g": total_weight_g,
         "warnings": warnings,
-        "believable": all(c.get("believable", True) for c in component_results) and not
-                      plausibility.review_meal(total_weight_g, aggregate),
+        "excluded_components": excluded,
+        # The meal stands on what SURVIVED. It is unbelievable only when
+        # nothing was countable at all, or when the kept total is itself
+        # impossible — the 3,892 kcal / 394 g fat case is still refused,
+        # because that verdict comes from `review_meal` on the kept aggregate.
+        "believable": bool(aggregate) and not plausibility.review_meal(
+            total_weight_g, aggregate),
     }
