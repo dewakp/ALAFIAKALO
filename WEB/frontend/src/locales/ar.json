@@ -1989,7 +1989,8 @@
     "today": "اليوم",
     "text_7_days": "7 أيام",
     "text_30_days": "30 يومًا",
-    "all": "الكل"
+    "all": "الكل",
+    "not_counted": "غير محسوبة: {{foods}}"
   },
   "Pantry": {
     "pantry_refrigerator": "المخزن والثلاجة",

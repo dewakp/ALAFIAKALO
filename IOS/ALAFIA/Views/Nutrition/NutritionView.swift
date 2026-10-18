@@ -658,6 +658,22 @@ struct NutritionRow: View {
                     Text("unavailable").font(.caption2).foregroundStyle(.orange)
                 }
             }
+            // A PARTIAL total must say so. A meal used to be discarded whole
+            // when one component was flagged; it is now kept minus that
+            // component, so this figure can omit something the patient ate —
+            // and a number that omits an item reads as the whole meal unless
+            // it is labelled.
+            if log.hasPartialTotal {
+                // `Text("… \(value)")` is a LocalizedStringKey with an
+                // interpolation segment, so the catalog key is
+                // "Not counted: %@" and the names are substituted. Wrapping an
+                // already-interpolated String in AppLanguage.text() would make
+                // the whole formatted sentence the key, which can never match
+                // a catalog entry (§3aw).
+                Text("Not counted: \((log.nutrientsExcluded ?? []).joined(separator: ", "))")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
             HStack(spacing: 12) {
                 if let p = log.proteinG { MacroPill(label: "P", value: p, color: .blue) }
                 if let c = log.carbsG { MacroPill(label: "C", value: c, color: .orange) }

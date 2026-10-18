@@ -1989,7 +1989,8 @@
     "today": "Taa",
     "text_7_days": "Ụbọchị 7",
     "text_30_days": "Ụbọchị 30",
-    "all": "Niile"
+    "all": "Niile",
+    "not_counted": "Ejighi a gbakọrọ: {{foods}}"
   },
   "Pantry": {
     "pantry_refrigerator": "Ụlọ Ihe Ọjị & Icebox",

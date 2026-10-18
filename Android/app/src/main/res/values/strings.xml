@@ -559,6 +559,9 @@
     <string name="see_the_photo_of_this_meal">See the photo of this meal</string>
     <string name="kcal">%1$s kcal</string>
     <string name="estimating">estimating…</string>
+    <!-- Shown beside a meal total that omits a component the plausibility
+         guard refused. %1$s is the list of omitted food names. -->
+    <string name="not_counted_in_this_total">Not counted: %1$s</string>
     <string name="unavailable">unavailable</string>
     <string name="edit_this_meal">Edit this meal</string>
     <string name="nutrient_breakdown_daily_value">Nutrient Breakdown — % Daily Value</string>

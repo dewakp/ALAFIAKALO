@@ -29,6 +29,26 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
+def _session_factory(session):
+    """`async_session()` stand-in that yields the test's session.
+
+    `_enrich` deliberately opens its own session (the request's is closed by
+    then), and `backend-test`'s DATABASE_URL points at a localhost that is the
+    container itself — so without this the function cannot reach any database.
+    """
+    class _Ctx:
+        def __call__(self):
+            return self
+
+        async def __aenter__(self):
+            return session
+
+        async def __aexit__(self, *exc):
+            return False
+
+    return _Ctx()
+
+
 class _Comp:
     def __init__(self, name, qty_g, qty_text="default"):
         self.food_name = name
@@ -120,3 +140,82 @@ async def test_a_meal_level_impossibility_is_still_refused(monkeypatch, db):
         {"sardines": ({"calories": 997.0, "fat_g": 78.0}, True)},
     )
     assert meal["believable"] is False, meal["warnings"]
+
+
+# ── the omission must reach the ROW, not just a log line ─────────────────
+
+async def test_the_exclusion_is_stored_on_the_row(monkeypatch, db):
+    """54a. Operator chose this over fixing the bands first.
+
+    A log line reaches nobody who can act on it. The patient is the one who
+    needs to know their total is partial, so the names live on the row and
+    travel to all three clients.
+    """
+    import datetime
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services import nutrient_enrichment as ne
+
+    user = User(email=f"excl{__import__('uuid').uuid4().hex[:8]}@example.com",
+                hashed_password="x", full_name="T")
+    db.add(user)
+    await db.flush()
+    log = NutritionLog(user_id=user.id, log_date=datetime.date(2026, 10, 18),
+                       meal_type="breakfast", food_name="banana, carton",
+                       nutrient_status="pending")
+    db.add(log)
+    await db.commit()
+    await db.refresh(log)
+
+    async def fake_meal(db_, description, notes=None, **kw):
+        return {"description": description,
+                "components": [], "aggregate_nutrients": {"calories": 89.0},
+                "total_weight_g": 100.0, "warnings": [],
+                "excluded_components": ["carton"], "believable": True}
+
+    # Patch at the SOURCE module: `_enrich` imports it inside the function.
+    monkeypatch.setattr("app.services.nutrient_estimator.estimate_meal_nutrients",
+                        fake_meal)
+    # `_enrich` opens its OWN session, and backend-test's DATABASE_URL is an
+    # unreachable localhost — so hand it the test session instead of letting it
+    # try to connect.
+    monkeypatch.setattr(ne, "async_session", _session_factory(db))
+    await ne._enrich(log.id)
+    await db.refresh(log)
+    assert log.nutrients_excluded == ["carton"]
+    assert log.calories == 89.0
+
+
+async def test_a_clean_re_estimate_CLEARS_a_stale_exclusion(monkeypatch, db):
+    """The half that is easy to miss: a caveat must not outlive its cause.
+    Without this, correcting a meal leaves it warning about an omission that
+    no longer exists."""
+    import datetime
+
+    from app.models.nutrition import NutritionLog
+    from app.models.user import User
+    from app.services import nutrient_enrichment as ne
+
+    user = User(email=f"excl{__import__('uuid').uuid4().hex[:8]}@example.com",
+                hashed_password="x", full_name="T")
+    db.add(user)
+    await db.flush()
+    log = NutritionLog(user_id=user.id, log_date=datetime.date(2026, 10, 18),
+                       meal_type="breakfast", food_name="banana",
+                       nutrient_status="pending", nutrients_excluded=["carton"])
+    db.add(log)
+    await db.commit()
+    await db.refresh(log)
+
+    async def clean_meal(db_, description, notes=None, **kw):
+        return {"description": description, "components": [],
+                "aggregate_nutrients": {"calories": 89.0}, "total_weight_g": 100.0,
+                "warnings": [], "excluded_components": [], "believable": True}
+
+    monkeypatch.setattr("app.services.nutrient_estimator.estimate_meal_nutrients",
+                        clean_meal)
+    monkeypatch.setattr(ne, "async_session", _session_factory(db))
+    await ne._enrich(log.id)
+    await db.refresh(log)
+    assert log.nutrients_excluded is None

@@ -549,6 +549,7 @@
     <string name="see_the_photo_of_this_meal">Duba hoto na wannan abinci</string>
     <string name="kcal">%1$s kcal</string>
     <string name="estimating">ana ƙididdige…</string>
+    <string name="not_counted_in_this_total">Ba a kirga: %1$s</string>
     <string name="unavailable">ba a samu ba</string>
     <string name="edit_this_meal">Gyara wannan abinci</string>
     <string name="nutrient_breakdown_daily_value">Rarrabuwar Abubuwan Gida — % Ƙimar Yau</string>

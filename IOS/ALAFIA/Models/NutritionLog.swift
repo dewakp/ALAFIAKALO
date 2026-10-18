@@ -21,6 +21,13 @@ struct NutritionLog: Codable, Identifiable {
     let nutrientStatus: String?
     var nutrientsPending: Bool { nutrientStatus == "pending" }
 
+    /// Components the plausibility guard refused, so the totals below OMIT
+    /// them. A meal used to be discarded whole when one component was flagged;
+    /// it is now kept minus that component, so a total can silently undercount
+    /// unless the omission is shown. Optional: an older backend omits it.
+    let nutrientsExcluded: [String]?
+    var hasPartialTotal: Bool { !(nutrientsExcluded ?? []).isEmpty }
+
     // Macronutrients
     let calories: Double?
     let proteinG: Double?
@@ -95,6 +102,7 @@ struct NutritionLog: Codable, Identifiable {
         case servingSize = "serving_size"
         case fdcId = "fdc_id"
         case nutrientStatus = "nutrient_status"
+        case nutrientsExcluded = "nutrients_excluded"
         case proteinG = "protein_g"
         case carbsG = "carbs_g"
         case fatG = "fat_g"

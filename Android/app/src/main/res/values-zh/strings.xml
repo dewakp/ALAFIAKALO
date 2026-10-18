@@ -549,6 +549,7 @@
     <string name="see_the_photo_of_this_meal">查看此餐食的照片</string>
     <string name="kcal">%1$s 千卡</string>
     <string name="estimating">估算中…</string>
+    <string name="not_counted_in_this_total">未计入：%1$s</string>
     <string name="unavailable">不可用</string>
     <string name="edit_this_meal">编辑此餐食</string>
     <string name="nutrient_breakdown_daily_value">营养成分分解 — 每日价值百分比</string>

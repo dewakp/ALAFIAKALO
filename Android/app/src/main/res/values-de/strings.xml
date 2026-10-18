@@ -549,6 +549,7 @@
     <string name="see_the_photo_of_this_meal">Foto dieser Mahlzeit ansehen</string>
     <string name="kcal">%1$s kcal</string>
     <string name="estimating">wird geschätzt…</string>
+    <string name="not_counted_in_this_total">Nicht gezählt: %1$s</string>
     <string name="unavailable">nicht verfügbar</string>
     <string name="edit_this_meal">Diese Mahlzeit bearbeiten</string>
     <string name="nutrient_breakdown_daily_value">Nährstoffaufschlüsselung — % Tageswert</string>

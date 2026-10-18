@@ -549,6 +549,7 @@
     <string name="see_the_photo_of_this_meal">Hụ foto nke nri a</string>
     <string name="kcal">%1$s kcal</string>
     <string name="estimating">na-atụle…</string>
+    <string name="not_counted_in_this_total">Ejighi: %1$s</string>
     <string name="unavailable">enweghị</string>
     <string name="edit_this_meal">Dezie nri a</string>
     <string name="nutrient_breakdown_daily_value">Nkọwa Uru — % Ụbọchị Ọ Kwesịrị</string>

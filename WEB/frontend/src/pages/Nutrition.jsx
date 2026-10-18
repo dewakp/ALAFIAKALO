@@ -1038,7 +1038,23 @@ export default function Nutrition() {
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
                       {log.calories != null
-                        ? Math.round(log.calories)
+                        ? <>
+                            {Math.round(log.calories)}
+                            {/* A PARTIAL total must say so. A meal used to be
+                                discarded whole when one component was flagged;
+                                it is now kept minus that component, so this
+                                figure can omit something the patient ate — and
+                                a number that omits an item reads as the whole
+                                meal unless it is labelled (§3aa). */}
+                            {log.nutrients_excluded?.length > 0 && (
+                              <div style={{ fontSize: '.65rem', color: '#b45309',
+                                            fontFamily: 'inherit', fontWeight: 400,
+                                            marginTop: 2, whiteSpace: 'normal' }}>
+                                {translate('Nutrition.not_counted', {
+                                  foods: log.nutrients_excluded.join(', ') })}
+                              </div>
+                            )}
+                          </>
                         : log.nutrient_status === 'pending'
                           ? <span title={translate('Nutrition.working_out_the_nutrients_for_this_meal')}
                               style={{ fontSize: '.7rem', color: 'var(--color-text-tertiary)', fontFamily: 'inherit' }}>

@@ -1989,7 +1989,8 @@
     "today": "Ọ̀nì yìí",
     "text_7_days": "Ọjọ́ 7",
     "text_30_days": "Ọjọ́ 30",
-    "all": "Gbogbo"
+    "all": "Gbogbo",
+    "not_counted": "A kọ̀: {{foods}}"
   },
   "Pantry": {
     "pantry_refrigerator": "Ilé Ìfipamọ́ & Ìtọ́",

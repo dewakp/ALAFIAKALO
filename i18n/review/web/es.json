@@ -10721,6 +10721,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Nutrition.not_counted": {
+    "source": "Not counted: {{foods}}",
+    "translation": "No contabilizado: {{foods}}",
+    "status": "machine",
+    "translated_on": "2026-10-18"
+  },
   "Nutrition.notes": {
     "source": "Notes",
     "translation": "Notas",

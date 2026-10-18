@@ -143,11 +143,21 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
         # is right — the alternative was discarding every sound component beside
         # the flagged one — but a number that omits an item reads as the whole
         # meal, so the omission is logged with the row id and the names.
-        if meal.get("excluded_components"):
+        # Store it on the row, not only in a log line. The patient is the one
+        # who needs to know their total is partial, and a log reaches nobody
+        # who can act on it (§3ar — the readiness message that only the wrong
+        # audience ever saw).
+        #
+        # Written on EVERY path, including the empty case: a re-estimate that
+        # finds nothing excluded must CLEAR a caveat left by an earlier run, or
+        # the row keeps warning about an omission that no longer exists.
+        excluded = [str(name) for name in (meal.get("excluded_components") or [])]
+        log.nutrients_excluded = excluded or None
+
+        if excluded:
             logger.warning(
                 "Log %s stores a PARTIAL total for %r — not counted: %s",
-                log_id, (log.food_name or "")[:60],
-                ", ".join(meal["excluded_components"])[:200])
+                log_id, (log.food_name or "")[:60], ", ".join(excluded)[:200])
 
         if meal.get("believable") is False:
             log.nutrient_status = "failed"

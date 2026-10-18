@@ -4631,6 +4631,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "not_counted_in_this_total": {
+    "source": "Not counted: %1$s",
+    "translation": "غير محسوب: %1$s",
+    "status": "machine",
+    "translated_on": "2026-10-18"
+  },
   "not_enough_data_yet": {
     "source": "Not enough data yet",
     "translation": "البيانات غير كافية حتى الآن",

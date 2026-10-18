@@ -549,6 +549,7 @@
     <string name="see_the_photo_of_this_meal">Ver la foto de esta comida</string>
     <string name="kcal">%1$s kcal</string>
     <string name="estimating">estimando…</string>
+    <string name="not_counted_in_this_total">No contabilizado: %1$s</string>
     <string name="unavailable">no disponible</string>
     <string name="edit_this_meal">Editar esta comida</string>
     <string name="nutrient_breakdown_daily_value">Desglose de nutrientes — % Valor diario</string>

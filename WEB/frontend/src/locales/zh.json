@@ -1989,7 +1989,8 @@
     "today": "今天",
     "text_7_days": "7天",
     "text_30_days": "30天",
-    "all": "全部"
+    "all": "全部",
+    "not_counted": "未计入：{{foods}}"
   },
   "Pantry": {
     "pantry_refrigerator": "食品储藏室和冰箱",

@@ -5077,3 +5077,36 @@ nutrients against another set's mass.
   a true value teaches its reader to ignore the guard (§3ab).
 - **54c. The parser still makes foods out of adjectives** — `pasteurized`,
   `nonfat` — which is §51i's problem in a sentence without brackets.
+
+### 54a-FIXED. A partial total now says what it left out — 2026-10-18
+
+Operator, choosing between the cause and the visibility: *"do 54a first."*
+
+`nutrition_logs.nutrients_excluded` (migration `as001`, additive, one nullable
+JSON column) carries the names of components the guard refused, and all three
+clients draw them under the figure:
+
+    193 kcal
+    Not counted: milk, carton
+
+- **Names, not a sentence.** A sentence composed server-side would reach eleven
+  languages in English (§3aw). Each client writes its own line; the ten
+  translations were produced by `scripts/i18n/translate_catalogs.py` and are
+  recorded as `machine` in `i18n/review/` until someone who reads the language
+  marks them reviewed. Placeholders survived — `Non compté : {{foods}}`,
+  `未计入：{{foods}}`.
+- **NOT a `nutrient_status` value.** "partial" was the obvious shape and is
+  wrong: `record_tools.py:309` treats any status outside `(None, "done")` as
+  unusable, so a partial meal would have become invisible to the assistant.
+- **It is CLEARED as well as written.** A re-estimate that excludes nothing
+  sets the column back to NULL, or a caveat outlives the cause and the row
+  keeps warning about an omission that no longer exists.
+- Existing rows stay NULL. Exclusions that happened before the column existed
+  were never recorded and must not be invented.
+
+⚠️ **iOS will show this string in English in ten languages until someone
+re-exports.** `Text("Not counted: \(names)")` is the correct localisable form,
+but the iOS catalog only refreshes when a person runs
+`xcodebuild -exportLocalizations`, so `test_catalogs.py` cannot see the new key
+and did not flag it — §3bf's "a catalog test can only see what the export last
+put in front of it", now costing a string rather than catching one.

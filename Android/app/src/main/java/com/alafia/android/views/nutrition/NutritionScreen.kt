@@ -580,8 +580,23 @@ private fun NutritionLogCard(
                     }
                 }
                 if (log.calories != null) {
-                    Text(stringResource(R.string.kcal, log.calories.toInt()), style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                    // A PARTIAL total must say so. A meal used to be discarded
+                    // whole when one component was flagged; it is now kept
+                    // minus that component, so this number can omit something
+                    // the patient ate — and a number that omits an item reads
+                    // as the whole meal unless it is labelled.
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(stringResource(R.string.kcal, log.calories.toInt()), style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                        val excluded = log.nutrientsExcluded.orEmpty()
+                        if (excluded.isNotEmpty()) {
+                            Text(
+                                stringResource(R.string.not_counted_in_this_total, excluded.joinToString(", ")),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
                 } else if (log.nutrientStatus == "pending") {
                     // Nutrients are computed after the meal is saved; say so
                     // rather than showing nothing, which reads as zero calories.

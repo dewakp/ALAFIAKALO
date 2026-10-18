@@ -549,6 +549,7 @@
     <string name="see_the_photo_of_this_meal">اعرض صورة هذه الوجبة</string>
     <string name="kcal">%1$s سعرة حرارية</string>
     <string name="estimating">جاري التقدير…</string>
+    <string name="not_counted_in_this_total">غير محسوب: %1$s</string>
     <string name="unavailable">غير متاح</string>
     <string name="edit_this_meal">تعديل هذه الوجبة</string>
     <string name="nutrient_breakdown_daily_value">تفصيل العناصر الغذائية — % من القيمة اليومية</string>

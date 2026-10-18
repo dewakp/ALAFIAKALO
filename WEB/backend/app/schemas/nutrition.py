@@ -188,6 +188,10 @@ class NutritionLogResponse(BaseModel):
     # values are still arriving, so it shows a placeholder rather than a
     # misleading zero.
     nutrient_status: str = "skipped"
+    # Components the plausibility guard refused, so the totals below OMIT them.
+    # Names only — each client writes its own line in the patient's language;
+    # a sentence composed here would reach eleven languages in English (§3aw).
+    nutrients_excluded: list[str] | None = None
     log_date: date
     meal_type: str
     food_name: str

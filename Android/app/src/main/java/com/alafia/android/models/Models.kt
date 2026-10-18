@@ -86,6 +86,12 @@ data class NutritionLog(
     // is saved, so a fresh entry arrives with no values and status "pending" —
     // show that rather than a blank, which reads as "zero calories".
     @SerializedName("nutrient_status") val nutrientStatus: String? = null,
+    // Components the plausibility guard refused, so the total below OMITS them.
+    // A meal used to be discarded whole when one component was flagged; it is
+    // now kept minus that component, which means a total can silently
+    // undercount unless the omission is shown. Nullable: an older backend does
+    // not send it.
+    @SerializedName("nutrients_excluded") val nutrientsExcluded: List<String>? = null,
     val calories: Float?,
     @SerializedName("protein_g") val proteinG: Float?,
     @SerializedName("carbs_g") val carbsG: Float?,

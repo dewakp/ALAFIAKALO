@@ -45,6 +45,12 @@ const PARSED = {
 let postImpl;
 let getImpl;
 vi.mock('../services/api', () => ({
+  // The module exports AI_TIMEOUT_MS alongside the default client, and the
+  // page imports it: reading a PHOTOGRAPH takes about a minute, so the upload
+  // cannot run on the 30 s CRUD default. A default-only mock makes every
+  // importer throw at load time — Dashboard.test.jsx says the same thing, and
+  // this file still broke on it.
+  AI_TIMEOUT_MS: 285000,
   default: {
     post: (...args) => postImpl(...args),
     get: (...args) => getImpl(...args),

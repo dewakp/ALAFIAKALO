@@ -106,6 +106,14 @@ class NutritionLog(Base):
         String(16), default="skipped", nullable=False, server_default="skipped"
     )
 
+    # Components the plausibility guard refused, so the totals on this row OMIT
+    # them. A meal used to be discarded whole when one component was flagged
+    # (the screen said "unavailable"); it is now kept minus that component, and
+    # a total that omits an item reads as the whole meal unless it says so.
+    # NULL means nothing was excluded — rows written before this column existed
+    # keep NULL rather than having an exclusion invented for them.
+    nutrients_excluded: Mapped[list | None] = mapped_column(JSON, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

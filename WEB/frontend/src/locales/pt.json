@@ -1989,7 +1989,8 @@
     "today": "Hoje",
     "text_7_days": "7 dias",
     "text_30_days": "30 dias",
-    "all": "Tudo"
+    "all": "Tudo",
+    "not_counted": "Não contabilizado: {{foods}}"
   },
   "Pantry": {
     "pantry_refrigerator": "Despensa e Geladeira",

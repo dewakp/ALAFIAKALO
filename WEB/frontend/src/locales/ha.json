@@ -1989,7 +1989,8 @@
     "today": "Jiya",
     "text_7_days": "Kwanaki 7",
     "text_30_days": "Kwanaki 30",
-    "all": "Duka"
+    "all": "Duka",
+    "not_counted": "Ba a kirga: {{foods}}"
   },
   "Pantry": {
     "pantry_refrigerator": "Gida & Firiji",

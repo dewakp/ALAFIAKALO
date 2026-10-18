@@ -549,6 +549,7 @@
     <string name="see_the_photo_of_this_meal">Angalia picha ya chakula hiki</string>
     <string name="kcal">%1$s kcal</string>
     <string name="estimating">inakadiria…</string>
+    <string name="not_counted_in_this_total">Haijahesabiwa: %1$s</string>
     <string name="unavailable">haipatikani</string>
     <string name="edit_this_meal">Hariri chakula hiki</string>
     <string name="nutrient_breakdown_daily_value">Muhtasari wa Virutubishi — % Thamani ya Kila Siku</string>
