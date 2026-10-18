@@ -145,9 +145,12 @@ def test_multi_image_sends_one_call_with_all_images(monkeypatch):
     assert len(calls) == 1, "multiple photos must be analysed in a single call"
     sent_images, prompt = calls[0]
     assert [raw for raw, _ in sent_images] == [b"one", b"two", b"three"]
-    # The anti-double-count instruction is attached only for multi-image input.
-    assert "3 photos of THE SAME meal" in prompt
-    assert "Do NOT count a dish more than once" in prompt
+    # The multi-image instruction is attached only for multi-image input.
+    assert "3 photos of ONE meal" in prompt
+    # Both directions must be stated: a repeat is not a second serving, AND
+    # two different products are not one averaged product.
+    assert "Do not count it twice" in prompt
+    assert "NEVER average two items together" in prompt
     # One combined reading, not one per photo.
     assert result.data["estimated_nutrition"]["calories"] == 330
     assert result.data["image_count"] == 3
@@ -165,7 +168,8 @@ def test_single_image_omits_multi_image_rule(monkeypatch):
 
     monkeypatch.setattr(VisionCapability, "_vision_chat", fake_vision_chat)
     _run(cap.infer({"task": "food_photo_nutrition", "image_bytes": b"img"}))
-    assert "THE SAME meal" not in prompts[0]
+    assert "NEVER average two items together" not in prompts[0]
+    assert "photos of ONE meal" not in prompts[0]
 
 
 def test_parse_json_extracts_embedded():
@@ -472,3 +476,56 @@ def test_an_image_question_without_a_question_is_refused():
     result = _run(VisionCapability().infer({"task": "image_question", "image_bytes": b"img"}))
     assert not result.success
     assert "question" in result.error
+
+
+# ── distinct labels ADD; they are never averaged ──────────────────────────
+
+def test_distinct_products_are_additive_not_averaged():
+    """Operator, 2026-10-17: *"multiple distinct labels are additive (not
+    averaged) unless otherwise stated in notes or elsewhere."*
+
+    Reported from production. Two photos, two real cartons, both labels read
+    CORRECTLY — 150 kcal / 10 g protein and 190 kcal / 16 g protein — and the
+    model returned 170 / 13 with the note *"Averaged nutrition reflects a
+    typical serving of one of these products."* 170 is true of neither carton,
+    and the two numbers it had just read were thrown away.
+
+    The old rule asserted the photos were "THE SAME meal (different angles)"
+    and spent three of its four lines preventing double-counting — "merge
+    duplicates", "do not inflate the totals" — so averaging was the obedient
+    answer. Both directions are now stated, and SEPARATE is the default.
+    """
+    from alafia_model.capabilities.vision import _MULTI_IMAGE_RULE
+
+    # Normalise the wrapping: these are prose instructions, and asserting on a
+    # phrase that happens to sit on one line makes the test break on a reflow
+    # rather than on a meaning change.
+    rule = " ".join(_MULTI_IMAGE_RULE.format(n=2).split())
+    assert "NEVER average two items together" in rule
+    assert "ADDS them up" in rule
+    # The default must be stated as separate, not merged.
+    assert "Listing separately is the default" in rule
+    # And the anti-double-count protection must survive (it was a real bug).
+    assert "Do not count it twice" in rule
+    # Operator: "the names, the composition are different" — that is the test
+    # for sameness, and two different printed values settle it on their own.
+    assert "The NAME and the COMPOSITION decide this" in rule
+    assert "cannot be the same carton from another angle" in rule
+
+
+def test_the_total_is_declared_to_be_a_sum():
+    """`estimated_nutrition` was never said to be the TOTAL, which is what let
+    an average look like a reasonable answer."""
+    from alafia_model.capabilities.vision import _FOOD_VISION_PROMPT
+
+    prompt = " ".join(_FOOD_VISION_PROMPT.split())
+    assert "TOTAL for EVERYTHING in `items`" in prompt
+    assert "never an average across items" in prompt
+
+
+def test_a_legible_label_is_read_rather_than_estimated():
+    """The same session measured a correctly-read label being replaced by an
+    estimate. The prompt now says to use the printed numbers."""
+    from alafia_model.capabilities.vision import _FOOD_VISION_PROMPT
+
+    assert "If a nutrition LABEL is legible" in " ".join(_FOOD_VISION_PROMPT.split())

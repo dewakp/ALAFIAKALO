@@ -4907,3 +4907,81 @@ hand-held photograph of a flowsheet does not present that geometry. 47d
   300 s today, but twelve files are allowed and five took sixty seconds.
   Staging belongs in a background task with the row polled, the shape §3c
   already uses for nutrition.
+
+---
+
+## 53. Two labels were AVERAGED, and the prompt asked for it — 2026-10-17
+
+Operator: *"multiple distinct labels are additive (not averaged) unless
+otherwise stated in notes or elsewhere"*, *"190 and 150 calories are not the
+same from different angle"*, *"the names, the composition are different"*.
+
+Two photos, two real cartons. The model read **both labels correctly** —
+150 kcal / 10 g protein, and 190 kcal / 16 g protein — then returned a single
+item named *"Milk (appears to be two different products shown)"* at
+**170 kcal / 13 g protein**, and said so in its own caption:
+
+> *"Averaged nutrition reflects a typical serving of one of these products."*
+
+170 is true of neither carton. The patient drank **340 kcal and 26 g of
+protein**. Two numbers that had just been read correctly were destroyed by the
+arithmetic applied to them — the same shape as §51, one layer earlier.
+
+### The prompt asked for exactly this
+
+`_MULTI_IMAGE_RULE` opened by ASSERTING the premise and then spent three of its
+four lines preventing the opposite error:
+
+    You are being shown {n} photos of THE SAME meal (different angles, ...)
+    - Do NOT count a dish more than once because it appears in more than one photo.
+    - Merge duplicates into a single item; use the clearest photo to judge portion.
+    - Only list a food twice if there are genuinely two separate servings visible.
+    - Use the extra angles to raise confidence, not to inflate the totals.
+
+It was written for a real, measured bug — llava looping on one dish until the
+token limit (§3a). But it tells a model that the photos ARE the same meal from
+different angles, then says merge, then says do not inflate the totals. Shown
+two different products, averaging is the obedient answer. **A rule written
+against one failure can command the opposite one**, and the single permissive
+line was outvoted three to one.
+
+`estimated_nutrition` was also never declared to be a TOTAL, which left an
+average looking like a legitimate reading of the schema.
+
+### Fixed
+
+- The photos are ONE MEAL, not one subject: the same item seen twice is one
+  entry, DIFFERENT items are separate entries and the total **adds**.
+- **Averaging is forbidden by name**, with the arithmetic spelled out, because
+  the model had to be told that 170 is true of neither carton.
+- **The NAME and the COMPOSITION decide sameness**, not the category — and two
+  different printed values settle it: 150 and 190 cannot be one carton from
+  another angle.
+- **Separate is the DEFAULT.** When the model cannot tell, it lists separately
+  and says so in notes; merging is the exception that needs evidence. That is
+  the operator's rule, stated as the default rather than as a hint.
+- `estimated_nutrition` is declared the TOTAL across `items`, and a legible
+  label is to be READ rather than estimated.
+- `/ai/vision`'s docstring no longer says "images of the SAME subject".
+
+**Anti-double-count protection is retained in full** — the llava looping bug it
+was written for is still guarded, and `_merge_repeated_items` still drops exact
+repeats. Both directions are now stated instead of one.
+
+### Still open
+
+- **53a. This is a PROMPT fix and nothing enforces the arithmetic.** The tests
+  pin what the prompt SAYS; they cannot pin what a model does with it. A
+  deterministic check — items carrying their own label values, summed in code
+  rather than by the model — is the durable version, and it needs the per-item
+  nutrition the schema does not currently carry.
+- **53b. The client copy still says "several shots of the same meal are read
+  together as one plate".** That remains true — a plate can hold two cartons —
+  so it was deliberately NOT changed, rather than churn eleven locales (§3aw).
+- ⚠️ **53c. 7 of 37 tests in `ML/tests/test_vision.py` fail in a bare
+  container** and did so before this change — the provider-order and
+  image-question cases, which need dependencies the slim image lacks. Measured
+  by running the suite against the stashed tree: 7 failed / 27 passed before,
+  7 failed / 30 passed after. They are environmental, not regressions, and a
+  suite that cannot reach its target is not evidence (§3bb) — so they should
+  either run where the deps exist or say plainly why they skip.

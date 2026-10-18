@@ -302,7 +302,12 @@ async def vision_understand(
 
     Form fields:
       file:  a single image (jpeg/png/webp ...) — the original single-shot field
-      files: up to 3 images of the SAME subject (e.g. a plate from two angles).
+      files: up to 3 images of ONE MEAL — the same food from several angles, or
+             different foods eaten together. They are NOT assumed to be the same
+             subject: two photos showing two different products are two things
+             consumed, and their nutrition ADDS. This said "the SAME subject"
+             until 2026-10-17, and the model obeyed it — shown a 150 kcal bottle
+             and a 190 kcal carton it reported 170, an average true of neither.
              They are analyzed in one model call and return ONE combined result,
              so a dish photographed twice is not counted twice.
       task:  "food_photo_nutrition" | "lab_report_ocr"

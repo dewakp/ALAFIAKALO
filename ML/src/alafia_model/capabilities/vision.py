@@ -62,6 +62,10 @@ Rules:
 - Estimates only — never claim precision. Use null when you cannot tell.
 - If the image has no food, return an empty items array and say so in notes.
 - Do NOT invent foods that are not visible.
+- `estimated_nutrition` is the TOTAL for EVERYTHING in `items` — the sum of
+  what was eaten, not one item's values and never an average across items.
+- If a nutrition LABEL is legible, use its printed numbers for that item rather
+  than estimating, and say in notes that the figures were read off the label.
 """
 
 # Appended when the caller sends several photos. They are shots of ONE meal, so
@@ -69,12 +73,26 @@ Rules:
 # here is counting the same plate once per photo and tripling the calories.
 _MULTI_IMAGE_RULE = """\
 
-You are being shown {n} photos of THE SAME meal (different angles, lighting, or
-close-ups). Analyze them together and return ONE combined result:
-- Do NOT count a dish more than once because it appears in more than one photo.
-- Merge duplicates into a single item; use the clearest photo to judge portion.
-- Only list a food twice if there are genuinely two separate servings visible.
-- Use the extra angles to raise confidence, not to inflate the totals.
+You are being shown {n} photos of ONE meal. They may be the same food from
+different angles, or they may be different foods that are part of the same meal.
+Analyze them together and return ONE combined result.
+
+Decide, for each thing you see, whether it is the SAME physical item appearing
+again or a DIFFERENT item:
+- The SAME item photographed twice is ONE entry. Do not count it twice; use the
+  clearest photo to judge its portion.
+- DIFFERENT items are SEPARATE entries, and `estimated_nutrition` ADDS them up.
+  Two different products — different brands, different labels, different
+  containers — are two things the patient consumed, even when both are milk.
+- The NAME and the COMPOSITION decide this, not the category. If two labels
+  print different values they are, by definition, not one item photographed
+  twice: 150 kcal and 190 kcal cannot be the same carton from another angle.
+- NEVER average two items together. An average of a 150 kcal bottle and a
+  190 kcal carton is 170, which is true of neither, and it silently discards
+  both numbers you just read correctly.
+- If you cannot tell whether it is the same item again, list the items
+  SEPARATELY and say in notes that you were unsure. Listing separately is the
+  default; merging is the exception that needs evidence.
 """
 
 # Framing for one fixed question about a photo (the Image AI screens). The
