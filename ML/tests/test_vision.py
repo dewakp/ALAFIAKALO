@@ -149,8 +149,8 @@ def test_multi_image_sends_one_call_with_all_images(monkeypatch):
     assert "3 photos of ONE meal" in prompt
     # Both directions must be stated: a repeat is not a second serving, AND
     # two different products are not one averaged product.
-    assert "Do not count it twice" in prompt
-    assert "NEVER average two items together" in prompt
+    assert "ONE entry, counted ONCE" in prompt
+    assert "NEVER average" in prompt
     # One combined reading, not one per photo.
     assert result.data["estimated_nutrition"]["calories"] == 330
     assert result.data["image_count"] == 3
@@ -168,7 +168,7 @@ def test_single_image_omits_multi_image_rule(monkeypatch):
 
     monkeypatch.setattr(VisionCapability, "_vision_chat", fake_vision_chat)
     _run(cap.infer({"task": "food_photo_nutrition", "image_bytes": b"img"}))
-    assert "NEVER average two items together" not in prompts[0]
+    assert "THE LABEL IS THE IDENTITY" not in prompts[0]
     assert "photos of ONE meal" not in prompts[0]
 
 
@@ -501,16 +501,25 @@ def test_distinct_products_are_additive_not_averaged():
     # phrase that happens to sit on one line makes the test break on a reflow
     # rather than on a meaning change.
     rule = " ".join(_MULTI_IMAGE_RULE.format(n=2).split())
-    assert "NEVER average two items together" in rule
-    assert "ADDS them up" in rule
+    assert "NEVER average" in rule
+    assert "ADDS them" in rule
     # The default must be stated as separate, not merged.
     assert "Listing separately is the default" in rule
-    # And the anti-double-count protection must survive (it was a real bug).
-    assert "Do not count it twice" in rule
-    # Operator: "the names, the composition are different" — that is the test
-    # for sameness, and two different printed values settle it on their own.
-    assert "The NAME and the COMPOSITION decide this" in rule
-    assert "cannot be the same carton from another angle" in rule
+
+    # Operator: "averaging is forbidden. However there are instances where the
+    # same item is pictured multiple times. THE KEY IS THE LABEL."
+    #
+    # The label is the identity, and it is what makes the rule work in BOTH
+    # directions. "Different printed values prove different items" is true and
+    # one-directional: it says nothing about three photos of ONE carton, where
+    # the answer is 190 once and not 570. Same label -> one entry however many
+    # photos; different labels -> add.
+    assert "THE LABEL IS THE IDENTITY" in rule
+    assert "ONE entry, counted ONCE" in rule
+    assert "DIFFERENT labels are DIFFERENT items" in rule
+    # The fallback when no label can be read, in that order.
+    assert "no label is legible" in rule
+    assert "fall back to the NAME and the COMPOSITION" in rule
 
 
 def test_the_total_is_declared_to_be_a_sum():

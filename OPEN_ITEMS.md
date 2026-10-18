@@ -4985,3 +4985,27 @@ repeats. Both directions are now stated instead of one.
   7 failed / 30 passed after. They are environmental, not regressions, and a
   suite that cannot reach its target is not evidence (§3bb) — so they should
   either run where the deps exist or say plainly why they skip.
+
+### 53d. Corrected: the LABEL is the identity, not the differing values — 2026-10-17
+
+Operator: *"averaging is forbidden. However there are instances where the same
+item is pictured multiple times. **the key is the label**."*
+
+The first fix keyed sameness on the NAME and the COMPOSITION, and leaned on
+*"two different printed values prove two different items"*. That is true and
+**one-directional**: it settles the two-carton case and says nothing about
+three photos of ONE carton, where the answer is 190 kcal once — not 570. A rule
+that only guards the direction you were just burned by is how `_MULTI_IMAGE_RULE`
+came to command averaging in the first place (53), and I had just reproduced
+the same mistake pointing the other way.
+
+The label resolves both directions at once:
+
+    same label, any number of photos   -> ONE entry, counted ONCE
+    different labels                   -> separate entries, totals ADD
+    no legible label                   -> name and composition
+    still unsure                       -> list separately, say so in notes
+
+Averaging is forbidden in **both** branches, and the distinction is now about
+WHICH value to report — the label's own, once; or the sum — rather than about
+whether to merge.

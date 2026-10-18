@@ -73,26 +73,23 @@ Rules:
 # here is counting the same plate once per photo and tripling the calories.
 _MULTI_IMAGE_RULE = """\
 
-You are being shown {n} photos of ONE meal. They may be the same food from
-different angles, or they may be different foods that are part of the same meal.
-Analyze them together and return ONE combined result.
+You are being shown {n} photos of ONE meal. They may be the same item
+photographed more than once, or different items eaten together. Analyze them
+together and return ONE combined result.
 
-Decide, for each thing you see, whether it is the SAME physical item appearing
-again or a DIFFERENT item:
-- The SAME item photographed twice is ONE entry. Do not count it twice; use the
-  clearest photo to judge its portion.
-- DIFFERENT items are SEPARATE entries, and `estimated_nutrition` ADDS them up.
-  Two different products — different brands, different labels, different
-  containers — are two things the patient consumed, even when both are milk.
-- The NAME and the COMPOSITION decide this, not the category. If two labels
-  print different values they are, by definition, not one item photographed
-  twice: 150 kcal and 190 kcal cannot be the same carton from another angle.
-- NEVER average two items together. An average of a 150 kcal bottle and a
-  190 kcal carton is 170, which is true of neither, and it silently discards
-  both numbers you just read correctly.
-- If you cannot tell whether it is the same item again, list the items
-  SEPARATELY and say in notes that you were unsure. Listing separately is the
-  default; merging is the exception that needs evidence.
+THE LABEL IS THE IDENTITY. For each thing you see:
+- The SAME label — same brand, same product name, the same printed values — is
+  the SAME physical item photographed again, however many photos it appears in.
+  ONE entry, counted ONCE. Use the clearest photo to judge its portion.
+- DIFFERENT labels are DIFFERENT items: separate entries, and
+  `estimated_nutrition` ADDS them. Two different products are two things the
+  patient consumed, even when both are milk.
+- NEVER average. If it is one item, report that label's values ONCE. If they
+  are two items, report the SUM. An average of a 150 kcal bottle and a 190 kcal
+  carton is 170 — true of neither, and it discards both numbers you just read.
+- Where no label is legible, fall back to the NAME and the COMPOSITION. If you
+  still cannot tell, list the items SEPARATELY and say so in notes. Listing
+  separately is the default; merging is the exception that needs evidence.
 """
 
 # Framing for one fixed question about a photo (the Image AI screens). The
