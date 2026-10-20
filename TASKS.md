@@ -1181,3 +1181,71 @@ so they cannot be declared at all, and the hand-typed enum this replaced could
 express them. The fix is a decision about whether a non-coded therapy may be
 declared beside coded ones — and if so, how it is stored so it can never be
 mistaken for a WHO code (§3ad). Not a silent re-addition of the list.
+
+---
+
+## 21. Nutrition believability must stand on FACT or HISTORY — never on typed numbers
+
+Operator, 2026-10-20, on finding that plain tea was refused against a
+"tea_coffee" band of 22-110:
+
+> *"Who created this band? is that from FDA or something we made up from our
+> model? tea is not coffee and not all tea or coffee are even same thing."*
+> *"FDA lookup checking the first 'tea' is irrational, if there are 100 tea
+> lower in rank but number 70 is a better fit. Lookup must be intelligent, not
+> first seen."*
+> *"hand written is even worse because it is made up not based on history or
+> fact."*
+
+The energy check is **done** (§54b in OPEN_ITEMS): the expectation is now the
+spread of the authority's own entries for the name, and where the authority is
+silent nothing is rejected on energy. What follows is the rest of the same
+principle, none of it started.
+
+### 21a. HISTORY is the other half, and it is unused
+
+The operator's sentence names two sources: *fact* and *history*. Only fact is
+wired. `learned_food_nutrients` already holds what THIS record has established
+about a food, and it is the only thing that can judge a dish no public
+catalog knows:
+
+    suya 589 kcal/100 g (a peanut mismatch)  — USDA holds no entry for suya,
+      so there is no range and nothing refuses it. The old typed `fatty_meat`
+      band (200-420) caught it, by luck rather than by evidence.
+
+A learned row for this patient's suya IS a fact about this patient. Comparing a
+fresh estimate against it is the fix, with the same rule as everywhere else:
+**only refuse what the evidence contradicts**, and say nothing when there is no
+evidence. This also gives the system a way to IMPROVE — every confirmed meal
+tightens its own expectations, which a typed table can never do.
+
+### 21b. The remaining typed numbers in `nutrition_reference`
+
+`_CATEGORIES` still supplies `serving` grams and plausible `units` per
+category, used by `typical_serving_g` and `validate_parse`. Those are typed
+too. The portion ceiling (`max(2000, typical × 15)`) is a second invented
+figure sitting on top of the first. They were not touched because the operator
+asked about the BAND and because a portion default is a different kind of
+claim from a believability verdict — but the same question applies, and the
+answer is probably the authority's own serving sizes plus this record's own
+portion history.
+
+### 21c. A category is cached once and never revisited
+
+`food_category_cache` fills the first time a name is seen and is never
+re-examined, which is why *"numb earl grey tea"* is permanently **dairy**. A
+category learned from one bad match is a fact about nothing, and it outlives
+every improvement to the matcher.
+
+### 21d. The parser still prices words that are not food
+
+`carton`, `pasteurized`, `nonfat` all became components with grams and
+calories. No band can save a system that is pricing adjectives; this belongs
+in the splitter, not in the guard.
+
+### 21e. Where a value is UNJUDGED, say so
+
+The change in §54b means many values now pass with no check at all. That is
+honest and it is invisible: nothing distinguishes "checked and sound" from
+"nobody could check this". `nutrients_excluded` gave partial totals a voice
+(§54a); unchecked components have none yet.

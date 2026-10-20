@@ -4679,6 +4679,11 @@
         <target state="translated">No conectado</target>
         <note />
       </trans-unit>
+      <trans-unit id="Not counted: %@" xml:space="preserve">
+        <source>Not counted: %@</source>
+        <target state="translated">No contabilizado: %@</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Not enough data yet" xml:space="preserve">
         <source>Not enough data yet</source>
         <target state="translated">Datos insuficientes aún</target>

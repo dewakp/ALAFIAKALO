@@ -32,19 +32,37 @@ def test_classify(food, category):
     assert R.classify(food) == category
 
 
-# ── Output believability: historical bad matches are caught by category band ──
-@pytest.mark.parametrize("food,nutrients,believable", [
-    # rice resolved to a dry/fortified record (360) vs cooked band 80–200
-    ("cooked rice", {"calories": 360, "protein_g": 7, "carbs_g": 79}, False),
-    ("cooked rice", {"calories": 130, "protein_g": 2.7, "carbs_g": 28}, True),
-    # Boost mismatched to 522 kcal/100g vs nutrition_drink band 50–160
-    ("Boost Glucose Control", {"calories": 522, "protein_g": 25, "carbs_g": 96, "fat_g": 8}, False),
-    # suya matched to a peanut/seed product (589) vs fatty_meat 200–420
-    ("suya", {"calories": 589, "protein_g": 24, "carbs_g": 21, "fat_g": 50}, False),
-    ("suya", {"calories": 270, "protein_g": 28, "carbs_g": 4, "fat_g": 16}, True),
+# ── Output believability: a bad match is caught where the AUTHORITY can judge ──
+#
+# These were judged against a hand-written category band until 2026-10-20, when
+# the operator ruled that out: *"hand written is even worse because it is made
+# up not based on history or fact."* The expectation is now the spread of the
+# authority's OWN entries for the name, passed in as `reference_range`, and
+# where the authority cannot answer nothing is rejected on energy.
+#
+# The ranges below are measured from the live catalog, not chosen.
+@pytest.mark.parametrize("food,nutrients,reference_range,believable", [
+    # rice resolved to a dry/fortified record. USDA's "cooked rice" entries
+    # span 88-267 (glutinous 96 … rice with coconut milk 267), so the dry-grain
+    # mismatch is still refused — now on evidence rather than on a typed band.
+    ("cooked rice", {"calories": 360, "protein_g": 7, "carbs_g": 79}, (88.0, 267.0), False),
+    ("cooked rice", {"calories": 130, "protein_g": 2.7, "carbs_g": 28}, (88.0, 267.0), True),
+    # Boost at 522 is a per-SERVING figure read as per-100 g. It is refused
+    # without any band at all: 4·25 + 4·96 + 9·8 = 556 kcal of macros against a
+    # stated 522 is an internal contradiction, and Atwater is arithmetic.
+    ("Boost Glucose Control", {"calories": 522, "protein_g": 25, "carbs_g": 96, "fat_g": 8}, None, False),
+    # ⚠️ suya is the MEASURED COST of this change. USDA holds no entry for it,
+    # so there is no range, and a peanut mismatch at 589 kcal/100 g is no
+    # longer refused. The old `fatty_meat` band (200-420) caught it — a number
+    # nobody could source that happened to be right here. Catching it again
+    # needs the other half of the operator's sentence: HISTORY. This record's
+    # own `learned_food_nutrients` row for suya is a fact about this patient,
+    # and comparing against that is the next step (OPEN_ITEMS 54b).
+    ("suya", {"calories": 589, "protein_g": 24, "carbs_g": 21, "fat_g": 50}, None, True),
+    ("suya", {"calories": 270, "protein_g": 28, "carbs_g": 4, "fat_g": 16}, None, True),
 ])
-def test_band_catches_bad_matches(food, nutrients, believable):
-    _, _, ok = P.review(food, nutrients)
+def test_band_catches_bad_matches(food, nutrients, reference_range, believable):
+    _, _, ok = P.review(food, nutrients, reference_range=reference_range)
     assert ok is believable
 
 

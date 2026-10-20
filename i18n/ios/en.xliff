@@ -4727,6 +4727,11 @@
         <target state="new">Not connected</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Not counted: %@" xml:space="preserve">
+        <source>Not counted: %@</source>
+        <target state="new">Not counted: %@</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Not enough data yet" xml:space="preserve">
         <source>Not enough data yet</source>
         <target state="new">Not enough data yet</target>

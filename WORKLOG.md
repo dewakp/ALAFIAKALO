@@ -4202,3 +4202,63 @@ tesseract 5.5.0 with -eng/-osd 1:4.1.0-2).
 including the probe added here — and `/ai/chat` against a live account. Both
 need a bearer token this session cannot mint. The write path has not been
 exercised against production and must not be against a real record.
+
+---
+
+## 2026-10-20 — "Who created this band?" We did. Both halves of it
+
+Operator, on plain tea being refused against a `tea_coffee` band of 22-110:
+*"is that from FDA or something we made up from our model?"*, *"Lookup must be
+intelligent, not first seen"*, *"hand written is even worse because it is made
+up not based on history or fact."* Detail: **OPEN_ITEMS 54b**, queued work:
+**TASKS 21**.
+
+**We made up both halves, and the number that actually fired was neither.**
+The typed table said (0, 15) — which would have ACCEPTED tea at 1 kcal. The
+rejection came from `55 × 0.4 … 55 × 2.0`, where 55 is **Tea, bubble**: the
+lookup took the best Jaccard match and seven candidates tie at 0.50, so the
+winner was whichever sorted first. Coffee ties identically and passed only
+because `Coffee, brewed` happens to sort first — the same mechanism, opposite
+luck, which is the clearest proof it was never a judgement at all.
+
+The expectation is now the spread of the authority's own entries for the name,
+with no multipliers, and **nothing is rejected on energy where the authority is
+silent**.
+
+### What it cost to learn
+
+- **A guard can reject a true value, and that is the worse failure.** Tea
+  really is ~1 kcal/100 g. The guard refused it, `believable=False` voided the
+  whole meal, and the egg and the kiwi went with it. A guard that cries wolf
+  gets ignored (§3ab) — this one was ignored by being obeyed.
+- **My first fix reproduced the bug.** Using the top-scoring tier gave "cooked
+  rice" 101-129, excluding glutinous rice at 96 and rice-with-milk at 144, so a
+  correct 130 would have been flagged. Found by running the case, not by
+  reading the design.
+- **State the loss.** suya at 589 is no longer caught: USDA has no suya, and
+  the band that caught it was typed. Written into the test as a named cost
+  rather than deleted.
+
+### Fixed what I broke
+
+- **17 web tests, red since `f569d19`.** The timeout fix added a NAMED import
+  to `PdfTools.jsx` while its test mocked `../services/api` with a default
+  export only — which makes every importer throw at load. I had run backend
+  tests and ruff and called it verified. `Dashboard.test.jsx` already carried a
+  comment warning about exactly that mock shape. 295 → 297 passing.
+- **The iOS string I added shipped English-only.** `Text("Not counted: \(…)")`
+  was the correct form, but the catalog only refreshes on
+  `xcodebuild -exportLocalizations`, so the guard could not see it (§3bf).
+  Exported, translated, imported: `Localizable.xcstrings` now carries
+  `غير محسوب: %@`, `Non compté : %@` and the rest.
+
+**Verified:** 134 passed across eleven backend suites; 8 new band tests; web
+297; i18n catalogs 44; iOS `BUILD SUCCEEDED`; Android `compileDebugKotlin`
+exit 0; ruff F,E9 clean.
+
+**Not done:** history as a second authority (TASKS 21a) — the only thing that
+can judge suya; the typed serving sizes and portion ceiling that remain
+(21b); categories cached once and never revisited, which is why "numb earl
+grey tea" is permanently dairy (21c); the parser still pricing `carton` and
+`pasteurized` as food (21d); and no way to tell "checked and sound" from
+"nobody could check this" (21e).

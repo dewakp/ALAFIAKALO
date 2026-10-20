@@ -5110,3 +5110,74 @@ but the iOS catalog only refreshes when a person runs
 `xcodebuild -exportLocalizations`, so `test_catalogs.py` cannot see the new key
 and did not flag it — §3bf's "a catalog test can only see what the export last
 put in front of it", now costing a string rather than catching one.
+
+### 54b-FIXED. The band was ours, and the lookup took whatever sorted first — 2026-10-20
+
+Operator: *"Who created this band? is that from FDA or something we made up
+from our model? tea is not coffee and not all tea or coffee are even same
+thing."* Then: *"FDA lookup checking the first 'tea' is irrational… Lookup must
+be intelligent, not first seen."* Then: *"hand written is even worse because it
+is made up not based on history or fact."*
+
+**Answer: we made up both halves.** Neither came from FDA, USDA or any
+published source.
+
+    _CATEGORIES["tea_coffee"]["kcal"] = (0, 15)     typed by hand
+    reference_kcal * 0.4 .. * 2.0                   typed by hand
+    then a further  * 1.3  /  * 0.5                 typed by hand
+
+And the "22-110" that actually refused the tea came from neither table. It was
+`55 × 0.4 … 55 × 2.0`, where 55 is **Tea, bubble** — a sweetened tapioca milk
+drink — because `reference_kcal_per_100g` took the best Jaccard match and SEVEN
+candidates tie at 0.50:
+
+    bubble 55 | ginger 1 | kombucha 16 | hot herbal 1 | chamomile 1
+    hibiscus 0 | hot leaf green 1          ← ties broken by LIST ORDER
+
+Coffee ties exactly the same way — brewed 1, substitute 6, Cappuccino 27, Cuban
+34, espresso 9, macchiato 23, Turkish 27 — and survived only because
+`Coffee, brewed` happened to sort first. **The same mechanism, opposite luck.**
+
+Worse, the ranking PENALISED the generic entry: `Tea, hot, leaf, black` scores
+0.33 against `Tea, bubble` at 0.50, for having more words.
+
+And the operator's third point is measured fact: coffee 1, espresso 9, tea with
+milk 51, bubble tea 55 — one `tea_coffee` band cannot hold them, because they
+are not one thing.
+
+### What replaced it
+
+`reference_energy_range()` returns the SPREAD of every entry the authority
+considers a match for the name. No multipliers — the bounds are observations.
+An exact description match ("Coffee, brewed" for "brewed coffee") is the
+authority naming that very food and is used alone. A single value is NOT a
+range, and returns None rather than growing an invented tolerance.
+
+**Where there is no range, nothing is rejected on energy.** An unchecked value
+is honest; a value refused against a number we typed is not.
+
+    case                      before                     after
+    plain tea 1 kcal          REFUSED vs 22-110          accepted (0-378)
+    "numb earl grey tea" 1    REFUSED as dairy 30-160    not judged
+    cooked rice 360           refused (typed band)       REFUSED (88-267, measured)
+    cooked rice 130           accepted                   accepted
+    Boost 522/serving         refused                    REFUSED — by Atwater, arithmetic
+    sardines 997              refused                    REFUSED — pure-fat ceiling, a fact
+    suya 589                  refused (typed 200-420)    NOT REFUSED
+
+> ⚠️ **The first attempt at this was wrong in the same way.** Using the
+> top-scoring TIER gave "cooked rice" 101-129, which EXCLUDES `Rice, white,
+> cooked, glutinous` (96) and `Rice, cooked, with milk` (144) — both plainly
+> cooked rice — so a correct 130 would have been reported as a wrong match.
+> That is the tea failure again with different numbers, caught only by running
+> the case rather than reasoning about the design.
+
+### The measured cost, stated rather than buried
+
+**suya at 589 kcal/100 g is no longer refused.** USDA holds no entry for it, so
+there is no fact to judge it by, and the band that used to catch it was typed.
+The honest position is that the system cannot currently judge a dish no public
+catalog knows — and the route to judging it is HISTORY, the other half of the
+operator's sentence: `learned_food_nutrients` already holds what this record
+has established about suya. Queued as **TASKS 21a**, with 21b-21e for the typed
+numbers that remain.

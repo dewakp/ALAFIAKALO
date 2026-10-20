@@ -184,6 +184,104 @@ async def reference_kcal_per_100g(db: AsyncSession, food_name: str) -> float | N
     return None
 
 
+async def reference_energy_range(
+    db: AsyncSession, food_name: str
+) -> tuple[float, float] | None:
+    """What the AUTHORITY's own entries SPAN for this food, per 100 g.
+
+    Operator, 2026-10-20: *"FDA lookup checking the first 'tea' is irrational,
+    if there are 100 tea lower in rank but number 70 is a better fit. Lookup
+    must be intelligent, not first seen."* And, on the alternative:
+    *"hand written is even worse because it is made up not based on history or
+    fact."*
+
+    Both were true, and `reference_kcal_per_100g` above is the irrational half.
+    Measured on the live catalog:
+
+        query "tea"     7 candidates TIE at jaccard 0.50
+                        bubble 55 | ginger 1 | kombucha 16 | herbal 1 |
+                        chamomile 1 | hibiscus 0 | green 1
+        query "coffee"  7 tie: brewed 1 | substitute 6 | Cappuccino 27 |
+                        Cuban 34 | espresso 9 | macchiato 23 | Turkish 27
+
+    A tie is broken by LIST ORDER, so "Tea, bubble" became the reference for
+    the word tea and plain tea at 1 kcal/100 g was refused as a wrong match —
+    discarding the egg and the kiwi beside it. Coffee survived only because
+    "Coffee, brewed" happened to sort first. The same mechanism, opposite luck.
+
+    Worse, the ranking PENALISES the generic entry: `Tea, hot, leaf, black`
+    scores 0.33 against `Tea, bubble` at 0.50, purely for having more words.
+
+    So this returns the SPREAD rather than a winner. One name covering entries
+    from 0 to 55 kcal is not ambiguity to be resolved by picking — it is the
+    fact that "tea" names a family, and the honest expectation for an unqualified
+    "tea" is the family's own range.
+
+    **No multiplier is applied.** The previous check widened a single pick by
+    `x0.4 .. x2.0` and then by a further `x1.3 / x0.5` — four numbers nobody
+    can source. These bounds are observations.
+
+    Returns None when the authority cannot answer, or when the top tier holds
+    ONE value: a single point is not a spread, and inventing a tolerance around
+    it is the made-up band again in a smaller disguise. The caller must then
+    not reject on energy at all.
+    """
+    name = _normalise(food_name)
+    if not name:
+        return None
+    try:
+        from app.core.nutrition_data import search_usda_foods
+
+        query_tokens = _content_tokens(name, drop_modifiers=True)
+        if not query_tokens:
+            return None
+
+        scored: list[tuple[float, float, frozenset]] = []
+        for hit in (await search_usda_foods(name)) or []:
+            kcal = (hit.get("nutrients") or {}).get("calories")
+            if kcal is None or float(kcal) < 0:
+                continue
+            desc_tokens = _content_tokens(hit.get("description") or "")
+            if not desc_tokens:
+                continue
+            overlap = query_tokens & desc_tokens
+            if len(overlap) / len(query_tokens) < 0.5:
+                continue
+            jaccard = len(overlap) / len(query_tokens | desc_tokens)
+            scored.append((jaccard, float(kcal), frozenset(desc_tokens)))
+
+        if not scored:
+            return None
+
+        # An entry whose description IS the query is the authority naming this
+        # very food — "Coffee, brewed" for "brewed coffee". Those outrank a
+        # family spread, because they are not a family.
+        exact = [kcal for _j, kcal, toks in scored if toks == frozenset(query_tokens)]
+        # EVERY entry the authority considers a match for this name, not just
+        # the best-scoring tier.
+        #
+        # The tier was the first attempt and is arbitrary at its own edges: for
+        # "cooked rice" it spans 101-129 and so EXCLUDES `Rice, white, cooked,
+        # glutinous` at 96 and `Rice, cooked, with milk` at 144 — both plainly
+        # cooked rice. A correct 130 would then be reported as a wrong match,
+        # which is the tea failure again with different numbers.
+        #
+        # The full matched set is what the authority actually means by the
+        # name. It is wider, and wider is the right direction for a guard whose
+        # errors cost a patient their whole meal: it still refuses 360 for
+        # cooked rice (the dry-grain mismatch) while accepting every cooked
+        # rice USDA knows about.
+        values = exact or [kcal for _j, kcal, _t in scored]
+
+        lo, hi = min(values), max(values)
+        if lo == hi:
+            return None
+        return lo, hi
+    except Exception:  # noqa: BLE001 — an unreachable authority must not block a meal
+        logger.warning("USDA reference energy range failed for %r", name, exc_info=True)
+    return None
+
+
 def _normalise(food_name: str) -> str:
     return " ".join((food_name or "").lower().split())
 

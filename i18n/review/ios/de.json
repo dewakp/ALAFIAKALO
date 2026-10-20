@@ -5369,6 +5369,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Not counted: %@": {
+    "source": "Not counted: %@",
+    "translation": "Nicht gezählt: %@",
+    "status": "machine",
+    "translated_on": "2026-10-20"
+  },
   "Localizable.xcstrings::Not enough data yet": {
     "source": "Not enough data yet",
     "translation": "Noch nicht genug Daten",

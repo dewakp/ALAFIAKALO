@@ -35,7 +35,7 @@ def _num(v) -> float | None:
 
 def review(food_name: str, nutrients: dict,
            category: str | None = None,
-           reference_kcal: float | None = None) -> tuple[dict, list[str], bool]:
+           reference_range: tuple[float, float] | None = None) -> tuple[dict, list[str], bool]:
     """Review a per-100 g nutrient profile. Returns (corrected, warnings, believable)."""
     n = dict(nutrients or {})
     warnings: list[str] = []
@@ -108,20 +108,35 @@ def review(food_name: str, nutrients: dict,
         # keyword fallback is what called "hard boiled eggs" an oil and judged
         # 155 kcal/100 g against 700-902.
         cat = category or nutrition_reference.classify(food_name)
-        if reference_kcal:
-            # The authority's own figure for THIS food beats a band covering a
-            # whole category. Olives at 289 kcal are a correct olive and a
-            # failing "vegetable"; judged against USDA's own olive they pass.
-            # A wide tolerance still catches a genuinely wrong match (rice at
-            # 360 dry, Boost at 522/serving) without punishing a right one.
-            lo, hi = reference_kcal * 0.4, reference_kcal * 2.0
-        else:
-            lo, hi = nutrition_reference.band(cat)["kcal"]
-        if cal_final > hi * 1.3 or cal_final < lo * 0.5:
-            warnings.append(
-                f"{cal_final:.0f} kcal/100g is outside the expected {lo:.0f}–{hi:.0f} "
-                f"for '{cat}' foods — likely a wrong match")
-            believable = False
+        # ── THE EXPECTATION MUST BE A FACT, NOT A FIGURE WE TYPED ───────────
+        #
+        # Operator, 2026-10-20: *"hand written is even worse because it is made
+        # up not based on history or fact."* Both inputs to the old check were
+        # invented:
+        #
+        #   * `_CATEGORIES` — a typed table. `tea_coffee` was banded (0, 15) by
+        #     hand, and nothing anywhere says a tea and a coffee share a range:
+        #     measured, coffee is 1, espresso 9, tea with milk 51, bubble tea 55.
+        #   * `x0.4 .. x2.0`, then `x1.3 / x0.5` — four multipliers with no
+        #     source, applied to a single arbitrarily-picked USDA row.
+        #
+        # Together they refused plain tea at 1 kcal/100 g against "22-110" and
+        # voided the whole meal around it. A guard that rejects a true value
+        # teaches its reader to ignore the guard (§3ab).
+        #
+        # `reference_range` is the SPREAD of the authority's own entries for
+        # this name. When it is absent, NOTHING is rejected on energy: an
+        # unchecked value is honest, and a value rejected against a number we
+        # made up is not. Physical impossibilities above (negative mass, sodium
+        # beyond pure salt, energy beyond pure fat) are facts and still apply.
+        if reference_range:
+            lo, hi = reference_range
+            if cal_final > hi or cal_final < lo:
+                warnings.append(
+                    f"{cal_final:.0f} kcal/100g is outside {lo:.0f}–{hi:.0f}, "
+                    f"the range USDA's own '{cat}' entries span for this name "
+                    f"— likely a wrong match")
+                believable = False
 
     return n, warnings, believable
 
