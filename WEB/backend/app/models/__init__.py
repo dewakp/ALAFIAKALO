@@ -172,6 +172,9 @@ from app.models.hospitalization import (
     AdmissionStatus,
     ProcedureOutcome,
 )
+# Imported for SQLAlchemy registration and for alembic to see the table —
+# ruff flags it as unused and must not remove it (§3ap).
+from app.models.comp_invitation import CompInvitation
 from app.models.subscription import (
     Subscription,
     SubscriptionEvent,
@@ -330,6 +333,7 @@ __all__ = [
     "AdmissionStatus",
     "ProcedureOutcome",
     "LabeledFoodImage",
+    "CompInvitation",
     "Subscription",
     "SubscriptionEvent",
     "SubscriptionStatus",

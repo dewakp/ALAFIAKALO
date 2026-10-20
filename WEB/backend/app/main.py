@@ -310,6 +310,42 @@ async def _geocode_practices_job() -> None:
         logger.error("[scheduler] Practice geocode error: %s", exc)
 
 
+async def _comp_invitation_reaction_job() -> None:
+    """React to what each complimentary invitee has actually done.
+
+    Operator, 2026-10-20: *"system knows what actions invitees/subscribers
+    perform and responds accordingly."*
+
+    The pass reads each invitee's CURRENT stage from the tables that own it and
+    responds to where they are:
+
+      * silent, offer still open   -> one more nudge, capped and spaced
+      * verified but not active    -> logged as owed BY US, never nudged. They
+                                      did everything the letter asked; a
+                                      reminder there blames them for our delay.
+      * deadline passed            -> counted, not mailed
+
+    Reminders read the stage at SEND time, not when the pass was scheduled —
+    otherwise someone who signs up on day 6 is told on day 7 that they have not
+    signed up (§3aa, aimed at a person).
+    """
+    from app.core.database import async_session
+    from app.services import comp_invitation_service
+
+    try:
+        async with async_session() as db:
+            summary = await comp_invitation_service.run_reaction_pass(db)
+            await db.commit()
+        if summary["checked"]:
+            logger.info("[scheduler] comp invitations: %s", summary)
+        if summary["waiting_on_us"]:
+            logger.warning(
+                "[scheduler] %d complimentary invitee(s) are verified and NOT "
+                "active — activation is owed to them", summary["waiting_on_us"])
+    except Exception:
+        logger.exception("[scheduler] comp invitation reaction pass failed")
+
+
 async def _quota_resolve_job() -> None:
     """Resolve cited nutrient quotas for conditions that have none yet.
 
@@ -487,6 +523,26 @@ async def startup_event():
     # enabling it is a cost decision per environment, not a deploy side effect.
     # The first run is delayed 10 minutes so a restart loop cannot turn into a
     # burst of provider traffic, and the job is bounded per run.
+    # The membership lifecycle's clock. ON by default: it sends no model
+    # traffic, and what it prevents is an invitation nobody follows up — which
+    # is precisely what became of the 2026-09-15 letter.
+    if settings.COMP_INVITATION_REACTION_ENABLED:
+        hours = max(1, settings.COMP_INVITATION_REACTION_INTERVAL_HOURS)
+        _scheduler.add_job(
+            _comp_invitation_reaction_job,
+            trigger="interval",
+            hours=hours,
+            id="comp_invitation_reaction",
+            replace_existing=True,
+            max_instances=1,   # never overlap a still-running pass
+            coalesce=True,     # collapse missed runs into one catch-up
+            misfire_grace_time=3600,
+            next_run_time=datetime.now(timezone.utc) + timedelta(minutes=3),
+        )
+        logger.info("[scheduler] Comp invitation reactions enabled — every %dh", hours)
+    else:
+        logger.info("[scheduler] Comp invitation reactions disabled")
+
     if settings.QUOTA_RESOLVE_ENABLED:
         hours = max(1, settings.QUOTA_RESOLVE_INTERVAL_HOURS)
         _scheduler.add_job(

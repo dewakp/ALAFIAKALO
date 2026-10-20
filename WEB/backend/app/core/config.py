@@ -240,6 +240,14 @@ class Settings(BaseSettings):
     # that nobody asked for. Turn it on deliberately, per environment.
     QUOTA_RESOLVE_ENABLED: bool = False
     QUOTA_RESOLVE_INTERVAL_HOURS: int = 24
+
+    # The complimentary-membership reaction pass: remind the stalled, surface
+    # the ones WE owe an activation to, and mark the lapsed. ON by default,
+    # unlike the quota clock above — this one sends no model traffic and costs
+    # nothing, and the failure it prevents (an invitation nobody follows up) is
+    # exactly what happened to the 2026-09-15 letter.
+    COMP_INVITATION_REACTION_ENABLED: bool = True
+    COMP_INVITATION_REACTION_INTERVAL_HOURS: int = 12
     #: Conditions resolved per run. Bounded because each one is an LLM call and
     #: an unbounded first run over every condition on the platform is a cost
     #: decision, not a default.

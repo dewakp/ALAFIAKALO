@@ -853,6 +853,98 @@ async def send_complimentary_invitation_email(
         attachments=list(screenshots or []))
 
 
+async def send_membership_active_email(
+    to: str,
+    *,
+    display_name: str | None = None,
+    months: int | None = None,
+    ends_on: str | None = None,
+    complimentary: bool = False,
+    clinical_role: str | None = None,
+) -> bool:
+    """Welcome and congratulate someone whose membership has JUST gone live.
+
+    Operator, 2026-10-20: *"we must establish a post activation email, welcoming
+    and congratulating new subscribers (including complimentary ones)."*
+
+    The parenthesis is the whole point. `send_signup_receipt_email` had exactly
+    ONE caller — the paid Stripe path — so a complimentary membership went live
+    in silence, while the invitation that produced it promised *"We will
+    activate your membership and email you the moment it is live."* That
+    sentence was kept by a person remembering to run a script, or not at all.
+
+    ONE template, two faces, for `send_complimentary_invitation_email`'s reason:
+    the wording and what it claims must never drift apart. A paid member is
+    thanked; a complimentary member is told plainly that nothing will be
+    charged and nothing needs cancelling, because the most common worry about a
+    free membership is that it is a trial with a card attached.
+
+    It is TRANSACTIONAL, not marketing: it is sent about an action the person
+    themselves completed, so it must never consult `marketing_opt_out_at`
+    (§3d — opting out of news must not silence a confirmation about one's own
+    account).
+
+    `ends_on` is free text and comes from the row the caller just read. It is
+    never computed here: a date this function guessed would be a promise about
+    access the database has not agreed to.
+    """
+    name = _escape(display_name.split()[0]) if display_name else None
+    greeting = f"Welcome, {name}" if name else "Welcome"
+    app = _escape(settings.APP_NAME)
+    signin_url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/login"
+
+    if complimentary:
+        headline = "Your complimentary membership is live"
+        length = ""
+        if months:
+            length = f" for {months} month" + ("" if months == 1 else "s")
+        terms = (
+            f"<p style=\"margin:0 0 16px;\">Your membership is active{length} — "
+            "no card, no charge, nothing to cancel.</p>")
+    else:
+        headline = f"Welcome to {app}"
+        terms = "<p style=\"margin:0 0 16px;\">Your membership is active.</p>"
+
+    ends_line = ""
+    if ends_on:
+        ends_line = (f"<p style=\"margin:0 0 16px;\"><strong>Access through:</strong> "
+                     f"{_escape(ends_on)}</p>")
+
+    # Only promised when the role is actually granted — describing a clinician
+    # board to an account that will never open one is a letter the product
+    # cannot honour.
+    clinician_line = ""
+    if is_clinical_role(clinical_role):
+        clinician_line = (
+            "<p style=\"margin:0 0 16px;\">Your account carries "
+            f"{_escape(clinical_role)} access on top of your own health record, "
+            "so you can move between the two.</p>")
+
+    html = f"""
+    <html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+                       color:#1f2937;line-height:1.55;max-width:560px;">
+      <h2 style="margin:0 0 4px;">{_escape(greeting)}</h2>
+      <h3 style="margin:0 0 16px;font-size:16px;color:#6b7280;">{_escape(headline)}</h3>
+      {terms}
+      {ends_line}
+      {clinician_line}
+      <p style="margin:0 0 16px;">
+        <a href="{signin_url}" style="background:#ea580c;color:#fff;padding:10px 18px;
+           border-radius:6px;text-decoration:none;display:inline-block;">Sign in</a>
+      </p>
+      <p style="margin:0 0 16px;">
+        Your health record is private and yours. Nothing is shared with anyone
+        until you choose to share it.
+      </p>
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">
+        If anything does not work as it should, just reply to this message and a
+        person will read it.
+      </p>
+    </body></html>
+    """
+    return await send_email(to, f"{headline} — {app}", html)
+
+
 async def send_membership_ready_email(
     to: str,
     *,

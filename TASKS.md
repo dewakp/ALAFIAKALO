@@ -1249,3 +1249,73 @@ The change in §54b means many values now pass with no check at all. That is
 honest and it is invisible: nothing distinguishes "checked and sound" from
 "nobody could check this". `nutrients_excluded` gave partial totals a voice
 (§54a); unchecked components have none yet.
+
+---
+
+## 22. The membership lifecycle runs itself — invite, observe, respond
+
+Operator, 2026-10-20: *"we must establish a post activation email, welcoming
+and congratulating new subscribers (including complimentary ones). Also enhance
+views for Admin to see subscriber progress."* Then: *"move sending to backend.
+All this must be automated not sender triggered."* And: *"system knows what
+actions invitees/subscribers perform and responds accordingly."*
+
+### What is measured today
+
+    send_signup_receipt_email   ONE caller — signup.py:345, the PAID path only
+    grant_comp.sh               pure SQL, notifies nobody
+    activate_comp_signup.py     notifies nobody
+    send_comp_invitation.py     touches NO table — an invitation leaves no trace
+    admin                       subscriptions_by_status; per-user status + end date
+
+So a complimentary member's membership goes live in **silence**, and the letter
+sent 2026-10-20 to `bass797@aol.com` promises *"We will activate your membership
+and email you the moment it is live"* — a promise that currently depends on a
+person remembering to run two scripts. September's version of this letter had no
+tooling at all behind it; this one has tooling nobody is obliged to run.
+
+And because the invitation is not recorded, **Dr. Bass cannot appear on any
+admin screen**: there is no row to show. The first stage of the funnel does not
+exist in the database.
+
+### The shape: stages are OBSERVED FACTS, and each one is a trigger
+
+    invited            comp_invitations row, deadline set
+    started signup     a pending_registrations row appears for that address
+    verified email     pending.email_verified_at  -> ACTIVATE, automatically
+    reached payment    they were shown the step the letter told them to abandon
+    active             users row + comped subscription -> WELCOME email
+    first sign-in      users.last_login stops being NULL
+    profile complete   clinician and patient profiles filled
+
+Each stage is already derivable from a table that exists, except the first.
+The automation reacts to WHERE SOMEONE IS, not to a clock: a stall at
+*invited* is a nudge to them; a stall at *verified, not active* is a failure on
+OUR side and belongs on an alert, not in a reminder to the member.
+
+### To build
+
+1. **`comp_invitations`** (migration, additive): email, display name, months,
+   clinical role, practice, deadline, `sent_at`, `reminders_sent`,
+   `last_reminder_at`, `claimed_at`, `activated_at`, `user_id`, `created_by`.
+2. **Sending moves into the backend** behind an admin endpoint. The script
+   becomes a thin caller or is retired — an invitation sent from a laptop that
+   writes no row is the hole this closes.
+3. **Automatic activation on verification.** `signup_verify_email` checks for a
+   matching live invitation and, finding one, materialises without payment,
+   grants the comp subscription and role, and stamps `activated_at`. The "close
+   the tab" instruction becomes true rather than aspirational.
+4. **`send_membership_active_email`** — one template, two faces (paid and
+   complimentary), carrying the plan and the REAL end date read from the row.
+   Fired from both activation paths, wrapped so a mail outage can never fail an
+   activation (§3ah).
+5. **A scheduled reaction pass**, gated by its own setting like every other job
+   in `main.py`: remind the stalled, mark the expired, and surface
+   *verified-but-not-active* as an operator alert rather than a member nudge.
+6. **Admin progress view**: the funnel above, per person, with the stage they
+   are in and how long they have been in it.
+
+> ⚠️ **A reminder must never be sent to someone who already acted.** The stage
+> is read at send time, not when the job was scheduled — otherwise a person who
+> signs up on day 6 still gets "you have not signed up yet" on day 7, which is
+> §3aa's error-as-empty-state pointed at a human being.

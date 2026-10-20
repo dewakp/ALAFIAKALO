@@ -230,6 +230,17 @@ async def signup_start(
         first_name=body.first_name.strip(), last_name=body.last_name.strip(),
         phone=phone_e164,
     )
+
+    # They acted on an invitation. Stamp it so the reminder pass knows they are
+    # no longer silent — a nudge saying "you have not signed up" sent to someone
+    # who just did is §3aa's error-as-empty-state aimed at a person.
+    try:
+        from app.services import comp_invitation_service
+
+        await comp_invitation_service.note_signup_started(db, body.email)
+    except Exception:  # noqa: BLE001 — bookkeeping must never cost a signup
+        logger.exception("Could not mark invitation claimed for %s", body.email)
+
     await db.commit()
     return await _deliver_verification(background_tasks, body.email, raw_token, pending.id)
 
@@ -243,7 +254,46 @@ async def signup_verify_email(
     pending = await svc.verify_email(db, body.token)
     if pending is None:
         raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+
+    # ── A COMPLIMENTARY INVITEE IS FINISHED HERE ────────────────────────────
+    #
+    # The invitation letter says: *"You will then be offered a payment step.
+    # Close the tab there — do not enter any card details. We will activate
+    # your membership and email you the moment it is live."*
+    #
+    # Until now that sentence was kept by a person remembering to run
+    # `activate_comp_signup.py` and `grant_comp.sh`. On 2026-09-15 it went out
+    # with no tooling at all behind it; on 2026-10-20 with tooling nobody was
+    # obliged to run. Operator: *"All this must be automated not sender
+    # triggered."*
+    #
+    # So verification IS the trigger. It creates the account, grants the
+    # membership and sends the welcome — and it waives only the PAYMENT gate
+    # (§3au): `materialise(require_paid=False)` still refuses an unverified
+    # address, which is the gate that matters here.
+    #
+    # Wrapped: an invitee whose activation fails must still be told their
+    # address is confirmed. Losing the verification on top of the activation
+    # would leave them with a consumed single-use token and nothing to show.
+    activated = None
+    try:
+        from app.services import comp_invitation_service
+
+        activated = await comp_invitation_service.activate_if_invited(db, pending)
+    except Exception:  # noqa: BLE001 — never lose a verified address
+        logger.exception("Complimentary activation failed for %s", pending.email)
+
     await db.commit()
+    if activated is not None:
+        # Nothing left for them to do. Saying "next: checkout" here would send
+        # someone to a payment step for a membership they already hold.
+        return {
+            "email": pending.email,
+            "email_verified": True,
+            "paid": False,
+            "complimentary": True,
+            "next": "signin",
+        }
     return {
         "email": pending.email,
         "email_verified": True,

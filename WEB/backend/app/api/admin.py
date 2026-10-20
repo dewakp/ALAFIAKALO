@@ -26,6 +26,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -623,3 +624,114 @@ async def _user_activity(db: AsyncSession, user_id: int) -> dict:
             await db.rollback()
             out[label] = {"count": None, "last": None, "unavailable": True}
     return out
+
+
+# ── Complimentary memberships ────────────────────────────────────────────
+#
+# Operator, 2026-10-20: *"move sending to backend. All this must be automated
+# not sender triggered."*
+#
+# `scripts/email/send_comp_invitation.py` sent a letter and wrote no row, so an
+# invitation existed only in Resend's logs: nothing could remind the person,
+# nothing could activate them when they verified, and no screen could show
+# them. Sending lives here now, and the script becomes a caller of this route
+# rather than a second, unrecorded path.
+
+class CompInvitationCreate(BaseModel):
+    email: EmailStr
+    display_name: str | None = None
+    months: int = Field(12, ge=1, le=60)
+    #: Days from today. The letter has always carried a deadline and it has
+    #: never been written down — without it nobody can tell a lapsed offer from
+    #: a pending one, which is the first thing an operator asks.
+    valid_days: int = Field(7, ge=1, le=365)
+    clinical_role: str | None = None
+    practice: str | None = None
+
+
+@router.post("/comp-invitations", status_code=201)
+async def admin_create_comp_invitation(
+    body: CompInvitationCreate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record a complimentary offer and send it. The row is written FIRST.
+
+    A send failure does not discard the offer: the row carries `send_error`,
+    which is the only thing that can tell an operator a letter never left. An
+    absent row says nothing at all (§3aa).
+    """
+    from datetime import date as _date
+
+    from app.services import comp_invitation_service as svc
+
+    existing = await svc.find_live(db, body.email)
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(f"a live invitation already exists for {body.email} "
+                    f"(id {existing.id}, deadline {existing.deadline})"))
+
+    inv = await svc.create_and_send(
+        db,
+        email=str(body.email),
+        display_name=body.display_name,
+        months=body.months,
+        deadline=_date.today() + timedelta(days=body.valid_days),
+        clinical_role=body.clinical_role,
+        practice=body.practice,
+        created_by_user_id=admin.id,
+    )
+    await db.commit()
+    return {
+        "id": inv.id,
+        "email": inv.email,
+        "months": inv.months,
+        "deadline": inv.deadline.isoformat(),
+        "sent": inv.sent_at is not None,
+        "send_error": inv.send_error,
+    }
+
+
+@router.get("/comp-invitations")
+async def admin_list_comp_invitations(
+    _: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Every invitation with the stage its invitee is actually in.
+
+    The stage is READ from the tables that own each fact — `pending_
+    registrations` knows who started and verified, `users` knows who exists and
+    who has signed in — not stored and allowed to go stale.
+
+    `waiting_on_us` is the row that matters operationally: the person did
+    everything the letter asked and is holding nothing until we act.
+    """
+    from app.services import comp_invitation_service as svc
+
+    report = await svc.progress_report(db)
+    return {
+        "invitations": [
+            {
+                "id": p.invitation.id,
+                "email": p.invitation.email,
+                "display_name": p.invitation.display_name,
+                "months": p.invitation.months,
+                "clinical_role": p.invitation.clinical_role,
+                "deadline": p.invitation.deadline.isoformat(),
+                "sent_at": _iso(p.invitation.sent_at),
+                "send_error": p.invitation.send_error,
+                "reminders_sent": p.invitation.reminders_sent,
+                "stage": p.stage,
+                "since": _iso(p.since),
+                "user_id": p.user_id,
+                "waiting_on_us": p.waiting_on_us,
+            }
+            for p in report
+        ],
+        "by_stage": {
+            stage: sum(1 for p in report if p.stage == stage)
+            for stage in svc.STAGES
+        },
+        "waiting_on_us": sum(1 for p in report if p.waiting_on_us),
+    }
