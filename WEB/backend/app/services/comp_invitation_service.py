@@ -383,15 +383,18 @@ async def run_reaction_pass(db: AsyncSession) -> dict:
             continue
 
         try:
-            from app.services.email import send_complimentary_invitation_email
+            # A NUDGE, not the letter again. Re-sending the invitation verbatim
+            # reads as a system that has lost track of itself, and it buries the
+            # only new fact — that the deadline is close — in text the reader
+            # has already decided not to act on.
+            from app.services.email import send_comp_invitation_reminder_email
 
-            ok = await send_complimentary_invitation_email(
+            ok = await send_comp_invitation_reminder_email(
                 inv.email,
                 display_name=inv.display_name,
                 months=inv.months,
                 signup_deadline=inv.deadline.strftime("%-d %B %Y"),
-                clinical_role=inv.clinical_role,
-                practice=inv.practice,
+                days_left=(inv.deadline - now.date()).days,
             )
         except Exception:  # noqa: BLE001
             logger.exception("Reminder to %s failed", inv.email)

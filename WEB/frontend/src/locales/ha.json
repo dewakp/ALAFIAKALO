@@ -368,7 +368,17 @@
     "months": "Watanni",
     "reminders": "Abayyar tunawa",
     "not_sent_yet": "Wasiƙa ba a aika ba",
-    "not_sent_reason": "Wasiƙa ba a aika ba — {{reason}}"
+    "not_sent_reason": "Wasiƙa ba a aika ba — {{reason}}",
+    "invite_someone": "Kawo mai sanyi",
+    "email_address": "Adireshin imel",
+    "name_shown_in_the_greeting": "Sunà da aka nuna a gida",
+    "days_to_sign_up": "Kwanaki don shiga",
+    "clinical_role_only_if_granted": "Aiki na likita (idan aka ba da izini)",
+    "practice_clinician_only": "Aiki (likita kawai)",
+    "record_and_send": "Rikodi da aika",
+    "sending": "Yana aikawa…",
+    "cancel": "Soke",
+    "could_not_create_invitation": "Ba a iya ƙirƙira gaida ba."
   },
   "AdvancedDirectives": {
     "loading": "Ana lodin...",

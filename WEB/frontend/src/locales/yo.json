@@ -368,7 +368,17 @@
     "months": "Oṣù",
     "reminders": "Àkíyèsí",
     "not_sent_yet": "Ìwé kò tíì rán",
-    "not_sent_reason": "Ìwé kò tíì rán — {{reason}}"
+    "not_sent_reason": "Ìwé kò tíì rán — {{reason}}",
+    "invite_someone": "Ṣe ẹnikan nílò",
+    "email_address": "Àdírẹ́sì ímeèlì",
+    "name_shown_in_the_greeting": "Orúkọ tí a yóò fi hàn nínú ìkíni",
+    "days_to_sign_up": "Ọjọ́ láti forúkọsílẹ̀",
+    "clinical_role_only_if_granted": "Ẹ̀kọ́ ìṣẹ́ aṣọ̀kan (bí a bá ti fún)",
+    "practice_clinician_only": "Iṣẹ́ aṣọ̀kan (aṣọ̀kan nìkan)",
+    "record_and_send": "Ṣe àkiyèsi kí o sì túndé",
+    "sending": "Ń túndé…",
+    "cancel": "Fagile",
+    "could_not_create_invitation": "Ò tí ṣe àgbéjáde ìpè náà."
   },
   "AdvancedDirectives": {
     "loading": "Ń ṣe ìlọ́wọ́…",

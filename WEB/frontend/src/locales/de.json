@@ -368,7 +368,17 @@
     "months": "Monate",
     "reminders": "Erinnerungen",
     "not_sent_yet": "Brief nicht versendet",
-    "not_sent_reason": "Brief nicht versendet — {{reason}}"
+    "not_sent_reason": "Brief nicht versendet — {{reason}}",
+    "invite_someone": "Jemanden einladen",
+    "email_address": "E-Mail-Adresse",
+    "name_shown_in_the_greeting": "Name in der Begrüßung",
+    "days_to_sign_up": "Tage zum Registrieren",
+    "clinical_role_only_if_granted": "Klinische Rolle (nur wenn gewährt)",
+    "practice_clinician_only": "Praxis (nur Kliniker)",
+    "record_and_send": "Aufzeichnen und senden",
+    "sending": "Wird gesendet…",
+    "cancel": "Abbrechen",
+    "could_not_create_invitation": "Einladung konnte nicht erstellt werden."
   },
   "AdvancedDirectives": {
     "loading": "Wird geladen…",

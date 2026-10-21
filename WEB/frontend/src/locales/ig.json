@@ -368,7 +368,17 @@
     "months": "Ọnwa",
     "reminders": "Ihe ncheta",
     "not_sent_yet": "Akwụkwọ ebeghị elu",
-    "not_sent_reason": "Akwụkwọ ebeghị elu — {{reason}}"
+    "not_sent_reason": "Akwụkwọ ebeghị elu — {{reason}}",
+    "invite_someone": "Kpọ mmadụ",
+    "email_address": "Adreesị imeịl",
+    "name_shown_in_the_greeting": "Aha a pụtara na mkpọtụ",
+    "days_to_sign_up": "Ụbọchị iji banye",
+    "clinical_role_only_if_granted": "Ọrụ nkụ (ma ọ bụrụ na a nyere ikike)",
+    "practice_clinician_only": "Ebe ọrụ (onye nkụ naanị)",
+    "record_and_send": "Dekọ ma ziga",
+    "sending": "A na-eziga…",
+    "cancel": "Kagbuo",
+    "could_not_create_invitation": "Enweghị ike ịmepụta oku mma."
   },
   "AdvancedDirectives": {
     "loading": "Na-elodata...",

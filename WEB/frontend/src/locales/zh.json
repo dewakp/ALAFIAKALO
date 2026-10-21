@@ -368,7 +368,17 @@
     "months": "月",
     "reminders": "提醒",
     "not_sent_yet": "信件未发送",
-    "not_sent_reason": "信件未发送 — {{reason}}"
+    "not_sent_reason": "信件未发送 — {{reason}}",
+    "invite_someone": "邀请某人",
+    "email_address": "电子邮件地址",
+    "name_shown_in_the_greeting": "问候中显示的名称",
+    "days_to_sign_up": "注册天数",
+    "clinical_role_only_if_granted": "临床角色（仅在获得授权时）",
+    "practice_clinician_only": "诊疗机构（仅限临床医生）",
+    "record_and_send": "记录并发送",
+    "sending": "发送中…",
+    "cancel": "取消",
+    "could_not_create_invitation": "无法创建邀请。"
   },
   "AdvancedDirectives": {
     "loading": "加载中...",

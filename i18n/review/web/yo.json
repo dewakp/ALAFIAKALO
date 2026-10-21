@@ -137,11 +137,29 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.cancel": {
+    "source": "Cancel",
+    "translation": "Fagile",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.clinical_role_only_if_granted": {
+    "source": "Clinical role (only if granted)",
+    "translation": "Ẹ̀kọ́ ìṣẹ́ aṣọ̀kan (bí a bá ti fún)",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.close": {
     "source": "Close",
     "translation": "Pàdé",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.could_not_create_invitation": {
+    "source": "Could not create the invitation.",
+    "translation": "Ò tí ṣe àgbéjáde ìpè náà.",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.could_not_load_admin_data": {
     "source": "Could not load admin data.",
@@ -155,9 +173,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.days_to_sign_up": {
+    "source": "Days to sign up",
+    "translation": "Ọjọ́ láti forúkọsílẹ̀",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.deadline": {
     "source": "Deadline",
     "translation": "Ọjọ́ ìparí",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.email_address": {
+    "source": "Email address",
+    "translation": "Àdírẹ́sì ímeèlì",
     "status": "machine",
     "translated_on": "2026-10-21"
   },
@@ -191,6 +221,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.invite_someone": {
+    "source": "Invite someone",
+    "translation": "Ṣe ẹnikan nílò",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.invitee": {
     "source": "Invitee",
     "translation": "Olùgbà",
@@ -220,6 +256,12 @@
     "translation": "{{latency_ms}} ms",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.name_shown_in_the_greeting": {
+    "source": "Name shown in the greeting",
+    "translation": "Orúkọ tí a yóò fi hàn nínú ìkíni",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.never": {
     "source": "never",
@@ -287,11 +329,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.practice_clinician_only": {
+    "source": "Practice (clinician only)",
+    "translation": "Iṣẹ́ aṣọ̀kan (aṣọ̀kan nìkan)",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.profile": {
     "source": "Profile",
     "translation": "Profaili",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.record_and_send": {
+    "source": "Record and send",
+    "translation": "Ṣe àkiyèsi kí o sì túndé",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.refresh": {
     "source": "Refresh",
@@ -316,6 +370,12 @@
     "translation": "Wá imeèlì tàbí orúkọ…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.sending": {
+    "source": "Sending…",
+    "translation": "Ń túndé…",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.signed_up": {
     "source": "Signed up",

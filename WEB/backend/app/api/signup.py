@@ -427,6 +427,28 @@ async def signup_complete(
         raise HTTPException(status_code=409, detail="Signup is not ready to complete")
 
     await db.commit()
+
+    # Welcome them. Operator, 2026-10-20: *"a post activation email, welcoming
+    # and congratulating new subscribers (INCLUDING complimentary ones)"* — the
+    # parenthesis says complimentary members were the ones being missed, not
+    # that paid members already had this. They had a RECEIPT, sent at payment,
+    # before the account existed; nothing greeted them once it did.
+    #
+    # One template serves both faces so the two voices cannot drift (§3am's
+    # reason for TOOL_LABELS living in one place).
+    #
+    # After the commit and wrapped: the account exists either way, and a mail
+    # outage must never turn a completed signup into an error the person sees
+    # (§3ah).
+    try:
+        from app.services.email import send_membership_active_email
+
+        await send_membership_active_email(
+            user.email, display_name=user.full_name, complimentary=False)
+    except Exception:  # noqa: BLE001
+        logger.exception("Account for %s was created but the welcome failed",
+                         user.email)
+
     return {
         "message": "Account created. You can now sign in.",
         "paid": True,

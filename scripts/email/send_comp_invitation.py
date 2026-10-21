@@ -2,7 +2,32 @@
 # Copyright © 2026 Wole Akpose / 6igma Health Inc.
 # All rights reserved. ALAFIA — proprietary and confidential.
 
-"""Send ONE complimentary-membership invitation to a named person.
+"""⚠️ RETIRED 2026-10-21 — sending moved into the backend.
+
+Operator: *"move sending to backend. All this must be automated not sender
+triggered."*
+
+This script sends a letter and writes NO row, which is exactly the hole that
+was closed: an invitation sent from a laptop left no trace, so nothing could
+remind the person, nothing could activate them when they verified, and no admin
+screen could show them. The letter sent to `bass797@aol.com` on 2026-10-20 had
+to be reconstructed into `comp_invitations` by hand afterwards.
+
+Use the recorded path instead, which writes the row, sends the letter, and
+hands the lifecycle to the automation:
+
+    POST /api/v1/admin/comp-invitations
+      {"email": "...", "display_name": "...", "months": 12, "valid_days": 7,
+       "clinical_role": "nephrologist", "practice": "..."}
+
+It is kept, not deleted, for ONE purpose: rendering a REVIEW COPY that must not
+become an offer. A review copy sent through the endpoint would create a live
+invitation for the reviewer's address and let a signup there claim a
+membership. Run it with `--apply` only when that is what you mean.
+
+The original documentation follows.
+
+Send ONE complimentary-membership invitation to a named person.
 
     python scripts/email/send_comp_invitation.py --email a@b.com --name "Dr. Owolabi" \\
         --months 12 --deadline "11 October 2026"            # DRY RUN (default)
@@ -266,6 +291,16 @@ def main() -> int:
     ap.add_argument("--apply", action="store_true",
                     help="actually send (default is a dry run that writes a preview)")
     args = ap.parse_args()
+    # A warning in a docstring is read by whoever is already reading the file.
+    # This is for whoever is not.
+    print("\n⚠️  This script sends a letter and writes NO invitation row.",
+          file=sys.stderr)
+    print("   The recorded path is POST /api/v1/admin/comp-invitations, which",
+          file=sys.stderr)
+    print("   also reminds, activates and shows the invitee to an admin.",
+          file=sys.stderr)
+    print("   Use this ONLY for a review copy that must not become an offer.\n",
+          file=sys.stderr)
     return asyncio.run(run(args))
 
 

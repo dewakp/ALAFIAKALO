@@ -171,6 +171,11 @@ export default function Admin() {
   const [usage, setUsage] = useState(null);
   // Complimentary memberships: the offer, and the stage its invitee is in.
   const [comp, setComp] = useState(null);
+  // Creating an invitation lives HERE, not in a script: a letter sent from a
+  // laptop wrote no row, so nothing could remind, activate or show the person.
+  const [invForm, setInvForm] = useState(null);   // null = closed
+  const [invBusy, setInvBusy] = useState(false);
+  const [invError, setInvError] = useState('');
   const [users, setUsers] = useState(null);
   const [q, setQ] = useState('');
   const [detailId, setDetailId] = useState(null);
@@ -234,6 +239,31 @@ export default function Admin() {
         </p>
       </div>
     );
+  }
+
+  async function createInvitation(e) {
+    e.preventDefault();
+    setInvBusy(true);
+    setInvError('');
+    try {
+      await api.post('/admin/comp-invitations', {
+        email: invForm.email.trim(),
+        display_name: invForm.display_name.trim() || null,
+        months: Number(invForm.months),
+        valid_days: Number(invForm.valid_days),
+        clinical_role: invForm.clinical_role.trim() || null,
+        practice: invForm.practice.trim() || null,
+      });
+      setInvForm(null);
+      setComp(await call('/admin/comp-invitations'));
+    } catch (err) {
+      // The server's own sentence, which names the real obstacle — a live
+      // invitation already exists, the address is malformed, the letter could
+      // not be sent. A generic failure here would send someone hunting.
+      setInvError(apiErrorMessage(err, t('Admin.could_not_create_invitation')));
+    } finally {
+      setInvBusy(false);
+    }
   }
 
   const TABS = [
@@ -426,6 +456,55 @@ export default function Admin() {
               </span>
             </div>
           )}
+
+          <div style={{ marginBottom: '.9rem' }}>
+            {!invForm ? (
+              <button className="btn btn-primary btn-sm"
+                onClick={() => { setInvError(''); setInvForm({
+                  email: '', display_name: '', months: 12, valid_days: 7,
+                  clinical_role: '', practice: '' }); }}>
+                <Gift size={13}/> {t('Admin.invite_someone')}
+              </button>
+            ) : (
+              <form onSubmit={createInvitation}
+                style={{ border: '1px solid var(--color-border)', borderRadius: 8,
+                         padding: '.8rem', display: 'grid', gap: '.5rem',
+                         gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))' }}>
+                <input required type="email" placeholder={t('Admin.email_address')}
+                  value={invForm.email}
+                  onChange={e => setInvForm({ ...invForm, email: e.target.value })} />
+                <input placeholder={t('Admin.name_shown_in_the_greeting')}
+                  value={invForm.display_name}
+                  onChange={e => setInvForm({ ...invForm, display_name: e.target.value })} />
+                <input type="number" min="1" max="60" placeholder={t('Admin.months')}
+                  value={invForm.months}
+                  onChange={e => setInvForm({ ...invForm, months: e.target.value })} />
+                <input type="number" min="1" max="365" placeholder={t('Admin.days_to_sign_up')}
+                  value={invForm.valid_days}
+                  onChange={e => setInvForm({ ...invForm, valid_days: e.target.value })} />
+                {/* Only when it will really be granted — an honorific is not a
+                    role, and promising a clinician board to an account that
+                    will never open one is a letter we cannot honour. */}
+                <input placeholder={t('Admin.clinical_role_only_if_granted')}
+                  value={invForm.clinical_role}
+                  onChange={e => setInvForm({ ...invForm, clinical_role: e.target.value })} />
+                <input placeholder={t('Admin.practice_clinician_only')}
+                  value={invForm.practice}
+                  onChange={e => setInvForm({ ...invForm, practice: e.target.value })} />
+                <div style={{ gridColumn: '1/-1', display: 'flex', gap: '.5rem',
+                              alignItems: 'center' }}>
+                  <button className="btn btn-primary btn-sm" disabled={invBusy}>
+                    {invBusy ? t('Admin.sending') : t('Admin.record_and_send')}
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm"
+                    onClick={() => setInvForm(null)}>{t('Admin.cancel')}</button>
+                  {invError && (
+                    <span style={{ color: '#b91c1c', fontSize: '.78rem' }}>{invError}</span>
+                  )}
+                </div>
+              </form>
+            )}
+          </div>
 
           <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '.9rem' }}>
             {Object.entries(comp?.by_stage || {}).map(([stage, n]) => (

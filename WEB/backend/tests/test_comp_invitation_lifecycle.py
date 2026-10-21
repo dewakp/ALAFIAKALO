@@ -306,3 +306,54 @@ async def test_signup_start_marks_the_invitation_claimed(db):
     await svc.note_signup_started(db, email)
     await db.refresh(inv)
     assert inv.claimed_at is not None
+
+
+# ── a reminder is a NUDGE, not the letter again ──────────────────────────
+
+async def test_a_reminder_is_not_the_invitation_resent(db, monkeypatch):
+    """Dr. Bass's row went live on 2026-10-20 with the reaction pass already
+    running in production. Left alone it would have mailed him a verbatim copy
+    of the same letter two days later, which reads as a system that has lost
+    track of itself rather than as a nudge."""
+    invites: list[str] = []
+    nudges: list[dict] = []
+
+    async def invite(to, **k):
+        invites.append(to)
+        return True
+
+    async def nudge(to, **k):
+        nudges.append({"to": to, **k})
+        return True
+
+    monkeypatch.setattr(
+        "app.services.email.send_complimentary_invitation_email", invite)
+    monkeypatch.setattr(
+        "app.services.email.send_comp_invitation_reminder_email", nudge)
+
+    email = _addr()
+    await _invite(db, email, deadline=_future(3))
+    summary = await svc.run_reaction_pass(db)
+
+    assert summary["reminded"] == 1
+    assert invites == [], "the full invitation must not be sent twice"
+    assert nudges and nudges[0]["to"] == email
+    # The one new fact a reminder carries.
+    assert nudges[0]["days_left"] == 3
+
+
+async def test_a_reminder_never_invents_a_countdown(db, monkeypatch):
+    """`days_left` comes from the row's own deadline. A wrong number of days on
+    a deadline letter is worse than none: it is the only fact it carries."""
+    seen: list[int] = []
+
+    async def nudge(to, **k):
+        seen.append(k.get("days_left"))
+        return True
+
+    monkeypatch.setattr(
+        "app.services.email.send_comp_invitation_reminder_email", nudge)
+
+    await _invite(db, _addr(), deadline=_future(1))
+    await svc.run_reaction_pass(db)
+    assert seen == [1]

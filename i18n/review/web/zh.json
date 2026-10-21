@@ -137,11 +137,29 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.cancel": {
+    "source": "Cancel",
+    "translation": "取消",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.clinical_role_only_if_granted": {
+    "source": "Clinical role (only if granted)",
+    "translation": "临床角色（仅在获得授权时）",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.close": {
     "source": "Close",
     "translation": "关闭",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.could_not_create_invitation": {
+    "source": "Could not create the invitation.",
+    "translation": "无法创建邀请。",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.could_not_load_admin_data": {
     "source": "Could not load admin data.",
@@ -155,9 +173,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.days_to_sign_up": {
+    "source": "Days to sign up",
+    "translation": "注册天数",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.deadline": {
     "source": "Deadline",
     "translation": "截止日期",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.email_address": {
+    "source": "Email address",
+    "translation": "电子邮件地址",
     "status": "machine",
     "translated_on": "2026-10-21"
   },
@@ -191,6 +221,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.invite_someone": {
+    "source": "Invite someone",
+    "translation": "邀请某人",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.invitee": {
     "source": "Invitee",
     "translation": "被邀请人",
@@ -220,6 +256,12 @@
     "translation": "{{latency_ms}} 毫秒",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.name_shown_in_the_greeting": {
+    "source": "Name shown in the greeting",
+    "translation": "问候中显示的名称",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.never": {
     "source": "never",
@@ -287,11 +329,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.practice_clinician_only": {
+    "source": "Practice (clinician only)",
+    "translation": "诊疗机构（仅限临床医生）",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.profile": {
     "source": "Profile",
     "translation": "个人资料",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.record_and_send": {
+    "source": "Record and send",
+    "translation": "记录并发送",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.refresh": {
     "source": "Refresh",
@@ -316,6 +370,12 @@
     "translation": "搜索邮箱或姓名…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.sending": {
+    "source": "Sending…",
+    "translation": "发送中…",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.signed_up": {
     "source": "Signed up",

@@ -5247,3 +5247,44 @@ on disk two minutes before the send (12:41:03 EDT), not to `now()`.
   email` is wired to the complimentary activation only; the paid flow still
   sends the older receipt. One template now serves both faces, so the paid
   path should adopt it rather than keep a second voice.
+
+
+### 55b-55e CLOSED — 2026-10-21
+
+Operator: *"FINISH previous tasks FIRST."* All four, measured and tested.
+
+- **55d first, because it was IMMINENT.** Dr. Bass's row went live with
+  `sent_at` 2026-10-20 and the reaction pass already running in production, so
+  around the 22nd it would have mailed him a **verbatim copy of the same
+  invitation** as his reminder. A second identical letter does not read as a
+  nudge; it reads as a system that has lost track of itself, and it buries the
+  only new fact — the deadline is close — in text he has already decided not to
+  act on. `send_comp_invitation_reminder_email` is short, repeats only what is
+  needed to act, and carries `days_left` computed from the row's own deadline.
+  It says "soon" rather than inventing a countdown when none is supplied: a
+  wrong number of days on a deadline letter is worse than no number, because it
+  is the only fact the letter exists to carry.
+- **55c.** `send_comp_invitation.py` is marked RETIRED, in its docstring and in
+  a stderr notice on every run — a warning in a docstring is read only by
+  someone already reading the file. It is kept, not deleted, for one purpose:
+  rendering a REVIEW COPY that must not become an offer, since going through
+  the endpoint would create a live invitation for the reviewer's address.
+- **55b.** The admin Memberships tab can now create one. The endpoint existed
+  and nothing reached it — §3ar's dead control pointed the other way. The form
+  surfaces the server's own sentence on failure ("a live invitation already
+  exists for…"), because a generic error here sends someone hunting.
+- **55e.** The PAID path now sends the same welcome. The parenthesis in
+  *"including complimentary ones"* said complimentary members were the ones
+  being missed — it did not say paid members were covered. They had a RECEIPT,
+  sent at payment before the account existed; nothing greeted them once it did.
+  One template, two faces, so the voices cannot drift.
+
+**Verified:** 16 lifecycle tests (2 new, pinning that a reminder is not the
+invitation resent and that the countdown comes from the row); 65 passed across
+five backend suites; web 297; i18n 44 with ten new keys translated; ruff clean.
+
+⚠️ **55a is still open and is now the only one.** The scheduler's startup line
+in production has still not been OBSERVED — the gcloud token expires within
+minutes and has blocked every attempt. Until someone reads
+*"[scheduler] Comp invitation reactions enabled"*, the automation is believed
+rather than seen.

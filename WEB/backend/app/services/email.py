@@ -853,6 +853,64 @@ async def send_complimentary_invitation_email(
         attachments=list(screenshots or []))
 
 
+async def send_comp_invitation_reminder_email(
+    to: str,
+    *,
+    display_name: str | None = None,
+    months: int,
+    signup_deadline: str,
+    days_left: int | None = None,
+) -> bool:
+    """A SHORT nudge about an offer already explained — not the letter again.
+
+    The reaction pass originally re-sent `send_complimentary_invitation_email`
+    verbatim. A second identical letter two days later does not read as a
+    reminder; it reads as a system that has lost track of itself, and it buries
+    the one new fact — that the deadline is close — inside text the reader has
+    already decided not to act on.
+
+    It deliberately repeats only what someone needs in order to act: the
+    address is theirs, where to go, and when it lapses. The mechanics (close
+    the tab at payment, confirm the link) are in the first letter and are not
+    restated, because a nudge that is as long as the original is the original.
+    """
+    name = _escape(display_name.split()[0]) if display_name else None
+    greeting = f"Hello {name}," if name else "Hello,"
+    app = _escape(settings.APP_NAME)
+    signup_url = f"{settings.PUBLIC_WEB_URL.rstrip('/')}/signup"
+    months_label = f"{months} month" if months == 1 else f"{months} months"
+
+    # "closes soon" rather than an invented countdown when the caller does not
+    # supply one. A wrong number of days on a deadline letter is worse than no
+    # number: it is the only fact the letter exists to carry.
+    when = (f"in {days_left} day" + ("" if days_left == 1 else "s")
+            if isinstance(days_left, int) and days_left > 0 else "soon")
+
+    html = f"""
+    <html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+                       color:#1f2937;line-height:1.55;max-width:560px;">
+      <h2 style="margin:0 0 12px;">{_escape(greeting)}</h2>
+      <p style="margin:0 0 16px;">
+        Your complimentary {app} membership — {months_label}, no card, nothing
+        to cancel — is still waiting, and it closes {when}.
+      </p>
+      <p style="margin:0 0 16px;">
+        <strong>Sign up by {_escape(signup_deadline)}</strong> using
+        <strong>{_escape(to)}</strong>, the address it is attached to.
+      </p>
+      <p style="margin:0 0 20px;">
+        <a href="{signup_url}" style="background:#ea580c;color:#fff;padding:10px 18px;
+           border-radius:6px;text-decoration:none;display:inline-block;">Claim it</a>
+      </p>
+      <p style="margin:0 0 16px;color:#6b7280;font-size:13px;">
+        The earlier email has the full details. If you would rather not have
+        this, just reply and we will close it — nothing has been charged.
+      </p>
+    </body></html>
+    """
+    return await send_email(to, f"Your {app} membership closes {when}", html)
+
+
 async def send_membership_active_email(
     to: str,
     *,

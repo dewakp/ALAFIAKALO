@@ -368,7 +368,17 @@
     "months": "أشهر",
     "reminders": "التذكيرات",
     "not_sent_yet": "لم يتم إرسال الرسالة",
-    "not_sent_reason": "لم يتم إرسال الرسالة — {{reason}}"
+    "not_sent_reason": "لم يتم إرسال الرسالة — {{reason}}",
+    "invite_someone": "دعوة شخص",
+    "email_address": "عنوان البريد الإلكتروني",
+    "name_shown_in_the_greeting": "الاسم المعروض في التحية",
+    "days_to_sign_up": "أيام للتسجيل",
+    "clinical_role_only_if_granted": "الدور السريري (إذا تم منحه فقط)",
+    "practice_clinician_only": "العيادة (للعاملين الطبيين فقط)",
+    "record_and_send": "تسجيل وإرسال",
+    "sending": "جاري الإرسال…",
+    "cancel": "إلغاء",
+    "could_not_create_invitation": "تعذر إنشاء الدعوة."
   },
   "AdvancedDirectives": {
     "loading": "جاري التحميل...",

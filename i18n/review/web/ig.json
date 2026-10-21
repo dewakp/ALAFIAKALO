@@ -137,11 +137,29 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.cancel": {
+    "source": "Cancel",
+    "translation": "Kagbuo",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.clinical_role_only_if_granted": {
+    "source": "Clinical role (only if granted)",
+    "translation": "Ọrụ nkụ (ma ọ bụrụ na a nyere ikike)",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.close": {
     "source": "Close",
     "translation": "Mechie",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.could_not_create_invitation": {
+    "source": "Could not create the invitation.",
+    "translation": "Enweghị ike ịmepụta oku mma.",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.could_not_load_admin_data": {
     "source": "Could not load admin data.",
@@ -155,9 +173,21 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.days_to_sign_up": {
+    "source": "Days to sign up",
+    "translation": "Ụbọchị iji banye",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.deadline": {
     "source": "Deadline",
     "translation": "Ụbọchị mma",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.email_address": {
+    "source": "Email address",
+    "translation": "Adreesị imeịl",
     "status": "machine",
     "translated_on": "2026-10-21"
   },
@@ -191,6 +221,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.invite_someone": {
+    "source": "Invite someone",
+    "translation": "Kpọ mmadụ",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.invitee": {
     "source": "Invitee",
     "translation": "Onye akpọrọ",
@@ -220,6 +256,12 @@
     "translation": "{{latency_ms}} ms",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.name_shown_in_the_greeting": {
+    "source": "Name shown in the greeting",
+    "translation": "Aha a pụtara na mkpọtụ",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.never": {
     "source": "never",
@@ -287,11 +329,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.practice_clinician_only": {
+    "source": "Practice (clinician only)",
+    "translation": "Ebe ọrụ (onye nkụ naanị)",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.profile": {
     "source": "Profile",
     "translation": "Profaịlụ",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.record_and_send": {
+    "source": "Record and send",
+    "translation": "Dekọ ma ziga",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.refresh": {
     "source": "Refresh",
@@ -316,6 +370,12 @@
     "translation": "Chọọ email ma ọ bụ aha…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.sending": {
+    "source": "Sending…",
+    "translation": "A na-eziga…",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.signed_up": {
     "source": "Signed up",

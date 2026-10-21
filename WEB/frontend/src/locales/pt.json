@@ -368,7 +368,17 @@
     "months": "Meses",
     "reminders": "Lembretes",
     "not_sent_yet": "Carta não enviada",
-    "not_sent_reason": "Carta não enviada — {{reason}}"
+    "not_sent_reason": "Carta não enviada — {{reason}}",
+    "invite_someone": "Convidar alguém",
+    "email_address": "Endereço de email",
+    "name_shown_in_the_greeting": "Nome exibido na saudação",
+    "days_to_sign_up": "Dias para se inscrever",
+    "clinical_role_only_if_granted": "Função clínica (apenas se autorizado)",
+    "practice_clinician_only": "Consultório (apenas clínico)",
+    "record_and_send": "Registar e enviar",
+    "sending": "Enviando…",
+    "cancel": "Cancelar",
+    "could_not_create_invitation": "Não foi possível criar o convite."
   },
   "AdvancedDirectives": {
     "loading": "Carregando...",

@@ -368,7 +368,17 @@
     "months": "Miezi",
     "reminders": "Ukumbushaji",
     "not_sent_yet": "Barua haijatumwa",
-    "not_sent_reason": "Barua haijatumwa — {{reason}}"
+    "not_sent_reason": "Barua haijatumwa — {{reason}}",
+    "invite_someone": "Kamatia mtu",
+    "email_address": "Anwani ya barua pepe",
+    "name_shown_in_the_greeting": "Jina linaloonekana katika salamu",
+    "days_to_sign_up": "Siku za kujiandikisha",
+    "clinical_role_only_if_granted": "Jukumu la kliniki (ikiwa umepewa)",
+    "practice_clinician_only": "Kituo cha afya (kwa kliniki tu)",
+    "record_and_send": "Rekodi na tuma",
+    "sending": "Inatuma…",
+    "cancel": "Ghairi",
+    "could_not_create_invitation": "Haikuweza kuunda kamatanishi."
   },
   "AdvancedDirectives": {
     "loading": "Inapakia...",
