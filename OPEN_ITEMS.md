@@ -5288,3 +5288,16 @@ in production has still not been OBSERVED — the gcloud token expires within
 minutes and has blocked every attempt. Until someone reads
 *"[scheduler] Comp invitation reactions enabled"*, the automation is believed
 rather than seen.
+
+### 55a CLOSED — the scheduler was OBSERVED, not assumed — 2026-10-21
+
+Production logs, revision `alafia-backend-00265-28j`, live sha `9fd5ad4`:
+
+    Scheduler started
+    Added job "_comp_invitation_reaction_job" to job store "default"
+    [scheduler] Comp invitation reactions enabled — every 12h
+
+Held open across four deploys because the gcloud token kept expiring before the
+log could be read. Calling it done earlier would have been the §3bg failure in
+its purest form: a claim about a running system, made from the code rather than
+from the system. **§55 is now fully closed.**
