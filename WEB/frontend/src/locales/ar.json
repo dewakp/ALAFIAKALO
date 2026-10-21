@@ -358,7 +358,17 @@
     "no_usage_in_window": "لا يوجد استخدام في هذه الفترة.",
     "tokens_calls": "{{tokens}} رموز · {{interactions}} استدعاء",
     "top_users": "أكثر المستخدمين استخدامًا",
-    "could_not_load_admin_data": "تعذر تحميل بيانات المسؤول."
+    "could_not_load_admin_data": "تعذر تحميل بيانات المسؤول.",
+    "verified_and_waiting_on_us": "تم التحقق منه وننتظر تفعيله",
+    "no_complimentary_invitations_yet": "لا توجد دعوات مجانية حتى الآن.",
+    "invitee": "المدعو",
+    "stage": "المرحلة",
+    "since": "منذ",
+    "deadline": "الموعد النهائي",
+    "months": "أشهر",
+    "reminders": "التذكيرات",
+    "not_sent_yet": "لم يتم إرسال الرسالة",
+    "not_sent_reason": "لم يتم إرسال الرسالة — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "جاري التحميل...",

@@ -15,6 +15,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { fmtDateTime } from '../utils/datetime';
 import {
   Users, Activity, Cpu, RefreshCw, Search, ShieldAlert, ChevronLeft, ChevronRight,
+  Gift, AlertTriangle,
 } from 'lucide-react';
 import { t } from '../i18n';
 
@@ -168,6 +169,8 @@ export default function Admin() {
   const [overview, setOverview] = useState(null);
   const [health, setHealth] = useState(null);
   const [usage, setUsage] = useState(null);
+  // Complimentary memberships: the offer, and the stage its invitee is in.
+  const [comp, setComp] = useState(null);
   const [users, setUsers] = useState(null);
   const [q, setQ] = useState('');
   const [detailId, setDetailId] = useState(null);
@@ -190,6 +193,7 @@ export default function Admin() {
       if (tab === 'overview') setOverview(await call('/admin/overview'));
       if (tab === 'health') setHealth(await call('/admin/health'));
       if (tab === 'usage') setUsage(await call('/admin/token-usage?days=30'));
+      if (tab === 'comp') setComp(await call('/admin/comp-invitations'));
       if (tab === 'users') {
         const params = new URLSearchParams({ limit: PAGE, offset, sort, order: 'desc' });
         if (q.trim()) params.set('q', q.trim());
@@ -237,6 +241,7 @@ export default function Admin() {
     ['users', 'Users', Users],
     ['health', 'App health', RefreshCw],
     ['usage', 'Token usage', Cpu],
+    ['comp', 'Memberships', Gift],
   ];
 
   return (
@@ -401,6 +406,90 @@ export default function Admin() {
       )}
 
       {/* ── Token usage ── */}
+      {tab === 'comp' && (
+        <div>
+          {/* Complimentary memberships, and the stage each invitee is actually
+              in. The stage is READ by the server from the tables that own each
+              fact — it is never stored, so this screen and the reminder job
+              cannot disagree about the same person. */}
+          {comp?.waiting_on_us > 0 && (
+            <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center',
+                          background: '#fef3c7', border: '1px solid #fcd34d',
+                          borderRadius: 6, padding: '.6rem .8rem', marginBottom: '.9rem' }}>
+              <AlertTriangle size={16} color="#92400e" />
+              <span style={{ fontSize: '.85rem', color: '#92400e' }}>
+                {/* The row that matters operationally: they did everything the
+                    letter asked and hold nothing until WE act. Never a nudge
+                    to them. */}
+                <strong>{comp.waiting_on_us}</strong>{' '}
+                {t('Admin.verified_and_waiting_on_us')}
+              </span>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '.9rem' }}>
+            {Object.entries(comp?.by_stage || {}).map(([stage, n]) => (
+              <span key={stage} style={{ fontSize: '.72rem', padding: '.2rem .55rem',
+                borderRadius: 999, background: n ? '#e0e7ff' : '#f3f4f6',
+                color: n ? '#3730a3' : '#9ca3af', fontWeight: 600 }}>
+                {stage.replace(/_/g, ' ')} · {n}
+              </span>
+            ))}
+          </div>
+
+          {!comp?.invitations?.length ? (
+            <p style={{ color: 'var(--color-text-tertiary)', fontSize: '.85rem' }}>
+              {t('Admin.no_complimentary_invitations_yet')}
+            </p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={{ padding: '.4rem' }}>{t('Admin.invitee')}</th>
+                    <th style={{ padding: '.4rem' }}>{t('Admin.stage')}</th>
+                    <th style={{ padding: '.4rem' }}>{t('Admin.since')}</th>
+                    <th style={{ padding: '.4rem' }}>{t('Admin.deadline')}</th>
+                    <th style={{ padding: '.4rem', textAlign: 'right' }}>{t('Admin.months')}</th>
+                    <th style={{ padding: '.4rem', textAlign: 'right' }}>{t('Admin.reminders')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comp.invitations.map(inv => (
+                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--color-border)',
+                          background: inv.waiting_on_us ? '#fffbeb' : undefined }}>
+                      <td style={{ padding: '.4rem' }}>
+                        <div style={{ fontWeight: 600 }}>{inv.display_name || '—'}</div>
+                        <div style={{ color: 'var(--color-text-tertiary)' }}>{inv.email}</div>
+                        {inv.clinical_role && (
+                          <div style={{ fontSize: '.7rem', color: '#3730a3' }}>{inv.clinical_role}</div>
+                        )}
+                        {/* A letter that never left is not an invitation that
+                            was ignored — say which it is (§3aa). */}
+                        {!inv.sent_at && (
+                          <div style={{ fontSize: '.7rem', color: '#b45309' }}>
+                            {inv.send_error
+                              ? t('Admin.not_sent_reason', { reason: inv.send_error })
+                              : t('Admin.not_sent_yet')}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '.4rem' }}>{inv.stage.replace(/_/g, ' ')}</td>
+                      <td style={{ padding: '.4rem', color: 'var(--color-text-tertiary)' }}>
+                        {inv.since ? fmtDateTime(inv.since) : '—'}
+                      </td>
+                      <td style={{ padding: '.4rem' }}>{inv.deadline}</td>
+                      <td style={{ padding: '.4rem', textAlign: 'right' }}>{inv.months}</td>
+                      <td style={{ padding: '.4rem', textAlign: 'right' }}>{inv.reminders_sent}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {tab === 'usage' && usage && (
         <>
           <div style={{ display: 'flex', gap: '.6rem', marginBottom: '1rem', flexWrap: 'wrap' }}>

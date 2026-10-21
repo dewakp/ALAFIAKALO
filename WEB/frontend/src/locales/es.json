@@ -358,7 +358,17 @@
     "no_usage_in_window": "Sin uso en este período.",
     "tokens_calls": "{{tokens}} tokens · {{interactions}} llamadas",
     "top_users": "Usuarios principales",
-    "could_not_load_admin_data": "No se pudieron cargar los datos de administración."
+    "could_not_load_admin_data": "No se pudieron cargar los datos de administración.",
+    "verified_and_waiting_on_us": "verificado y en espera de activación",
+    "no_complimentary_invitations_yet": "Sin invitaciones complementarias aún.",
+    "invitee": "Invitado",
+    "stage": "Etapa",
+    "since": "Desde",
+    "deadline": "Fecha límite",
+    "months": "Meses",
+    "reminders": "Recordatorios",
+    "not_sent_yet": "Carta no enviada",
+    "not_sent_reason": "Carta no enviada — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "Cargando…",

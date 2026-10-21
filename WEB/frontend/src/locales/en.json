@@ -358,7 +358,17 @@
     "no_usage_in_window": "No usage in window.",
     "tokens_calls": "{{tokens}} tokens · {{interactions}} calls",
     "top_users": "Top users",
-    "could_not_load_admin_data": "Could not load admin data."
+    "could_not_load_admin_data": "Could not load admin data.",
+    "verified_and_waiting_on_us": "verified and waiting on us to activate",
+    "no_complimentary_invitations_yet": "No complimentary invitations yet.",
+    "invitee": "Invitee",
+    "stage": "Stage",
+    "since": "Since",
+    "deadline": "Deadline",
+    "months": "Months",
+    "reminders": "Reminders",
+    "not_sent_yet": "Letter not sent",
+    "not_sent_reason": "Letter not sent — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "Loading...",

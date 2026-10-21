@@ -358,7 +358,17 @@
     "no_usage_in_window": "Babu amfani a cikin window.",
     "tokens_calls": "{{tokens}} tokens · {{interactions}} kira",
     "top_users": "Masu jiya na gida",
-    "could_not_load_admin_data": "Ba a iya lodin bayani mai jiyya."
+    "could_not_load_admin_data": "Ba a iya lodin bayani mai jiyya.",
+    "verified_and_waiting_on_us": "An jera kuma muna jira don kunna shi",
+    "no_complimentary_invitations_yet": "Babu gayyata kyauta har yanzu.",
+    "invitee": "Mai karɓa gayyata",
+    "stage": "Mataki",
+    "since": "Tun",
+    "deadline": "Ƙarshen lokaci",
+    "months": "Watanni",
+    "reminders": "Abayyar tunawa",
+    "not_sent_yet": "Wasiƙa ba a aika ba",
+    "not_sent_reason": "Wasiƙa ba a aika ba — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "Ana lodin...",

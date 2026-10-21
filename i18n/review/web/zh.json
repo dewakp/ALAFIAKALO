@@ -155,6 +155,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.deadline": {
+    "source": "Deadline",
+    "translation": "截止日期",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.generated": {
     "source": "Generated {{generated_at}}",
     "translation": "生成于 {{generated_at}}",
@@ -185,6 +191,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.invitee": {
+    "source": "Invitee",
+    "translation": "被邀请人",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.last_login": {
     "source": "Last login",
     "translation": "最后登录",
@@ -196,6 +208,12 @@
     "translation": "正在加载…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.months": {
+    "source": "Months",
+    "translation": "月",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.ms": {
     "source": "{{latency_ms}} ms",
@@ -214,6 +232,12 @@
     "translation": "从未登录",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.no_complimentary_invitations_yet": {
+    "source": "No complimentary invitations yet.",
+    "translation": "暂无免费邀请。",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.no_usage_in_window": {
     "source": "No usage in window.",
@@ -238,6 +262,18 @@
     "translation": "未授权",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.not_sent_reason": {
+    "source": "Letter not sent — {{reason}}",
+    "translation": "信件未发送 — {{reason}}",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.not_sent_yet": {
+    "source": "Letter not sent",
+    "translation": "信件未发送",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.of": {
     "source": "{{offset}}–{{offset2}} of {{total}}",
@@ -269,6 +305,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.reminders": {
+    "source": "Reminders",
+    "translation": "提醒",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.search_email_or_name": {
     "source": "Search email or name…",
     "translation": "搜索邮箱或姓名…",
@@ -280,6 +322,12 @@
     "translation": "注册时间",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.since": {
+    "source": "Since",
+    "translation": "自",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.sort_email": {
     "source": "Sort: email",
@@ -304,6 +352,12 @@
     "translation": "排序：令牌使用量",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.stage": {
+    "source": "Stage",
+    "translation": "阶段",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.subscription": {
     "source": "Subscription",
@@ -364,6 +418,12 @@
     "translation": "用户",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.verified_and_waiting_on_us": {
+    "source": "verified and waiting on us to activate",
+    "translation": "已验证，等待我们激活",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "AdvancedDirectives.additional_instructions": {
     "source": "Additional Instructions",

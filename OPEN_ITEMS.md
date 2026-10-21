@@ -5181,3 +5181,69 @@ catalog knows — and the route to judging it is HISTORY, the other half of the
 operator's sentence: `learned_food_nutrients` already holds what this record
 has established about suya. Queued as **TASKS 21a**, with 21b-21e for the typed
 numbers that remain.
+
+---
+
+## 55. The membership lifecycle is automated, and the invitation is a record — 2026-10-20/21
+
+Operator: *"move sending to backend. All this must be automated not sender
+triggered."* and *"system knows what actions invitees/subscribers perform and
+responds accordingly."* Built as **TASKS 22**; shipped in `de933d1`.
+
+### What was measured first
+
+    send_signup_receipt_email   ONE caller — signup.py:345, the PAID path only
+    grant_comp.sh               pure SQL, notifies nobody
+    activate_comp_signup.py     notifies nobody
+    send_comp_invitation.py     touches NO table
+    admin                       a status word per user; no funnel, no invitation
+
+So a complimentary membership went live in silence while the letter that
+produced it promised *"We will activate your membership and email you the
+moment it is live"* — true only while someone remembered two scripts.
+
+### What exists now
+
+- **`comp_invitations`** (`at001`, additive, **applied in production**) — the
+  offer as a record, with `deadline` NOT NULL and a partial unique index so a
+  re-send cannot create a second live offer and double the reminders.
+- **Verification is the trigger.** `signup_verify_email` activates an invitee,
+  grants the membership (mirroring `grant_comp_and_role.sql` exactly, audit row
+  included) and sends the welcome.
+- **`send_membership_active_email`** — welcome and congratulations, paid and
+  complimentary faces, carrying the end date READ from the row.
+- **A reaction pass every 12h**, ON by default, which nudges only the silent,
+  caps and spaces nudges, and logs *verified-but-not-active* as owed BY US.
+- **An admin Memberships tab** showing every invitation, the stage its invitee
+  is in, and a banner for anyone waiting on us.
+
+**Dr. Bass is invitation id 1 in production**, recorded from the known facts:
+`bass797@aol.com`, 12 months, deadline 2026-10-27, nephrologist, Montgomery
+Renal Associates, `sent_at` 2026-10-20 16:43Z. The migration deliberately did
+NOT backfill it — a migration inventing a `sent_at` it never observed is a
+fabricated record — and the timestamp is anchored to the preview file written
+on disk two minutes before the send (12:41:03 EDT), not to `now()`.
+
+### Still open
+
+- ⚠️ **55a. The scheduler's own startup line is UNVERIFIED in production.** The
+  job is registered and `COMP_INVITATION_REACTION_ENABLED` defaults true, but
+  the gcloud token expired before the log could be read, so *"[scheduler] Comp
+  invitation reactions enabled"* has not been seen. Until it is, the automation
+  is believed rather than observed — the distinction this canon exists for.
+  Check: `gcloud logging read 'resource.labels.service_name="alafia-backend"
+  AND textPayload:"Comp invitation reactions"' --freshness=2h`.
+- **55b. The admin tab is READ-ONLY.** `POST /admin/comp-invitations` exists
+  and nothing in the UI calls it, so creating an invitation still means an API
+  call. §3ar's dead control pointed the other way: the endpoint is live and
+  unreachable from the screen built for it.
+- **55c. `send_comp_invitation.py` still sends without recording.** It is now
+  the wrong path and should become a caller of the endpoint, or be retired.
+  Leaving both is how two sources of truth start.
+- **55d. No reminder template.** A reminder re-sends the invitation verbatim,
+  so a second copy reads as a duplicate rather than a nudge. It needs its own
+  short letter that says the deadline is near.
+- **55e. Nothing emails the paid path's welcome yet.** `send_membership_active_
+  email` is wired to the complimentary activation only; the paid flow still
+  sends the older receipt. One template now serves both faces, so the paid
+  path should adopt it rather than keep a second voice.

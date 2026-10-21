@@ -358,7 +358,17 @@
     "no_usage_in_window": "Keine Nutzung in diesem Zeitraum.",
     "tokens_calls": "{{tokens}} Tokens · {{interactions}} Aufrufe",
     "top_users": "Top-Benutzer",
-    "could_not_load_admin_data": "Admin-Daten konnten nicht geladen werden."
+    "could_not_load_admin_data": "Admin-Daten konnten nicht geladen werden.",
+    "verified_and_waiting_on_us": "verifiziert und wartet auf unsere Aktivierung",
+    "no_complimentary_invitations_yet": "Noch keine kostenlosen Einladungen.",
+    "invitee": "Eingeladene Person",
+    "stage": "Stadium",
+    "since": "Seit",
+    "deadline": "Frist",
+    "months": "Monate",
+    "reminders": "Erinnerungen",
+    "not_sent_yet": "Brief nicht versendet",
+    "not_sent_reason": "Brief nicht versendet — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "Wird geladen…",

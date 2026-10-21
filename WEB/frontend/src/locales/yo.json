@@ -358,7 +358,17 @@
     "no_usage_in_window": "Kò sí lilo nínú àkókò yìí.",
     "tokens_calls": "{{tokens}} tokens · {{interactions}} àwọn ìpè",
     "top_users": "Àwọn olùmúlò tó ga jù",
-    "could_not_load_admin_data": "Kò ṣe àgbéjáde dátà olùdarí."
+    "could_not_load_admin_data": "Kò ṣe àgbéjáde dátà olùdarí.",
+    "verified_and_waiting_on_us": "Àkóyẹ́ tí a gbé, nígbà tí a máa ṣe ìfipamọ́",
+    "no_complimentary_invitations_yet": "Àìní ìpẹ́ ìmọ̀ràn ní ìsinilẹ̀ fún ìsinú.",
+    "invitee": "Olùgbà",
+    "stage": "Ipele",
+    "since": "Láti",
+    "deadline": "Ọjọ́ ìparí",
+    "months": "Oṣù",
+    "reminders": "Àkíyèsí",
+    "not_sent_yet": "Ìwé kò tíì rán",
+    "not_sent_reason": "Ìwé kò tíì rán — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "Ń ṣe ìlọ́wọ́…",

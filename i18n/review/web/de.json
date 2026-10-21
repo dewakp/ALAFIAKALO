@@ -155,6 +155,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.deadline": {
+    "source": "Deadline",
+    "translation": "Frist",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.generated": {
     "source": "Generated {{generated_at}}",
     "translation": "Erstellt {{generated_at}}",
@@ -185,6 +191,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.invitee": {
+    "source": "Invitee",
+    "translation": "Eingeladene Person",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.last_login": {
     "source": "Last login",
     "translation": "Letzte Anmeldung",
@@ -196,6 +208,12 @@
     "translation": "Wird geladen…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.months": {
+    "source": "Months",
+    "translation": "Monate",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.ms": {
     "source": "{{latency_ms}} ms",
@@ -214,6 +232,12 @@
     "translation": "Nie angemeldet",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.no_complimentary_invitations_yet": {
+    "source": "No complimentary invitations yet.",
+    "translation": "Noch keine kostenlosen Einladungen.",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.no_usage_in_window": {
     "source": "No usage in window.",
@@ -238,6 +262,18 @@
     "translation": "Nicht autorisiert",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.not_sent_reason": {
+    "source": "Letter not sent — {{reason}}",
+    "translation": "Brief nicht versendet — {{reason}}",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.not_sent_yet": {
+    "source": "Letter not sent",
+    "translation": "Brief nicht versendet",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.of": {
     "source": "{{offset}}–{{offset2}} of {{total}}",
@@ -269,6 +305,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.reminders": {
+    "source": "Reminders",
+    "translation": "Erinnerungen",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.search_email_or_name": {
     "source": "Search email or name…",
     "translation": "E-Mail oder Name suchen…",
@@ -280,6 +322,12 @@
     "translation": "Registriert",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.since": {
+    "source": "Since",
+    "translation": "Seit",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.sort_email": {
     "source": "Sort: email",
@@ -304,6 +352,12 @@
     "translation": "Sortieren: Token-Nutzung",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.stage": {
+    "source": "Stage",
+    "translation": "Stadium",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.subscription": {
     "source": "Subscription",
@@ -364,6 +418,12 @@
     "translation": "Benutzer",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.verified_and_waiting_on_us": {
+    "source": "verified and waiting on us to activate",
+    "translation": "verifiziert und wartet auf unsere Aktivierung",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "AdvancedDirectives.additional_instructions": {
     "source": "Additional Instructions",

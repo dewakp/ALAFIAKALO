@@ -358,7 +358,17 @@
     "no_usage_in_window": "Ọ dịbeghị iji na windo.",
     "tokens_calls": "{{tokens}} tokens · {{interactions}} oku",
     "top_users": "Ndị ọrụ kachasị",
-    "could_not_load_admin_data": "Enweghị ike ilodata admin."
+    "could_not_load_admin_data": "Enweghị ike ilodata admin.",
+    "verified_and_waiting_on_us": "Akwadoro ma na-echere anyị ka anyị kụọ ya",
+    "no_complimentary_invitations_yet": "Enwebeghị ọkwa ịkwọ ụtụ ugbu a.",
+    "invitee": "Onye akpọrọ",
+    "stage": "Usoro",
+    "since": "Kemgbe",
+    "deadline": "Ụbọchị mma",
+    "months": "Ọnwa",
+    "reminders": "Ihe ncheta",
+    "not_sent_yet": "Akwụkwọ ebeghị elu",
+    "not_sent_reason": "Akwụkwọ ebeghị elu — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "Na-elodata...",

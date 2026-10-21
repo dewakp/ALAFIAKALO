@@ -358,7 +358,17 @@
     "no_usage_in_window": "Aucune utilisation dans cette période.",
     "tokens_calls": "{{tokens}} tokens · {{interactions}} appels",
     "top_users": "Utilisateurs principaux",
-    "could_not_load_admin_data": "Impossible de charger les données admin."
+    "could_not_load_admin_data": "Impossible de charger les données admin.",
+    "verified_and_waiting_on_us": "Vérifié et en attente d'activation",
+    "no_complimentary_invitations_yet": "Aucune invitation gratuite pour le moment.",
+    "invitee": "Invité",
+    "stage": "Stade",
+    "since": "Depuis",
+    "deadline": "Date limite",
+    "months": "Mois",
+    "reminders": "Rappels",
+    "not_sent_yet": "Lettre non envoyée",
+    "not_sent_reason": "Lettre non envoyée — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "Chargement…",

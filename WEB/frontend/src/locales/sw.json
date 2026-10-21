@@ -358,7 +358,17 @@
     "no_usage_in_window": "Hakuna matumizi katika dirisha.",
     "tokens_calls": "{{tokens}} token · {{interactions}} simu",
     "top_users": "Watumiaji wa juu",
-    "could_not_load_admin_data": "Haiwezi kupakia data ya msimamizi."
+    "could_not_load_admin_data": "Haiwezi kupakia data ya msimamizi.",
+    "verified_and_waiting_on_us": "Imethibitishwa na inasubiri kuamilishwa",
+    "no_complimentary_invitations_yet": "Hakuna mwaliko wa bure kwa sasa.",
+    "invitee": "Mwaliko",
+    "stage": "Hatua",
+    "since": "Tangu",
+    "deadline": "Tarehe ya mwisho",
+    "months": "Miezi",
+    "reminders": "Ukumbushaji",
+    "not_sent_yet": "Barua haijatumwa",
+    "not_sent_reason": "Barua haijatumwa — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "Inapakia...",

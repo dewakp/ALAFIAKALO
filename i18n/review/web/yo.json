@@ -155,6 +155,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.deadline": {
+    "source": "Deadline",
+    "translation": "Ọjọ́ ìparí",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.generated": {
     "source": "Generated {{generated_at}}",
     "translation": "Ṣẹ̀dá {{generated_at}}",
@@ -185,6 +191,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.invitee": {
+    "source": "Invitee",
+    "translation": "Olùgbà",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.last_login": {
     "source": "Last login",
     "translation": "Wọlé ìkẹ́yìn",
@@ -196,6 +208,12 @@
     "translation": "Àwòkọ…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.months": {
+    "source": "Months",
+    "translation": "Oṣù",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.ms": {
     "source": "{{latency_ms}} ms",
@@ -214,6 +232,12 @@
     "translation": "Kò tíì wọlé",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.no_complimentary_invitations_yet": {
+    "source": "No complimentary invitations yet.",
+    "translation": "Àìní ìpẹ́ ìmọ̀ràn ní ìsinilẹ̀ fún ìsinú.",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.no_usage_in_window": {
     "source": "No usage in window.",
@@ -238,6 +262,18 @@
     "translation": "A kò gbé ọ́ láyò",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.not_sent_reason": {
+    "source": "Letter not sent — {{reason}}",
+    "translation": "Ìwé kò tíì rán — {{reason}}",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
+  "Admin.not_sent_yet": {
+    "source": "Letter not sent",
+    "translation": "Ìwé kò tíì rán",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.of": {
     "source": "{{offset}}–{{offset2}} of {{total}}",
@@ -269,6 +305,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Admin.reminders": {
+    "source": "Reminders",
+    "translation": "Àkíyèsí",
+    "status": "machine",
+    "translated_on": "2026-10-21"
+  },
   "Admin.search_email_or_name": {
     "source": "Search email or name…",
     "translation": "Wá imeèlì tàbí orúkọ…",
@@ -280,6 +322,12 @@
     "translation": "Forúkọsílẹ̀",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.since": {
+    "source": "Since",
+    "translation": "Láti",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.sort_email": {
     "source": "Sort: email",
@@ -304,6 +352,12 @@
     "translation": "Ṣàpejọ: lilo token",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.stage": {
+    "source": "Stage",
+    "translation": "Ipele",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "Admin.subscription": {
     "source": "Subscription",
@@ -364,6 +418,12 @@
     "translation": "Olùmúlò",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Admin.verified_and_waiting_on_us": {
+    "source": "verified and waiting on us to activate",
+    "translation": "Àkóyẹ́ tí a gbé, nígbà tí a máa ṣe ìfipamọ́",
+    "status": "machine",
+    "translated_on": "2026-10-21"
   },
   "AdvancedDirectives.additional_instructions": {
     "source": "Additional Instructions",

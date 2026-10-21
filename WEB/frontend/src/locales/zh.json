@@ -358,7 +358,17 @@
     "no_usage_in_window": "此时间段内无使用记录。",
     "tokens_calls": "{{tokens}} 令牌 · {{interactions}} 次调用",
     "top_users": "顶级用户",
-    "could_not_load_admin_data": "无法加载管理员数据。"
+    "could_not_load_admin_data": "无法加载管理员数据。",
+    "verified_and_waiting_on_us": "已验证，等待我们激活",
+    "no_complimentary_invitations_yet": "暂无免费邀请。",
+    "invitee": "被邀请人",
+    "stage": "阶段",
+    "since": "自",
+    "deadline": "截止日期",
+    "months": "月",
+    "reminders": "提醒",
+    "not_sent_yet": "信件未发送",
+    "not_sent_reason": "信件未发送 — {{reason}}"
   },
   "AdvancedDirectives": {
     "loading": "加载中...",
