@@ -5301,3 +5301,87 @@ Held open across four deploys because the gcloud token kept expiring before the
 log could be read. Calling it done earlier would have been the §3bg failure in
 its purest form: a claim about a running system, made from the code rather than
 from the system. **§55 is now fully closed.**
+
+---
+
+## 56. Sugar: the limit is for ADDED sugar and is charged against TOTAL sugar — 2026-10-21
+
+Operator: *"overestimating sugar values, conflating natural, added and carbs
+values as sugar"*, on a foundational error in nutritional analysis.
+
+Measured. The conflation is real, it is written into the code's own rationale,
+and it reaches the patient as a false label.
+
+### 56a. The guideline is about FREE sugars; the budget counts TOTAL sugars
+
+`nutrient_goals_service.py:324`:
+
+    sugar_pct = 0.05 if flags["diabetes"] else 0.10
+    add("sugar_g", "Sugars", "g", energy * sugar_pct / 4, "limit",
+        "Diabetes: minimize ADDED sugars (~5% of calories)."
+        else "Keep ADDED sugars under ~10% of calories.")
+
+That is WHO's free-sugars rule — <10% of energy, <5% ideal — and WHO's own
+definition **excludes the sugars in whole fruit, vegetables and milk**. The
+limit is then applied to the column `sugar_g`, which is **Total Sugars**
+(USDA 2000).
+
+For the reference record that budget is **1688 × 0.05 / 4 = 21.1 g**, the exact
+figure §3az records. One banana is ~15 g of total sugar and ~0 g of free sugar,
+so **two bananas exhaust a diabetic's entire daily sugar budget on fruit** that
+the guideline never meant to charge.
+
+### 56b. The screen says "Added Sugar Limit" and shows total sugar
+
+`NutrientTracking.jsx:29` reads `sugar_g` and labels it
+`NutrientTracking.added_sugar_limit` — "Added Sugar Limit", translated into all
+eleven languages. The one surface a diabetic uses to decide what to eat states
+a quantity it is not showing.
+
+(The `target: 50` on that line is NOT a live defect: lines 18-20 record that
+these are placeholders and the real figures come from
+`GET /nutrition/goal-progress`.)
+
+### 56c. `added_sugars_g` is collected and never read
+
+It is in the catalog (`usda_id 1235`), it is populated in real rows — grapefruit
+carries 9.9 — and **nothing in the backend or any client reads it**. The single
+quantity the guideline is actually about is captured and discarded (§3ar).
+
+### 56d. The catalog gives TOTAL sugars the ADDED-sugar Daily Value
+
+Both `sugar_g` and `added_sugars_g` carry `rda: 50`. The FDA's 50 g DV is for
+added sugars. Attaching it to total sugars is the same conflation one layer
+down, and `general_adult_reference` hands it to the assistant (§3am).
+
+### 56e. Sugar values are dataset-dependent, which is the "overestimate"
+
+    banana, per 100 g     FNDDS (fdc 2709224)   15.8 g sugar, 22.71 g carbs
+                          SR Legacy             12.23 g sugar
+                          -> FNDDS is 29% higher
+
+So part of "overestimating sugar" is not an error at all: it is USDA
+disagreeing with USDA, the same split that makes banana 97 kcal here and 89
+everywhere a patient will look it up (§57).
+
+### 56f. Grapefruit's added sugar PROVES the wrong-food match
+
+    grapefruit   carbs 10.81   sugar 9.91   added_sugars 9.90
+
+A raw grapefruit has **zero** added sugar. 9.9 of 9.91 being added means that
+row is a sweetened beverage — confirming `fdc 1930383` / `222.0 ml` /
+`mcp_branded_usda` is a drink, not the fruit. The added-sugar field we never
+read would have caught the mismatch on its own.
+
+### What must be decided before any of it is fixed
+
+1. **Does the sugar limit govern ADDED/free sugars or TOTAL sugars?** If added
+   (the guideline's own meaning), `added_sugars_g` must become a first-class
+   column, be populated for every source, and the label becomes true. If total,
+   the percentage is wrong and needs an authority that actually speaks about
+   total sugars.
+2. **Which USDA dataset is authoritative** (§57) — it moves sugar by 29% on
+   fruit before any of this is decided.
+
+Repairing stored rows before both are settled would rewrite thousands of meals
+toward numbers that then change again.
