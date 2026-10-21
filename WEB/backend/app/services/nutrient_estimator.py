@@ -268,15 +268,41 @@ async def _try_usda_single(food_name: str) -> dict | None:
         if ratio is None:
             continue
         rank = _rank_score(food_name, desc, ratio)  # raw-bonus / processed-penalty
-        dt_pref = 0 if r.get("data_type") in ("Foundation", "SR Legacy") else 1
-        scored.append((-rank, dt_pref, idx, r))
+
+        # ── AN EMPTY RECORD MUST NEVER OUTRANK A COMPLETE ONE ──────────────
+        #
+        # This is what broke grapefruit, measured 2026-10-21. USDA returns TWO
+        # rows called "Grapefruit, raw" and they tie on relevance:
+        #
+        #     Grapefruit, raw   Survey (FNDDS)    42 kcal   dt_pref 1
+        #     Grapefruit, raw   Foundation       NO DATA    dt_pref 0   <- won
+        #
+        # The dataset preference sorted BEFORE "does this row carry numbers",
+        # so the empty Foundation row won the tie, `_try_usda_single` returned
+        # None, and the whole USDA rung failed. Grapefruit then fell through to
+        # `_try_mcp_branded`, which answered with a sweetened 222 ml drink:
+        # 45 kcal, 0 g protein, NO potassium, and 9.9 g of ADDED sugar in a
+        # fruit that has none. On a dialysis record the silently missing
+        # potassium is the worst part of that.
+        #
+        # Banana escaped only by luck — its FNDDS row had no empty twin.
+        has_data = 0 if _has_any_substance(r.get("nutrients") or {}) else 1
+
+        # Operator, 2026-10-21: *"FNDDS is more current, use it first."* A
+        # clinician reaches for the current survey of what people actually eat
+        # before the legacy reference tables, and FNDDS is also the dataset
+        # that carries Added Sugars (usda 1235) — the quantity WHO and the FDA
+        # actually legislate.
+        dt_pref = {"Survey (FNDDS)": 0, "Foundation": 1, "SR Legacy": 2}.get(
+            r.get("data_type"), 3)
+        scored.append((has_data, -rank, dt_pref, idx, r))
 
     if not scored:
         logger.info("No relevant USDA match for '%s' (candidates: %s)",
                     food_name, [r.get("description") for r in results[:5]])
         return None
 
-    scored.sort(key=lambda x: (x[0], x[1], x[2]))
+    scored.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
     best = scored[0][-1]
 
     # If the best result has very few nutrients, try getting full detail.
