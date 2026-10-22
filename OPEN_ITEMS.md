@@ -5306,6 +5306,14 @@ from the system. **§55 is now fully closed.**
 
 ## 56. Sugar: the limit is for ADDED sugar and is charged against TOTAL sugar — 2026-10-21
 
+> ✅ **FIXED 2026-10-21 in `e9365b5`** — both decisions below were answered by
+> the operator (*"follow the WHO and FDA guidelines on sugar and every other
+> nutrient. Thats wha a clinician or dietician will do"* and *"FNDDS is more
+> current, use it first"*), so the limit now charges a DERIVED `free_sugars_g`
+> (`app/services/free_sugars.py`) and `sugar_g` has no Daily Value. What the
+> fix had to discover, and what it cost, is recorded in **56g** below — the
+> measurement in 56a-56f stands as the diagnosis.
+
 Operator: *"overestimating sugar values, conflating natural, added and carbs
 values as sugar"*, on a foundational error in nutritional analysis.
 
@@ -5385,3 +5393,56 @@ read would have caught the mismatch on its own.
 
 Repairing stored rows before both are settled would rewrite thousands of meals
 toward numbers that then change again.
+
+### 56g. Both were answered, and the obvious fix was WRONG — 2026-10-21
+
+Decision 1 is *follow the guidelines*, decision 2 is *FNDDS first* (shipped
+separately as `04c6474`). Three things the fix had to establish, each of which
+would have been a defect if assumed:
+
+> ⚠️ **`added_sugars_g` CANNOT carry the limit. It is a LABEL field, not a
+> food-composition field.** 56c reads as though the repair were simply "read
+> the field we collect". Asked of FoodData Central for one query:
+>
+>     Survey (FNDDS)   0 of 5 foods carry nutrient 1235
+>     SR Legacy        0 of 5
+>     Branded          3 of 5
+>
+> USDA's own wire for FNDDS `2710657` returns 65 nutrients and **no 1235 at
+> all**. Here the field sits on 163 of 1,071 meals and every one is a packaged
+> product, while **July, September and October 2026 carry it on ZERO meals**. A
+> limit charged against it would have read `0 of 21 g` every day of a record
+> whose meals are eba, dodo, okro and jollof — §3ar's dead control, reporting
+> perfect compliance to a diabetic. Worse than over-charging fruit, not better.
+>
+> So free sugars is **derived** from what the food IS, using the band
+> vocabulary `food_category_service` already resolves. The only food words in
+> the module are quoted from WHO's and the FDA's own sentences (`honey`,
+> `syrup`, `juice`, `concentrate`) and a test asserts that, so it cannot become
+> the alias table §3c forbids.
+
+> ⚠️ **The WHO-named-source check must run BEFORE both the label and the
+> class.** A fruit juice resolves to `fruit_fresh`, whose sugars WHO excludes,
+> and a 100%-juice label truthfully declares ZERO added sugars — so the class
+> rule and the label rule each answer "no free sugar" for a glass of orange
+> juice holding **20.65 g** (a real row here). WHO names "fruit juices and
+> fruit juice concentrates" in its definition; only checking that first is
+> right.
+
+> ⚠️ **The correction nearly cost the alert §3az exists to provide, and the
+> tidy fix for that was refused on measurement.** Two of §3az's guards went
+> red: a malt drink's 30 g of total sugar apportions to nothing, so a
+> diabetic's 21 g cap passed unremarked. Treating `beverage` as all-free would
+> have restored it — and `whole milk` resolves to `beverage` on this database,
+> so it would have charged lactose against WHO's own exclusion. Instead the
+> day's UNASSESSED sugar is carried explicitly and the finding fires saying
+> *"may be above your daily limit … if it was added sugar you are 9 g over"*.
+> **A possible breach is reported as possible**, and `_aggregate_daily_nutrients`
+> derives the unassessed figure on read so the 1,046 legacy rows holding total
+> sugar and no apportionment are legible without a backfill.
+
+**Still open after this:** a sweetened drink that is not milk, juice, water or
+tea resolves to `beverage` and is reported as unassessed rather than as free
+sugar — honest, but it means a cola's sugars reach the patient as an upper
+bound instead of a charge. Closing it needs a class that separates a sweetened
+beverage from milk, which the current band vocabulary does not have.

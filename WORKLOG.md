@@ -4262,3 +4262,111 @@ can judge suya; the typed serving sizes and portion ceiling that remain
 grey tea" is permanently dairy (21c); the parser still pricing `carton` and
 `pasteurized` as food (21d); and no way to tell "checked and sound" from
 "nobody could check this" (21e).
+
+## 2026-10-21 — Sugar follows the guidelines, and USDA stops letting an empty row win
+
+Operator: *"follow the WHO and FDA guidelines on sugar and every other
+nutrient. Thats wha a clinician or dietician will do. FNDDS is more current,
+use it first"*, closing the two decisions `c6b6649` had left open.
+
+### An empty USDA record outranked a complete one (`04c6474`)
+
+USDA returns two rows called "Grapefruit, raw" and they tie on relevance:
+
+    Grapefruit, raw   Survey (FNDDS)    42 kcal   dt_pref 1
+    Grapefruit, raw   Foundation       NO DATA    dt_pref 0   <- won the tie
+
+The sort key was `(-rank, dt_pref, idx)`, so the DATASET PREFERENCE ran before
+"does this row carry any numbers". The empty Foundation row won,
+`_try_usda_single` returned None, the whole USDA rung failed, and grapefruit
+fell through to the branded rung — a sweetened 222 ml drink: 45 kcal, 0 g
+protein, **no potassium**, 9.9 g added sugar. Banana escaped only because its
+FNDDS row has no empty twin. §3c already judged an all-zero branded row a MISS;
+the same judgement had never been applied to ranking BETWEEN USDA rows.
+
+- `has_data` sorts an empty row last whatever dataset it is in.
+- `dt_pref` is now FNDDS → Foundation → SR Legacy, as instructed.
+- Relevance still outranks the dataset — the preference is a TIE-BREAK, or
+  "banana" picks banana chips because they sit in FNDDS. Pinned.
+
+### The sugar limit was written for ADDED sugar and charged against TOTAL (`e9365b5`)
+
+Neither authority sets a figure for total sugars — the FDA declares Total
+Sugars with **no %DV**, deliberately. WHO's <10%/<5% is for FREE sugars, whose
+definition excludes whole fruit, vegetables and milk. Charged against
+`sugar_g`, a 21.1 g allowance was **spent by two bananas**.
+
+- **The obvious repair was measured and refused.** `added_sugars_g` is a LABEL
+  field: FNDDS 0 of 5, SR Legacy 0 of 5, Branded 3 of 5, and USDA's own wire
+  for FNDDS 2710657 carries no 1235 at all. Here it is on 163 of 1,071 meals,
+  all packaged products, and on ZERO meals in July, September and October. A
+  limit on it reads `0 of 21 g` forever — §3ar's dead control telling a
+  diabetic they are compliant.
+- So `free_sugars_g` is DERIVED from what the food IS, using the band
+  vocabulary already resolved for the plausibility bands. **Every food word in
+  the module is quoted from WHO's or the FDA's own sentence** and a test
+  asserts it.
+- **The order of evidence is the design.** A WHO-named source (honey, syrup,
+  juice, concentrate) is checked BEFORE the label and the class, because juice
+  resolves to `fruit_fresh` and a 100%-juice label declares zero added sugars —
+  so both other rules answer "no free sugar" for a glass of orange juice
+  holding 20.65 g.
+- **A composite dish is UNASSESSED, never zero**, and its total sugars travel
+  as an upper bound.
+
+### The correction nearly cost the alert §3az exists to provide
+
+Two of §3az's guards went red: a malt drink's 30 g apportions to nothing, so a
+diabetic's cap passed unremarked. The tidy fix — treat `beverage` as all-free —
+was refused on measurement: **`whole milk` resolves to `beverage` here**, so it
+would have charged lactose against WHO's own exclusion. The day's unassessed
+sugar is carried explicitly instead and the finding says *"may be above your
+daily limit … if it was added sugar you are 9 g over"*. Derived on read, so the
+1,046 legacy rows holding total sugar and no apportionment are legible with no
+backfill.
+
+### The source fix was INERT until the cache row went
+
+After shipping the ranking fix, `estimate_nutrients("grapefruit")` still
+returned the 45 kcal drink: `food_nutrient_cache` is consulted first, so a
+wrong row is served forever and a lookup fix changes nothing.
+
+> **My first purge rule was wrong and the dry run refuted it on row 13.** It
+> deleted wherever the repaired USDA rung could answer, which sounded free
+> because a cache row is only a derived lookup. Then:
+>
+>     unsalted butter   cached 714.0/0.0/None     usda 345/8.2/88
+>
+> Butter IS ~717 kcal/100 g; 345 kcal with 8.2 g protein is not butter.
+> Deleting good data for a worse replacement is the same harm as keeping bad
+> data, so §3ab's "only the impossible goes" survives the move to a cache
+> table. Rebuilt on two demonstrable contradictions — energy outside the class's
+> own observed range where USDA's is inside, and added sugars declared on a
+> class WHO names as intrinsic — it reports **8 of 263**, every one defensible
+> (sunflower oil at 929 kcal exceeds pure-fat density; tomato carries 14.3 g
+> protein; green onions 274 is 8.5x).
+>
+> **Narrowed once more on the same evidence.** With the WIDER intrinsic set the
+> run condemned `brioche bread,` (resolved `nut_seed`) and a whole breakfast
+> string (resolved `lean_meat`) — brioche legitimately contains added sugar at
+> a plausible 289 kcal, so those were MISCLASSIFICATIONS, not contradictions.
+> Rule 2 now uses only the three classes WHO actually names.
+
+### Two scans of my own, wrong before they were right
+
+Both the §3av shape, inside the tests written to enforce it. The
+active-response guard first matched its target **inside a docstring** (fixed
+with an AST walk), then flagged `"Blood sugar below your reported range"` —
+glucose message text, a different quantity (§3ap: classify before acting). It
+now asserts what §3az actually protects: the ceiling is never a literal there.
+
+**Verified:** 7 of 25 sugar tests fail against the pre-change tree and are
+regression guards, the other 18 exercise a new module and are coverage; 3 of 4
+USDA ranking tests likewise; 47 passed across sugar/free-sugar/active-response,
+151 across the wider nutrition neighbourhood, 87 across the estimator
+neighbourhood; web 297 including i18n coverage; ruff F,E9 clean.
+
+**Not done:** the cache purge is applied to DEV only — prod needs the same
+deliberate run (§1: prod changes by migration + deploy, never by pushing local
+data). No DB repair of stored meal rows yet. A sweetened drink that is not
+milk, juice, water or tea still reports as unassessed rather than charged.

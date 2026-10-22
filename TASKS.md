@@ -1250,6 +1250,29 @@ honest and it is invisible: nothing distinguishes "checked and sound" from
 "nobody could check this". `nutrients_excluded` gave partial totals a voice
 (§54a); unchecked components have none yet.
 
+### 21f. The band vocabulary cannot tell a cola from a glass of milk
+
+Raised by the free-sugars work (`e9365b5`, OPEN_ITEMS §56g). WHO's limit is
+charged against free sugars, derived from the food's band — and `beverage` is
+the band that holds **both** `whole milk` and `orange juice` on this database,
+with sodas, malt drinks and smoothies alongside. Measured:
+
+    beverage   orange juice (x3 spellings), smoothie, whole milk (x2),
+               japanese milk bread (x2), nutritional drink, bottle
+
+So a sweetened drink's sugars reach the patient as an UPPER BOUND rather than
+as a charge. Treating the band as all-free was tried and refused: it would
+charge milk's lactose, which WHO's own exclusion sentence forbids.
+
+Closing it needs a class that separates a sweetened beverage from milk. That
+is a change to `_USDA_TO_BAND`, where USDA's own vocabulary already
+distinguishes them (`Milk`, `Soft drinks`, `Fruit juice`) — so the authority
+exists and the bridge is what discards it. Note the same table currently maps
+`"beverages" -> beverage` as a catch-all, which is what swallows milk.
+
+⚠️ It is also the same defect as 21c one layer up: `japanese milk bread`
+resolved to `beverage` and will stay there forever.
+
 ---
 
 ## 22. The membership lifecycle runs itself — invite, observe, respond
