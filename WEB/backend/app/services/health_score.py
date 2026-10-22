@@ -35,9 +35,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
-from app.services.dialysis_day_adjustment import FRESH_DAYS
+from app.services.dialysis_day_adjustment import FRESH_DAYS, STALE_DAYS
 from app.services.finding_text import CONTEXT, DEVIATION, HARM, Finding
 
 
@@ -992,8 +993,9 @@ def dialysis_component(*, sessions_in_window: int,
                      DEFAULT_WEIGHTS["dialysis"], detail, critical)
 
 
-def symptom_component(symptoms: list[dict[str, Any]]) -> Component:
-    """What the patient says is wrong with them.
+def symptom_component(symptoms: list[dict[str, Any]],
+                      today: date | None = None) -> Component:
+    """What the patient says is wrong with them, and WHEN they said it.
 
     `severity` is already a patient-reported 0-10 scale, so ×10 is a unit
     conversion onto this score's range rather than a threshold invented here.
@@ -1001,7 +1003,46 @@ def symptom_component(symptoms: list[dict[str, Any]]) -> Component:
     **The WORST symptom decides it, not the mean.** Averaging a 9/10 abdominal
     pain with a 2/10 ache reports 5.5, which describes neither and reads as
     moderate. A patient in severe pain is not partly well.
+
+    ⚠️ **…but the worst over 90 DAYS is not the worst NOW, and this took the
+    former.** Operator, 2026-10-22: *"'twisted abdominal pain' from 40 days
+    ago is irrelevant now."* Measured on the record that prompted it:
+
+        2026-07-28   86 days ago   twisted abdominal pain       9/10
+        2026-10-09   13 days ago   stomach cramps … twisting    6/10
+
+    `max(severity)` over the window returned the 86-day-old 9/10 and the card
+    reported it as the patient's current symptom burden, while the recent 6/10
+    — plausibly the same complaint, still going — was never mentioned. The
+    caller did not even pass a date, so this function could not have known
+    (§3an: "windows, not lifetimes", and a 90-day window with no recency
+    weighting is a lifetime in miniature).
+
+    A LOGGED SYMPTOM IS AN EVENT, NOT A STANDING STATE. A lab value persists
+    until re-measured; "I had severe pain on 28 July" says nothing about
+    today. So the score describes the recent window, and anything older is
+    reported as history WITH ITS DATE rather than as the present.
+
+    `STALE_DAYS` is the recency bound the system already defines
+    (`dialysis_day_adjustment`, 14/30). The 30-day edge is used here, not the
+    14-day one: 14 is "fresh enough to treat as current" for a monthly lab
+    cadence, and 30 is the point past which a value is no longer current at
+    all — which is the question being asked of a symptom. No second window is
+    invented for this (§3an says explicitly not to).
     """
+    reference = today or date.today()
+
+    def _age(entry) -> int | None:
+        when = entry.get("log_date")
+        if when is None:
+            return None
+        if hasattr(when, "date") and not isinstance(when, date):
+            when = when.date()
+        try:
+            return (reference - when).days
+        except TypeError:
+            return None
+
     rated = [s for s in symptoms or [] if s.get("severity") is not None]
     if not symptoms:
         return Component("symptoms", None, DEFAULT_WEIGHTS["symptoms"],
@@ -1011,9 +1052,29 @@ def symptom_component(symptoms: list[dict[str, Any]]) -> Component:
                          {"reason": f"{len(symptoms)} symptoms logged, none rated",
                           "logged": len(symptoms)})
 
-    worst = max(rated, key=lambda s: float(s["severity"]))
+    # An undated entry is treated as current rather than discarded: the date
+    # is missing from OUR payload, which is not evidence about the patient.
+    current = [s for s in rated
+               if (_age(s) is None or _age(s) <= STALE_DAYS)]
+    older = [s for s in rated if s not in current]
+
+    if not current:
+        # Everything on file is history. Saying "9/10" here would assert a
+        # present-tense fact nobody recorded; saying nothing would hide that
+        # symptoms exist. Report the gap and name the newest (§3aa).
+        newest = min((a for a in (_age(s) for s in older) if a is not None),
+                     default=None)
+        return Component(
+            "symptoms", None, DEFAULT_WEIGHTS["symptoms"],
+            {"reason": (f"no symptom logged in the last {STALE_DAYS} days"
+                        + (f"; the most recent was {newest} days ago"
+                           if newest is not None else "")),
+             "logged_older": len(older)})
+
+    worst = max(current, key=lambda s: float(s["severity"]))
     severity = float(worst["severity"])
     score = max(0.0, 100.0 - severity * 10.0)
+    worst_age = _age(worst)
 
     critical: list[str] = []
     # A symptom the patient rated in the top third of their own scale, or one
@@ -1026,12 +1087,22 @@ def symptom_component(symptoms: list[dict[str, Any]]) -> Component:
         }
         if worst.get("affects_function"):
             symptom_facts["affects_daily_function"] = True
+        # The DATE travels with it. A severity with no date is what let an
+        # 86-day-old 9/10 read as the present tense.
+        if worst_age is not None:
+            symptom_facts["days_ago"] = worst_age
+        if worst.get("log_date") is not None:
+            symptom_facts["logged_on"] = str(worst["log_date"])
         critical.append(Finding(
             kind="severe_symptom", domain="symptoms", facts=symptom_facts,
-            # HARM: the patient is in pain now, in their own words.
+            # HARM: the patient is in pain, in their own words — and only
+            # entries inside the recent window reach here at all.
             severity=HARM,
+            essential=("severity",),
             fallback=(f"{worst.get('symptom_name') or 'A symptom'} rated "
                       f"{severity:g}/10"
+                      + (f", logged {worst_age} days ago"
+                         if worst_age is not None else "")
                       + (" and reported as affecting daily function"
                          if worst.get("affects_function") else "")
                       + ".")))

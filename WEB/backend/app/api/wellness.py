@@ -345,8 +345,19 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
         select(SymptomLog).where(
             SymptomLog.user_id == user_id, SymptomLog.log_date >= cutoff_90)
     )).scalars().all()
+    # ⚠️ `log_date` was DROPPED here, so `symptom_component` was structurally
+    # unable to tell an 86-day-old entry from yesterday's and took
+    # max(severity) over the whole 90-day window. Measured on this record:
+    #
+    #     2026-07-28   86 days ago   twisted abdominal pain          9/10
+    #     2026-10-09   13 days ago   stomach cramps … twisting       6/10
+    #
+    # The card reported the 9/10 as the patient's current symptom burden.
+    # Operator: *"'twisted abdominal pain' from 40 days ago is irrelevant
+    # now."* It was older than that.
     symptoms = [{"symptom_name": s.symptom_name, "severity": s.severity,
-                 "affects_function": s.affects_function} for s in symptom_rows]
+                 "affects_function": s.affects_function,
+                 "log_date": s.log_date} for s in symptom_rows]
 
     # ── Elimination: the column OR what the row says ─────────────────────
     # Two of the five writers of `bowel_movements` insert only
@@ -412,7 +423,7 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
         ) if (sessions_365 or on_dialysis) else hs.Component(
             "dialysis", None, hs.DEFAULT_WEIGHTS["dialysis"],
             {"reason": "not on dialysis"}),
-        hs.symptom_component(symptoms),
+        hs.symptom_component(symptoms, today=today),
         hs.elimination_component(
             bowel_blood=bowel_blood, bowel_total=len(bowel_rows),
             vomit_in_window=vomit_90, window_days=90,

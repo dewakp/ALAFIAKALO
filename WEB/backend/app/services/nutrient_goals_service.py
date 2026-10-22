@@ -202,9 +202,15 @@ def compute_goals(
     # a caller without one gets byte-identical behaviour to before.
     supplied: dict[str, Any] = quotas or {}
 
-    def add(key, name, unit, goal, kind, priority, rationale):
+    def add(key, name, unit, goal, kind, priority, rationale, authority=None):
+        # `authority` names the guideline a LADDER figure came from. It used to
+        # be settable only by a cited `condition_nutrient_quotas` row, so every
+        # figure typed into this function reached the patient with
+        # `authority: None` — indistinguishable from "no guideline claims
+        # this", whether it was WHO's own percentage or a number somebody
+        # remembered. Saturated fat really is WHO's <10%; dietary cholesterol's
+        # 200 mg was not anybody's. A reader could not tell them apart.
         quota = supplied.get(key)
-        authority = None
         if quota:
             goal = quota["amount"]
             unit = quota.get("unit") or unit
@@ -282,16 +288,26 @@ def compute_goals(
 
     # ── Sodium (limit) ──────────────────────────────────────────────────────
     sodium_limit = 2300
-    sodium_reason = "Stay under 2,300 mg/day (DGA upper limit)."
+    # Each figure names the body that publishes it. WHO and the FDA do not
+    # agree here and the disagreement is stated rather than averaged away:
+    # WHO advises under 2,000 mg for everyone, the FDA's Daily Value and the
+    # DGA's upper limit are 2,300.
+    sodium_reason = ("FDA Daily Value and DGA upper limit: stay under 2,300 "
+                     "mg/day. WHO advises under 2,000 mg/day.")
+    sodium_authority = "FDA DV (21 CFR 101.9); DGA 2020-2025"
     if flags["hypertension"] or flags["heart_failure"]:
         sodium_limit = 1500
-        sodium_reason = "Hypertension/heart failure: aim under 1,500 mg/day."
+        sodium_reason = ("American Heart Association: an ideal limit of 1,500 "
+                         "mg/day for most adults with high blood pressure.")
+        sodium_authority = "AHA"
     elif flags["ckd"] or flags["cardiovascular"]:
         sodium_limit = 2000
-        sodium_reason = "CKD/cardiovascular: aim under ~2,000 mg/day."
+        sodium_reason = ("WHO: under 2,000 mg/day of sodium (under 5 g of "
+                         "salt), the figure WHO applies to all adults.")
+        sodium_authority = "WHO sodium intake guideline"
     add("sodium_mg", "Sodium", "mg", sodium_limit, "limit",
         2 if (flags["hypertension"] or flags["ckd"] or flags["heart_failure"]) else 80,
-        sodium_reason)
+        sodium_reason, authority=sodium_authority)
 
     # ── Potassium (NIH AI normally; individualized restriction for renal) ────
     # KDOQI 2020 individualizes potassium to keep serum K in range rather than a
@@ -319,9 +335,34 @@ def compute_goals(
         add("phosphorus_mg", "Phosphorus", "mg", 700, "target", 110,
             "RDA 700 mg/day for adults.")
 
-    # ── Saturated fat / sugar / cholesterol (limits) ────────────────────────
+    # ── Saturated fat / trans fat / sugar / cholesterol (limits) ───────────
+    #
+    # Saturated fat's FIGURE was already right and its citation was not. WHO's
+    # 2023 guideline on saturated and trans-fatty acid intake makes <10% of
+    # total energy a STRONG recommendation, and the FDA's 20 g Daily Value is
+    # the same figure at 2,000 kcal — the same agreement between the two
+    # authorities that the free-sugar limit rests on. It was attributed to the
+    # DGA and carried no `authority`, so it was indistinguishable from a number
+    # nobody could source.
     add("saturated_fat_g", "Saturated Fat", "g", energy * 0.10 / 9, "limit", 100,
-        "Keep under ~10% of calories (DGA).")
+        "WHO (2023): keep saturated fat under 10% of total energy — a strong "
+        "recommendation. The FDA's 20 g Daily Value is the same figure at "
+        "2,000 kcal.",
+        authority="WHO 2023 saturated/trans fatty acid guideline; FDA DV "
+                  "(21 CFR 101.9)")
+
+    # ⚠️ TRANS FAT HAD NO LIMIT AT ALL — measured, zero occurrences of
+    # `trans_fat` in this module — while WHO's 2023 guideline makes <1% of
+    # total energy a STRONG recommendation and the catalog has carried
+    # `trans_fat_g` (usda 1257) with `rda: None` the whole time. A nutrient
+    # with a published ceiling and no goal is one the patient is never warned
+    # about: §3ar's dead control, by omission rather than by a flag nobody
+    # reads. This is the gap the operator meant by "every other nutrient".
+    add("trans_fat_g", "Trans Fat", "g", energy * 0.01 / 9, "limit", 105,
+        "WHO (2023): keep trans fat under 1% of total energy — a strong "
+        "recommendation. Industrially-produced trans fat has no known safe "
+        "level and WHO calls for its elimination from the food supply.",
+        authority="WHO 2023 saturated/trans fatty acid guideline")
     # ── Sugar: the limit charges FREE sugars, which is what WHO legislates ──
     #
     # This line used to quote WHO's free-sugars rule and charge it against
@@ -353,10 +394,50 @@ def compute_goals(
          "added-sugars Daily Value is the same figure at 2,000 kcal). Free "
          "sugars are those added to food plus the sugars in honey, syrups and "
          "fruit juice; the sugars in whole fruit, vegetables and milk do not "
-         "count."))
-    chol_limit = 200 if (flags["cardiovascular"] or flags["ckd"]) else 300
-    add("cholesterol_mg", "Cholesterol", "mg", chol_limit, "limit", 120,
-        f"Keep dietary cholesterol under {chol_limit} mg/day.")
+         "count."),
+        # ⚠️ Added 2026-10-22. Yesterday's change wrote WHO all through the
+        # rationale and left `authority` None, so the one limit rebuilt around
+        # a guideline looked exactly like a number nobody could source. The
+        # ratchet below found it; reading the code had not.
+        authority="WHO 2015 free sugars guideline; FDA added-sugars DV "
+                  "(21 CFR 101.9)")
+    # ── Cholesterol: the stricter figure was from a WITHDRAWN guideline ────
+    #
+    # This read `200 if (cardiovascular or ckd) else 300`, with a rationale
+    # that cited nothing at all — "Keep dietary cholesterol under 200 mg/day."
+    # Checked against what the authorities actually say now:
+    #
+    #   DGA   The 2015-2020 Dietary Guidelines REMOVED the 300 mg/day limit
+    #         and state that cholesterol is not a nutrient of concern for
+    #         overconsumption; 2020-2025 keeps no numeric limit either, only
+    #         "eat as little dietary cholesterol as possible".
+    #   WHO   sets NO numeric dietary cholesterol limit.
+    #   FDA   keeps a 300 mg Daily Value for LABELLING (21 CFR 101.9) — which
+    #         is where the 300 came from, not from the DGA it was credited to.
+    #   200   was NCEP ATP III's high-risk figure. ATP III was superseded by
+    #         the 2013 ACC/AHA cholesterol guideline, which sets no dietary
+    #         cholesterol number, and AHA's 2021 dietary guidance sets none.
+    #
+    # So the condition branch asserted a clinical threshold that no current
+    # authority publishes — §3az's exact failure, with the sign reversed: its
+    # hardcoded potassium was LOOSER than the patient's real limit, and this
+    # was STRICTER than anything anyone could cite. Both are the same defect,
+    # a number in the code with nobody behind it.
+    #
+    # ⚠️ **This LOOSENS the figure for cardiovascular and CKD patients, 200 ->
+    # 300 mg.** Said plainly rather than buried, because it is a clinical
+    # change: the system now states the FDA's labelling DV and attributes it
+    # correctly, instead of a number from a retired guideline. A condition
+    # SHOULD be able to tighten it — that is what `condition_nutrient_quotas`
+    # is for (§3bc), where a figure arrives with the sentence it came from and
+    # supersedes this line through `add()`. Re-introducing it here would be
+    # re-introducing the thing this removes.
+    add("cholesterol_mg", "Cholesterol", "mg", 300, "limit", 120,
+        "The FDA's Daily Value for dietary cholesterol is 300 mg (21 CFR "
+        "101.9). Neither WHO nor the current Dietary Guidelines sets a numeric "
+        "limit — the DGA removed its 300 mg cap in 2015 and advises keeping "
+        "intake as low as possible within a healthy eating pattern.",
+        authority="FDA DV (21 CFR 101.9)")
 
     # ── Calcium / Iron / Vitamin D (targets) ────────────────────────────────
     # ⚠️ This is the GENERAL-POPULATION reference and nothing more. Unlike

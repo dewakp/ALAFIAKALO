@@ -228,14 +228,34 @@ function WellnessScoreCard() {
           <div style={{ height: 8, borderRadius: 4, background: 'var(--color-border)', margin: '.75rem 0' }}>
             <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, value))}%`, borderRadius: 4, background: 'var(--color-primary)' }}/>
           </div>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '.82rem', margin: 0 }}>
-            {score.explanation || 'Calculated from your recent nutrition, vitals, sleep, mood and medication data.'}
-          </p>
-          {score.confidence != null && score.confidence < 1 && (
-            <p style={{ color: 'var(--color-text-tertiary)', fontSize: '.72rem', margin: '.35rem 0 0' }}>
-              {translate('Dashboard.based_on_of_the_usual_picture', { confidence: Math.round(score.confidence * 100) })}
-            </p>
-          )}
+          {/* ── THE SCORE, WITHOUT THE NARRATIVE ────────────────────────
+              Operator, 2026-10-22: *"misleading analysis is worse than non.
+              give the score, skip the analysis"*, after reading a card whose
+              paragraph was wrong in four separate ways at once:
+
+                - it LED with a median of ONE blood pressure, 26 days old,
+                  ahead of 100 measured intradialytic readings;
+                - it quoted "twisted abdominal pain rated 9/10" logged **86
+                  days ago** as though current, because `symptom_component`
+                  takes max(severity) over 90 days and the caller never passed
+                  it a date to judge by;
+                - it printed DB column keys at the patient — "short on
+                  calcium_mg, vitamin_d_iu, magnesium_mg";
+                - its findings were ordered by the position of components in a
+                  Python list, so blood in the stool printed below a stale
+                  reading.
+
+              Two of those are fixed (f52d4c2). The symptom one is not, and
+              that is the point: a paragraph that has been confidently wrong
+              this many times does not earn the benefit of the doubt while the
+              remaining faults are open. The number is computed from measured
+              values and is defensible; the prose around it was not.
+
+              The findings are NOT deleted — `explanation` and
+              `critical_findings` are still computed and still returned, and
+              the Wellness page still renders them. This is the dashboard card
+              only, which is where a reader meets them with no context at all.
+          */}
         </>
       )}
     </div>

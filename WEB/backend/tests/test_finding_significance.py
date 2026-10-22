@@ -140,3 +140,64 @@ def test_an_unknown_key_still_prints_rather_than_vanishing():
 
     assert (NUTRIENT_BY_KEY.get("not_a_nutrient", {}).get("name")
             or "not_a_nutrient") == "not_a_nutrient"
+
+
+# ── a symptom is an EVENT, not a standing state ──────────────────────────
+
+import datetime as _dt
+
+
+def _sym(name, severity, days_ago, today=_dt.date(2026, 10, 22)):
+    return {"symptom_name": name, "severity": severity,
+            "affects_function": None,
+            "log_date": today - _dt.timedelta(days=days_ago)}
+
+
+TODAY = _dt.date(2026, 10, 22)
+
+
+def test_an_86_day_old_pain_is_not_the_CURRENT_symptom_burden():
+    """Operator, 2026-10-22: *"'twisted abdominal pain' from 40 days ago is
+    irrelevant now."* It was 86 days old. `max(severity)` over a 90-day window
+    returned it and the card reported it as the present tense, while a 6/10
+    from 13 days ago — plausibly the same complaint — went unmentioned."""
+    comp = hs.symptom_component([
+        _sym("twisted abdominal pain", 9, 86),
+        _sym("stomach cramps, feels like twisting? on right, on left", 6, 13),
+    ], today=TODAY)
+    assert comp.detail.get("symptom") != "twisted abdominal pain"
+    # Scored on the CURRENT one: 100 - 6*10.
+    assert comp.score == 40.0
+
+
+def test_the_sentence_says_WHEN():
+    """A severity with no date is what let an 86-day-old 9/10 read as now."""
+    comp = hs.symptom_component([_sym("sharp pain", 9, 3)], today=TODAY)
+    finding = next(f for f in comp.critical if f.kind == "severe_symptom")
+    assert "3 days ago" in finding.fallback
+    assert finding.facts["days_ago"] == 3
+
+
+def test_when_everything_is_OLD_the_domain_is_unknown_not_well():
+    """§3aa: saying 9/10 would assert a present-tense fact nobody recorded,
+    and saying nothing would hide that symptoms exist. Report the gap."""
+    comp = hs.symptom_component([_sym("twisted abdominal pain", 9, 86)],
+                                today=TODAY)
+    assert comp.score is None, "an old symptom must not score the patient as ill now"
+    assert "86 days ago" in comp.detail["reason"]
+
+
+def test_an_undated_symptom_is_treated_as_current():
+    """The date is missing from OUR payload, which is not evidence about the
+    patient. Discarding it would lose a real symptom to a schema gap."""
+    comp = hs.symptom_component(
+        [{"symptom_name": "nausea", "severity": 8, "affects_function": None}],
+        today=TODAY)
+    assert comp.score == 20.0
+
+
+def test_a_recent_symptom_still_raises_its_finding():
+    """The recency gate must be narrow, or a patient in pain now stops being
+    reported at all."""
+    comp = hs.symptom_component([_sym("severe cramping", 9, 2)], today=TODAY)
+    assert [f.kind for f in comp.critical] == ["severe_symptom"]

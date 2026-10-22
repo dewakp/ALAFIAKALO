@@ -170,3 +170,72 @@ def test_the_daily_alert_follows_the_limit_with_no_named_list():
     payload = compute_goals(**_PROFILE)
     limits = {g["key"] for g in payload["goals"] if g["kind"] == "limit"}
     assert "free_sugars_g" in limits
+
+
+# ── "every other nutrient", 2026-10-22 ───────────────────────────────────
+#
+# Operator, after the sugar fix: *"that's where this exact class of error
+# lives next. --- and the instruction was to fix that."*
+
+def test_saturated_fat_cites_WHO_not_a_vague_DGA():
+    """The FIGURE was right and the citation was not. WHO 2023 makes <10% of
+    energy a strong recommendation and the FDA's 20 g DV is the same number at
+    2,000 kcal; it was credited to "DGA" with no authority recorded."""
+    goal = _goal(compute_goals(**_PROFILE), "saturated_fat_g")
+    assert goal["authority"] and "WHO" in goal["authority"]
+    assert "10%" in goal["rationale"]
+
+
+def test_trans_fat_HAS_a_limit_now():
+    """It had none — zero occurrences in the module — while WHO sets <1% of
+    energy as a strong recommendation and the catalog has carried
+    `trans_fat_g` all along. A published ceiling with no goal never warns
+    anybody (§3ar, by omission)."""
+    payload = compute_goals(**_PROFILE)
+    goal = _goal(payload, "trans_fat_g")
+    assert goal is not None, "WHO sets a figure; the ladder must carry it"
+    assert goal["kind"] == "limit"
+    assert goal["goal"] == round(payload["energy_kcal"] * 0.01 / 9, 1)
+    assert "WHO" in (goal["authority"] or "")
+
+
+def test_cholesterol_no_longer_asserts_a_WITHDRAWN_threshold():
+    """`200 if (cardiovascular or ckd) else 300` cited nothing. The 200 was
+    NCEP ATP III's high-risk figure and ATP III is superseded; the DGA removed
+    its own 300 mg cap in 2015. 300 is the FDA's LABELLING DV, which is what
+    the goal now says it is.
+
+    This deliberately loosens the condition case 200 -> 300: a tighter figure
+    must arrive from `condition_nutrient_quotas` WITH its citation (§3bc), not
+    be re-typed here."""
+    plain = _goal(compute_goals(**_PROFILE), "cholesterol_mg")
+    renal = _goal(compute_goals(**_PROFILE,
+                                conditions=[_Cond("End-stage renal disease")]),
+                  "cholesterol_mg")
+    assert plain["goal"] == renal["goal"] == 300
+    assert "FDA" in (plain["authority"] or "")
+
+
+def test_a_cited_quota_can_still_tighten_any_of_them():
+    """The override lives in `add()`, so a guideline figure with a citation
+    supersedes the ladder — which is the sanctioned way to restore a
+    condition-specific cholesterol limit."""
+    payload = compute_goals(**_PROFILE, quotas={
+        "cholesterol_mg": {"amount": 150.0, "unit": "mg", "kind": "limit",
+                           "source": "A cited guideline",
+                           "rationale": "Because the guideline says so."}})
+    goal = _goal(payload, "cholesterol_mg")
+    assert goal["goal"] == 150.0
+    assert goal["authority"] == "A cited guideline"
+
+
+def test_every_LIMIT_in_the_ladder_names_an_authority_or_is_known_unsourced():
+    """The ratchet: a limit with no authority is a number with nobody behind
+    it. Listed explicitly so adding one is a deliberate act, and so the
+    remaining unsourced figures are visible rather than assumed fine."""
+    payload = compute_goals(**_PROFILE)
+    unsourced = sorted(g["key"] for g in payload["goals"]
+                       if g["kind"] == "limit" and not g.get("authority"))
+    assert unsourced == [], (
+        f"a limit with no authority is a number with nobody behind it: "
+        f"{unsourced}")
