@@ -201,3 +201,91 @@ def test_a_recent_symptom_still_raises_its_finding():
     reported at all."""
     comp = hs.symptom_component([_sym("severe cramping", 9, 2)], today=TODAY)
     assert [f.kind for f in comp.critical] == ["severe_symptom"]
+
+
+# ── prescient, not stale — unless it is perennial ────────────────────────
+#
+# Operator, 2026-10-22: *"critical findings must be prescient not stale,
+# unless they are perenial/chronic."* Applied per finding by asking what the
+# evidence IS: a dated measurement must be recent; a pattern over many
+# treatments, a rate, or a standing prescription is perennial by nature.
+
+def _ktv(days_ago):
+    return hs.dialysis_component(
+        sessions_in_window=35, window_days=90, baseline_per_week=3.0,
+        latest_ktv=0.9, ktv_band=(None, 1.2, 9.0, None),
+        ktv_measured_on=TODAY - _dt.timedelta(days=days_ago), today=TODAY)
+
+
+def test_a_stale_ktv_is_not_a_headline():
+    """One lab draw, not a pattern — so recency governs. §3an: a 147-day-old
+    draw is reported as ABSENT, not as "latest"."""
+    finding = next(f for f in _ktv(147).critical if f.kind == "ktv_below_target")
+    assert finding.severity == CONTEXT
+    assert "147 days ago" in finding.fallback
+
+
+def test_a_stale_ktv_is_not_SCORED_either():
+    """Adequacy from five months ago is not current adequacy; scoring it
+    asserts a clearance nobody has measured since."""
+    comp = _ktv(147)
+    assert "beyond the" in comp.detail.get("ktv_note", "")
+    # Scored only on attendance, so a failing old Kt/V cannot drag it.
+    assert comp.score is not None
+
+
+def test_a_CURRENT_ktv_below_target_is_still_a_real_finding():
+    """The demotion must be narrow — monthly draws are the norm on dialysis,
+    so a 21-day-old Kt/V is current."""
+    finding = next(f for f in _ktv(21).critical if f.kind == "ktv_below_target")
+    assert finding.severity == DEVIATION
+    assert "ktv_note" not in _ktv(21).detail
+
+
+def _blood(days_ago):
+    comp = hs.elimination_component(
+        bowel_blood=7, bowel_total=97, vomit_in_window=0, window_days=90,
+        last_blood_on=TODAY - _dt.timedelta(days=days_ago), today=TODAY)
+    return next(f for f in comp.critical if f.kind == "blood_in_stool")
+
+
+def test_bleeding_that_is_still_happening_is_HARM():
+    """Recurring blood is the perennial case the operator exempts — judged by
+    the most recent episode, not by the count."""
+    finding = _blood(3)
+    assert finding.severity == HARM
+    assert "3 days ago" in finding.fallback
+
+
+def test_bleeding_that_STOPPED_is_reported_but_does_not_lead():
+    """A count over 90 days renders bleeding that stopped in August and
+    bleeding last week identically. It must not."""
+    finding = _blood(85)
+    assert finding.severity == CONTEXT
+    assert "85 days ago" in finding.fallback
+
+
+def test_the_blood_SCORE_is_unchanged_by_recency():
+    """A bleed inside the window happened, whenever it was. Only how loudly it
+    is reported changes — not whether it counted."""
+    recent = hs.elimination_component(
+        bowel_blood=7, bowel_total=97, vomit_in_window=0, window_days=90,
+        last_blood_on=TODAY - _dt.timedelta(days=3), today=TODAY)
+    old = hs.elimination_component(
+        bowel_blood=7, bowel_total=97, vomit_in_window=0, window_days=90,
+        last_blood_on=TODAY - _dt.timedelta(days=85), today=TODAY)
+    assert recent.score == old.score
+
+
+def test_a_perennial_pattern_is_NOT_demoted_for_age():
+    """Intradialytic hypotension across 34 treatments is a pattern, not a
+    dated reading — the operator's "unless they are perenial/chronic". It must
+    stay HARM however the window is positioned."""
+    comp = hs.dialysis_component(
+        sessions_in_window=35, window_days=90, baseline_per_week=3.0,
+        sessions_with_pressure=34, sessions_below_floor=32,
+        sessions_severely_below=14, lowest_nadir=39.0,
+        hypotension_floor=90.0, severe_floor=70.0, today=TODAY)
+    finding = next(f for f in comp.critical
+                   if f.kind == "intradialytic_hypotension_burden")
+    assert finding.severity == HARM

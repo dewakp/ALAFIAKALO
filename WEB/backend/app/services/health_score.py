@@ -774,6 +774,8 @@ def dialysis_component(*, sessions_in_window: int,
                        lowest_nadir: float | None = None,
                        hypotension_floor: float | None = None,
                        severe_floor: float | None = None,
+                       ktv_measured_on=None,
+                       today: date | None = None,
                        dry_weights: list[tuple[Any, float]] | None = None,
                        ) -> Component:
     """Is the treatment happening, is it clearing enough, and is it TOLERATED?
@@ -881,19 +883,62 @@ def dialysis_component(*, sessions_in_window: int,
         detail["baseline"] = ("no established treatment rate yet, so attendance "
                               "is not scored")
 
+    # ── ADEQUACY IS A DATED MEASUREMENT, AND THIS IGNORED THE DATE ───────
+    #
+    # Operator, 2026-10-22: *"critical findings must be prescient not stale,
+    # unless they are perenial/chronic."* Kt/V is neither chronic nor a
+    # pattern — it is one lab draw — and this block had no date at all, while
+    # the caller's query had no date filter either. A Kt/V from any point in
+    # the patient's history produced a "below target" critical finding AND
+    # scored the dialysis domain, stated as though it were this month's.
+    #
+    # §3an already settles the bound: lab recency is FRESH_DAYS/STALE_DAYS
+    # (14/30), scaled to a monthly draw cadence, and "a 147-day-old draw is
+    # reported as ABSENT, not as the latest". Kt/V is drawn monthly on
+    # dialysis, so the 30-day edge is the one that applies.
+    ktv_age = None
+    if ktv_measured_on is not None:
+        reference = today or date.today()
+        when = ktv_measured_on
+        if hasattr(when, "date") and not isinstance(when, date):
+            when = when.date()
+        try:
+            ktv_age = (reference - when).days
+        except TypeError:
+            ktv_age = None
+    ktv_is_stale = ktv_age is not None and ktv_age > STALE_DAYS
+
     if latest_ktv is not None and ktv_band:
-        parts.append((band_score(latest_ktv, ktv_band), 0.3))
         detail["ktv"] = round(float(latest_ktv), 2)
         detail["ktv_target"] = ktv_band[1]
+        if ktv_measured_on is not None:
+            detail["ktv_measured_on"] = str(ktv_measured_on)
+        if ktv_is_stale:
+            # NOT scored. Adequacy from months ago is not current adequacy,
+            # and scoring it asserts a clearance nobody has measured since.
+            detail["ktv_note"] = (
+                f"drawn {ktv_age} days ago, beyond the {STALE_DAYS}-day "
+                f"recency bound — reported, not scored")
+        else:
+            parts.append((band_score(latest_ktv, ktv_band), 0.3))
         if latest_ktv < ktv_band[1]:
+            facts = {"measure": "delivered Kt/V",
+                     "value": round(float(latest_ktv), 2),
+                     "adequacy_target": ktv_band[1], "below_target": True}
+            if ktv_age is not None:
+                facts["days_ago"] = ktv_age
+            if ktv_measured_on is not None:
+                facts["measured_on"] = str(ktv_measured_on)
             critical.append(Finding(
                 kind="ktv_below_target", domain="dialysis",
-                severity=DEVIATION,   # delivered dose under its target
-                facts={"measure": "delivered Kt/V",
-                       "value": round(float(latest_ktv), 2),
-                       "adequacy_target": ktv_band[1], "below_target": True},
+                # A current draw under target is a real deviation; one from
+                # beyond the recency bound is history and must not lead.
+                severity=CONTEXT if ktv_is_stale else DEVIATION,
+                facts=facts,
                 fallback=(f"Delivered Kt/V {latest_ktv:.2f} is below the "
-                          f"{ktv_band[1]:g} adequacy target.")))
+                          f"{ktv_band[1]:g} adequacy target"
+                          + (f", measured {ktv_age} days ago"
+                             if ktv_age is not None else "") + ".")))
 
     # ── How the treatments GO, which is the half that was missing ────────
     if sessions_with_pressure and hypotension_floor is not None:
@@ -1118,6 +1163,8 @@ def symptom_component(symptoms: list[dict[str, Any]],
 def elimination_component(*, bowel_blood: int, bowel_total: int,
                           vomit_in_window: int, window_days: int,
                           vomit_baseline_per_week: float | None = None,
+                          last_blood_on=None,
+                          today: date | None = None,
                           ) -> Component:
     """Blood, and how often the patient is being sick.
 
@@ -1157,18 +1204,55 @@ def elimination_component(*, bowel_blood: int, bowel_total: int,
         # same as one bleeding daily — but neither reads as healthy.
         if bowel_blood:
             bowel_score = max(0.0, 50.0 - fraction * 50.0)
+            # ── WHEN WAS THE LAST ONE ────────────────────────────────────
+            #
+            # Operator, 2026-10-22: *"critical findings must be prescient not
+            # stale, unless they are perenial/chronic."* A count over 90 days
+            # cannot tell bleeding that stopped in August from bleeding last
+            # week — both render as "blood recorded in 7 of 97". This
+            # component was handed counts ALONE and so could not have said,
+            # the same structural blindness that let an 86-day-old pain read
+            # as current.
+            #
+            # Recurring blood IS the chronic case the operator exempts, and
+            # that is judged by the MOST RECENT episode: still bleeding is
+            # chronic and current; bleeding that stopped is history. The
+            # score is unchanged either way — a bleed inside the window
+            # happened, whenever it was.
+            blood_age = None
+            if last_blood_on is not None:
+                reference = today or date.today()
+                when = last_blood_on
+                if hasattr(when, "date") and not isinstance(when, date):
+                    when = when.date()
+                try:
+                    blood_age = (reference - when).days
+                except TypeError:
+                    blood_age = None
+            if blood_age is not None:
+                detail["days_since_blood"] = blood_age
+                detail["last_blood_on"] = str(last_blood_on)
+            facts = {"measure": "bowel movements with blood recorded",
+                     "with_blood": bowel_blood, "total": bowel_total,
+                     "percent": round(fraction * 100),
+                     "window_days": window_days}
+            if blood_age is not None:
+                facts["days_since_most_recent"] = blood_age
+                facts["most_recent_on"] = str(last_blood_on)
             critical.append(Finding(
                 kind="blood_in_stool", domain="elimination",
-                # HARM: blood is an event, not a number near a bound.
-                severity=HARM,
-                facts={"measure": "bowel movements with blood recorded",
-                       "with_blood": bowel_blood, "total": bowel_total,
-                       "percent": round(fraction * 100),
-                       "window_days": window_days},
+                # HARM while it is still happening. Blood whose most recent
+                # episode is beyond the recency bound is reported, and not as
+                # something occurring now.
+                severity=(CONTEXT if (blood_age is not None
+                                      and blood_age > STALE_DAYS) else HARM),
+                facts=facts,
                 essential=("with_blood", "total"),
                 fallback=(f"Blood recorded in {bowel_blood} of {bowel_total} "
                           f"bowel movements ({fraction * 100:.0f}%) over the "
-                          f"last {window_days} days.")))
+                          f"last {window_days} days"
+                          + (f", most recently {blood_age} days ago"
+                             if blood_age is not None else "") + ".")))
         else:
             bowel_score = 100.0
         parts.append((bowel_score, 0.7))

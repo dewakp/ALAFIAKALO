@@ -332,13 +332,20 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
 
     # Delivered Kt/V — the measured one. `KT/V PRESCRIBED` is deliberately not
     # matched (canon §3ac: the prescription is not what the patient received).
+    # ⚠️ The DATE comes with it. This selected the value alone with no date
+    # filter whatsoever, so a Kt/V drawn at any point in the patient's history
+    # produced a "below target" critical finding and scored the dialysis
+    # domain, stated as though it were this month's draw. §3an is explicit
+    # that a 147-day-old draw is reported as ABSENT, not as "latest".
     ktv_row = (await db.execute(
-        select(LabResult.value).where(
+        select(LabResult.value, LabResult.test_date).where(
             LabResult.user_id == user_id,
             LabResult.value.isnot(None),
             func.lower(LabResult.test_name).in_(("spkt/v", "kt/v", "ktv")))
         .order_by(LabResult.test_date.desc()).limit(1)
-    )).scalar_one_or_none()
+    )).first()
+    ktv_value = ktv_row[0] if ktv_row else None
+    ktv_measured_on = ktv_row[1] if ktv_row else None
 
     # ── Symptoms ─────────────────────────────────────────────────────────
     symptom_rows = (await db.execute(
@@ -366,12 +373,17 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
     # `blood_present` empty on every one. Reading the flag alone scores that as
     # no blood at all.
     bowel_rows = (await db.execute(
-        select(BowelMovement.blood_present, BowelMovement.notes).where(
+        select(BowelMovement.blood_present, BowelMovement.notes,
+               BowelMovement.log_date).where(
             BowelMovement.user_id == user_id, BowelMovement.log_date >= cutoff_90)
     )).all()
-    bowel_blood = sum(
-        1 for flag, notes in bowel_rows
-        if elimination_text.blood_in_row(flag=flag, notes=notes))
+    # WHEN the last one was, not just how many. A count over 90 days cannot
+    # distinguish bleeding that stopped in August from bleeding last week, and
+    # "critical findings must be prescient not stale" turns on exactly that.
+    bloody_dates = [when for flag, notes, when in bowel_rows
+                    if elimination_text.blood_in_row(flag=flag, notes=notes)]
+    bowel_blood = len(bloody_dates)
+    last_blood_on = max(bloody_dates) if bloody_dates else None
 
     vomit_90 = (await db.execute(
         select(func.count(VomitingLog.id)).where(
@@ -403,8 +415,10 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
         hs.dialysis_component(
             sessions_in_window=sessions_90, window_days=90,
             baseline_per_week=baseline_per_week,
-            latest_ktv=float(ktv_row) if ktv_row is not None else None,
+            latest_ktv=float(ktv_value) if ktv_value is not None else None,
             ktv_band=bands.get("KtV (Dialysis Adequacy)"),
+            ktv_measured_on=ktv_measured_on,
+            today=today,
             sessions_with_pressure=tolerance["sessions_with_pressure"],
             sessions_below_floor=tolerance["below_floor"],
             sessions_severely_below=tolerance["severely_below"],
@@ -426,6 +440,7 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
         hs.symptom_component(symptoms, today=today),
         hs.elimination_component(
             bowel_blood=bowel_blood, bowel_total=len(bowel_rows),
+            last_blood_on=last_blood_on, today=today,
             vomit_in_window=vomit_90, window_days=90,
             vomit_baseline_per_week=(vomit_365 / (365 / 7.0)) if vomit_365 else None,
         ),
