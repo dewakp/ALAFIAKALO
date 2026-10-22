@@ -26,6 +26,7 @@ from datetime import date
 from typing import Any, Iterable
 
 from app.core.nutrition_data import NUTRIENT_CATALOG
+from app.services import free_sugars
 
 #: RDA / FDA Daily Value by nutrient key, read from the same 116-entry catalog
 #: the estimator, the diary and the AI tools use. Sourced rather than re-typed:
@@ -321,11 +322,38 @@ def compute_goals(
     # ── Saturated fat / sugar / cholesterol (limits) ────────────────────────
     add("saturated_fat_g", "Saturated Fat", "g", energy * 0.10 / 9, "limit", 100,
         "Keep under ~10% of calories (DGA).")
-    sugar_pct = 0.05 if flags["diabetes"] else 0.10
-    add("sugar_g", "Sugars", "g", energy * sugar_pct / 4, "limit",
-        10 if flags["diabetes"] else 95,
-        ("Diabetes: minimize added sugars (~5% of calories)." if flags["diabetes"]
-         else "Keep added sugars under ~10% of calories."))
+    # ── Sugar: the limit charges FREE sugars, which is what WHO legislates ──
+    #
+    # This line used to quote WHO's free-sugars rule and charge it against
+    # `sugar_g` — USDA 2000, TOTAL sugars. WHO's definition expressly excludes
+    # the sugars in fresh fruit, vegetables and milk, so a 1,688 kcal diabetic
+    # with a 21.1 g allowance had it spent by TWO BANANAS (~30 g of total
+    # sugar, 0 g of free sugar). That is the "overestimating sugar values,
+    # conflating natural, added and carbs values as sugar" the operator
+    # reported on 2026-10-21.
+    #
+    # `added_sugars_g` was measured as the replacement and cannot carry a
+    # limit: USDA serves nutrient 1235 for Branded foods only, so it is absent
+    # from every FNDDS and SR Legacy food and read zero on every meal in
+    # July, September and October 2026. A limit on it would have reported
+    # perfect compliance to a diabetic every day (§3ar).
+    #
+    # So `free_sugars_g` is DERIVED per food from WHO's and the FDA's own
+    # definitions (`services/free_sugars.py`), and a composite dish whose
+    # sugars nobody apportions is carried as UNASSESSED rather than as zero.
+    add("free_sugars_g", "Free Sugars", "g",
+        free_sugars.who_free_sugar_limit_g(energy, diabetes=flags["diabetes"]),
+        "limit", 10 if flags["diabetes"] else 95,
+        ("Diabetes: WHO's conditional recommendation — keep FREE sugars under "
+         "~5% of calories. Free sugars are those added to food plus the sugars "
+         "in honey, syrups and fruit juice; the sugars in whole fruit, "
+         "vegetables and milk do not count."
+         if flags["diabetes"] else
+         "WHO: keep FREE sugars under ~10% of calories (the FDA's 50 g "
+         "added-sugars Daily Value is the same figure at 2,000 kcal). Free "
+         "sugars are those added to food plus the sugars in honey, syrups and "
+         "fruit juice; the sugars in whole fruit, vegetables and milk do not "
+         "count."))
     chol_limit = 200 if (flags["cardiovascular"] or flags["ckd"]) else 300
     add("cholesterol_mg", "Cholesterol", "mg", chol_limit, "limit", 120,
         f"Keep dietary cholesterol under {chol_limit} mg/day.")

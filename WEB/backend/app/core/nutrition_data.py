@@ -37,7 +37,13 @@ NUTRIENT_CATALOG: list[dict[str, Any]] = [
     {"key": "carbs_g", "name": "Total Carbohydrate", "unit": "g", "usda_id": 1005, "rda": 275, "category": "Macronutrients"},
     {"key": "fat_g", "name": "Total Fat", "unit": "g", "usda_id": 1004, "rda": 78, "category": "Macronutrients"},
     {"key": "fiber_g", "name": "Dietary Fiber", "unit": "g", "usda_id": 1079, "rda": 28, "category": "Macronutrients"},
-    {"key": "sugar_g", "name": "Total Sugars", "unit": "g", "usda_id": 2000, "rda": 50, "category": "Macronutrients"},
+    # ⚠️ `rda` is None DELIBERATELY. The FDA declares Total Sugars with NO
+    # %Daily Value — it decided not to set one — and WHO's figure is for FREE
+    # sugars. The 50 that sat here was the FDA's ADDED-sugars DV attached to
+    # total sugars, so every surface reading this reported a banana as a
+    # percentage of a ceiling written for a can of Coke. The limit lives on
+    # `free_sugars_g` below; see services/free_sugars.py for both citations.
+    {"key": "sugar_g", "name": "Total Sugars", "unit": "g", "usda_id": 2000, "rda": None, "category": "Macronutrients"},
     {"key": "water_ml", "name": "Water", "unit": "ml", "usda_id": 1051, "rda": None, "category": "Macronutrients"},
 
     # ── Fat Breakdown ──
@@ -140,7 +146,25 @@ EXTENDED_NUTRIENTS: list[dict[str, Any]] = [
     {"key": "lutein_zeaxanthin_mcg", "name": "Lutein + Zeaxanthin", "unit": "µg", "usda_id": 1123, "rda": None, "category": "Carotenoids"},
 
     # Sugars detail
+    #
+    # `added_sugars_g` keeps the FDA's 50 g DV, which is the figure that DV was
+    # written for. It is a LABEL field: measured 2026-10-21, USDA serves
+    # nutrient 1235 for Branded foods and for NONE of FNDDS or SR Legacy, so it
+    # is populated here only where a Nutrition Facts panel exists (163 of 1,071
+    # meals, every one a packaged product).
     {"key": "added_sugars_g", "name": "Added Sugars", "unit": "g", "usda_id": 1235, "rda": 50, "category": "Sugars"},
+    # DERIVED, not measured — there is no USDA nutrient for it, which is why
+    # `usda_id` is None (the shape chloride and boron already use). This is the
+    # quantity WHO legislates (<10% of energy, <5% conditional) and the one the
+    # daily limit is charged against; `services/free_sugars.py` apportions it
+    # per food from WHO's and the FDA's own definitions, and reports a composite
+    # dish as UNASSESSED rather than as zero.
+    {"key": "free_sugars_g", "name": "Free Sugars", "unit": "g", "usda_id": None, "rda": 50, "category": "Sugars"},
+    # The total sugars of foods the rule could not apportion — an UPPER BOUND on
+    # what else might be free, never a value to add to a total. It exists so a
+    # day can say "7 g free, up to 9 g more in 2 items nobody can apportion"
+    # instead of presenting 7 g as the answer (§3aa).
+    {"key": "free_sugars_unassessed_g", "name": "Sugars Not Apportioned", "unit": "g", "usda_id": None, "rda": None, "category": "Sugars"},
     {"key": "sucrose_g", "name": "Sucrose", "unit": "g", "usda_id": 1010, "rda": None, "category": "Sugars"},
     {"key": "glucose_g", "name": "Glucose", "unit": "g", "usda_id": 1011, "rda": None, "category": "Sugars"},
     {"key": "fructose_g", "name": "Fructose", "unit": "g", "usda_id": 1012, "rda": None, "category": "Sugars"},

@@ -709,6 +709,44 @@ async def estimate_nutrients(
             lookup_name, result["nutrients"],
             category=resolved_category, reference_range=reference_range)
         result["nutrients"] = corrected
+
+        # ── FREE sugars: the quantity WHO and the FDA actually legislate ────
+        #
+        # Derived here because this is the one place that already knows what
+        # the food IS (`resolved_category`) as well as what it contains. The
+        # alternative — reading `added_sugars_g` — was measured and cannot
+        # work: USDA serves nutrient 1235 for Branded foods only, so it is
+        # absent from every FNDDS and SR Legacy food. See
+        # services/free_sugars.py for both definitions and the measurement.
+        #
+        # Both keys are per 100 g like everything else in `nutrients`, so the
+        # meal path scales and sums them with no special case.
+        try:
+            from app.services.free_sugars import free_sugars_for
+
+            # The name the USER typed decides a WHO-named source, not the
+            # canonicalised lookup name: "1 cup of orange juice" canonicalises
+            # toward "orange", and WHO counts juice sugars as free while whole
+            # fruit's are excluded. Losing the word loses the distinction.
+            share = free_sugars_for(
+                band=resolved_category,
+                total_sugars_g=corrected.get("sugar_g"),
+                added_sugars_g=corrected.get("added_sugars_g"),
+                food_name=f"{display_name} {lookup_name}",
+            )
+            if share.grams is not None:
+                corrected["free_sugars_g"] = round(share.grams, 4)
+            else:
+                # Never written as 0: a composite dish's sugars are not known
+                # to be intrinsic, and a zero here would read as a measured
+                # absence on the one screen a diabetic uses (§3aa).
+                corrected["free_sugars_unassessed_g"] = round(share.unassessed_g, 4)
+            result["free_sugars_basis"] = share.basis
+            result["free_sugars_reason"] = share.reason
+        except Exception:  # noqa: BLE001 - never fail a lookup over a derivation
+            logger.exception("Free-sugar share could not be derived for '%s'",
+                             food_name)
+
         if warnings:
             result["plausibility_warnings"] = warnings
             result["believable"] = believable

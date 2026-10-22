@@ -158,14 +158,27 @@ class TestTheLimitBelongsToThePatient:
     async def test_sugar_fires_below_the_old_50g_for_a_diabetic(self, db):
         """The operator's own example: a diabetic exceeding a sugar quota.
 
-        `compute_goals` puts added sugars at 5% of energy for a diabetic and
-        10% otherwise, so this patient's cap is ~21 g — well under the 50 g the
-        old dict used. A 30 g day is over their limit and under the constant.
+        `compute_goals` puts the sugar ceiling at 5% of energy for a diabetic
+        and 10% otherwise, so this patient's cap is ~21 g — well under the 50 g
+        the old dict used. A 30 g day is over their limit and under the
+        constant.
+
+        ⚠️ The KEY is `free_sugars_g`, not `sugar_g`, since 2026-10-21. WHO's
+        percentage is written for FREE sugars and was being charged against
+        USDA 2000 (total), so whole fruit spent an allowance the guideline
+        excludes it from — the operator's "conflating natural, added and carbs
+        values as sugar". The limit and its arithmetic are unchanged; only the
+        quantity it is charged against moved (services/free_sugars.py).
+
+        This meal is the case that proves the correction did not cost the
+        alert: a malt drink's 30 g carries no apportionment, so the day's FREE
+        total is 0 and its UNASSESSED total is 30. The finding still fires,
+        with the uncertainty stated rather than claiming a measured breach.
         """
         user = await _patient(db, email="sugar@example.com")
         cap = _limit_for([type("C", (), {"name": "Diabetes", "category": "OTHER",
                                          "severity": None, "active": True})()],
-                         "sugar_g")["goal"]
+                         "free_sugars_g")["goal"]
         assert cap < OLD_HARDCODED["sugar_g"], (
             f"premise: the diabetic cap {cap} must be under the old 50 g")
 
@@ -181,6 +194,12 @@ class TestTheLimitBelongsToThePatient:
         sugar = [n for n in notes if "ugar" in n.title]
         assert sugar, f"expected a sugar alert, got {[n.title for n in notes]}"
         assert 30 < OLD_HARDCODED["sugar_g"]
+        # The breach is POSSIBLE, not measured: nothing apportioned the malt
+        # drink's 30 g into free and intrinsic sugar, so claiming a certain
+        # breach would assert a measurement nobody took (§3aa).
+        payload = json.loads(sugar[0].extra_data)
+        assert payload["apportionment_uncertain"] is True
+        assert "may be" in sugar[0].title
 
     @pytest.mark.asyncio
     async def test_the_DAY_is_the_unit_not_the_meal(self, db):

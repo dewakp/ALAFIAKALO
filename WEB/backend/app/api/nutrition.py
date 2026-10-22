@@ -151,10 +151,35 @@ async def _aggregate_daily_nutrients(
             val = getattr(log, key, None)
             if val is not None:
                 aggregated[key] = aggregated.get(key, 0) + val
-        if log.extended_nutrients:
-            for key, val in log.extended_nutrients.items():
+        extended = log.extended_nutrients
+        if isinstance(extended, dict):
+            for key, val in extended.items():
                 if isinstance(val, (int, float)):
                     aggregated[key] = aggregated.get(key, 0) + val
+
+        # ── A MEAL NOBODY APPORTIONED IS UNASSESSED, NOT SUGAR-FREE ────────
+        #
+        # The sugar limit is charged against FREE sugars (WHO), which are
+        # derived per food at estimation time (services/free_sugars.py). A meal
+        # logged before that existed — 1,046 of 1,071 rows on this database —
+        # carries `sugar_g` and no apportionment at all, and summing only the
+        # meals that have one would report a confident free-sugar figure built
+        # from a fraction of the day. A diabetic would read "2 g of 21 g" after
+        # a malt drink.
+        #
+        # So a meal with total sugars and NEITHER free-sugar key contributes
+        # its total as UNASSESSED — an upper bound on what might be free, never
+        # a value added to the free total. §3aa: unmeasured and zero are
+        # opposite facts. This is derived on read rather than backfilled,
+        # because the apportionment improves as foods are re-estimated and a
+        # written-down copy would go stale against it (§3ai).
+        ext_keys = extended if isinstance(extended, dict) else {}
+        sugar = getattr(log, "sugar_g", None)
+        if (isinstance(sugar, (int, float)) and sugar > 0
+                and "free_sugars_g" not in ext_keys
+                and "free_sugars_unassessed_g" not in ext_keys):
+            aggregated["free_sugars_unassessed_g"] = (
+                aggregated.get("free_sugars_unassessed_g", 0) + float(sugar))
 
     med_result = await db.execute(
         select(MedicationDoseLog).where(

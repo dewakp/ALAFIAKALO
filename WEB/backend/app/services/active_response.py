@@ -297,6 +297,31 @@ async def _nutrient_limit_findings(db: AsyncSession, log: Any, user: Any) -> lis
         key = str(goal.get("key") or "")
         cap = goal.get("goal")
         got = totals.get(key)
+
+        # ── AN UNAPPORTIONED LOAD STILL HAS TO BE SAID ─────────────────────
+        #
+        # The sugar limit is charged against FREE sugars, which a composite
+        # dish does not resolve into (services/free_sugars.py). Silence there
+        # would be a regression on the one alert this module was written for —
+        # the operator's own example of a diabetic exceeding a sugar quota —
+        # because a malt drink carrying 30 g of total sugar resolves to
+        # `beverage`, apportions to nothing, and would pass under a 21 g cap
+        # unremarked.
+        #
+        # So when the apportioned figure is under the cap but the day's
+        # UNASSESSED sugar would carry it over, the finding is raised with that
+        # uncertainty stated. The alternative — treating a beverage's sugars as
+        # free by default — was measured and refused: `whole milk` resolves to
+        # `beverage` on this database, and charging lactose contradicts WHO's
+        # own exclusion. Warning with the uncertainty named is honest; either
+        # silence or a false charge is not (§3aa).
+        uncertain = False
+        if key == "free_sugars_g" and cap is not None:
+            unassessed = float(totals.get("free_sugars_unassessed_g") or 0.0)
+            assessed = float(got or 0.0)
+            if assessed <= cap < assessed + unassessed:
+                got, uncertain = assessed + unassessed, True
+
         if not key or cap is None or got is None or got <= cap:
             continue
         name = goal.get("name") or key
@@ -307,10 +332,17 @@ async def _nutrient_limit_findings(db: AsyncSession, log: Any, user: Any) -> lis
             category=NotificationCategory.NUTRITION_ALERT,
             priority=(NotificationPriority.HIGH if goal.get("priority", 99) <= 5
                       else NotificationPriority.MEDIUM),
-            title=f"{name} above your daily limit",
+            title=(f"{name} may be above your daily limit" if uncertain
+                   else f"{name} above your daily limit"),
             message=(
-                f"Today's {name.lower()} is {got:.0f} {unit} against your limit of "
-                f"{cap:.0f} {unit} — {over:.0f} {unit} over."
+                (f"Today's sugars total {got:.0f} {unit} against your limit of "
+                 f"{cap:.0f} {unit}. Some of today's food could not be split "
+                 f"into free and natural sugars, so this may be under your "
+                 f"limit — but if it was added sugar you are {over:.0f} "
+                 f"{unit} over."
+                 if uncertain else
+                 f"Today's {name.lower()} is {got:.0f} {unit} against your limit of "
+                 f"{cap:.0f} {unit} — {over:.0f} {unit} over.")
                 + (f" {rationale}" if rationale else "")
             ),
             # One finding per nutrient per DAY. Without the date in the key a
@@ -321,7 +353,10 @@ async def _nutrient_limit_findings(db: AsyncSession, log: Any, user: Any) -> lis
             authority="compute_goals (this patient's own limit)",
             extra={"nutrient": key, "total": round(float(got), 1),
                    "limit": round(float(cap), 1), "unit": unit,
-                   "date": log.log_date.isoformat()},
+                   "date": log.log_date.isoformat(),
+                   # A reader must be able to tell a measured breach from a
+                   # possible one without parsing the sentence.
+                   "apportionment_uncertain": uncertain},
         ))
     return out
 

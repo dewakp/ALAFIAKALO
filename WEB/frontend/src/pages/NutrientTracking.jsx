@@ -26,7 +26,22 @@ const FALLBACK_TARGETS = [
   { key: 'carbs_g',       get label() { return translate('NutrientTracking.carbohydrates'); },       unit: 'g',    target: 250   },
   { key: 'fat_g',         get label() { return translate('NutrientTracking.total_fat'); },           unit: 'g',    target: 65    },
   { key: 'fiber_g',       get label() { return translate('NutrientTracking.dietary_fiber'); },       unit: 'g',    target: 30    },
-  { key: 'sugar_g',       get label() { return translate('NutrientTracking.added_sugar_limit'); },   unit: 'g',    target: 50    },
+  /* ⚠️ The KEY is what changed here, not the label. This row read `sugar_g` —
+     USDA 2000, TOTAL sugars — under a label saying "Added Sugar Limit", in
+     eleven languages, against the FDA's 50 g ADDED-sugars Daily Value. So the
+     one screen a diabetic uses to decide what to eat named a quantity it was
+     not showing, and charged whole fruit against a ceiling written for a can
+     of Coke (operator, 2026-10-21: "overestimating sugar values, conflating
+     natural, added and carbs values as sugar").
+
+     `free_sugars_g` is the quantity WHO legislates and is derived per food
+     from WHO's and the FDA's own definitions (app/services/free_sugars.py).
+     The label stays as it is and stays TRUE: the FDA's added-sugars definition
+     already reaches "sugars from syrups and honey, and sugars from
+     concentrated fruit or vegetable juices", so free and added differ
+     materially only on 100% juice. 50 g is the FDA DV, which is also WHO's 10%
+     of 2,000 kcal — the same number from both authorities. */
+  { key: 'free_sugars_g', get label() { return translate('NutrientTracking.added_sugar_limit'); },   unit: 'g',    target: 50    },
   { key: 'iron_mg',       get label() { return translate('NutrientTracking.iron'); },                unit: 'mg',   target: 10    },
   { key: 'phosphorus_mg', get label() { return translate('NutrientTracking.phosphate'); },           unit: 'mg',   target: 700   },
   { key: 'calcium_mg',    get label() { return translate('NutrientTracking.calcium'); },             unit: 'mg',   target: 1000  },
