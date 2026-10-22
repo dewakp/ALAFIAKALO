@@ -4837,6 +4837,90 @@ retires screens as surely as adding one opens them.
 
 ---
 
+## 3bi. A guideline's quantity is not the column that shares its name
+
+Operator, 2026-10-21: *"overestimating sugar values, conflating natural, added
+and carbs values as sugar"*, then *"follow the WHO and FDA guidelines on sugar
+and every other nutrient. Thats wha a clinician or dietician will do."* Full
+measurement and what remains: **`OPEN_ITEMS.md` §56**.
+
+**WHO and the FDA both legislate sugar, and NEITHER sets a figure for total
+sugars** — the FDA declares Total Sugars with no %DV, deliberately. WHO's
+<10%/<5% is for FREE sugars, whose definition excludes the sugars in whole
+fruit, vegetables and milk. `nutrient_goals_service` quoted that rule and
+charged it against `sugar_g` (USDA 2000, total), so a 21.1 g allowance was
+**spent by two bananas**, and `NutrientTracking.jsx` drew the same column under
+"Added Sugar Limit" in eleven languages. The catalog compounded it: `sugar_g`
+carried `rda: 50`, the ADDED-sugars DV, so every percentage in the product
+measured a banana against a ceiling written for a Coke.
+
+> ⚠️ **A nutrient in the catalog may not EXIST for the foods that matter, and
+> that decides whether it can carry a control.** Reading `added_sugars_g`
+> instead is the obvious repair and it is dead on arrival. Measured per dataset
+> rather than assumed:
+>
+>     Survey (FNDDS)   0 of 5 foods carry nutrient 1235
+>     SR Legacy        0 of 5
+>     Branded          3 of 5
+>
+> USDA's own wire for FNDDS `2710657` returns 65 nutrients and no 1235 at all.
+> **Added Sugars is a LABEL field** — it exists where a Nutrition Facts panel
+> exists. Here it sits on 163 of 1,071 meals, every one a packaged product, and
+> on ZERO meals in July, September and October 2026. A limit on it reads
+> `0 of 21 g` forever: §3ar's dead control, telling a diabetic they are
+> compliant. **Ask what fraction of the real rows carry a field before building
+> a limit, a score or an alert on it.**
+
+So free sugars is **derived** from what the food IS, using the band vocabulary
+`food_category_service` already resolves. **Every food word in
+`services/free_sugars.py` is quoted from WHO's or the FDA's own sentence**
+(`honey`, `syrup`, `juice`, `concentrate`) and a test asserts it, so the module
+cannot quietly become the per-food alias table §3c and §3an forbid.
+
+- **The order of evidence IS the design.** A WHO-named source is checked before
+  the label and before the class, because a fruit juice resolves to
+  `fruit_fresh` — whose sugars WHO excludes — and a 100%-juice label truthfully
+  declares ZERO added sugars. Both other rules therefore answer "no free sugar"
+  for a glass of orange juice holding **20.65 g**.
+- **A composite dish is UNASSESSED, never zero**, and its total sugars travel
+  as an upper bound. §3aa: unmeasured and zero are opposite facts.
+- **A correction that silences an alert has not finished.** Two of §3az's
+  guards went red because a malt drink's 30 g apportions to nothing. The tidy
+  fix — treat `beverage` as all-free — was refused on measurement: **`whole
+  milk` resolves to `beverage`** here, so it would charge lactose against WHO's
+  own exclusion. The day's unassessed sugar is carried instead and the finding
+  says *"may be above your daily limit … if it was added sugar you are 9 g
+  over"*. A possible breach is reported as possible.
+
+### A fix to a lookup path is INERT while a cache answers first
+
+After the USDA ranking repair shipped, `estimate_nutrients("grapefruit")` still
+returned the branded 45 kcal / 0 g protein / no potassium / 9.9 g added sugar:
+`food_nutrient_cache` is consulted before USDA. **Verify a source fix through
+the function the product calls, not through the rung you changed.**
+
+> ⚠️ **"It's only a cache, deleting is free" is wrong, and a dry run refuted it
+> on the 13th row.** The first purge rule deleted wherever the repaired rung
+> could answer at all. Then:
+>
+>     unsalted butter   cached 714.0/0.0/None     usda 345/8.2/88
+>
+> Butter IS ~717 kcal/100 g; 345 kcal with 8.2 g of protein is not butter.
+> **Deleting good data for a worse replacement is the same harm as keeping bad
+> data**, so §3ab's "only the impossible goes" holds for derived tables too.
+> Rebuilt on demonstrable contradictions — energy outside the class's own
+> observed range where the candidate is inside it, and added sugars declared on
+> a class WHO names as intrinsic — it reports 8 of 263.
+>
+> **And it had to be narrowed twice on the same evidence.** With the wider
+> intrinsic set it condemned `brioche bread,` (resolved `nut_seed`) and a
+> breakfast string (resolved `lean_meat`): brioche legitimately contains added
+> sugar at a plausible 289 kcal, so those were MISCLASSIFICATIONS, not
+> contradictions. A rule that reads a classification as proof is only as good
+> as the classification — use the three classes the authority actually names.
+
+---
+
 ## 6. Reporting
 
 State what was actually run and what wasn't. "Builds" ≠ "works". If a suite
