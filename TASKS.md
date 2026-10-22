@@ -1273,6 +1273,36 @@ exists and the bridge is what discards it. Note the same table currently maps
 ⚠️ It is also the same defect as 21c one layer up: `japanese milk bread`
 resolved to `beverage` and will stay there forever.
 
+### 21g. Stored meals are legible but COARSE — and a re-estimation pass is not obviously right
+
+Measured 2026-10-21 after `e9365b5`: **1,071 meals, 1,007 carrying sugar, 0
+carrying a free-sugar apportionment, across 9 patients.**
+
+Nothing is WRONG: `_aggregate_daily_nutrients` derives the unassessed figure on
+read, so a day of history reports *"up to 30 g that could not be apportioned"*
+rather than claiming a free-sugar total it never computed. But it is coarser
+than the data allows — a day of whole fruit should read **0 g free**, and
+instead it reads *"up to 30 g"*, which is the old over-charge in a softer voice.
+
+Three options, and the cheap one is probably right:
+
+1. **Derive at read time from the stored band**, as the unassessed figure
+   already is. No model calls, no writes, and history improves the moment the
+   band improves. Cost: a `food_category_cache` lookup per distinct food name
+   per aggregate read.
+2. **A re-estimation backfill.** `scripts/reestimate_nutrition.py` will NOT
+   pick these up — it selects on absence of VALUES (§3am) and these rows have
+   values — so it needs a new pass. It also makes ~1,007 USDA/AI calls and
+   would silently move OTHER nutrients on rows nobody asked to change.
+3. **Leave it.** The apportionment fills in naturally as meals are
+   re-estimated for other reasons.
+
+⚠️ **§3am's bar argues against (2) on its own:** *only what is IMPOSSIBLE gets
+repaired*. An unassessed apportionment is coarse, not impossible, and rewriting
+a thousand clinical rows to sharpen a derived field is the kind of bulk edit
+that canon keeps paying for. Option 1 gets the same result without touching the
+record.
+
 ---
 
 ## 22. The membership lifecycle runs itself — invite, observe, respond
