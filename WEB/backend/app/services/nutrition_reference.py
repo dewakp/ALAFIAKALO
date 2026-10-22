@@ -55,7 +55,25 @@ _RULES: list[tuple[tuple[str, ...], str]] = [
     (("coffee", "espresso", "americano", "latte", "tea ", " tea", "matcha"), "tea_coffee"),
     (("water",), "water"),
     (("beer", "wine", "vodka", "whiskey", "liquor", "cocktail", "cider beer"), "alcohol"),
-    (("juice", "milk", "soda", "cola", "smoothie", "lemonade", "gatorade", "kombucha", "soft drink"), "beverage"),
+    # ⚠️ `milk` was HERE as well as in `dairy` below, and this rule is declared
+    # first, so **every milk was a `beverage`** — measured on
+    # `food_category_cache`: `whole milk` and `wole milk` both banded
+    # `beverage` by this keyword path, not by USDA.
+    #
+    # It matters beyond the band's energy range (the two overlap). WHO's
+    # free-sugar definition excludes the sugars naturally present in MILK, and
+    # `services/free_sugars.py` reads the band to apply that exclusion — so a
+    # glass of milk classed as a beverage had its lactose indistinguishable
+    # from a cola's added sugar. With milk out of this list, every keyword
+    # remaining here is a drink whose sugars WHO counts as free, which is what
+    # lets that module charge the class instead of reporting it unassessed.
+    #
+    # **The cost, stated rather than hidden:** `dairy`'s typical serving is
+    # 200 g against `beverage`'s 240 ml, so a bare "milk" with no stated
+    # portion is now priced 17% smaller. `dairy` accepts volume units, so
+    # "1 cup of milk" is unaffected — only the portion-less default moves, and
+    # a wrong CLASS is worse than a wrong default.
+    (("juice", "soda", "cola", "smoothie", "lemonade", "gatorade", "kombucha", "soft drink"), "beverage"),
     (("raisin", "dried fruit", "dried apricot", "date ", "prune", "dried mango"), "fruit_dried"),
     (("oil", "butter", "lard", "ghee", "tallow", "shortening", "margarine"), "oil_fat"),
     (("peanut butter", "almond butter", "tahini", "nut", "seed", "almond", "cashew", "walnut", "pecan", "pistachio"), "nut_seed"),

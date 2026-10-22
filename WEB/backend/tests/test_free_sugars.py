@@ -182,3 +182,55 @@ def test_no_class_is_claimed_twice():
     assert not (fs._INTRINSIC_ONLY & fs._ALL_FREE)
     assert not (fs._INTRINSIC_ONLY & fs._UNASSESSABLE)
     assert not (fs._ALL_FREE & fs._UNASSESSABLE)
+
+
+# ── a drink is not a glass of milk (TASKS 21f, closed 2026-10-22) ─────────
+
+def test_a_sweetened_drink_is_CHARGED_not_merely_bounded():
+    """A cola's sugars are free sugars, and reporting them as an upper bound
+    was the honest-but-weak answer this class used to give.
+
+    It could only be charged once `milk` left the `beverage` keyword list in
+    `nutrition_reference._RULES`, where it sat ABOVE `dairy` and captured every
+    milk — so charging the class would have charged lactose, which WHO's own
+    exclusion forbids.
+    """
+    got = fs.free_sugars_for(band="beverage", total_sugars_g=11.7,
+                             food_name="coca cola")
+    assert got.grams == pytest.approx(11.7)
+    assert got.assessed is True
+    assert got.unassessed_g == 0.0
+
+
+def test_milk_is_dairy_and_NOT_a_beverage():
+    """The keyword bug itself, pinned where it is cheapest to see. `milk`
+    appeared in both rules and the beverage one is declared first, so every
+    milk was banded `beverage` — measured on `food_category_cache`, where
+    `whole milk` and `wole milk` are both `beverage` via the keyword path."""
+    from app.services import nutrition_reference
+
+    for name in ("milk", "whole milk", "a glass of milk"):
+        assert nutrition_reference.classify(name) == "dairy", name
+
+
+def test_the_drinks_that_remain_in_the_beverage_class_are_all_sweetened():
+    """The class may only be charged while every keyword in it names a drink
+    whose sugars WHO counts as free. If someone adds an unsweetened drink here,
+    this fails rather than letting lactose-style intrinsic sugar be charged."""
+    from app.services import nutrition_reference
+
+    beverage_keywords = next(
+        kws for kws, cat in nutrition_reference._RULES if cat == "beverage")
+    assert "milk" not in beverage_keywords
+    assert set(beverage_keywords) == {
+        "juice", "soda", "cola", "smoothie", "lemonade", "gatorade",
+        "kombucha", "soft drink"}
+
+
+def test_an_unsweetened_drink_charges_nothing_because_it_HAS_nothing():
+    """Why charging the class is safe at all: a beverage reached through USDA's
+    broad "Beverages" category — black coffee, mineral water — carries no
+    sugar, so 100% of 0 is 0."""
+    got = fs.free_sugars_for(band="beverage", total_sugars_g=0.0,
+                             food_name="sparkling mineral water")
+    assert got.grams == 0.0

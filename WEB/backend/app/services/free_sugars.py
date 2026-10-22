@@ -127,7 +127,22 @@ _INTRINSIC_ONLY: frozenset[str] = frozenset({
 
 #: Classes that ARE free sugar. `sugar_sweet` is USDA's "Sweets" — sugars,
 #: syrups, honey, confectionery — which is WHO's named list as a category.
-_ALL_FREE: frozenset[str] = frozenset({"sugar_sweet"})
+#:
+#: `beverage` joined it once `milk` was removed from that band's keyword list
+#: (`nutrition_reference._RULES`, where it sat above `dairy` and captured every
+#: milk). What remains in the class is juice, soda, cola, smoothie, lemonade,
+#: gatorade, kombucha and soft drink — every one a drink whose sugars WHO
+#: counts as free. Water, plain tea and coffee, and milk all have their own
+#: bands, so they never land here.
+#:
+#: **Charging the whole of a drink's sugars is safe BECAUSE an unsweetened
+#: drink has none.** A beverage reached through USDA's broad "Beverages"
+#: category — black coffee, mineral water, unsweetened almond milk — carries
+#: ~0 g of sugar, so charging 100% of 0 is still 0. The only drinks with
+#: significant INTRINSIC sugar are milk (now `dairy`) and 100% juice, which
+#: WHO counts as free anyway. That is what makes this class safe to charge and
+#: is why it had to wait for the milk fix.
+_ALL_FREE: frozenset[str] = frozenset({"sugar_sweet", "beverage"})
 
 #: Composites. Both intrinsic and added sugar are present and no authority
 #: publishes the split for a dish, so these are reported as unassessed rather
@@ -135,7 +150,7 @@ _ALL_FREE: frozenset[str] = frozenset({"sugar_sweet"})
 #: an `else`, so the list of things we cannot answer is reviewable.
 _UNASSESSABLE: frozenset[str] = frozenset({
     "bread_baked", "cereal_dry", "snack_processed", "prepared_dish",
-    "soup_stew", "beverage", "alcohol", "nutrition_drink", "unknown",
+    "soup_stew", "alcohol", "nutrition_drink", "unknown",
 })
 
 

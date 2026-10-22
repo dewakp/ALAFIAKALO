@@ -1250,7 +1250,49 @@ honest and it is invisible: nothing distinguishes "checked and sound" from
 "nobody could check this". `nutrients_excluded` gave partial totals a voice
 (§54a); unchecked components have none yet.
 
-### 21f. The band vocabulary cannot tell a cola from a glass of milk
+### 21f. The band vocabulary cannot tell a cola from a glass of milk — ✅ CLOSED 2026-10-22
+
+> **The cause was not the USDA bridge at all.** Measured on
+> `food_category_cache`: `whole milk` and `wole milk` were banded `beverage` by
+> the **keyword** path, not by a USDA category. `nutrition_reference._RULES`
+> listed `milk` in BOTH the `beverage` rule and the `dairy` rule, and
+> "first keyword hit wins" with `beverage` declared first — so **every milk was
+> a beverage**. Removing `milk` from that rule leaves juice, soda, cola,
+> smoothie, lemonade, gatorade, kombucha and soft drink: every one a drink
+> whose sugars WHO counts as free, which is what let `beverage` move into
+> `free_sugars._ALL_FREE`. Verified through the real estimator:
+>
+>     whole milk     sugar 4.81    free 0.0     who_intrinsic
+>     coca cola      sugar 11.7    free 11.7    who_class      <- was unassessed
+>     orange juice   sugar 8.26    free 8.26    who_named_source
+>
+> Charging the class is safe *because* an unsweetened drink has no sugar —
+> black coffee and mineral water reach `beverage` through USDA's broad
+> "Beverages" category and carry ~0 g, so 100% of 0 is 0. The only drinks with
+> real intrinsic sugar are milk (now `dairy`) and 100% juice, which WHO counts
+> as free anyway.
+>
+> ⚠️ **Four cached rows had to be cleared or the fix would have CHARGED
+> lactose** — 21c biting immediately: the band is cached once, so `whole milk`
+> would have stayed `beverage` while `beverage` became an all-free class. That
+> is the one case where this change could have made a number worse.
+
+> **A reorder was measured and REJECTED, so nobody need redo it.** `milk bread`
+> classifies as `dairy` because `dairy` is declared above `bread_baked` and the
+> superstring rule cannot help ("milk" is not inside "bread"). Moving
+> `bread_baked` above `dairy` changes **18 of 964** cached names — 2 are the
+> milk-bread fix, and the other **16 are composite meal strings** ("suya, fried
+> egg, onion, brioche bread, olives") whose band flips arbitrarily from `egg`
+> or `lean_meat` to `bread_baked`. The band decides plausibility AND the
+> default portion, so that is 16 arbitrary changes to buy 2 correct ones. Left
+> alone; `milk bread` → `dairy` is a head-noun problem and belongs to 21c.
+>
+> ⚠️ **The first simulation of that reorder measured NOTHING and reported a
+> confident "0 changes".** It reassigned `_RULES`, and `_classify_full` reads
+> `_COMPILED_RULES`, built from it at import. §3av for the third time in one
+> day, again in my own instrumentation — the real figure is 18.
+
+**The original entry, kept because its measurement is the diagnosis:**
 
 Raised by the free-sugars work (`e9365b5`, OPEN_ITEMS §56g). WHO's limit is
 charged against free sugars, derived from the food's band — and `beverage` is
