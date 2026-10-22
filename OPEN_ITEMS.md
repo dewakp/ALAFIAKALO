@@ -5446,3 +5446,126 @@ tea resolves to `beverage` and is reported as unassessed rather than as free
 sugar — honest, but it means a cola's sugars reach the patient as an upper
 bound instead of a charge. Closing it needs a class that separates a sweetened
 beverage from milk, which the current band vocabulary does not have.
+
+---
+
+## 57. The wellness card's analysis was misleading, and is removed — 2026-10-22
+
+Operator, reading the Current Wellness Score card (46/100):
+
+> *"The purpose of this long but faulty analysis is unkown to me. The first
+> sentence references data from more than a month ago as if it's the rubric.
+> The sinificance I cannot understand. And here again is the trap of hard
+> coded messages. The become foundation for mis-information and drift."*
+
+Then, on the symptom it quoted:
+
+> *"'twisted abdominal pain' from 40 days ago is irrelevant now."*
+
+Then:
+
+> *"misleading analysis is worse than non. give the score, skip the analysis"*
+
+and
+
+> *"remove the paragrapgh"*
+
+and the rule that governs what remains:
+
+> *"critical findings must be prescient not stale, unless they are
+> perenial/chronic"*
+
+### 57a. What the card actually said, and the four faults in it
+
+    Blood pressure 81/62 mmHg (one reading taken away from dialysis) has a
+    systolic below the 90-120 mmHg reference band — last such reading 26 days
+    ago (2026-09-26), though pressure was measured at treatment on 2026-10-21.
+    In the last 90 days, 35 of 37 treatments (95%) dropped below 90 mmHg
+    systolic during dialysis (lowest 39); 16 fell below 70; … twisted
+    abdominal pain rated 9/10. Blood recorded in 8 of 119 bowel movements (7%)
+    … Nutrition is short on calcium_mg, vitamin_d_iu, magnesium_mg, fiber_g,
+    carbs_g, calories, fat_g. … Based on 90% of the usual picture.
+
+**1. It led with a median of ONE reading.** Measured that day:
+
+    self-recorded BP in the 30-day window      1   (2026-09-26)
+    self-recorded BP in 90 days                8   (newest the same)
+    dialysis sessions in 90 days              35
+    intradialytic readings in 90 days        100
+
+`vitals_component`'s own docstring already said *"n=1 is the same error as an
+all-time mean, from the other end"* — it said so, and then led with it.
+
+**2. There was no ranking at all.**
+`critical = [line for c in scored for line in (c.critical or [])]` — the order
+the components happen to sit in a Python list. `vitals` is third, so a stale
+pressure printed above intradialytic hypotension, a 9/10 pain and blood in the
+stool. `Finding` had no severity field; there was nothing to rank by.
+
+**3. A symptom from 86 days ago was reported as the present tense.**
+
+    2026-07-28   86 days ago   twisted abdominal pain       9/10
+    2026-10-09   13 days ago   stomach cramps … twisting    6/10
+
+`symptom_component` took `max(severity)` over 90 days — and `wellness.py`
+**dropped `log_date` before the component ever saw it**, so it could not have
+known. The recent 6/10, plausibly the same complaint still going, was never
+mentioned.
+
+**4. DB column keys reached the patient** — `calcium_mg`, `vitamin_d_iu` —
+while `NUTRIENT_BY_KEY` held the display name for every one.
+
+### 57b. Fixed, and then removed anyway
+
+All four causes are fixed (`f52d4c2`, `34070cd`, `97d01b2`). The paragraph is
+gone from both the dashboard card and the Wellness page (`c5a7daa`) regardless:
+a narrative that was confidently wrong in four ways at once does not get to
+keep asserting things while we verify it. The backend still computes and
+returns `explanation`; nothing renders it, so the decision is reversible
+without a schema change.
+
+**`critical_findings` is deliberately KEPT** — a titled, ranked, itemised list
+where each line is rendered from facts it may neither invent nor drop. That is
+a different instrument from prose, and deleting it would remove *"32 of 34
+treatments dropped below 90 mmHg systolic (lowest 39)"* from the product.
+
+### 57c. "Prescient not stale, unless perennial" — applied per finding
+
+The rule turns on what the evidence IS, not on one blanket window:
+
+| evidence | test |
+|---|---|
+| a dated measurement — a lab draw, a reading, a logged symptom | must be recent |
+| perennial/chronic — a pattern across treatments, a rate, a standing order | age is not the right test |
+
+All nine findings were audited. Two were still stale-blind, both because the
+caller passed no date:
+
+> ⚠️ **Kt/V had NO recency check anywhere** — not in the component, and the
+> caller's query had no date filter either. A draw from any point in history
+> produced a "below target" critical finding AND scored the dialysis domain.
+> This record shows the risk plainly:
+>
+>     spKt/V 1.47   2026-10-01    21 days ago   <- current, above target
+>     spKt/V 0.90   2026-04-08   197 days ago   <- would have read as current
+>
+> Beyond `STALE_DAYS` it is now CONTEXT, states its age, and is **not scored**:
+> adequacy from five months ago is not current adequacy.
+
+> ⚠️ **Blood in stool was a count with no date.** 7 of 97 over 90 days reads
+> identically whether the bleeding stopped in August or happened last week.
+> Recurring blood IS the perennial case, judged by the MOST RECENT episode.
+>
+> **The SCORE is deliberately unchanged by recency here**, and the tempting
+> symmetry with Kt/V is wrong: an unscored old lab means "we have not measured
+> adequacy lately", while an unscored old bleed would mean "it did not happen".
+
+### What is still open
+
+- **The card has no stated PURPOSE.** The operator's first question —
+  *"The purpose of this long but faulty analysis is unkown to me"* — is not
+  answered by removing the paragraph. What the card should tell a reader
+  instead is a product decision, not one to invent here.
+- **`Energy` reads oddly** as a nutrient shortfall ("short on … Energy …").
+  It is the USDA catalog's own name for `calories` and was left rather than
+  special-cased, which would be the hardcoding trap again.
