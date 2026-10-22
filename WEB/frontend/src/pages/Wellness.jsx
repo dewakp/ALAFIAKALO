@@ -286,13 +286,25 @@ function ScoreTab() {
         </div>
       )}
 
-      {/* Explanation */}
-      {score.explanation && (
-        <div className="card" style={{ marginBottom: 20 }}>
-          <h4 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: '#374151' }}>{t('Wellness.analysis')}</h4>
-          <p style={{ margin: 0, fontSize: 14, color: '#4b5563', lineHeight: 1.6 }}>{score.explanation}</p>
-        </div>
-      )}
+      {/* The analysis paragraph is REMOVED — operator, 2026-10-22:
+          "misleading analysis is worse than non. give the score, skip the
+          analysis", then "remove the paragrapgh".
+
+          It was wrong in four ways at once on the card that prompted it: it
+          led with a median of ONE blood pressure 26 days old ahead of 100
+          measured intradialytic readings; it quoted a 9/10 abdominal pain
+          logged 86 days earlier as though current; it printed DB column keys
+          at the patient ("short on calcium_mg, vitamin_d_iu"); and its
+          sentences were ordered by where components sat in a Python list.
+          Those causes are fixed (f52d4c2, 34070cd) — the paragraph is gone
+          anyway, because a narrative that has been confidently wrong that
+          many times does not get to keep asserting things while we check it.
+
+          ⚠️ `critical_findings` ABOVE is deliberately kept. Those are the
+          individual verified findings, each rendered from facts it may not
+          invent or drop (`finding_text.render`), shown in a titled, ranked
+          list rather than concatenated into prose. The backend still returns
+          `explanation`; nothing renders it now. */}
 
       {/* Score history */}
       {history.length > 0 && (

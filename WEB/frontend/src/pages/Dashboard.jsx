@@ -251,10 +251,11 @@ function WellnessScoreCard() {
               remaining faults are open. The number is computed from measured
               values and is defensible; the prose around it was not.
 
-              The findings are NOT deleted — `explanation` and
-              `critical_findings` are still computed and still returned, and
-              the Wellness page still renders them. This is the dashboard card
-              only, which is where a reader meets them with no context at all.
+              The backend still computes and returns both `explanation` and
+              `critical_findings`; nothing renders `explanation` any more. The
+              Wellness page keeps the RANKED, itemised `critical_findings`
+              list, where each line is rendered from facts it may not invent
+              or drop — that is a different thing from prose.
           */}
         </>
       )}
