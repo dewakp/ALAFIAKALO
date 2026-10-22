@@ -38,7 +38,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.services.dialysis_day_adjustment import FRESH_DAYS
-from app.services.finding_text import Finding
+from app.services.finding_text import CONTEXT, DEVIATION, HARM, Finding
 
 
 def median(values: list) -> float | None:
@@ -447,9 +447,34 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
                     note += ", so this may not be current"
             elif latest_on is not None:
                 note += f" (most recent {latest_on})"
+            # ── HOW MUCH EVIDENCE IS THIS, REALLY ──────────────────────────
+            #
+            # Operator, 2026-10-22: *"The first sentence references data from
+            # more than a month ago as if it's the rubric."* Measured on the
+            # reference record that day:
+            #
+            #     self-recorded BP in the 30-day window    1   (2026-09-26)
+            #     self-recorded BP in 90 days              8   (newest the same)
+            #     dialysis sessions in 90 days            35
+            #     intradialytic readings in 90 days      100
+            #
+            # So the card LED with a median of ONE reading, 26 days old, ahead
+            # of a hundred measured pressures — and this function's own
+            # docstring already says "n=1 is the same error as an all-time
+            # mean, from the other end". Saying so honestly in the sentence
+            # does not stop it being the headline.
+            #
+            # It is still reported, because 81/62 is a real reading and
+            # dropping it would be §3aa's empty state. It is reported LAST.
+            # `FRESH_DAYS` is the recency authority §3an already defines, and
+            # "a median of one" is a false description of the statistic this
+            # finding claims to report — not an invented threshold.
+            thin = sample_size <= 1
+            stale = age_days is not None and age_days > FRESH_DAYS
             critical.append(Finding(
                 kind="blood_pressure_below_reference", domain="vitals",
                 facts=facts, fallback=note + ".",
+                severity=CONTEXT if (thin or stale) else DEVIATION,
                 # The reading and the bound it breaches ARE the finding;
                 # counts, dates and the window are context the sentence may
                 # leave out.
@@ -472,6 +497,11 @@ def vitals_component(*, bands: dict[str, tuple[float | None, float, float, float
         if heart_rate > hr_band[2]:
             critical.append(Finding(
                 kind="pulse_above_band", domain="vitals",
+                # Same self-recorded window as the pressure above, so it
+                # carries the same evidence caveat.
+                severity=CONTEXT if (sample_size <= 1 or (
+                    age_days is not None and age_days > FRESH_DAYS))
+                else DEVIATION,
                 facts={"measure": "resting pulse",
                        "value": round(float(heart_rate)), "unit": "bpm",
                        "reference_band_low": hr_band[1],
@@ -583,7 +613,24 @@ def overall_score(components: list[Component]) -> dict[str, Any]:
 
     # Findings that must survive the summary. A number can be read past; a
     # sentence naming 25 treatments that ended below 90 mmHg cannot.
-    critical = [line for c in scored for line in (c.critical or [])]
+    #
+    # ── ORDERED BY WHAT KIND OF CLAIM THEY MAKE, NOT BY COMPONENT ─────────
+    #
+    # This was `[line for c in scored for line in (c.critical or [])]` — the
+    # order the components happen to be listed in by the caller. Operator,
+    # 2026-10-22: *"The significance I cannot understand."* On the card that
+    # prompted it, a median of ONE 26-day-old blood pressure led, and
+    # *"35 of 37 treatments dropped below 90 mmHg systolic (lowest 39); 16
+    # fell below 70"*, a 9/10 abdominal pain and blood in the stool all came
+    # after it — purely because `vitals_component` sits third in a list.
+    #
+    # `sorted` is stable, so findings of equal severity keep that component
+    # order and the ranking only ever moves a finding past one of a DIFFERENT
+    # kind. See `finding_text.Finding.severity` for the three levels and why
+    # they are about the kind of claim rather than a clinical threshold.
+    critical = sorted(
+        (line for c in scored for line in (c.critical or [])),
+        key=lambda f: getattr(f, "severity", DEVIATION))
 
     return {
         "overall_score": round(overall, 1),
@@ -696,6 +743,7 @@ def _dry_weight_disagreement(
     return (
         Finding(
             kind="dry_weight_disagrees_with_record", domain="dialysis",
+            severity=DEVIATION,   # a prescription disagreeing with the record
             facts=facts,
             fallback=(
                 f"The dry weight ordered{when} is {ordered:g} kg, {gap:g} kg "
@@ -819,6 +867,7 @@ def dialysis_component(*, sessions_in_window: int,
             missed = (baseline_per_week - rate) * weeks
             critical.append(Finding(
                 kind="attendance_below_baseline", domain="dialysis",
+                severity=DEVIATION,   # against this patient's own baseline
                 facts={"measure": "dialysis attendance",
                        "sessions_per_week": round(rate, 1),
                        "usual_sessions_per_week": round(baseline_per_week, 1),
@@ -838,6 +887,7 @@ def dialysis_component(*, sessions_in_window: int,
         if latest_ktv < ktv_band[1]:
             critical.append(Finding(
                 kind="ktv_below_target", domain="dialysis",
+                severity=DEVIATION,   # delivered dose under its target
                 facts={"measure": "delivered Kt/V",
                        "value": round(float(latest_ktv), 2),
                        "adequacy_target": ktv_band[1], "below_target": True},
@@ -913,6 +963,10 @@ def dialysis_component(*, sessions_in_window: int,
                     note += f" (lowest {round(float(lowest_post))})"
             critical.append(Finding(
                 kind="intradialytic_hypotension_burden", domain="dialysis",
+                # HARM: these treatments already ended with the patient
+                # hypotensive. It is the most dangerous thing on the card
+                # and it used to be printed BELOW a 26-day-old reading.
+                severity=HARM,
                 facts=tolerance_facts, fallback=note + ".",
                 # The lowest value and the count below the CRITICAL bound are
                 # findings in their own right, not colour. Left optional, the
@@ -974,6 +1028,8 @@ def symptom_component(symptoms: list[dict[str, Any]]) -> Component:
             symptom_facts["affects_daily_function"] = True
         critical.append(Finding(
             kind="severe_symptom", domain="symptoms", facts=symptom_facts,
+            # HARM: the patient is in pain now, in their own words.
+            severity=HARM,
             fallback=(f"{worst.get('symptom_name') or 'A symptom'} rated "
                       f"{severity:g}/10"
                       + (" and reported as affecting daily function"
@@ -1032,6 +1088,8 @@ def elimination_component(*, bowel_blood: int, bowel_total: int,
             bowel_score = max(0.0, 50.0 - fraction * 50.0)
             critical.append(Finding(
                 kind="blood_in_stool", domain="elimination",
+                # HARM: blood is an event, not a number near a bound.
+                severity=HARM,
                 facts={"measure": "bowel movements with blood recorded",
                        "with_blood": bowel_blood, "total": bowel_total,
                        "percent": round(fraction * 100),
@@ -1059,6 +1117,7 @@ def elimination_component(*, bowel_blood: int, bowel_total: int,
             if ratio > 1.5:
                 critical.append(Finding(
                     kind="vomiting_above_baseline", domain="elimination",
+                    severity=DEVIATION,   # against their own usual rate
                     facts={"measure": "vomiting episodes",
                            "per_week": round(rate, 1),
                            "usual_per_week": round(vomit_baseline_per_week, 1)},

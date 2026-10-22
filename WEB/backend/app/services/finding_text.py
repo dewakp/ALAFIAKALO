@@ -92,6 +92,14 @@ logger = logging.getLogger(__name__)
 #: Any number the facts contain, including decimals and percentages.
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
 
+#: How significant a finding is, named so a raise site STATES which kind of
+#: claim it is making rather than passing a bare integer. See
+#: `Finding.severity` for why the scale is about the kind of claim and not
+#: about a clinical threshold.
+HARM = 1        #: an event that has already happened to the patient
+DEVIATION = 2   #: a measurement outside a clinical target or reference
+CONTEXT = 3     #: true, and too thin or too old to lead with
+
 
 @dataclass
 class Finding:
@@ -122,6 +130,31 @@ class Finding:
     #: except for the numbers that ARE the finding.
     essential: tuple[str, ...] = ()
     notes: list[str] = field(default_factory=list)
+
+    #: How the findings are ORDERED on the screen. Set where the finding is
+    #: raised, because that is the only place the clinical context is known.
+    #:
+    #: Operator, 2026-10-22, reading the wellness card: *"The purpose of this
+    #: long but faulty analysis is unknown to me … The significance I cannot
+    #: understand."* The findings were emitted by
+    #: `[line for c in scored for line in (c.critical or [])]` — **the order
+    #: the components happen to appear in a Python list**. So a single
+    #: 26-day-old blood pressure led the card while *"35 of 37 treatments
+    #: dropped below 90 mmHg systolic (lowest 39); 16 fell below 70"*, a
+    #: 9/10 abdominal pain and blood in the stool came after it, because
+    #: `vitals_component` is listed third and the rest are listed later.
+    #:
+    #: The scale is deliberately about the KIND of claim, not a clinical
+    #: threshold (§3az forbids inventing those):
+    #:
+    #:   1 HARM      an event that has already happened to the patient —
+    #:               treatments ending in hypotension, blood, severe pain
+    #:   2 DEVIATION a measurement outside a clinical target or reference
+    #:   3 CONTEXT   true, and too thin or too old to lead with
+    #:
+    #: Ties keep component order, which is deterministic, so the ranking only
+    #: ever moves a finding past one of a different kind.
+    severity: int = 2
 
     def numbers(self) -> set[str]:
         """Every numeric token in the facts, normalised for comparison."""

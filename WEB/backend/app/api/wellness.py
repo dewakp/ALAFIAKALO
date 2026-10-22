@@ -433,7 +433,18 @@ async def _compute_wellness_score(user_id: int, db: AsyncSession,
         parts.append("No meals with nutrient data in the last 30 days, so "
                      "nutrition could not be assessed.")
     elif shortfalls:
-        parts.append("Nutrition is short on " + ", ".join(shortfalls) + ".")
+        # ⚠️ These are DB COLUMN KEYS, and they reached the patient's screen
+        # raw: *"Nutrition is short on calcium_mg, vitamin_d_iu, magnesium_mg,
+        # fiber_g, carbs_g, calories, fat_g."* The catalog has held the proper
+        # name for every one of them all along — §3aj's "the refusal threw away
+        # its own answer", on the wellness card. An unmapped key still prints
+        # rather than disappearing: a nutrient we cannot name is still a
+        # shortfall the patient has.
+        from app.core.nutrition_data import NUTRIENT_BY_KEY
+
+        named_shortfalls = [
+            (NUTRIENT_BY_KEY.get(k, {}).get("name") or k) for k in shortfalls]
+        parts.append("Nutrition is short on " + ", ".join(named_shortfalls) + ".")
     else:
         parts.append("Intake is within your targets.")
 
