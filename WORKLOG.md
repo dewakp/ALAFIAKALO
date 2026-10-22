@@ -4370,3 +4370,88 @@ neighbourhood; web 297 including i18n coverage; ruff F,E9 clean.
 deliberate run (§1: prod changes by migration + deploy, never by pushing local
 data). No DB repair of stored meal rows yet. A sweetened drink that is not
 milk, juice, water or tea still reports as unassessed rather than charged.
+
+## 2026-10-22 — Shipped, and the production cache repaired
+
+### The deploy took four attempts, each failing differently
+
+Recorded because the first two looked like successes:
+
+| # | exit | cause |
+|---|---|---|
+| 1 | **127** | `deploy.sh` invoked at the repo root; it lives at `deploy/gcp/deploy.sh` |
+| 2 | **1** | `gcloud crashed (CommunicationError)` streaming the ~20-min liboqs build |
+| 3 | **1** | `Reauthentication failed. cannot prompt during non-interactive execution` |
+| 4 | **0** | all seven stages |
+
+- **Attempt 2's log ends in `DONE`** — the image push's, not the deploy's — and
+  the Cloud Build job **SUCCEEDED server-side**. `gcloud builds list` is the
+  authority, not the client's exit code. The script still exits before the
+  backend build, migration and frontend, so nothing ships.
+- **`gcloud auth print-access-token` succeeding at the START of a run says
+  nothing about surviving a 25-minute deploy.** Attempt 3 died mid-flight.
+- Attempt 1 repeated a mistake [[a-pipe-to-tail-hides-the-real-exit-code]]
+  already recorded on 2026-10-01 — it had noted the exit 127 without naming the
+  correct path. The memory now names it.
+
+**Verified by the artefacts, never the log** (§3bg): `/api/health` reported
+`ce7e5fa` then `b98542e`, each equal to local HEAD; production's
+`alembic_version` equals the code's `alembic heads` (`at001_comp_invitations`);
+and the lazy chunk `NutrientTracking-CQ-TekCR.js` — fetched BY NAME, not the
+entry bundle, which carries the i18n catalog and would have looked right either
+way — contains `key:"free_sugars_g"` with no `sugar_g` fallback row.
+
+### The deploy did not fix anything until the cache was purged
+
+With `ce7e5fa` live, production still held every poisoned row:
+
+    grapefruit   mcp_branded_usda  fdc 1930383  222.0 ml  45 kcal  0 prot
+                 (no K)  9.9 added  11 hits
+
+Dry run against prod proposed **exactly the same 8 rows** as dev — identical
+names, identical figures, which is the cross-check that the rule is
+deterministic. Applied: **8 of 8 deleted, read back as gone**, 256 of 264
+branded rows remain. Production now answers grapefruit with FNDDS
+`Grapefruit, raw` — 42 kcal, P 0.77, **K 135**.
+
+> Two Docker-on-Mac details cost time. `prod_psql` fails with **docker 125**
+> because `REPO_ROOT` is unset when `db_lib.sh` is sourced interactively (it
+> mounts `$REPO_ROOT/scripts/db`). And **`--network host` on Docker Desktop is
+> the Linux VM's namespace**, so a proxy started that way is unreachable via
+> `host.docker.internal` — the script container must share the same namespace.
+> A backend script against prod also needs the SOURCE mounted: compose mounts
+> `WEB/backend` over `/app`, so the 6-day-old local image alone does not carry
+> a newly written script.
+
+### TASKS 21f closed, and it could have made a number worse
+
+`milk` was in the `beverage` keyword rule AND in `dairy`, with beverage
+declared first — so **every milk was a drink**, by the keyword path, not the
+USDA bridge I had written down. Removing it leaves only sweetened drinks in the
+class, which is what let `beverage` become all-free:
+
+    whole milk   free 0.0    who_intrinsic
+    coca cola    free 11.7   who_class        <- was reported as an upper bound
+
+> ⚠️ **Four cached rows still said `whole milk → beverage`**, and the same
+> change made `beverage` all-free — so lactose would have been CHARGED as free
+> sugar. §21c biting inside the fix that depends on it. Cleared in dev and, in
+> that order, deployed-then-cleared in prod; clearing first would have let them
+> re-derive as `beverage` under the old rules.
+
+> **A reorder was measured and rejected.** Moving `bread_baked` above `dairy`
+> fixes `milk bread` and changes 18 of 964 cached names — 16 of them composite
+> meal strings whose band flips arbitrarily, and the band sets plausibility and
+> default portion. 16 arbitrary changes for 2 correct ones. And my first
+> simulation reported a confident **"0 changes" while measuring nothing**: it
+> reassigned `_RULES` where `_classify_full` reads `_COMPILED_RULES`, built at
+> import. §3av, third occurrence in one day, each in my own instrumentation.
+
+**Final production state:** version `b98542e`, `alembic_version` =
+`at001_comp_invitations` = code head, poisoned branded rows 0, stale milk bands
+0.
+
+**Not done:** no DB repair of stored meal rows (TASKS 21g argues the read-time
+derivation is the right instrument, not a 1,007-row re-estimation); saturated
+fat and cholesterol are still hand-typed DGA percentages in the same ladder the
+sugar limit came out of, which is the next place this class of error lives.
