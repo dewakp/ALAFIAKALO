@@ -163,7 +163,7 @@ async def test_an_impossible_profile_is_never_cached_from_any_tier(monkeypatch, 
                 "nutrients": {"calories": 180.0, "protein_g": 9.0, "fat_g": 14.0, "carbs_g": 5.0},
                 "cached": False}
 
-    async def usda(name):
+    async def usda(name, db=None):
         return dict(impossible)
 
     async def branded(name):
@@ -182,3 +182,32 @@ async def test_an_impossible_profile_is_never_cached_from_any_tier(monkeypatch, 
     rows = (await db.execute(select(FoodNutrientCache.source).where(
         FoodNutrientCache.food_name_normalized == "zqvx probe"))).scalars().all()
     assert rows == ["ai"], "only the credible answer may reach the shared cache"
+
+
+async def test_phytate_is_added_from_a_loaded_phyfoodcomp_row(monkeypatch, db):
+    """Production, 2026-10-23: KeyError 'biblio' in the phytate step failed
+    EVERY estimate with a phytate candidate for four hours. The rows here have
+    the shape the loader writes, which the earlier tests never exercised."""
+    from app.models.reference_food import ReferenceFood
+    db.add(ReferenceFood(source="phyfoodcomp_1_0", code="06000001",
+                         name_en="Melon seed, kernel, raw", nutrients={
+                             "phytate_mg": 1200.0, "phytate_phosphorus_mg": 337.9},
+                         biblio="Nigeria; r; method: HPLC IP6"))
+    await db.commit()
+    monkeypatch.setattr(ne, "_reference_loaded_at", float("-inf"))
+
+    result = {"food_name": "Melon seed, kernel only, dried, raw", "nutrients": {"calories": 574.0}}
+    await ne._add_phytate(db, "egusi", result)   # conftest's verifier picks the top row
+
+    assert result["nutrients"]["phytate_mg"] == 1200.0
+    assert result["phytate_source"] == "phyfoodcomp_1_0:06000001"
+    monkeypatch.setattr(ne, "_reference_loaded_at", float("-inf"))
+
+
+async def test_a_failing_phytate_step_never_fails_the_food(monkeypatch, db):
+    async def boom(*a, **k):
+        raise KeyError("biblio")
+    monkeypatch.setattr(ne, "_add_phytate_body", boom)
+    result = {"food_name": "x", "nutrients": {"calories": 100.0}}
+    await ne._add_phytate(db, "x", result)          # must not raise
+    assert result["nutrients"] == {"calories": 100.0}

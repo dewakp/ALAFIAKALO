@@ -39,7 +39,7 @@ async def _auth_headers(client: AsyncClient) -> dict[str, str]:
 async def test_estimate_nutrients_usda_success_path(client: AsyncClient, monkeypatch):
     """USDA result is returned when USDA lookup succeeds."""
 
-    async def fake_try_usda(food_name: str):
+    async def fake_try_usda(food_name: str, db=None):
         return {
             "source": "usda",
             "fdc_id": 12345,
@@ -82,7 +82,7 @@ async def test_estimate_nutrients_usda_success_path(client: AsyncClient, monkeyp
 async def test_estimate_nutrients_ai_fallback_path(client: AsyncClient, monkeypatch):
     """AI fallback is used when USDA has no match."""
 
-    async def fake_try_usda(food_name: str):
+    async def fake_try_usda(food_name: str, db=None):
         return None
 
     async def fake_try_ai(food_name: str, serving_size: str | None = None):
@@ -134,7 +134,7 @@ async def test_estimate_nutrients_cache_hit_on_second_call(client: AsyncClient, 
 
     calls = {"usda": 0, "ai": 0}
 
-    async def fake_try_usda(food_name: str):
+    async def fake_try_usda(food_name: str, db=None):
         calls["usda"] += 1
         return {
             "source": "usda",

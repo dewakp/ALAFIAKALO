@@ -46,8 +46,9 @@ _UPLOAD_MAX_BYTES = 2 * 1024 * 1024
 
 _FOOD_VISION_PROMPT = """\
 You are ALAFIA's food vision analyzer. Identify the foods in the photo and give a
-rough portion + nutrition estimate. You know West African, African diaspora, and
-global cuisines. Return ONLY a JSON object with exactly these keys:
+rough portion + nutrition estimate. Recognise foods from any cuisine — including
+West African and African-diaspora dishes — by what is VISIBLE. Return ONLY a JSON
+object with exactly these keys:
 {
   "items": [
     {"name": "food name", "estimated_portion": "e.g. 1 cup / 150 g", "confidence": 0.0}
@@ -55,13 +56,16 @@ global cuisines. Return ONLY a JSON object with exactly these keys:
   "estimated_nutrition": {
     "calories": null, "protein_g": null, "carbs_g": null, "fat_g": null
   },
-  "notes": "one short line; mention if the photo is unclear"
+  "notes": "one short line: what is uncertain about THIS photo (portion, cooking, oil)"
 }
 
 Rules:
 - Estimates only — never claim precision. Use null when you cannot tell.
 - If the image has no food, return an empty items array and say so in notes.
 - Do NOT invent foods that are not visible.
+- Notes describe the PHOTO, never the meal's origin: do not name a cuisine,
+  region or tradition. A photo cannot show where a meal comes from, and a guess
+  stated in notes is read by the patient as a finding.
 - `estimated_nutrition` is the TOTAL for EVERYTHING in `items` — the sum of
   what was eaten, not one item's values and never an average across items.
 - If a nutrition LABEL is legible, use its printed numbers for that item rather

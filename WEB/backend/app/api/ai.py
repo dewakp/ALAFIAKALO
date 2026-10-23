@@ -357,6 +357,40 @@ async def vision_understand(
     notes = ""
 
     if task == "food_photo_nutrition":
+        # The patient's OWN correction of a photo this close, first. It is held
+        # on the training sample as a perceptual hash plus the corrected items —
+        # no image — so it is available whatever the image-retention consent.
+        # Recall used to consult it only AFTER a match in `labeled_food_images`,
+        # which is written only when the image itself is retained; so without
+        # that consent a correction was never recalled. Measured 2026-10-23:
+        # sample 50 carried the SAME hash as corrected sample 49 and the model
+        # was asked again, returning "Grilled beef/meat (likely suya)" for the
+        # sardines the patient had just named.
+        from app.models.food_training_sample import FoodTrainingSample
+        corrected = (await db.execute(
+            select(FoodTrainingSample)
+            .where(FoodTrainingSample.user_id == current_user.id,
+                   FoodTrainingSample.phash.isnot(None),
+                   FoodTrainingSample.corrected_items.isnot(None))
+            .order_by(FoodTrainingSample.corrected_at.desc())
+            .limit(500)
+        )).scalars().all()
+        best, best_d = None, image_learning.MATCH_THRESHOLD + 1
+        for row in corrected:
+            try:
+                d = image_learning.hamming(int(phash), int(row.phash))
+            except (TypeError, ValueError):
+                continue
+            if d < best_d:
+                best, best_d = row, d
+        if best is not None:
+            items = [dict(i) for i in best.corrected_items]
+            for item in items:
+                item.setdefault("confidence", 0.99)
+            source = "learned-recall"
+            notes = "Recognised from a meal you corrected before."
+
+    if task == "food_photo_nutrition" and not items:
         learned = await image_learning.find_learned_match(db, current_user.id, first_bytes)
         if learned is not None:
             # Prefer the corrected sample for this exact photo: it carries the

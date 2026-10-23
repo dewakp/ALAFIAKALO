@@ -278,6 +278,7 @@ async def _reference_foods(db: AsyncSession | None) -> list[dict]:
         "source": r.source, "code": r.code, "name_en": r.name_en,
         "scientific_name": r.scientific_name, "name_fr": r.name_fr,
         "food_group": r.food_group, "nutrients": r.nutrients or {},
+        "biblio": r.biblio,
         "tokens": {_stem(t) for t in re.findall(r"[a-z0-9]+", " ".join(
             x for x in (r.name_en, r.scientific_name, r.name_fr) if x).lower()) if len(t) >= 3},
     } for r in rows]
@@ -310,6 +311,17 @@ def _reference_candidates(rows: list[dict], *queries: str, limit: int = 5,
 
 
 async def _add_phytate(db: AsyncSession | None, food_name: str, result: dict) -> None:
+    """Best-effort, and that is ENFORCED here, not just stated: an error in an
+    optional enrichment must never fail the food it decorates. A KeyError in
+    the body below failed every estimate in production for four hours."""
+    try:
+        await _add_phytate_body(db, food_name, result)
+    except Exception:
+        logger.warning("Phytate enrichment failed for '%s' — profile kept without it",
+                       food_name, exc_info=True)
+
+
+async def _add_phytate_body(db: AsyncSession | None, food_name: str, result: dict) -> None:
     """Add phytate to a resolved profile from PhyFoodComp, when it has none.
 
     USDA carries no phytate. It binds iron and zinc, and phosphorus held as
@@ -326,7 +338,7 @@ async def _add_phytate(db: AsyncSession | None, food_name: str, result: dict) ->
         return
     try:
         pick = await food_match_verifier.choose(food_name, [
-            {"description": c["description"] + (f" [{c['_reference']['biblio']}]" if c["_reference"]["biblio"] else ""),
+            {"description": c["description"] + (f" [{c['_reference'].get('biblio')}]" if c["_reference"].get("biblio") else ""),
              "data_type": c["data_type"], "nutrients": {}} for c in cands])
     except food_match_verifier.Unavailable:
         return

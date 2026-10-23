@@ -800,6 +800,9 @@ async def reestimate_nutrition_log(
     for column in _ENRICHED_NUTRIENT_COLUMNS:
         if hasattr(log, column):
             setattr(log, column, None)
+    # The extended panel too: the writer only fills blanks, so leaving it
+    # would keep the previous estimate's 75 extended values beside new totals.
+    log.extended_nutrients = None
     log.nutrient_status = "pending"
     await db.flush()
     await db.refresh(log)
@@ -883,15 +886,13 @@ async def get_log_nutrient_breakdown(
 #: out. A hand-written list goes stale the moment a nutrient is added, and the
 #: stale one would be the value left sitting on an edited row — the exact
 #: failure this clearing exists to prevent.
-_NON_NUTRIENT_COLUMNS = {
-    "id", "user_id", "log_date", "meal_type", "food_name", "serving_size",
-    "fdc_id", "notes", "created_at", "start_time", "end_time",
-    "pre_meal_weight_kg", "post_meal_weight_kg", "recipe_url",
-    "food_image_uris", "nutrient_status", "extended_nutrients",
-}
+# The columns a re-estimate clears: the NUTRIENTS, named by the catalog —
+# never "everything not on a keep-list". The keep-list this replaced omitted
+# `food_thumbnail`, so "Re-analyze" erased the meal's photo (2026-10-23); a
+# keep-list is wrong for every column added after it was written.
+from app.core.nutrition_data import DB_COLUMN_KEYS as _NUTRIENT_KEYS
 _ENRICHED_NUTRIENT_COLUMNS = tuple(
-    c.name for c in NutritionLog.__table__.columns
-    if c.name not in _NON_NUTRIENT_COLUMNS
+    c.name for c in NutritionLog.__table__.columns if c.name in _NUTRIENT_KEYS
 )
 
 
@@ -979,6 +980,7 @@ async def update_nutrition_log(
         for column in _ENRICHED_NUTRIENT_COLUMNS:
             if hasattr(log, column):
                 setattr(log, column, None)
+        log.extended_nutrients = None
         log.nutrient_status = "pending"
 
     # Figures the patient typed are no longer the estimate the stored

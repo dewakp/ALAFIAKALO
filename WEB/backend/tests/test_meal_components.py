@@ -232,3 +232,29 @@ async def test_reestimate_recomputes_this_meal_and_never_adds_one(client: AsyncC
     r = await client.post(f"/api/v1/nutrition/{log_id}/reestimate",
                           headers={"Authorization": f"Bearer {other}"})
     assert r.status_code == 404
+
+
+async def test_reanalyze_keeps_the_photo_and_clears_the_whole_estimate(client: AsyncClient, db, monkeypatch):
+    """2026-10-23: "Photo disappeared when reanalyzed." The clear-list was
+    "every column not on a keep-list", and the keep-list omitted
+    `food_thumbnail`. Re-analyse clears NUTRIENTS — named by the catalog — and
+    the extended panel, which the fill-blanks writer would otherwise keep."""
+    import app.api.nutrition as api_mod
+    monkeypatch.setattr(api_mod, "enrich_log", lambda log_id: None)
+    owner = await _token(client, f"pho{uuid.uuid4().hex[:6]}@example.com")
+    h = {"Authorization": f"Bearer {owner}"}
+    log_id = (await client.post("/api/v1/nutrition/", headers=h, json={
+        "log_date": "2026-10-22", "meal_type": "dinner", "food_name": "sardines",
+        "calories": 3090.0, "food_image_uris": "media/42",
+        "food_thumbnail": "data:image/jpeg;base64,AAAA"})).json()["id"]
+    row = (await db.execute(select(NutritionLog).where(NutritionLog.id == log_id))).scalar_one()
+    row.extended_nutrients = {"phytate_mg": 9.0}
+    await db.commit()
+
+    body = (await client.post(f"/api/v1/nutrition/{log_id}/reestimate", headers=h)).json()
+
+    assert body["food_image_uris"] == "media/42"
+    assert body["food_thumbnail"] == "data:image/jpeg;base64,AAAA"
+    assert body["calories"] is None
+    await db.refresh(row)
+    assert row.extended_nutrients is None
