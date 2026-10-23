@@ -5705,3 +5705,34 @@ purge, or the next "sardines" lookup re-caches the oil.
   estimated from now on carry them; the 364 untouched meals still do not.
 - **The verifier adds one model call per NEW food** (cache misses only). On
   production's hosted-first order that is ~1–3 s inside a background task.
+
+### 58f. Second authorities, phytate, and what context did — 2026-10-23
+
+Operator: *"when USDA fails, fall back to search, LLM or RAG … Then build
+knowledge"*, *"build with it. I am asking FAO for permission"*, and *"Add
+FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate"*.
+
+- `reference_foods` (migration `av001`) holds WAFCT 2019 (1,028 foods) and
+  PhyFoodComp 1.0 (3,192 phytate entries), loaded by
+  `scripts/load_reference_foods.py`. **Both FAO licences restrict commercial
+  use** (WAFCT: CC BY-NC-SA 3.0 IGO; PhyFoodComp: © FAO/IZiNCG 2018, no CC
+  grant). The operator has requested permission and directed loading production.
+- USDA and WAFCT candidates are judged in ONE choice; PhyFoodComp is never a
+  whole-food match, it only ADDS `phytate_mg` / `phytate_phosphorus_mg`.
+- Measured on 18 known cases × 3 runs: 22/30 (choice only) → 36/45 (query
+  rewrite) → 48/54 (+WAFCT) → **51/54** (+binomial in the rewrite). The
+  patient's usual foods as context scored **42/54** and were removed. "Paw
+  paw" still fails: for a patient living in the USA it is genuinely ambiguous.
+- ⚠️ Every hosted provider's default is a SMALL model, and production shuffles
+  four of them — the same food can be judged by different models. Pinning the
+  verifier to one model is a provider-strategy decision, left to the operator.
+- The enrichment writer now passes the patient's country, units and locale to
+  the meal estimator; it never did, so saved meals got no locale-aware volume
+  conversion either.
+
+### 58g. Three guard tests were already red at the shipped HEAD
+
+`test_parser_hardcoding_ratchet` (382 literals vs baseline 290) and both
+`test_patient_prose_ratchet` tests (119 sentences vs 109) fail on `ebf1451`,
+measured on a clean worktree of that commit — not from this work. Not fixed by
+raising baselines (§3ab forbids); the growth must be paid down.
