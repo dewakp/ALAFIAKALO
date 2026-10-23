@@ -122,7 +122,10 @@ async def affected_meals(plan: dict[str, dict]) -> list[dict]:
     ne._try_usda = ne._try_mcp_branded = ne._try_ai = _miss
     # Each recompute still resolves category bands against USDA (~6 s a meal),
     # and meals are independent — so they run concurrently, bounded.
-    sem = asyncio.Semaphore(8)
+    # Bounded LOW by default: the recompute's category lookups go to USDA on
+    # the same key production uses, and 8 at a time drew 4,157 429s in an hour.
+    import os
+    sem = asyncio.Semaphore(int(os.environ.get("REPAIR_CONCURRENCY", "2")))
 
     async def _one(m: dict) -> None:
         async with sem, async_session() as db:
