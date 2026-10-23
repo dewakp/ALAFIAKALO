@@ -237,3 +237,22 @@ async def test_a_verified_match_is_not_vetoed_by_the_keyword_band(monkeypatch, d
     rows = (await db.execute(select(FoodNutrientCache.source).where(
         FoodNutrientCache.food_name_normalized == "water melon"))).scalars().all()
     assert rows == ["usda"]
+
+
+async def test_a_cache_hit_returns_what_the_name_resolved_to(monkeypatch, db):
+    """A cache hit returned the typed name, so every stored meal component read
+    "water melon -> water melon" and the per-item view could not show a match."""
+    async def usda(name, db=None):
+        return {"source": "usda", "fdc_id": 167765, "ai_model": None, "food_name": "Watermelon, raw",
+                "serving_size": "100 g", "serving_weight_g": 100.0, "confidence": 1.0,
+                "nutrients": {"calories": 30.0, "protein_g": 0.61, "fat_g": 0.15, "carbs_g": 7.55},
+                "cached": False}
+    monkeypatch.setattr(ne, "_try_usda", usda)
+    await ne._estimate_nutrients_impl(db, "water melon cache probe")
+
+    async def must_not_run(*a, **k):
+        raise AssertionError("the second lookup must be a cache hit")
+    monkeypatch.setattr(ne, "_try_usda", must_not_run)
+    hit = await ne._estimate_nutrients_impl(db, "water melon cache probe")
+
+    assert hit["cached"] is True and hit["food_name"] == "Watermelon, raw"

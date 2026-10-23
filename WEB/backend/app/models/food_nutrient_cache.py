@@ -25,6 +25,9 @@ class FoodNutrientCache(Base):
     food_name_normalized: Mapped[str] = mapped_column(String(512), nullable=False, unique=True, index=True)
     # Original food name as submitted
     food_name_original: Mapped[str] = mapped_column(String(512), nullable=False)
+    # What the name RESOLVED to ("Watermelon, raw"); NULL on rows written before
+    # migration ax001, which never recorded it.
+    matched_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # Source: "usda" or "ai"
     source: Mapped[str] = mapped_column(String(20), nullable=False)

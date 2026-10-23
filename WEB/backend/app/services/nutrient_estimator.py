@@ -188,7 +188,9 @@ async def _get_cached(db: AsyncSession, food_name: str) -> dict | None:
         "source": row.source,
         "fdc_id": row.fdc_id,
         "ai_model": row.ai_model,
-        "food_name": row.food_name_original,
+        # The record it resolved to when known; the typed name only for rows
+        # written before that was recorded (ax001).
+        "food_name": row.matched_name or row.food_name_original,
         "serving_size": row.serving_size,
         "serving_weight_g": row.serving_weight_g,
         "confidence": row.confidence,
@@ -207,12 +209,14 @@ async def _save_to_cache(
     serving_size: str | None = None,
     serving_weight_g: float | None = None,
     confidence: float = 1.0,
+    matched_name: str | None = None,
 ) -> None:
     """Persist a nutrient estimate to the cache."""
     normalized = _normalize_food_name(food_name)
     entry = FoodNutrientCache(
         food_name_normalized=normalized,
         food_name_original=food_name.strip(),
+        matched_name=(matched_name or None) and str(matched_name)[:512],
         source=source,
         fdc_id=fdc_id,
         ai_model=ai_model,
@@ -1050,7 +1054,8 @@ async def _estimate_nutrients_impl(
         await _add_phytate(db, food_name, usda_result)
         await _save_to_cache(db, food_name, source=usda_result["source"], nutrients=usda_result["nutrients"],
                              fdc_id=usda_result["fdc_id"], serving_size=usda_result["serving_size"],
-                             serving_weight_g=usda_result["serving_weight_g"], confidence=1.0)
+                             serving_weight_g=usda_result["serving_weight_g"], confidence=1.0,
+                             matched_name=usda_result.get("food_name"))
         return usda_result
 
     # 3. Branded (Boost/Ensure/Gatorade/OTC) via MCP (USDA Branded → Open Food Facts)
@@ -1059,7 +1064,8 @@ async def _estimate_nutrients_impl(
         await _add_phytate(db, food_name, mcp_result)
         await _save_to_cache(db, food_name, source=mcp_result["source"], nutrients=mcp_result["nutrients"],
                              fdc_id=mcp_result.get("fdc_id"), serving_size=mcp_result.get("serving_size"),
-                             serving_weight_g=mcp_result.get("serving_weight_g"), confidence=mcp_result["confidence"])
+                             serving_weight_g=mcp_result.get("serving_weight_g"), confidence=mcp_result["confidence"],
+                             matched_name=mcp_result.get("food_name"))
         return mcp_result
 
     # 4. AI fallback (escalated when USDA/branded were missing or out-of-band).

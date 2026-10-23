@@ -5736,3 +5736,31 @@ FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate"*.
 `test_patient_prose_ratchet` tests (119 sentences vs 109) fail on `ebf1451`,
 measured on a clean worktree of that commit — not from this work. Not fixed by
 raising baselines (§3ab forbids); the growth must be paid down.
+
+### 58h. The repair, and what it exposed in the quantity parser — 2026-10-23
+
+`repair_food_cache.py` on production: 583 wrong cache rows removed (backup
+`cache_backup_20261023T102627Z.json`), 707 foods warmed (658 resolved, 49
+unresolved), **304 meals re-estimated**, 155 deferred (they contain an
+unresolved food), meal 1114 skipped (changed since the plan). Meals over 100 g
+fat: 10 -> 3. Sardine meals roughly halved (1,578 -> 745; 1,365 -> 673).
+
+**The remaining errors are the PARSER's, not the lookup's.** With components
+now stored, they are visible per item:
+
+    meal 961  ".5 cup of roasted corn flour"   unparsed (".5" has no leading 0)
+                                               -> whole phrase a food, 100 g
+              "sachets of brown sugar"         100 g -> 380 kcal (2 sachets ~ 8 g)
+              "tea bags"                       100 g
+    meal 127/534  "serving of ranch dressing"  100 g -> 430 kcal, 45 g fat (~30 g)
+
+**Any unit the parser does not recognise becomes 100 g.** These meals were
+wrong before the repair too (961 read 150 kcal because those items resolved to
+nothing); stored components made it visible. Fix direction: an unknown unit is
+"weight unknown", never 100 g; real unit weights (sachet, tea bag, serving)
+come from an authority (USDA portion data / FNDDS food portions), not a list.
+
+Unresolved after the repair, by kind: abbreviations ("rcf" — 218 of user 63's
+meals; the operator's definition is Roasted Corn Flour, no record in the
+database states it), nutrient names ("vitamin a", "vitamin d", "calcium" —
+supplements, not foods), and parser debris ("by", "etc", "a cup", "plain").
