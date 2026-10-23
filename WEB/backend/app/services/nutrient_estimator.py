@@ -1037,27 +1037,30 @@ async def _estimate_nutrients_impl(
             return None
 
     # 2. USDA Foundation / SR Legacy / FNDDS
+    # A match the model VERIFIED against an authority's own record is not
+    # second-guessed by the keyword category band. That band classifies by
+    # WORDS: "water melon" fell in a 0-5 kcal "water" band and the verified
+    # "Watermelon, raw" (30 kcal) was refused; "sardines in olive oil" fell in
+    # an oil band and real sardines (208 kcal) were refused. Measured
+    # 2026-10-23 in the production repair: 11 foods stalled this way. The
+    # physical checks in `_possible` still apply to every tier; the band
+    # remains only on the AI estimate, which is a guess, not a record.
     usda_result = _possible(await _ask(lambda n: _try_usda(n, db)), "usda")
     if usda_result:
-        if _in_band(usda_result):
-            await _add_phytate(db, food_name, usda_result)
-            await _save_to_cache(db, food_name, source=usda_result["source"], nutrients=usda_result["nutrients"],
-                                 fdc_id=usda_result["fdc_id"], serving_size=usda_result["serving_size"],
-                                 serving_weight_g=usda_result["serving_weight_g"], confidence=1.0)
-            return usda_result
-        logger.info("USDA match for '%s' out of category band → trying other sources", food_name)
-        fallbacks.append(usda_result)
+        await _add_phytate(db, food_name, usda_result)
+        await _save_to_cache(db, food_name, source=usda_result["source"], nutrients=usda_result["nutrients"],
+                             fdc_id=usda_result["fdc_id"], serving_size=usda_result["serving_size"],
+                             serving_weight_g=usda_result["serving_weight_g"], confidence=1.0)
+        return usda_result
 
     # 3. Branded (Boost/Ensure/Gatorade/OTC) via MCP (USDA Branded → Open Food Facts)
     mcp_result = _possible(await _ask(_try_mcp_branded), "branded")
     if mcp_result:
-        if _in_band(mcp_result):
-            await _add_phytate(db, food_name, mcp_result)
-            await _save_to_cache(db, food_name, source=mcp_result["source"], nutrients=mcp_result["nutrients"],
-                                 fdc_id=mcp_result.get("fdc_id"), serving_size=mcp_result.get("serving_size"),
-                                 serving_weight_g=mcp_result.get("serving_weight_g"), confidence=mcp_result["confidence"])
-            return mcp_result
-        fallbacks.append(mcp_result)
+        await _add_phytate(db, food_name, mcp_result)
+        await _save_to_cache(db, food_name, source=mcp_result["source"], nutrients=mcp_result["nutrients"],
+                             fdc_id=mcp_result.get("fdc_id"), serving_size=mcp_result.get("serving_size"),
+                             serving_weight_g=mcp_result.get("serving_weight_g"), confidence=mcp_result["confidence"])
+        return mcp_result
 
     # 4. AI fallback (escalated when USDA/branded were missing or out-of-band).
     ai_result = _possible(await _try_ai(food_name, serving_size), "ai")
@@ -1067,6 +1070,7 @@ async def _estimate_nutrients_impl(
         if unavailable and (_in_band(ai_result) or not fallbacks):
             logger.warning("Not caching AI estimate for '%s' — an authority was unavailable (%s)",
                            food_name, "; ".join(unavailable))
+            ai_result["authority_unavailable"] = list(unavailable)
             return ai_result
         if _in_band(ai_result) or not fallbacks:
             await _add_phytate(db, food_name, ai_result)
@@ -1082,6 +1086,8 @@ async def _estimate_nutrients_impl(
         best = max(fallbacks, key=lambda r: float(r.get("confidence", 0) or 0))
         best["confidence"] = min(float(best.get("confidence", 1.0) or 1.0), 0.4)
         best["out_of_band"] = True
+        if unavailable:
+            best["authority_unavailable"] = list(unavailable)
         logger.warning("All sources out of band for '%s' — returning best flagged candidate", food_name)
         # Log the miss for review/learning (never let flagging break estimation).
         try:
@@ -1094,6 +1100,7 @@ async def _estimate_nutrients_impl(
     # 6. Nothing worked
     logger.warning("No nutrient data found for '%s'", food_name)
     return {
+        "authority_unavailable": list(unavailable) or None,
         "source": None,
         "fdc_id": None,
         "ai_model": None,

@@ -211,3 +211,29 @@ async def test_a_failing_phytate_step_never_fails_the_food(monkeypatch, db):
     result = {"food_name": "x", "nutrients": {"calories": 100.0}}
     await ne._add_phytate(db, "x", result)          # must not raise
     assert result["nutrients"] == {"calories": 100.0}
+
+
+async def test_a_verified_match_is_not_vetoed_by_the_keyword_band(monkeypatch, db):
+    """Production repair, 2026-10-23: "water melon" sits in a 0-5 kcal band
+    because it contains the word "water", so the VERIFIED "Watermelon, raw"
+    (30 kcal) was refused and never cached — 11 foods stalled this way. A
+    record the model matched to the food outranks a band guessed from words."""
+    async def usda(name, db=None):
+        return {"source": "usda", "fdc_id": 167765, "ai_model": None, "food_name": "Watermelon, raw",
+                "serving_size": "100 g", "serving_weight_g": 100.0, "confidence": 1.0,
+                "nutrients": {"calories": 30.0, "protein_g": 0.61, "fat_g": 0.15, "carbs_g": 7.55},
+                "cached": False}
+
+    async def nothing(*a, **k):
+        return None
+
+    monkeypatch.setattr(ne, "_try_usda", usda)
+    monkeypatch.setattr(ne, "_try_mcp_branded", nothing)
+    monkeypatch.setattr(ne, "_try_ai", nothing)
+
+    out = await ne._estimate_nutrients_impl(db, "water melon")
+
+    assert out["food_name"] == "Watermelon, raw" and not out.get("out_of_band")
+    rows = (await db.execute(select(FoodNutrientCache.source).where(
+        FoodNutrientCache.food_name_normalized == "water melon"))).scalars().all()
+    assert rows == ["usda"]

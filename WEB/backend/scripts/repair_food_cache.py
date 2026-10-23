@@ -243,17 +243,27 @@ async def main() -> int:
         for attempt in range(10):
             if await _resolved(name) or ne._curated_lookup(name) or ne._is_placeholder(name):
                 break
+            outage = None
             async with async_session() as db:
                 try:
-                    await ne.estimate_nutrients(db, name)
+                    res = await ne.estimate_nutrients(db, name)
                     await db.commit()
+                    outage = (res or {}).get("authority_unavailable")
                 except Exception as exc:  # noqa: BLE001
                     await db.rollback()
                     print(f"  {name!r}: {type(exc).__name__}")
+                    outage = [type(exc).__name__]
             if await _resolved(name):
                 break
-            print(f"  {name!r} not resolved (attempt {attempt + 1}) — an authority was "
-                  f"unavailable; waiting 120 s", flush=True)
+            # Retry ONLY an outage. A food no authority holds, or one the
+            # estimator flagged, will not resolve by waiting — retrying those
+            # cost 20 minutes each, 11 times, in the first production run.
+            if not outage:
+                unresolved.append(name)
+                print(f"  {name!r} unresolved — no authority holds it (not an outage)", flush=True)
+                break
+            print(f"  {name!r} not resolved (attempt {attempt + 1}) — unavailable: "
+                  f"{'; '.join(map(str, outage))[:80]}; waiting 120 s", flush=True)
             await asyncio.sleep(120)
         else:
             unresolved.append(name)
