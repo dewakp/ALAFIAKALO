@@ -1255,6 +1255,14 @@
     <string name="estimated">· estimado</string>
     <string name="all_nutrients">Todos os nutrientes</string>
     <string name="hide_all_nutrients">Ocultar todos os nutrientes</string>
+    <string name="items">Itens</string>
+    <string name="hide_items">Ocultar itens</string>
+    <string name="could_not_load_items">Não foi possível carregar os itens desta refeição.</string>
+    <string name="no_item_breakdown">Sem detalhamento de itens: estes valores foram inseridos ou importados, não estimados.</string>
+    <string name="weight_unknown">peso desconhecido</string>
+    <string name="matched_to">correspondido a %1$s</string>
+    <string name="not_counted_item">Não contabilizado no total — os valores deste item falharam na verificação de plausibilidade.</string>
+    <string name="items_are_estimates">Estimativas. Os valores de cada item vêm do registro mostrado ao lado.</string>
     <string name="could_not_load_this_photo">Não foi possível carregar esta foto.</string>
     <string name="download_pdf">Baixar PDF</string>
     <string name="preparing">Preparando…</string>
@@ -1371,4 +1379,5 @@
     <string name="alpha_not_receiving">você nos disse que não está nisto</string>
     <string name="no_readable_files_selected">Nenhum dos arquivos selecionados pôde ser lido.</string>
     <string name="therapy_date_unreadable">\"%1$s\" não é uma data que conseguimos ler. Escreva no formato YYYY-MM-DD, por exemplo [dob].</string>
+    <string name="kcal_p_g">%1$s kcal · P %2$s g</string>
 </resources>

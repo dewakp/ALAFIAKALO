@@ -5,7 +5,10 @@
 
 from datetime import datetime, timezone, date, time
 
-from sqlalchemy import String, Float, Integer, DateTime, Date, ForeignKey, Text, JSON, Time
+from sqlalchemy import (
+    Boolean, String, Float, Integer, DateTime, Date, ForeignKey, Text, JSON, Time,
+    Index, UniqueConstraint, func, text, true,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -119,3 +122,40 @@ class NutritionLog(Base):
     )
 
     user = relationship("User", back_populates="nutrition_logs")
+
+
+class NutritionLogComponent(Base):
+    """One item a meal was estimated from (migration au001).
+
+    `food_name` is what the parser took from the patient's words; `matched_name`
+    is what the lookup resolved it to. The pair is what shows a wrong match —
+    "sardines" -> "Fish oil, sardine" — which the meal's total alone hides.
+    Written by `nutrient_enrichment`, replaced on every re-estimate.
+    """
+
+    __tablename__ = "nutrition_log_components"
+    __table_args__ = (
+        UniqueConstraint("nutrition_log_id", "position",
+                         name="uq_nutrition_log_components_position"),
+        Index("ix_nutrition_log_components_log", "nutrition_log_id"),
+        Index("ix_nutrition_log_components_food", text("lower(food_name)")),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nutrition_log_id: Mapped[int] = mapped_column(
+        ForeignKey("nutrition_logs.id", ondelete="CASCADE"), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    food_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    matched_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    qty_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    qty_text: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    source: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    fdc_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    counted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True,
+                                          server_default=true())
+    nutrients: Mapped[dict] = mapped_column(JSON, nullable=False)
+    warnings: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(),
+        default=lambda: datetime.now(timezone.utc))

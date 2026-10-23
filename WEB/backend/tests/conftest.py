@@ -226,6 +226,29 @@ def _no_network_rxnorm(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _offline_food_match_verifier(monkeypatch):
+    """Keep food lookups off the model.
+
+    `food_match_verifier.choose` asks an LLM which retrieved record IS the food
+    named. The stub accepts the TOP-RANKED candidate — i.e. it agrees with the
+    lexical ranking — so tests that pin ranking (empty-twin, FNDDS preference)
+    keep meaning what they say. Tests of the verifier itself, and of what
+    happens when it refuses, live in test_food_match_verifier.py and patch it
+    explicitly.
+    """
+    from app.services import food_match_verifier
+
+    async def _agree_with_ranking(food_name, candidates):
+        return 0 if candidates else None
+
+    async def _no_second_name(food_name):
+        return None  # no query rewrite: the suite never reaches a model
+
+    monkeypatch.setattr(food_match_verifier, "choose", _agree_with_ranking)
+    monkeypatch.setattr(food_match_verifier, "standard_name", _no_second_name)
+
+
+@pytest.fixture(autouse=True)
 def _reset_provider_registry():
     """Clear the provider registry's module-level state between tests.
 

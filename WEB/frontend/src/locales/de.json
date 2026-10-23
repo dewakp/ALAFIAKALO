@@ -1622,7 +1622,16 @@
     "fol": "Fol",
     "chol": "Chol",
     "from_agent": "{{sign}}{{delta}}{{unit}} von {{agent}}",
-    "effect_mechanism": "· {{mechanism}}"
+    "effect_mechanism": "· {{mechanism}}",
+    "items": "Lebensmittel",
+    "hide_items": "Lebensmittel ausblenden",
+    "could_not_load_items": "Lebensmittel dieser Mahlzeit konnten nicht geladen werden.",
+    "no_item_breakdown": "Keine Aufschlüsselung: Diese Werte wurden eingegeben oder importiert, nicht geschätzt.",
+    "weight_unknown": "Gewicht unbekannt",
+    "matched_to": "zugeordnet zu {{name}}",
+    "not_counted": "Nicht in der Summe enthalten — die Werte dieses Lebensmittels bestanden die Plausibilitätsprüfung nicht.",
+    "items_are_estimates": "Schätzungen. Die Werte jedes Lebensmittels stammen aus dem daneben angezeigten Datensatz.",
+    "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },
   "Medications": {
     "medications": "Medikamente",

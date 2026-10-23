@@ -828,6 +828,76 @@
         }
       }
     },
+    "%@ kcal · P %@ g" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ سعرة حرارية · بروتين %2$@ غ"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kcal · P %2$@ g"
+          }
+        }
+      }
+    },
     "%@ min" : {
       "localizations" : {
         "ar" : {
@@ -22712,6 +22782,70 @@
         }
       }
     },
+    "Could not load this meal's items." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحميل عناصر هذه الوجبة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Mahlzeit konnte nicht geladen werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar los alimentos de esta comida."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger les éléments de ce repas."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ba a iya lodata abubuwan wannan abinci ba."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enweghị ike ịlọ ụlọ ihe ndị a nke nri."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar os itens desta refeição."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haiwezi kupakia vipengele vya chakula hiki."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ó ṣe àìlọ́ láti ṣe àkópọ̀ àwọn ohun ìjẹ yìí."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载此餐的项目。"
+          }
+        }
+      }
+    },
     "Could not load your therapy answers. Nothing has been changed." : {
       "localizations" : {
         "ar" : {
@@ -33924,6 +34058,70 @@
         }
       }
     },
+    "Estimates. Each item's figures come from the record shown beside it." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تقديرات. تأتي أرقام كل عنصر من السجل المعروض بجانبه."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schätzungen. Die Werte jedes Lebensmittels stammen aus dem daneben angezeigten Datensatz."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimaciones. Las cifras de cada alimento provienen del registro que aparece junto a él."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimations. Les chiffres de chaque élément proviennent de l'enregistrement affiché à côté."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimantarwa. Kowane abu yana da adadi daga rikodin da ke gefen sa."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihe atụmatụ. Ọnụ ọgụgụ nke ihe ọ bụla sitere na ndekọ e gosiri n'akụkụ ya."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimativas. Os dados de cada item vêm do registro mostrado ao lado."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makadirio. Takwimu za kila kipengele zinatoka kwenye rekodi iliyoonyeshwa karibu nayo."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Àwọn ìbámu. Àwọn ìfigúrì kọ̀ọ̀kan wá láti ìwé tí ó wà ní ẹ̀gbẹ́ rẹ̀."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "估计值。每项的数据来自其旁边显示的记录。"
+          }
+        }
+      }
+    },
     "estimating…" : {
       "localizations" : {
         "ar" : {
@@ -41680,6 +41878,70 @@
         }
       }
     },
+    "Hide items" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إخفاء العناصر"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lebensmittel ausblenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar alimentos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer les éléments"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ɓoye abubuwa"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zọ ihe ndị a"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar itens"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ficha vipengele"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ṣubú àwọn ohun"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏项目"
+          }
+        }
+      }
+    },
     "Hide password" : {
       "localizations" : {
         "ar" : {
@@ -45068,6 +45330,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "项目名称"
+          }
+        }
+      }
+    },
+    "Items" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "العناصر"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lebensmittel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alimentos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éléments"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abubuwa"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihe ndị a"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Itens"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vipengele"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Àwọn ohun"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "项目"
           }
         }
       }
@@ -50517,6 +50843,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "营销邮件"
+          }
+        }
+      }
+    },
+    "matched to" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "طابق مع"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zugeordnet zu"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coincide con"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "associé à"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "daidai da"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dabara na"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "correspondido a"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kufanana na"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ní ìbámu pẹ̀lú"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匹配到"
           }
         }
       }
@@ -57241,6 +57631,70 @@
         }
       }
     },
+    "No item breakdown: these figures were entered or imported, not estimated." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يوجد تفصيل للعناصر: تم إدخال هذه الأرقام أو استيرادها، وليست مقدرة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Aufschlüsselung: Diese Werte wurden eingegeben oder importiert, nicht geschätzt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin desglose de alimentos: estas cifras se ingresaron o importaron, no se estimaron."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de détail des éléments : ces chiffres ont été saisis ou importés, non estimés."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Babu rabe-raben abubuwa: waɗannan adadi an shigar da su ko aka shigo da su, ba a kimanta ba."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enweghị nkewa ihe: a tinyere ọnụ ọgụgụ ndị a ma ọ bụ bubatara ha, ọ bụghị ihe atụmatụ."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem detalhamento de itens: estes dados foram inseridos ou importados, não estimados."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakuna kuvunjwa kwa vipengele: takwimu hizi ziliingizwa au kuagizwa, si kukadiria."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kò sí ìpín ohun: a tẹ̀ wé àwọn ìfigúrì wọ̀nyí tàbí a gbe wọ́n wá, kò ṣe ìbámu."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无项目明细：这些数据是输入或导入的，而非估计值。"
+          }
+        }
+      }
+    },
     "No Lab Charts" : {
       "localizations" : {
         "ar" : {
@@ -60245,6 +60699,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未连接"
+          }
+        }
+      }
+    },
+    "Not counted in the total — this item's figures failed the plausibility check." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم تُحسب في الإجمالي — فشل فحص معقولية أرقام هذا العنصر."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht in der Summe enthalten – die Werte dieses Lebensmittels haben die Plausibilitätsprüfung nicht bestanden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No incluido en el total — las cifras de este alimento no pasaron la verificación de plausibilidad."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non compté dans le total — les chiffres de cet élément n'ont pas passé la vérification de plausibilité."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ba a ƙidaya shi a cikin jimillar ba — adadin wannan abu ya gazawa binciken yiwuwa."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejighi n'ọnụ ọgụgụ niile — ọnụ ọgụgụ ihe a dị adị na njikọ."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não contabilizado no total — os dados deste item falharam na verificação de plausibilidade."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haijahesabiwa katika jumla — takwimu za kipengele hiki zilishindwa ukaguzi wa uwezekano."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kò ní ìbámu nínú àpapọ̀ — àwọn ìfigúrì ohun yìí ṣe àìlọ́ ìdánwò."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未计入总数——此项目的数据未通过合理性检查。"
           }
         }
       }
@@ -97005,6 +97523,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "体重趋势"
+          }
+        }
+      }
+    },
+    "weight unknown" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الوزن غير معروف"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gewicht unbekannt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "peso desconocido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "poids inconnu"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ba a san nauyi ba"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ịnwụ ọnụ ọgụgụ"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "peso desconhecido"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uzani haujulikani"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ìwọ̀n àìmọ̀"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重量未知"
           }
         }
       }

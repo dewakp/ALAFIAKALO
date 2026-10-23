@@ -1255,6 +1255,14 @@
     <string name="estimated">· takriban</string>
     <string name="all_nutrients">Virutubishi vyote</string>
     <string name="hide_all_nutrients">Ficha virutubishi vyote</string>
+    <string name="items">Vipengele</string>
+    <string name="hide_items">Ficha vipengele</string>
+    <string name="could_not_load_items">Haiwezi kupakia vipengele vya chakula hiki.</string>
+    <string name="no_item_breakdown">Hakuna maelezo ya vipengele: takwimu hizi ziliingizwa au kuagizwa, si kukadiria.</string>
+    <string name="weight_unknown">uzani haujulikani</string>
+    <string name="matched_to">linalolingana na %1$s</string>
+    <string name="not_counted_item">Halijahesabiwa katika jumla — takwimu za kipengele hiki hazipitii ukaguzi wa uwezekano.</string>
+    <string name="items_are_estimates">Makadirio. Takwimu za kila kipengele zinatoka kwa rekodi iliyoonyeshwa karibu nayo.</string>
     <string name="could_not_load_this_photo">Haiwezi kupakia picha hii.</string>
     <string name="download_pdf">Pakua PDF</string>
     <string name="preparing">Inaandaa…</string>
@@ -1371,4 +1379,5 @@
     <string name="alpha_not_receiving">Ulituambia kuwa hauko juu ya hii</string>
     <string name="no_readable_files_selected">Hakuna kati ya faili ulizochagua inayoweza kusomwa.</string>
     <string name="therapy_date_unreadable">\"%1$s\" si tarehe tunayoweza kusoma. Tafadhali iandike kama YYYY-MM-DD, kwa mfano [dob].</string>
+    <string name="kcal_p_g">%1$s kcal · P %2$s g</string>
 </resources>

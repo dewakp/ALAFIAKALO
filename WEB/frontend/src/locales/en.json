@@ -1622,7 +1622,16 @@
     "fol": "Fol",
     "chol": "Chol",
     "from_agent": "{{sign}}{{delta}}{{unit}} from {{agent}}",
-    "effect_mechanism": "· {{mechanism}}"
+    "effect_mechanism": "· {{mechanism}}",
+    "items": "Items",
+    "hide_items": "Hide items",
+    "could_not_load_items": "Could not load this meal's items.",
+    "no_item_breakdown": "No item breakdown: these figures were entered or imported, not estimated.",
+    "weight_unknown": "weight unknown",
+    "matched_to": "matched to {{name}}",
+    "not_counted": "Not counted in the total — this item's figures failed the plausibility check.",
+    "items_are_estimates": "Estimates. Each item's figures come from the record shown beside it.",
+    "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },
   "Medications": {
     "medications": "Medications",

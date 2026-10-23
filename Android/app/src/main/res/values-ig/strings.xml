@@ -1255,6 +1255,14 @@
     <string name="estimated">· atụmatụ</string>
     <string name="all_nutrients">Ihe niile na-eme ka ahụ dị mma</string>
     <string name="hide_all_nutrients">Zọ ihe niile na-eme ka ahụ dị mma</string>
+    <string name="items">Ihe ndị a</string>
+    <string name="hide_items">Zọ ihe ndị a</string>
+    <string name="could_not_load_items">Enweghị ike ịlọta ihe ndị a n\'ụka nri a.</string>
+    <string name="no_item_breakdown">Enweghị nkọwa ihe: a tinyere ma ọ bụ bubatara ọnụ ọgụgụ ndị a, ọ bụghị atụmatụ.</string>
+    <string name="weight_unknown">ịnwụ amataghị</string>
+    <string name="matched_to">ejikọtara na %1$s</string>
+    <string name="not_counted_item">Ejikọtaghị n\'ọnụ ọgụgụ niile — ọnụ ọgụgụ ihe a dị mkpa.</string>
+    <string name="items_are_estimates">Atụmatụ. Ọnụ ọgụgụ ihe ọ bụla sitere n\'ndekọ e gosiri n\'akụkụ ya.</string>
     <string name="could_not_load_this_photo">Enweghị ike ilodata foto a.</string>
     <string name="download_pdf">Budata PDF</string>
     <string name="preparing">Na-akwadebe…</string>
@@ -1371,4 +1379,5 @@
     <string name="alpha_not_receiving">Ị sịrị na ị nọ na-eji nke a</string>
     <string name="no_readable_files_selected">Enweghị faịlụ ị họpụtara nke a pụrụ ịgụ.</string>
     <string name="therapy_date_unreadable">\"%1$s\" abụghị ụbọchị anyị nwere ike ịgụ. Biko dee ya dị ka YYYY-MM-DD, dịka [dob].</string>
+    <string name="kcal_p_g">%1$s kcal · P %2$s g</string>
 </resources>

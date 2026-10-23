@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.draw.alpha
 import com.alafia.android.api.ApiClient
 import com.alafia.android.util.ErrorUtil
 import com.alafia.android.models.*
@@ -528,6 +529,7 @@ private fun NutritionLogCard(
 ) {
     var showPhoto by remember { mutableStateOf(false) }
     var showNutrients by remember { mutableStateOf(false) }
+    var showItems by remember { mutableStateOf(false) }
     if (showPhoto) {
         MealPhotoDialog(mediaPath = log.foodImageUris ?: "", title = log.foodName) { showPhoto = false }
     }
@@ -631,6 +633,13 @@ private fun NutritionLogCard(
                 log.fiberG?.let { NutrientPill(stringResource(R.string.fiber), it, Color(0xFF78350F)) }
             }
 
+            // The items this meal was estimated from — fetched on open.
+            TextButton(onClick = { showItems = !showItems },
+                       contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)) {
+                Text(if (showItems) stringResource(R.string.hide_items) else stringResource(R.string.items), fontSize = 11.sp)
+            }
+            if (showItems) MealItems(log.id)
+
             // Collapsed by default: a day holds several meals and each carries
             // ~109 nutrient values.
             TextButton(onClick = { showNutrients = !showNutrients },
@@ -638,6 +647,56 @@ private fun NutritionLogCard(
                 Text(if (showNutrients) stringResource(R.string.hide_all_nutrients) else stringResource(R.string.all_nutrients), fontSize = 11.sp)
             }
             if (showNutrients) NutrientPanel(log)
+        }
+    }
+}
+
+/**
+ * The items a meal was estimated from: what the patient wrote, the record the
+ * lookup resolved it to, the weight and the figures. A 3,090 kcal breakfast hid
+ * that 2,706 kcal was "sardines" resolved to sardine OIL; per item it is visible.
+ * Point estimates, labelled — a range needs a stated basis (TASKS 23). Mirrors
+ * web `ItemsDisclosure` and iOS `MealItemsView`.
+ */
+@Composable
+private fun MealItems(logId: Int) {
+    var data by remember(logId) { mutableStateOf<MealComponentsResponse?>(null) }
+    var failed by remember(logId) { mutableStateOf(false) }
+    LaunchedEffect(logId) {
+        try {
+            data = ApiClient.getApiService().getMealComponents(logId)
+        } catch (e: Exception) {
+            failed = true  // an error is not an empty meal (§3aa)
+        }
+    }
+    val muted = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    fun num(v: Double?) = v?.let { Math.round(it).toString() } ?: "—"
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 2.dp)) {
+        val d = data
+        when {
+            failed -> Text(stringResource(R.string.could_not_load_items), fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.error)
+            d == null -> CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 2.dp)
+            else -> {
+                if (!d.estimated) Text(stringResource(R.string.no_item_breakdown), fontSize = 11.sp, color = muted)
+                d.components.forEach { c ->
+                    val weight = c.qtyG?.let { "${Math.round(it)} g" } ?: stringResource(R.string.weight_unknown)
+                    val matched = c.matchedName?.let { " · " + stringResource(R.string.matched_to, it) } ?: ""
+                    val source = c.source?.let { " · $it" } ?: ""
+                    Row(Modifier.fillMaxWidth().alpha(if (c.counted) 1f else 0.6f),
+                        horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(Modifier.weight(1f)) {
+                            Text(c.foodName, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(weight + matched + source, fontSize = 11.sp, color = muted)
+                            if (!c.counted) Text(stringResource(R.string.not_counted_item), fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.error)
+                        }
+                        Text(stringResource(R.string.kcal_p_g, num(c.nutrients?.get("calories")), num(c.nutrients?.get("protein_g"))),
+                            fontSize = 11.sp)
+                    }
+                }
+                if (d.estimated) Text(stringResource(R.string.items_are_estimates), fontSize = 10.sp, color = muted)
+            }
         }
     }
 }
@@ -904,11 +963,11 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                                 it.gramsBasis.orEmpty()
                                             )
                                         }
-                                        foodName = items.mapNotNull { it.name }.joinToString(", ")
+                                        // Grams travel IN the name — Save re-parses it (visionMeal).
+                                        val meal = visionMeal(visionEdits)
+                                        foodName = meal.first
                                         fdcId = null
-                                        if (servingSize.isBlank()) {
-                                            servingSize = items.firstOrNull()?.estimatedPortion.orEmpty()
-                                        }
+                                        if (servingSize.isBlank()) servingSize = meal.second
                                         imageAnalysisResult = res.notes.orEmpty()
                                     }
                                 } catch (_: Exception) {
@@ -993,8 +1052,13 @@ private fun AddMealDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                                     "both" -> "Saved — ALAFIA learned the foods and amounts."
                                                     else -> "Saved."
                                                 }
-                                                val names = payload.map { it.name }
-                                                if (names.isNotEmpty()) foodName = names.joinToString(", ")
+                                                // Names AND grams: the correction must reach the meal logged.
+                                                val meal = visionMeal(visionEdits)
+                                                if (meal.first.isNotEmpty()) {
+                                                    foodName = meal.first
+                                                    servingSize = meal.second
+                                                    fdcId = null
+                                                }
                                             } catch (_: Exception) {
                                                 teachState = "Could not save your correction."
                                             }
@@ -1539,4 +1603,29 @@ private fun DialysisBalanceLine(balance: DialysisBalance, unit: String) {
             )
         }
     }
+}
+
+/**
+ * The meal a photo's correction rows describe, in the shape Save sends: each
+ * food with its grams IN FRONT ("100 g 3 Pieces of Sardines"), where the
+ * backend's meal parser reads them, and the serving size as the meal's TOTAL.
+ *
+ * Names alone threw the grams away — the saved meal is re-estimated by parsing
+ * the name, and "3 Pieces of Sardines" parses as 300 g, so a correction that
+ * taught the model never reached the meal logged. Rows are (name, grams, basis).
+ * Mirrors web `utils/visionMeal.js` and iOS `FoodVisionEdit.mealDescription`.
+ */
+internal fun visionMeal(rows: List<Triple<String, String, String>>): Pair<String, String> {
+    val items = rows.mapNotNull { (name, grams, _) ->
+        val n = name.trim()
+        if (n.isEmpty()) null else n to LocaleDecimal.parse(grams)?.takeIf { it > 0 }
+    }
+    fun fmt(g: Double): String =
+        if (g == Math.rint(g)) g.toLong().toString() else (Math.round(g * 10) / 10.0).toString()
+    val foodName = items.joinToString(", ") { (n, g) -> if (g != null) "${fmt(g)} g $n" else n }
+    val serving = if (items.isNotEmpty() && items.all { it.second != null }) {
+        val total = items.sumOf { it.second!! }
+        if (items.size == 1) "${fmt(total)} g" else "composite meal (${fmt(total)} g total)"
+    } else ""
+    return foodName to serving
 }

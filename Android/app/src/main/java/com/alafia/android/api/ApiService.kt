@@ -216,6 +216,10 @@ interface ApiService {
     @DELETE("nutrition/{id}")
     suspend fun deleteNutritionLog(@Path("id") id: Int)
 
+    /** The items a meal was estimated from (nutrition_log_components). */
+    @GET("nutrition/{id}/components")
+    suspend fun getMealComponents(@Path("id") id: Int): MealComponentsResponse
+
     @GET("nutrition/food-search")
     suspend fun searchUSDAFoods(
         @Query("q") query: String,

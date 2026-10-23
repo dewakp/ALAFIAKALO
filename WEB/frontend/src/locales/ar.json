@@ -1622,7 +1622,16 @@
     "fol": "حمض الفوليك",
     "chol": "الكوليسترول",
     "from_agent": "{{sign}}{{delta}}{{unit}} من {{agent}}",
-    "effect_mechanism": "· {{mechanism}}"
+    "effect_mechanism": "· {{mechanism}}",
+    "items": "العناصر",
+    "hide_items": "إخفاء العناصر",
+    "could_not_load_items": "تعذر تحميل عناصر هذه الوجبة.",
+    "no_item_breakdown": "لا يوجد تفصيل للعناصر: تم إدخال هذه الأرقام أو استيرادها، وليست مقدرة.",
+    "weight_unknown": "الوزن غير معروف",
+    "matched_to": "مطابق مع {{name}}",
+    "not_counted": "لم يتم احتسابه في الإجمالي — فشلت أرقام هذا العنصر في فحص المعقولية.",
+    "items_are_estimates": "تقديرات. تأتي أرقام كل عنصر من السجل المعروض بجانبه.",
+    "kcal_p_g": "{{calories}} kcal · بروتين {{protein_g}} غ"
   },
   "Medications": {
     "medications": "الأدوية",

@@ -1255,6 +1255,14 @@
     <string name="estimated">· ìmèjì</string>
     <string name="all_nutrients">Gbogbo àwọn ìjẹ</string>
     <string name="hide_all_nutrients">Fihàn gbogbo àwọn ìjẹ</string>
+    <string name="items">Àwọn ohun</string>
+    <string name="hide_items">Pa àwọn ohun pamọ́</string>
+    <string name="could_not_load_items">Ò ṣe é lọ́ àwọn ohun nínú oúnjẹ yìí.</string>
+    <string name="no_item_breakdown">Kò sí ìpín ohun: àwọn ìfigúrì wọ̀nyí ti wà tàbí ti gba wọ́, kò ṣe àmètéjádé.</string>
+    <string name="weight_unknown">ìwọ̀n àìmọ̀</string>
+    <string name="matched_to">ti dárapọ̀ sí %1$s</string>
+    <string name="not_counted_item">Kò ní ìkan nínú àpapọ̀ — àwọn ìfigúrì ohun yìí kúrò nínú ìdánwò ìdúró.</string>
+    <string name="items_are_estimates">Àmètéjádé. Àwọn ìfigúrì ohun kọ̀ọ̀kan wá láti ìwé tí ó wà ní ẹ̀gbẹ́ rẹ̀.</string>
     <string name="could_not_load_this_photo">Àìlè ní láti lọ àwòrán yìí.</string>
     <string name="download_pdf">Gba PDF</string>
     <string name="preparing">Ń ṣe àgbéjáde…</string>
@@ -1371,4 +1379,5 @@
     <string name="alpha_not_receiving">Ìwọ sọ fún wa pé o kò wà lórí èyí</string>
     <string name="no_readable_files_selected">Àìfẹ́ láti ka ọ̀kan nínú àwọn fáìlì tí o yan.</string>
     <string name="therapy_date_unreadable">\"%1$s\" kì í ṣe ọjọ́ tí a lè kà. Jọ̀wọ́ kọ́ ọ gẹ́gẹ́ YYYY-MM-DD, fún àpẹẹrẹ [dob].</string>
+    <string name="kcal_p_g">%1$s kcal · P %2$s g</string>
 </resources>

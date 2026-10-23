@@ -65,6 +65,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::%@ kcal · P %@ g": {
+    "source": "%1$@ kcal · P %2$@ g",
+    "translation": "%1$@ kcal · P %2$@ g",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::%@ mL": {
     "source": "%@ mL",
     "translation": "%@ mL",
@@ -1967,6 +1973,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Could not load this meal's items.": {
+    "source": "Could not load this meal's items.",
+    "translation": "Die Mahlzeit konnte nicht geladen werden.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
     "source": "Could not load your therapy answers. Nothing has been changed.",
     "translation": "Ihre Therapieantworten konnten nicht geladen werden. Nichts wurde geändert.",
@@ -2957,6 +2969,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Estimates. Each item's figures come from the record shown beside it.": {
+    "source": "Estimates. Each item's figures come from the record shown beside it.",
+    "translation": "Schätzungen. Die Werte jedes Lebensmittels stammen aus dem daneben angezeigten Datensatz.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
     "source": "Every operation on your record, including those with no hospital stay attached.",
     "translation": "Jede Operation in Ihrer Akte, einschließlich derer ohne zugehörigen Krankenhausaufenthalt.",
@@ -3671,6 +3689,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Hide items": {
+    "source": "Hide items",
+    "translation": "Lebensmittel ausblenden",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::Hide password": {
     "source": "Hide password",
     "translation": "Passwort ausblenden",
@@ -3976,6 +4000,12 @@
     "translation": "Elementname",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Items": {
+    "source": "Items",
+    "translation": "Lebensmittel",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "Localizable.xcstrings::Join": {
     "source": "Join",
@@ -5237,6 +5267,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::No item breakdown: these figures were entered or imported, not estimated.": {
+    "source": "No item breakdown: these figures were entered or imported, not estimated.",
+    "translation": "Keine Aufschlüsselung: Diese Werte wurden eingegeben oder importiert, nicht geschätzt.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::No matching roles found.": {
     "source": "No matching roles found.",
     "translation": "Keine passenden Rollen gefunden.",
@@ -5368,6 +5404,12 @@
     "translation": "Nicht verbunden",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Not counted in the total — this item's figures failed the plausibility check.": {
+    "source": "Not counted in the total — this item's figures failed the plausibility check.",
+    "translation": "Nicht in der Summe enthalten – die Werte dieses Lebensmittels haben die Plausibilitätsprüfung nicht bestanden.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "Localizable.xcstrings::Not counted: %@": {
     "source": "Not counted: %@",
@@ -9185,6 +9227,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::matched to": {
+    "source": "matched to",
+    "translation": "zugeordnet zu",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::mm": {
     "source": "mm",
     "translation": "mm",
@@ -9232,6 +9280,12 @@
     "translation": "mit Messwerten",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::weight unknown": {
+    "source": "weight unknown",
+    "translation": "Gewicht unbekannt",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "Localizable.xcstrings::you logged it": {
     "source": "you logged it",

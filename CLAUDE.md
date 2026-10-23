@@ -4921,6 +4921,114 @@ the function the product calls, not through the rung you changed.**
 
 ---
 
+## 3bj. A word match is not a food match — the model chooses, the record supplies the numbers
+
+Operator, 2026-10-22, on a breakfast of sardines, brioche, two eggs and onion
+stored at **3,090 kcal, 315 g fat, 17 g protein, 2,520 mg cholesterol**:
+*"Our model must be crazy … I cannot trust any analysis from it"*, then:
+*"do a LLM/RAG lookup of unique food items in db and run a sanity check"*.
+Full measurement: **`OPEN_ITEMS.md` §58**.
+
+No model produced that number. "sardines" had been cached since 2026-06-28 as
+USDA fdc 173578 — **"Fish oil, sardine"**: 902 kcal, 100 g fat, 0 g protein.
+`_match_score` only asked whether the TYPED words occur somewhere in the
+description, so the oil scored a perfect 1.0. USDA names a food in its FIRST
+comma segment (*Fish oil*, sardine; *Crackers*, milk); the rule never looked.
+
+**The audit, every stored profile, not two foods** (`scripts/audit_food_cache.py`):
+arithmetic on all 1,666 rows, the matched USDA record RETRIEVED by fdc_id, and
+a model judging name against record. **432 of 934 linked rows (46%) matched a
+different food** — milk → milk crackers, water melon → honeydew, cow liver →
+goose liver, egusi soup → borscht, paw paw → a candy. A hand check of a random
+sample agreed with the model on ~22 of 25 flags and all 15 passes.
+
+> ⚠️ **No lexical rule fixes this, and that was measured, not argued.** The
+> best rule tried — the query's head noun must be in USDA's lead segment —
+> rejected 34 of 66 wrong matches and 23 of 73 right ones. Spelling cannot say
+> what a food IS. `food_match_verifier.choose` hands the model the retrieved
+> candidates WITH their per-100 g figures and asks which one IS the named food,
+> or none. The numbers still come from the record; the model never supplies a
+> nutrient on this path. §3am's split, applied to retrieval.
+
+- **It fails CLOSED.** An unverified word match is precisely the state that
+  cached sardine oil for four months. No answer → the tier misses → the next
+  tier runs → an unresolved food is reported unresolved. An outage is never
+  memoised as "no match".
+- **An unreachable source is not an empty one.** `SourceUnavailable` separates
+  "USDA could not be asked" from "USDA has no such food". A 429 used to read as
+  a miss, the AI tier answered, and that answer was cached FOREVER. Production
+  runs on `DEMO_KEY` — **85% of its USDA requests refused** in the retained logs
+  — which is how 599 of 1,661 cache rows came to be AI-sourced. The fallback may
+  still answer; it is no longer kept. `deploy.sh` now mounts `usda-api-key`.
+  > ⚠️ **api.data.gov's counters disagree between nodes.** A probe from the host
+  > read `x-ratelimit-remaining: 3598` while the container, same key, same
+  > egress IP, read `0` with `Retry-After: 442`. Trust the 429 you got, not a
+  > probe that landed elsewhere.
+- **Physically impossible profiles are refused from EVERY tier before
+  caching.** `plausibility.review` held the checks all along — above pure fat,
+  macros over 100 g, energy contradicting its macros — and nothing applied them
+  to a tier's answer. The category band could not stand in: an unclassified
+  food's band reaches 900 kcal, so 575 kcal with **141 g of macros per 100 g**
+  sat comfortably inside it.
+- **`_try_usda` no longer SUMS densities.** For a composite name it split the
+  items and added their per-100 g profiles into one "per-100 g" — 1,180 kcal and
+  113.7 g fat for a soup. `test_nlm_food_extractor.py` asserted that sum (645
+  kcal, 103 g carbs) as correct. **A test can pin a bug as firmly as a
+  feature**; it was replaced, not kept green.
+
+> **A cache purge without a matcher fix re-poisons itself.** Delete "sardines"
+> while the old rule runs and the next lookup caches the oil again. The fix
+> ships BEFORE the purge, and `scripts/repair_food_cache.py` re-estimates only
+> meals whose stored figures a cache-only recompute REPRODUCES — the row
+> records no provenance, so a figure from an import or one a patient typed is
+> left alone rather than cleared on a guess.
+
+> ⚠️ **The guard test first guarded nothing.** It fed a 1,180 kcal profile,
+> which the category band already refused, and so PASSED against the broken
+> code. Every new test here was run against the old estimator: 8 fail there,
+> including the rewritten one, which now uses a real in-band impossible row.
+
+### A meal keeps the components it was estimated from
+
+Operator, 2026-10-23: *"save meals component."* `nutrition_log_components`
+(migration `au001`) holds one row per item: the name the parser took
+(`food_name`) and what the lookup resolved it to (`matched_name`) — the PAIR is
+what shows "sardines" -> "Fish oil, sardine"; either alone hides it.
+
+- **Written by the enrichment writer and REPLACED on every re-estimate**, on
+  every path including a rejected or empty one. Two component sets for one
+  meal would be §3ab's contradictory copy.
+- **An excluded component is kept, with `counted = false`.** The omission is
+  the finding.
+- **Typed figures retire the components.** Once a patient sets the numbers,
+  the items no longer add up to the meal, so PATCH removes them and
+  `/components` answers `estimated: false` — an empty list is never left to
+  read as a meal with nothing in it (§3aa).
+- **Web no longer estimates an edited meal in the browser.** It sent the totals
+  as if typed, which bypassed the writer and stored no components. The server
+  already re-estimates a changed description.
+- **No backfill.** A component row is evidence of how a figure was computed;
+  writing them for old meals would be inventing that evidence.
+
+### The grams a patient corrects must reach the meal they log
+
+The same breakfast was corrected to 100/60/80/20 g in the photo rows and saved
+as names only. Save re-parses the name, and **"3 Pieces of Sardines" parses as
+300 g** — three times the fish. Serving Size held "150–180 g", the FIRST item's
+portion, standing for the whole plate. All three clients did this. The rows
+now travel as `100 g 3 Pieces of Sardines, …` — the parser reads a LEADING
+figure and ignores one in parentheses after a counted name (measured) — and
+Serving Size is the meal's total. Web `utils/visionMeal.js`, iOS
+`FoodVisionEdit.mealDescription`, Android `visionMeal`.
+
+The web pre-save suggestion asked the SINGLE-food path for the whole
+comma-joined meal (285 kcal, against 620 from the photo reader on the same
+screen) and its "Apply suggestion" button changed nothing for an AI answer on
+a filled form. It now asks the meal estimator Save uses, and the button
+appears only when pressing it would change the form.
+
+---
+
 ## 6. Reporting
 
 State what was actually run and what wasn't. "Builds" ≠ "works". If a suite

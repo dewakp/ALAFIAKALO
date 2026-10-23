@@ -1414,3 +1414,62 @@ OUR side and belongs on an alert, not in a reminder to the member.
 > is read at send time, not when the job was scheduled — otherwise a person who
 > signs up on day 6 still gets "you have not signed up yet" on day 7, which is
 > §3aa's error-as-empty-state pointed at a human being.
+
+## 23. A logged meal shows its ITEMS, each with a range — not one point figure
+
+Operator, 2026-10-22, comparing a stored breakfast (3,090 kcal) with an outside
+assistant's breakdown of the same meal (488-592 kcal): *"I like this
+presentation better for food logs (post logging)"*. The layout preferred: one
+row per item — name, assumed weight ("Assuming about 75 g total"), a kcal
+RANGE and a protein range — then an "Estimated total nutrition" card with
+ranges for calories, protein, carbohydrates, fat and fibre.
+
+Why it is better, measured rather than aesthetic:
+
+- **Per item is where errors are visible.** 3,090 kcal on one line hides that
+  ONE component (sardines, cached as sardine OIL) carried 2,700 of it. Per
+  item, a reader sees "sardines — 2,706 kcal" and knows at once.
+- **A range states the uncertainty a point figure hides.** Weight from a
+  photo or a count ("3 pieces") is an estimate; a single number to the
+  kilocalorie claims a precision nobody has.
+
+What it needs — none of it exists yet:
+
+1. ✅ **Components are STORED** (2026-10-23, operator: *"save meals
+   component."*). `nutrition_log_components` (migration `au001`), written by the
+   enrichment writer and replaced on every re-estimate; read at
+   `GET /nutrition/{id}/components`. Existing meals gain components the next
+   time they are estimated — nothing is backfilled or invented. Still to do
+   here: the clients DRAWING them (items 2–3).
+2. **A range needs a stated basis**, never an invented ±%: the spread of the
+   authority's own entries (`reference_energy_range`, §3bi) or the weight
+   uncertainty the photo reader reported. Where neither exists, show the point
+   figure and say it is a point estimate.
+3. Web, iOS and Android (§3). The item's SOURCE belongs on the row too
+   (USDA / branded / estimated) — it is what lets a patient question it.
+
+## 24. A food-item image catalogue, so an item is confirmed at a glance
+
+Operator, 2026-10-23: *"We also need a food item image catalogue for easy
+confirmation like the open ai results screenshot."* The screenshot showed one
+picture per item (sardines on a plate, two brioche slices, halved boiled eggs,
+sliced onions) beside its weight and figures. A picture answers "is this the
+food you meant?" faster than "matched to Fish, sardine, Atlantic, canned in
+oil" — and would have shown sardine OIL as a bottle.
+
+Keyed to what a component RESOLVED to (`nutrition_log_components.fdc_id` /
+reference code / `matched_name`), not to the patient's spelling, so one image
+serves every way of writing the food — and a wrong match shows the wrong
+picture, which is the point.
+
+Open before building:
+- **Every image carries its own licence.** Candidate sources, each to be
+  checked, not assumed: Wikimedia Commons (per-file CC licences, attribution
+  required), Open Food Facts product photos (CC BY-SA, packaged goods only),
+  the patient's own meal photos (already retained only with consent, §3a).
+  Generated images are an option with no licence question, but a generated
+  picture of the WRONG food is exactly the confident error this exists to
+  catch.
+- Stored like knowledge (§3bj): looked up once per resolved food, with source
+  and licence, reused for everyone.
+- Web, iOS and Android draw it in the Items view (§3).

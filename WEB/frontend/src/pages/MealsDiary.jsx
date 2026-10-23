@@ -80,6 +80,77 @@ function NutrientDisclosure({ log }) {
   );
 }
 
+/* The items a meal was estimated from — what the patient wrote, the record the
+   lookup resolved it to, its weight and figures. A 3,090 kcal breakfast hid
+   that 2,706 kcal of it was "sardines" resolved to sardine OIL; per item, that
+   is visible at a glance. Fetched on open, since most meals are never opened.
+   Figures are point estimates: a range would need a stated basis (TASKS 23),
+   and an invented ± is worse than an honest single number. */
+function ItemsDisclosure({ log }) {
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState({ loading: false, error: false, data: null });
+  const toggle = async () => {
+    const next = !open;
+    setOpen(next);
+    if (!next || state.data) return;
+    setState({ loading: true, error: false, data: null });
+    try {
+      const { data } = await api.get(`/nutrition/${log.id}/components`);
+      setState({ loading: false, error: false, data });
+    } catch {
+      setState({ loading: false, error: true, data: null });
+    }
+  };
+  const fmt = (v) => (v == null ? '—' : Math.round(v));
+  return (
+    <div style={{ marginTop: '.35rem' }}>
+      <button onClick={toggle}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                 fontSize: '.7rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+        {open ? t('MealsDiary.hide_items') : t('MealsDiary.items')}
+      </button>
+      {open && (
+        <div style={{ marginTop: '.4rem', display: 'grid', gap: '.35rem' }}>
+          {state.loading && <span style={{ fontSize: '.75rem' }}>{t('MealsDiary.loading')}</span>}
+          {state.error && (
+            <span style={{ fontSize: '.75rem', color: '#dc2626' }}>{t('MealsDiary.could_not_load_items')}</span>
+          )}
+          {state.data && !state.data.estimated && (
+            <span style={{ fontSize: '.75rem', color: 'var(--color-text-secondary)' }}>
+              {t('MealsDiary.no_item_breakdown')}
+            </span>
+          )}
+          {state.data?.components?.map((c) => (
+            <div key={c.position} style={{ display: 'flex', justifyContent: 'space-between', gap: '.75rem',
+              flexWrap: 'wrap', fontSize: '.78rem', padding: '.35rem .5rem', borderRadius: 6,
+              background: 'var(--color-bg-secondary, rgba(0,0,0,.03))', opacity: c.counted ? 1 : 0.6 }}>
+              <div style={{ minWidth: 0, flex: '1 1 14rem' }}>
+                <div style={{ fontWeight: 600 }}>{c.food_name}</div>
+                <div style={{ color: 'var(--color-text-secondary)' }}>
+                  {c.qty_g != null ? `${fmt(c.qty_g)} g` : t('MealsDiary.weight_unknown')}
+                  {c.matched_name ? ` · ${t('MealsDiary.matched_to', { name: c.matched_name })}` : ''}
+                  {c.source ? ` · ${c.source}` : ''}
+                </div>
+                {!c.counted && (
+                  <div style={{ color: '#b45309' }}>{t('MealsDiary.not_counted')}</div>
+                )}
+              </div>
+              <div style={{ fontFamily: 'monospace', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                {t('MealsDiary.kcal_p_g', { calories: fmt(c.nutrients?.calories), protein_g: fmt(c.nutrients?.protein_g) })}
+              </div>
+            </div>
+          ))}
+          {state.data?.estimated && (
+            <span style={{ fontSize: '.7rem', color: 'var(--color-text-secondary)' }}>
+              {t('MealsDiary.items_are_estimates')}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -137,12 +208,16 @@ export default function MealsDiary() {
     if (!log.food_name) return;
     setReanalyzing(log.id);
     try {
-      // TODO(alafia-model): replace with ALAFIAModel.infer('nlm', log.food_name) — Phase 1
-      await api.post('/nutrition/estimate-meal', {
-        description: log.food_name,
-        log_date: log.log_date,
-        meal_type: log.meal_type,
-      });
+      // Re-estimates THIS meal in place. It used to POST estimate-meal with the
+      // meal's date and type, which SAVES A NEW LOG — so re-analysing added a
+      // duplicate and left the original untouched. Enrichment runs in the
+      // background; wait for it rather than reloading figures not yet there.
+      await api.post(`/nutrition/${log.id}/reestimate`);
+      for (let i = 0; i < 45; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const { data } = await api.get(`/nutrition/${log.id}`);
+        if (data.nutrient_status !== 'pending') break;
+      }
       await loadMonth(calYear, calMonth);
     } catch { /* silent */ } finally { setReanalyzing(null); }
   };
@@ -309,6 +384,7 @@ export default function MealsDiary() {
                     })}
                   </div>
 
+                  <ItemsDisclosure log={log} />
                   <NutrientDisclosure log={log} />
                 </div>
               ))}

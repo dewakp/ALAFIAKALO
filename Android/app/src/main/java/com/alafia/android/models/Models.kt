@@ -1437,3 +1437,21 @@ data class SystemIdResponse(
     val segments: Map<String, String>,
     val valid: Boolean
 )
+
+/** One item a meal was estimated from — `GET /nutrition/{id}/components`.
+ *  `foodName` is what the patient wrote; `matchedName` what the lookup resolved
+ *  it to. Nullable to the schema, not to the rows seen so far (§3aj). */
+data class MealComponent(
+    val position: Int,
+    @SerializedName("food_name") val foodName: String,
+    @SerializedName("matched_name") val matchedName: String?,
+    @SerializedName("qty_g") val qtyG: Double?,
+    val source: String?,
+    val counted: Boolean = true,
+    val nutrients: Map<String, Double?>? = null,
+)
+
+data class MealComponentsResponse(
+    val estimated: Boolean,
+    val components: List<MealComponent> = emptyList(),
+)

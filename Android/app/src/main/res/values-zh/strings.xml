@@ -1255,6 +1255,14 @@
     <string name="estimated">· 估计</string>
     <string name="all_nutrients">所有营养素</string>
     <string name="hide_all_nutrients">隐藏所有营养素</string>
+    <string name="items">项目</string>
+    <string name="hide_items">隐藏项目</string>
+    <string name="could_not_load_items">无法加载此餐的项目。</string>
+    <string name="no_item_breakdown">无项目明细：这些数据是手动输入或导入的，不是估算的。</string>
+    <string name="weight_unknown">重量未知</string>
+    <string name="matched_to">匹配到 %1$s</string>
+    <string name="not_counted_item">未计入总数——此项目的数据未通过合理性检查。</string>
+    <string name="items_are_estimates">估算值。每个项目的数据来自旁边显示的记录。</string>
     <string name="could_not_load_this_photo">无法加载此照片。</string>
     <string name="download_pdf">下载 PDF</string>
     <string name="preparing">准备中…</string>
@@ -1371,4 +1379,5 @@
     <string name="alpha_not_receiving">您告诉我们您没有使用这个</string>
     <string name="no_readable_files_selected">无法读取您选择的任何文件。</string>
     <string name="therapy_date_unreadable">\"%1$s\"不是我们能读取的日期。请按YYYY-MM-DD格式写入，例如[dob]。</string>
+    <string name="kcal_p_g">%1$s 千卡 · 磷 %2$s 克</string>
 </resources>

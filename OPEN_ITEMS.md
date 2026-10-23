@@ -5569,3 +5569,139 @@ caller passed no date:
 - **`Energy` reads oddly** as a nutrient shortfall ("short on … Energy …").
   It is the USDA catalog's own name for `calories` and was left rather than
   special-cased, which would be the hardcoding trap again.
+
+## 58. The food lookup matched WORDS, not foods — 46% of linked profiles were a different food — 2026-10-22
+
+Operator, on a breakfast of sardines, brioche, two eggs and raw onion stored
+at **3,090 kcal / 315 g fat / 17 g protein / 2,520 mg cholesterol**, beside an
+outside assistant's 488–592 kcal for the same plate:
+
+> *"592 is a far cry from 3000+. Our model must be crazy. I cannot trust any
+> analysis from it. We need to rethink our model strategy."*
+
+and, on being told one cache row was the cause and a cleanup had missed it:
+
+> *"Why are you never thorough … A cache cleanup missing critical data because
+> it has no category is the meaning of half-baked. … do a LLM/RAG lookup of
+> unique food items in db and run a sanity check"*
+
+### 58a. What produced 3,090 — three faults, none of them a model's guess
+
+| fault | measured |
+|---|---|
+| `"sardines"` cached as USDA fdc **173578 "Fish oil, sardine"** since 2026-06-28 | 902 kcal, 100 g fat, 0 g protein, 710 mg chol per 100 g; 22 hits; 42 meals across 2 users mention sardines, 19 with >100 g fat |
+| the photo correction (100/60/80/20 g) never reached the saved meal | stored as names only; the parser reads "3 Pieces of Sardines" as **300 g**; Serving Size held the FIRST item's portion (150–180 g) for the whole plate — on web, iOS and Android |
+| a phantom component | `"Onion slices (raw)"` parses as onion 30 g **and "raw" 30 g** — a parenthetical read as an ingredient list (still open, 58e) |
+
+300 g × 902 kcal = 2,706 kcal from the "sardines" component alone.
+
+### 58b. The audit — every stored profile (`scripts/audit_food_cache.py`)
+
+1,661 `food_nutrient_cache` rows + 5 `learned_food_nutrients`, on a fresh,
+parity-verified copy of production. Per row: arithmetic checks; the matched
+USDA record RETRIEVED by fdc_id from FoodData Central (537 records); and a
+model (production provider order) judging name against record and stating the
+plausible per-100 g range for the name. Every one of 139 batches answered.
+
+| | |
+|---|---|
+| linked rows judged a **different food** | **432 of 934 (46%)** |
+| profiles judged not credible for their name | 461 |
+| keys that are whole-meal descriptions, not one food | 743 |
+| keys that are not food ("to taste", "1 cup of", "mg of sodium") | 95 |
+| impossible on arithmetic alone | 66 |
+
+Examples: milk → *Crackers, milk* (446 kcal); water melon → *Honeydew melon*;
+cow liver → *Goose, liver*; boiled egg → *egg white*; cod fish → *Fish oil,
+cod liver*; brioche → *Bread, fruit*; egusi and ogbono soup → *Soup, borscht*;
+paw paw → *PAW FAN WITH CANDY*; Nigerian chin chin → an all-zero row.
+
+**The model's verdicts were checked, not trusted.** A random 25 of the flagged
+rows: ~22 clearly right, ~3 arguable (it wants RAW basmati for "bismati white
+rice", where cooked is what is eaten). A random 15 of the passed: all credible.
+So the purge rule keeps a row the model called credible even when it called
+the link a different food.
+
+> ⚠️ **No lexical rule fixes this.** Scored against the labels: requiring the
+> query's head noun in USDA's lead segment rejected 34 of 66 wrong matches and
+> **23 of 73 right ones**. What a food IS cannot be read off its spelling.
+
+### 58c. Fixed
+
+- **`food_match_verifier.choose`** — retrieval proposes the candidates, the
+  model picks the one that IS the food (or none), the record supplies the
+  numbers. USDA, branded and Open Food Facts tiers. Fails closed.
+- **An unreachable source is not an empty one.** `SourceUnavailable`
+  distinguishes "USDA could not be asked" from "USDA has no such food". Before,
+  a 429 read as a miss, the AI tier answered, and that answer was CACHED — the
+  food never reached USDA again. The repair dry run alone drew **4,157** 429s.
+  Now the fallback answers but is not cached.
+- **Physically impossible profiles are refused from every tier** before
+  caching (`plausibility.review`). The category band could not do it: an
+  unclassified food's band reaches 900 kcal.
+- **`_try_usda` no longer sums per-100 g densities** of a composite name (the
+  1,180 kcal soup), and the test that asserted that sum as correct was replaced.
+- **Photo grams reach the logged meal** on web, iOS and Android, and the web
+  pre-save suggestion now uses the meal estimator Save uses; "Apply
+  suggestion" appears only when it would change something.
+
+9 regression guards, each run red against the old estimator first. 450
+food-related backend tests, 301 web, Android `VisionMealTest` 4/4, iOS build.
+
+### 58c′. Production runs USDA on `DEMO_KEY` — every retained log since September
+
+`alafia-backend` carries no `USDA_API_KEY` and no USDA secret exists, so
+`config.py` falls back to `"DEMO_KEY"` — which USDA throttles to a handful of
+requests an hour. Production's own logs, over the period they retain:
+
+    2026-09   429: 491    200: 86     400: 5
+    2026-10   429: 1,723  200: 264    400: 23      -> 85% of requests refused
+
+Before the `SourceUnavailable` fix each 429 read as "USDA has no such food",
+so the AI tier answered and was cached **permanently** — which is how 599 of
+the 1,661 cache rows came to be AI-sourced, and why USDA never got a second
+chance at them. `deploy.sh` now grants and mounts `usda-api-key`; the secret
+itself must be created (free key: fdc.nal.usda.gov/api-key-signup). A real key
+allows 3,600 requests an hour (measured: `x-ratelimit-remaining: 3599`).
+
+### 58d. The repair (`scripts/repair_food_cache.py`)
+
+Plan from the dev copy: **583 cache rows removed** (wrong 459, mismatch 405,
+not_food 94, physical 52 — a row can carry several), carrying 1,590 of 3,446
+recorded lookups. **836 of 1,102 meals** reach a removed key, across users 55,
+62 and 63:
+
+| status | reproduced from the cache | did not | could not tell |
+|---|---|---|---|
+| done | 86 | 16 | 1 |
+| failed | 2 | 9 | 6 |
+| skipped | 352 | 300 | 64 |
+
+`done`/`failed` figures are estimator output by definition, so all 120 are
+re-estimated. A `skipped` row's figures ARRIVED with the meal — import, label,
+or typed — so only the 352 a cache-only recompute reproduces exactly are
+re-estimated. **472 re-estimated, 364 left untouched** and listed, because the
+row records no provenance and clearing a patient's number on a guess is worse
+than the bug.
+
+**Order is load-bearing:** the verifier must be DEPLOYED before the production
+purge, or the next "sardines" lookup re-caches the oil.
+
+### 58e. Still open
+
+- **"(raw)" becomes a 30 g component.** `parse_meal_text` reads any
+  parenthetical as an ingredient list. A preparation word in parentheses is not
+  an ingredient — but a word list of preparations is the hardcoding §3c
+  forbids; the parser needs to know what an ingredient IS, which is the same
+  question as 58b.
+- **364 meals keep figures of unknown provenance**, some plausibly built on a
+  wrong row at an earlier cache state. They need either a provenance column
+  going forward or a decision per meal (the list is the dry run's
+  `untouched_*.json`).
+- ✅ **Which component a meal resolved through is now recorded** (2026-10-23,
+  `nutrition_log_components`, migration `au001`): the parsed name, the record
+  it matched, grams, source, fdc_id, and the nutrients at that weight. The next
+  repair is a join on `lower(food_name)`, not 836 recomputations. Only meals
+  estimated from now on carry them; the 364 untouched meals still do not.
+- **The verifier adds one model call per NEW food** (cache misses only). On
+  production's hosted-first order that is ~1–3 s inside a background task.

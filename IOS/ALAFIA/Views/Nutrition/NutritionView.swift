@@ -167,7 +167,7 @@ final class NutritionViewModel {
         let payload = items.compactMap { row -> VisionFeedbackItem? in
             let name = row.name.trimmingCharacters(in: .whitespaces)
             guard !name.isEmpty else { return nil }
-            return VisionFeedbackItem(name: name, estimated_grams: Double(row.grams))
+            return VisionFeedbackItem(name: name, estimated_grams: LocaleDecimal.parse(row.grams))
         }
         guard !payload.isEmpty else { return nil }
         do {
@@ -215,6 +215,37 @@ struct FoodVisionEdit: Identifiable {
     var name: String
     var grams: String
     var basis: String
+}
+
+extension FoodVisionEdit {
+    /// The meal these rows describe, in the shape Save sends: each food with
+    /// its grams IN FRONT ("100 g 3 Pieces of Sardines"), where the backend's
+    /// meal parser reads them, and the serving size as the meal's TOTAL.
+    ///
+    /// Names alone threw the grams away — the saved meal is re-estimated by
+    /// parsing the name, and "3 Pieces of Sardines" parses as 300 g, so a
+    /// correction that taught the model never reached the meal logged.
+    /// Mirrors web `utils/visionMeal.js` and Android `visionMeal`.
+    static func mealDescription(_ rows: [FoodVisionEdit]) -> (foodName: String, servingSize: String) {
+        let items: [(name: String, grams: Double?)] = rows.compactMap { row in
+            let name = row.name.trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty else { return nil }
+            let g = LocaleDecimal.parse(row.grams)
+            return (name, (g ?? 0) > 0 ? g : nil)
+        }
+        func fmt(_ g: Double) -> String {
+            g == g.rounded() ? String(Int(g)) : String((g * 10).rounded() / 10)
+        }
+        let foodName = items
+            .map { item in item.grams.map { "\(fmt($0)) g \(item.name)" } ?? item.name }
+            .joined(separator: ", ")
+        var serving = ""
+        if !items.isEmpty, items.allSatisfy({ $0.grams != nil }) {
+            let total = items.reduce(0) { $0 + ($1.grams ?? 0) }
+            serving = items.count == 1 ? "\(fmt(total)) g" : "composite meal (\(fmt(total)) g total)"
+        }
+        return (foodName, serving)
+    }
 }
 
 struct VisionFeedbackItem: Encodable {
@@ -604,6 +635,7 @@ struct NutritionRow: View {
     var onTapUSDA: () -> Void = {}
     @State private var showPhoto = false
     @State private var showNutrients = false
+    @State private var showItems = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -686,6 +718,21 @@ struct NutritionRow: View {
                     Text("· \(s)").font(.caption).foregroundStyle(.tertiary)
                 }
             }
+            // The items this meal was estimated from — fetched on open.
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { showItems.toggle() }
+            } label: {
+                Text(showItems ? "Hide items" : "Items")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 2)
+
+            if showItems {
+                MealItemsView(logId: log.id)
+            }
+
             // Collapsed by default: a day holds several meals and each carries
             // ~109 nutrient values.
             Button {
@@ -1287,11 +1334,11 @@ struct AddNutritionSheet: View {
                     basis: item.gramsBasis ?? ""
                 )
             }
-            foodName = items.compactMap(\.name).joined(separator: ", ")
+            // Grams travel IN the name — Save re-parses it (mealDescription).
+            let meal = FoodVisionEdit.mealDescription(visionEdits)
+            foodName = meal.foodName
             fdcId = nil
-            if servingSize.isEmpty, let portion = items.first?.estimatedPortion {
-                servingSize = portion
-            }
+            if servingSize.isEmpty { servingSize = meal.servingSize }
             if let n = result.estimatedNutrition {
                 if calories.isEmpty, let v = n.calories { calories = String(Int(v.rounded())) }
                 if proteinG.isEmpty, let v = n.proteinG { proteinG = String(Int(v.rounded())) }
@@ -1311,10 +1358,13 @@ struct AddNutritionSheet: View {
             defer { teaching = false }
             if let message = await vm.teachFoodPhoto(sampleId: sampleId, items: visionEdits) {
                 teachState = message
-                let corrected = visionEdits
-                    .map { $0.name.trimmingCharacters(in: .whitespaces) }
-                    .filter { !$0.isEmpty }
-                if !corrected.isEmpty { foodName = corrected.joined(separator: ", ") }
+                // Names AND grams: the correction must reach the meal logged.
+                let meal = FoodVisionEdit.mealDescription(visionEdits)
+                if !meal.foodName.isEmpty {
+                    foodName = meal.foodName
+                    servingSize = meal.servingSize
+                    fdcId = nil
+                }
             } else {
                 teachState = "Could not save your correction."
             }
@@ -1601,6 +1651,95 @@ struct NutrientPanelView: View {
             loadError = "Could not load the nutrient reference."
         }
         loading = false
+    }
+}
+
+// MARK: - Meal items (components)
+
+/// One item a meal was estimated from — `GET /nutrition/{id}/components`.
+struct MealComponent: Decodable, Identifiable {
+    let position: Int
+    let foodName: String
+    let matchedName: String?
+    let qtyG: Double?
+    let source: String?
+    let counted: Bool
+    let nutrients: [String: Double?]
+    var id: Int { position }
+
+    enum CodingKeys: String, CodingKey {
+        case position, source, counted, nutrients
+        case foodName = "food_name"
+        case matchedName = "matched_name"
+        case qtyG = "qty_g"
+    }
+}
+
+struct MealComponentsResponse: Decodable {
+    let estimated: Bool
+    let components: [MealComponent]
+}
+
+/// The items a meal was estimated from: what the patient wrote, the record the
+/// lookup resolved it to, the weight and the figures. A 3,090 kcal breakfast
+/// hid that 2,706 kcal was "sardines" resolved to sardine OIL; per item that is
+/// visible at a glance. Point estimates, labelled as such — a range would need
+/// a stated basis (TASKS 23). Mirrors web `ItemsDisclosure`, Android `MealItems`.
+struct MealItemsView: View {
+    let logId: Int
+    @State private var data: MealComponentsResponse?
+    @State private var failed = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if failed {
+                // An error is not an empty meal (§3aa).
+                Text("Could not load this meal's items.").font(.caption).foregroundStyle(.orange)
+            } else if let data {
+                if !data.estimated {
+                    Text("No item breakdown: these figures were entered or imported, not estimated.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                ForEach(data.components) { c in
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(c.foodName).font(.caption.weight(.semibold))
+                            Text(detail(c)).font(.caption2).foregroundStyle(.secondary)
+                            if !c.counted {
+                                Text("Not counted in the total — this item's figures failed the plausibility check.")
+                                    .font(.caption2).foregroundStyle(.orange)
+                            }
+                        }
+                        Spacer()
+                        Text("\(num(c.nutrients["calories"] ?? nil)) kcal · P \(num(c.nutrients["protein_g"] ?? nil)) g")
+                            .font(.caption2.monospacedDigit())
+                    }
+                    .opacity(c.counted ? 1 : 0.6)
+                }
+                if data.estimated {
+                    Text("Estimates. Each item's figures come from the record shown beside it.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            } else {
+                ProgressView().controlSize(.small)
+            }
+        }
+        .task {
+            do {
+                data = try await APIClient.shared.get("/nutrition/\(logId)/components")
+            } catch {
+                failed = true
+            }
+        }
+    }
+
+    private func num(_ v: Double?) -> String { v.map { String(Int($0.rounded())) } ?? "—" }
+
+    private func detail(_ c: MealComponent) -> String {
+        var parts = [c.qtyG.map { "\(Int($0.rounded())) g" } ?? AppLanguage.text("weight unknown")]
+        if let m = c.matchedName { parts.append(AppLanguage.text("matched to") + " " + m) }
+        if let s = c.source { parts.append(s) }
+        return parts.joined(separator: " · ")
     }
 }
 

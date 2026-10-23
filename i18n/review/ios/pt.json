@@ -65,6 +65,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::%@ kcal · P %@ g": {
+    "source": "%1$@ kcal · P %2$@ g",
+    "translation": "%1$@ kcal · P %2$@ g",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::%@ mL": {
     "source": "%@ mL",
     "translation": "%@ mL",
@@ -1967,6 +1973,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Could not load this meal's items.": {
+    "source": "Could not load this meal's items.",
+    "translation": "Não foi possível carregar os itens desta refeição.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
     "source": "Could not load your therapy answers. Nothing has been changed.",
     "translation": "Não foi possível carregar suas respostas de terapia. Nada foi alterado.",
@@ -2957,6 +2969,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Estimates. Each item's figures come from the record shown beside it.": {
+    "source": "Estimates. Each item's figures come from the record shown beside it.",
+    "translation": "Estimativas. Os dados de cada item vêm do registro mostrado ao lado.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
     "source": "Every operation on your record, including those with no hospital stay attached.",
     "translation": "Todas as operações no seu registro, incluindo aquelas sem internação hospitalar associada.",
@@ -3671,6 +3689,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Hide items": {
+    "source": "Hide items",
+    "translation": "Ocultar itens",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::Hide password": {
     "source": "Hide password",
     "translation": "Ocultar senha",
@@ -3976,6 +4000,12 @@
     "translation": "Nome do Item",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Items": {
+    "source": "Items",
+    "translation": "Itens",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "Localizable.xcstrings::Join": {
     "source": "Join",
@@ -5237,6 +5267,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::No item breakdown: these figures were entered or imported, not estimated.": {
+    "source": "No item breakdown: these figures were entered or imported, not estimated.",
+    "translation": "Sem detalhamento de itens: estes dados foram inseridos ou importados, não estimados.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::No matching roles found.": {
     "source": "No matching roles found.",
     "translation": "Nenhum papel encontrado.",
@@ -5368,6 +5404,12 @@
     "translation": "Não conectado",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Not counted in the total — this item's figures failed the plausibility check.": {
+    "source": "Not counted in the total — this item's figures failed the plausibility check.",
+    "translation": "Não contabilizado no total — os dados deste item falharam na verificação de plausibilidade.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "Localizable.xcstrings::Not counted: %@": {
     "source": "Not counted: %@",
@@ -9185,6 +9227,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::matched to": {
+    "source": "matched to",
+    "translation": "correspondido a",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "Localizable.xcstrings::mm": {
     "source": "mm",
     "translation": "mm",
@@ -9232,6 +9280,12 @@
     "translation": "c/ Leituras",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::weight unknown": {
+    "source": "weight unknown",
+    "translation": "peso desconhecido",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "Localizable.xcstrings::you logged it": {
     "source": "you logged it",

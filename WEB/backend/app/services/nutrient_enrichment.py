@@ -109,7 +109,17 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
         if not extract_nutrition_facts(label_text or ""):
             if extract_nutrition_facts(log.serving_size or ""):
                 label_text = log.serving_size
-        meal = await estimate_meal_nutrients(db, log.food_name, notes=label_text)
+        # The patient's country, units and locale. Never passed before, so a
+        # saved meal got neither locale-aware volume conversion nor any notion
+        # of what its food names mean WHERE the patient lives — "paw paw" is
+        # papaya in Nigeria and a different fruit in Ohio.
+        from app.models.user import User
+        owner = (await db.execute(select(User).where(User.id == log.user_id))).scalar_one_or_none()
+        meal = await estimate_meal_nutrients(
+            db, log.food_name, notes=label_text,
+            country=getattr(owner, "country", None),
+            preferred_units=getattr(owner, "preferred_units", None),
+            locale=getattr(owner, "locale", None))
         nutrients = meal.get("aggregate_nutrients") or {}
         components = meal.get("components") or []
         # Keep the USDA provenance link when the meal resolved to one known food.
@@ -121,6 +131,20 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
             est = await estimate_nutrients(db, log.food_name, log.serving_size)
             nutrients = est.get("nutrients") or {}
             fdc_id = est.get("fdc_id")
+            if nutrients:
+                components = [{
+                    "food_name": log.food_name, "matched_name": est.get("food_name"),
+                    "qty_g": None, "qty_text": "per 100 g — no portion parsed",
+                    "source": est.get("source"), "fdc_id": fdc_id,
+                    "confidence": est.get("confidence"), "counted": True,
+                    "nutrients_scaled": nutrients,
+                }]
+
+        # The components this estimate was built from, stored with the meal and
+        # REPLACING any from an earlier estimate. Written on every path —
+        # including a rejected or empty estimate — so the record always shows
+        # what the current figures (or their absence) came from.
+        await _replace_components(db, log_id, components)
 
         if not nutrients:
             log.nutrient_status = "failed"
@@ -212,6 +236,41 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
                 await db.commit()
         except Exception:
             logger.exception("Post-enrichment evaluation failed for log %s", log_id)
+
+
+async def _replace_components(db, log_id: int, components: list[dict]) -> None:
+    """Store a meal's components, replacing an earlier estimate's.
+
+    Operator, 2026-10-22: *"save meals component."* The estimator always
+    computed them and this writer discarded them, so a 3,090 kcal breakfast
+    could not say that 2,706 kcal of it was "sardines" resolved to sardine OIL,
+    and finding the meals built on a wrong cache row meant re-running the
+    estimator over 836 of them. Two component sets for one meal would be
+    §3ab's contradictory copy, so the old set goes first.
+    """
+    from sqlalchemy import delete
+
+    from app.models.nutrition import NutritionLogComponent
+
+    await db.execute(delete(NutritionLogComponent).where(
+        NutritionLogComponent.nutrition_log_id == log_id))
+    for pos, c in enumerate(components):
+        name = (c.get("food_name") or "").strip()
+        if not name:
+            continue
+        db.add(NutritionLogComponent(
+            nutrition_log_id=log_id, position=pos,
+            food_name=name[:255],
+            matched_name=(c.get("matched_name") or None) and str(c["matched_name"])[:512],
+            qty_g=c.get("qty_g") or None,
+            qty_text=(c.get("qty_text") or None) and str(c["qty_text"])[:120],
+            source=(c.get("source") or None) and str(c["source"])[:40],
+            fdc_id=c.get("fdc_id"),
+            confidence=c.get("confidence"),
+            counted=c.get("counted", c.get("believable", True)) is not False,
+            nutrients=c.get("nutrients_scaled") or {},
+            warnings=c.get("warnings") or None,
+        ))
 
 
 async def _mark(log_id: int, status: str) -> None:

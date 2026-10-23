@@ -1622,7 +1622,16 @@
     "fol": "Fol",
     "chol": "Chol",
     "from_agent": "{{sign}}{{delta}}{{unit}} de {{agent}}",
-    "effect_mechanism": "· {{mechanism}}"
+    "effect_mechanism": "· {{mechanism}}",
+    "items": "Articles",
+    "hide_items": "Masquer les articles",
+    "could_not_load_items": "Impossible de charger les articles de ce repas.",
+    "no_item_breakdown": "Pas de détail des articles : ces chiffres ont été saisis ou importés, non estimés.",
+    "weight_unknown": "poids inconnu",
+    "matched_to": "associé à {{name}}",
+    "not_counted": "Non compté dans le total — les chiffres de cet article n'ont pas passé la vérification de plausibilité.",
+    "items_are_estimates": "Estimations. Les chiffres de chaque article proviennent de la fiche affichée à côté.",
+    "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },
   "Medications": {
     "medications": "Médicaments",

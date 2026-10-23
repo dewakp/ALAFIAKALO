@@ -8,6 +8,7 @@ import api from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
 import { thumbnailFromFile } from '../utils/imageThumbnail';
 import { detachFiles } from '../utils/fileInput';
+import { mealFromVisionRows } from '../utils/visionMeal';
 import {
   Plus, Search, Apple, ChevronDown, ChevronRight,
   BarChart3, Utensils, X, Loader2, Info, Calendar, Zap, Camera, Image, Sparkles, Link,
@@ -48,7 +49,6 @@ export default function Nutrition() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);       // null = adding; id = editing that entry
-  const [editOriginalFood, setEditOriginalFood] = useState('');
   const [form, setForm] = useState({
     log_date: today(), meal_type: 'breakfast', food_name: '',
     serving_size: '', fdc_id: null, notes: '',
@@ -267,17 +267,20 @@ export default function Nutrition() {
       setVisionResult({ ...data, items });
       // Seed the editable rows. Correcting these is what teaches ALAFIA — the
       // model's guess plus the user's fix is one supervised training example.
-      setVisionEdits(items.map((i) => ({
+      const seeded = items.map((i) => ({
         name: i.name || '',
         estimated_grams: i.estimated_grams ?? '',
-      })));
+      }));
+      setVisionEdits(seeded);
       setTeachState('');
       // Prefill the form; the user can still edit before saving. fdc_id is
-      // cleared because a vision estimate is not a USDA-linked food.
+      // cleared because a vision estimate is not a USDA-linked food. The grams
+      // travel IN the food name — Save re-parses it (utils/visionMeal.js).
+      const meal = mealFromVisionRows(seeded);
       setForm((prev) => ({
         ...prev,
-        food_name: items.map((i) => i.name).join(', '),
-        serving_size: prev.serving_size?.trim() || items[0].estimated_portion || '',
+        food_name: meal.food_name,
+        serving_size: prev.serving_size?.trim() || meal.serving_size,
         fdc_id: null,
         // Keep the photo with the meal, so opening it later shows the picture
         // the estimate came from rather than just the numbers.
@@ -320,25 +323,63 @@ export default function Nutrition() {
         both: 'Saved — ALAFIA learned the foods and amounts.',
       }[data.correction_kind] || 'Saved.';
       setTeachState(kind);
-      // Reflect the correction in the meal form too.
-      setForm((prev) => ({ ...prev, food_name: items.map((i) => i.name).join(', ') }));
+      // Reflect the correction in the meal form too — names AND grams. Names
+      // alone made Save re-derive each amount from the words, so a correction
+      // that taught the model was discarded from the meal actually logged.
+      const meal = mealFromVisionRows(visionEdits);
+      setForm((prev) => ({ ...prev, food_name: meal.food_name, serving_size: meal.serving_size, fdc_id: null }));
+      setEstimatePreview(null);
     } catch (err) {
       setTeachState(apiErrorMessage(err, translate('Nutrition.could_not_save_your_correction')));
     }
   };
 
-  const estimateBeforeSave = async ({ silent = false } = {}) => {
-    const foodName = form.food_name.trim();
+  /* The preview must be the figure Save will store. Save re-estimates through
+     the MEAL estimator (nutrient_enrichment: estimate_meal_nutrients, then the
+     single-food path only if nothing parsed), so the preview takes the same
+     route. It used to ask the single-food path for the whole comma-joined
+     meal — the route §3c forbids for a list — and showed 285 kcal for a plate
+     the photo reader put at 620.
+
+     `foodName` is passed in: the debounce timer used to read `form` from the
+     render BEFORE the keystroke that scheduled it, so the preview always
+     described the previous text. A sequence number drops a slow answer to an
+     earlier text that lands after a newer one. */
+  const estimateSeq = useRef(0);
+  const estimateBeforeSave = async ({ silent = false, foodName: typed } = {}) => {
+    const foodName = (typed ?? form.food_name).trim();
     if (!foodName || form.fdc_id) return;
+    const seq = ++estimateSeq.current;
 
     setEstimating(true);
     if (!silent) setEstimateError('');
 
     try {
-      const payload = { food_name: foodName };
-      if (form.serving_size?.trim()) payload.serving_size = form.serving_size.trim();
+      let data = null;
+      try {
+        const { data: meal } = await api.post('/nutrition/estimate-meal',
+          { description: foodName }, { timeout: 25000 });
+        const comps = meal?.components || [];
+        if (meal?.aggregate_nutrients && Object.keys(meal.aggregate_nutrients).length) {
+          const sources = [...new Set(comps.map((c) => c.source).filter(Boolean))];
+          const confs = comps.map((c) => c.confidence).filter((c) => c > 0);
+          data = {
+            source: sources.join(' + ') || 'meal',
+            confidence: confs.length ? Math.min(...confs) : null,
+            nutrients: meal.aggregate_nutrients,
+            fdc_id: comps.length === 1 ? comps[0].fdc_id : null,
+            serving_size: comps.length > 1 && meal.total_weight_g
+              ? `composite meal (${Math.round(meal.total_weight_g)} g total)` : null,
+          };
+        }
+      } catch { /* fall through to the single-food path, as Save does */ }
 
-      const { data } = await api.post('/nutrition/estimate-nutrients', payload);
+      if (!data) {
+        const payload = { food_name: foodName };
+        if (form.serving_size?.trim()) payload.serving_size = form.serving_size.trim();
+        ({ data } = await api.post('/nutrition/estimate-nutrients', payload));
+      }
+      if (seq !== estimateSeq.current) return;
 
       if (!data?.source) {
         setEstimatePreview(null);
@@ -351,11 +392,12 @@ export default function Nutrition() {
       setEstimatePreview(data);
       setEstimateError('');
     } catch {
+      if (seq !== estimateSeq.current) return;
       if (!silent) {
         setEstimateError(translate('Nutrition.failed_to_fetch_nutrient_suggestion'));
       }
     } finally {
-      setEstimating(false);
+      if (seq === estimateSeq.current) setEstimating(false);
     }
   };
 
@@ -363,7 +405,6 @@ export default function Nutrition() {
   const resetForm = () => {
     setShowForm(false);
     setEditingId(null);
-    setEditOriginalFood('');
     setForm({ log_date: today(), meal_type: 'breakfast', food_name: '', serving_size: '', fdc_id: null, notes: '',
       start_time: '', end_time: '', pre_meal_weight_kg: '', post_meal_weight_kg: '', recipe_url: '',
       food_image_uris: '', food_thumbnail: '' });
@@ -396,7 +437,6 @@ export default function Nutrition() {
       food_image_uris: log.food_image_uris || '',
       food_thumbnail: log.food_thumbnail || '',
     });
-    setEditOriginalFood(log.food_name || '');
     setEditingId(log.id);
     setEstimatePreview(null);
     setEstimateError('');
@@ -435,17 +475,12 @@ export default function Nutrition() {
       }
 
       if (editingId) {
-        // If the description changed, re-estimate so calories/macros stay accurate.
-        // Time-boxed so a slow AI fallback can't hang the save — we still patch the
-        // user's field edits if re-estimation is slow/unavailable.
-        if (form.food_name && form.food_name.trim() !== editOriginalFood.trim()) {
-          try {
-            const { data } = await api.post('/nutrition/estimate-meal',
-              { description: form.food_name }, { timeout: 25000 });
-            Object.assign(payload, data.aggregate_nutrients || {});
-            if (data.total_weight_g) payload.serving_size = `composite meal (${Math.round(data.total_weight_g)} g total)`;
-          } catch { /* keep existing values if estimation is slow/fails */ }
-        }
+        // A changed description is re-estimated by the SERVER (PATCH marks the
+        // meal pending and enrichment runs), which also stores the meal's
+        // components. This page used to estimate in the browser and send the
+        // totals, which bypassed that writer — an edited meal kept no record of
+        // what its figures were built from, and arrived as if the patient had
+        // typed them. The list polls while the meal is pending.
         delete payload.fdc_id;       // not part of the update schema
         await api.patch(`/nutrition/${editingId}`, payload);  // log_date now editable
       } else {
@@ -821,7 +856,7 @@ export default function Nutrition() {
                     // TODO(alafia-model): replace with ALAFIAModel.infer('nlm', val) — Phase 1
                     clearTimeout(nlmTimer.current);
                     if (val.trim().length >= 3) {
-                      nlmTimer.current = setTimeout(() => estimateBeforeSave({ silent: true }), 700);
+                      nlmTimer.current = setTimeout(() => estimateBeforeSave({ silent: true, foodName: val }), 700);
                     }
                   }}
                   required/>
@@ -859,7 +894,12 @@ export default function Nutrition() {
                   <span>{translate('Nutrition.carbs')} <strong>{estimatePreview.nutrients?.carbs_g ?? '—'}g</strong></span>
                   <span>{translate('Nutrition.fat')} <strong>{estimatePreview.nutrients?.fat_g ?? '—'}g</strong></span>
                 </div>
-                {(estimatePreview.fdc_id || estimatePreview.serving_size) && (
+                {/* Apply only links the USDA food or fills an EMPTY serving size —
+                    Save computes the nutrients either way. Offered when pressing
+                    it would change something; otherwise it was a button that did
+                    nothing (§3ar), which is how it was reported. */}
+                {((estimatePreview.fdc_id && estimatePreview.fdc_id !== form.fdc_id)
+                  || (estimatePreview.serving_size && !form.serving_size?.trim())) && (
                   <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => {
                       setForm((prev) => ({

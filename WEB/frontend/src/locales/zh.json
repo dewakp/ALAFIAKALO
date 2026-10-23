@@ -1622,7 +1622,16 @@
     "fol": "叶酸",
     "chol": "胆固醇",
     "from_agent": "{{sign}}{{delta}}{{unit}}（来自 {{agent}}）",
-    "effect_mechanism": "· {{mechanism}}"
+    "effect_mechanism": "· {{mechanism}}",
+    "items": "项目",
+    "hide_items": "隐藏项目",
+    "could_not_load_items": "无法加载此餐的项目。",
+    "no_item_breakdown": "无项目明细：这些数据是手动输入或导入的，而非估算。",
+    "weight_unknown": "重量未知",
+    "matched_to": "匹配到 {{name}}",
+    "not_counted": "未计入总计——此项目的数据未通过合理性检查。",
+    "items_are_estimates": "估算值。每个项目的数据来自其旁边显示的记录。",
+    "kcal_p_g": "{{calories}} 千卡 · 蛋白质 {{protein_g}} 克"
   },
   "Medications": {
     "medications": "药物",

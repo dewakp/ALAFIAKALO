@@ -4532,3 +4532,82 @@ is the FDA's LABELLING DV and the 200 was nobody's. **That loosens CVD/CKD
 and patient-today suites; 188 across the goal, sugar, free-sugar,
 active-response, quota and nutrition-API suites; web 297; ruff F,E9 clean.
 Pushed `c6b6649..97d01b2` (11 commits, fast-forward).
+
+## 2026-10-22 (2) — 3,090 kcal for a breakfast: the lookup matched words, not foods
+
+Operator, on a logged breakfast of sardines, brioche, two eggs and onion:
+*"Apply suggestion does nothing"*, then, beside an outside estimate of
+488–592 kcal for the same plate: *"592 is a far cry from 3000+. Our model must
+be crazy. I cannot trust any analysis from it."* And, on my first answer:
+*"Why are you never thorough … A cache cleanup missing critical data because
+it has no category is the meaning of half-baked … do a LLM/RAG lookup of
+unique food items in db and run a sanity check."*
+
+Full measurement: **`OPEN_ITEMS.md` §58**. Canon: **§3bj**.
+
+**What it was.** "sardines" had been cached since June as USDA *Fish oil,
+sardine* (902 kcal, 100 g fat, 0 protein), because the matcher only asked
+whether the typed words appear in the description. The photo correction's
+grams never reached the saved meal, so "3 Pieces of Sardines" parsed as 300 g.
+300 × 9.02 = 2,706 kcal from one component.
+
+**The audit, all of it.** 1,666 stored profiles; the matched USDA record
+retrieved for every linked row; a model judging each. **432 of 934 linked rows
+(46%) were a different food.** Hand-checked: ~22 of 25 flags right, 15 of 15
+passes right. The best word rule I could write caught half the wrong matches
+and threw away a third of the right ones — so the fix is retrieval plus a model
+choosing among the retrieved records, the numbers still coming from the record.
+
+**Found while doing it, each measured:**
+- Production has no USDA key: `DEMO_KEY`, **85% of requests refused** in the
+  retained logs. Each refusal read as "no such food" and an AI answer was cached
+  forever in its place. An unreachable source is now not an empty one.
+- `_try_usda` summed per-100 g densities into one "per-100 g" (1,180 kcal for a
+  soup), and a test asserted that sum as correct.
+- Physically impossible profiles were cached from every tier; the category band
+  could not catch one inside 900 kcal.
+
+### Mistakes of mine, recorded because each cost something
+
+> ⚠️ **I said "A cache cleanup missing it because it has no category", as if
+> that explained it.** It was an excuse for a rule that only examined 121 of
+> 773 USDA rows. The operator was right to call it half-baked.
+
+> ⚠️ **I edited `WEB/frontend` and then the operator started a deploy.** Caught
+> before the frontend step; the edits were stashed so the deploy shipped exactly
+> `ebf1451`, verified by `/api/health` and by fetching the served Wellness chunk.
+
+> ⚠️ **I asserted an iOS fault from the code ("photo meals skip enrichment, so
+> no potassium") and the data disproved it** — 78 of 80 such meals carry
+> potassium. Withdrawn the same minute; §0.
+
+> ⚠️ **Two of my guard tests guarded nothing at first.** One used a 1,180 kcal
+> profile the band already refused; one reached the live USDA API through a
+> detail fetch I had not stubbed. Both found by running the tests against the
+> OLD estimator, which is the only way a guard is shown to be one.
+
+> ⚠️ **My first repair dry run exhausted the USDA key** (4,157 429s from
+> category lookups during the provenance recompute), and the rehearsal started
+> while it was still exhausted — every lookup "unavailable", meals about to be
+> filled with uncached AI fallbacks. Stopped after 2 meals; dev re-pulled; the
+> repair now warms the cache one food at a time with retry, journals before
+> clearing a meal, and executes the reviewed plan instead of recomputing it.
+
+**Also this session:** deployed `ebf1451` (the operator ran it; verified
+`/api/health` and the served Wellness chunk). Ollama upgraded locally 0.23.2 →
+0.40.9 and models re-pulled (old app and blob removed, ~6 GB freed);
+production's `alafia-ollama` is on **0.32.15** and its Dockerfile is now pinned
+to `ollama/ollama:0.40.9` — the rebuild and redeploy are the operator's call.
+
+## 2026-10-23 — A meal keeps its components
+
+Operator: *"save meals component."* `nutrition_log_components` (migration
+`au001_meal_components`, additive, reversible — downgraded and re-upgraded on
+dev), written by `nutrient_enrichment._replace_components` on every estimate,
+read at `GET /nutrition/{id}/components` (owner only, 404 otherwise,
+`estimated: false` rather than a bare empty list). The estimator now carries
+`matched_name` and `counted` per component; PATCH with typed figures retires
+the components; web's edit path stopped estimating in the browser so edited
+meals go through the writer. 5 new tests, each shown red without its fix (4 with
+the old writer and endpoint, the 5th with only the retire rule disabled); 12 component +
+nutrition-API tests pass; web 301. Canon §3bj; TASKS 23 item 1 done.

@@ -7,7 +7,8 @@ from app.models.user import User
 from app.models.clinical_threshold import ClinicalThreshold
 from app.models.allergy_resolution import AllergyTermResolution
 from app.models.food_category_cache import FoodCategoryCache
-from app.models.nutrition import NutritionLog
+from app.models.nutrition import NutritionLog, NutritionLogComponent
+from app.models.reference_food import ReferenceFood
 from app.models.fitness import FitnessLog
 from app.models.labs import LabResult
 from app.models.medications import Medication
@@ -186,6 +187,8 @@ from app.models.subscription import (
 __all__ = [
     "User",
     "NutritionLog",
+    "NutritionLogComponent",
+    "ReferenceFood",
     "FitnessLog",
     "LabResult",
     "Medication",

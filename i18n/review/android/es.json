@@ -1385,6 +1385,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "could_not_load_items": {
+    "source": "Could not load this meal's items.",
+    "translation": "No se pudieron cargar los elementos de esta comida.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "could_not_load_this_photo": {
     "source": "Could not load this photo.",
     "translation": "No se pudo cargar esta foto.",
@@ -2861,6 +2867,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "hide_items": {
+    "source": "Hide items",
+    "translation": "Ocultar elementos",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "hide_shopping_list": {
     "source": "Hide Shopping List",
     "translation": "Ocultar Lista de Compras",
@@ -3317,6 +3329,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "items": {
+    "source": "Items",
+    "translation": "Elementos",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
+  "items_are_estimates": {
+    "source": "Estimates. Each item's figures come from the record shown beside it.",
+    "translation": "Estimaciones. Las cifras de cada elemento provienen del registro que aparece junto a él.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "join": {
     "source": "Join",
     "translation": "Unirse",
@@ -3340,6 +3364,12 @@
     "translation": "%1$s kcal",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "kcal_p_g": {
+    "source": "%1$s kcal · P %2$s g",
+    "translation": "%1$s kcal · P %2$s g",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "kg": {
     "source": "%1$s → %2$s kg",
@@ -3682,6 +3712,12 @@
     "translation": "Correos de Marketing",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "matched_to": {
+    "source": "matched to %1$s",
+    "translation": "coincide con %1$s",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "max": {
     "source": "Max",
@@ -4193,6 +4229,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "no_item_breakdown": {
+    "source": "No item breakdown: these figures were entered or imported, not estimated.",
+    "translation": "Sin desglose de elementos: estas cifras fueron ingresadas o importadas, no estimadas.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "no_items": {
     "source": "No items",
     "translation": "Sin artículos",
@@ -4510,6 +4552,12 @@
     "translation": "No contabilizado: %1$s",
     "status": "machine",
     "translated_on": "2026-10-18"
+  },
+  "not_counted_item": {
+    "source": "Not counted in the total — this item's figures failed the plausibility check.",
+    "translation": "No incluido en el total — las cifras de este elemento no pasaron la verificación de plausibilidad.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "not_enough_data_yet": {
     "source": "Not enough data yet",
@@ -7918,6 +7966,12 @@
     "translation": "Tendencia de peso",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "weight_unknown": {
+    "source": "weight unknown",
+    "translation": "peso desconocido",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "weights_kg": {
     "source": "Weights (kg)",

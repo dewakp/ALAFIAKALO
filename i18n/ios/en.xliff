@@ -2,7 +2,7 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
   <file original="ALAFIA/Resources/InfoPlist.xcstrings" source-language="en" target-language="en" datatype="plaintext">
     <header>
-      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="26.6" build-num="17F113"/>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="27.1" build-num="27A9275"/>
     </header>
     <body>
       <trans-unit id="CFBundleDisplayName" xml:space="preserve">
@@ -59,7 +59,7 @@
   </file>
   <file original="ALAFIA/Resources/Localizable.xcstrings" source-language="en" target-language="en" datatype="plaintext">
     <header>
-      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="26.6" build-num="17F113"/>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="27.1" build-num="27A9275"/>
     </header>
     <body>
       <trans-unit id="" xml:space="preserve">
@@ -120,6 +120,11 @@
       <trans-unit id="%@ (%lld)" xml:space="preserve">
         <source>%1$@ (%2$lld)</source>
         <target state="new">%1$@ (%2$lld)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%@ kcal · P %@ g" xml:space="preserve">
+        <source>%1$@ kcal · P %2$@ g</source>
+        <target state="new">%1$@ kcal · P %2$@ g</target>
         <note/>
       </trans-unit>
       <trans-unit id="%@ mL" xml:space="preserve">
@@ -1882,6 +1887,11 @@
         <target state="new">Core role — always active</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Could not load this meal's items." xml:space="preserve">
+        <source>Could not load this meal's items.</source>
+        <target state="new">Could not load this meal's items.</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Could not load your therapy answers. Nothing has been changed." xml:space="preserve">
         <source>Could not load your therapy answers. Nothing has been changed.</source>
         <target state="new">Could not load your therapy answers. Nothing has been changed.</target>
@@ -2707,6 +2717,11 @@
         <target state="new">Estimate only — check the food name and serving size before saving.</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Estimates. Each item's figures come from the record shown beside it." xml:space="preserve">
+        <source>Estimates. Each item's figures come from the record shown beside it.</source>
+        <target state="new">Estimates. Each item's figures come from the record shown beside it.</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Every operation on your record, including those with no hospital stay attached." xml:space="preserve">
         <source>Every operation on your record, including those with no hospital stay attached.</source>
         <target state="new">Every operation on your record, including those with no hospital stay attached.</target>
@@ -3307,6 +3322,11 @@
         <target state="new">Hide all nutrients</target>
         <note/>
       </trans-unit>
+      <trans-unit id="Hide items" xml:space="preserve">
+        <source>Hide items</source>
+        <target state="new">Hide items</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="Hide password" xml:space="preserve">
         <source>Hide password</source>
         <target state="new">Hide password</target>
@@ -3560,6 +3580,11 @@
       <trans-unit id="Item Name" xml:space="preserve">
         <source>Item Name</source>
         <target state="new">Item Name</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Items" xml:space="preserve">
+        <source>Items</source>
+        <target state="new">Items</target>
         <note/>
       </trans-unit>
       <trans-unit id="Join" xml:space="preserve">
@@ -4617,6 +4642,11 @@
         <target state="new">No intradialytic readings were recorded for this session.</target>
         <note/>
       </trans-unit>
+      <trans-unit id="No item breakdown: these figures were entered or imported, not estimated." xml:space="preserve">
+        <source>No item breakdown: these figures were entered or imported, not estimated.</source>
+        <target state="new">No item breakdown: these figures were entered or imported, not estimated.</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="No matching roles found." xml:space="preserve">
         <source>No matching roles found.</source>
         <target state="new">No matching roles found.</target>
@@ -4725,6 +4755,11 @@
       <trans-unit id="Not connected" xml:space="preserve">
         <source>Not connected</source>
         <target state="new">Not connected</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Not counted in the total — this item's figures failed the plausibility check." xml:space="preserve">
+        <source>Not counted in the total — this item's figures failed the plausibility check.</source>
+        <target state="new">Not counted in the total — this item's figures failed the plausibility check.</target>
         <note/>
       </trans-unit>
       <trans-unit id="Not counted: %@" xml:space="preserve">
@@ -7926,6 +7961,11 @@ Are you absolutely sure?</target>
         <target state="new">mL</target>
         <note/>
       </trans-unit>
+      <trans-unit id="matched to" xml:space="preserve">
+        <source>matched to</source>
+        <target state="new">matched to</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="mm" xml:space="preserve">
         <source>mm</source>
         <target state="new">mm</target>
@@ -7974,6 +8014,11 @@ Are you absolutely sure?</target>
       <trans-unit id="w=%@" xml:space="preserve">
         <source>w=%@</source>
         <target state="new">w=%@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="weight unknown" xml:space="preserve">
+        <source>weight unknown</source>
+        <target state="new">weight unknown</target>
         <note/>
       </trans-unit>
       <trans-unit id="you logged it" xml:space="preserve">

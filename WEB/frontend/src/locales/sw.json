@@ -1622,7 +1622,16 @@
     "fol": "Fol",
     "chol": "Chol",
     "from_agent": "{{sign}}{{delta}}{{unit}} kutoka {{agent}}",
-    "effect_mechanism": "· {{mechanism}}"
+    "effect_mechanism": "· {{mechanism}}",
+    "items": "Vipengele",
+    "hide_items": "Ficha vipengele",
+    "could_not_load_items": "Haiwezi kupakia vipengele vya chakula hiki.",
+    "no_item_breakdown": "Hakuna maelezo ya vipengele: takwimu hizi ziliingizwa au kuagizwa, si kukadiria.",
+    "weight_unknown": "uzani haujulikani",
+    "matched_to": "linalolingana na {{name}}",
+    "not_counted": "Halijahesabiwa katika jumla — takwimu za kipengele hiki hazipitii ukaguzi wa uwezekano.",
+    "items_are_estimates": "Kadirio. Takwimu za kila kipengele zinatoka kwa rekodi iliyoonyeshwa karibu nayo.",
+    "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },
   "Medications": {
     "medications": "Dawa",

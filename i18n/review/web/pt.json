@@ -8567,6 +8567,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.could_not_load_items": {
+    "source": "Could not load this meal's items.",
+    "translation": "Não foi possível carregar os itens desta refeição.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "MealsDiary.daily_nutrient_goals": {
     "source": "Daily Nutrient Goals",
     "translation": "Objetivos Diários de Nutrientes",
@@ -8663,6 +8669,30 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.hide_items": {
+    "source": "Hide items",
+    "translation": "Ocultar itens",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
+  "MealsDiary.items": {
+    "source": "Items",
+    "translation": "Itens",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
+  "MealsDiary.items_are_estimates": {
+    "source": "Estimates. Each item's figures come from the record shown beside it.",
+    "translation": "Estimativas. Os valores de cada item vêm do registro mostrado ao lado.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
+  "MealsDiary.kcal_p_g": {
+    "source": "{{calories}} kcal · P {{protein_g}} g",
+    "translation": "{{calories}} kcal · P {{protein_g}} g",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "MealsDiary.loading": {
     "source": "Loading…",
     "translation": "Carregando…",
@@ -8674,6 +8704,12 @@
     "translation": "Registrar Novo Alimento",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "MealsDiary.matched_to": {
+    "source": "matched to {{name}}",
+    "translation": "correspondido a {{name}}",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "MealsDiary.meals_diary": {
     "source": "Meals Diary",
@@ -8699,11 +8735,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.no_item_breakdown": {
+    "source": "No item breakdown: these figures were entered or imported, not estimated.",
+    "translation": "Sem detalhamento de itens: estes valores foram inseridos ou importados, não estimados.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "MealsDiary.no_meals_logged_for_this_date": {
     "source": "No meals logged for this date.",
     "translation": "Nenhuma refeição registrada para esta data.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "MealsDiary.not_counted": {
+    "source": "Not counted in the total — this item's figures failed the plausibility check.",
+    "translation": "Não contabilizado no total — os valores deste item falharam na verificação de plausibilidade.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "MealsDiary.phos": {
     "source": "Phos",
@@ -8746,6 +8794,12 @@
     "translation": "VitD",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "MealsDiary.weight_unknown": {
+    "source": "weight unknown",
+    "translation": "peso desconhecido",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "MealsDiary.your_limits_are_unchanged_they_already": {
     "source": "Your limits are unchanged — they already assume your usual treatment. What changes is the day's balance.",

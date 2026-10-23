@@ -2,7 +2,7 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
   <file original="ALAFIA/Resources/InfoPlist.xcstrings" source-language="en" target-language="ig" datatype="plaintext">
     <header>
-      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="26.6" build-num="17F113" />
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="27.1" build-num="27A9275" />
     </header>
     <body>
       <trans-unit id="CFBundleDisplayName" xml:space="preserve">
@@ -59,7 +59,7 @@
   </file>
   <file original="ALAFIA/Resources/Localizable.xcstrings" source-language="en" target-language="ig" datatype="plaintext">
     <header>
-      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="26.6" build-num="17F113" />
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="27.1" build-num="27A9275" />
     </header>
     <body>
       <trans-unit id="" xml:space="preserve">
@@ -109,6 +109,11 @@
       </trans-unit>
       <trans-unit id="%@ (%lld)" xml:space="preserve">
         <source>%1$@ (%2$lld)</source>
+        <note />
+      </trans-unit>
+      <trans-unit id="%@ kcal · P %@ g" xml:space="preserve">
+        <source>%1$@ kcal · P %2$@ g</source>
+        <target state="translated">%1$@ kcal · P %2$@ g</target>
         <note />
       </trans-unit>
       <trans-unit id="%@ mL" xml:space="preserve">
@@ -1836,6 +1841,11 @@
         <target state="translated">Ọrụ bụ isi — na-arụ ọrụ mgbe niile</target>
         <note />
       </trans-unit>
+      <trans-unit id="Could not load this meal's items." xml:space="preserve">
+        <source>Could not load this meal's items.</source>
+        <target state="translated">Enweghị ike ịlọ ụlọ ihe ndị a nke nri.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Could not load your therapy answers. Nothing has been changed." xml:space="preserve">
         <source>Could not load your therapy answers. Nothing has been changed.</source>
         <target state="translated">Enweghị ike ilodata azịza ọgwụ gị. Ọ dịghị ihe gbanwere.</target>
@@ -2661,6 +2671,11 @@
         <target state="translated">Ihe Ọtụtụ naanị — lelee aha nri na nha ọ bụla tupu ị zọpụta.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Estimates. Each item's figures come from the record shown beside it." xml:space="preserve">
+        <source>Estimates. Each item's figures come from the record shown beside it.</source>
+        <target state="translated">Ihe atụmatụ. Ọnụ ọgụgụ nke ihe ọ bụla sitere na ndekọ e gosiri n'akụkụ ya.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Every operation on your record, including those with no hospital stay attached." xml:space="preserve">
         <source>Every operation on your record, including those with no hospital stay attached.</source>
         <target state="translated">Ọrụ niile na ndekọ gị, gụnyere ndị enweghị ụlọ ọgwụ.</target>
@@ -3260,6 +3275,11 @@
         <target state="translated">Zọ ihe nri niile</target>
         <note />
       </trans-unit>
+      <trans-unit id="Hide items" xml:space="preserve">
+        <source>Hide items</source>
+        <target state="translated">Zọ ihe ndị a</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Hide password" xml:space="preserve">
         <source>Hide password</source>
         <target state="translated">Zọ paswọọdụ</target>
@@ -3513,6 +3533,11 @@
       <trans-unit id="Item Name" xml:space="preserve">
         <source>Item Name</source>
         <target state="translated">Aha Ihe</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Items" xml:space="preserve">
+        <source>Items</source>
+        <target state="translated">Ihe ndị a</target>
         <note />
       </trans-unit>
       <trans-unit id="Join" xml:space="preserve">
@@ -4569,6 +4594,11 @@
         <target state="translated">Enweghị ihe ọmụmụ intradialytic edekọ maka ọrụ a.</target>
         <note />
       </trans-unit>
+      <trans-unit id="No item breakdown: these figures were entered or imported, not estimated." xml:space="preserve">
+        <source>No item breakdown: these figures were entered or imported, not estimated.</source>
+        <target state="translated">Enweghị nkewa ihe: a tinyere ọnụ ọgụgụ ndị a ma ọ bụ bubatara ha, ọ bụghị ihe atụmatụ.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="No matching roles found." xml:space="preserve">
         <source>No matching roles found.</source>
         <target state="translated">Enweghị ọrụ dabara na ihe achọpụtara.</target>
@@ -4677,6 +4707,11 @@
       <trans-unit id="Not connected" xml:space="preserve">
         <source>Not connected</source>
         <target state="translated">Enweghị njikọ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Not counted in the total — this item's figures failed the plausibility check." xml:space="preserve">
+        <source>Not counted in the total — this item's figures failed the plausibility check.</source>
+        <target state="translated">Ejighi n'ọnụ ọgụgụ niile — ọnụ ọgụgụ ihe a dị adị na njikọ.</target>
         <note />
       </trans-unit>
       <trans-unit id="Not counted: %@" xml:space="preserve">
@@ -7875,6 +7910,11 @@ I na-ekpebi nke ọma?</target>
         <target state="translated">mL</target>
         <note />
       </trans-unit>
+      <trans-unit id="matched to" xml:space="preserve">
+        <source>matched to</source>
+        <target state="translated">dabara na</target>
+        <note />
+      </trans-unit>
       <trans-unit id="mm" xml:space="preserve">
         <source>mm</source>
         <target state="translated">mm</target>
@@ -7921,6 +7961,11 @@ I na-ekpebi nke ọma?</target>
       </trans-unit>
       <trans-unit id="w=%@" xml:space="preserve">
         <source>w=%@</source>
+        <note />
+      </trans-unit>
+      <trans-unit id="weight unknown" xml:space="preserve">
+        <source>weight unknown</source>
+        <target state="translated">ịnwụ ọnụ ọgụgụ</target>
         <note />
       </trans-unit>
       <trans-unit id="you logged it" xml:space="preserve">

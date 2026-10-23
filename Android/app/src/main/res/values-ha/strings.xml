@@ -1255,6 +1255,14 @@
     <string name="estimated">· ƙididdige</string>
     <string name="all_nutrients">Duk abubuwà masu gida</string>
     <string name="hide_all_nutrients">Ɓoye duk abubuwà masu gida</string>
+    <string name="items">Abubuwa</string>
+    <string name="hide_items">Ɓoye abubuwa</string>
+    <string name="could_not_load_items">Ba a iya lodata abubuwan wannan abinci ba.</string>
+    <string name="no_item_breakdown">Babu rarrabawa: an shigar da waɗannan lambobi ko aka shigo da su, ba a ƙididdige su ba.</string>
+    <string name="weight_unknown">ba a san nauyi ba</string>
+    <string name="matched_to">an daidaita zuwa %1$s</string>
+    <string name="not_counted_item">Ba a ƙididdige a cikin jimillar ba — abubuwan wannan abu sun gazawa jerin ƙididdige.</string>
+    <string name="items_are_estimates">Ƙididdige. Abubuwan kowane abu suna zuwa daga rikodin da aka nuna kusa da shi.</string>
     <string name="could_not_load_this_photo">Ba za a iya lodin wannan hoto ba.</string>
     <string name="download_pdf">Saukar PDF</string>
     <string name="preparing">Shirya...</string>
@@ -1371,4 +1379,5 @@
     <string name="alpha_not_receiving">Ka gaya mana ba ka kan wannan ba</string>
     <string name="no_readable_files_selected">Babu daya daga cikin fayilolin da ka zaɓa da za a iya karantawa.</string>
     <string name="therapy_date_unreadable">Ba za mu iya karantawa \"%1$s\" ba. Rubuta shi a matsayin YYYY-MM-DD, misali [dob].</string>
+    <string name="kcal_p_g">%1$s kcal · P %2$s g</string>
 </resources>

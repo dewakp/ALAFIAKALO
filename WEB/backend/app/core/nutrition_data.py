@@ -200,6 +200,12 @@ EXTENDED_NUTRIENTS: list[dict[str, Any]] = [
     {"key": "nickel_mcg", "name": "Nickel", "unit": "µg", "usda_id": None, "rda": None, "category": "Minerals"},
     {"key": "silicon_mg", "name": "Silicon", "unit": "mg", "usda_id": None, "rda": None, "category": "Minerals"},
     {"key": "vanadium_mcg", "name": "Vanadium", "unit": "µg", "usda_id": None, "rda": None, "category": "Minerals"},
+    # Phytate. USDA carries no figure; FAO/INFOODS/IZiNCG PhyFoodComp and WAFCT
+    # do. It matters twice over here: phytate binds iron and zinc (anaemia), and
+    # phosphorus held AS phytate is poorly absorbed, so plant phosphorus counts
+    # for less than its total suggests on a renal diet.
+    {"key": "phytate_mg", "name": "Phytate (phytic acid)", "unit": "mg", "usda_id": None, "rda": None, "category": "Other"},
+    {"key": "phytate_phosphorus_mg", "name": "Phytate phosphorus", "unit": "mg", "usda_id": None, "rda": None, "category": "Other"},
 ]
 
 # Build fast lookup: USDA nutrient_id → our key

@@ -776,6 +776,73 @@ async def get_nutrition_log(
     return log
 
 
+@router.post("/{log_id}/reestimate", response_model=NutritionLogResponse)
+async def reestimate_nutrition_log(
+    log_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-estimate THIS meal, in place, through the enrichment writer.
+
+    The diary's "Re-analyze" button used to POST `/nutrition/estimate-meal`
+    with the meal's date and type — and that endpoint, given both, SAVES A NEW
+    NutritionLog. So re-analysing a meal added a duplicate beside it and left
+    the original's figures untouched; production holds two such pairs. Pressing
+    the button is the patient asking for the figures to be recomputed, so the
+    estimator-owned columns are cleared and the writer refills them — which
+    also stores the meal's components.
+    """
+    log = (await db.execute(select(NutritionLog).where(
+        NutritionLog.id == log_id, NutritionLog.user_id == current_user.id))).scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Nutrition log not found")
+    for column in _ENRICHED_NUTRIENT_COLUMNS:
+        if hasattr(log, column):
+            setattr(log, column, None)
+    log.nutrient_status = "pending"
+    await db.flush()
+    await db.refresh(log)
+    background_tasks.add_task(enrich_log, log.id)
+    return log
+
+
+@router.get("/{log_id}/components")
+async def get_log_components(
+    log_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """The items this meal was estimated from — what the patient wrote, what
+    the lookup resolved it to, the grams, and the nutrients at that weight.
+
+    `components` is EMPTY for a meal whose figures were not estimated (typed,
+    imported, label) or that has not been estimated since components began to
+    be stored; `estimated` says which, so an empty list is never read as a meal
+    with nothing in it (§3aa). Another patient's id is 404, not 403.
+    """
+    from app.models.nutrition import NutritionLogComponent
+
+    log = (await db.execute(select(NutritionLog).where(
+        NutritionLog.id == log_id, NutritionLog.user_id == current_user.id))).scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Nutrition log not found")
+    rows = (await db.execute(select(NutritionLogComponent).where(
+        NutritionLogComponent.nutrition_log_id == log_id
+    ).order_by(NutritionLogComponent.position))).scalars().all()
+    return {
+        "log_id": log_id,
+        "nutrient_status": log.nutrient_status,
+        "estimated": bool(rows),
+        "components": [{
+            "position": r.position, "food_name": r.food_name, "matched_name": r.matched_name,
+            "qty_g": r.qty_g, "qty_text": r.qty_text, "source": r.source, "fdc_id": r.fdc_id,
+            "confidence": r.confidence, "counted": r.counted, "nutrients": r.nutrients,
+            "warnings": r.warnings,
+        } for r in rows],
+    }
+
+
 @router.get("/{log_id}/breakdown")
 async def get_log_nutrient_breakdown(
     log_id: int,
@@ -913,6 +980,16 @@ async def update_nutrition_log(
             if hasattr(log, column):
                 setattr(log, column, None)
         log.nutrient_status = "pending"
+
+    # Figures the patient typed are no longer the estimate the stored
+    # components describe. Keeping them would show items that do not add up to
+    # the meal; removing them makes `/components` say "not estimated", which is
+    # true. A re-estimate (above) replaces them in the writer instead.
+    if supplied_nutrients and log.nutrient_status != "pending":
+        from sqlalchemy import delete as _delete
+        from app.models.nutrition import NutritionLogComponent
+        await db.execute(_delete(NutritionLogComponent).where(
+            NutritionLogComponent.nutrition_log_id == log.id))
 
     await db.flush()
     await db.refresh(log)

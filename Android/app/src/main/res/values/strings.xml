@@ -1276,6 +1276,14 @@
     <string name="estimated"> · estimated</string>
     <string name="all_nutrients">All nutrients</string>
     <string name="hide_all_nutrients">Hide all nutrients</string>
+    <string name="items">Items</string>
+    <string name="hide_items">Hide items</string>
+    <string name="could_not_load_items">Could not load this meal\'s items.</string>
+    <string name="no_item_breakdown">No item breakdown: these figures were entered or imported, not estimated.</string>
+    <string name="weight_unknown">weight unknown</string>
+    <string name="matched_to">matched to %1$s</string>
+    <string name="not_counted_item">Not counted in the total — this item\'s figures failed the plausibility check.</string>
+    <string name="items_are_estimates">Estimates. Each item\'s figures come from the record shown beside it.</string>
     <string name="could_not_load_this_photo">Could not load this photo.</string>
     <string name="download_pdf">Download PDF</string>
     <string name="preparing">Preparing…</string>
@@ -1398,4 +1406,7 @@
     <string name="alpha_not_receiving">you told us you are not on this</string>
     <string name="no_readable_files_selected">None of the files you picked could be read.</string>
     <string name="therapy_date_unreadable">“%1$s” is not a date we can read. Please write it as YYYY-MM-DD, for example 2026-03-14.</string>
+
+    <!-- Screens. Extracted from Compose by scripts/i18n/android_extract.py. -->
+    <string name="kcal_p_g">%1$s kcal · P %2$s g</string>
 </resources>

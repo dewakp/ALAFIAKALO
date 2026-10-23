@@ -75,7 +75,7 @@ for s in alafia-secret-key alafia-database-url alafia-database-url-sync \
          identity-migration-secret identity-keys \
          stripe-secret-key stripe-price-id stripe-price-id-annual stripe-webhook-secret \
          apple-shared-secret alafia-pseudonym-secret \
-         resend-api-key resend-webhook-secret \
+         resend-api-key resend-webhook-secret usda-api-key \
          apns-auth-key apns-key-id firebase-sa \
          smtp-host smtp-user smtp-password smtp-from-email; do
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${SA}" \
@@ -346,6 +346,14 @@ if gcloud secrets versions list firebase-sa --filter='state=enabled' \
   BACKEND_ENV="${BACKEND_ENV},FIREBASE_SERVICE_ACCOUNT=/run/keys/firebase-sa.json"
   echo "   + mounting firebase-sa at /run/keys/firebase-sa.json (Android FCM push)"
 fi
+# USDA FoodData Central. Absent, the backend falls back to `DEMO_KEY`, which
+# USDA throttles to a handful of requests an hour — and production ran on it:
+# measured 2026-10-22, 2,214 of 2,592 USDA requests in the retained logs were
+# 429 (85%). Each refusal used to read as "no such food", so the AI tier's
+# answer was cached permanently in its place (CLAUDE.md §3bj). Free key:
+# https://fdc.nal.usda.gov/api-key-signup
+#   printf 'xxx' | gcloud secrets create usda-api-key --data-file=-
+add_secret_if_present USDA_API_KEY            usda-api-key
 # Email — transactional (signup verification, password reset).
 # Resend (HTTPS API) is preferred over SMTP on Cloud Run: no outbound mail ports,
 # no STARTTLS negotiation, and real error bodies instead of socket failures.

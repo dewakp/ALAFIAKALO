@@ -9,7 +9,11 @@
 # The vision model is llava, NOT moondream -- moondream is a grounding model and
 # answers the food schema with bounding boxes, so every photo fails (CLAUDE.md
 # §3a). It must match OLLAMA_VISION_MODEL, which deploy.sh sets explicitly.
-FROM ollama/ollama:latest
+# Pinned, never `:latest`: production ran 0.32.15 for months because the tag
+# floated to whatever was current on the day of the last build, and nothing
+# recorded which. Bump this line deliberately; the dev host runs the same
+# version (`ollama --version`), so dev and prod do not drift.
+FROM ollama/ollama:0.40.9
 
 ENV OLLAMA_HOST=0.0.0.0:11434
 # Keep the model resident once loaded; -1 = never unload while the instance is warm.

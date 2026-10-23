@@ -1622,7 +1622,16 @@
     "fol": "Fol",
     "chol": "Chol",
     "from_agent": "{{sign}}{{delta}}{{unit}} site na {{agent}}",
-    "effect_mechanism": "· {{mechanism}}"
+    "effect_mechanism": "· {{mechanism}}",
+    "items": "Ihe ndị a",
+    "hide_items": "Zọ ihe ndị a",
+    "could_not_load_items": "Enweghị ike ịlọta ihe ndị a nke nri a.",
+    "no_item_breakdown": "Enweghị nkewa ihe: a tinyere ma ọ bụ bubatara ọnụ ọgụgụ ndị a, ọ bụghị atụmatụ.",
+    "weight_unknown": "ịnwụ amataghị",
+    "matched_to": "jikọtara na {{name}}",
+    "not_counted": "Ejikọtaghị na mkpokọta — ihe ndị a nke ihe a dị jụụ na nnwale nkwụ.",
+    "items_are_estimates": "Atụmatụ. Ọnụ ọgụgụ ihe ọ bụla sitere na ndekọ e gosiri n'akụkụ ya.",
+    "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },
   "Medications": {
     "medications": "Ọgụ",

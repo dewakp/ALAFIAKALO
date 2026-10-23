@@ -8567,6 +8567,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.could_not_load_items": {
+    "source": "Could not load this meal's items.",
+    "translation": "Ba a iya lodata abubuwan wannan abinci.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "MealsDiary.daily_nutrient_goals": {
     "source": "Daily Nutrient Goals",
     "translation": "Bukatun Nutrient na Yau",
@@ -8663,6 +8669,30 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.hide_items": {
+    "source": "Hide items",
+    "translation": "Ɓoye abubuwa",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
+  "MealsDiary.items": {
+    "source": "Items",
+    "translation": "Abubuwa",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
+  "MealsDiary.items_are_estimates": {
+    "source": "Estimates. Each item's figures come from the record shown beside it.",
+    "translation": "Ƙididdige. Abubuwan kowane abu suna zuwa daga rikodin da aka nuna kusa da shi.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
+  "MealsDiary.kcal_p_g": {
+    "source": "{{calories}} kcal · P {{protein_g}} g",
+    "translation": "{{calories}} kcal · P {{protein_g}} g",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "MealsDiary.loading": {
     "source": "Loading…",
     "translation": "Yana karawa…",
@@ -8674,6 +8704,12 @@
     "translation": "Shigar da Sabon Cin Abinci",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "MealsDiary.matched_to": {
+    "source": "matched to {{name}}",
+    "translation": "an daidaita ga {{name}}",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "MealsDiary.meals_diary": {
     "source": "Meals Diary",
@@ -8699,11 +8735,23 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.no_item_breakdown": {
+    "source": "No item breakdown: these figures were entered or imported, not estimated.",
+    "translation": "Babu rarrabawa: an shigar da waɗannan lambobi ko aka shigo da su, ba a ƙididdige su ba.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "MealsDiary.no_meals_logged_for_this_date": {
     "source": "No meals logged for this date.",
     "translation": "Babu abinci da aka shigar da shi a wannan ranar.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "MealsDiary.not_counted": {
+    "source": "Not counted in the total — this item's figures failed the plausibility check.",
+    "translation": "Ba a ƙididdige a cikin jimillar — abubuwan wannan abu sun gazawa jerin bincike.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "MealsDiary.phos": {
     "source": "Phos",
@@ -8746,6 +8794,12 @@
     "translation": "VitD",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "MealsDiary.weight_unknown": {
+    "source": "weight unknown",
+    "translation": "ba a san nauyi",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "MealsDiary.your_limits_are_unchanged_they_already": {
     "source": "Your limits are unchanged — they already assume your usual treatment. What changes is the day's balance.",

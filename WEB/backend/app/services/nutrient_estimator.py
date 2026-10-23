@@ -10,7 +10,6 @@ Strategy:
   4. Cache AI results for app-wide reuse
 """
 
-import asyncio
 import json
 import logging
 import re
@@ -26,7 +25,6 @@ from app.core.nutrition_data import (
     EXTENDED_NUTRIENTS,
 )
 from app.models.food_nutrient_cache import FoodNutrientCache
-from app.services.nlm_food_extractor import extract_food_items_nlm
 from app.services.mcp_nutrition_server import (
     search_branded_food as _mcp_search_branded,
     get_branded_food_detail as _mcp_get_branded_detail,
@@ -35,10 +33,6 @@ from app.services.mcp_nutrition_server import (
 
 logger = logging.getLogger(__name__)
 
-# How many USDA item lookups may run at once for one multi-item meal. Enough to
-# collapse a 10-item list into ~one round trip, low enough not to get this client
-# rate-limited by USDA.
-_USDA_ITEM_CONCURRENCY = 8
 
 # All known nutrient keys for validation
 _ALL_NUTRIENT_KEYS = {n["key"] for n in NUTRIENT_CATALOG + EXTENDED_NUTRIENTS}
@@ -246,15 +240,137 @@ def _merge_nutrients(results: list[dict]) -> dict[str, float]:
     return merged
 
 
-async def _try_usda_single(food_name: str) -> dict | None:
-    """Search USDA for one food phrase and return best match."""
+class SourceUnavailable(Exception):
+    """An authoritative source could not be ASKED — a 429, a timeout, a model
+    outage behind the match verifier. Distinct from "asked, and it has no such
+    food": reporting an outage as a miss let the AI tier's answer be cached as
+    if USDA had nothing, and the cache never asked USDA again. A repair pass on
+    2026-10-22 drew 4,157 USDA 429s in one run; every one of them used to
+    become a permanent downgrade."""
+
+
+# ── Reference authorities beyond USDA (WAFCT 2019, …) ──────────────────────
+#
+# `reference_foods` is small (WAFCT: 1,028 rows) and read on every new food, so
+# it is held in memory and re-read every few minutes — a production load (the
+# licence gate, see scripts/load_reference_foods.py) takes effect without a
+# restart, and an empty table simply contributes no candidates.
+_REFERENCE_TTL_S = 600.0
+# Sources that hold ONE component, not a food's profile. Never offered as a
+# match for what a food IS; consulted only to add what they measure.
+_COMPONENT_SOURCES = {"phyfoodcomp_1_0"}
+_reference_rows: list[dict] = []
+_reference_loaded_at = float("-inf")
+
+
+async def _reference_foods(db: AsyncSession | None) -> list[dict]:
+    global _reference_rows, _reference_loaded_at
+    import time
+    if db is None or time.monotonic() - _reference_loaded_at < _REFERENCE_TTL_S:
+        return _reference_rows
+    from app.models.reference_food import ReferenceFood
+    try:
+        rows = (await db.execute(select(ReferenceFood))).scalars().all()
+    except Exception:
+        logger.warning("reference_foods unreadable — lookup continues without it", exc_info=True)
+        return _reference_rows
+    _reference_rows = [{
+        "source": r.source, "code": r.code, "name_en": r.name_en,
+        "scientific_name": r.scientific_name, "name_fr": r.name_fr,
+        "food_group": r.food_group, "nutrients": r.nutrients or {},
+        "tokens": {_stem(t) for t in re.findall(r"[a-z0-9]+", " ".join(
+            x for x in (r.name_en, r.scientific_name, r.name_fr) if x).lower()) if len(t) >= 3},
+    } for r in rows]
+    _reference_loaded_at = time.monotonic()
+    return _reference_rows
+
+
+def _reference_candidates(rows: list[dict], *queries: str, limit: int = 5,
+                          component: bool = False) -> list[dict]:
+    """Rows sharing words with any query, best overlap first. The model decides
+    which (if any) IS the food; this only decides what it is shown.
+
+    `component=False` offers whole-profile tables only (WAFCT); `True` offers
+    only the single-component ones (PhyFoodComp)."""
+    rows = [r for r in rows if (r["source"] in _COMPONENT_SOURCES) == component]
+    q = {_stem(t) for qq in queries if qq
+         for t in re.findall(r"[a-z0-9]+", qq.lower()) if len(t) >= 3}
+    if not q:
+        return []
+    # Ties go to the PLAINEST entry: every WAFCT milk shares the word "milk",
+    # and in row order the first is not cow's milk.
+    scored = sorted(((len(q & r["tokens"]) / len(q), len(r["tokens"]), i, r)
+                     for i, r in enumerate(rows) if q & r["tokens"]),
+                    key=lambda x: (-x[0], x[1], x[2]))
+    return [{
+        "description": r["name_en"] + (f" ({r['scientific_name']})" if r["scientific_name"] else ""),
+        "data_type": r["source"], "food_category": r["food_group"],
+        "nutrients": r["nutrients"], "_reference": r,
+    } for *_, r in scored[:limit]]
+
+
+async def _add_phytate(db: AsyncSession | None, food_name: str, result: dict) -> None:
+    """Add phytate to a resolved profile from PhyFoodComp, when it has none.
+
+    USDA carries no phytate. It binds iron and zinc, and phosphorus held as
+    phytate is poorly absorbed — both matter on this record. Best-effort: a
+    missing or unverifiable figure leaves the profile as it was."""
+    nutrients = result.get("nutrients") or {}
+    if "phytate_mg" in nutrients:
+        return
+    from app.services import food_match_verifier
+    rows = await _reference_foods(db)
+    cands = _reference_candidates(rows, food_name, result.get("food_name") or "",
+                                  limit=8, component=True)
+    if not cands:
+        return
+    try:
+        pick = await food_match_verifier.choose(food_name, [
+            {"description": c["description"] + (f" [{c['_reference']['biblio']}]" if c["_reference"]["biblio"] else ""),
+             "data_type": c["data_type"], "nutrients": {}} for c in cands])
+    except food_match_verifier.Unavailable:
+        return
+    if pick is None:
+        return
+    ref = cands[pick]["_reference"]
+    for k in ("phytate_mg", "phytate_phosphorus_mg"):
+        if k in ref["nutrients"]:
+            nutrients[k] = ref["nutrients"][k]
+    # Provenance on the RESULT, never in `nutrients`: meal aggregation scales
+    # every value there by weight, and a string would break the arithmetic.
+    result["phytate_source"] = f"{ref['source']}:{ref['code']}"
+    result["nutrients"] = nutrients
+    logger.info("Phytate for '%s' from %s (%s)", food_name, result["phytate_source"], ref["name_en"][:80])
+
+
+async def _try_usda_single(food_name: str, db: AsyncSession | None = None) -> dict | None:
+    """Look a food up in the composition AUTHORITIES — USDA and any loaded
+    reference table — and return the record the model verifies IS the food.
+
+    Returns None when no authority holds it; raises `SourceUnavailable` when one
+    could not be asked AND nothing else answered."""
+    reference = await _reference_foods(db)
+    usda_down: Exception | None = None
     try:
         results = await search_usda_foods(food_name, page_size=5)
-    except Exception:
+    except Exception as exc:
         logger.warning("USDA API call failed for '%s'", food_name, exc_info=True)
-        return None
+        results, usda_down = [], exc
+    found = await _choose_usda(food_name, results, rewrite=True, reference=reference)
+    if found is None and usda_down is not None:
+        # USDA could not be asked and no reference table answered: an outage,
+        # not an absence (§3bj).
+        raise SourceUnavailable(f"usda: {type(usda_down).__name__}") from usda_down
+    return found
 
-    if not results:
+
+async def _choose_usda(food_name: str, results: list[dict], rewrite: bool,
+                       reference: list[dict] | None = None) -> dict | None:
+    """Rank the retrieved candidates and let the model choose which IS the food.
+    When none is, retrieve again under the database's own name for it — the
+    first search only finds what the patient's spelling happens to share."""
+    from app.services import food_match_verifier
+    if not results and not rewrite:
         return None
 
     # Rank ALL candidates by lexical relevance (head-noun match + token overlap),
@@ -297,13 +413,87 @@ async def _try_usda_single(food_name: str) -> dict | None:
             r.get("data_type"), 3)
         scored.append((has_data, -rank, dt_pref, idx, r))
 
-    if not scored:
+    if not scored and not rewrite:
         logger.info("No relevant USDA match for '%s' (candidates: %s)",
                     food_name, [r.get("description") for r in results[:5]])
         return None
 
     scored.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
-    best = scored[0][-1]
+
+    # ── THE MODEL CHOOSES WHICH RECORD IS THE FOOD ─────────────────────────
+    #
+    # Lexical relevance only asks whether the typed words occur somewhere in
+    # the description, so "sardines" scored a perfect 1.0 against "Fish oil,
+    # sardine" and was cached as 902 kcal / 100 g fat / 0 protein for four
+    # months; "milk" did the same against "Crackers, milk". The 2026-10-22
+    # audit found 46% of linked rows were a different food. The ranking above
+    # still decides which candidates are SHOWN; `food_match_verifier` decides
+    # which one, if any, is the food. Empty records are never offered.
+    offered = [x[-1] for x in scored if x[0] == 0][:5]
+    # Candidates from the reference tables sit BESIDE USDA's in one choice, so
+    # "bitter leaf" is judged with Vernonia and bitter gourd side by side —
+    # asked separately, USDA's bitter gourd was accepted before Vernonia was
+    # ever seen.
+    offered += _reference_candidates(reference or [], food_name)
+    try:
+        pick = await food_match_verifier.choose(food_name, [
+            {"description": r.get("description"), "data_type": r.get("data_type"),
+             "category": r.get("food_category"), "nutrients": r.get("nutrients") or {}}
+            for r in offered]) if offered else None
+        if pick is None and rewrite:
+            names = await food_match_verifier.standard_name(food_name)
+            if names:
+                standard = names[0]
+                try:
+                    more = await search_usda_foods(standard, page_size=5)
+                except Exception as exc:
+                    raise SourceUnavailable(f"usda: {type(exc).__name__}") from exc
+                seen = {r.get("fdc_id") for r in offered if r.get("fdc_id")}
+                seen_ref = {id(r.get("_reference")) for r in offered if r.get("_reference")}
+                # The NEW candidates go first: the first round's were already
+                # judged not to be the food, and with two authorities they fill
+                # the cap on their own — appended last, "Watermelon, raw" was
+                # retrieved and then truncated away.
+                pool = [r for r in more if r.get("fdc_id") not in seen] + [
+                    r for r in _reference_candidates(reference or [], *names)
+                    if id(r["_reference"]) not in seen_ref] + offered
+                # Relevance is judged against the DATABASE name now, so the
+                # second list is not discarded for sharing no words with the
+                # patient's spelling ("paw paw" vs "Papaya, raw").
+                return await _choose_usda_pool(food_name, standard, pool)
+    except food_match_verifier.Unavailable as exc:
+        raise SourceUnavailable(f"verifier: {exc}") from exc
+    if pick is None:
+        logger.info("No USDA candidate verified as '%s' (offered: %s)",
+                    food_name, [r.get("description") for r in offered])
+        return None
+    return await _usda_result(offered[pick], food_name)
+
+
+async def _choose_usda_pool(food_name: str, standard: str, pool: list[dict]) -> dict | None:
+    from app.services import food_match_verifier
+    pool = [r for r in pool if _has_any_substance(r.get("nutrients") or {})][:10]
+    if not pool:
+        return None
+    pick = await food_match_verifier.choose(food_name, [
+        {"description": r.get("description"), "data_type": r.get("data_type"),
+         "category": r.get("food_category"), "nutrients": r.get("nutrients") or {}}
+        for r in pool])
+    if pick is None:
+        logger.info("No USDA candidate verified as '%s' (searched also as %r)", food_name, standard)
+        return None
+    return await _usda_result(pool[pick], food_name)
+
+
+async def _usda_result(best: dict, food_name: str) -> dict | None:
+    ref = best.get("_reference")
+    if ref is not None:
+        return {
+            "source": ref["source"], "fdc_id": None, "ai_model": None,
+            "food_name": ref["name_en"], "reference_code": ref["code"],
+            "serving_size": "100 g", "serving_weight_g": 100.0, "confidence": 1.0,
+            "nutrients": dict(ref["nutrients"]), "cached": False,
+        }
 
     # If the best result has very few nutrients, try getting full detail.
     nutrients = best.get("nutrients", {})
@@ -372,12 +562,19 @@ async def _try_mcp_branded(food_name: str) -> dict | None:
       2. If no USDA Branded match → Open Food Facts search
     """
     # ── Step 1: USDA Branded Foods ────────────────────────────────────────
+    unavailable: list[str] = []
     try:
         branded_results = await _mcp_search_branded(food_name, max_results=8)
-    except Exception:
+    except Exception as exc:
         logger.warning("MCP branded search error for '%s'", food_name, exc_info=True)
         branded_results = []
+        unavailable.append(f"branded: {type(exc).__name__}")
 
+    # Candidates are gathered first and the model chooses among them
+    # (`food_match_verifier`): "paw paw" passed the lexical rule against "PAW
+    # FAN WITH CANDY" and "to taste" against butter biscuits. 106 of 256 cached
+    # branded rows were judged not credible for their name.
+    offered: list[tuple[dict, dict]] = []
     for item in branded_results:
         desc = item.get("description", "")
         if not _is_relevant_branded_match(food_name, desc):
@@ -406,7 +603,23 @@ async def _try_mcp_branded(food_name: str) -> dict | None:
             logger.info("Ignoring all-zero branded match for '%s' (fdc_id=%s)",
                         food_name, fdc_id)
             continue
+        offered.append((item, nutrients))
+        if len(offered) == 5:
+            break
 
+    from app.services import food_match_verifier
+    try:
+        pick = await food_match_verifier.choose(food_name, [
+            {"description": it.get("description"), "data_type": "Branded",
+             "brand": it.get("brand_owner") or it.get("brand_name"), "nutrients": nu}
+            for it, nu in offered]) if offered else None
+    except food_match_verifier.Unavailable as exc:
+        pick = None
+        unavailable.append(f"verifier: {exc}")
+    if pick is not None:
+        item, nutrients = offered[pick]
+        desc = item.get("description", "")
+        fdc_id = item.get("fdc_id")
         serving_size = item.get("serving_size")
         serving_unit = item.get("serving_size_unit") or ""
         serving_str = (
@@ -431,18 +644,31 @@ async def _try_mcp_branded(food_name: str) -> dict | None:
     # ── Step 2: Open Food Facts fallback ──────────────────────────────────
     try:
         off_results = await _mcp_search_off(food_name, max_results=5)
-    except Exception:
+    except Exception as exc:
         logger.warning("MCP Open Food Facts error for '%s'", food_name, exc_info=True)
         off_results = []
+        unavailable.append(f"open_food_facts: {type(exc).__name__}")
 
+    off_offered = []
     for item in off_results:
         name = item.get("product_name", "") or item.get("brands", "")
         combined = f"{item.get('brands', '')} {name}"
         if not _is_relevant_branded_match(food_name, combined):
             continue
         nutrients = item.get("nutrients") or {}
-        if not nutrients or "calories" not in nutrients:
+        if not nutrients or "calories" not in nutrients or not _has_any_substance(nutrients):
             continue
+        off_offered.append((item, name, nutrients))
+
+    try:
+        pick = await food_match_verifier.choose(food_name, [
+            {"description": nm, "data_type": "Open Food Facts", "brand": it.get("brands"),
+             "nutrients": nu} for it, nm, nu in off_offered]) if off_offered else None
+    except food_match_verifier.Unavailable as exc:
+        pick = None
+        unavailable.append(f"verifier: {exc}")
+    if pick is not None:
+        item, name, nutrients = off_offered[pick]
         logger.info(
             "MCP Open Food Facts match for '%s': '%s'",
             food_name, name,
@@ -459,66 +685,24 @@ async def _try_mcp_branded(food_name: str) -> dict | None:
             "cached": False,
         }
 
+    if unavailable:
+        raise SourceUnavailable("; ".join(unavailable))
     return None
 
 
-async def _try_usda(food_name: str) -> dict | None:
-    """Search USDA, including NLM-style extracted sub-items for mixed descriptions."""
-    # First, try the original phrase directly.
-    direct = await _try_usda_single(food_name)
-    if direct:
-        return direct
+async def _try_usda(food_name: str, db: AsyncSession | None = None) -> dict | None:
+    """Search USDA for the phrase as ONE food.
 
-    # If no direct match, extract items (NLM-style normalization) and try each item.
-    items = extract_food_items_nlm(food_name)
-    if len(items) <= 1:
-        return None
-
-    # Look the items up CONCURRENTLY.
-    #
-    # This loop used to be sequential: a 10-item meal ("3 sardines, 4 pitted
-    # olives, 4 cherry tomatoes, …") meant 10 round trips to USDA one after the
-    # other. Locally that alone took 7.6s; over production latency it pushed the
-    # whole save past the client's 30s timeout, and because estimation happens
-    # inside the save, the user LOST the meal they had typed.
-    #
-    # Bounded so a long list cannot open an unlimited number of sockets or get
-    # this client rate-limited by USDA.
-    semaphore = asyncio.Semaphore(_USDA_ITEM_CONCURRENCY)
-
-    async def _lookup(item: str) -> dict | None:
-        async with semaphore:
-            try:
-                return await _try_usda_single(item)
-            except Exception:
-                logger.debug("USDA item lookup failed for %r", item, exc_info=True)
-                return None
-
-    settled = await asyncio.gather(*(_lookup(i) for i in items))
-    # gather preserves order, so the merged result stays deterministic.
-    item_results: list[dict] = [r for r in settled if r]
-
-    if not item_results:
-        return None
-
-    merged = _merge_nutrients(item_results)
-    if "calories" not in merged:
-        return None
-
-    match_ratio = len(item_results) / len(items)
-    confidence = round(0.55 + (0.35 * match_ratio), 3)
-
-    return {
-        "source": "usda",
-        "fdc_id": item_results[0].get("fdc_id") if len(item_results) == 1 else None,
-        "ai_model": None,
-        "food_name": ", ".join(items),
-        "serving_size": f"Composite meal ({len(item_results)}/{len(items)} items matched)",
-        "serving_weight_g": None,
-        "confidence": confidence,
-        "nutrients": merged,
-        "cached": False,
-    }
+    This used to fall back to splitting a mixed description into items and
+    SUMMING their per-100 g profiles into one "per-100 g" — arithmetic that can
+    never describe 100 g of anything (§3c). It cached "bitter leaves/uziza/
+    egusi/peanut/palm…" at 1,180 kcal and 113.7 g fat per 100 g, above pure fat,
+    and "basmati rice + sardines + …" at 2,472 kcal. A meal is resolved by
+    `estimate_meal_nutrients`, which scales each item by its own weight; a
+    composite NAME that reaches this single-food path falls through to the
+    tiers that can describe a dish.
+    """
+    return await _try_usda_single(food_name, db)
 
 
 # ── AI estimation ─────────────────────────────────────────────────────────────
@@ -810,11 +994,42 @@ async def _estimate_nutrients_impl(
 
     fallbacks: list[dict] = []
 
+    # A profile that is physically impossible is not an estimate, whichever
+    # tier produced it, and is never returned or cached. `plausibility.review`
+    # always held these checks — above pure fat, macros over 100 g, energy that
+    # contradicts its own macros — and nothing applied them before a tier's
+    # answer was written to the shared cache. The 2026-10-22 audit found 66
+    # cached profiles that fail on arithmetic alone.
+    from app.services import plausibility
+
+    def _possible(res: dict | None, tier: str) -> dict | None:
+        if not res:
+            return None
+        _, warnings, ok = plausibility.review(food_name, res.get("nutrients") or {})
+        if not ok:
+            logger.warning("Rejected impossible %s profile for '%s': %s",
+                           tier, food_name, "; ".join(warnings))
+            return None
+        return res
+
+    # An authority that could not be ASKED is not one that said no. Its
+    # absence may still be answered by a lower tier, but that answer is NOT
+    # cached: caching it would make a rate limit a permanent verdict.
+    unavailable: list[str] = []
+
+    async def _ask(tier):
+        try:
+            return await tier(food_name)
+        except SourceUnavailable as exc:
+            unavailable.append(str(exc))
+            return None
+
     # 2. USDA Foundation / SR Legacy / FNDDS
-    usda_result = await _try_usda(food_name)
+    usda_result = _possible(await _ask(lambda n: _try_usda(n, db)), "usda")
     if usda_result:
         if _in_band(usda_result):
-            await _save_to_cache(db, food_name, source="usda", nutrients=usda_result["nutrients"],
+            await _add_phytate(db, food_name, usda_result)
+            await _save_to_cache(db, food_name, source=usda_result["source"], nutrients=usda_result["nutrients"],
                                  fdc_id=usda_result["fdc_id"], serving_size=usda_result["serving_size"],
                                  serving_weight_g=usda_result["serving_weight_g"], confidence=1.0)
             return usda_result
@@ -822,9 +1037,10 @@ async def _estimate_nutrients_impl(
         fallbacks.append(usda_result)
 
     # 3. Branded (Boost/Ensure/Gatorade/OTC) via MCP (USDA Branded → Open Food Facts)
-    mcp_result = await _try_mcp_branded(food_name)
+    mcp_result = _possible(await _ask(_try_mcp_branded), "branded")
     if mcp_result:
         if _in_band(mcp_result):
+            await _add_phytate(db, food_name, mcp_result)
             await _save_to_cache(db, food_name, source=mcp_result["source"], nutrients=mcp_result["nutrients"],
                                  fdc_id=mcp_result.get("fdc_id"), serving_size=mcp_result.get("serving_size"),
                                  serving_weight_g=mcp_result.get("serving_weight_g"), confidence=mcp_result["confidence"])
@@ -832,11 +1048,16 @@ async def _estimate_nutrients_impl(
         fallbacks.append(mcp_result)
 
     # 4. AI fallback (escalated when USDA/branded were missing or out-of-band).
-    ai_result = await _try_ai(food_name, serving_size)
+    ai_result = _possible(await _try_ai(food_name, serving_size), "ai")
     if ai_result:
         if not ai_result.get("food_name"):
             ai_result["food_name"] = food_name
+        if unavailable and (_in_band(ai_result) or not fallbacks):
+            logger.warning("Not caching AI estimate for '%s' — an authority was unavailable (%s)",
+                           food_name, "; ".join(unavailable))
+            return ai_result
         if _in_band(ai_result) or not fallbacks:
+            await _add_phytate(db, food_name, ai_result)
             await _save_to_cache(db, food_name, source="ai", nutrients=ai_result["nutrients"],
                                  ai_model=ai_result["ai_model"], serving_size=ai_result.get("serving_size"),
                                  serving_weight_g=ai_result.get("serving_weight_g"), confidence=ai_result["confidence"])
@@ -910,6 +1131,28 @@ async def _learn_stated(db: AsyncSession, food_name: str, stated: dict,
 
 
 async def estimate_meal_nutrients(
+    db: AsyncSession,
+    description: str,
+    *,
+    notes: str | None = None,
+    country: str | None = None,
+    preferred_units: str | None = None,
+    locale: str | None = None,
+) -> dict[str, Any]:
+    """Estimate a meal. Every food lookup inside runs with the patient's
+    country as context (`food_match_verifier.region`). Reset on every exit, so
+    a batch run never carries one patient's context into the next meal."""
+    from app.services import food_match_verifier
+    token = food_match_verifier.region.set(country)
+    try:
+        return await _estimate_meal_nutrients_body(
+            db, description, notes=notes, country=country,
+            preferred_units=preferred_units, locale=locale)
+    finally:
+        food_match_verifier.region.reset(token)
+
+
+async def _estimate_meal_nutrients_body(
     db: AsyncSession,
     description: str,
     *,
@@ -1204,6 +1447,11 @@ async def estimate_meal_nutrients(
 
         component_results.append({
             "food_name": comp.food_name,
+            # What the lookup resolved it to — "sardines" -> "Fish oil, sardine".
+            # Stored with the meal (nutrition_log_components) so a wrong match
+            # is visible per item instead of hidden in the total.
+            "matched_name": est.get("food_name"),
+            "counted": bool(component_believable),
             "qty_g": qty_g,
             "qty_text": portion_text,
             "source": est.get("source"),

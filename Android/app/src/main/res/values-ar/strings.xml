@@ -1255,6 +1255,14 @@
     <string name="estimated">· تقديري</string>
     <string name="all_nutrients">جميع العناصر الغذائية</string>
     <string name="hide_all_nutrients">إخفاء جميع العناصر الغذائية</string>
+    <string name="items">العناصر</string>
+    <string name="hide_items">إخفاء العناصر</string>
+    <string name="could_not_load_items">تعذر تحميل عناصر هذه الوجبة.</string>
+    <string name="no_item_breakdown">لا يوجد تفصيل للعناصر: تم إدخال هذه الأرقام أو استيرادها، وليست مقدّرة.</string>
+    <string name="weight_unknown">الوزن غير معروف</string>
+    <string name="matched_to">مطابق مع %1$s</string>
+    <string name="not_counted_item">لم يتم احتسابه في الإجمالي — فشلت أرقام هذا العنصر في فحص المعقولية.</string>
+    <string name="items_are_estimates">تقديرات. تأتي أرقام كل عنصر من السجل المعروض بجانبه.</string>
     <string name="could_not_load_this_photo">تعذر تحميل هذه الصورة.</string>
     <string name="download_pdf">تحميل PDF</string>
     <string name="preparing">جاري التحضير…</string>
@@ -1371,4 +1379,5 @@
     <string name="alpha_not_receiving">أخبرتنا أنك لست على هذا</string>
     <string name="no_readable_files_selected">لم يتمكن من قراءة أي من الملفات التي اخترتها.</string>
     <string name="therapy_date_unreadable">لا يمكننا قراءة التاريخ \"%1$s\". يرجى كتابته بصيغة YYYY-MM-DD، على سبيل المثال [dob].</string>
+    <string name="kcal_p_g">%1$s سعرة حرارية · P %2$s غ</string>
 </resources>

@@ -1622,7 +1622,16 @@
     "fol": "Fol",
     "chol": "Chol",
     "from_agent": "{{sign}}{{delta}}{{unit}} daga {{agent}}",
-    "effect_mechanism": "· {{mechanism}}"
+    "effect_mechanism": "· {{mechanism}}",
+    "items": "Abubuwa",
+    "hide_items": "Ɓoye abubuwa",
+    "could_not_load_items": "Ba a iya lodata abubuwan wannan abinci.",
+    "no_item_breakdown": "Babu rarrabawa: an shigar da waɗannan lambobi ko aka shigo da su, ba a ƙididdige su ba.",
+    "weight_unknown": "ba a san nauyi",
+    "matched_to": "an daidaita ga {{name}}",
+    "not_counted": "Ba a ƙididdige a cikin jimillar — abubuwan wannan abu sun gazawa jerin bincike.",
+    "items_are_estimates": "Ƙididdige. Abubuwan kowane abu suna zuwa daga rikodin da aka nuna kusa da shi.",
+    "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },
   "Medications": {
     "medications": "Magungunan",

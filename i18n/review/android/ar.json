@@ -1427,6 +1427,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "could_not_load_items": {
+    "source": "Could not load this meal's items.",
+    "translation": "تعذر تحميل عناصر هذه الوجبة.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "could_not_load_this_photo": {
     "source": "Could not load this photo.",
     "translation": "تعذر تحميل هذه الصورة.",
@@ -2945,6 +2951,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "hide_items": {
+    "source": "Hide items",
+    "translation": "إخفاء العناصر",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "hide_shopping_list": {
     "source": "Hide Shopping List",
     "translation": "إخفاء قائمة التسوق",
@@ -3401,6 +3413,18 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "items": {
+    "source": "Items",
+    "translation": "العناصر",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
+  "items_are_estimates": {
+    "source": "Estimates. Each item's figures come from the record shown beside it.",
+    "translation": "تقديرات. تأتي أرقام كل عنصر من السجل المعروض بجانبه.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "join": {
     "source": "Join",
     "translation": "انضم",
@@ -3424,6 +3448,12 @@
     "translation": "%1$s سعرة حرارية",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "kcal_p_g": {
+    "source": "%1$s kcal · P %2$s g",
+    "translation": "%1$s سعرة حرارية · P %2$s غ",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "kg": {
     "source": "%1$s → %2$s kg",
@@ -3796,6 +3826,12 @@
     "translation": "رسائل تسويقية",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "matched_to": {
+    "source": "matched to %1$s",
+    "translation": "مطابق مع %1$s",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "max": {
     "source": "Max",
@@ -4319,6 +4355,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "no_item_breakdown": {
+    "source": "No item breakdown: these figures were entered or imported, not estimated.",
+    "translation": "لا يوجد تفصيل للعناصر: تم إدخال هذه الأرقام أو استيرادها، وليست مقدّرة.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
+  },
   "no_items": {
     "source": "No items",
     "translation": "لا توجد عناصر",
@@ -4636,6 +4678,12 @@
     "translation": "غير محسوب: %1$s",
     "status": "machine",
     "translated_on": "2026-10-18"
+  },
+  "not_counted_item": {
+    "source": "Not counted in the total — this item's figures failed the plausibility check.",
+    "translation": "لم يتم احتسابه في الإجمالي — فشلت أرقام هذا العنصر في فحص المعقولية.",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "not_enough_data_yet": {
     "source": "Not enough data yet",
@@ -8080,6 +8128,12 @@
     "translation": "اتجاه الوزن",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "weight_unknown": {
+    "source": "weight unknown",
+    "translation": "الوزن غير معروف",
+    "status": "machine",
+    "translated_on": "2026-10-23"
   },
   "weights_kg": {
     "source": "Weights (kg)",
