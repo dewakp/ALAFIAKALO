@@ -4611,3 +4611,50 @@ the components; web's edit path stopped estimating in the browser so edited
 meals go through the writer. 5 new tests, each shown red without its fix (4 with
 the old writer and endpoint, the 5th with only the retire rule disabled); 12 component +
 nutrition-API tests pass; web 301. Canon §3bj; TASKS 23 item 1 done.
+
+## 2026-10-23 (2) — The meal photo, the phytate crash, and a claim I made up
+
+Operator, on the sardine meal: *"Photo disappeared when reanalyzed. When photo
+is reapplied and re-analyzed, all learning dissapaeared."* Then *"images
+consent cannot be on per image basis"*, *"stop making excuses and dismissing
+issues or concerns. verify"*, and *"you made up data sharing instead of
+verifying"*.
+
+### Four faults, each found from the row or the log
+
+| reported | measured cause |
+|---|---|
+| meal shows "—" after Re-analyze | `_add_phytate` read `biblio` from rows that never carried it: **KeyError failed EVERY estimate with a phytate candidate** in production from the FAO load (~03:00) until the fix (`ee3da34`) |
+| photo gone after Re-analyze | the clear-list was "every column off a keep-list"; the keep-list omitted `food_thumbnail`. Now clears catalog NUTRIENT columns only, plus the extended panel |
+| no photo ever kept | `media_assets.storage_url` does not exist in production (`UndefinedColumnError`, both analyses). `u001` was stamped, never run. **`media_assets` had never held a row.** `aw001` adds it, idempotently |
+| correction not recalled | recall consulted corrected samples only after a `labeled_food_images` match, written only with a retained image. Sample 50 had the SAME phash as corrected sample 49. Recall now checks the patient's corrected samples by hash first |
+
+Also: vision notes described a cuisine ("Classic West African meal") the photo
+cannot show; the prompt now forbids naming a cuisine or origin.
+
+### Mistakes of mine
+
+> ⚠️ **I told the operator the photo was not kept "because image retention
+> needs your data-sharing consent".** False. `food_vision_store` keeps a meal
+> photo for the patient ALWAYS — its own comment says so — and the log showed
+> the insert failing on a missing column. I answered from a half-remembered
+> canon line instead of the code and the log, and it sent the operator toward
+> changing a privacy setting that had nothing to do with the fault. §0, again.
+
+> ⚠️ **The phytate step shipped with a KeyError no test reached**: the tests
+> never loaded a reference row in the loader's real shape. It was documented
+> "best-effort" and was not; it is now enforced (wrapped), and tested with a
+> real row.
+
+> ⚠️ **Three estimator tests were red in the deployed `b917559`.** The full
+> suite run started before the `_try_usda(name, db)` change, so it never ran
+> against it. A suite that predates the change is not evidence for it.
+
+> ⚠️ **I wrote `aw001` while a deploy was running and called it "almost
+> certainly" excluded.** Checked: the backend tarball had NOT been uploaded —
+> it would have shipped `aw001` labelled `ee3da34`. Deploy cancelled (local
+> script and Cloud Build job), redeployed from a clean tree at `93b7a08`.
+
+The food-cache repair is PAUSED: 583 wrong rows removed (backup
+`cache_backup_20261023T102627Z.json`), no meal cleared — the warm phase was
+failing on the same KeyError.
