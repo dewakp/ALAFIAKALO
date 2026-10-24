@@ -198,6 +198,16 @@ how many of it.
 Reply with JSON only: {"portion": <portion number or null>, "count": <number>}"""
 
 
+def per_unit_grams(portion: dict) -> float:
+    """Grams for ONE of the units a USDA portion names (gramWeight / amount)."""
+    amount = portion.get("amount")
+    try:
+        amount = float(amount) if amount not in (None, "", 0) else 1.0
+    except (TypeError, ValueError):
+        amount = 1.0
+    return float(portion["gram_weight"]) / (amount if amount > 0 else 1.0)
+
+
 async def choose_portion(text: str, food: str, portions: list[dict]) -> tuple[int, float] | None:
     """(index into `portions`, count) for the amount `text` describes, or None.
 
@@ -209,8 +219,10 @@ async def choose_portion(text: str, food: str, portions: list[dict]) -> tuple[in
     usable = [p for p in portions if isinstance(p.get("gram_weight"), (int, float)) and p["gram_weight"] > 0]
     if not usable:
         return None
-    lines = [f'{i}. "{p.get("description")}" = {round(float(p["gram_weight"]), 1)} g'
-             + (f' (amount {p["amount"]})' if p.get("amount") not in (None, 1, 1.0) else "")
+    # Per ONE unit: USDA records some portions for several units at once —
+    # 'slices (1/4" thick)' = 53 g for AMOUNT 10. Read as 53 g a slice, eight
+    # slices of fried plantain became 424 g instead of 42 g (2026-10-23).
+    lines = [f'{i}. 1 x "{p.get("description")}" = {round(per_unit_grams(p), 2)} g'
              for i, p in enumerate(usable, 1)]
     messages = [{"role": "system", "content": _PORTION},
                 {"role": "user", "content": f'Patient wrote: "{text}"\nFood: "{food}"\nPortions:\n' + "\n".join(lines)}]
@@ -231,16 +243,20 @@ async def choose_portion(text: str, food: str, portions: list[dict]) -> tuple[in
     return portions.index(chosen), count
 
 
-_ASSUMED = """A patient logged a food as part of a meal without saying how much. Estimate
-the weight of ONE ordinary serving of this specific food, as it is eaten, in
-grams — the edible amount on the plate, not a package or a recipe batch — and a
-plausible low-high range for that one serving.
+_ASSUMED = """A patient logged a food as part of a meal without a usable weight. Estimate
+the weight, in grams, of the amount their words describe, as eaten — the edible
+amount on the plate, not a package or a recipe batch:
+- a count of pieces ("3 of them") is the total for that count;
+- no amount at all is ONE ordinary serving;
+- read the item in the context of the whole meal: an item that is a seasoning,
+  a mix or an addition to another dish is the small amount used, not a serving.
+Give a plausible low-high range for that amount.
 
 Reply with JSON only: {"grams": <number>, "low": <number>, "high": <number>}
 If it is not a food, answer {"grams": null}."""
 
 
-async def assumed_portion(text: str, food: str) -> tuple[float, float, float] | None:
+async def assumed_portion(text: str, food: str, meal: str = "") -> tuple[float, float, float] | None:
     """(grams, low, high) for one ordinary serving, or None when not a food.
 
     Operator-chosen fallback (2026-10-23, option C) when the patient stated no
@@ -250,7 +266,8 @@ async def assumed_portion(text: str, food: str) -> tuple[float, float, float] | 
     as one, with its range. Raises `Unavailable` when the model cannot answer.
     """
     messages = [{"role": "system", "content": _ASSUMED},
-                {"role": "user", "content": f'Patient wrote: "{text}"\nFood: "{food}"' + _where()}]
+                {"role": "user", "content": f'Patient wrote: "{text}"\nFood: "{food}"'
+                 + (f'\nWhole meal as written: "{meal[:400]}"' if meal else "") + _where()}]
     from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
     try:
         raw = await alafia_chat(messages, temperature=0.0, max_tokens=80, json_mode=True)

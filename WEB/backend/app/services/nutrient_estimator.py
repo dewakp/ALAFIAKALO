@@ -1190,7 +1190,7 @@ async def _portion_from_record(comp, est: dict) -> tuple[float, str] | None:
         return None
     idx, count = chosen
     p = portions[idx]
-    grams = round(float(p["gram_weight"]) * count, 1)
+    grams = round(food_match_verifier.per_unit_grams(p) * count, 1)
     desc = str(p.get("description") or "")
     # FNDDS names its default portion "Quantity not specified" — the survey's
     # typical amount eaten. Say that, rather than echo the database's wording.
@@ -1199,7 +1199,7 @@ async def _portion_from_record(comp, est: dict) -> tuple[float, str] | None:
     return grams, f"{count:g} x {desc} ({grams:.0f} g, USDA portion)"
 
 
-async def _resolve_portion(comp, est: dict) -> tuple[float, str] | None:
+async def _resolve_portion(comp, est: dict, meal: str = "") -> tuple[float, str] | None:
     """The weight of an item the patient gave no usable amount for.
 
     1. the resolved food's own USDA portion that the words describe;
@@ -1213,7 +1213,8 @@ async def _resolve_portion(comp, est: dict) -> tuple[float, str] | None:
     from app.services import food_match_verifier
     text = (getattr(comp, "source_text", "") or "").strip() or comp.food_name
     try:
-        assumed = await food_match_verifier.assumed_portion(text, est.get("food_name") or comp.food_name)
+        assumed = await food_match_verifier.assumed_portion(
+            text, est.get("food_name") or comp.food_name, meal)
     except food_match_verifier.Unavailable:
         return None
     if assumed is None:
@@ -1500,7 +1501,7 @@ async def _estimate_meal_nutrients_body(
         # item "weight unknown" and left out with a caveat. Never 100 g.
         weight_unknown = False
         if portion_text == comp.qty_text and _weight_is_placeholder(comp.qty_text):
-            from_record = await _resolve_portion(comp, est)
+            from_record = await _resolve_portion(comp, est, description)
             if from_record is not None:
                 portion_g, portion_text = from_record
             else:

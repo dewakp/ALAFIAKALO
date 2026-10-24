@@ -247,7 +247,7 @@ def _offline_food_match_verifier(monkeypatch):
     async def _no_portion(text, food, portions):
         return None
 
-    async def _old_placeholder(text, food):
+    async def _old_placeholder(text, food, meal=""):
         # 100 g, the parser's former placeholder, so meal tests written before
         # portion resolution keep their meaning; the new behaviour is tested in
         # test_portion_resolution.py, which patches these explicitly.

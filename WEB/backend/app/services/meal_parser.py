@@ -401,7 +401,11 @@ _TYPE_DEFAULTS: dict[str, tuple[float, str]] = {
     "spice_mild":   (2.5,   "1 teaspoon"),
     "spread":       (16.0,  "1 tablespoon"),
     "oil":          (14.0,  "1 tablespoon"),
-    "other":        (30.0,  "default"),
+    # NOT "default": that word means "no weight was stated" to the estimator,
+    # which then resolves a whole serving. An ingredient listed inside a dish
+    # is a SHARE of that dish — measured 2026-10-23, labelling it "default"
+    # turned "juice(orange, mango, peach)" into three whole fruits.
+    "other":        (30.0,  "ingredient share"),
 }
 
 

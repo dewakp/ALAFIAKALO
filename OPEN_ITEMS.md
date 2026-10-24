@@ -5764,3 +5764,26 @@ Unresolved after the repair, by kind: abbreviations ("rcf" — 218 of user 63's
 meals; the operator's definition is Roasted Corn Flour, no record in the
 database states it), nutrient names ("vitamin a", "vitamin d", "calcium" —
 supplements, not foods), and parser debris ("by", "etc", "a cup", "plain").
+
+### 58i. Option C's first build overcounted three ways — found by the dry run, before any write
+
+The placeholder dry run (338 meals) moved potassium +48%. Read per item, that
+was the new code, not a correction:
+
+- **Recipe ingredients became whole servings.** A bracketed ingredient with no
+  amount carried the parser's 30 g share labelled `"default"` — the same word as
+  "no weight stated" — so "juice(orange, mango, peach)" became three whole fruits.
+  Now labelled "ingredient share".
+- **Counts were ignored for an assumed portion**: "3 Applegates chicken patties"
+  became ONE 85 g serving. The model is now asked for the amount the words
+  describe, with the whole meal as context ("pepper soup mix" beside beans and
+  rice was a 240 g soup; it is a seasoning).
+- **USDA portions recorded for several units were not divided**: 'slices (1/4"
+  thick)' = 53 g for AMOUNT 10, so 8 slices were 424 g, not 42 g.
+
+`e028cb5` carried all three into production for about an hour; the fix follows.
+
+**Separate fault, not yet fixed:** some meal descriptions contain the PHOTO
+READER's notes ("tostones or maduros style", "possibly beef or goat", "likely
+soy-based or tamarind-based") because the photo flow copied them into the food
+name, and the parser turns each into an item.

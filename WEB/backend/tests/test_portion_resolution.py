@@ -62,7 +62,7 @@ async def test_the_records_own_portion_is_used(monkeypatch, db):
 
 
 async def test_otherwise_an_assumed_serving_labelled_as_one(monkeypatch, db):
-    async def assume(text, food):
+    async def assume(text, food, meal=""):
         return 150.0, 120.0, 200.0
     monkeypatch.setattr(food_match_verifier, "assumed_portion", assume)
     monkeypatch.setattr(ne, "estimate_nutrients", _estimate({"calories": 250.0}))
@@ -76,7 +76,7 @@ async def test_otherwise_an_assumed_serving_labelled_as_one(monkeypatch, db):
 
 
 async def test_weight_unknown_is_not_counted_and_says_so(monkeypatch, db):
-    async def no(text, food):
+    async def no(text, food, meal=""):
         return None
     monkeypatch.setattr(food_match_verifier, "assumed_portion", no)
     monkeypatch.setattr(ne, "estimate_nutrients", _estimate({"calories": 250.0}))
@@ -87,3 +87,26 @@ async def test_weight_unknown_is_not_counted_and_says_so(monkeypatch, db):
     assert beef["qty_g"] is None and beef["counted"] is False
     assert any("weight unknown" in x for x in out["excluded_components"])
     assert out["aggregate_nutrients"]["calories"] == 500.0   # the rice only
+
+
+async def test_a_portion_recorded_for_several_units_is_divided(monkeypatch, db):
+    """USDA: 'slices (1/4" thick)' = 53 g for AMOUNT 10. Eight slices of fried
+    plantain were stored as 424 g (53 g each) instead of 42 g."""
+    monkeypatch.setattr(ne, "_portion_from_record", _REAL_PORTION_FROM_RECORD)
+    monkeypatch.setattr(ne, "_portion_cache", {})
+
+    async def detail(fdc_id):
+        return {"portions": [{"description": 'slices (1/4" thick)', "gram_weight": 53.0, "amount": 10.0}]}
+
+    async def pick(text, food, portions):
+        return 0, 8.0
+
+    monkeypatch.setattr(ne, "get_usda_food_detail", detail)
+    monkeypatch.setattr(food_match_verifier, "choose_portion", pick)
+    monkeypatch.setattr(ne, "estimate_nutrients", _estimate({"calories": 309.0}, fdc_id=168199,
+                                                              name="Plantains, green, fried"))
+
+    out = await ne.estimate_meal_nutrients(db, "fried plantains")   # no weight stated
+
+    [c] = out["components"]
+    assert c["qty_g"] == 42.4
