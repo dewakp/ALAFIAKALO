@@ -738,6 +738,16 @@
         }
       }
     },
+    "%@ · %lld×" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld×"
+          }
+        }
+      }
+    },
     "%@ (%lld)" : {
       "localizations" : {
         "en" : {
@@ -824,6 +834,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ → %2$@ kg"
+          }
+        }
+      }
+    },
+    "%@ already has an amount, or is no longer in this meal." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ لديه بالفعل كمية، أو لم يعد في هذه الوجبة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ hat bereits eine Menge oder ist nicht mehr in dieser Mahlzeit."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ya tiene una cantidad, o ya no está en esta comida."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ a déjà une quantité, ou ne fait plus partie de ce repas."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ya kasance da adadi, ko ba shi cikin wannan abinci ba."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ nwere ihe ọtụtụ na-adị, ma ọ bụ na ọ nọ na nri a."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ já tem uma quantidade ou não está mais nesta refeição."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tayari ina kiasi, au haipo tena katika hii chakula."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ti ni iye kan tabi ko si ninu ounjẹ yii."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已有数量，或不在此餐食中。"
           }
         }
       }
@@ -7534,6 +7608,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加备注…"
+          }
+        }
+      }
+    },
+    "Add amounts" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إضافة كميات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mengen hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar cantidades"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter des quantités"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ƙara adadi"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinye ihe ọtụtụ"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar quantidades"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongeza kiasi"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fi iye kun"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加数量"
           }
         }
       }
@@ -22846,6 +22984,70 @@
         }
       }
     },
+    "Could not load this meal's items. Please try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحميل عناصر هذه الوجبة. يرجى المحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Artikel dieser Mahlzeit konnten nicht geladen werden. Bitte versuchen Sie es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar los alimentos de esta comida. Intenta de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger les éléments de ce repas. Veuillez réessayer."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ba a iya lodin abubuwan wannan abinci ba. Jiya sake gwadawa."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enweghị ike ịlọ ihe nri a. Biko zaa ọzọ."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar os itens desta refeição. Tente novamente."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haiwezi kupakia vipengele vya chakula hiki. Tafadhali jaribu tena."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aye le ka awọn ohun ti ounjẹ yii. Jọwọ gbiyanju lẹẹkansi."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载此餐食的项目。请重试。"
+          }
+        }
+      }
+    },
     "Could not load your therapy answers. Nothing has been changed." : {
       "localizations" : {
         "ar" : {
@@ -23034,6 +23236,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法保存该更改。请重试。"
+          }
+        }
+      }
+    },
+    "Could not save the amounts. Please try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر حفظ الكميات. يرجى المحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Mengen konnten nicht gespeichert werden. Bitte versuchen Sie es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar las cantidades. Intenta de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'enregistrer les quantités. Veuillez réessayer."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ba a iya ajiye adadi ba. Jiya sake gwadawa."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enweghị ike ịchekwa ihe ọtụtụ. Biko zaa ọzọ."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível salvar as quantidades. Tente novamente."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haiwezi kuhifadhi kiasi. Tafadhali jaribu tena."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aye le fi awọn iye pamọ. Jọwọ gbiyanju lẹẹkansi."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保存数量。请重试。"
           }
         }
       }
@@ -31498,6 +31764,70 @@
         }
       }
     },
+    "e.g. 200 g, 1 cup, 350 ml" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مثلاً 200 g أو 1 cup أو 350 ml"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "z. B. 200 g, 1 Tasse, 350 ml"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "p. ej. 200 g, 1 taza, 350 ml"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "p. ex. 200 g, 1 tasse, 350 ml"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "misali 200 g, 1 cup, 350 ml"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dịka ọmụmaatụ 200 g, 1 cup, 350 ml"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ex. 200 g, 1 xícara, 350 ml"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k.m. 200 g, 1 kikombe, 350 ml"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fun apẹẹrẹ 200 g, 1 cup, 350 ml"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如 200 克、1 杯、350 毫升"
+          }
+        }
+      }
+    },
     "e.g. bad knees, lower back pain" : {
       "localizations" : {
         "ar" : {
@@ -33610,6 +33940,70 @@
         }
       }
     },
+    "Enter a weight or measure for %@ — for example 200 g or 1 cup." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أدخل وزناً أو مقياساً لـ %@ — على سبيل المثال 200 g أو 1 cup."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geben Sie ein Gewicht oder Maß für %@ ein — zum Beispiel 200 g oder 1 Tasse."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingresa un peso o medida para %@ — por ejemplo 200 g o 1 taza."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrez un poids ou une mesure pour %@ — par exemple 200 g ou 1 tasse."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shigar da nauyi ko auna don %@ — misali 200 g ko 1 cup."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinye ibu ma ọ bụ ihe ọtụtụ maka %@ — dịka ọmụmaatụ 200 g ma ọ bụ 1 cup."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digite um peso ou medida para %@ — por exemplo 200 g ou 1 xícara."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingiza uzani au kipimo kwa %@ — kwa mfano 200 g au 1 kikombe."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tẹ iwuwo tabi iwọn fun %@ — fun apẹẹrẹ 200 g tabi 1 cup."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入 %@ 的重量或份量 — 例如 200 克或 1 杯。"
+          }
+        }
+      }
+    },
     "Enter it as HR:MIN (7:27) or as minutes (447)." : {
       "localizations" : {
         "ar" : {
@@ -34182,6 +34576,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "估算中…"
+          }
+        }
+      }
+    },
+    "Every item in this meal already has an amount." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كل عنصر في هذه الوجبة لديه بالفعل كمية."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeder Artikel in dieser Mahlzeit hat bereits eine Menge."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los alimentos en esta comida ya tienen una cantidad."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque élément de ce repas a déjà une quantité."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kowane abu a cikin wannan abinci ya kasance da adadi."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihe niile na nri a nwere ihe ọtụtụ na-adị."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos os itens desta refeição já têm uma quantidade."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kila kipengele katika chakula hiki tayari kina kiasi."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohun kọọkan ninu ounjẹ yii ti ni iye kan tẹlẹ."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此餐食中的每一项都已有数量。"
           }
         }
       }
@@ -42770,6 +43228,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你现在感觉怎么样？"
+          }
+        }
+      }
+    },
+    "How much did you have?" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كم تناولت؟"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie viel haben Sie zu sich genommen?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cuánto consumiste?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combien en avez-vous consommé ?"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nawa ne ka ci?"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kedu ihe ọtụtụ i were?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quanto você consumiu?"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulikula kiasi gani?"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iye wo ni o gbe?"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您吃了多少？"
           }
         }
       }
@@ -77233,6 +77755,70 @@
         }
       }
     },
+    "Save amounts" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حفظ الكميات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mengen speichern"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar cantidades"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer les quantités"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajiye adadi"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chekwa ihe ọtụtụ"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvar quantidades"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hifadhi kiasi"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fi awọn iye pamọ"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存数量"
+          }
+        }
+      }
+    },
     "Save Physician" : {
       "localizations" : {
         "ar" : {
@@ -99511,6 +100097,70 @@
         }
       }
     },
+    "You haven't given an amount for this before." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم تحدد كمية لهذا من قبل."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie haben dafür noch keine Menge angegeben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No has ingresado una cantidad para esto antes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous n'avez pas donné de quantité pour cela auparavant."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ba ka ba da adadi don wannan jiya."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I nyebeghị ihe ọtụtụ maka nke a tupu."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você não informou uma quantidade para isto antes."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haujapea kiasi kwa hii hapo awali."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O ko ti fun iye fun eyi tẹlẹ."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您之前未输入过此项的数量。"
+          }
+        }
+      }
+    },
     "you logged it" : {
       "localizations" : {
         "ar" : {
@@ -100025,6 +100675,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您的数据权利"
+          }
+        }
+      }
+    },
+    "Your earlier amounts:" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كمياتك السابقة:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihre früheren Mengen:"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus cantidades anteriores:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos quantités précédentes :"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adadin da ka ba jiya:"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihe ọtụtụ gị n'oge gara aga:"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suas quantidades anteriores:"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiasi chako cha awali:"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awọn iye rẹ ti tẹlẹ:"
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您之前的数量："
           }
         }
       }

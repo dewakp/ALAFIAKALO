@@ -10025,6 +10025,90 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MissingAmounts.add_amounts": {
+    "source": "Add amounts",
+    "translation": "Ṣe Àpapọ̀ Iye",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.cancel": {
+    "source": "Cancel",
+    "translation": "Fagile",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.failed": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "Àwọn iye náà kò lè tọ́jú. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.load_failed": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "Àwọn ohun inú oúnjẹ yìí kò lè lo. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.loading": {
+    "source": "Loading…",
+    "translation": "Ntitẹ̀…",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.no_such_item": {
+    "source": "{{food}} already has an amount, or is no longer in this meal.",
+    "translation": "{{food}} ti ní iye tẹ́lẹ̀, tàbí kò sí nínú oúnjẹ yìí mọ́.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.none_before": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "O kò tí i fi iye fún èyí rí.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.not_a_measure": {
+    "source": "Enter a weight or measure for {{food}} — for example 200 g or 1 cup.",
+    "translation": "Tẹ̀ iwuwo tàbí ìwọ̀n fún {{food}} — fún àpẹẹrẹ 200 g tàbí 1 cup.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.nothing": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "Ohun kọ̀ọ̀kan nínú oúnjẹ yìí ti ní iye tẹ́lẹ̀.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.placeholder": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "fún àpẹẹrẹ 200 g, 1 cup, 350 ml",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.save": {
+    "source": "Save amounts",
+    "translation": "Tọ́jú Àwọn Iye",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.times": {
+    "source": "{{amount}} · {{times}}×",
+    "translation": "{{amount}} · {{times}}×",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.title": {
+    "source": "How much did you have?",
+    "translation": "Iye wo ni o gba?",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.your_earlier": {
+    "source": "Your earlier amounts:",
+    "translation": "Àwọn iye rẹ tẹ́lẹ̀:",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Mood.anxiety_1_10": {
     "source": "Anxiety (1-10): {{anxiety_level}}",
     "translation": "Ìbẹ̀rù (1-10): {{anxiety_level}}",

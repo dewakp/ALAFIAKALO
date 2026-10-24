@@ -1499,6 +1499,20 @@ rule, so one slip does not teach everybody). Photo corrections
 (`food_training_samples`) and per-user shorthand ("RCF" = roasted corn flour,
 awaiting the operator's confirmation of the source) are the same loop.
 
+**Quantity — BUILT 2026-10-24** (web, iOS, Android). `services/amount_history.py`;
+`GET /nutrition/{id}/missing-amounts` returns the items the estimate left out
+for want of an amount, each with the amounts THIS patient has typed for that food
+before (verbatim in their own phrase — 971 amounts / 314 foods on the reference
+record, read in 0.05 s); `POST /nutrition/{id}/amounts` writes the confirmed or
+typed amount into the meal's text before its item and re-estimates. A bare count
+or a non-measure is refused (422, `code` for the client to translate), nothing
+written. Meals carry `needs_amount` (server-computed) so no client matches on the
+estimator's wording. Clients: web `MissingAmounts.jsx` on the Nutrition row, iOS
+`MissingAmountsView` sheet, Android `MissingAmountsDialog`.
+
+**Identification — NOT started.** The confirm/correct control on `matched_name`
+below is the next half.
+
 **What exists / what is missing.** Stores: `food_training_samples`,
 `learned_food_nutrients.record_correction(user_id=…)`, `nutrition_log_components`.
 Missing: a verification state (proposed / confirmed / rejected) on the learned

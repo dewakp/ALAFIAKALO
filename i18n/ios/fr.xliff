@@ -111,6 +111,11 @@
         <source>%1$@ (%2$lld)</source>
         <note />
       </trans-unit>
+      <trans-unit id="%@ already has an amount, or is no longer in this meal." xml:space="preserve">
+        <source>%@ already has an amount, or is no longer in this meal.</source>
+        <target state="translated">%@ a déjà une quantité, ou ne fait plus partie de ce repas.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="%@ kcal · P %@ g" xml:space="preserve">
         <source>%1$@ kcal · P %2$@ g</source>
         <target state="translated">%1$@ kcal · P %2$@ g</target>
@@ -129,6 +134,10 @@
       <trans-unit id="%@ on %@" xml:space="preserve">
         <source>%1$@ on %2$@</source>
         <target state="translated">%1$@ le %2$@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="%@ · %lld×" xml:space="preserve">
+        <source>%1$@ · %2$lld×</source>
         <note />
       </trans-unit>
       <trans-unit id="%@ — %@" xml:space="preserve">
@@ -810,6 +819,11 @@
       <trans-unit id="Add a note…" xml:space="preserve">
         <source>Add a note…</source>
         <target state="translated">Ajouter une note…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Add amounts" xml:space="preserve">
+        <source>Add amounts</source>
+        <target state="translated">Ajouter des quantités</target>
         <note />
       </trans-unit>
       <trans-unit id="Add an operation" xml:space="preserve">
@@ -1846,6 +1860,11 @@
         <target state="translated">Impossible de charger les éléments de ce repas.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Could not load this meal's items. Please try again." xml:space="preserve">
+        <source>Could not load this meal's items. Please try again.</source>
+        <target state="translated">Impossible de charger les éléments de ce repas. Veuillez réessayer.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Could not load your therapy answers. Nothing has been changed." xml:space="preserve">
         <source>Could not load your therapy answers. Nothing has been changed.</source>
         <target state="translated">Impossible de charger vos réponses de traitement. Rien n'a été modifié.</target>
@@ -1859,6 +1878,11 @@
       <trans-unit id="Could not save that change. Please try again." xml:space="preserve">
         <source>Could not save that change. Please try again.</source>
         <target state="translated">Impossible d'enregistrer cette modification. Veuillez réessayer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Could not save the amounts. Please try again." xml:space="preserve">
+        <source>Could not save the amounts. Please try again.</source>
+        <target state="translated">Impossible d'enregistrer les quantités. Veuillez réessayer.</target>
         <note />
       </trans-unit>
       <trans-unit id="Could not verify the purchase with the App Store." xml:space="preserve">
@@ -2636,6 +2660,11 @@
         <target state="translated">Entrer un résultat</target>
         <note />
       </trans-unit>
+      <trans-unit id="Enter a weight or measure for %@ — for example 200 g or 1 cup." xml:space="preserve">
+        <source>Enter a weight or measure for %@ — for example 200 g or 1 cup.</source>
+        <target state="translated">Entrez un poids ou une mesure pour %@ — par exemple 200 g ou 1 tasse.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Enter it as HR:MIN (7:27) or as minutes (447)." xml:space="preserve">
         <source>Enter it as HR:MIN (7:27) or as minutes (447).</source>
         <target state="translated">Entrez-le en HH:MM (7:27) ou en minutes (447).</target>
@@ -2674,6 +2703,11 @@
       <trans-unit id="Estimates. Each item's figures come from the record shown beside it." xml:space="preserve">
         <source>Estimates. Each item's figures come from the record shown beside it.</source>
         <target state="translated">Estimations. Les chiffres de chaque élément proviennent de l'enregistrement affiché à côté.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Every item in this meal already has an amount." xml:space="preserve">
+        <source>Every item in this meal already has an amount.</source>
+        <target state="translated">Chaque élément de ce repas a déjà une quantité.</target>
         <note />
       </trans-unit>
       <trans-unit id="Every operation on your record, including those with no hospital stay attached." xml:space="preserve">
@@ -3338,6 +3372,11 @@
       <trans-unit id="How do you feel now?" xml:space="preserve">
         <source>How do you feel now?</source>
         <target state="translated">Comment vous sentez-vous maintenant ?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="How much did you have?" xml:space="preserve">
+        <source>How much did you have?</source>
+        <target state="translated">Combien en avez-vous consommé ?</target>
         <note />
       </trans-unit>
       <trans-unit id="How's your day going?" xml:space="preserve">
@@ -6012,6 +6051,11 @@
         <target state="translated">Enregistrer la session</target>
         <note />
       </trans-unit>
+      <trans-unit id="Save amounts" xml:space="preserve">
+        <source>Save amounts</source>
+        <target state="translated">Enregistrer les quantités</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Saved" xml:space="preserve">
         <source>Saved</source>
         <target state="translated">Enregistré</target>
@@ -7716,6 +7760,11 @@ Are you absolutely sure?</source>
         <target state="translated">Vous n'avez rien enregistré vous-même pour cette date.</target>
         <note />
       </trans-unit>
+      <trans-unit id="You haven't given an amount for this before." xml:space="preserve">
+        <source>You haven't given an amount for this before.</source>
+        <target state="translated">Vous n'avez pas donné de quantité pour cela auparavant.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="You regularly log %lld medication%@ that aren’t on this list" xml:space="preserve">
         <source>You regularly log %1$lld medication%2$@ that aren’t on this list</source>
         <target state="translated">Vous enregistrez régulièrement %1$lld médicament%2$@ qui ne figurent pas sur cette liste</target>
@@ -7749,6 +7798,11 @@ Are you absolutely sure?</source>
       <trans-unit id="Your data is protected according to applicable healthcare privacy regulations." xml:space="preserve">
         <source>Your data is protected according to applicable healthcare privacy regulations.</source>
         <target state="translated">Vos données sont protégées conformément aux réglementations applicables en matière de confidentialité des données de santé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Your earlier amounts:" xml:space="preserve">
+        <source>Your earlier amounts:</source>
+        <target state="translated">Vos quantités précédentes :</target>
         <note />
       </trans-unit>
       <trans-unit id="Your hospital history could not be loaded" xml:space="preserve">
@@ -7834,6 +7888,11 @@ Are you absolutely sure?</source>
       <trans-unit id="document: “%@”" xml:space="preserve">
         <source>document: “%@”</source>
         <target state="translated">document : « %@ »</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="e.g. 200 g, 1 cup, 350 ml" xml:space="preserve">
+        <source>e.g. 200 g, 1 cup, 350 ml</source>
+        <target state="translated">p. ex. 200 g, 1 tasse, 350 ml</target>
         <note />
       </trans-unit>
       <trans-unit id="e.g. EDTA, SST" xml:space="preserve">

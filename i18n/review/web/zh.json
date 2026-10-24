@@ -10025,6 +10025,90 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MissingAmounts.add_amounts": {
+    "source": "Add amounts",
+    "translation": "添加份量",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.cancel": {
+    "source": "Cancel",
+    "translation": "取消",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.failed": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "无法保存份量。请重试。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.load_failed": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "无法加载这餐的项目。请重试。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.loading": {
+    "source": "Loading…",
+    "translation": "加载中…",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.no_such_item": {
+    "source": "{{food}} already has an amount, or is no longer in this meal.",
+    "translation": "{{food}} 已有份量，或不在这餐中。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.none_before": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "你之前没有记录过这个份量。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.not_a_measure": {
+    "source": "Enter a weight or measure for {{food}} — for example 200 g or 1 cup.",
+    "translation": "请输入 {{food}} 的重量或份量 — 例如 200 克或 1 杯。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.nothing": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "这餐中的每一项都已有份量。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.placeholder": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "例如 200 克、1 杯、350 毫升",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.save": {
+    "source": "Save amounts",
+    "translation": "保存份量",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.times": {
+    "source": "{{amount}} · {{times}}×",
+    "translation": "{{amount}} · {{times}}×",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.title": {
+    "source": "How much did you have?",
+    "translation": "你吃了多少？",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.your_earlier": {
+    "source": "Your earlier amounts:",
+    "translation": "你之前的份量：",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Mood.anxiety_1_10": {
     "source": "Anxiety (1-10): {{anxiety_level}}",
     "translation": "焦虑 (1-10)：{{anxiety_level}}",

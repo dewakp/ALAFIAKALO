@@ -3188,5 +3188,21 @@
   },
   "AlertDialog": {
     "dismiss": "Sallame"
+  },
+  "MissingAmounts": {
+    "add_amounts": "Ƙara adadi",
+    "title": "Nawa ne ka ci?",
+    "loading": "Ana jira…",
+    "nothing": "Kowane abu a cikin wannan abinci yana da adadi.",
+    "your_earlier": "Adadin da ka bayar jiya:",
+    "times": "{{amount}} · {{times}}×",
+    "none_before": "Ba ka taɓa bayar da adadi ga wannan jiya.",
+    "placeholder": "Misali: 200 g, 1 cup, 350 ml",
+    "save": "Ajiye adadi",
+    "cancel": "Soke",
+    "not_a_measure": "Shigar da nauyi ko auna ga {{food}} — misali 200 g ko 1 cup.",
+    "no_such_item": "{{food}} yana da adadi, ko ba shi cikin wannan abinci ba.",
+    "failed": "Ba a iya ajiye adadi ba. Jiya sake gwada.",
+    "load_failed": "Ba a iya jefa abubuwan wannan abinci ba. Jiya sake gwada."
   }
 }

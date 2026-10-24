@@ -365,9 +365,11 @@ struct NutritionView: View {
             } else {
                 List {
                     ForEach(vm.logs) { log in
-                        NutritionRow(log: log) {
+                        NutritionRow(log: log, onTapUSDA: {
                             if let fdc = log.fdcId { detailFdcId = fdc }
-                        }
+                        }, onAmountsSaved: {
+                            Task { await vm.fetchLogs() }
+                        })
                         // Swipe to correct a meal. Deleting one was already
                         // possible; fixing it was not.
                         .swipeActions(edge: .leading) {
@@ -633,7 +635,11 @@ struct DailyTargetsCard: View {
 struct NutritionRow: View {
     let log: NutritionLog
     var onTapUSDA: () -> Void = {}
+    /// Called after the patient saves amounts for items that had none, so the
+    /// list reloads and shows the meal re-estimating (TASKS 25).
+    var onAmountsSaved: () -> Void = {}
     @State private var showPhoto = false
+    @State private var showAmounts = false
     @State private var showNutrients = false
     @State private var showItems = false
 
@@ -706,6 +712,15 @@ struct NutritionRow: View {
                     .font(.caption2)
                     .foregroundStyle(.orange)
             }
+            // An item left out for want of an amount: the patient gives it,
+            // offered their own earlier amounts (TASKS 25).
+            if !(log.needsAmount ?? []).isEmpty {
+                Button { showAmounts = true } label: {
+                    Text("Add amounts").font(.caption2.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+            }
             HStack(spacing: 12) {
                 if let p = log.proteinG { MacroPill(label: "P", value: p, color: .blue) }
                 if let c = log.carbsG { MacroPill(label: "C", value: c, color: .orange) }
@@ -752,6 +767,12 @@ struct NutritionRow: View {
         .padding(.vertical, 4)
         .sheet(isPresented: $showPhoto) {
             MealPhotoView(mediaPath: log.foodImageUris ?? "", title: log.foodName)
+        }
+        .sheet(isPresented: $showAmounts) {
+            MissingAmountsView(logId: log.id) {
+                showAmounts = false
+                onAmountsSaved()
+            }
         }
     }
 }
@@ -1745,6 +1766,167 @@ struct MealItemsView: View {
         if let m = c.matchedName { parts.append(AppLanguage.text("matched to") + " " + m) }
         if let s = c.source { parts.append(s) }
         return parts.joined(separator: " · ")
+    }
+}
+
+// MARK: - Missing amounts (TASKS 25)
+
+struct AmountSuggestion: Decodable, Hashable {
+    let amount: String
+    let times: Int
+    let lastDate: String?
+    enum CodingKeys: String, CodingKey {
+        case amount, times
+        case lastDate = "last_date"
+    }
+}
+
+struct MissingAmountItem: Decodable, Identifiable {
+    let foodName: String
+    let suggestions: [AmountSuggestion]
+    var id: String { foodName }
+    enum CodingKeys: String, CodingKey {
+        case suggestions
+        case foodName = "food_name"
+    }
+}
+
+struct MissingAmountsResponse: Decodable {
+    let items: [MissingAmountItem]
+}
+
+private struct MealAmountsBody: Encodable {
+    let amounts: [String: String]
+}
+
+private struct AmountRefusal: Decodable {
+    struct Detail: Decodable {
+        let code: String?
+        let foodName: String?
+        enum CodingKeys: String, CodingKey {
+            case code
+            case foodName = "food_name"
+        }
+    }
+    let detail: Detail
+}
+
+/// The patient gives the amount; the app only offers what THEY said before.
+/// An item logged with no amount is not counted; this asks for it, showing the
+/// amounts this patient has stated for that food earlier — their own history,
+/// never an estimate. Nothing is written until Save, and what is written is
+/// their amount, which becomes history too. Mirrors web `MissingAmounts`,
+/// Android `MissingAmountsDialog`.
+struct MissingAmountsView: View {
+    let logId: Int
+    var onSaved: () -> Void
+
+    private enum Problem: Equatable {
+        case loadFailed, saveFailed
+        case notAMeasure(String)
+        case noSuchItem(String)
+    }
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var items: [MissingAmountItem]?
+    @State private var values: [String: String] = [:]
+    @State private var problem: Problem?
+    @State private var busy = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if let items {
+                    if items.isEmpty {
+                        Text("Every item in this meal already has an amount.")
+                    }
+                    ForEach(items) { item in
+                        Section(item.foodName) {
+                            if item.suggestions.isEmpty {
+                                Text("You haven't given an amount for this before.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                Text("Your earlier amounts:").font(.caption).foregroundStyle(.secondary)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack {
+                                        ForEach(item.suggestions, id: \.self) { s in
+                                            Button("\(s.amount) · \(s.times)×") {
+                                                values[item.foodName] = s.amount
+                                            }
+                                            .buttonStyle(.bordered)
+                                        }
+                                    }
+                                }
+                            }
+                            TextField("e.g. 200 g, 1 cup, 350 ml", text: Binding(
+                                get: { values[item.foodName] ?? "" },
+                                set: { values[item.foodName] = $0 }))
+                            .textInputAutocapitalization(.never)
+                        }
+                    }
+                } else if problem == nil {
+                    ProgressView()
+                }
+                if let problem {
+                    Section { problemText(problem).foregroundStyle(.orange) }
+                }
+            }
+            .navigationTitle(Text("How much did you have?"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save amounts") { Task { await save() } }
+                        .disabled(busy || (items ?? []).isEmpty)
+                }
+            }
+            .task { await load() }
+        }
+    }
+
+    @ViewBuilder
+    private func problemText(_ p: Problem) -> some View {
+        switch p {
+        case .loadFailed: Text("Could not load this meal's items. Please try again.")
+        case .saveFailed: Text("Could not save the amounts. Please try again.")
+        case .notAMeasure(let food): Text("Enter a weight or measure for \(food) — for example 200 g or 1 cup.")
+        case .noSuchItem(let food): Text("\(food) already has an amount, or is no longer in this meal.")
+        }
+    }
+
+    private func load() async {
+        do {
+            let r: MissingAmountsResponse = try await APIClient.shared.get("/nutrition/\(logId)/missing-amounts")
+            items = r.items
+        } catch {
+            // An error is not an empty state: never say "nothing missing".
+            problem = .loadFailed
+        }
+    }
+
+    private func save() async {
+        let amounts = values.mapValues { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.value.isEmpty }
+        guard !amounts.isEmpty else { return }
+        busy = true
+        defer { busy = false }
+        problem = nil
+        do {
+            let _: NutritionLog = try await APIClient.shared.post(
+                "/nutrition/\(logId)/amounts", body: MealAmountsBody(amounts: amounts))
+            onSaved()
+        } catch APIError.structured(_, _, let body) {
+            let d = (try? JSONDecoder().decode(AmountRefusal.self, from: body))?.detail
+            let food = d?.foodName ?? ""
+            switch d?.code {
+            case "not_a_measure", "empty": problem = .notAMeasure(food)
+            case "no_such_item": problem = .noSuchItem(food)
+            default: problem = .saveFailed
+            }
+        } catch {
+            problem = .saveFailed
+        }
     }
 }
 

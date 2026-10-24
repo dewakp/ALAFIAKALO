@@ -3188,5 +3188,21 @@
   },
   "AlertDialog": {
     "dismiss": "关闭"
+  },
+  "MissingAmounts": {
+    "add_amounts": "添加份量",
+    "title": "你吃了多少？",
+    "loading": "加载中…",
+    "nothing": "这餐中的每一项都已有份量。",
+    "your_earlier": "你之前的份量：",
+    "times": "{{amount}} · {{times}}×",
+    "none_before": "你之前没有记录过这个份量。",
+    "placeholder": "例如 200 克、1 杯、350 毫升",
+    "save": "保存份量",
+    "cancel": "取消",
+    "not_a_measure": "请输入 {{food}} 的重量或份量 — 例如 200 克或 1 杯。",
+    "no_such_item": "{{food}} 已有份量，或不在这餐中。",
+    "failed": "无法保存份量。请重试。",
+    "load_failed": "无法加载这餐的项目。请重试。"
   }
 }

@@ -5834,3 +5834,31 @@ event existed."*
   `active_response`: a meal, dose or reading dated before the patient's
   yesterday is not judged, whoever calls. `notify` alone depended on every
   caller remembering.
+
+### 58k. A bracket was parsed as extra FOODS — 2026-10-24 (fixed going forward)
+
+Found while building TASKS 25: the amount prompt would have asked "How much
+*cooked*?". Measured on 1,107 meals, 223 of 288 bracketed items were a
+description or an unmeasured ingredient list — "(cooked)", "(ripe with brown
+spots)", "Okro soup(crowfeet, cow skin, crayfish)" — and each word was stored as
+a separate food. Production: meal 1116 counted "ripe with brown spots" at
+27 kcal; meal 1118 held "cooked", "cooked/stewed" and "cooking medium" as items.
+
+Now a bracket EXPANDS only when the patient measured something in it (a number
+the parser reads as an amount, anywhere in the phrase — "(with 2 eggs)" is eggs
+x2, and used to parse as a food named "with eggs"). Otherwise it is the item's
+`qualifier`. Lookups stay by the bare item name: learned and cached foods are
+keyed by it (the description missed the printed Boost label), and USDA's search
+answers 400 to "(", ")" and "-".
+
+**Still open, recorded not fixed:**
+- A MEASURED recipe still counts its dish as well as its items — "1 bow of
+  custard mix(2 tablespoons custard powder, 1 cup milk)" has three components.
+  Whether the dish is the sum of its items is the patient's statement to read,
+  and 65 of 288 bracketed items are this shape.
+- Vague units carry an assumed weight inside the parser: "3 Pieces of Sardines"
+  parses as 300 g (100 g a piece). The same kind of assumption as the ones
+  removed today; a piece, bowl or can should go through the food's own USDA
+  unit like a bare count.
+- Names the parser mangles: "spoons of unsalted butter", "carton",
+  "numb earl grey tea", "a bowl of egusi soup" (the whole phrase as the food).

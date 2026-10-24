@@ -129,7 +129,8 @@ fun NutritionScreen() {
                                     try { api.deleteNutritionLog(log.id); loadLogs() } catch (_: Exception) {}
                                 }
                             }, onViewDetail = { fdcId -> detailFdcId = fdcId },
-                               onEdit = { editingLog = log })
+                               onEdit = { editingLog = log },
+                               onAmountsSaved = { scope.launch { loadLogs() } })
                         }
                     }
                 }
@@ -526,8 +527,16 @@ private fun NutritionLogCard(
     onDelete: () -> Unit,
     onViewDetail: (Int) -> Unit,
     onEdit: () -> Unit = {},
+    onAmountsSaved: () -> Unit = {},
 ) {
     var showPhoto by remember { mutableStateOf(false) }
+    var showAmounts by remember { mutableStateOf(false) }
+    if (showAmounts) {
+        MissingAmountsDialog(logId = log.id, onDismiss = { showAmounts = false }) {
+            showAmounts = false
+            onAmountsSaved()
+        }
+    }
     var showNutrients by remember { mutableStateOf(false) }
     var showItems by remember { mutableStateOf(false) }
     if (showPhoto) {
@@ -645,6 +654,16 @@ private fun NutritionLogCard(
                 log.fiberG?.let { NutrientPill(stringResource(R.string.fiber), it, Color(0xFF78350F)) }
             }
 
+            // An item left out for want of an amount: the patient gives it,
+            // offered their own earlier amounts (TASKS 25).
+            if (log.needsAmount.orEmpty().isNotEmpty()) {
+                OutlinedButton(onClick = { showAmounts = true },
+                               contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                               modifier = Modifier.padding(top = 4.dp).height(30.dp)) {
+                    Text(stringResource(R.string.add_amounts), fontSize = 12.sp)
+                }
+            }
+
             // The items this meal was estimated from — fetched on open.
             TextButton(onClick = { showItems = !showItems },
                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)) {
@@ -660,6 +679,108 @@ private fun NutritionLogCard(
             }
             if (showNutrients) NutrientPanel(log)
         }
+    }
+}
+
+/**
+ * The patient gives the amount; the app only offers what THEY said before
+ * (TASKS 25). An item logged with no amount is not counted; this asks for it,
+ * showing the amounts this patient has stated for that food earlier — their own
+ * history, never an estimate. Nothing is written until Save, and what is written
+ * is their amount, which becomes history too. Mirrors web `MissingAmounts` and
+ * iOS `MissingAmountsView`.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MissingAmountsDialog(logId: Int, onDismiss: () -> Unit, onSaved: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var items by remember(logId) { mutableStateOf<List<MissingAmountItem>?>(null) }
+    var loadFailed by remember(logId) { mutableStateOf(false) }
+    val values = remember(logId) { mutableStateMapOf<String, String>() }
+    var problem by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val notAMeasure = stringResource(R.string.amount_not_a_measure)
+    val noSuchItem = stringResource(R.string.amount_no_such_item)
+    val saveFailed = stringResource(R.string.amounts_save_failed)
+    LaunchedEffect(logId) {
+        try {
+            items = ApiClient.getApiService().getMissingAmounts(logId).items
+        } catch (e: Exception) {
+            loadFailed = true  // an error is not an empty state: never "nothing missing"
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.how_much_did_you_have)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()),
+                   verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val list = items
+                when {
+                    loadFailed -> Text(stringResource(R.string.amounts_load_failed),
+                                       color = MaterialTheme.colorScheme.error)
+                    list == null -> CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    list.isEmpty() -> Text(stringResource(R.string.every_item_has_an_amount))
+                    else -> list.forEach { item ->
+                        Text(item.foodName, fontWeight = FontWeight.SemiBold)
+                        if (item.suggestions.isEmpty()) {
+                            Text(stringResource(R.string.no_amount_before), fontSize = 12.sp,
+                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                        } else {
+                            Text(stringResource(R.string.your_earlier_amounts), fontSize = 12.sp,
+                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                item.suggestions.forEach { s ->
+                                    AssistChip(onClick = { values[item.foodName] = s.amount },
+                                               label = { Text(stringResource(R.string.amount_times, s.amount, s.times)) })
+                                }
+                            }
+                        }
+                        OutlinedTextField(
+                            value = values[item.foodName] ?: "",
+                            onValueChange = { values[item.foodName] = it },
+                            placeholder = { Text(stringResource(R.string.amount_placeholder)) },
+                            singleLine = true,
+                        )
+                    }
+                }
+                problem?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !busy && !items.isNullOrEmpty(), onClick = {
+                val amounts = values.mapValues { it.value.trim() }.filterValues { it.isNotEmpty() }
+                if (amounts.isEmpty()) return@TextButton
+                busy = true
+                problem = null
+                scope.launch {
+                    try {
+                        ApiClient.getApiService().setMealAmounts(logId, MealAmountsRequest(amounts))
+                        onSaved()
+                    } catch (e: Exception) {
+                        val d = amountRefusal(e)
+                        problem = when (d?.code) {
+                            "not_a_measure", "empty" -> String.format(notAMeasure, d.foodName ?: "")
+                            "no_such_item" -> String.format(noSuchItem, d.foodName ?: "")
+                            else -> saveFailed
+                        }
+                    } finally {
+                        busy = false
+                    }
+                }
+            }) { Text(stringResource(R.string.save_amounts)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** The 422 body of `POST nutrition/{id}/amounts`, or null for any other failure. */
+private fun amountRefusal(e: Exception): AmountRefusalDetail? {
+    if (e !is retrofit2.HttpException || e.code() != 422) return null
+    return try {
+        com.google.gson.Gson().fromJson(e.response()?.errorBody()?.string(), AmountRefusalBody::class.java)?.detail
+    } catch (_: Exception) {
+        null
     }
 }
 

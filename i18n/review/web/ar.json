@@ -10025,6 +10025,90 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MissingAmounts.add_amounts": {
+    "source": "Add amounts",
+    "translation": "إضافة الكميات",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.cancel": {
+    "source": "Cancel",
+    "translation": "إلغاء",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.failed": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "تعذر حفظ الكميات. يرجى المحاولة مجدداً.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.load_failed": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "تعذر تحميل عناصر هذه الوجبة. يرجى المحاولة مجدداً.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.loading": {
+    "source": "Loading…",
+    "translation": "جاري التحميل…",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.no_such_item": {
+    "source": "{{food}} already has an amount, or is no longer in this meal.",
+    "translation": "{{food}} له كمية بالفعل، أو لم يعد في هذه الوجبة.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.none_before": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "لم تحدد كمية لهذا من قبل.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.not_a_measure": {
+    "source": "Enter a weight or measure for {{food}} — for example 200 g or 1 cup.",
+    "translation": "أدخل وزناً أو مقياساً لـ {{food}} — مثلاً 200 غ أو كوب واحد.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.nothing": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "كل عنصر في هذه الوجبة له كمية بالفعل.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.placeholder": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "مثال: 200 غ، كوب واحد، 350 مل",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.save": {
+    "source": "Save amounts",
+    "translation": "حفظ الكميات",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.times": {
+    "source": "{{amount}} · {{times}}×",
+    "translation": "{{amount}} · {{times}}×",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.title": {
+    "source": "How much did you have?",
+    "translation": "كم تناولت؟",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.your_earlier": {
+    "source": "Your earlier amounts:",
+    "translation": "كمياتك السابقة:",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Mood.anxiety_1_10": {
     "source": "Anxiety (1-10): {{anxiety_level}}",
     "translation": "القلق (1-10): {{anxiety_level}}",

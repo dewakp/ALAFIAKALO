@@ -137,6 +137,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "add_amounts": {
+    "source": "Add amounts",
+    "translation": "添加数量",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "add_condition": {
     "source": "Add Condition",
     "translation": "添加病情",
@@ -574,6 +580,42 @@
     "translation": "用量",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "amount_no_such_item": {
+    "source": "%1$s already has an amount, or is no longer in this meal.",
+    "translation": "%1$s 已有数量，或不在此餐中。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amount_not_a_measure": {
+    "source": "Enter a weight or measure for %1$s — for example 200 g or 1 cup.",
+    "translation": "请输入 %1$s 的重量或份量 — 例如 200 g 或 1 杯。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amount_placeholder": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "例如 200 g、1 杯、350 ml",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amount_times": {
+    "source": "%1$s · %2$d×",
+    "translation": "%1$s · %2$d×",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amounts_load_failed": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "无法加载此餐的项目。请重试。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amounts_save_failed": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "无法保存数量。请重试。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "analyse_image_s_with_alafia": {
     "source": "Analyse Image(s) with Alafia",
@@ -2441,6 +2483,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "every_item_has_an_amount": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "此餐中的每个项目都已有数量。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "exchange": {
     "source": "Exchange #%1$s",
     "translation": "交换 #%1$s",
@@ -3208,6 +3256,12 @@
     "translation": "你现在感觉如何？",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "how_much_did_you_have": {
+    "source": "How much did you have?",
+    "translation": "你吃了多少？",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "how_you_are_identified": {
     "source": "How you are identified",
@@ -4228,6 +4282,12 @@
     "translation": "未找到警报",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "no_amount_before": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "你之前没有记录过这个数量。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "no_amount_given": {
     "source": "No amount given — edit the meal to add one.",
@@ -6172,6 +6232,12 @@
     "translation": "保存 %1$s",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "save_amounts": {
+    "source": "Save amounts",
+    "translation": "保存数量",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "save_check_in": {
     "source": "Save Check-In",
@@ -8278,6 +8344,12 @@
     "translation": "您的数据根据适用法规受到保护",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "your_earlier_amounts": {
+    "source": "Your earlier amounts:",
+    "translation": "你之前的数量：",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "your_exercise_plans": {
     "source": "Your Exercise Plans",

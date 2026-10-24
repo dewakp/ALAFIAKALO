@@ -92,6 +92,8 @@ data class NutritionLog(
     // undercount unless the omission is shown. Nullable: an older backend does
     // not send it.
     @SerializedName("nutrients_excluded") val nutrientsExcluded: List<String>? = null,
+    /** Items left out because no amount was given (TASKS 25) — named by the server. */
+    @SerializedName("needs_amount") val needsAmount: List<String>? = null,
     val calories: Float?,
     @SerializedName("protein_g") val proteinG: Float?,
     @SerializedName("carbs_g") val carbsG: Float?,
@@ -1455,3 +1457,28 @@ data class MealComponentsResponse(
     val estimated: Boolean,
     val components: List<MealComponent> = emptyList(),
 )
+
+/** An amount this patient stated for a food before (TASKS 25) — their own
+ *  history, never an estimate. */
+data class AmountSuggestion(
+    val amount: String,
+    val times: Int,
+    @SerializedName("last_date") val lastDate: String? = null,
+)
+
+data class MissingAmountItem(
+    @SerializedName("food_name") val foodName: String,
+    val suggestions: List<AmountSuggestion> = emptyList(),
+)
+
+data class MissingAmountsResponse(val items: List<MissingAmountItem> = emptyList())
+
+data class MealAmountsRequest(val amounts: Map<String, String>)
+
+/** A 422 from `POST nutrition/{id}/amounts`: which item, and a code to translate. */
+data class AmountRefusalDetail(
+    val code: String? = null,
+    @SerializedName("food_name") val foodName: String? = null,
+)
+
+data class AmountRefusalBody(val detail: AmountRefusalDetail? = null)

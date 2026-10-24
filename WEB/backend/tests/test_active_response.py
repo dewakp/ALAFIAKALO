@@ -744,7 +744,7 @@ class TestReEstimatingIsNotAnEvent:
     def test_every_live_writer_asks_for_notification_and_no_script_does(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         api = (root / "app/api/nutrition.py").read_text()
-        assert api.count("add_task(enrich_log, log.id, notify=True)") == 2   # create, PATCH
+        assert api.count("add_task(enrich_log, log.id, notify=True)") == 3   # create, PATCH, amounts
         assert "add_task(enrich_log, log.id)\n" in api                        # Re-analyze: silent
         assert "enrich_log(log.id, notify=True)" in (root / "app/services/record_tools.py").read_text()
         for script in (root / "scripts").glob("*.py"):

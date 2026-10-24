@@ -1544,7 +1544,8 @@ async def _estimate_meal_nutrients_body(
             and not weight_unknown
         )
         if weight_unknown:
-            excluded.append(f"{comp.food_name} (no amount given)")
+            from app.services.amount_history import NO_AMOUNT_SUFFIX
+            excluded.append(f"{comp.food_name}{NO_AMOUNT_SUFFIX}")
             qty_g, scaled = None, {}
         elif component_believable:
             kept_weight_g += qty_g

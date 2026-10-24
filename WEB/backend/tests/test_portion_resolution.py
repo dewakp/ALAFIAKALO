@@ -144,12 +144,12 @@ async def test_a_portion_recorded_for_several_units_is_divided(monkeypatch, db):
     assert c["qty_g"] == 42.4
 
 
-def test_a_bracketed_ingredient_with_no_amount_gets_none():
+def test_a_measured_recipe_s_unmeasured_ingredient_gets_no_guess():
     """It used to become a guessed teaspoon, tablespoon or 30 g share, counted
     as if the patient had said it."""
-    comps = parse_meal_text("jollof rice (rice, tomato, palm oil, pepper)")
-    inner = [c for c in comps if c.food_name != "jollof rice"]
-    assert inner and all(c.qty_text == "default" for c in inner), [(c.food_name, c.qty_text) for c in comps]
+    comps = parse_meal_text("jollof rice (rice, 50 g tomato, pepper)")
+    pepper = next(c for c in comps if c.food_name == "pepper")
+    assert pepper.qty_text == "default"
 
 
 async def test_the_meal_preview_names_an_unweighed_item_instead_of_failing(client, monkeypatch):

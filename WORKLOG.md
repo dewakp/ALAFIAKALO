@@ -4691,3 +4691,23 @@ failing on the same KeyError.
 - Verified: web 305/305; iOS BUILD SUCCEEDED; Android assembleDebug (APK
   32,795,749 bytes, 13:05); i18n catalogs + iOS flag guard 47 passed; the two
   ratchets still red at their recorded 382 / 119 (58g), unchanged by this.
+
+## 2026-10-24 (2) — TASKS 25, quantity half: the patient's own amounts, proposed back
+
+- `amount_history`: an amount is history when its text appears verbatim in the
+  patient's own phrase — 971 amounts / 314 foods on the reference record, the
+  whole history read in 0.05 s. `GET /missing-amounts`, `POST /amounts` (writes
+  the amount into the meal text before its item, re-estimates; a count or a
+  non-measure is a 422 with a translatable `code`, nothing written).
+  `needs_amount` on every meal, computed server-side.
+- Web `MissingAmounts`, iOS `MissingAmountsView`, Android `MissingAmountsDialog`;
+  37 new strings machine-translated into 10 languages (review files in
+  i18n/review).
+- Found by previewing proposals on real meals: brackets were parsed as extra
+  foods (58k). Fixed going forward; lookups unchanged (a first attempt put the
+  description in the lookup name, lost the Boost label and drew USDA 400s —
+  both caught by tests before anything shipped).
+- Verified: new backend tests fail on the old parser/code where they are
+  guards (3 bracket guards; the rest are coverage of new code); web 308; iOS
+  BUILD SUCCEEDED; Android assembleDebug 32,808,481 bytes; i18n + iOS flag
+  guard 47 passed.

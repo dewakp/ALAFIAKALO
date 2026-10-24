@@ -3188,5 +3188,21 @@
   },
   "AlertDialog": {
     "dismiss": "Hapụ"
+  },
+  "MissingAmounts": {
+    "add_amounts": "Tinye oke",
+    "title": "Kedu oke i nwere?",
+    "loading": "A na-ebudata…",
+    "nothing": "Ihe ọ bụla n'ime nri a nwere oke na.",
+    "your_earlier": "Oke gị n'oge gara aga:",
+    "times": "{{amount}} · {{times}}×",
+    "none_before": "I nyebeghị oke maka nke a tupu.",
+    "placeholder": "dịka 200 g, 1 cup, 350 ml",
+    "save": "Zọpụta oke",
+    "cancel": "Kagbuo",
+    "not_a_measure": "Tinye ibu ma ọ bụ ihe ölçü maka {{food}} — dịka 200 g ma ọ bụ 1 cup.",
+    "no_such_item": "{{food}} nwere oke na, ma ọ bụ ọ nọ na-adịghị n'ime nri a.",
+    "failed": "Enweghị ike ịzọpụta oke. Biko zaa ọzọ.",
+    "load_failed": "Enweghị ike ibudata ihe nke nri a. Biko zaa ọzọ."
   }
 }

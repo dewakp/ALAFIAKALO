@@ -65,6 +65,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::%@ already has an amount, or is no longer in this meal.": {
+    "source": "%@ already has an amount, or is no longer in this meal.",
+    "translation": "%@ لديه بالفعل كمية، أو لم يعد في هذه الوجبة.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::%@ kcal · P %@ g": {
     "source": "%1$@ kcal · P %2$@ g",
     "translation": "%1$@ سعرة حرارية · بروتين %2$@ غ",
@@ -742,6 +748,12 @@
     "translation": "إضافة ملاحظة…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Add amounts": {
+    "source": "Add amounts",
+    "translation": "إضافة كميات",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Add an operation": {
     "source": "Add an operation",
@@ -1979,6 +1991,12 @@
     "status": "machine",
     "translated_on": "2026-10-23"
   },
+  "Localizable.xcstrings::Could not load this meal's items. Please try again.": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "تعذر تحميل عناصر هذه الوجبة. يرجى المحاولة مرة أخرى.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
     "source": "Could not load your therapy answers. Nothing has been changed.",
     "translation": "تعذر تحميل إجاباتك عن العلاج. لم يتم تغيير أي شيء.",
@@ -1996,6 +2014,12 @@
     "translation": "تعذر حفظ هذا التغيير. يرجى المحاولة مرة أخرى.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Could not save the amounts. Please try again.": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "تعذر حفظ الكميات. يرجى المحاولة مرة أخرى.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Could not verify the purchase with the App Store.": {
     "source": "Could not verify the purchase with the App Store.",
@@ -2927,6 +2951,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Enter a weight or measure for %@ — for example 200 g or 1 cup.": {
+    "source": "Enter a weight or measure for %@ — for example 200 g or 1 cup.",
+    "translation": "أدخل وزناً أو مقياساً لـ %@ — على سبيل المثال 200 g أو 1 cup.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Enter it as HR:MIN (7:27) or as minutes (447).": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "أدخله بصيغة ساعة:دقيقة (7:27) أو بالدقائق (447).",
@@ -2974,6 +3004,12 @@
     "translation": "تقديرات. تأتي أرقام كل عنصر من السجل المعروض بجانبه.",
     "status": "machine",
     "translated_on": "2026-10-23"
+  },
+  "Localizable.xcstrings::Every item in this meal already has an amount.": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "كل عنصر في هذه الوجبة لديه بالفعل كمية.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
     "source": "Every operation on your record, including those with no hospital stay attached.",
@@ -3766,6 +3802,12 @@
     "translation": "كيف تشعر الآن؟",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::How much did you have?": {
+    "source": "How much did you have?",
+    "translation": "كم تناولت؟",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::How's your day going?": {
     "source": "How's your day going?",
@@ -6959,6 +7001,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Save amounts": {
+    "source": "Save amounts",
+    "translation": "حفظ الكميات",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Saved": {
     "source": "Saved",
     "translation": "تم الحفظ",
@@ -8999,6 +9047,12 @@
     "status": "machine",
     "translated_on": "2026-10-14"
   },
+  "Localizable.xcstrings::You haven't given an amount for this before.": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "لم تحدد كمية لهذا من قبل.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::You regularly log %lld medication%@ that aren’t on this list": {
     "source": "You regularly log %1$lld medication%2$@ that aren’t on this list",
     "translation": "تسجل بانتظام %1$lld دواء%2$@ غير موجود في هذه القائمة",
@@ -9040,6 +9094,12 @@
     "translation": "بيانات صحتك محمية وفقاً للوائح الخصوصية الصحية المعمول بها.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your earlier amounts:": {
+    "source": "Your earlier amounts:",
+    "translation": "كمياتك السابقة:",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Your hospital history could not be loaded": {
     "source": "Your hospital history could not be loaded",
@@ -9142,6 +9202,12 @@
     "translation": "المستند: \"%@\"",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::e.g. 200 g, 1 cup, 350 ml": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "مثلاً 200 g أو 1 cup أو 350 ml",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::e.g. EDTA, SST": {
     "source": "e.g. EDTA, SST",

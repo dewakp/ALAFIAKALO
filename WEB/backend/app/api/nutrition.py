@@ -813,6 +813,86 @@ async def reestimate_nutrition_log(
     return log
 
 
+class MealAmountsRequest(BaseModel):
+    # food name (as the meal's items name it) -> the amount the patient gives
+    amounts: dict[str, str]
+
+
+@router.get("/{log_id}/missing-amounts")
+async def get_missing_amounts(
+    log_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """The items in this meal that carry no amount, each with the amounts THIS
+    patient has stated for that food before (TASKS 25).
+
+    A suggestion is the patient's own history, never an estimate: an empty
+    list means they have not given that food an amount before, and the client
+    asks them to type one. Nothing here changes the meal.
+    """
+    from app.services import amount_history
+
+    log = (await db.execute(select(NutritionLog).where(
+        NutritionLog.id == log_id, NutritionLog.user_id == current_user.id))).scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Nutrition log not found")
+    # Exactly the items the estimate LEFT OUT for want of an amount — not
+    # every item without a measure: a stated count ("1 banana") is usually
+    # weighed through the food's own USDA unit and already counted.
+    names = list(dict.fromkeys(amount_history.left_out_for_amount(log.nutrients_excluded)))
+    found = await amount_history.suggestions(db, current_user.id, names, exclude_log_id=log.id)
+    return {"log_id": log.id,
+            "items": [{"food_name": n, "suggestions": found.get(n, [])} for n in names]}
+
+
+@router.post("/{log_id}/amounts", response_model=NutritionLogResponse)
+async def set_meal_amounts(
+    log_id: int,
+    body: MealAmountsRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Write the amounts the patient confirmed or typed into the meal, then
+    re-estimate it.
+
+    The amount goes into the meal's TEXT, before its item, exactly where the
+    patient would have typed it — so the record reads as their statement and
+    becomes history the next proposal draws on. An amount that does not parse
+    as a measure is refused with the item named (422) and nothing is written.
+    """
+    from app.services import amount_history
+
+    log = (await db.execute(select(NutritionLog).where(
+        NutritionLog.id == log_id, NutritionLog.user_id == current_user.id))).scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Nutrition log not found")
+    if not body.amounts:
+        raise HTTPException(status_code=422, detail={"message": "No amounts were given."})
+    try:
+        log.food_name = amount_history.apply_amounts(log.food_name, body.amounts)
+    except amount_history.AmountNotUnderstood as exc:
+        raise HTTPException(status_code=422, detail={
+            # Clients show their own sentence from `code`, in the patient's
+            # language; `message` is for logs and API readers.
+            "message": str(exc),
+            "food_name": exc.food_name, "amount": exc.amount, "reason": exc.reason,
+            "code": exc.code})
+    for column in _ENRICHED_NUTRIENT_COLUMNS:
+        if hasattr(log, column):
+            setattr(log, column, None)
+    log.extended_nutrients = None
+    log.nutrients_excluded = None
+    log.nutrient_status = "pending"
+    await db.flush()
+    await db.refresh(log)
+    # The patient just stated something new about this meal — the same event as
+    # editing it, so it may alert (the engine still refuses a past day).
+    background_tasks.add_task(enrich_log, log.id, notify=True)
+    return log
+
+
 @router.get("/{log_id}/components")
 async def get_log_components(
     log_id: int,

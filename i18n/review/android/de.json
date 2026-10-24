@@ -137,6 +137,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "add_amounts": {
+    "source": "Add amounts",
+    "translation": "Mengen hinzufügen",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "add_condition": {
     "source": "Add Condition",
     "translation": "Erkrankung hinzufügen",
@@ -574,6 +580,42 @@
     "translation": "Menge",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "amount_no_such_item": {
+    "source": "%1$s already has an amount, or is no longer in this meal.",
+    "translation": "%1$s hat bereits eine Menge oder ist nicht mehr in dieser Mahlzeit.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amount_not_a_measure": {
+    "source": "Enter a weight or measure for %1$s — for example 200 g or 1 cup.",
+    "translation": "Gib eine Gewichts- oder Mengenangabe für %1$s ein — zum Beispiel 200 g oder 1 Tasse.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amount_placeholder": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "z. B. 200 g, 1 Tasse, 350 ml",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amount_times": {
+    "source": "%1$s · %2$d×",
+    "translation": "%1$s · %2$d×",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amounts_load_failed": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "Die Lebensmittel dieser Mahlzeit konnten nicht geladen werden. Bitte versuche es erneut.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "amounts_save_failed": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "Die Mengen konnten nicht gespeichert werden. Bitte versuche es erneut.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "analyse_image_s_with_alafia": {
     "source": "Analyse Image(s) with Alafia",
@@ -2441,6 +2483,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "every_item_has_an_amount": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "Alle Lebensmittel in dieser Mahlzeit haben bereits eine Menge.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "exchange": {
     "source": "Exchange #%1$s",
     "translation": "Austausch #%1$s",
@@ -3208,6 +3256,12 @@
     "translation": "Wie fühlen Sie sich jetzt?",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "how_much_did_you_have": {
+    "source": "How much did you have?",
+    "translation": "Wie viel hast du gegessen?",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "how_you_are_identified": {
     "source": "How you are identified",
@@ -4228,6 +4282,12 @@
     "translation": "Keine Meldungen gefunden",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "no_amount_before": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "Du hast dafür vorher keine Menge angegeben.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "no_amount_given": {
     "source": "No amount given — edit the meal to add one.",
@@ -6172,6 +6232,12 @@
     "translation": "%1$s speichern",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "save_amounts": {
+    "source": "Save amounts",
+    "translation": "Mengen speichern",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "save_check_in": {
     "source": "Save Check-In",
@@ -8278,6 +8344,12 @@
     "translation": "Ihre Daten sind nach geltenden Vorschriften geschützt",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "your_earlier_amounts": {
+    "source": "Your earlier amounts:",
+    "translation": "Deine früheren Mengen:",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "your_exercise_plans": {
     "source": "Your Exercise Plans",

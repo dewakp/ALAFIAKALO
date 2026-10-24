@@ -3188,5 +3188,21 @@
   },
   "AlertDialog": {
     "dismiss": "Dismiss"
+  },
+  "MissingAmounts": {
+    "add_amounts": "Add amounts",
+    "title": "How much did you have?",
+    "loading": "Loading…",
+    "nothing": "Every item in this meal already has an amount.",
+    "your_earlier": "Your earlier amounts:",
+    "times": "{{amount}} · {{times}}×",
+    "none_before": "You haven't given an amount for this before.",
+    "placeholder": "e.g. 200 g, 1 cup, 350 ml",
+    "save": "Save amounts",
+    "cancel": "Cancel",
+    "not_a_measure": "Enter a weight or measure for {{food}} — for example 200 g or 1 cup.",
+    "no_such_item": "{{food}} already has an amount, or is no longer in this meal.",
+    "failed": "Could not save the amounts. Please try again.",
+    "load_failed": "Could not load this meal's items. Please try again."
   }
 }

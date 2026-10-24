@@ -14,6 +14,7 @@ import {
   BarChart3, Utensils, X, Loader2, Info, Calendar, Zap, Camera, Image, Sparkles, Link,
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import MissingAmounts from '../components/MissingAmounts';
 import { usePromptPrefill } from '../hooks/usePromptPrefill';
 import { t as translate } from '../i18n';
 
@@ -34,6 +35,10 @@ const CAT_ORDER = [
 ];
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* Items the estimator left out for want of an amount — the patient can give
+   them (TASKS 25). The server names them; the client never reads its wording. */
+const needsAmount = (log) => (log.needs_amount || []).length > 0;
+
 export default function Nutrition() {
   /* ── state ── */
   const [tab, setTab] = useState('log');           // log | summary
@@ -1101,6 +1106,9 @@ export default function Nutrition() {
                                   foods: log.nutrients_excluded.join(', ') })}
                               </div>
                             )}
+                            {needsAmount(log) && (
+                              <MissingAmounts logId={log.id} onSaved={() => loadLogs(filterStart, filterEnd)} />
+                            )}
                           </>
                         : log.nutrient_status === 'pending'
                           ? <span title={translate('Nutrition.working_out_the_nutrients_for_this_meal')}
@@ -1118,6 +1126,9 @@ export default function Nutrition() {
                                     {translate('Nutrition.not_counted', {
                                       foods: log.nutrients_excluded.join(', ') })}
                                   </div>
+                                )}
+                                {needsAmount(log) && (
+                                  <MissingAmounts logId={log.id} onSaved={() => loadLogs(filterStart, filterEnd)} />
                                 )}
                               </span>
                             : '—'}

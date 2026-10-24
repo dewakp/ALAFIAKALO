@@ -3188,5 +3188,21 @@
   },
   "AlertDialog": {
     "dismiss": "Descartar"
+  },
+  "MissingAmounts": {
+    "add_amounts": "Adicionar quantidades",
+    "title": "Quanto você consumiu?",
+    "loading": "Carregando…",
+    "nothing": "Todos os itens desta refeição já têm uma quantidade.",
+    "your_earlier": "Suas quantidades anteriores:",
+    "times": "{{amount}} · {{times}}×",
+    "none_before": "Você não informou uma quantidade para isto antes.",
+    "placeholder": "p. ex. 200 g, 1 xícara, 350 ml",
+    "save": "Guardar quantidades",
+    "cancel": "Cancelar",
+    "not_a_measure": "Informe um peso ou medida para {{food}} — por exemplo 200 g ou 1 xícara.",
+    "no_such_item": "{{food}} já tem uma quantidade, ou não está mais nesta refeição.",
+    "failed": "Não foi possível guardar as quantidades. Tente novamente.",
+    "load_failed": "Não foi possível carregar os itens desta refeição. Tente novamente."
   }
 }

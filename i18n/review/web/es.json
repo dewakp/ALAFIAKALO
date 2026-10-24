@@ -10025,6 +10025,90 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MissingAmounts.add_amounts": {
+    "source": "Add amounts",
+    "translation": "Agregar cantidades",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.cancel": {
+    "source": "Cancel",
+    "translation": "Cancelar",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.failed": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "No se pudieron guardar las cantidades. Intenta de nuevo.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.load_failed": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "No se pudieron cargar los alimentos de esta comida. Intenta de nuevo.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.loading": {
+    "source": "Loading…",
+    "translation": "Cargando…",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.no_such_item": {
+    "source": "{{food}} already has an amount, or is no longer in this meal.",
+    "translation": "{{food}} ya tiene una cantidad, o ya no está en esta comida.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.none_before": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "No has registrado una cantidad para esto antes.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.not_a_measure": {
+    "source": "Enter a weight or measure for {{food}} — for example 200 g or 1 cup.",
+    "translation": "Ingresa un peso o medida para {{food}} — por ejemplo 200 g o 1 taza.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.nothing": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "Todos los alimentos de esta comida ya tienen una cantidad.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.placeholder": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "p. ej. 200 g, 1 taza, 350 ml",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.save": {
+    "source": "Save amounts",
+    "translation": "Guardar cantidades",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.times": {
+    "source": "{{amount}} · {{times}}×",
+    "translation": "{{amount}} · {{times}}×",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.title": {
+    "source": "How much did you have?",
+    "translation": "¿Cuánto consumiste?",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
+  "MissingAmounts.your_earlier": {
+    "source": "Your earlier amounts:",
+    "translation": "Tus cantidades anteriores:",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Mood.anxiety_1_10": {
     "source": "Anxiety (1-10): {{anxiety_level}}",
     "translation": "Ansiedad (1-10): {{anxiety_level}}",

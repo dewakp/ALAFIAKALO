@@ -5054,6 +5054,21 @@ the web preview's single-food fallback, the enrichment writer's per-100 g
 fallback. What replaces an assumption is the patient's own history PROPOSED
 for them to confirm — TASKS 25.
 
+**The loop, as built (TASKS 25).** A meal carries `needs_amount` — the items
+left out for want of an amount, computed by the SERVER so no client matches the
+estimator's wording. "Add amounts" offers the amounts this patient TYPED for
+that food before (`amount_history`: an amount is history only when its text
+appears verbatim in their own phrase, which excludes everything the system ever
+filled in). Confirming writes the amount into the meal's text, before its item,
+as their statement — and that becomes the next proposal's history.
+
+> **A bracket describes its item unless the patient measured inside it.**
+> "(cooked)" and "Okro soup(crowfeet, cow skin, crayfish)" are ONE food; only
+> "(2 tablespoons custard powder, 1 cup milk)" is a recipe. Every bracket used
+> to become extra foods — "ripe with brown spots" counted 27 kcal in
+> production. The description is NOT added to the lookup name: learned and
+> cached foods are keyed by the bare name, and USDA answers 400 to "(".
+
 ---
 
 ## 6. Reporting

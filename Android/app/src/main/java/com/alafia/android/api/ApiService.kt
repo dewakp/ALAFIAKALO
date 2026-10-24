@@ -220,6 +220,14 @@ interface ApiService {
     @GET("nutrition/{id}/components")
     suspend fun getMealComponents(@Path("id") id: Int): MealComponentsResponse
 
+    /** Items in a meal with no amount, each with the patient's own earlier amounts. */
+    @GET("nutrition/{id}/missing-amounts")
+    suspend fun getMissingAmounts(@Path("id") id: Int): MissingAmountsResponse
+
+    /** Write the amounts the patient confirmed or typed, then re-estimate. */
+    @POST("nutrition/{id}/amounts")
+    suspend fun setMealAmounts(@Path("id") id: Int, @Body body: MealAmountsRequest): NutritionLog
+
     @GET("nutrition/food-search")
     suspend fun searchUSDAFoods(
         @Query("q") query: String,

@@ -65,6 +65,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::%@ already has an amount, or is no longer in this meal.": {
+    "source": "%@ already has an amount, or is no longer in this meal.",
+    "translation": "%@ ti ni iye kan tabi ko si ninu ounjẹ yii.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::%@ kcal · P %@ g": {
     "source": "%1$@ kcal · P %2$@ g",
     "translation": "%1$@ kcal · P %2$@ g",
@@ -742,6 +748,12 @@
     "translation": "Fi kun àkọsílẹ̀…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Add amounts": {
+    "source": "Add amounts",
+    "translation": "Fi iye kun",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Add an operation": {
     "source": "Add an operation",
@@ -1979,6 +1991,12 @@
     "status": "machine",
     "translated_on": "2026-10-23"
   },
+  "Localizable.xcstrings::Could not load this meal's items. Please try again.": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "Aye le ka awọn ohun ti ounjẹ yii. Jọwọ gbiyanju lẹẹkansi.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
     "source": "Could not load your therapy answers. Nothing has been changed.",
     "translation": "Àìlè ṣe àgbékalẹ̀ àwọn ìdáhùn ìṣẹ́ rẹ. Ohunkóhun kò ti yípada.",
@@ -1996,6 +2014,12 @@
     "translation": "Kò ní ìmọ̀ láti fi ìyipada náà pamọ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Could not save the amounts. Please try again.": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "Aye le fi awọn iye pamọ. Jọwọ gbiyanju lẹẹkansi.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Could not verify the purchase with the App Store.": {
     "source": "Could not verify the purchase with the App Store.",
@@ -2927,6 +2951,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Enter a weight or measure for %@ — for example 200 g or 1 cup.": {
+    "source": "Enter a weight or measure for %@ — for example 200 g or 1 cup.",
+    "translation": "Tẹ iwuwo tabi iwọn fun %@ — fun apẹẹrẹ 200 g tabi 1 cup.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Enter it as HR:MIN (7:27) or as minutes (447).": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "Tẹ̀ ó gẹ́ HR:MIN (7:27) tàbí gẹ́ àkókò (447).",
@@ -2974,6 +3004,12 @@
     "translation": "Àwọn ìbámu. Àwọn ìfigúrì kọ̀ọ̀kan wá láti ìwé tí ó wà ní ẹ̀gbẹ́ rẹ̀.",
     "status": "machine",
     "translated_on": "2026-10-23"
+  },
+  "Localizable.xcstrings::Every item in this meal already has an amount.": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "Ohun kọọkan ninu ounjẹ yii ti ni iye kan tẹlẹ.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
     "source": "Every operation on your record, including those with no hospital stay attached.",
@@ -3766,6 +3802,12 @@
     "translation": "Báwo ni ìwọ ń ní ìfẹ́ báyìí?",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::How much did you have?": {
+    "source": "How much did you have?",
+    "translation": "Iye wo ni o gbe?",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::How's your day going?": {
     "source": "How's your day going?",
@@ -6959,6 +7001,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Save amounts": {
+    "source": "Save amounts",
+    "translation": "Fi awọn iye pamọ",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Saved": {
     "source": "Saved",
     "translation": "Tọ́jú",
@@ -8999,6 +9047,12 @@
     "status": "machine",
     "translated_on": "2026-10-14"
   },
+  "Localizable.xcstrings::You haven't given an amount for this before.": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "O ko ti fun iye fun eyi tẹlẹ.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::You regularly log %lld medication%@ that aren’t on this list": {
     "source": "You regularly log %1$lld medication%2$@ that aren’t on this list",
     "translation": "Ó ń ṣe àkójọ %1$lld oogun%2$@ tí kò wà nínú ìtòjú yìí",
@@ -9040,6 +9094,12 @@
     "translation": "Dátà rẹ jẹ́ ìdáramọ̀ gẹ́gẹ́ bí ìlànà ìdáramọ̀ ìlera tó ní ìfẹ́ ní àkókò yìí.",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your earlier amounts:": {
+    "source": "Your earlier amounts:",
+    "translation": "Awọn iye rẹ ti tẹlẹ:",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Your hospital history could not be loaded": {
     "source": "Your hospital history could not be loaded",
@@ -9142,6 +9202,12 @@
     "translation": "ìwé: \"%@\"",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::e.g. 200 g, 1 cup, 350 ml": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "fun apẹẹrẹ 200 g, 1 cup, 350 ml",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::e.g. EDTA, SST": {
     "source": "e.g. EDTA, SST",

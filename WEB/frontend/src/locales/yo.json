@@ -3188,5 +3188,21 @@
   },
   "AlertDialog": {
     "dismiss": "Ṣe iyalẹnu"
+  },
+  "MissingAmounts": {
+    "add_amounts": "Ṣe Àpapọ̀ Iye",
+    "title": "Iye wo ni o gba?",
+    "loading": "Ntitẹ̀…",
+    "nothing": "Ohun kọ̀ọ̀kan nínú oúnjẹ yìí ti ní iye tẹ́lẹ̀.",
+    "your_earlier": "Àwọn iye rẹ tẹ́lẹ̀:",
+    "times": "{{amount}} · {{times}}×",
+    "none_before": "O kò tí i fi iye fún èyí rí.",
+    "placeholder": "fún àpẹẹrẹ 200 g, 1 cup, 350 ml",
+    "save": "Tọ́jú Àwọn Iye",
+    "cancel": "Fagile",
+    "not_a_measure": "Tẹ̀ iwuwo tàbí ìwọ̀n fún {{food}} — fún àpẹẹrẹ 200 g tàbí 1 cup.",
+    "no_such_item": "{{food}} ti ní iye tẹ́lẹ̀, tàbí kò sí nínú oúnjẹ yìí mọ́.",
+    "failed": "Àwọn iye náà kò lè tọ́jú. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i.",
+    "load_failed": "Àwọn ohun inú oúnjẹ yìí kò lè lo. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i."
   }
 }

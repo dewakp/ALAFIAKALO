@@ -65,6 +65,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::%@ already has an amount, or is no longer in this meal.": {
+    "source": "%@ already has an amount, or is no longer in this meal.",
+    "translation": "%@ 已有数量，或不在此餐食中。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::%@ kcal · P %@ g": {
     "source": "%1$@ kcal · P %2$@ g",
     "translation": "%1$@ kcal · P %2$@ g",
@@ -742,6 +748,12 @@
     "translation": "添加备注…",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Add amounts": {
+    "source": "Add amounts",
+    "translation": "添加数量",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Add an operation": {
     "source": "Add an operation",
@@ -1979,6 +1991,12 @@
     "status": "machine",
     "translated_on": "2026-10-23"
   },
+  "Localizable.xcstrings::Could not load this meal's items. Please try again.": {
+    "source": "Could not load this meal's items. Please try again.",
+    "translation": "无法加载此餐食的项目。请重试。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Could not load your therapy answers. Nothing has been changed.": {
     "source": "Could not load your therapy answers. Nothing has been changed.",
     "translation": "无法加载您的治疗答案。未做任何更改。",
@@ -1996,6 +2014,12 @@
     "translation": "无法保存该更改。请重试。",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Could not save the amounts. Please try again.": {
+    "source": "Could not save the amounts. Please try again.",
+    "translation": "无法保存数量。请重试。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Could not verify the purchase with the App Store.": {
     "source": "Could not verify the purchase with the App Store.",
@@ -2927,6 +2951,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Enter a weight or measure for %@ — for example 200 g or 1 cup.": {
+    "source": "Enter a weight or measure for %@ — for example 200 g or 1 cup.",
+    "translation": "请输入 %@ 的重量或份量 — 例如 200 克或 1 杯。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Enter it as HR:MIN (7:27) or as minutes (447).": {
     "source": "Enter it as HR:MIN (7:27) or as minutes (447).",
     "translation": "输入格式为 HR:MIN (7:27) 或分钟数 (447)。",
@@ -2974,6 +3004,12 @@
     "translation": "估计值。每项的数据来自其旁边显示的记录。",
     "status": "machine",
     "translated_on": "2026-10-23"
+  },
+  "Localizable.xcstrings::Every item in this meal already has an amount.": {
+    "source": "Every item in this meal already has an amount.",
+    "translation": "此餐食中的每一项都已有数量。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Every operation on your record, including those with no hospital stay attached.": {
     "source": "Every operation on your record, including those with no hospital stay attached.",
@@ -3766,6 +3802,12 @@
     "translation": "你现在感觉怎么样？",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::How much did you have?": {
+    "source": "How much did you have?",
+    "translation": "您吃了多少？",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::How's your day going?": {
     "source": "How's your day going?",
@@ -6959,6 +7001,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::Save amounts": {
+    "source": "Save amounts",
+    "translation": "保存数量",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::Saved": {
     "source": "Saved",
     "translation": "已保存",
@@ -8999,6 +9047,12 @@
     "status": "machine",
     "translated_on": "2026-10-14"
   },
+  "Localizable.xcstrings::You haven't given an amount for this before.": {
+    "source": "You haven't given an amount for this before.",
+    "translation": "您之前未输入过此项的数量。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::You regularly log %lld medication%@ that aren’t on this list": {
     "source": "You regularly log %1$lld medication%2$@ that aren’t on this list",
     "translation": "您经常记录%1$lld种不在此列表中的药物%2$@",
@@ -9040,6 +9094,12 @@
     "translation": "您的数据根据适用的医疗隐私法规进行保护。",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::Your earlier amounts:": {
+    "source": "Your earlier amounts:",
+    "translation": "您之前的数量：",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::Your hospital history could not be loaded": {
     "source": "Your hospital history could not be loaded",
@@ -9142,6 +9202,12 @@
     "translation": "document: \"%@\"",
     "status": "machine",
     "translated_on": "2026-09-15"
+  },
+  "Localizable.xcstrings::e.g. 200 g, 1 cup, 350 ml": {
+    "source": "e.g. 200 g, 1 cup, 350 ml",
+    "translation": "例如 200 克、1 杯、350 毫升",
+    "status": "machine",
+    "translated_on": "2026-10-24"
   },
   "Localizable.xcstrings::e.g. EDTA, SST": {
     "source": "e.g. EDTA, SST",

@@ -26,6 +26,8 @@ struct NutritionLog: Codable, Identifiable {
     /// it is now kept minus that component, so a total can silently undercount
     /// unless the omission is shown. Optional: an older backend omits it.
     let nutrientsExcluded: [String]?
+    /// Items left out because no amount was given (TASKS 25) — named by the server.
+    let needsAmount: [String]?
     var hasPartialTotal: Bool { !(nutrientsExcluded ?? []).isEmpty }
 
     // Macronutrients
@@ -103,6 +105,7 @@ struct NutritionLog: Codable, Identifiable {
         case fdcId = "fdc_id"
         case nutrientStatus = "nutrient_status"
         case nutrientsExcluded = "nutrients_excluded"
+        case needsAmount = "needs_amount"
         case proteinG = "protein_g"
         case carbsG = "carbs_g"
         case fatG = "fat_g"

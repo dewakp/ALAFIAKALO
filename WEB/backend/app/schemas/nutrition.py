@@ -5,7 +5,7 @@
 
 from datetime import date, datetime, time
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 
 # ── All nutrient fields (matching NutritionLog model columns) ──
@@ -192,6 +192,15 @@ class NutritionLogResponse(BaseModel):
     # Names only — each client writes its own line in the patient's language;
     # a sentence composed here would reach eleven languages in English (§3aw).
     nutrients_excluded: list[str] | None = None
+
+    @computed_field
+    @property
+    def needs_amount(self) -> list[str]:
+        """Items the estimate left out because no amount was given — what the
+        clients offer "Add amounts" for (TASKS 25). Stated once, here, so no
+        client matches on the estimator's wording."""
+        from app.services.amount_history import left_out_for_amount
+        return left_out_for_amount(self.nutrients_excluded)
     log_date: date
     meal_type: str
     food_name: str

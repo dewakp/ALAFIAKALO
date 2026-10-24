@@ -111,6 +111,11 @@
         <source>%1$@ (%2$lld)</source>
         <note />
       </trans-unit>
+      <trans-unit id="%@ already has an amount, or is no longer in this meal." xml:space="preserve">
+        <source>%@ already has an amount, or is no longer in this meal.</source>
+        <target state="translated">%@ ti ni iye kan tabi ko si ninu ounjẹ yii.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="%@ kcal · P %@ g" xml:space="preserve">
         <source>%1$@ kcal · P %2$@ g</source>
         <target state="translated">%1$@ kcal · P %2$@ g</target>
@@ -129,6 +134,10 @@
       <trans-unit id="%@ on %@" xml:space="preserve">
         <source>%1$@ on %2$@</source>
         <target state="translated">%1$@ ni %2$@</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="%@ · %lld×" xml:space="preserve">
+        <source>%1$@ · %2$lld×</source>
         <note />
       </trans-unit>
       <trans-unit id="%@ — %@" xml:space="preserve">
@@ -810,6 +819,11 @@
       <trans-unit id="Add a note…" xml:space="preserve">
         <source>Add a note…</source>
         <target state="translated">Fi kun àkọsílẹ̀…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Add amounts" xml:space="preserve">
+        <source>Add amounts</source>
+        <target state="translated">Fi iye kun</target>
         <note />
       </trans-unit>
       <trans-unit id="Add an operation" xml:space="preserve">
@@ -1846,6 +1860,11 @@
         <target state="translated">Ó ṣe àìlọ́ láti ṣe àkópọ̀ àwọn ohun ìjẹ yìí.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Could not load this meal's items. Please try again." xml:space="preserve">
+        <source>Could not load this meal's items. Please try again.</source>
+        <target state="translated">Aye le ka awọn ohun ti ounjẹ yii. Jọwọ gbiyanju lẹẹkansi.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Could not load your therapy answers. Nothing has been changed." xml:space="preserve">
         <source>Could not load your therapy answers. Nothing has been changed.</source>
         <target state="translated">Àìlè ṣe àgbékalẹ̀ àwọn ìdáhùn ìṣẹ́ rẹ. Ohunkóhun kò ti yípada.</target>
@@ -1859,6 +1878,11 @@
       <trans-unit id="Could not save that change. Please try again." xml:space="preserve">
         <source>Could not save that change. Please try again.</source>
         <target state="translated">Kò ní ìmọ̀ láti fi ìyipada náà pamọ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Could not save the amounts. Please try again." xml:space="preserve">
+        <source>Could not save the amounts. Please try again.</source>
+        <target state="translated">Aye le fi awọn iye pamọ. Jọwọ gbiyanju lẹẹkansi.</target>
         <note />
       </trans-unit>
       <trans-unit id="Could not verify the purchase with the App Store." xml:space="preserve">
@@ -2636,6 +2660,11 @@
         <target state="translated">Tẹ̀ èsì kan</target>
         <note />
       </trans-unit>
+      <trans-unit id="Enter a weight or measure for %@ — for example 200 g or 1 cup." xml:space="preserve">
+        <source>Enter a weight or measure for %@ — for example 200 g or 1 cup.</source>
+        <target state="translated">Tẹ iwuwo tabi iwọn fun %@ — fun apẹẹrẹ 200 g tabi 1 cup.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Enter it as HR:MIN (7:27) or as minutes (447)." xml:space="preserve">
         <source>Enter it as HR:MIN (7:27) or as minutes (447).</source>
         <target state="translated">Tẹ̀ ó gẹ́ HR:MIN (7:27) tàbí gẹ́ àkókò (447).</target>
@@ -2674,6 +2703,11 @@
       <trans-unit id="Estimates. Each item's figures come from the record shown beside it." xml:space="preserve">
         <source>Estimates. Each item's figures come from the record shown beside it.</source>
         <target state="translated">Àwọn ìbámu. Àwọn ìfigúrì kọ̀ọ̀kan wá láti ìwé tí ó wà ní ẹ̀gbẹ́ rẹ̀.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Every item in this meal already has an amount." xml:space="preserve">
+        <source>Every item in this meal already has an amount.</source>
+        <target state="translated">Ohun kọọkan ninu ounjẹ yii ti ni iye kan tẹlẹ.</target>
         <note />
       </trans-unit>
       <trans-unit id="Every operation on your record, including those with no hospital stay attached." xml:space="preserve">
@@ -3338,6 +3372,11 @@
       <trans-unit id="How do you feel now?" xml:space="preserve">
         <source>How do you feel now?</source>
         <target state="translated">Báwo ni ìwọ ń ní ìfẹ́ báyìí?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="How much did you have?" xml:space="preserve">
+        <source>How much did you have?</source>
+        <target state="translated">Iye wo ni o gbe?</target>
         <note />
       </trans-unit>
       <trans-unit id="How's your day going?" xml:space="preserve">
@@ -6012,6 +6051,11 @@
         <target state="translated">Tọjú Ìpele</target>
         <note />
       </trans-unit>
+      <trans-unit id="Save amounts" xml:space="preserve">
+        <source>Save amounts</source>
+        <target state="translated">Fi awọn iye pamọ</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Saved" xml:space="preserve">
         <source>Saved</source>
         <target state="translated">Tọ́jú</target>
@@ -7716,6 +7760,11 @@ Njẹ́ o dá gbogbo ohun yìí lójú dáadáa?</target>
         <target state="translated">Ìwọ kò gbé ohun kan fúnra ẹ nìtorí ọjọ́ yìí.</target>
         <note />
       </trans-unit>
+      <trans-unit id="You haven't given an amount for this before." xml:space="preserve">
+        <source>You haven't given an amount for this before.</source>
+        <target state="translated">O ko ti fun iye fun eyi tẹlẹ.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="You regularly log %lld medication%@ that aren’t on this list" xml:space="preserve">
         <source>You regularly log %1$lld medication%2$@ that aren’t on this list</source>
         <target state="translated">Ó ń ṣe àkójọ %1$lld oogun%2$@ tí kò wà nínú ìtòjú yìí</target>
@@ -7749,6 +7798,11 @@ Njẹ́ o dá gbogbo ohun yìí lójú dáadáa?</target>
       <trans-unit id="Your data is protected according to applicable healthcare privacy regulations." xml:space="preserve">
         <source>Your data is protected according to applicable healthcare privacy regulations.</source>
         <target state="translated">Dátà rẹ jẹ́ ìdáramọ̀ gẹ́gẹ́ bí ìlànà ìdáramọ̀ ìlera tó ní ìfẹ́ ní àkókò yìí.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Your earlier amounts:" xml:space="preserve">
+        <source>Your earlier amounts:</source>
+        <target state="translated">Awọn iye rẹ ti tẹlẹ:</target>
         <note />
       </trans-unit>
       <trans-unit id="Your hospital history could not be loaded" xml:space="preserve">
@@ -7834,6 +7888,11 @@ Njẹ́ o dá gbogbo ohun yìí lójú dáadáa?</target>
       <trans-unit id="document: “%@”" xml:space="preserve">
         <source>document: “%@”</source>
         <target state="translated">ìwé: "%@"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="e.g. 200 g, 1 cup, 350 ml" xml:space="preserve">
+        <source>e.g. 200 g, 1 cup, 350 ml</source>
+        <target state="translated">fun apẹẹrẹ 200 g, 1 cup, 350 ml</target>
         <note />
       </trans-unit>
       <trans-unit id="e.g. EDTA, SST" xml:space="preserve">

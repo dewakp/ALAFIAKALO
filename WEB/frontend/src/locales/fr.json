@@ -3188,5 +3188,21 @@
   },
   "AlertDialog": {
     "dismiss": "Fermer"
+  },
+  "MissingAmounts": {
+    "add_amounts": "Ajouter des quantités",
+    "title": "Combien en avez-vous eu ?",
+    "loading": "Chargement…",
+    "nothing": "Chaque aliment de ce repas a déjà une quantité.",
+    "your_earlier": "Vos quantités précédentes :",
+    "times": "{{amount}} · {{times}}×",
+    "none_before": "Vous n'avez pas donné de quantité pour ceci auparavant.",
+    "placeholder": "p. ex. 200 g, 1 tasse, 350 ml",
+    "save": "Enregistrer les quantités",
+    "cancel": "Annuler",
+    "not_a_measure": "Entrez un poids ou une mesure pour {{food}} — par exemple 200 g ou 1 tasse.",
+    "no_such_item": "{{food}} a déjà une quantité, ou ne figure plus dans ce repas.",
+    "failed": "Impossible d'enregistrer les quantités. Veuillez réessayer.",
+    "load_failed": "Impossible de charger les aliments de ce repas. Veuillez réessayer."
   }
 }

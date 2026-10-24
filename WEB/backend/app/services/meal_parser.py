@@ -65,6 +65,12 @@ class FoodComponent:
     qty_g: float           # estimated weight in grams
     qty_text: str          # original or inferred quantity text (human-readable)
     source_text: str = field(default="")  # raw segment from the input string
+    # What the patient said ABOUT the item, in brackets, when it was not an
+    # amount and not measured ingredients: "(cooked)", "(okra with goat meat)".
+    # It describes the item — never a food of its own. It is NOT added to the
+    # lookup name: learned and cached foods are keyed by the bare name, and
+    # USDA's search reads "(", ")" and "-" as query operators (400).
+    qualifier: str = field(default="")
 
 
 # ── Word-number map ───────────────────────────────────────────────────────────
@@ -1061,6 +1067,20 @@ def _extract_meal_multiplier(description: str) -> tuple[float, str]:
     return (factor, rest) if rest else (1.0, description)
 
 
+def _measured_part(item: str) -> str | None:
+    """The part of a bracketed item that carries a stated amount, or None.
+
+    "2 eggs" -> "2 eggs"; "with 2 eggs" -> "2 eggs" (the amount need not lead);
+    "cooked", "ripe with brown spots", "crayfish" -> None. Only a NUMBER the
+    parser reads as an amount counts — a word like "some" states nothing.
+    """
+    m = re.search(r"(?<![\w.])(?:\d+(?:[./]\d+)?|\.\d+)", item)
+    if not m:
+        return None
+    tail = item[m.start():].strip()
+    return tail if _parse_segment(tail)[2] != "default" else None
+
+
 def _parse_meal_text_impl(description: str) -> list[FoodComponent]:
     # Scaling the GRAMS scales every nutrient with them: the estimator works
     # from a per-100 g profile times qty_g, so one multiplication here gives
@@ -1082,6 +1102,22 @@ def _parse_meal_text_impl(description: str) -> list[FoodComponent]:
         if len(food_name) < 2:
             continue
 
+        # A bracket is EXPANDED into foods only when the patient measured
+        # something in it — "custard mix(2 tablespoons custard powder, 1 cup
+        # milk)" is a recipe. Otherwise it DESCRIBES the item: "(cooked)",
+        # "(ripe with brown spots)", "Okro soup(crowfeet, cow skin, crayfish)".
+        # Measured on 1,107 meals: 223 of 288 bracketed items were that, and
+        # each word was stored as a separate food — "ripe with brown spots"
+        # counted 27 kcal, "cooked" became an item to ask an amount for. The
+        # item is now ONE food with ONE amount (operator, 2026-10-24: let the
+        # user determine it), and the description is kept on it.
+        qualifier = ""
+        if parens:
+            measured = [p for p in (x.strip() for x in parens.split(",")) if p
+                        and _measured_part(p) is not None]
+            if not measured:
+                qualifier, parens = re.sub(r"\s+", " ", parens).strip(), None
+
         if food_name not in seen:
             seen.add(food_name)
             components.append(
@@ -1090,14 +1126,17 @@ def _parse_meal_text_impl(description: str) -> list[FoodComponent]:
                     qty_g=qty_g,
                     qty_text=qty_text,
                     source_text=seg,
+                    qualifier=qualifier,
                 )
             )
 
-        # Expand parenthetical sub-ingredients with default condiment quantities
+        # Expand measured parenthetical sub-ingredients
         if parens:
             paren_items = [p.strip() for p in parens.split(",") if p.strip()]
             for item_raw in paren_items:
-                # Check if this paren item has its own explicit quantity
+                # "with 2 eggs" is eggs x2 — the words before the amount join
+                # the item to its dish; they are not part of the food.
+                item_raw = _measured_part(item_raw) or item_raw
                 item_food, item_qty_g, item_qty_text, _ = _parse_segment(item_raw)
                 if len(item_food) < 2 or item_food in seen:
                     continue

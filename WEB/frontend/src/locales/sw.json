@@ -3188,5 +3188,21 @@
   },
   "AlertDialog": {
     "dismiss": "Ondoa"
+  },
+  "MissingAmounts": {
+    "add_amounts": "Ongeza kiasi",
+    "title": "Ulikula kiasi gani?",
+    "loading": "Inapakia…",
+    "nothing": "Kila kitu katika chakula hiki kina kiasi tayari.",
+    "your_earlier": "Kiasi chako cha awali:",
+    "times": "{{amount}} · {{times}}×",
+    "none_before": "Haujapea kiasi kwa hii hapo awali.",
+    "placeholder": "k.m. 200 g, 1 kikombe, 350 ml",
+    "save": "Hifadhi kiasi",
+    "cancel": "Ghairi",
+    "not_a_measure": "Ingiza uzani au kipimo kwa {{food}} — kwa mfano 200 g au 1 kikombe.",
+    "no_such_item": "{{food}} kina kiasi tayari, au si katika chakula hiki tena.",
+    "failed": "Haikuweza kuhifadhi kiasi. Tafadhali jaribu tena.",
+    "load_failed": "Haikuweza kupakia vitu vya chakula hiki. Tafadhali jaribu tena."
   }
 }
