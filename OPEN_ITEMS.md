@@ -5817,10 +5817,13 @@ event existed."*
   past day's alerts again, worded "Today's …". `notify` now defaults OFF and is
   passed only by create, PATCH and the assistant's `log_meal`; Re-analyze and
   scripts are silent. A back-dated meal's alert names its date.
-- ⚠️ **The placeholder re-estimation plan is void.** Its "after" figures used
-  assumed portions. Re-running history under this rule turns 72% of logged
-  items into "not counted", so many past days become PARTIAL — not applied,
-  operator's decision.
+- ✅ **DECIDED — history is left as it is** (operator, 2026-10-24: *"leave
+  history. Focus is on future"*). Meals estimated before `d7bb516` keep their
+  stored figures, including the former 100 g placeholder; the no-assumption
+  rule applies to meals logged from now on. Do NOT run
+  `scripts/reestimate_placeholder_portions.py --apply`, and do not propose a
+  historical re-estimate again — dry run 2's plan is void anyway (it measured
+  assumed portions).
 - **Production cleanup, operator-approved:** 479 nutrition alerts on 10/23,
   479 distinct keys, dated 2025-05-28 → 2026-10-23. 476 were the repair's
   (ids 77–552, written 17:47–18:35 ET, none read) and were DELETED; #75, #76
