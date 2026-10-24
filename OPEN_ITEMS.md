@@ -5862,3 +5862,10 @@ answers 400 to "(", ")" and "-".
   unit like a bare count.
 - Names the parser mangles: "spoons of unsalted butter", "carton",
   "numb earl grey tea", "a bowl of egusi soup" (the whole phrase as the food).
+- Seen while demonstrating TASKS 25 on dev: cached "smoothie" is USDA
+  2710152 **"Vegetable smoothie"** (89 kcal, 6.6 g fat /100 g, cached
+  2026-06-28) and "white rice" is 2708422 **"Rice, white, cooked, glutinous"**
+  (96 kcal, cached 2026-10-23). Neither row carries `matched_name` (both predate
+  ax001), so the meal's items show the typed name and the patient cannot see
+  the guess. The identification half of TASKS 25 — confirm/correct the match —
+  is the fix, not a purge.

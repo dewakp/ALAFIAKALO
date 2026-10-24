@@ -63,15 +63,19 @@ export default function MissingAmounts({ logId, onSaved }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary btn-sm" style={{ marginTop: 4 }} onClick={start}>
+      <button type="button" className="btn btn-secondary btn-sm"
+        style={{ marginTop: 4, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }} onClick={start}>
         {t('MissingAmounts.add_amounts')}
       </button>
     );
   }
 
   return (
-    <div data-testid="missing-amounts" style={{ marginTop: 6, padding: '.5rem', borderRadius: 6, textAlign: 'left',
-      background: 'var(--color-bg-secondary, rgba(0,0,0,.03))', fontFamily: 'inherit', whiteSpace: 'normal' }}>
+    // Drawn inside the calories cell, which is monospace and right-aligned:
+    // set the page's own font and give it room, or it inherits both.
+    <div data-testid="missing-amounts" style={{ marginTop: 6, padding: '.6rem', borderRadius: 6, textAlign: 'left',
+      background: 'var(--color-bg-secondary, rgba(0,0,0,.03))', whiteSpace: 'normal', minWidth: '17rem',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontSize: '.8rem' }}>
       <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('MissingAmounts.title')}</div>
       {items === null && !error && <div>{t('MissingAmounts.loading')}</div>}
       {items?.length === 0 && <div>{t('MissingAmounts.nothing')}</div>}
