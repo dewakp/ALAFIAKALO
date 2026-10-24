@@ -181,3 +181,85 @@ async def choose(food_name: str, candidates: list[dict]) -> int | None:
                 (body.get("reason") or "")[:160])
     _memo[key] = idx
     return idx
+
+
+_PORTION = """A patient described part of a meal. The food has been identified, and the
+food-composition database lists the portions it is measured in, each with its
+weight in grams. Decide which listed portion the patient's words describe and
+how many of it.
+
+- "<n> <units>" with a listed portion "1 <unit>" -> that portion, count n.
+- A unit the list names differently but that means the same container or piece
+  is the same portion.
+- If the words give no amount at all, choose a portion ONLY if the list has one
+  that is plainly the ordinary single serving of this food; otherwise null.
+- If no listed portion fits the words, answer null. Do not guess a weight.
+
+Reply with JSON only: {"portion": <portion number or null>, "count": <number>}"""
+
+
+async def choose_portion(text: str, food: str, portions: list[dict]) -> tuple[int, float] | None:
+    """(index into `portions`, count) for the amount `text` describes, or None.
+
+    Replaces the parser's 100 g placeholder for a unit it does not know
+    ("2 sachets of brown sugar" was 100 g -> 380 kcal; two sachets are ~8 g).
+    The weight comes from the database's own portion list; the model only reads
+    which portion the words mean. Raises `Unavailable` when it cannot answer.
+    """
+    usable = [p for p in portions if isinstance(p.get("gram_weight"), (int, float)) and p["gram_weight"] > 0]
+    if not usable:
+        return None
+    lines = [f'{i}. "{p.get("description")}" = {round(float(p["gram_weight"]), 1)} g'
+             + (f' (amount {p["amount"]})' if p.get("amount") not in (None, 1, 1.0) else "")
+             for i, p in enumerate(usable, 1)]
+    messages = [{"role": "system", "content": _PORTION},
+                {"role": "user", "content": f'Patient wrote: "{text}"\nFood: "{food}"\nPortions:\n' + "\n".join(lines)}]
+    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
+    try:
+        raw = await alafia_chat(messages, temperature=0.0, max_tokens=120, json_mode=True)
+        body = json.loads(raw[raw.find("{"): raw.rfind("}") + 1])
+        pick, count = body.get("portion"), body.get("count", 1)
+        if pick is None:
+            return None
+        idx = int(pick) - 1
+        count = float(count)
+        if not 0 <= idx < len(usable) or not 0 < count <= 50:
+            raise ValueError(f"portion {pick} x {count} out of range")
+    except (ALAFIAModelError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise Unavailable(type(exc).__name__) from exc
+    chosen = usable[idx]
+    return portions.index(chosen), count
+
+
+_ASSUMED = """A patient logged a food as part of a meal without saying how much. Estimate
+the weight of ONE ordinary serving of this specific food, as it is eaten, in
+grams — the edible amount on the plate, not a package or a recipe batch — and a
+plausible low-high range for that one serving.
+
+Reply with JSON only: {"grams": <number>, "low": <number>, "high": <number>}
+If it is not a food, answer {"grams": null}."""
+
+
+async def assumed_portion(text: str, food: str) -> tuple[float, float, float] | None:
+    """(grams, low, high) for one ordinary serving, or None when not a food.
+
+    Operator-chosen fallback (2026-10-23, option C) when the patient stated no
+    weight and the record has no fitting portion: 72% of logged items carry no
+    weight, so "not counted" would empty most days, and the old 100 g was
+    neither measured nor stated. This is an ASSUMPTION and is stored labelled
+    as one, with its range. Raises `Unavailable` when the model cannot answer.
+    """
+    messages = [{"role": "system", "content": _ASSUMED},
+                {"role": "user", "content": f'Patient wrote: "{text}"\nFood: "{food}"' + _where()}]
+    from app.services.alafia_model_service import alafia_chat, ALAFIAModelError
+    try:
+        raw = await alafia_chat(messages, temperature=0.0, max_tokens=80, json_mode=True)
+        body = json.loads(raw[raw.find("{"): raw.rfind("}") + 1])
+        if body.get("grams") is None:
+            return None
+        g, lo, hi = float(body["grams"]), float(body.get("low", body["grams"])), float(body.get("high", body["grams"]))
+        if not (0 < lo <= g <= hi <= 2000):
+            raise ValueError(f"implausible serving {lo}-{g}-{hi} g")
+    except (ALAFIAModelError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        raise Unavailable(type(exc).__name__) from exc
+    return round(g, 1), round(lo, 1), round(hi, 1)

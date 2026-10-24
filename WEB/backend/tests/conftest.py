@@ -244,8 +244,27 @@ def _offline_food_match_verifier(monkeypatch):
     async def _no_second_name(food_name):
         return None  # no query rewrite: the suite never reaches a model
 
+    async def _no_portion(text, food, portions):
+        return None
+
+    async def _old_placeholder(text, food):
+        # 100 g, the parser's former placeholder, so meal tests written before
+        # portion resolution keep their meaning; the new behaviour is tested in
+        # test_portion_resolution.py, which patches these explicitly.
+        return 100.0, 100.0, 100.0
+
     monkeypatch.setattr(food_match_verifier, "choose", _agree_with_ranking)
     monkeypatch.setattr(food_match_verifier, "standard_name", _no_second_name)
+    monkeypatch.setattr(food_match_verifier, "choose_portion", _no_portion)
+    monkeypatch.setattr(food_match_verifier, "assumed_portion", _old_placeholder)
+
+    # The USDA portion list is fetched over the network; offline by default.
+    from app.services import nutrient_estimator
+
+    async def _no_record_portion(comp, est):
+        return None
+
+    monkeypatch.setattr(nutrient_estimator, "_portion_from_record", _no_record_portion)
 
 
 @pytest.fixture(autouse=True)

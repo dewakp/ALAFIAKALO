@@ -1155,6 +1155,73 @@ async def _learn_stated(db: AsyncSession, food_name: str, stated: dict,
         logger.exception("Could not record stated nutrients for %r", food_name)
 
 
+_PLACEHOLDER_QTY_RE = re.compile(r"(?:default|\d+(?:\.\d+)?|\.\d+|\d+/\d+|half|quarter)", re.I)
+_portion_cache: dict[int, list[dict]] = {}
+
+
+def _weight_is_placeholder(qty_text: str | None) -> bool:
+    """The parser stated no weight: "default" (no amount at all) or a bare
+    count with a unit it does not know ("2" for "2 sachets")."""
+    return bool(qty_text) and bool(_PLACEHOLDER_QTY_RE.fullmatch(qty_text.strip()))
+
+
+async def _portion_from_record(comp, est: dict) -> tuple[float, str] | None:
+    """(grams, description) from the resolved food's own USDA portion list, or
+    None when there is no such list or none of its portions fits the words."""
+    fdc_id = est.get("fdc_id")
+    if not fdc_id:
+        return None
+    from app.services import food_match_verifier
+    portions = _portion_cache.get(fdc_id)
+    if portions is None:
+        try:
+            detail = await get_usda_food_detail(fdc_id)
+        except Exception:
+            logger.warning("USDA portions unavailable for fdc %s", fdc_id, exc_info=True)
+            return None
+        portions = (detail or {}).get("portions") or []
+        _portion_cache[fdc_id] = portions
+    text = (getattr(comp, "source_text", "") or "").strip() or f"{comp.qty_text} {comp.food_name}"
+    try:
+        chosen = await food_match_verifier.choose_portion(text, est.get("food_name") or comp.food_name, portions)
+    except food_match_verifier.Unavailable:
+        return None
+    if chosen is None:
+        return None
+    idx, count = chosen
+    p = portions[idx]
+    grams = round(float(p["gram_weight"]) * count, 1)
+    desc = str(p.get("description") or "")
+    # FNDDS names its default portion "Quantity not specified" — the survey's
+    # typical amount eaten. Say that, rather than echo the database's wording.
+    if "not specified" in desc.lower():
+        return grams, f"USDA typical portion ({grams:.0f} g)"
+    return grams, f"{count:g} x {desc} ({grams:.0f} g, USDA portion)"
+
+
+async def _resolve_portion(comp, est: dict) -> tuple[float, str] | None:
+    """The weight of an item the patient gave no usable amount for.
+
+    1. the resolved food's own USDA portion that the words describe;
+    2. otherwise an ASSUMED ordinary serving of that food, with its range,
+       labelled as an assumption (operator choice C, 2026-10-23);
+    3. otherwise None — the item is "weight unknown" and not counted.
+    """
+    found = await _portion_from_record(comp, est)
+    if found is not None:
+        return found
+    from app.services import food_match_verifier
+    text = (getattr(comp, "source_text", "") or "").strip() or comp.food_name
+    try:
+        assumed = await food_match_verifier.assumed_portion(text, est.get("food_name") or comp.food_name)
+    except food_match_verifier.Unavailable:
+        return None
+    if assumed is None:
+        return None
+    g, lo, hi = assumed
+    return g, f"assumed portion ~{g:.0f} g (range {lo:.0f}-{hi:.0f} g)"
+
+
 async def estimate_meal_nutrients(
     db: AsyncSession,
     description: str,
@@ -1419,6 +1486,27 @@ async def _estimate_meal_nutrients_body(
                 # and this no longer is one (§3aa).
                 portion_text = f"1 serving ({portion_g:.0f} g, from the label)"
 
+        # ── A UNIT THE PARSER DOES NOT KNOW IS NOT 100 g ───────────────────
+        #
+        # "2 sachets of brown sugar" parsed as 100 g (380 kcal; two sachets are
+        # ~8 g), "1 serving of ranch dressing" as 100 g (430 kcal; ~30 g), a
+        # bare "beef" as 100 g "default" — the parser's placeholder stored as a
+        # measurement. Measured on the 2026-10-23 production repair. The weight
+        # now comes from the resolved food's OWN portion list (USDA
+        # foodPortions), the model only reading which portion the words mean;
+        # failing that, an ASSUMED ordinary serving with its range, labelled
+        # as one (operator choice C — 72% of logged items state no weight, so
+        # "not counted" would empty most days). Only when both fail is the
+        # item "weight unknown" and left out with a caveat. Never 100 g.
+        weight_unknown = False
+        if portion_text == comp.qty_text and _weight_is_placeholder(comp.qty_text):
+            from_record = await _resolve_portion(comp, est)
+            if from_record is not None:
+                portion_g, portion_text = from_record
+            else:
+                weight_unknown = True
+                portion_text = "weight unknown"
+
         # Input-side believability: cap an implausibly large parsed portion
         # (usually a count misread as grams, e.g. "100 of chicken thigh").
         qty_g, parse_warnings = plausibility.validate_parse(comp.food_name, portion_g)
@@ -1462,8 +1550,12 @@ async def _estimate_meal_nutrients_body(
         # what should be removed.
         component_believable = (
             est.get("believable", True) and est.get("out_of_band") is not True
+            and not weight_unknown
         )
-        if component_believable:
+        if weight_unknown:
+            excluded.append(f"{comp.food_name} (weight unknown)")
+            qty_g, scaled = None, {}
+        elif component_believable:
             kept_weight_g += qty_g
             for key, val in scaled.items():
                 aggregate[key] = round(aggregate.get(key, 0.0) + val, 4)

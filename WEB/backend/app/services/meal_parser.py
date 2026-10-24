@@ -468,6 +468,7 @@ _SEG_QTY_RE = re.compile(
     r"\d+(?:\.\d+)?\s+(?:and\s+)?(?:a\s+)?(?:\d+/\d+|half)"   # "1 1/2", "1 and a half"
     r"|\d+/\d+"                                                   # "1/2"
     r"|\d+(?:\.\d+)?"                                             # "1.5", "1"
+    r"|\.\d+"                                                     # ".5" — no leading zero
     r"|half|quarter"                                              # word fractions
     r")\s*",
     re.IGNORECASE,

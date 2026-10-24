@@ -50,7 +50,10 @@ def _session_factory(session):
 
 
 class _Comp:
-    def __init__(self, name, qty_g, qty_text="default"):
+    # These fixtures STATE their weights. "default" now means "no weight was
+    # given" and is resolved from the record or an assumed serving
+    # (test_portion_resolution.py), which would replace the weights below.
+    def __init__(self, name, qty_g, qty_text="as stated (fixture)"):
         self.food_name = name
         self.qty_g = qty_g
         self.qty_text = qty_text
