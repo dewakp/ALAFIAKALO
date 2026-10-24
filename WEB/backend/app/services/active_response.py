@@ -130,6 +130,34 @@ class Finding:
         return out
 
 
+# ── Only the present is judged ───────────────────────────────────────────
+
+
+def _is_current(day: Any, user: Any) -> bool:
+    """Is this record dated the patient's today (or yesterday)?
+
+    §3az: *"do not notify retroactively. Notify from when this update lands
+    onward."* That rule lived only in the callers, and on 2026-10-23 a cache
+    repair re-estimated 304 historical meals through the live writer: 476
+    alerts for days back to 2025-05-28, each worded "Today's …", none of them a
+    new event. The callers are now told to pass `notify`, but a guard that
+    depends on every caller remembering is how it happened. So the engine
+    refuses to judge a past day itself, whoever calls it.
+
+    Yesterday is admitted because the patient's "today" can trail the server's
+    (`users.timezone` is mostly NULL, so this falls back to UTC — §3am), and a
+    meal logged at 9 pm in New York carries a date that UTC already calls
+    yesterday. A meal back-dated further than that raises nothing: an alert
+    about a day already over cannot change what the patient eats.
+    """
+    if day is None:
+        return False
+    if isinstance(day, datetime):
+        day = day.date()
+    from app.core.patient_time import patient_today
+    return day >= patient_today(None, getattr(user, "timezone", None)) - timedelta(days=1)
+
+
 # ── Emission ──────────────────────────────────────────────────────────────
 
 
@@ -268,6 +296,10 @@ async def evaluate_nutrition_log(db: AsyncSession, log: Any, user: Any) -> int:
     not disagree, and a second aggregate maintained here would drift from the
     one the patient can see on their own screen.
     """
+    if not _is_current(getattr(log, "log_date", None), user):
+        logger.info("active_response: meal %s is dated %s — a past day is not judged",
+                    getattr(log, "id", None), getattr(log, "log_date", None))
+        return 0
     findings: list[Finding] = []
     try:
         findings += await _nutrient_limit_findings(db, log, user)
@@ -327,6 +359,11 @@ async def _nutrient_limit_findings(db: AsyncSession, log: Any, user: Any) -> lis
         name = goal.get("name") or key
         unit = goal.get("unit") or ""
         over = got - cap
+        # A meal logged for an earlier day judges THAT day, and must say so —
+        # "Today's" on a past date is a false statement in a clinical alert.
+        from app.core.patient_time import patient_today
+        is_today = log.log_date >= patient_today(None, getattr(user, "timezone", None))
+        day = "Today's" if is_today else f"{log.log_date:%b} {log.log_date.day}'s"
         rationale = (goal.get("rationale") or "").strip()
         out.append(Finding(
             category=NotificationCategory.NUTRITION_ALERT,
@@ -335,13 +372,13 @@ async def _nutrient_limit_findings(db: AsyncSession, log: Any, user: Any) -> lis
             title=(f"{name} may be above your daily limit" if uncertain
                    else f"{name} above your daily limit"),
             message=(
-                (f"Today's sugars total {got:.0f} {unit} against your limit of "
-                 f"{cap:.0f} {unit}. Some of today's food could not be split "
+                (f"{day} sugars total {got:.0f} {unit} against your limit of "
+                 f"{cap:.0f} {unit}. Some of that day's food could not be split "
                  f"into free and natural sugars, so this may be under your "
                  f"limit — but if it was added sugar you are {over:.0f} "
                  f"{unit} over."
                  if uncertain else
-                 f"Today's {name.lower()} is {got:.0f} {unit} against your limit of "
+                 f"{day} {name.lower()} is {got:.0f} {unit} against your limit of "
                  f"{cap:.0f} {unit} — {over:.0f} {unit} over.")
                 + (f" {rationale}" if rationale else "")
             ),
@@ -432,6 +469,8 @@ async def evaluate_medication_dose(db: AsyncSession, dose: Any, user: Any) -> in
     > right instrument and it is a network call, so it does not belong on this
     > path. Recorded as a known gap rather than papered over.
     """
+    if not _is_current(getattr(dose, "log_date", None), user):
+        return 0
     try:
         from app.services import food_safety
 
@@ -498,6 +537,8 @@ async def evaluate_vitals(db: AsyncSession, entry: Any, user: Any) -> int:
     > applied. A post-prandial ceiling needs an authority this system does not
     > hold, and inventing one here is exactly what §0 forbids.
     """
+    if not _is_current(getattr(entry, "log_date", None), user):
+        return 0
     try:
         value = getattr(entry, "blood_glucose_mg_dl", None)
         if value is None:

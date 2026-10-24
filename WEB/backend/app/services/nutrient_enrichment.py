@@ -45,8 +45,16 @@ def _enrichment_timeout() -> float:
     return float(settings.NUTRIENT_ENRICHMENT_TIMEOUT)
 
 
-async def enrich_log(log_id: int, *, overwrite_zeros: bool = False) -> None:
+async def enrich_log(log_id: int, *, overwrite_zeros: bool = False, notify: bool = False) -> None:
     """Estimate and store nutrients for an already-saved log. Never raises.
+
+    `notify` is True ONLY where the patient has just given us something new —
+    a meal logged or edited. Re-estimating a meal they already logged (the
+    Re-analyze button, every repair script) is not an event: on 2026-10-23 the
+    cache repair re-estimated 304 historical meals and each one raised its
+    day's alerts again, worded "Today's …", for days long past. §3az: notify
+    from new data onward, never retroactively. Default OFF so a new caller
+    cannot forget it the noisy way.
 
     `overwrite_zeros` is for the one-off repair pass only (see
     `scripts/reestimate_nutrition.py`) and defaults OFF. On the live path a
@@ -56,7 +64,7 @@ async def enrich_log(log_id: int, *, overwrite_zeros: bool = False) -> None:
     computed each time and then discarded, and the row was stamped `done`.
     """
     try:
-        await asyncio.wait_for(_enrich(log_id, overwrite_zeros=overwrite_zeros),
+        await asyncio.wait_for(_enrich(log_id, overwrite_zeros=overwrite_zeros, notify=notify),
                                timeout=_enrichment_timeout())
     except asyncio.TimeoutError:
         logger.warning("Nutrient enrichment timed out for log %s", log_id)
@@ -66,10 +74,10 @@ async def enrich_log(log_id: int, *, overwrite_zeros: bool = False) -> None:
         await _mark(log_id, "failed")
 
 
-async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
+async def _enrich(log_id: int, *, overwrite_zeros: bool = False, notify: bool = False) -> None:
     from app.core.nutrition_data import DB_COLUMN_KEYS
     from app.services.meal_parser import extract_nutrition_facts
-    from app.services.nutrient_estimator import estimate_meal_nutrients, estimate_nutrients
+    from app.services.nutrient_estimator import estimate_meal_nutrients
 
     async with async_session() as db:
         log = (await db.execute(
@@ -125,20 +133,11 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
         # Keep the USDA provenance link when the meal resolved to one known food.
         fdc_id = components[0].get("fdc_id") if len(components) == 1 else None
 
-        if not nutrients:
-            # Nothing parsed as a portion (a bare food name, an unusual phrasing).
-            # Fall back to the per-100 profile rather than storing nothing.
-            est = await estimate_nutrients(db, log.food_name, log.serving_size)
-            nutrients = est.get("nutrients") or {}
-            fdc_id = est.get("fdc_id")
-            if nutrients:
-                components = [{
-                    "food_name": log.food_name, "matched_name": est.get("food_name"),
-                    "qty_g": None, "qty_text": "per 100 g — no portion parsed",
-                    "source": est.get("source"), "fdc_id": fdc_id,
-                    "confidence": est.get("confidence"), "counted": True,
-                    "nutrients_scaled": nutrients,
-                }]
+        # No per-100 g fallback. It stored a food's profile for 100 g as the
+        # meal's total when no amount had been given — the 100 g placeholder by
+        # another door. A meal with nothing countable is "unavailable", and the
+        # items that need an amount are named on it (operator, 2026-10-24:
+        # "If no portion size exists — surface the error").
 
         # The components this estimate was built from, stored with the meal and
         # REPLACING any from an earlier estimate. Written on every path —
@@ -148,6 +147,7 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
 
         if not nutrients:
             log.nutrient_status = "failed"
+            log.nutrients_excluded = [str(n) for n in (meal.get("excluded_components") or [])] or None
             await db.commit()
             logger.info("No nutrients resolved for log %s (%r)", log_id, log.food_name[:60])
             return
@@ -224,6 +224,8 @@ async def _enrich(log_id: int, *, overwrite_zeros: bool = False) -> None:
         # already durable at this point, so an evaluation failure cannot roll
         # back the clinical write, and the log keeps its `done` status whatever
         # happens here. Losing an alert beats losing the meal (§3ah).
+        if not notify:
+            return
         try:
             from app.models.user import User
             from app.services import active_response

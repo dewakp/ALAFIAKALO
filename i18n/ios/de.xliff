@@ -4519,6 +4519,11 @@
         <target state="translated">Keine Warnungen entsprechen Ihren Filtern</target>
         <note />
       </trans-unit>
+      <trans-unit id="No amount given — edit the meal to add one." xml:space="preserve">
+        <source>No amount given — edit the meal to add one.</source>
+        <target state="translated">Keine Menge angegeben — bearbeiten Sie die Mahlzeit, um eine hinzuzufügen.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="No conversations yet" xml:space="preserve">
         <source>No conversations yet</source>
         <target state="translated">Noch keine Gespräche</target>

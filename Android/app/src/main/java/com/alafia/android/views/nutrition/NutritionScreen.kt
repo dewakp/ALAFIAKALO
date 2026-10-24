@@ -609,8 +609,20 @@ private fun NutritionLogCard(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
                 } else if (log.nutrientStatus == "failed") {
-                    Text(stringResource(R.string.unavailable), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error)
+                    // Nothing countable: name the item that needs an amount,
+                    // or "unavailable" is a dead end.
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(stringResource(R.string.unavailable), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error)
+                        val excluded = log.nutrientsExcluded.orEmpty()
+                        if (excluded.isNotEmpty()) {
+                            Text(
+                                stringResource(R.string.not_counted_in_this_total, excluded.joinToString(", ")),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
                 }
                 // Correcting a meal was impossible on this client: the API
                 // method existed but no screen ever called it, so a patient who
@@ -688,8 +700,11 @@ private fun MealItems(logId: Int) {
                         Column(Modifier.weight(1f)) {
                             Text(c.foodName, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                             Text(weight + matched + source, fontSize = 11.sp, color = muted)
-                            if (!c.counted) Text(stringResource(R.string.not_counted_item), fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.error)
+                            // Why it is left out: an item with no amount is not
+                            // a failed figure, and saying so says what to do.
+                            if (!c.counted) Text(
+                                stringResource(if (c.qtyG == null) R.string.no_amount_given else R.string.not_counted_item),
+                                fontSize = 11.sp, color = MaterialTheme.colorScheme.error)
                         }
                         Text(stringResource(R.string.kcal_p_g, num(c.nutrients?.get("calories")), num(c.nutrients?.get("protein_g"))),
                             fontSize = 11.sp)

@@ -1262,6 +1262,7 @@
     <string name="weight_unknown">peso desconhecido</string>
     <string name="matched_to">correspondido a %1$s</string>
     <string name="not_counted_item">Não contabilizado no total — os valores deste item falharam na verificação de plausibilidade.</string>
+    <string name="no_amount_given">Nenhuma quantidade informada — edite a refeição para adicionar uma.</string>
     <string name="items_are_estimates">Estimativas. Os valores de cada item vêm do registro mostrado ao lado.</string>
     <string name="could_not_load_this_photo">Não foi possível carregar esta foto.</string>
     <string name="download_pdf">Baixar PDF</string>

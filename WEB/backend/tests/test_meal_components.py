@@ -122,28 +122,34 @@ async def test_a_re_estimate_replaces_the_components_never_adds_beside_them(monk
         ("sardines", "Fish, sardine, Atlantic, canned in oil", 100.0)]
 
 
-async def test_the_single_food_fallback_says_it_had_no_portion(monkeypatch, db):
-    """When nothing parsed as a portion the meal stores a per-100 g profile.
-    Its component says so (qty NULL), rather than claiming a weight."""
+async def test_a_meal_with_no_amount_is_unavailable_and_says_why(monkeypatch, db):
+    """No per-100 g fallback. It used to store a food's 100 g profile as the
+    meal's total when no amount was given — the 100 g placeholder by another
+    door (operator, 2026-10-24: "If no portion size exists — surface the
+    error"). The meal is unavailable and names the item that needs an amount."""
     log = await _log(db, food_name="garri")
+    comp = {"food_name": "garri", "matched_name": "garri", "counted": False, "qty_g": None,
+            "qty_text": "no amount given", "source": "ai", "fdc_id": None, "confidence": 0.7,
+            "nutrients_scaled": {}}
 
-    async def nothing(db_, description, notes=None, **kw):
-        return {"description": description, "components": [], "aggregate_nutrients": {},
-                "total_weight_g": 0.0, "warnings": [], "excluded_components": [],
-                "believable": True}
+    async def unweighed(db_, description, notes=None, **kw):
+        return {"description": description, "components": [comp], "aggregate_nutrients": {},
+                "total_weight_g": 0.0, "warnings": [], "believable": True,
+                "excluded_components": ["garri (no amount given)"]}
 
-    async def per100(db_, name, serving=None):
-        return {"source": "ai", "fdc_id": None, "food_name": "garri", "confidence": 0.7,
-                "nutrients": {"calories": 360.0}}
+    async def per100(*a, **k):
+        raise AssertionError("a per-100 g profile must never stand in for an unstated amount")
 
-    monkeypatch.setattr("app.services.nutrient_estimator.estimate_meal_nutrients", nothing)
+    monkeypatch.setattr("app.services.nutrient_estimator.estimate_meal_nutrients", unweighed)
     monkeypatch.setattr("app.services.nutrient_estimator.estimate_nutrients", per100)
     monkeypatch.setattr(ne, "async_session", _session_factory(db))
     await ne._enrich(log.id)
 
-    rows = await _components(db, log.id)
-    assert len(rows) == 1 and rows[0].qty_g is None
-    assert rows[0].qty_text.startswith("per 100 g") and rows[0].source == "ai"
+    await db.refresh(log)
+    assert log.calories is None and log.nutrient_status == "failed"
+    assert log.nutrients_excluded == ["garri (no amount given)"]
+    [row] = await _components(db, log.id)
+    assert row.counted is False and row.qty_text == "no amount given"
 
 
 async def _token(client: AsyncClient, email: str) -> str:
@@ -210,7 +216,7 @@ async def test_reestimate_recomputes_this_meal_and_never_adds_one(client: AsyncC
     pressed on: same id, figures cleared for the writer, no second row."""
     import app.api.nutrition as api_mod
     queued = []
-    monkeypatch.setattr(api_mod, "enrich_log", lambda log_id: queued.append(log_id))
+    monkeypatch.setattr(api_mod, "enrich_log", lambda log_id, **k: queued.append(log_id))
 
     owner = await _token(client, f"rea{uuid.uuid4().hex[:6]}@example.com")
     other = await _token(client, f"reb{uuid.uuid4().hex[:6]}@example.com")
@@ -240,7 +246,7 @@ async def test_reanalyze_keeps_the_photo_and_clears_the_whole_estimate(client: A
     `food_thumbnail`. Re-analyse clears NUTRIENTS — named by the catalog — and
     the extended panel, which the fill-blanks writer would otherwise keep."""
     import app.api.nutrition as api_mod
-    monkeypatch.setattr(api_mod, "enrich_log", lambda log_id: None)
+    monkeypatch.setattr(api_mod, "enrich_log", lambda log_id, **k: None)
     owner = await _token(client, f"pho{uuid.uuid4().hex[:6]}@example.com")
     h = {"Authorization": f"Bearer {owner}"}
     log_id = (await client.post("/api/v1/nutrition/", headers=h, json={

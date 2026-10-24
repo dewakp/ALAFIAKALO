@@ -1262,6 +1262,7 @@
     <string name="weight_unknown">重量未知</string>
     <string name="matched_to">匹配到 %1$s</string>
     <string name="not_counted_item">未计入总数——此项目的数据未通过合理性检查。</string>
+    <string name="no_amount_given">未输入数量 — 编辑餐食以添加数量。</string>
     <string name="items_are_estimates">估算值。每个项目的数据来自旁边显示的记录。</string>
     <string name="could_not_load_this_photo">无法加载此照片。</string>
     <string name="download_pdf">下载 PDF</string>

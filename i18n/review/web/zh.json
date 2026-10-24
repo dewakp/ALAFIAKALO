@@ -8735,6 +8735,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.no_amount_given": {
+    "source": "No amount given — edit the meal to add one.",
+    "translation": "未输入数量 — 编辑餐食以添加数量。",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "MealsDiary.no_item_breakdown": {
     "source": "No item breakdown: these figures were entered or imported, not estimated.",
     "translation": "无项目明细：这些数据是手动输入或导入的，而非估算。",

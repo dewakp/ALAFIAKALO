@@ -679,3 +679,101 @@ class TestEndToEndThroughTheRealEndpoint:
         notes = await _notes(db, user.id, NotificationCategory.LAB_ANOMALY)
         assert notes, "a hypoglycaemic reading must be answered"
         assert "74" in notes[0].message, "must quote the patient's OWN range"
+
+
+class TestReEstimatingIsNotAnEvent:
+    """REGRESSION GUARDS (2026-10-24). The cache repair re-estimated 304
+    historical meals through `enrich_log`, which evaluated every one: each past
+    day's alerts were written again, worded "Today's …", at the moment of the
+    repair. Operator: *"last fix created unnecessary sets of notifications …
+    when no notification event existed."*"""
+
+    async def _enrich(self, db, monkeypatch, log, **kw):
+        from app.services import nutrient_enrichment as enr
+
+        class _Ctx:
+            def __call__(self):
+                return self
+
+            async def __aenter__(self):
+                return db
+
+            async def __aexit__(self, *exc):
+                return False
+
+        async def heavy(db_, description, notes=None, **k):
+            return {"description": description, "components": [], "warnings": [],
+                    "aggregate_nutrients": {"calories": 600.0, "potassium_mg": 2600.0},
+                    "total_weight_g": 400.0, "excluded_components": [], "believable": True}
+
+        monkeypatch.setattr("app.services.nutrient_estimator.estimate_meal_nutrients", heavy)
+        monkeypatch.setattr(enr, "async_session", _Ctx())
+        await enr._enrich(log.id, **kw)
+
+    async def _meal(self, db, user, day):
+        log = NutritionLog(user_id=user.id, log_date=day, meal_type="lunch",
+                           food_name="Beans and plantain", nutrient_status="pending")
+        db.add(log)
+        await db.commit()
+        return log
+
+    @pytest.mark.asyncio
+    async def test_a_re_estimate_writes_no_notification(self, db, monkeypatch):
+        user = await _patient(db, email="reest@example.com")
+        log = await self._meal(db, user, date.today())
+        await self._enrich(db, monkeypatch, log)          # the repair / Re-analyze
+        assert await _notes(db, user.id) == []
+
+    @pytest.mark.asyncio
+    async def test_a_newly_logged_meal_still_notifies(self, db, monkeypatch):
+        user = await _patient(db, email="newlog@example.com")
+        log = await self._meal(db, user, date.today())
+        await self._enrich(db, monkeypatch, log, notify=True)
+        assert any("otassium" in n.title for n in await _notes(db, user.id))
+
+    @pytest.mark.asyncio
+    async def test_yesterday_is_named_never_called_today(self, db, monkeypatch):
+        user = await _patient(db, email="pastday@example.com")
+        day = date.today() - timedelta(days=1)
+        log = await self._meal(db, user, day)
+        await self._enrich(db, monkeypatch, log, notify=True)
+        [k] = [n for n in await _notes(db, user.id) if "otassium" in n.title]
+        assert not k.message.startswith("Today's")
+        assert k.message.startswith(f"{day:%b} {day.day}'s potassium")
+
+    def test_every_live_writer_asks_for_notification_and_no_script_does(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        api = (root / "app/api/nutrition.py").read_text()
+        assert api.count("add_task(enrich_log, log.id, notify=True)") == 2   # create, PATCH
+        assert "add_task(enrich_log, log.id)\n" in api                        # Re-analyze: silent
+        assert "enrich_log(log.id, notify=True)" in (root / "app/services/record_tools.py").read_text()
+        for script in (root / "scripts").glob("*.py"):
+            assert "notify=True" not in script.read_text(), script.name
+
+
+class TestThePastIsNeverJudged:
+    """REGRESSION GUARDS (2026-10-24). The engine itself refuses a past day,
+    whoever calls it — the repair that wrote 476 alerts called the live writer,
+    and a rule kept only in callers is a rule one caller forgets."""
+
+    @pytest.mark.asyncio
+    async def test_a_meal_from_last_week_raises_nothing_even_called_directly(self, db):
+        user = await _patient(db, email="oldmeal@example.com", allergies=REAL_ALLERGIES)
+        log = NutritionLog(user_id=user.id, log_date=date.today() - timedelta(days=7),
+                           meal_type="lunch", food_name="Raw Apples and beans",
+                           potassium_mg=9000.0, sodium_mg=9000.0, nutrient_status="done")
+        db.add(log)
+        await db.flush()
+        assert await active_response.evaluate_nutrition_log(db, log, user) == 0
+        assert await _notes(db, user.id) == []
+
+    @pytest.mark.asyncio
+    async def test_an_old_dose_and_an_old_reading_raise_nothing(self, db):
+        from types import SimpleNamespace
+        user = await _patient(db, email="olddose@example.com", allergies=REAL_ALLERGIES)
+        old = date.today() - timedelta(days=30)
+        dose = SimpleNamespace(id=1, log_date=old, medication_name="Latex", drug_name="Latex")
+        reading = SimpleNamespace(id=1, log_date=old, blood_glucose_mg_dl=20.0, glucose_timing=None)
+        assert await active_response.evaluate_medication_dose(db, dose, user) == 0
+        assert await active_response.evaluate_vitals(db, reading, user) == 0
+        assert await _notes(db, user.id) == []

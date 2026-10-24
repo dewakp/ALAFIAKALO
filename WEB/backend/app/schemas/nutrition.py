@@ -492,8 +492,11 @@ class MealComponentResult(BaseModel):
     """Nutrient estimate for one parsed food item, scaled to its actual quantity."""
 
     food_name: str
-    qty_g: float
+    # None when the patient gave no amount: the item is not counted, and is
+    # named in `excluded_components` rather than given an assumed weight.
+    qty_g: float | None = None
     qty_text: str                   # human-readable quantity (e.g. "1.5 cup")
+    counted: bool = True
     source: str | None = None       # "usda", "ai", or None
     fdc_id: int | None = None
     confidence: float = 0.0
@@ -506,5 +509,8 @@ class MealEstimateResponse(BaseModel):
     description: str
     components: list[MealComponentResult]
     aggregate_nutrients: dict[str, float]   # summed across all components
-    total_weight_g: float
+    total_weight_g: float | None = None
+    # Items left out of the totals, each with its reason — "rice (no amount
+    # given)". A total that omits an item must say so (§3aa).
+    excluded_components: list[str] = []
     log_id: int | None = None               # set when saved to NutritionLog

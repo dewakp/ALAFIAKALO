@@ -1262,6 +1262,7 @@
     <string name="weight_unknown">ịnwụ amataghị</string>
     <string name="matched_to">ejikọtara na %1$s</string>
     <string name="not_counted_item">Ejikọtaghị n\'ọnụ ọgụgụ niile — ọnụ ọgụgụ ihe a dị mkpa.</string>
+    <string name="no_amount_given">Enweghị ọnụ ọgụgụ — dezie nri ahụ ka ị tinye otu.</string>
     <string name="items_are_estimates">Atụmatụ. Ọnụ ọgụgụ ihe ọ bụla sitere n\'ndekọ e gosiri n\'akụkụ ya.</string>
     <string name="could_not_load_this_photo">Enweghị ike ilodata foto a.</string>
     <string name="download_pdf">Budata PDF</string>

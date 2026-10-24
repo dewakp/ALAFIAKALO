@@ -5177,6 +5177,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "Localizable.xcstrings::No amount given — edit the meal to add one.": {
+    "source": "No amount given — edit the meal to add one.",
+    "translation": "Enweghị ọnụ ọgụgụ — dezie nri ahụ ka ị tinye otu.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "Localizable.xcstrings::No conversations yet": {
     "source": "No conversations yet",
     "translation": "Enweghị mkparịta ụka ọzọ",

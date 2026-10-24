@@ -355,35 +355,37 @@ export default function Nutrition() {
     if (!silent) setEstimateError('');
 
     try {
+      // The meal estimator Save uses, and nothing else. There is no
+      // single-food fallback: it priced the whole typed text as 100 g of one
+      // food — an amount nobody stated. An item with no amount is named, so
+      // the patient can add it (operator, 2026-10-24).
+      const { data: meal } = await api.post('/nutrition/estimate-meal',
+        { description: foodName }, { timeout: 25000 });
+      const comps = meal?.components || [];
+      const excluded = meal?.excluded_components || [];
       let data = null;
-      try {
-        const { data: meal } = await api.post('/nutrition/estimate-meal',
-          { description: foodName }, { timeout: 25000 });
-        const comps = meal?.components || [];
-        if (meal?.aggregate_nutrients && Object.keys(meal.aggregate_nutrients).length) {
-          const sources = [...new Set(comps.map((c) => c.source).filter(Boolean))];
-          const confs = comps.map((c) => c.confidence).filter((c) => c > 0);
-          data = {
-            source: sources.join(' + ') || 'meal',
-            confidence: confs.length ? Math.min(...confs) : null,
-            nutrients: meal.aggregate_nutrients,
-            fdc_id: comps.length === 1 ? comps[0].fdc_id : null,
-            serving_size: comps.length > 1 && meal.total_weight_g
-              ? `composite meal (${Math.round(meal.total_weight_g)} g total)` : null,
-          };
-        }
-      } catch { /* fall through to the single-food path, as Save does */ }
-
-      if (!data) {
-        const payload = { food_name: foodName };
-        if (form.serving_size?.trim()) payload.serving_size = form.serving_size.trim();
-        ({ data } = await api.post('/nutrition/estimate-nutrients', payload));
+      if (meal?.aggregate_nutrients && Object.keys(meal.aggregate_nutrients).length) {
+        const sources = [...new Set(comps.map((c) => c.source).filter(Boolean))];
+        const confs = comps.map((c) => c.confidence).filter((c) => c > 0);
+        data = {
+          source: sources.join(' + ') || 'meal',
+          confidence: confs.length ? Math.min(...confs) : null,
+          nutrients: meal.aggregate_nutrients,
+          fdc_id: comps.length === 1 ? comps[0].fdc_id : null,
+          serving_size: comps.length > 1 && meal.total_weight_g
+            ? `composite meal (${Math.round(meal.total_weight_g)} g total)` : null,
+          excluded,
+        };
       }
       if (seq !== estimateSeq.current) return;
 
       if (!data?.source) {
         setEstimatePreview(null);
-        if (!silent) {
+        // Nothing countable because amounts are missing: say which, even on a
+        // silent (as-you-type) estimate — that is the actionable answer.
+        if (excluded.length) {
+          setEstimateError(translate('Nutrition.not_counted', { foods: excluded.join(', ') }));
+        } else if (!silent) {
           setEstimateError(translate('Nutrition.no_nutrient_estimate_available_yet_you'));
         }
         return;
@@ -894,6 +896,11 @@ export default function Nutrition() {
                   <span>{translate('Nutrition.carbs')} <strong>{estimatePreview.nutrients?.carbs_g ?? '—'}g</strong></span>
                   <span>{translate('Nutrition.fat')} <strong>{estimatePreview.nutrients?.fat_g ?? '—'}g</strong></span>
                 </div>
+                {estimatePreview.excluded?.length > 0 && (
+                  <div style={{ color: '#b45309' }}>
+                    {translate('Nutrition.not_counted', { foods: estimatePreview.excluded.join(', ') })}
+                  </div>
+                )}
                 {/* Apply only links the USDA food or fills an EMPTY serving size —
                     Save computes the nutrients either way. Offered when pressing
                     it would change something; otherwise it was a button that did
@@ -1104,6 +1111,14 @@ export default function Nutrition() {
                             ? <span title={translate('Nutrition.could_not_work_out_nutrients_edit_the')}
                                 style={{ fontSize: '.7rem', color: '#b45309', fontFamily: 'inherit' }}>
                                 {translate('Nutrition.unavailable')}
+                                {/* Nothing countable: say WHICH item needs an
+                                    amount, or "unavailable" is a dead end. */}
+                                {log.nutrients_excluded?.length > 0 && (
+                                  <div style={{ fontSize: '.65rem', fontWeight: 400, whiteSpace: 'normal' }}>
+                                    {translate('Nutrition.not_counted', {
+                                      foods: log.nutrients_excluded.join(', ') })}
+                                  </div>
+                                )}
                               </span>
                             : '—'}
                     </td>

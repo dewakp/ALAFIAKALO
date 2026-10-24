@@ -1102,10 +1102,12 @@ def _parse_meal_text_impl(description: str) -> list[FoodComponent]:
                 if len(item_food) < 2 or item_food in seen:
                     continue
 
-                # If no explicit quantity was found, assign type-based default
-                if item_qty_text == "default":
-                    ing_type = _classify_ingredient(item_food)
-                    item_qty_g, item_qty_text = _TYPE_DEFAULTS[ing_type]
+                # No amount stated for the ingredient: it stays "default", which
+                # the estimator reports as "no amount given" and does not count.
+                # It used to become a guessed teaspoon, tablespoon or 30 g share
+                # here, and was then counted as if the patient had said it
+                # (operator, 2026-10-24: "Instead of assuming portion let user
+                # determine. If no portion size exists — surface the error").
 
                 seen.add(item_food)
                 components.append(

@@ -1262,6 +1262,7 @@
     <string name="weight_unknown">ìwọ̀n àìmọ̀</string>
     <string name="matched_to">ti dárapọ̀ sí %1$s</string>
     <string name="not_counted_item">Kò ní ìkan nínú àpapọ̀ — àwọn ìfigúrì ohun yìí kúrò nínú ìdánwò ìdúró.</string>
+    <string name="no_amount_given">Àìfúnni iye — ṣàtúnṣe oúnjẹ náà láti fi iye kun.</string>
     <string name="items_are_estimates">Àmètéjádé. Àwọn ìfigúrì ohun kọ̀ọ̀kan wá láti ìwé tí ó wà ní ẹ̀gbẹ́ rẹ̀.</string>
     <string name="could_not_load_this_photo">Àìlè ní láti lọ àwòrán yìí.</string>
     <string name="download_pdf">Gba PDF</string>

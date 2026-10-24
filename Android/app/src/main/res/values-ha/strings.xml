@@ -1262,6 +1262,7 @@
     <string name="weight_unknown">ba a san nauyi ba</string>
     <string name="matched_to">an daidaita zuwa %1$s</string>
     <string name="not_counted_item">Ba a ƙididdige a cikin jimillar ba — abubuwan wannan abu sun gazawa jerin ƙididdige.</string>
+    <string name="no_amount_given">Bakin abinci ba a bayyana — gyara abincin don ƙara ɗaya.</string>
     <string name="items_are_estimates">Ƙididdige. Abubuwan kowane abu suna zuwa daga rikodin da aka nuna kusa da shi.</string>
     <string name="could_not_load_this_photo">Ba za a iya lodin wannan hoto ba.</string>
     <string name="download_pdf">Saukar PDF</string>

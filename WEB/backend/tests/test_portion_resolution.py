@@ -5,10 +5,13 @@
 
 Measured on the 2026-10-23 production repair, with components stored:
 "2 sachets of brown sugar" parsed as 100 g -> 380 kcal (two sachets are ~8 g);
-"1 serving of ranch dressing" as 100 g -> 430 kcal, 45 g fat (~30 g);
-".5 cup of roasted corn flour" was not parsed at all. 72% of logged items state
-no weight. Operator choice C: the record's own portion first, then an ASSUMED
-serving labelled as one, and "weight unknown" only when both fail.
+".5 cup of roasted corn flour" was not parsed at all.
+
+Operator, 2026-10-24: "Instead of assuming portion let user determine. If no
+portion size exists — surface the error." A COUNT the patient stated becomes
+grams through the food's own USDA portion; no amount at all is not counted and
+is named on the meal. The assumed serving (choice C) is gone: it sent a bare
+"Smoothie" to USDA's 864 g "1 medium" and 769 kcal.
 """
 
 import pytest
@@ -61,32 +64,61 @@ async def test_the_records_own_portion_is_used(monkeypatch, db):
     assert out["aggregate_nutrients"]["calories"] == pytest.approx(30.4)
 
 
-async def test_otherwise_an_assumed_serving_labelled_as_one(monkeypatch, db):
-    async def assume(text, food, meal=""):
-        return 150.0, 120.0, 200.0
-    monkeypatch.setattr(food_match_verifier, "assumed_portion", assume)
-    monkeypatch.setattr(ne, "estimate_nutrients", _estimate({"calories": 250.0}))
+async def test_no_amount_is_not_counted_and_nothing_is_assumed(monkeypatch, db):
+    """The Smoothie: no amount stated. Nothing may pick a serving for it."""
+    monkeypatch.setattr(ne, "_portion_from_record", _REAL_PORTION_FROM_RECORD)
+    monkeypatch.setattr(ne, "_portion_cache", {})
 
-    out = await ne.estimate_meal_nutrients(db, "beef")
+    async def detail(fdc_id):
+        return {"portions": [{"description": "1 medium", "gram_weight": 864.0, "amount": 1}]}
+
+    async def pick(*a, **k):
+        raise AssertionError("no amount was stated, so no portion may be chosen")
+
+    monkeypatch.setattr(ne, "get_usda_food_detail", detail)
+    monkeypatch.setattr(food_match_verifier, "choose_portion", pick)
+    monkeypatch.setattr(ne, "estimate_nutrients", _estimate({"calories": 89.0}, fdc_id=2709000,
+                                                              name="Smoothie, fruit"))
+
+    out = await ne.estimate_meal_nutrients(db, "Smoothie")
 
     [c] = out["components"]
-    assert c["qty_g"] == 150.0 and c["qty_text"].startswith("assumed portion")
-    assert "120-200" in c["qty_text"]
-    assert out["aggregate_nutrients"]["calories"] == 375.0
+    assert c["qty_g"] is None and c["counted"] is False
+    assert c["qty_text"] == "no amount given"
+    assert out["excluded_components"] == ["smoothie (no amount given)"]
+    assert not out["aggregate_nutrients"].get("calories")
 
 
-async def test_weight_unknown_is_not_counted_and_says_so(monkeypatch, db):
-    async def no(text, food, meal=""):
-        return None
-    monkeypatch.setattr(food_match_verifier, "assumed_portion", no)
+async def test_an_unstated_item_beside_a_weighed_one_is_named(monkeypatch, db):
     monkeypatch.setattr(ne, "estimate_nutrients", _estimate({"calories": 250.0}))
 
     out = await ne.estimate_meal_nutrients(db, "beef, 200 g rice")
 
     beef = next(c for c in out["components"] if c["food_name"] == "beef")
     assert beef["qty_g"] is None and beef["counted"] is False
-    assert any("weight unknown" in x for x in out["excluded_components"])
+    assert "beef (no amount given)" in out["excluded_components"]
     assert out["aggregate_nutrients"]["calories"] == 500.0   # the rice only
+
+
+async def test_a_typical_portion_is_not_a_unit_a_count_can_multiply(monkeypatch, db):
+    """FNDDS "Quantity not specified" is what OTHER people typically eat."""
+    monkeypatch.setattr(ne, "_portion_from_record", _REAL_PORTION_FROM_RECORD)
+    monkeypatch.setattr(ne, "_portion_cache", {})
+
+    async def detail(fdc_id):
+        return {"portions": [{"description": "Quantity not specified", "gram_weight": 240.0, "amount": 1}]}
+
+    async def pick(text, food, portions):
+        return 0, 2.0
+
+    monkeypatch.setattr(ne, "get_usda_food_detail", detail)
+    monkeypatch.setattr(food_match_verifier, "choose_portion", pick)
+    monkeypatch.setattr(ne, "estimate_nutrients", _estimate({"calories": 100.0}, fdc_id=1, name="Stew"))
+
+    out = await ne.estimate_meal_nutrients(db, "2 stew")
+
+    [c] = out["components"]
+    assert c["counted"] is False and c["qty_text"] == "no amount given"
 
 
 async def test_a_portion_recorded_for_several_units_is_divided(monkeypatch, db):
@@ -106,7 +138,41 @@ async def test_a_portion_recorded_for_several_units_is_divided(monkeypatch, db):
     monkeypatch.setattr(ne, "estimate_nutrients", _estimate({"calories": 309.0}, fdc_id=168199,
                                                               name="Plantains, green, fried"))
 
-    out = await ne.estimate_meal_nutrients(db, "fried plantains")   # no weight stated
+    out = await ne.estimate_meal_nutrients(db, "8 fried plantains")   # a count, no weight
 
     [c] = out["components"]
     assert c["qty_g"] == 42.4
+
+
+def test_a_bracketed_ingredient_with_no_amount_gets_none():
+    """It used to become a guessed teaspoon, tablespoon or 30 g share, counted
+    as if the patient had said it."""
+    comps = parse_meal_text("jollof rice (rice, tomato, palm oil, pepper)")
+    inner = [c for c in comps if c.food_name != "jollof rice"]
+    assert inner and all(c.qty_text == "default" for c in inner), [(c.food_name, c.qty_text) for c in comps]
+
+
+async def test_the_meal_preview_names_an_unweighed_item_instead_of_failing(client, monkeypatch):
+    """`qty_g` was a required float, so a "no amount given" item made
+    /estimate-meal answer 500 — the web pre-save suggestion's endpoint."""
+    async def unweighed(db_, description, **kw):
+        return {"description": description, "aggregate_nutrients": {}, "total_weight_g": None,
+                "warnings": [], "believable": True,
+                "excluded_components": ["smoothie (no amount given)"],
+                "components": [{"food_name": "smoothie", "qty_g": None, "qty_text": "no amount given",
+                                "counted": False, "source": "usda", "fdc_id": 1, "confidence": 1.0,
+                                "nutrients_scaled": {}}]}
+    monkeypatch.setattr("app.api.nutrition.estimate_meal_nutrients", unweighed)
+    import uuid
+    email = f"prev{uuid.uuid4().hex[:6]}@example.com"
+    await client.post("/api/v1/auth/register", json={"email": email, "password": "SecureP@ss123",
+                                                     "full_name": "Prev User", "date_of_birth": "1990-01-01"})
+    tok = (await client.post("/api/v1/auth/login", data={"username": email, "password": "SecureP@ss123"})).json()["access_token"]
+
+    r = await client.post("/api/v1/nutrition/estimate-meal", json={"description": "Smoothie"},
+                          headers={"Authorization": f"Bearer {tok}"})
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["excluded_components"] == ["smoothie (no amount given)"]
+    assert body["components"][0]["qty_g"] is None and body["components"][0]["counted"] is False

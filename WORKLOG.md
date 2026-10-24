@@ -4658,3 +4658,36 @@ cannot show; the prompt now forbids naming a cuisine or origin.
 The food-cache repair is PAUSED: 583 wrong rows removed (backup
 `cache_backup_20261023T102627Z.json`), no meal cleared — the warm phase was
 failing on the same KeyError.
+
+## 2026-10-24 — No assumed portions; re-estimates stop raising alerts
+
+- Operator reported 99+ notifications, all dated 10/23, with no new meal behind
+  them. Cause read from the code: `enrich_log` evaluated alerts after EVERY
+  estimate, and the cache repair re-estimated 304 historical meals through it,
+  so each past day's alerts were written again as "Today's …". `notify` now
+  defaults off; only create, PATCH and the assistant's `log_meal` pass it.
+  Back-dated meals name their date in the alert.
+- Operator withdrew option C: "let user determine". Assumed servings, FNDDS
+  typical portions and the per-100 g enrichment fallback are removed; an item
+  with no amount is "no amount given", not counted, and named on the meal.
+  Web and Android now show that line on a meal with nothing countable (iOS
+  already did).
+- Proven against the old code: 8 new tests fail there; 7 are guards, one
+  (`a newly logged meal still notifies`) fails only on the new argument and is
+  coverage.
+- The placeholder re-estimation plan (dry run 2) is void — it measured
+  assumed portions. Nothing from it was applied.
+- Same day, after "this is a simple instruction": the parser's guessed
+  teaspoon / tablespoon / 30 g for bracketed ingredients, the web preview's
+  single-food fallback and the label path's assumed 100 g are gone too.
+  `/estimate-meal` 500'd on any unweighed item (`qty_g: float` required) —
+  fixed. The engine-level guard `_is_current` refuses a past day for meals,
+  doses and readings. 476 repair alerts deleted from production (approved);
+  #75, #76, #603 kept.
+- Per-item reason on all three clients: an uncounted item with no weight now
+  reads "No amount given — edit the meal to add one." instead of "failed the
+  plausibility check", which was false for it. Machine-translated into 10
+  languages on web, Android and iOS (review files under i18n/review).
+- Verified: web 305/305; iOS BUILD SUCCEEDED; Android assembleDebug (APK
+  32,795,749 bytes, 13:05); i18n catalogs + iOS flag guard 47 passed; the two
+  ratchets still red at their recorded 382 / 119 (58g), unchanged by this.

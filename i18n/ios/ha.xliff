@@ -4519,6 +4519,11 @@
         <target state="translated">Babu gargajiya da ta dace da tsinkayen ku</target>
         <note />
       </trans-unit>
+      <trans-unit id="No amount given — edit the meal to add one." xml:space="preserve">
+        <source>No amount given — edit the meal to add one.</source>
+        <target state="translated">Bakin abinci ba a bayyana — gyara abincin don ƙara ɗaya.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="No conversations yet" xml:space="preserve">
         <source>No conversations yet</source>
         <target state="translated">Babu tattaunawa har yanzu</target>

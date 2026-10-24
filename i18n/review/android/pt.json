@@ -4229,6 +4229,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "no_amount_given": {
+    "source": "No amount given — edit the meal to add one.",
+    "translation": "Nenhuma quantidade informada — edite a refeição para adicionar uma.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "no_assessments_yet_take_a_phq_9_gad_7_or": {
     "source": "No assessments yet.\nTake a PHQ-9, GAD-7, or WHO-5.",
     "translation": "Sem avaliações ainda.\nFaça um PHQ-9, GAD-7 ou WHO-5.",

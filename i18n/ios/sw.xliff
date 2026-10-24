@@ -4519,6 +4519,11 @@
         <target state="translated">Hakuna onyo zinazofanana na kichujio chako</target>
         <note />
       </trans-unit>
+      <trans-unit id="No amount given — edit the meal to add one." xml:space="preserve">
+        <source>No amount given — edit the meal to add one.</source>
+        <target state="translated">Hakuna kiasi — hariri chakula ili kuongeza.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="No conversations yet" xml:space="preserve">
         <source>No conversations yet</source>
         <target state="translated">Hakuna mazungumzo bado</target>

@@ -1705,7 +1705,12 @@ struct MealItemsView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(c.foodName).font(.caption.weight(.semibold))
                             Text(detail(c)).font(.caption2).foregroundStyle(.secondary)
-                            if !c.counted {
+                            // Why it is left out: an item with no amount is not
+                            // a failed figure, and saying so says what to do.
+                            if !c.counted && c.qtyG == nil {
+                                Text("No amount given — edit the meal to add one.")
+                                    .font(.caption2).foregroundStyle(.orange)
+                            } else if !c.counted {
                                 Text("Not counted in the total — this item's figures failed the plausibility check.")
                                     .font(.caption2).foregroundStyle(.orange)
                             }

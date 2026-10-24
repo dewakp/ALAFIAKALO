@@ -1630,6 +1630,7 @@
     "weight_unknown": "peso desconhecido",
     "matched_to": "correspondido a {{name}}",
     "not_counted": "Não contabilizado no total — os valores deste item falharam na verificação de plausibilidade.",
+    "no_amount_given": "Nenhuma quantidade informada — edite a refeição para adicionar uma.",
     "items_are_estimates": "Estimativas. Os valores de cada item vêm do registro mostrado ao lado.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

@@ -5027,6 +5027,33 @@ screen) and its "Apply suggestion" button changed nothing for an AI answer on
 a filled form. It now asks the meal estimator Save uses, and the button
 appears only when pressing it would change the form.
 
+### The patient determines the amount, and a re-estimate is not an event
+
+Operator, 2026-10-24: *"Instead of assuming portion let user determine. If no
+portion size exists — surface the error."* An assumed serving sent a bare
+"Smoothie" to USDA's 864 g "1 medium". Now: a stated COUNT converts through the
+food's own USDA unit; NO amount is "no amount given", not counted and named on
+the meal (`nutrients_excluded`) on all three clients. No per-100 g fallback —
+it stored a 100 g profile as the meal total.
+
+> **`enrich_log(..., notify=True)` only where the patient just gave us
+> something** — create, PATCH, the assistant's `log_meal`. The 2026-10-23 cache
+> repair ran 304 historical meals through it and every past day's alerts fired
+> again as "Today's …". §3az says never retroactively; a repair script is
+> retroactive by definition. The default is OFF so a new caller cannot forget it
+> the noisy way, and a test fails if any script passes `notify=True`.
+>
+> **And the engine refuses the past on its own.** `active_response._is_current`
+> judges only a record dated the patient's today or yesterday (yesterday because
+> `users.timezone` is mostly NULL and UTC runs ahead of the Americas). A rule
+> kept only in the callers is a rule one caller forgets.
+
+Every place that filled in an unstated amount is gone, not just the estimator's:
+the parser's guessed teaspoon / tablespoon / 30 g for a bracketed ingredient,
+the web preview's single-food fallback, the enrichment writer's per-100 g
+fallback. What replaces an assumption is the patient's own history PROPOSED
+for them to confirm — TASKS 25.
+
 ---
 
 ## 6. Reporting

@@ -1630,6 +1630,7 @@
     "weight_unknown": "Gewicht unbekannt",
     "matched_to": "zugeordnet zu {{name}}",
     "not_counted": "Nicht in der Summe enthalten — die Werte dieses Lebensmittels bestanden die Plausibilitätsprüfung nicht.",
+    "no_amount_given": "Keine Menge angegeben — bearbeiten Sie die Mahlzeit, um eine hinzuzufügen.",
     "items_are_estimates": "Schätzungen. Die Werte jedes Lebensmittels stammen aus dem daneben angezeigten Datensatz.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

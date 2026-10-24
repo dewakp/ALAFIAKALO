@@ -131,8 +131,12 @@ function ItemsDisclosure({ log }) {
                   {c.matched_name ? ` · ${t('MealsDiary.matched_to', { name: c.matched_name })}` : ''}
                   {c.source ? ` · ${c.source}` : ''}
                 </div>
+                {/* Why it is left out: an item with no amount is not a failed
+                    figure, and saying so tells the patient what to do. */}
                 {!c.counted && (
-                  <div style={{ color: '#b45309' }}>{t('MealsDiary.not_counted')}</div>
+                  <div style={{ color: '#b45309' }}>
+                    {c.qty_g == null ? t('MealsDiary.no_amount_given') : t('MealsDiary.not_counted')}
+                  </div>
                 )}
               </div>
               <div style={{ fontFamily: 'monospace', whiteSpace: 'nowrap', textAlign: 'right' }}>

@@ -4229,6 +4229,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "no_amount_given": {
+    "source": "No amount given — edit the meal to add one.",
+    "translation": "Bakin abinci ba a bayyana — gyara abincin don ƙara ɗaya.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "no_assessments_yet_take_a_phq_9_gad_7_or": {
     "source": "No assessments yet.\nTake a PHQ-9, GAD-7, or WHO-5.",
     "translation": "Babu kimantawa har yanzu.\nDauki PHQ-9, GAD-7, ko WHO-5.",

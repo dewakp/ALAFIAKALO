@@ -8735,6 +8735,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.no_amount_given": {
+    "source": "No amount given — edit the meal to add one.",
+    "translation": "Aucune quantité indiquée — modifiez le repas pour en ajouter une.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "MealsDiary.no_item_breakdown": {
     "source": "No item breakdown: these figures were entered or imported, not estimated.",
     "translation": "Pas de détail des articles : ces chiffres ont été saisis ou importés, non estimés.",

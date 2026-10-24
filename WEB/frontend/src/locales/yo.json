@@ -1630,6 +1630,7 @@
     "weight_unknown": "ìwọ̀n àìmọ̀",
     "matched_to": "ti dárapọ̀ sí {{name}}",
     "not_counted": "Kò ní ìkan nínú àpapọ̀ — àwọn ìfigúrì ohun yìí kúrò nínú ìdánwò ìfẹ́ẹ́rí.",
+    "no_amount_given": "Iye ko ti fi sile — tun ounjẹ naa lo lati fi iye kun.",
     "items_are_estimates": "Àmètéjádé. Àwọn ìfigúrì ohun kọ̀ọ̀kan wá láti ìwé tí ó wà ní ẹ̀gbẹ́ rẹ̀.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

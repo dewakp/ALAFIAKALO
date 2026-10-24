@@ -4519,6 +4519,11 @@
         <target state="translated">Àkìyèsi Kò Bá Àwọn Àlàfo Rẹ</target>
         <note />
       </trans-unit>
+      <trans-unit id="No amount given — edit the meal to add one." xml:space="preserve">
+        <source>No amount given — edit the meal to add one.</source>
+        <target state="translated">Àìfúnni iye — ṣàtúnṣe oúnje náà láti fi iye kun.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="No conversations yet" xml:space="preserve">
         <source>No conversations yet</source>
         <target state="translated">Ìbátan Kò Sí Nísinsin Yìí</target>

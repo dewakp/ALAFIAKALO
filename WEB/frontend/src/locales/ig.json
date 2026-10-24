@@ -1630,6 +1630,7 @@
     "weight_unknown": "ịnwụ amataghị",
     "matched_to": "jikọtara na {{name}}",
     "not_counted": "Ejikọtaghị na mkpokọta — ihe ndị a nke ihe a dị jụụ na nnwale nkwụ.",
+    "no_amount_given": "Ọnụ ọgụgụ enweghị — dezie nri ahụ ka ị tinye otu.",
     "items_are_estimates": "Atụmatụ. Ọnụ ọgụgụ ihe ọ bụla sitere na ndekọ e gosiri n'akụkụ ya.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

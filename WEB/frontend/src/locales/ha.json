@@ -1630,6 +1630,7 @@
     "weight_unknown": "ba a san nauyi",
     "matched_to": "an daidaita ga {{name}}",
     "not_counted": "Ba a ƙididdige a cikin jimillar — abubuwan wannan abu sun gazawa jerin bincike.",
+    "no_amount_given": "Bakin abinci ba a bayyana — gyara abincin don ƙara ɗaya.",
     "items_are_estimates": "Ƙididdige. Abubuwan kowane abu suna zuwa daga rikodin da aka nuna kusa da shi.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

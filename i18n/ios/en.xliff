@@ -4567,6 +4567,11 @@
         <target state="new">No alerts match your filters</target>
         <note/>
       </trans-unit>
+      <trans-unit id="No amount given — edit the meal to add one." xml:space="preserve">
+        <source>No amount given — edit the meal to add one.</source>
+        <target state="new">No amount given — edit the meal to add one.</target>
+        <note/>
+      </trans-unit>
       <trans-unit id="No conversations yet" xml:space="preserve">
         <source>No conversations yet</source>
         <target state="new">No conversations yet</target>

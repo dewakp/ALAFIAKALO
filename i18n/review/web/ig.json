@@ -8735,6 +8735,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.no_amount_given": {
+    "source": "No amount given — edit the meal to add one.",
+    "translation": "Ọnụ ọgụgụ enweghị — dezie nri ahụ ka ị tinye otu.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "MealsDiary.no_item_breakdown": {
     "source": "No item breakdown: these figures were entered or imported, not estimated.",
     "translation": "Enweghị nkewa ihe: a tinyere ma ọ bụ bubatara ọnụ ọgụgụ ndị a, ọ bụghị atụmatụ.",

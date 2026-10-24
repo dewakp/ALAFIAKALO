@@ -1473,3 +1473,33 @@ Open before building:
 - Stored like knowledge (§3bj): looked up once per resolved food, with source
   and licence, reused for everyone.
 - Web, iOS and Android draw it in the Items view (§3).
+
+## 25. The food model learns from what the patient enters, and the patient verifies what it learned
+
+Operator, 2026-10-24: *"The Alafia model for food is to learn from user input
+and let users verify the learned data — so that food analysis can surface
+accurate identification and quantity over time."* Same day: *"Instead of
+assuming portion let user determine. If no portion size exists — surface the
+error."* Together they define the loop: nothing is assumed, what the patient
+states is learned, and what was learned is PROPOSED back for them to confirm —
+never applied silently.
+
+**Quantity.** An item logged with no amount is "no amount given" and not
+counted (shipped 2026-10-24). The next step offers the patient's OWN history:
+"Smoothie — you usually give 350 ml (stated 4 times). Use it?" Confirming
+writes the amount into the meal as theirs; ignoring leaves it uncounted. Source:
+their earlier meals' stated amounts (`nutrition_log_components.qty_text` /
+`qty_g` where the amount was typed, not resolved), keyed by the parsed name.
+
+**Identification.** What a name resolved to is already stored per item
+(`food_name` → `matched_name`, §3bj). Show it with a confirm/correct control;
+a confirmed pair outranks the lookup for that patient, a corrected one feeds
+the shared store only after agreement (`document_row_judgments`' two-reviewer
+rule, so one slip does not teach everybody). Photo corrections
+(`food_training_samples`) and per-user shorthand ("RCF" = roasted corn flour,
+awaiting the operator's confirmation of the source) are the same loop.
+
+**What exists / what is missing.** Stores: `food_training_samples`,
+`learned_food_nutrients.record_correction(user_id=…)`, `nutrition_log_components`.
+Missing: a verification state (proposed / confirmed / rejected) on the learned
+row, the proposal endpoint, and the confirm UI on web, iOS and Android (§3).

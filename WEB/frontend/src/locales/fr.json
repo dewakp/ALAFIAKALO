@@ -1630,6 +1630,7 @@
     "weight_unknown": "poids inconnu",
     "matched_to": "associé à {{name}}",
     "not_counted": "Non compté dans le total — les chiffres de cet article n'ont pas passé la vérification de plausibilité.",
+    "no_amount_given": "Aucune quantité indiquée — modifiez le repas pour en ajouter une.",
     "items_are_estimates": "Estimations. Les chiffres de chaque article proviennent de la fiche affichée à côté.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

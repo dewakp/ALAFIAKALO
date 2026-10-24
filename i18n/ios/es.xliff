@@ -4519,6 +4519,11 @@
         <target state="translated">Sin alertas que coincidan con tus filtros</target>
         <note />
       </trans-unit>
+      <trans-unit id="No amount given — edit the meal to add one." xml:space="preserve">
+        <source>No amount given — edit the meal to add one.</source>
+        <target state="translated">Sin cantidad — edita la comida para agregar una.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="No conversations yet" xml:space="preserve">
         <source>No conversations yet</source>
         <target state="translated">Sin conversaciones aún</target>

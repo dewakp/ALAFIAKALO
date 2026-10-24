@@ -1630,6 +1630,7 @@
     "weight_unknown": "重量未知",
     "matched_to": "匹配到 {{name}}",
     "not_counted": "未计入总计——此项目的数据未通过合理性检查。",
+    "no_amount_given": "未输入数量 — 编辑餐食以添加数量。",
     "items_are_estimates": "估算值。每个项目的数据来自其旁边显示的记录。",
     "kcal_p_g": "{{calories}} 千卡 · 蛋白质 {{protein_g}} 克"
   },

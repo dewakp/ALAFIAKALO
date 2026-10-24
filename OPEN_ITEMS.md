@@ -5787,3 +5787,47 @@ was the new code, not a correction:
 READER's notes ("tostones or maduros style", "possibly beef or goat", "likely
 soy-based or tamarind-based") because the photo flow copied them into the food
 name, and the parser turns each into an item.
+
+### 58j. Assumed portions withdrawn; re-estimates stopped raising alerts — 2026-10-24
+
+Operator: *"Instead of assuming portion let user determine. If no portion size
+exists — surface the error"*, and on 99+ notifications, all dated 10/23:
+*"last fix created unnecessary sets of notifications … when no notification
+event existed."*
+
+- **No assumed serving, no typical portion, no per-100 g fallback.** An item
+  with NO amount is "no amount given": not counted, named in
+  `nutrients_excluded`, shown as "Not counted: …" on web, iOS and Android —
+  including on a meal where nothing was countable, which used to read only
+  "unavailable" on web and Android. A stated COUNT ("2 eggs") still converts
+  through the food's own USDA unit; FNDDS "Quantity not specified" is refused
+  (it is other people's typical amount). The enrichment writer's single-food
+  fallback is gone: it stored a 100 g profile as the meal total.
+- **Bracketed ingredients too** (operator: "this is a simple instruction"):
+  the parser no longer turns an unstated ingredient into a guessed teaspoon,
+  tablespoon or 30 g share. The web pre-save preview no longer falls back to
+  the single-food endpoint (a 100 g profile of the whole text), and a label
+  with no serving weight reports no weight and scales nothing onto it.
+- **Found while doing it:** `MealComponentResult.qty_g` was a REQUIRED float,
+  so any meal holding a "weight unknown" item made `/estimate-meal` answer 500
+  (live since `e028cb5`). Now optional, and the response carries
+  `excluded_components`.
+- **The alerts.** `enrich_log` evaluated every estimate, and every repair
+  script runs through it, so re-estimating 304 historical meals raised each
+  past day's alerts again, worded "Today's …". `notify` now defaults OFF and is
+  passed only by create, PATCH and the assistant's `log_meal`; Re-analyze and
+  scripts are silent. A back-dated meal's alert names its date.
+- ⚠️ **The placeholder re-estimation plan is void.** Its "after" figures used
+  assumed portions. Re-running history under this rule turns 72% of logged
+  items into "not counted", so many past days become PARTIAL — not applied,
+  operator's decision.
+- **Production cleanup, operator-approved:** 479 nutrition alerts on 10/23,
+  479 distinct keys, dated 2025-05-28 → 2026-10-23. 476 were the repair's
+  (ids 77–552, written 17:47–18:35 ET, none read) and were DELETED; #75, #76
+  (10/22 breakfast) and #603 (10/23 dinner) were real and kept. The two
+  "identical" Free Sugars alerts were 2026-07-29 and 2026-08-05 — both worded
+  "Today's". The dedupe never failed; every past day was simply new to it.
+- **The engine now refuses the past itself.** `_is_current` in
+  `active_response`: a meal, dose or reading dated before the patient's
+  yesterday is not judged, whoever calls. `notify` alone depended on every
+  caller remembering.

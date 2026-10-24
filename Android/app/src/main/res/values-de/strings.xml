@@ -1262,6 +1262,7 @@
     <string name="weight_unknown">Gewicht unbekannt</string>
     <string name="matched_to">zugeordnet zu %1$s</string>
     <string name="not_counted_item">Nicht in der Summe enthalten — die Werte dieses Lebensmittels bestanden die Plausibilitätsprüfung nicht.</string>
+    <string name="no_amount_given">Keine Menge angegeben — bearbeiten Sie die Mahlzeit, um eine hinzuzufügen.</string>
     <string name="items_are_estimates">Schätzungen. Die Werte jedes Lebensmittels stammen aus dem daneben angezeigten Datensatz.</string>
     <string name="could_not_load_this_photo">Dieses Foto konnte nicht geladen werden.</string>
     <string name="download_pdf">PDF herunterladen</string>

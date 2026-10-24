@@ -1630,6 +1630,7 @@
     "weight_unknown": "uzani haujulikani",
     "matched_to": "linalolingana na {{name}}",
     "not_counted": "Halijahesabiwa katika jumla — takwimu za kipengele hiki hazipitii ukaguzi wa uwezekano.",
+    "no_amount_given": "Hakuna kiasi — hariri chakula ili kuongeza.",
     "items_are_estimates": "Kadirio. Takwimu za kila kipengele zinatoka kwa rekodi iliyoonyeshwa karibu nayo.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

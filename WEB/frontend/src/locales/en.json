@@ -1630,6 +1630,7 @@
     "weight_unknown": "weight unknown",
     "matched_to": "matched to {{name}}",
     "not_counted": "Not counted in the total — this item's figures failed the plausibility check.",
+    "no_amount_given": "No amount given — edit the meal to add one.",
     "items_are_estimates": "Estimates. Each item's figures come from the record shown beside it.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

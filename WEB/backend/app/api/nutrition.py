@@ -259,7 +259,8 @@ async def estimate_meal(
             "log_date": body.log_date,
             "meal_type": body.meal_type,
             "food_name": body.description[:500],
-            "serving_size": f"composite meal ({result['total_weight_g']:.0f} g total)",
+            "serving_size": (f"composite meal ({result['total_weight_g']:.0f} g total)"
+                             if result.get("total_weight_g") else "composite meal"),
             # The status is what the clients render, NOT whether calories is
             # null: §3c has all three showing "estimating…"/"unavailable" from
             # this field. Re-analyze wrote the nutrients and left the status at
@@ -267,6 +268,7 @@ async def estimate_meal(
             # resolved kept reporting "unavailable" with correct numbers sitting
             # in the row underneath.
             "nutrient_status": "done" if result.get("aggregate_nutrients") else "failed",
+            "nutrients_excluded": result.get("excluded_components") or None,
         }
         for key in DB_COLUMN_KEYS:
             if key in agg:
@@ -316,7 +318,8 @@ async def estimate_meal(
         description=result["description"],
         components=[MealComponentResult(**c) for c in result["components"]],
         aggregate_nutrients=result["aggregate_nutrients"],
-        total_weight_g=result["total_weight_g"],
+        total_weight_g=result.get("total_weight_g"),
+        excluded_components=result.get("excluded_components") or [],
         log_id=log_id,
     )
 
@@ -745,7 +748,7 @@ async def create_nutrition_log(
     if needs_enrichment:
         # Queued AFTER the response is sent, with its own DB session — the
         # request's session is closed by then.
-        background_tasks.add_task(enrich_log, log.id)
+        background_tasks.add_task(enrich_log, log.id, notify=True)
 
     # Judge it only when the numbers are already in hand. A meal that needs
     # estimation is evaluated at the END of `enrich_log` instead, because the
@@ -997,7 +1000,7 @@ async def update_nutrition_log(
     await db.refresh(log)
 
     if log.nutrient_status == "pending":
-        background_tasks.add_task(enrich_log, log.id)
+        background_tasks.add_task(enrich_log, log.id, notify=True)
 
     return log
 

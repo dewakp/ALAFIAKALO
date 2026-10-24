@@ -1262,6 +1262,7 @@
     <string name="weight_unknown">peso desconocido</string>
     <string name="matched_to">coincide con %1$s</string>
     <string name="not_counted_item">No incluido en el total — las cifras de este elemento no pasaron la verificación de plausibilidad.</string>
+    <string name="no_amount_given">Sin cantidad — edita la comida para agregar una.</string>
     <string name="items_are_estimates">Estimaciones. Las cifras de cada elemento provienen del registro que aparece junto a él.</string>
     <string name="could_not_load_this_photo">No se pudo cargar esta foto.</string>
     <string name="download_pdf">Descargar PDF</string>

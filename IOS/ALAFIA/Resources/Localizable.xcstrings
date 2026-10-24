@@ -55775,6 +55775,70 @@
         }
       }
     },
+    "No amount given — edit the meal to add one." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يتم تحديد كمية — عدّل الوجبة لإضافة كمية."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Menge angegeben — bearbeiten Sie die Mahlzeit, um eine hinzuzufügen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin cantidad — edita la comida para agregar una."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune quantité indiquée — modifiez le repas pour en ajouter une."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bakin abinci ba a bayyana — gyara abincin don ƙara ɗaya."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enweghị ọnụ ọgụgụ — dezie nri ahụ ka ị tinye otu."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma quantidade informada — edite a refeição para adicionar uma."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakuna kiasi — hariri chakula ili kuongeza."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Àìfúnni iye — ṣàtúnṣe oúnje náà láti fi iye kun."
+          }
+        },
+        "zh" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未输入数量 — 编辑餐食以添加数量。"
+          }
+        }
+      }
+    },
     "No Assessments" : {
       "localizations" : {
         "ar" : {

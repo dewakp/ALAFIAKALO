@@ -1262,6 +1262,7 @@
     <string name="weight_unknown">الوزن غير معروف</string>
     <string name="matched_to">مطابق مع %1$s</string>
     <string name="not_counted_item">لم يتم احتسابه في الإجمالي — فشلت أرقام هذا العنصر في فحص المعقولية.</string>
+    <string name="no_amount_given">لم يتم تحديد كمية — عدّل الوجبة لإضافة كمية.</string>
     <string name="items_are_estimates">تقديرات. تأتي أرقام كل عنصر من السجل المعروض بجانبه.</string>
     <string name="could_not_load_this_photo">تعذر تحميل هذه الصورة.</string>
     <string name="download_pdf">تحميل PDF</string>

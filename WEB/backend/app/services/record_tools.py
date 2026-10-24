@@ -1762,7 +1762,7 @@ async def log_meal(
         from app.services.nutrient_enrichment import enrich_log
         import asyncio
 
-        asyncio.ensure_future(enrich_log(log.id))
+        asyncio.ensure_future(enrich_log(log.id, notify=True))
     except Exception:  # noqa: BLE001 — a failed queue must not undo the save
         logger.warning("could not queue enrichment for log %s", log.id, exc_info=True)
 

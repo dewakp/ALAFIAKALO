@@ -8735,6 +8735,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.no_amount_given": {
+    "source": "No amount given — edit the meal to add one.",
+    "translation": "Iye ko ti fi sile — tun ounjẹ naa lo lati fi iye kun.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "MealsDiary.no_item_breakdown": {
     "source": "No item breakdown: these figures were entered or imported, not estimated.",
     "translation": "Kò sí ìpín ohun: àwọn ìfigúrì wọ̀nyí ti wà tàbí ti gba wọ́, kò ṣe àmètéjádé.",

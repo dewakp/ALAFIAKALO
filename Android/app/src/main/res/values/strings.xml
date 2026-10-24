@@ -1283,6 +1283,7 @@
     <string name="weight_unknown">weight unknown</string>
     <string name="matched_to">matched to %1$s</string>
     <string name="not_counted_item">Not counted in the total — this item\'s figures failed the plausibility check.</string>
+    <string name="no_amount_given">No amount given — edit the meal to add one.</string>
     <string name="items_are_estimates">Estimates. Each item\'s figures come from the record shown beside it.</string>
     <string name="could_not_load_this_photo">Could not load this photo.</string>
     <string name="download_pdf">Download PDF</string>

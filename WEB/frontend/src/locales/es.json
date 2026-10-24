@@ -1630,6 +1630,7 @@
     "weight_unknown": "peso desconocido",
     "matched_to": "coincide con {{name}}",
     "not_counted": "No incluido en el total — las cifras de este elemento no pasaron la verificación de plausibilidad.",
+    "no_amount_given": "Sin cantidad — edita la comida para agregar una.",
     "items_are_estimates": "Estimaciones. Las cifras de cada elemento provienen del registro que aparece junto a él.",
     "kcal_p_g": "{{calories}} kcal · P {{protein_g}} g"
   },

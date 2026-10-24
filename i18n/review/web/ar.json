@@ -8735,6 +8735,12 @@
     "status": "machine",
     "translated_on": "2026-09-15"
   },
+  "MealsDiary.no_amount_given": {
+    "source": "No amount given — edit the meal to add one.",
+    "translation": "لم يتم تحديد كمية — عدّل الوجبة لإضافة كمية.",
+    "status": "machine",
+    "translated_on": "2026-10-24"
+  },
   "MealsDiary.no_item_breakdown": {
     "source": "No item breakdown: these figures were entered or imported, not estimated.",
     "translation": "لا يوجد تفصيل للعناصر: تم إدخال هذه الأرقام أو استيرادها، وليست مقدرة.",

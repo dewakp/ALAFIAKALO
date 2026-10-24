@@ -4519,6 +4519,11 @@
         <target state="translated">لا توجد تنبيهات تطابق عوامل التصفية الخاصة بك</target>
         <note />
       </trans-unit>
+      <trans-unit id="No amount given — edit the meal to add one." xml:space="preserve">
+        <source>No amount given — edit the meal to add one.</source>
+        <target state="translated">لم يتم تحديد كمية — عدّل الوجبة لإضافة كمية.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="No conversations yet" xml:space="preserve">
         <source>No conversations yet</source>
         <target state="translated">لا توجد محادثات حتى الآن</target>
