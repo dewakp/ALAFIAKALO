@@ -297,6 +297,39 @@ silently fails.
 > here it is harmless-looking, which is why nobody fixed it. **Add a new dated
 > section at the top; never edit the one below it.**
 
+### 2026-10-24 (2) — TASKS 25: the patient's own amounts, proposed back
+
+Code-only; production is at `ax001_cache_matched_name`, equal to code head, so
+**no migration runs**. Commits `151fea7`, `dafee43` (+ this note).
+
+- **New endpoints:** `GET /nutrition/{id}/missing-amounts` (items the estimate
+  left out for want of an amount, each with the amounts THIS patient typed for
+  that food before) and `POST /nutrition/{id}/amounts` (writes the confirmed or
+  typed amount into the meal's text, re-estimates; 422 + `code` for a count or
+  a non-measure, nothing written). Every meal response gains `needs_amount`.
+- **Parser:** a bracket describes its item unless the patient measured inside
+  it — "(cooked)" and "(ripe with brown spots)" are no longer separate foods.
+  Forward only; stored meals are not re-estimated (operator: leave history).
+- **Clients:** web ships with this deploy; iOS and Android show "Add amounts"
+  only from their next release (the server behaviour applies to them at once).
+- **A stored figure can change:** a meal the patient completes with "Add
+  amounts" is re-estimated, and that may raise a nutrient alert for TODAY or
+  YESTERDAY only (the engine refuses older days).
+
+### 2026-10-24 — `d7bb516`: no assumed portions; re-estimates never alert
+
+Code-only, no migration (prod `ax001`). Revision `alafia-backend-00287-45t`;
+`/api/health` reported `d7bb516`.
+
+- An item with no amount is **not counted** and named on the meal ("no amount
+  given"); assumed servings, FNDDS typical portions, per-100 g fallbacks and
+  guessed spoonfuls for bracketed ingredients are gone. **New meals' totals
+  can be lower than the same meal logged before this** — that is the change.
+- `/estimate-meal` no longer 500s on an unweighed item.
+- Alerts: only a new or edited meal can raise one; the engine refuses any
+  meal, dose or reading dated before the patient's yesterday. **476
+  replayed alerts were deleted from production** (operator-approved).
+
 ### 2026-10-16 (2) — OCR readiness became an operator surface
 
 Follows `4c08ea1` the same day. Code-only; production was already at
